@@ -11,6 +11,7 @@ const DashboardRouteComponent = () => {
 };
 
 export const Route = createFileRoute("/dashboard")({
+	ssr: false,
 	beforeLoad: async () => {
 		const session = await getCachedSession();
 		if (!session?.session) {

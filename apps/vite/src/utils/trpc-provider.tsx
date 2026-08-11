@@ -28,26 +28,36 @@ const getOrCreateWSClient = () => {
 	return wsClientSingleton;
 };
 
-const createLinks = () => [
-	splitLink({
-		condition: (op) => op.type === "subscription",
-		true: wsLink({
-			client: getOrCreateWSClient(),
-			transformer: superjson,
-		}),
-		false: splitLink({
-			condition: (op) => op.input instanceof FormData,
-			true: httpLink({
+const createLinks = () => {
+	if (typeof window === "undefined") {
+		return [
+			httpBatchLink({
 				url: "/api/trpc",
 				transformer: superjson,
 			}),
-			false: httpBatchLink({
-				url: "/api/trpc",
+		];
+	}
+	return [
+		splitLink({
+			condition: (op) => op.type === "subscription",
+			true: wsLink({
+				client: getOrCreateWSClient(),
 				transformer: superjson,
 			}),
+			false: splitLink({
+				condition: (op) => op.input instanceof FormData,
+				true: httpLink({
+					url: "/api/trpc",
+					transformer: superjson,
+				}),
+				false: httpBatchLink({
+					url: "/api/trpc",
+					transformer: superjson,
+				}),
+			}),
 		}),
-	}),
-];
+	];
+};
 
 export const TRPCProvider = ({ children }: { children: React.ReactNode }) => {
 	const [queryClient] = useState(() => new QueryClient());

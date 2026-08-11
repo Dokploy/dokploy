@@ -1,50 +1,43 @@
 # dokploy-vite
 
-Vite + TanStack Router migration of the Dokploy dashboard UI. The Next.js app (`apps/dokploy`) stays intact and keeps serving the backend (tRPC, better-auth, websockets, webhooks). This app is a pure SPA that reuses the existing UI code directly from `apps/dokploy` — components are NOT duplicated.
+TanStack Start migration of the Dokploy dashboard. The Next.js app (`apps/dokploy`) stays intact; this app reuses all its UI code and its backend logic without duplicating either.
 
-## How it works
+## Architecture
 
-- **Aliases** (`vite.config.ts`): `@/*` resolves into `apps/dokploy/*`, so all 380+ components, hooks, lib and utils are consumed from their original location. `~/*` resolves to this app's `src/`.
-- **Next.js shims** (`src/shims/`): `next/link`, `next/router`, `next/navigation`, `next/head`, `next/dynamic`, `next/script` and `nextjs-toploader` are aliased to thin adapters over TanStack Router, so shared components run unmodified.
-- **tRPC**: `@/utils/api` is re-aliased to `src/utils/api.ts` (`createTRPCReact` instead of `createTRPCNext`), same links (ws split + FormData split + superjson).
-- **Auth**: SSR `getServerSideProps` guards were replaced by `beforeLoad` guards using the existing better-auth client (`@/lib/auth-client`) with a 30s session cache (`src/utils/session.ts`).
-- **Routes** (`src/routes/`): file-based TanStack routes mirroring `apps/dokploy/pages`. `/dashboard` is a shared layout route rendering `DashboardLayout` once (it persists across navigations, unlike the pages-router setup).
-- **Dev proxy**: `/api` and every websocket endpoint (`/drawer-logs`, `/terminal`, `/docker-container-*`, `/listen-*`) proxy to the Next custom server on `localhost:3000`.
+Two tiers, one process in production:
 
-## Standalone server (no Next.js)
+- **UI tier (TanStack Start)**: file-based routes in `src/routes/` with **selective SSR** — public pages (login, register, invitation, reset-password) are fully server-rendered (real first paint with content and whitelabel branding), while everything under `/dashboard` is `ssr: false` (pure client, no SSR cost). The document shell (`src/routes/__root.tsx`) SSRs per request with whitelabel title/meta/favicon/customCss loaded from the DB via a server function.
+- **API tier (`server/server.ts`)**: Next-free node server owning tRPC, better-auth, OpenAPI REST, deploy/Stripe/git webhooks (reused from `apps/dokploy/pages/api` through `server/next-compat.ts`), websockets, cron jobs and the deployment worker. Start's server functions never import backend code — they call this tier over loopback HTTP (`/api/branding`, `/api/auth/get-session`), which keeps the UI dev process free of native/server deps.
 
-`server/server.ts` is a Next-free replacement for `apps/dokploy/server/server.ts`. It reuses the entire existing backend from the monorepo:
-
-- **tRPC** (`/api/trpc/*`) and **OpenAPI REST** (`/api/*` catch-all) — the exact same handlers from `apps/dokploy/pages/api`, mounted through a thin Next-API compat adapter (`server/next-compat.ts`) that provides `req.query/body/cookies` and `res.status/json/send/redirect` on plain Node req/res.
-- **better-auth** (`/api/auth/*`) — `toNodeHandler(auth.handler)`, already framework-agnostic.
-- **Webhooks/callbacks** — deploy (github, refreshToken, compose), Stripe (raw body preserved for signature check), GitHub setup/webhook, GitLab/Gitea OAuth callbacks: all reused unchanged via the adapter.
-- **Websockets** — same `setup*WebSocketServer` functions from `apps/dokploy/server/wss`.
-- **Bootstrapping** — same production init (Traefik config, cron jobs, schedules, volume backups, deployment worker) as the original server.
-- **Static SPA** — in production it serves `dist/` with SPA fallback to `index.html` (`server/static.ts`).
+Code reuse (unchanged from the SPA phase): `@/*` aliases into `apps/dokploy/*` (383 components consumed in place), `next/*` shims over TanStack Router in `src/shims/`, `@/utils/api` re-aliased to a `createTRPCReact` client with identical hooks/links.
 
 ## Development
 
-One command — the server embeds Vite in middleware mode, so API + websockets + UI (with HMR) all run same-origin on :3000:
+One command (runs both tiers via concurrently):
 
 ```bash
 pnpm --filter dokploy-vite dev
-# → http://localhost:3000 (no Next involved)
+# [api] API + websockets → :3000
+# [ui]  Start dev (UI + SSR + HMR) → :5173  ← open this one
 ```
 
-Alternative split mode (Vite dev server on :5173 proxying to whichever backend runs on :3000 — the Next custom server or this one):
+Or individually: `dev:api` / `dev:ui`. The Vite dev server proxies `/api` and all websocket paths to `:3000` (rewriting the `origin` header so better-auth accepts it). Note: in dev the two tiers are separate processes because Start's dev server owns the Vite process (it's a full SSR runtime, not an embeddable middleware); in production it's a single process (`server.ts` bridges Start's built handler).
+
+Env loading: the API tier loads `apps/vite/.env` and falls back to `apps/dokploy/.env`. The UI tier intentionally reads no env files — its server functions only talk to the API over loopback, and leaking `NODE_ENV` from a dotfile into `vite build` produces broken dev-mode SSR bundles (`jsxDEV is not a function`).
+
+## Production — single process, no Next
 
 ```bash
-pnpm --filter dokploy dev              # or: nothing, if dev above is running
-pnpm --filter dokploy-vite dev:client  # → :5173
+pnpm --filter dokploy-vite build          # Start build → dist/client + dist/server
+pnpm --filter dokploy-vite build:server   # esbuild → dist-server/*.mjs (server + migration + scripts)
+pnpm --filter dokploy-vite start          # node server on :3000
 ```
 
-The `/api` proxy rewrites the `origin` header to :3000 so better-auth's trusted-origin check passes in split mode.
+`server/server.ts` serves `/api/*` + websockets directly, static assets from `dist/client`, and bridges every other request to Start's built `fetch` handler (`server/start-bridge.ts`) for SSR. Docker: `Dockerfile.vite` at the repo root (image ~1GB vs 4.33GB for the official Next-based image; ~2.6x less memory).
 
-Production: `pnpm --filter dokploy-vite build && pnpm --filter dokploy-vite start` — one process serving API + websockets + static SPA on :3000, no Next.js at runtime.
+## Notes
 
-The server loads `.env` from `apps/vite` first, then falls back to `apps/dokploy/.env`.
-
-## Dropped vs Next (known gaps)
-
-- SSR prefetching (`createServerSideHelpers`) — the SPA fetches on mount instead.
-- Per-page IS_CLOUD / role / permission SSR redirects beyond session checks — components and tRPC procedures still enforce them; route-level guards can be added incrementally in `beforeLoad`.
+- `routeTree.gen.ts` is generated by the Start plugin (ignored by biome).
+- The theme anti-flash script is SSR'd automatically by next-themes — no manual hack.
+- Route-level data preload can be added per route with `loader` + `queryClient.ensureQueryData` (framework-native now).
+- Endgame cleanup (when `apps/dokploy` is retired): move components in, codemod the 35 `useRouter` call sites to native TanStack APIs, delete `src/shims/` and `server/next-compat.ts` (ideally porting API handlers to Hono routes in the same pass).

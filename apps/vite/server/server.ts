@@ -1,10 +1,13 @@
+import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
 	auth,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	getPublicWhitelabelingConfig,
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
@@ -37,6 +40,7 @@ import { setupDeploymentLogsWebSocketServer } from "@/server/wss/listen-deployme
 import { setupTerminalWebSocketServer } from "@/server/wss/terminal";
 import packageInfo from "../package.json";
 import { runNextApiHandler } from "./next-compat";
+import { createStartBridge } from "./start-bridge";
 import { createStaticHandler } from "./static";
 
 config({ path: ".env" });
@@ -62,6 +66,17 @@ const handleApi = async (
 ) => {
 	if (pathname === "/api/health") {
 		return runNextApiHandler(healthHandler, req, res);
+	}
+	if (pathname === "/api/branding") {
+		let config = null;
+		try {
+			config = await getPublicWhitelabelingConfig();
+		} catch {
+			config = null;
+		}
+		res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+		res.end(JSON.stringify(config));
+		return;
 	}
 	if (pathname.startsWith("/api/auth/")) {
 		return authHandler(req, res);
@@ -125,7 +140,7 @@ const startServer = async () => {
 		req: http.IncomingMessage,
 		res: http.ServerResponse,
 		url: URL,
-	) => void = (_req, res) => {
+	) => void | Promise<void> = (_req, res) => {
 		res.writeHead(503, { "content-type": "text/plain" });
 		res.end("UI not ready");
 	};
@@ -137,7 +152,7 @@ const startServer = async () => {
 				await handleApi(req, res, url.pathname);
 				return;
 			}
-			handleUi(req, res, url);
+			await handleUi(req, res, url);
 		} catch (error) {
 			console.error("Request error", error);
 			if (!res.headersSent) {
@@ -148,22 +163,36 @@ const startServer = async () => {
 	});
 
 	if (isProd) {
-		handleUi = createStaticHandler(path.resolve(import.meta.dirname, "../dist"));
-	} else {
-		const { createServer: createViteServer } = await import("vite");
-		const vite = await createViteServer({
-			root: path.resolve(import.meta.dirname, ".."),
-			configFile: path.resolve(import.meta.dirname, "../vite.config.ts"),
-			appType: "spa",
-			server: { middlewareMode: true, hmr: { server } },
-		});
-		handleUi = (req, res) => {
-			vite.middlewares(req, res, () => {
-				res.statusCode = 404;
-				res.end();
-			});
+		const clientDir = path.resolve(import.meta.dirname, "../dist/client");
+		const serverEntry = path.resolve(
+			import.meta.dirname,
+			"../dist/server/server.js",
+		);
+		const staticHandler = createStaticHandler(clientDir);
+		const entry = await import(pathToFileURL(serverEntry).href);
+		const bridge = createStartBridge(entry.default);
+		handleUi = async (req, res, url) => {
+			const pathname = decodeURIComponent(url.pathname);
+			const filePath = path.join(clientDir, pathname);
+			if (
+				pathname !== "/" &&
+				filePath.startsWith(clientDir) &&
+				fs.existsSync(filePath) &&
+				fs.statSync(filePath).isFile()
+			) {
+				staticHandler(req, res, url);
+				return;
+			}
+			await bridge(req, res);
 		};
-		console.log("Vite dev middleware enabled (UI + HMR on this port)");
+		console.log("TanStack Start SSR bridge enabled");
+	} else {
+		handleUi = (_req, res) => {
+			res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+			res.end(
+				"API-only mode: the UI dev server runs separately (pnpm --filter dokploy-vite dev → http://localhost:5173).",
+			);
+		};
 	}
 
 	setupDrawerLogsWebSocketServer(server);

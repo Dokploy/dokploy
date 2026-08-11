@@ -1,6 +1,6 @@
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -17,11 +17,7 @@ const wsPaths = [
 ];
 
 export default defineConfig({
-	plugins: [
-		tanstackRouter({ target: "react", autoCodeSplitting: true }),
-		react(),
-		tailwindcss(),
-	],
+	plugins: [tanstackStart(), react(), tailwindcss()],
 	publicDir: path.resolve(dokployApp, "public"),
 	resolve: {
 		alias: [
