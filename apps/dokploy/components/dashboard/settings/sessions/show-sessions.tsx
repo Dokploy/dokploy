@@ -22,8 +22,11 @@ import { api } from "@/utils/api";
 import { DialogAction } from "@/components/shared/dialog-action";
 
 export const ShowSessions = () => {
-	const { data: sessions, isPending, refetch } =
-		api.user.listSessions.useQuery();
+	const {
+		data: sessions,
+		isPending,
+		refetch,
+	} = api.user.listSessions.useQuery();
 	const { mutateAsync: revoke, isPending: isRevoking } =
 		api.user.revokeSession.useMutation();
 
@@ -160,9 +163,7 @@ const SessionTable = ({
 						{s.ipAddress || "-"}
 					</TableCell>
 					<TableCell className="hidden lg:table-cell max-w-[200px] truncate text-sm text-muted-foreground">
-						{s.userAgent
-							? parseUserAgent(s.userAgent)
-							: "-"}
+						{s.userAgent ? parseUserAgent(s.userAgent) : "-"}
 					</TableCell>
 					<TableCell className="text-sm text-muted-foreground">
 						{format(new Date(s.createdAt), "MMM d, HH:mm")}
