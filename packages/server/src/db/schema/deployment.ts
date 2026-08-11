@@ -233,3 +233,10 @@ export const apiFindAllByType = z.object({
 		"volumeBackup",
 	]),
 });
+
+export const apiFindFailedDeployments = z.object({
+	dateFrom: z.string().datetime().optional(),
+	dateTo: z.string().datetime().optional(),
+	projectId: z.string().optional(),
+	environmentId: z.string().optional(),
+});

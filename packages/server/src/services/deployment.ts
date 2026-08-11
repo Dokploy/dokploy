@@ -10,12 +10,14 @@ import {
 	type apiCreateDeploymentSchedule,
 	type apiCreateDeploymentServer,
 	type apiCreateDeploymentVolumeBackup,
+	type apiFindFailedDeployments,
 	applications,
 	compose,
 	deployments,
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
+import { classifyFailure } from "@dokploy/server/utils/deployment-failure-classifier";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import {
 	execAsync,
@@ -23,7 +25,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import {
 	type Application,
@@ -940,6 +942,185 @@ export const findAllDeploymentsCentralized = async (
 		orderBy: desc(deployments.createdAt),
 		with: centralizedDeploymentsWith,
 	});
+};
+
+// Kept separate from getApplicationIdsInOrg/getComposeIdsInOrg above to avoid
+// touching that existing code path; adds projectId/environmentId filtering.
+type FailedDeploymentIdFilters = { projectId?: string; environmentId?: string };
+
+async function getApplicationIdsForFailedDeployments(
+	orgId: string,
+	accessedServices: string[] | null,
+	filters: FailedDeploymentIdFilters,
+): Promise<string[]> {
+	const conditions = [
+		eq(projects.organizationId, orgId),
+		...(accessedServices !== null
+			? [inArray(applications.applicationId, accessedServices)]
+			: []),
+		...(filters.projectId ? [eq(projects.projectId, filters.projectId)] : []),
+		...(filters.environmentId
+			? [eq(environments.environmentId, filters.environmentId)]
+			: []),
+	];
+	const rows = await db
+		.select({ applicationId: applications.applicationId })
+		.from(applications)
+		.innerJoin(
+			environments,
+			eq(applications.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(and(...conditions));
+	return rows.map((r) => r.applicationId);
+}
+
+async function getComposeIdsForFailedDeployments(
+	orgId: string,
+	accessedServices: string[] | null,
+	filters: FailedDeploymentIdFilters,
+): Promise<string[]> {
+	const conditions = [
+		eq(projects.organizationId, orgId),
+		...(accessedServices !== null
+			? [inArray(compose.composeId, accessedServices)]
+			: []),
+		...(filters.projectId ? [eq(projects.projectId, filters.projectId)] : []),
+		...(filters.environmentId
+			? [eq(environments.environmentId, filters.environmentId)]
+			: []),
+	];
+	const rows = await db
+		.select({ composeId: compose.composeId })
+		.from(compose)
+		.innerJoin(
+			environments,
+			eq(compose.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(and(...conditions));
+	return rows.map((r) => r.composeId);
+}
+
+const readLogTail = async (
+	logPath: string | null,
+	serverId: string | null | undefined,
+) => {
+	if (!logPath) return "";
+	const command = `tail -c 4096 "${logPath}" 2>/dev/null || echo ""`;
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+	return stdout;
+};
+
+// Caps simultaneous SSH connections when classifying a batch of failures.
+const LOG_TAIL_CONCURRENCY = 8;
+
+async function mapWithConcurrency<T, R>(
+	items: T[],
+	limit: number,
+	fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
+	let nextIndex = 0;
+	const worker = async () => {
+		while (nextIndex < items.length) {
+			const current = nextIndex++;
+			results[current] = await fn(items[current] as T);
+		}
+	};
+	await Promise.all(
+		Array.from({ length: Math.min(limit, items.length) }, worker),
+	);
+	return results;
+}
+
+export type FailedDeploymentFilters = z.infer<typeof apiFindFailedDeployments>;
+
+// Same org-wide scope as findAllDeploymentsCentralized, narrowed to failed
+// deployments, each tagged with a classifyFailure() guess from its log tail.
+export const findFailedDeploymentsCentralized = async (
+	orgId: string,
+	accessedServices: string[] | null,
+	filters: FailedDeploymentFilters = {},
+) => {
+	if (accessedServices !== null && accessedServices.length === 0) {
+		return [];
+	}
+
+	const idFilters: FailedDeploymentIdFilters = {
+		projectId: filters.projectId,
+		environmentId: filters.environmentId,
+	};
+
+	const [appIds, compIds] = await Promise.all([
+		getApplicationIdsForFailedDeployments(orgId, accessedServices, idFilters),
+		getComposeIdsForFailedDeployments(orgId, accessedServices, idFilters),
+	]);
+
+	if (appIds.length === 0 && compIds.length === 0) {
+		return [];
+	}
+
+	// createdAt is stored as text via toISOString(); normalize the filters the
+	// same way so the string range comparison below stays valid.
+	const dateFrom = filters.dateFrom
+		? new Date(filters.dateFrom).toISOString()
+		: undefined;
+	const dateTo = filters.dateTo
+		? new Date(filters.dateTo).toISOString()
+		: undefined;
+
+	const serviceConditions = [
+		...(appIds.length > 0 ? [inArray(deployments.applicationId, appIds)] : []),
+		...(compIds.length > 0 ? [inArray(deployments.composeId, compIds)] : []),
+	];
+
+	const conditions = [
+		eq(deployments.status, "error"),
+		serviceConditions.length === 1
+			? serviceConditions[0]
+			: or(...serviceConditions),
+		...(dateFrom ? [gte(deployments.createdAt, dateFrom)] : []),
+		...(dateTo ? [lte(deployments.createdAt, dateTo)] : []),
+	];
+
+	const failed = await db.query.deployments.findMany({
+		where: and(...conditions),
+		orderBy: desc(deployments.createdAt),
+		with: centralizedDeploymentsWith,
+		limit: 200,
+	});
+
+	// Skip further attempts to a server once it's timed out once, so a batch
+	// of failures on one unreachable host doesn't pay the SSH timeout N times.
+	const deadServers = new Set<string>();
+	return mapWithConcurrency(
+		failed,
+		LOG_TAIL_CONCURRENCY,
+		async (deployment) => {
+			const serverId =
+				deployment.buildServer?.serverId ||
+				deployment.server?.serverId ||
+				deployment.application?.server?.serverId ||
+				deployment.compose?.server?.serverId ||
+				null;
+			let logTail = "";
+			if (!serverId || !deadServers.has(serverId)) {
+				try {
+					logTail = await readLogTail(deployment.logPath, serverId);
+				} catch {
+					if (serverId) deadServers.add(serverId);
+				}
+			}
+			const combined = `${deployment.errorMessage ?? ""}\n${logTail}`;
+			const classification = classifyFailure(combined);
+			// Tail end only: the actual failure line is almost always near the end of the log.
+			const rawError = combined.trim().slice(-1000) || null;
+			return { ...deployment, classification, rawError };
+		},
+	);
 };
 
 export const updateDeployment = async (
