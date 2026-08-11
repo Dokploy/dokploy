@@ -6,11 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // addDomainToCompose reads the compose file from disk through loadDockerCompose
 // (existsSync + readFileSync). Mock node:fs so the function runs its real
 // label-generation logic against an in-memory compose spec.
-const composeYaml = `
+const baseComposeYaml = `
 services:
   frigate:
     image: frigate
 `;
+let composeYaml = baseComposeYaml;
 
 vi.mock("node:fs", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:fs")>();
@@ -62,6 +63,7 @@ const serviceLabels = (
 describe("addDomainToCompose enabled filtering", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		composeYaml = baseComposeYaml;
 	});
 
 	it("generates traefik labels for an enabled domain", async () => {
@@ -87,6 +89,55 @@ describe("addDomainToCompose enabled filtering", () => {
 			false,
 		);
 	});
+
+	it.each([
+		[
+			"docker-compose",
+			`services:
+  frigate:
+    image: frigate
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.test-app-1-web.rule=Host(\`frigate.example.com\`)
+      - traefik.http.services.test-app-1-web.loadbalancer.server.port=8971
+      - traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes=/api
+      - custom.label=preserved
+`,
+		],
+		[
+			"stack",
+			`services:
+  frigate:
+    image: frigate
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.test-app-1-web.rule=Host(\`frigate.example.com\`)
+        - traefik.http.services.test-app-1-web.loadbalancer.server.port=8971
+        - traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes=/api
+        - custom.label=preserved
+`,
+		],
+	] as const)(
+		"removes stale labels for a disabled domain from %s rebuilds",
+		async (composeType, staleComposeYaml) => {
+			composeYaml = staleComposeYaml;
+
+			const result = await addDomainToCompose({ ...baseCompose, composeType }, [
+				{ ...baseDomain, enabled: false },
+			]);
+
+			const service = result?.services?.frigate;
+			const labels =
+				composeType === "docker-compose"
+					? service?.labels
+					: service?.deploy?.labels;
+			expect(labels).toContain("custom.label=preserved");
+			expect(
+				(labels as string[]).some((label) => label.includes("test-app-1")),
+			).toBe(false);
+		},
+	);
 
 	it("emits labels only for the enabled domain when both are present", async () => {
 		const result = await addDomainToCompose(baseCompose, [

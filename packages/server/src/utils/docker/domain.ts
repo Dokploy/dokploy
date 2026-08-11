@@ -166,6 +166,25 @@ export const applyComposeFilePatch = async (
 	}
 };
 
+const removeDomainLabels = (
+	labels: DefinitionsService["labels"],
+	appName: string,
+	uniqueConfigKey: number,
+) => {
+	if (!Array.isArray(labels)) return labels;
+
+	const prefixes = [
+		`traefik.http.routers.${appName}-${uniqueConfigKey}-`,
+		`traefik.http.services.${appName}-${uniqueConfigKey}-`,
+		`traefik.http.middlewares.stripprefix-${appName}-${uniqueConfigKey}.`,
+		`traefik.http.middlewares.addprefix-${appName}-${uniqueConfigKey}.`,
+	];
+
+	return labels.filter(
+		(label) => !prefixes.some((prefix) => label.startsWith(prefix)),
+	);
+};
+
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
@@ -198,7 +217,27 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
-	// Disabled domains keep their config but must not produce any traefik labels.
+	for (const domain of domains.filter((d) => !d.enabled)) {
+		if (!domain.serviceName) continue;
+
+		const service = result.services?.[domain.serviceName];
+		if (!service) continue;
+
+		if (compose.composeType === "docker-compose") {
+			service.labels = removeDomainLabels(
+				service.labels,
+				appName,
+				domain.uniqueConfigKey,
+			);
+		} else if (service.deploy) {
+			service.deploy.labels = removeDomainLabels(
+				service.deploy.labels,
+				appName,
+				domain.uniqueConfigKey,
+			);
+		}
+	}
+
 	for (const domain of domains.filter((d) => d.enabled)) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
