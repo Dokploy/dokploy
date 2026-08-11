@@ -1275,6 +1275,13 @@
       "when": 1786400712839,
       "tag": "0181_dashing_havok",
       "breakpoints": true
+    },
+    {
+      "idx": 182,
+      "version": "7",
+      "when": 1786435879438,
+      "tag": "0182_skinny_wild_pack",
+      "breakpoints": true
     }
   ]
 }
