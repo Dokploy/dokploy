@@ -25,10 +25,8 @@ import {
 	Loader2,
 	LogIn,
 	type LucideIcon,
-	Network,
 	Package,
 	Palette,
-	PieChart,
 	Rocket,
 	Server,
 	ShieldCheck,
@@ -37,6 +35,7 @@ import {
 	Trash2,
 	User,
 	Users,
+	Vault,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -204,28 +203,6 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Swarm",
-			url: "/dashboard/swarm",
-			icon: PieChart,
-			// Only enabled for users with access to Docker
-			isEnabled: ({ permissions }) => !!permissions?.docker.read,
-		},
-		{
-			isSingle: true,
-			title: "Networks",
-			url: "/dashboard/networks",
-			icon: Network,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
-		},
-		{
-			isSingle: true,
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
@@ -373,6 +350,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
+		},
+		{
+			isSingle: true,
+			title: "Secrets",
+			url: "/dashboard/settings/secrets",
+			icon: Vault,
+			isEnabled: ({ permissions }) => !!permissions?.vaultProvider.create,
 		},
 		{
 			isSingle: true,

@@ -401,6 +401,13 @@ export const prepareEnvironmentVariables = (
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
 ) => {
+	for (const source of [serviceEnv, projectEnv, environmentEnv]) {
+		if (source?.includes("${{vault.")) {
+			throw new Error(
+				"Unresolved vault reference: call withResolvedVaultRefs() on the entity before preparing environment variables",
+			);
+		}
+	}
 	const projectVars = parse(projectEnv ?? "");
 	const environmentVars = parse(environmentEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
