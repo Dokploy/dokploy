@@ -35,11 +35,11 @@ export const OnboardingLayout = ({ children }: Props) => {
 					</blockquote>
 				</div>
 			</div>
-			<div className="w-full">
-				<div className="flex w-full flex-col justify-center space-y-6 max-w-lg mx-auto">
+			<div className="flex min-h-svh w-full flex-col">
+				<div className="flex w-full flex-1 flex-col justify-center space-y-6 max-w-lg mx-auto py-8">
 					{children}
 				</div>
-				<div className="flex items-center gap-4 justify-center absolute bottom-4 right-4 text-muted-foreground">
+				<div className="mx-auto flex w-full max-w-lg items-center justify-center gap-1 pb-6 text-muted-foreground sm:justify-end">
 					<Button variant="ghost" size="icon">
 						<Link href="https://github.com/dokploy/dokploy">
 							<GithubIcon />

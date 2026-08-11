@@ -62,6 +62,7 @@ import { api } from "@/utils/api";
 import { createColumns } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
+import { HandleForwardAuth } from "./handle-forward-auth";
 
 export type ValidationState = {
 	isLoading: boolean;
@@ -453,6 +454,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 																</Button>
 															</AddDomain>
 														)}
+														{canCreateDomain && type === "application" && (
+															<HandleForwardAuth
+																domainId={item.domainId}
+																applicationId={id}
+															/>
+														)}
 														{canDeleteDomain && (
 															<DialogAction
 																title="Delete Domain"
@@ -619,7 +626,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent className="max-w-xs">
-																{validationState?.error ? (
+																{validationState?.isValid &&
+																validationState?.message ? (
+																	<p>{validationState.message}</p>
+																) : validationState?.error ? (
 																	<div className="flex flex-col gap-1">
 																		<p className="font-medium text-red-500">
 																			Error:

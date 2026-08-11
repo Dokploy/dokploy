@@ -1,4 +1,3 @@
-import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
@@ -7,30 +6,35 @@ import superjson from "superjson";
 import { ShowSwarmContainers } from "@/components/dashboard/swarm/containers/show-swarm-containers";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ServerFilter } from "@/components/shared/server-filter";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
 	return (
-		<div className="space-y-4">
-			<Tabs defaultValue="overview">
-				<TabsList>
-					<TabsTrigger value="overview">Overview</TabsTrigger>
-					<TabsTrigger value="containers">Containers</TabsTrigger>
-				</TabsList>
-				<TabsContent value="overview">
-					<SwarmMonitorCard />
-				</TabsContent>
-				<TabsContent value="containers">
-					<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
-						<div className="rounded-xl bg-background shadow-md p-6">
-							<ShowSwarmContainers />
-						</div>
-					</Card>
-				</TabsContent>
-			</Tabs>
-		</div>
+		<ServerFilter>
+			{(serverId) => (
+				<div className="space-y-4">
+					<Tabs defaultValue="overview">
+						<TabsList>
+							<TabsTrigger value="overview">Overview</TabsTrigger>
+							<TabsTrigger value="containers">Containers</TabsTrigger>
+						</TabsList>
+						<TabsContent value="overview">
+							<SwarmMonitorCard serverId={serverId} />
+						</TabsContent>
+						<TabsContent value="containers">
+							<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+								<div className="rounded-xl bg-background shadow-md p-6">
+									<ShowSwarmContainers serverId={serverId} />
+								</div>
+							</Card>
+						</TabsContent>
+					</Tabs>
+				</div>
+			)}
+		</ServerFilter>
 	);
 };
 
@@ -42,14 +46,6 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	if (IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: false,
-				destination: "/dashboard/home",
-			},
-		};
-	}
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {

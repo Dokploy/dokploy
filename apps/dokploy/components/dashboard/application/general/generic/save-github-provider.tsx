@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 
 const GithubProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -96,6 +97,11 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 
 	const repository = form.watch("repository");
 	const githubId = form.watch("githubId");
+
+	// Enterprise repositories do not live on github.com.
+	const providerUrl =
+		githubProviders?.find((provider) => provider.githubId === githubId)
+			?.githubUrl ?? DEFAULT_GITHUB_URL;
 	const triggerType = form.watch("triggerType");
 
 	const { data: repositories, isPending: isLoadingRepositories } =
@@ -177,6 +183,9 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									<FormLabel>Github Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
 											field.onChange(value);
 											form.setValue("repository", {
 												owner: "",
@@ -189,7 +198,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Github Account" />
+												<SelectValue placeholder="Select a Github Account">
+													{
+														githubProviders?.find(
+															(githubProvider) =>
+																githubProvider.githubId === field.value,
+														)?.gitProvider.name
+													}
+												</SelectValue>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -217,7 +233,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<FormLabel>Repository</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
-												href={`https://github.com/${field.value.owner}/${field.value.repo}`}
+												href={`${providerUrl}/${field.value.owner}/${field.value.repo}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -233,7 +249,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -242,14 +258,19 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 														: isLoadingRepositories
 															? "Loading...."
 															: (repositories?.find(
-																	(repo) => repo.name === field.value.repo,
-																)?.name ?? "Select repository")}
+																	(repo) =>
+																		repo.name === field.value.repo &&
+																		repo.owner.login === field.value.owner,
+																)?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search repository..."
@@ -269,7 +290,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													<CommandGroup>
 														{repositories?.map((repo) => (
 															<CommandItem
-																value={repo.name}
+																value={`${repo.owner.login}/${repo.name}`}
 																key={repo.url}
 																onSelect={() => {
 																	form.setValue("repository", {
@@ -279,8 +300,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 																	form.setValue("branch", "");
 																}}
 															>
-																<span className="flex items-center gap-2">
-																	<span>{repo.name}</span>
+																<span className="flex min-w-0 items-center gap-2">
+																	<span className="truncate">{repo.name}</span>
 																	<span className="text-muted-foreground text-xs">
 																		{repo.owner.login}
 																	</span>
@@ -288,7 +309,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo
+																		repo.name === field.value.repo &&
+																			repo.owner.login === field.value.owner
 																			? "opacity-100"
 																			: "opacity-0",
 																	)}
@@ -320,22 +342,25 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												<Button
 													variant="outline"
 													className={cn(
-														" w-full justify-between !bg-input",
+														" w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
 													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
-															? branches?.find(
+															? (branches?.find(
 																	(branch) => branch.name === field.value,
-																)?.name
+																)?.name ?? field.value)
 															: "Select branch"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search branch..."
@@ -363,7 +388,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 																	form.setValue("branch", branch.name);
 																}}
 															>
-																{branch.name}
+																<span className="truncate">{branch.name}</span>
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
@@ -419,8 +444,12 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										</TooltipProvider>
 									</div>
 									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
+										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
+											field.onChange(value);
+										}}
 										value={field.value}
 									>
 										<FormControl>
@@ -468,14 +497,18 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													className="flex items-center gap-1"
 												>
 													{path}
-													<X
-														className="size-3 cursor-pointer hover:text-destructive"
+													<button
+														type="button"
+														aria-label="Remove watch path"
+														className="inline-flex items-center focus-visible:ring-2"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);
 															field.onChange(newPaths);
 														}}
-													/>
+													>
+														<X className="size-3 cursor-pointer hover:text-destructive" />
+													</button>
 												</Badge>
 											))}
 										</div>
@@ -524,14 +557,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

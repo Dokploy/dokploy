@@ -65,7 +65,7 @@ export const findGitlabById = async (gitlabId: string) => {
 
 export const updateGitlab = async (
 	gitlabId: string,
-	input: Partial<Gitlab>,
+	input: Omit<Partial<Gitlab>, "gitlabId" | "gitProviderId">,
 ) => {
 	return await db
 		.update(gitlab)

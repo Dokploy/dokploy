@@ -3,3 +3,8 @@ node_modules
 .gitignore
 *.md
 dist
+.next
+**/.next
+coverage
+.env*
+**/.env*

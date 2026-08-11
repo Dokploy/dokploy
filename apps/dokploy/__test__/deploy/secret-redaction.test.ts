@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { ExecError } from "@dokploy/server/utils/process/ExecError";
 import { redactSecrets } from "@dokploy/server/utils/process/redactSecrets";
+import { describe, expect, it } from "vitest";
 
 describe("secret redaction", () => {
 	it("redacts S3 credentials from commands", () => {
@@ -31,8 +31,7 @@ describe("secret redaction", () => {
 		const error = new ExecError(
 			'Command failed: rclone ls --s3-secret-access-key="secret-key" ":s3:bucket"',
 			{
-				command:
-					'rclone ls --s3-secret-access-key="secret-key" ":s3:bucket"',
+				command: 'rclone ls --s3-secret-access-key="secret-key" ":s3:bucket"',
 				stderr: 'failed with --s3-secret-access-key="secret-key"',
 				originalError: new Error(
 					'Command failed: rclone ls --s3-secret-access-key="secret-key"',

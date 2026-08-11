@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -98,6 +105,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
+	// Concurrent builds on the local web server
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
 	// Cache Cleanup Configuration
@@ -161,6 +170,11 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheOnCompose: z.boolean().optional(),
 	remoteServersOnly: z.boolean().optional(),
 	enforceSSO: z.boolean().optional(),
+	buildsConcurrency: z.number().int().min(1).max(100).optional(),
+});
+
+export const apiUpdateWebServerBuildsConcurrency = z.object({
+	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
 export const apiAssignDomain = z

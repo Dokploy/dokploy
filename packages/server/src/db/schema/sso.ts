@@ -10,7 +10,7 @@ export const ssoProvider = pgTable("sso_provider", {
 	oidcConfig: text("oidc_config"),
 	samlConfig: text("saml_config"),
 	providerId: text("provider_id").notNull().unique(),
-	userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+	userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
 	organizationId: text("organization_id").references(() => organization.id, {
 		onDelete: "cascade",
 	}),

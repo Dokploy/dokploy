@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApplicationNested } from "@dokploy/server";
-import { unzipDrop } from "@dokploy/server";
+import { assertDropArchiveLimits, unzipDrop } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -32,6 +32,8 @@ const baseApp: ApplicationNested = {
 	railpackVersion: "0.15.4",
 	applicationId: "",
 	previewLabels: [],
+	networkIds: [],
+	detachDokployNetwork: false,
 	createEnvFile: true,
 	bitbucketRepositorySlug: "",
 	herokuVersion: "",
@@ -154,6 +156,50 @@ const baseApp: ApplicationNested = {
 	stopGracePeriodSwarm: null,
 	ulimitsSwarm: null,
 };
+
+const fakeZipEntry = (size: number, compressedSize: number) =>
+	({
+		isDirectory: false,
+		header: { size, compressedSize },
+	}) as AdmZip.IZipEntry;
+
+describe("drop ZIP resource limits", () => {
+	it("rejects oversized compressed uploads before reading them", async () => {
+		const arrayBuffer = vi.fn();
+		const oversizedFile = {
+			size: 256 * 1024 * 1024 + 1,
+			arrayBuffer,
+		} as unknown as File;
+
+		await expect(
+			unzipDrop(oversizedFile, { ...baseApp, appName: "oversized-drop" }),
+		).rejects.toThrow(/256 MiB upload limit/);
+		expect(arrayBuffer).not.toHaveBeenCalled();
+	});
+
+	it("rejects entries with oversized declared output", () => {
+		expect(() =>
+			assertDropArchiveLimits(1024, [
+				fakeZipEntry(256 * 1024 * 1024 + 1, 2 * 1024 * 1024),
+			]),
+		).toThrow(/entry exceeds the 256 MiB limit/);
+	});
+
+	it("rejects suspicious compression ratios before reading entry data", () => {
+		expect(() =>
+			assertDropArchiveLimits(1024, [fakeZipEntry(201 * 1024, 1024)]),
+		).toThrow(/compression ratio limit/);
+	});
+
+	it("rejects archives whose declared expanded size exceeds 1 GiB", () => {
+		const entries = Array.from({ length: 5 }, () =>
+			fakeZipEntry(256 * 1024 * 1024, 2 * 1024 * 1024),
+		);
+		expect(() => assertDropArchiveLimits(1024, entries)).toThrow(
+			/1 GiB expanded-size limit/,
+		);
+	});
+});
 
 /**
  * GHSA-66v7-g3fh-47h3: Remote Code Execution through Path Traversal.
@@ -295,33 +341,22 @@ describe("security: traversal inside BASE_PATH (sandbox escape)", () => {
 		await fs.rm(APPLICATIONS_PATH, { recursive: true, force: true });
 	});
 
-	it("should NOT allow writing outside application directory but inside BASE_PATH", async () => {
+	it("rejects writing outside the application directory but inside BASE_PATH", async () => {
 		const appName = "sandbox-escape";
-
-		const base = APPLICATIONS_PATH.replace("/applications", "");
-		const output = path.join(APPLICATIONS_PATH, appName, "code");
-
-		await fs.mkdir(output, { recursive: true });
-
-		// attacker writes into traefik config inside base
+		const traversalEntry = "../../../traefik/dynamic/evil.yml";
+		const placeholder = "x".repeat(traversalEntry.length);
 		const zip = new AdmZip();
-		zip.addFile(
-			"../../../traefik/dynamic/evil.yml",
-			Buffer.from("pwned: true"),
+		zip.addFile(placeholder, Buffer.from("pwned: true"));
+		let buffer = Buffer.from(zip.toBuffer());
+		buffer = Buffer.from(
+			buffer.toString("binary").split(placeholder).join(traversalEntry),
+			"binary",
 		);
+		const file = new File([buffer as unknown as ArrayBuffer], "exploit.zip");
 
-		const file = new File([zip.toBuffer() as any], "exploit.zip");
-
-		await unzipDrop(file, { ...baseApp, appName });
-
-		const escapedPath = path.join(base, "traefik/dynamic/evil.yml");
-
-		const exists = await fs
-			.readFile(escapedPath)
-			.then(() => true)
-			.catch(() => false);
-
-		expect(exists).toBe(false);
+		await expect(unzipDrop(file, { ...baseApp, appName })).rejects.toThrow(
+			/Path traversal detected.*resolved path escapes output directory/,
+		);
 	});
 });
 

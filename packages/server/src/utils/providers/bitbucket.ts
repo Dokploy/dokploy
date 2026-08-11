@@ -10,7 +10,9 @@ import {
 } from "@dokploy/server/services/bitbucket";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import type { z } from "zod";
+import { createGitAskPassScript } from "../process/secrets";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -36,17 +38,15 @@ export const getBitbucketCloneUrl = (
 		throw new Error("Bitbucket provider is required");
 	}
 
-	if (bitbucketProvider.apiToken) {
-		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
-	}
-
-	// For app passwords, use username:app_password format
-	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+	if (
+		!bitbucketProvider.apiToken &&
+		(!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword)
+	) {
 		throw new Error(
 			"Username and app password are required when not using API token",
 		);
 	}
-	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+	return `https://${repoClone}`;
 };
 
 export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
@@ -124,8 +124,13 @@ export const cloneBitbucketRepository = async ({
 	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
-	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	const username = bitbucket.apiToken
+		? "x-bitbucket-api-token-auth"
+		: bitbucket.bitbucketUsername || "";
+	const credential = bitbucket.apiToken || bitbucket.appPassword;
+	const askPass = createGitAskPassScript(credential, username);
+	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
+	command += `if ! GIT_ASKPASS=${askPass.quotedPath} GIT_TERMINAL_PROMPT=0 git clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress; then rm -rf ${askPass.quotedDir}; exit 1; fi; rm -rf ${askPass.quotedDir};`;
 	return command;
 };
 

@@ -66,7 +66,7 @@ export const findGithubById = async (githubId: string) => {
 
 export const updateGithub = async (
 	githubId: string,
-	input: Partial<Github>,
+	input: Omit<Partial<Github>, "githubId" | "gitProviderId">,
 ) => {
 	return await db
 		.update(github)

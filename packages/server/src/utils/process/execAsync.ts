@@ -1,8 +1,15 @@
 import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
-import { Client } from "ssh2";
+import { quote } from "shell-quote";
+import { Client, type ConnectConfig, type SFTPWrapper } from "ssh2";
 import { ExecError } from "./ExecError";
+import {
+	cleanupSecretTempFiles,
+	type RemoteSecretFile,
+	rewriteSecretTempFilesForRemote,
+	takeSecretTempFilesForCommand,
+} from "./secrets";
 
 // Re-export ExecError for easier imports
 export { ExecError } from "./ExecError";
@@ -13,6 +20,7 @@ export const execAsync = async (
 	command: string,
 	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
 ): Promise<{ stdout: string; stderr: string }> => {
+	const secretFiles = takeSecretTempFilesForCommand(command);
 	try {
 		const result = await execAsyncBase(command, options);
 		return {
@@ -37,6 +45,8 @@ export const execAsync = async (
 			});
 		}
 		throw error;
+	} finally {
+		cleanupSecretTempFiles(secretFiles);
 	}
 };
 
@@ -74,21 +84,16 @@ export const execAsyncStream = (
 		childProcess.stdout?.on("data", (data: Buffer | string) => {
 			const stringData = data.toString();
 			stdoutComplete += stringData;
-			if (onData) {
-				onData(stringData);
-			}
+			onData?.(stringData);
 		});
 
 		childProcess.stderr?.on("data", (data: Buffer | string) => {
 			const stringData = data.toString();
 			stderrComplete += stringData;
-			if (onData) {
-				onData(stringData);
-			}
+			onData?.(stringData);
 		});
 
 		childProcess.on("error", (error) => {
-			console.log(error);
 			reject(
 				new ExecError(`Command execution error: ${error.message}`, {
 					command,
@@ -139,114 +144,181 @@ export const execFileAsync = async (
 	});
 };
 
+const connectSsh = (conn: Client, config: ConnectConfig) =>
+	new Promise<void>((resolve, reject) => {
+		conn.once("ready", resolve).once("error", reject).connect(config);
+	});
+
+const runRemoteCommand = (
+	conn: Client,
+	command: string,
+	serverId: string,
+	onData?: (data: string) => void,
+): Promise<{ stdout: string; stderr: string }> =>
+	new Promise((resolve, reject) => {
+		let stdout = "";
+		let stderr = "";
+		conn.exec(command, (error, stream) => {
+			if (error) {
+				reject(
+					new ExecError(`Remote command execution failed: ${error.message}`, {
+						command,
+						serverId,
+						originalError: error,
+					}),
+				);
+				return;
+			}
+
+			stream
+				.on("close", (code: number) => {
+					if (code === 0) {
+						resolve({ stdout, stderr });
+					} else {
+						reject(
+							new ExecError(`Remote command failed with exit code ${code}`, {
+								command,
+								stdout,
+								stderr,
+								exitCode: code,
+								serverId,
+							}),
+						);
+					}
+				})
+				.on("data", (data: Buffer | string) => {
+					const value = data.toString();
+					stdout += value;
+					onData?.(value);
+				});
+			stream.stderr.on("data", (data: Buffer | string) => {
+				const value = data.toString();
+				stderr += value;
+				onData?.(value);
+			});
+		});
+	});
+
+const openSftp = (conn: Client) =>
+	new Promise<SFTPWrapper>((resolve, reject) => {
+		conn.sftp((error, sftp) => (error ? reject(error) : resolve(sftp)));
+	});
+
+const uploadSecretFile = (
+	sftp: SFTPWrapper,
+	file: RemoteSecretFile,
+): Promise<void> =>
+	new Promise((resolve, reject) => {
+		sftp.fastPut(
+			file.localPath,
+			file.remotePath,
+			{ mode: file.mode },
+			(error) => (error ? reject(error) : resolve()),
+		);
+	});
+
+const stageRemoteSecretFiles = async (
+	conn: Client,
+	serverId: string,
+	files: readonly RemoteSecretFile[],
+) => {
+	const sftp = await openSftp(conn);
+	try {
+		for (const file of files) {
+			await runRemoteCommand(
+				conn,
+				`mkdir -m 700 ${quote([file.remoteDir])}`,
+				serverId,
+			);
+			await uploadSecretFile(sftp, file);
+		}
+	} finally {
+		sftp.end();
+	}
+};
+
 export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
 	onData?: (data: string) => void,
 ): Promise<{ stdout: string; stderr: string }> => {
-	if (!serverId) return { stdout: "", stderr: "" };
-	const server = await findServerById(serverId);
-	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
+	const secretFiles = takeSecretTempFilesForCommand(command);
+	if (!serverId) {
+		cleanupSecretTempFiles(secretFiles);
+		return { stdout: "", stderr: "" };
+	}
 
-	let stdout = "";
-	let stderr = "";
-	return new Promise((resolve, reject) => {
-		const conn = new Client();
+	const conn = new Client();
+	let remoteRoot: string | undefined;
+	try {
+		const server = await findServerById(serverId);
+		if (!server.sshKeyId)
+			throw new Error("No SSH key available for this server");
 
-		sleep(1000);
-		conn
-			.once("ready", () => {
-				conn.exec(command, (err, stream) => {
-					if (err) {
-						onData?.(err.message);
-						reject(
-							new ExecError(`Remote command execution failed: ${err.message}`, {
-								command,
-								serverId,
-								originalError: err,
-							}),
-						);
-						return;
-					}
-					stream
-						.on("close", (code: number, _signal: string) => {
-							conn.end();
-							if (code === 0) {
-								resolve({ stdout, stderr });
-							} else {
-								reject(
-									new ExecError(
-										`Remote command failed with exit code ${code}`,
-										{
-											command,
-											stdout,
-											stderr,
-											exitCode: code,
-											serverId,
-										},
-									),
-								);
-							}
-						})
-						.on("data", (data: string) => {
-							stdout += data.toString();
-							onData?.(data.toString());
-						})
-						.stderr.on("data", (data) => {
-							stderr += data.toString();
-							onData?.(data.toString());
-						});
-				});
-			})
-			.on("error", (err) => {
-				conn.end();
-				if (err.level === "client-authentication") {
-					const technicalDetail = `Error: ${err.message} ${err.level}`;
-					const friendlyMessage = [
-						"",
-						"❌ Couldn't connect to your server — the SSH key was not accepted.",
-						"",
-						"This usually means the key doesn't match what's on the server, or the key format is invalid.",
-						"",
-						`Technical details: ${technicalDetail}`,
-						"",
-						"💡 Hints:",
-						"  • Check that the SSH key you added in Dokploy is the same one installed on the server (e.g. in ~/.ssh/authorized_keys).",
-						"  • Try generating a new SSH key in Dokploy and add only the public key to the server, then try again.",
-						"  • Make sure to follow the instructions on the Setup Server Button on the SSH Keys tab and then click on deployments tab and check the logs for more details.",
-					].join("\n");
-					const errorMsg = `Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`;
-					onData?.(friendlyMessage);
-					reject(
-						new ExecError(
-							`Authentication failed: Invalid SSH private key. ${friendlyMessage}`,
-							{
-								command,
-								serverId,
-								originalError: err,
-							},
-						),
-					);
-				} else {
-					const errorMsg = `SSH connection error: ${err.message}`;
-					onData?.(errorMsg);
-					reject(
-						new ExecError(errorMsg, {
-							command,
-							serverId,
-							originalError: err,
-						}),
-					);
-				}
-			})
-			.connect({
-				host: server.ipAddress,
-				port: server.port,
-				username: server.username,
-				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
-			});
-	});
+		await connectSsh(conn, {
+			host: server.ipAddress,
+			port: server.port,
+			username: server.username,
+			privateKey: server.sshKey?.privateKey,
+			timeout: 99999,
+		});
+
+		let remoteCommand = command;
+		if (secretFiles.length > 0) {
+			const result = await runRemoteCommand(
+				conn,
+				"mktemp -d /tmp/dokploy-secrets-XXXXXX",
+				serverId,
+			);
+			remoteRoot = result.stdout.trim();
+			if (!remoteRoot)
+				throw new Error("Failed to create remote secret directory");
+
+			const rewritten = rewriteSecretTempFilesForRemote(
+				command,
+				secretFiles,
+				remoteRoot,
+			);
+			remoteCommand = rewritten.command;
+			await stageRemoteSecretFiles(conn, serverId, rewritten.files);
+		}
+
+		return await runRemoteCommand(conn, remoteCommand, serverId, onData);
+	} catch (error) {
+		if (error instanceof ExecError) throw error;
+		const sshError = error as Error & { level?: string };
+		if (sshError.level === "client-authentication") {
+			const friendlyMessage = [
+				"",
+				"❌ Couldn't connect to your server, the SSH key was not accepted.",
+				"",
+				"Check that the configured SSH key matches the server and uses a supported format.",
+			].join("\n");
+			onData?.(friendlyMessage);
+			throw new ExecError(
+				`Authentication failed: Invalid SSH private key. ${friendlyMessage}`,
+				{ command, serverId, originalError: sshError },
+			);
+		}
+
+		const message = `SSH connection error: ${sshError.message}`;
+		onData?.(message);
+		throw new ExecError(message, {
+			command,
+			serverId,
+			originalError: sshError,
+		});
+	} finally {
+		if (remoteRoot) {
+			await runRemoteCommand(
+				conn,
+				`rm -rf ${quote([remoteRoot])}`,
+				serverId,
+			).catch(() => undefined);
+		}
+		conn.end();
+		cleanupSecretTempFiles(secretFiles);
+	}
 };
 
 export const sleep = (ms: number) => {

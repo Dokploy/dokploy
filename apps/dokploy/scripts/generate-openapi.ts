@@ -10,6 +10,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
+import packageInfo from "../package.json";
 import { appRouter } from "../server/api/root";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +22,7 @@ async function generateOpenAPI() {
 
 		const openApiDocument = generateOpenApiDocument(appRouter, {
 			title: "Dokploy API",
-			version: "1.0.0",
+			version: packageInfo.version,
 			baseUrl: "https://your-dokploy-instance.com/api",
 			docsUrl: "https://docs.dokploy.com/api",
 			tags: [
@@ -70,7 +71,7 @@ async function generateOpenAPI() {
 			title: "Dokploy API",
 			description:
 				"Complete API documentation for Dokploy - Deploy applications, manage databases, and orchestrate your infrastructure. This API allows you to programmatically manage all aspects of your Dokploy instance.",
-			version: "1.0.0",
+			version: packageInfo.version,
 			contact: {
 				name: "Dokploy Team",
 				url: "https://dokploy.com",

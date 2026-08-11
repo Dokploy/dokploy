@@ -10,6 +10,68 @@ import { quote } from "shell-quote";
 import type { z } from "zod";
 import { createGitAskPassScript } from "../process/secrets";
 
+export const DEFAULT_GITHUB_URL = "https://github.com";
+export const DEFAULT_GITHUB_API_URL = "https://api.github.com";
+
+export const parseGithubBaseUrl = (
+	githubUrl?: string | null,
+): { url: string } | { error: string } => {
+	const raw = githubUrl?.trim();
+	if (!raw) {
+		return { url: DEFAULT_GITHUB_URL };
+	}
+
+	const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw)
+		? raw
+		: `https://${raw}`;
+
+	let parsed: URL;
+	try {
+		parsed = new URL(withScheme);
+	} catch {
+		return { error: `"${raw}" is not a valid URL` };
+	}
+
+	if (parsed.protocol !== "https:") {
+		return { error: "Only https is supported for GitHub instances" };
+	}
+
+	// "acme.ghe.com." resolves the same as "acme.ghe.com", but the trailing dot
+	// would slip past the checks below.
+	if (parsed.hostname.endsWith(".")) {
+		parsed.hostname = parsed.hostname.replace(/\.+$/, "");
+	}
+
+	const { hostname } = parsed;
+
+	if (!hostname.includes(".")) {
+		return { error: `"${hostname}" is not a fully qualified hostname` };
+	}
+
+	return { url: `${parsed.protocol}//${parsed.host}` };
+};
+
+export const normalizeGithubUrl = (githubUrl?: string | null): string => {
+	const result = parseGithubBaseUrl(githubUrl);
+	return "url" in result ? result.url : DEFAULT_GITHUB_URL;
+};
+
+export const deriveGithubApiUrl = (githubUrl?: string | null): string => {
+	const normalized = normalizeGithubUrl(githubUrl);
+	const { protocol, host } = new URL(normalized);
+
+	if (host === "github.com" || host === "www.github.com") {
+		return DEFAULT_GITHUB_API_URL;
+	}
+
+	// Data residency tenants keep the api. prefix; GHES does not have one.
+	if (host === "ghe.com" || host.endsWith(".ghe.com")) {
+		return `${protocol}//api.${host}`;
+	}
+
+	return `${protocol}//${host}/api/v3`;
+};
+
 export const authGithub = (githubProvider: Github): Octokit => {
 	if (!haveGithubRequirements(githubProvider)) {
 		throw new TRPCError({
@@ -25,6 +87,7 @@ export const authGithub = (githubProvider: Github): Octokit => {
 			privateKey: githubProvider?.githubPrivateKey || "",
 			installationId: githubProvider?.githubInstallationId,
 		},
+		baseUrl: deriveGithubApiUrl(githubProvider?.githubUrl),
 	});
 
 	return octokit;
@@ -163,14 +226,15 @@ export const cloneGithubRepository = async ({
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
-	const repoclone = `github.com/${owner}/${repository}.git`;
+	const cloneBase = new URL(normalizeGithubUrl(githubProvider.githubUrl));
+	const repoclone = `${cloneBase.host}/${owner}/${repository}.git`;
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const askPass = createGitAskPassScript(token);
-	const cloneUrl = `https://${repoclone}`;
+	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
-	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
-	command += `if ! GIT_ASKPASS=${askPass.quotedPath} GIT_TERMINAL_PROMPT=0 git clone --branch ${quote([branch || ""])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([cloneUrl])} ${quote([outputPath])} --progress; then rm -rf ${askPass.quotedDir}; exit 1; fi; rm -rf ${askPass.quotedDir};`;
+	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
+	command += `if ! GIT_ASKPASS=${askPass.quotedPath} GIT_TERMINAL_PROMPT=0 git clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress; then rm -rf ${askPass.quotedDir}; exit 1; fi; rm -rf ${askPass.quotedDir};`;
 
 	return command;
 };
@@ -189,6 +253,7 @@ export const getGithubRepositories = async (githubId?: string) => {
 			privateKey: githubProvider.githubPrivateKey,
 			installationId: githubProvider.githubInstallationId,
 		},
+		baseUrl: deriveGithubApiUrl(githubProvider.githubUrl),
 	});
 
 	const repositories = (await octokit.paginate(
@@ -215,6 +280,7 @@ export const getGithubBranches = async (
 			privateKey: githubProvider.githubPrivateKey,
 			installationId: githubProvider.githubInstallationId,
 		},
+		baseUrl: deriveGithubApiUrl(githubProvider.githubUrl),
 	});
 
 	const branches = (await octokit.paginate(octokit.rest.repos.listBranches, {

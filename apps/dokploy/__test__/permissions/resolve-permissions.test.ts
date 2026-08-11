@@ -143,6 +143,24 @@ describe("free-tier resources for member", () => {
 		const perms = await resolvePermissions(ctx);
 		expect(perms.docker.read).toBe(true);
 	});
+
+	it("member gets gitProviders create/delete=false without legacy override", async () => {
+		memberToReturn = mockMemberData("member");
+		const perms = await resolvePermissions(ctx);
+		expect(perms.gitProviders.read).toBe(false);
+		expect(perms.gitProviders.create).toBe(false);
+		expect(perms.gitProviders.delete).toBe(false);
+	});
+
+	it("member gets gitProviders read/create/delete=true with canAccessToGitProviders", async () => {
+		memberToReturn = mockMemberData("member", {
+			canAccessToGitProviders: true,
+		});
+		const perms = await resolvePermissions(ctx);
+		expect(perms.gitProviders.read).toBe(true);
+		expect(perms.gitProviders.create).toBe(true);
+		expect(perms.gitProviders.delete).toBe(true);
+	});
 });
 
 describe("free-tier resources for owner", () => {

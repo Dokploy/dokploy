@@ -1,0 +1,43 @@
+http:
+  routers:
+    app-navigate-neural-array-yp8cdk-router-146:
+      rule: Host(`contracko.com`)
+      service: app-navigate-neural-array-yp8cdk-service-146
+      middlewares:
+        - redirect-to-https
+      entryPoints:
+        - web
+    app-navigate-neural-array-yp8cdk-router-websecure-146:
+      rule: Host(`contracko.com`)
+      service: app-navigate-neural-array-yp8cdk-service-146
+      middlewares:
+        - site-inflight
+      entryPoints:
+        - websecure
+      tls: {}
+    app-navigate-neural-array-yp8cdk-router-150:
+      rule: Host(`www.contracko.com`)
+      service: app-navigate-neural-array-yp8cdk-service-150
+      middlewares:
+        - redirect-to-https
+      entryPoints:
+        - web
+    app-navigate-neural-array-yp8cdk-router-websecure-150:
+      rule: Host(`www.contracko.com`)
+      service: app-navigate-neural-array-yp8cdk-service-150
+      middlewares:
+        - site-inflight
+      entryPoints:
+        - websecure
+      tls: {}
+  services:
+    app-navigate-neural-array-yp8cdk-service-146:
+      loadBalancer:
+        servers:
+          - url: http://app-navigate-neural-array-yp8cdk:3000
+        passHostHeader: true
+    app-navigate-neural-array-yp8cdk-service-150:
+      loadBalancer:
+        servers:
+          - url: http://app-navigate-neural-array-yp8cdk:3000
+        passHostHeader: true

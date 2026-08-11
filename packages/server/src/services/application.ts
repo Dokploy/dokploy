@@ -100,26 +100,36 @@ export const findApplicationById = async (applicationId: string) => {
 	const application = await db.query.applications.findFirst({
 		where: eq(applications.applicationId, applicationId),
 		with: {
-			environment: {
-				with: {
-					project: true,
-				},
-			},
+			environment: { with: { project: true } },
 			domains: true,
 			deployments: true,
 			mounts: true,
 			redirects: true,
 			security: true,
 			ports: true,
-			registry: true,
-			gitlab: true,
-			github: true,
-			bitbucket: true,
-			gitea: true,
+			gitlab: {
+				columns: { secret: false, accessToken: false, refreshToken: false },
+			},
+			github: {
+				columns: {
+					githubClientSecret: false,
+					githubPrivateKey: false,
+					githubWebhookSecret: false,
+				},
+			},
+			bitbucket: { columns: { appPassword: false, apiToken: false } },
+			gitea: {
+				columns: {
+					clientSecret: false,
+					accessToken: false,
+					refreshToken: false,
+				},
+			},
 			server: true,
 			previewDeployments: true,
-			buildRegistry: true,
-			rollbackRegistry: true,
+			registry: { columns: { password: false } },
+			buildRegistry: { columns: { password: false } },
+			rollbackRegistry: { columns: { password: false } },
 		},
 	});
 	if (!application) {
@@ -350,6 +360,10 @@ export const rebuildApplication = async ({
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
+	let githubDeploymentId: number | null = null;
+	const appDomain = application.domains?.[0]
+		? getDomainHost(application.domains[0] as Domain)
+		: undefined;
 
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -358,9 +372,38 @@ export const rebuildApplication = async ({
 	});
 
 	try {
+		if (application.sourceType === "github" && application.githubId) {
+			const commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId,
+			});
+			githubDeploymentId = await createGithubDeployment({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				ref: commitInfo?.hash || application.branch || "main",
+				environment: application.name,
+				description: `Dokploy redeploy of ${application.branch || "main"}`,
+				transient: false,
+			});
+		}
+
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "in_progress",
+				environmentUrl: appDomain,
+			});
+		}
+
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -370,6 +413,17 @@ export const rebuildApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "success",
+				environmentUrl: appDomain,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -398,6 +452,18 @@ export const rebuildApplication = async ({
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
+		if (githubDeploymentId && application.githubId) {
+			await setGithubDeploymentStatus({
+				githubId: application.githubId,
+				owner: application.owner || "",
+				repository: application.repository || "",
+				deploymentId: githubDeploymentId,
+				state: "failure",
+				environmentUrl: appDomain,
+			});
+		}
+
 		throw error;
 	}
 
@@ -638,11 +704,16 @@ export const rebuildPreviewApplication = async ({
 		};
 
 		if (application.sourceType === "github" && application.githubId) {
+			const commitInfo = await getGitCommitInfo({
+				appName: previewDeployment.appName,
+				type: "application",
+				serverId: application.serverId,
+			});
 			githubDeploymentId = await createGithubDeployment({
 				githubId: application.githubId,
 				owner: issueParams.owner,
 				repository: issueParams.repository,
-				ref: previewDeployment.branch,
+				ref: commitInfo?.hash || previewDeployment.branch,
 				environment: `${application.name}-pr-${previewDeployment.pullRequestNumber}`,
 				description: `Dokploy preview rebuild for PR #${previewDeployment.pullRequestNumber}`,
 			});

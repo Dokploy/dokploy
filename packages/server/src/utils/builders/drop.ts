@@ -12,10 +12,59 @@ import {
 } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";
 
+const MAX_DROP_ARCHIVE_BYTES = 256 * 1024 * 1024;
+const MAX_DROP_ENTRY_BYTES = 256 * 1024 * 1024;
+const MAX_DROP_TOTAL_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024;
+const MAX_DROP_ENTRY_COUNT = 10_000;
+const MAX_DROP_COMPRESSION_RATIO = 200;
+
+export const assertDropArchiveLimits = (
+	archiveBytes: number,
+	entries: AdmZip.IZipEntry[],
+) => {
+	if (archiveBytes > MAX_DROP_ARCHIVE_BYTES) {
+		throw new Error("ZIP archive exceeds the 256 MiB upload limit");
+	}
+	if (entries.length > MAX_DROP_ENTRY_COUNT) {
+		throw new Error("ZIP archive contains too many entries");
+	}
+
+	let totalUncompressedBytes = 0;
+	for (const entry of entries) {
+		if (entry.isDirectory) continue;
+		const uncompressedBytes = entry.header.size;
+		const compressedBytes = entry.header.compressedSize;
+		if (
+			!Number.isSafeInteger(uncompressedBytes) ||
+			!Number.isSafeInteger(compressedBytes) ||
+			uncompressedBytes < 0 ||
+			compressedBytes < 0
+		) {
+			throw new Error("ZIP archive contains invalid entry sizes");
+		}
+		if (uncompressedBytes > MAX_DROP_ENTRY_BYTES) {
+			throw new Error("ZIP archive entry exceeds the 256 MiB limit");
+		}
+		if (
+			compressedBytes === 0
+				? uncompressedBytes > 0
+				: uncompressedBytes / compressedBytes > MAX_DROP_COMPRESSION_RATIO
+		) {
+			throw new Error("ZIP archive entry exceeds the compression ratio limit");
+		}
+		totalUncompressedBytes += uncompressedBytes;
+		if (totalUncompressedBytes > MAX_DROP_TOTAL_UNCOMPRESSED_BYTES) {
+			throw new Error("ZIP archive exceeds the 1 GiB expanded-size limit");
+		}
+	}
+};
+
 export const unzipDrop = async (zipFile: File, application: Application) => {
 	let sftp: SFTPWrapper | null = null;
 
 	try {
+		// Reject oversized uploads before copying or parsing attacker-controlled data.
+		assertDropArchiveLimits(zipFile.size, []);
 		const { appName } = application;
 		// Use buildServerId if set, otherwise fall back to serverId
 		// This ensures the code is extracted to the server where the build will run
@@ -34,6 +83,7 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 		const zipEntries = zip
 			.getEntries()
 			.filter((entry) => !entry.entryName.startsWith("__MACOSX"));
+		assertDropArchiveLimits(zipFile.size, zipEntries);
 
 		const rootEntries = zipEntries.filter(
 			(entry) =>
@@ -49,6 +99,7 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 			? rootEntries[0]?.entryName.split("/")[0]
 			: "";
 
+		const resolvedOutputPath = path.resolve(outputPath);
 		if (targetServerId) {
 			sftp = await getSFTPConnection(targetServerId);
 		}
@@ -65,11 +116,18 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 
 			if (!filePath) continue;
 
-			const fullPath = path.join(outputPath, filePath).replace(/\\/g, "/");
-			if (!readValidDirectory(fullPath, application.serverId)) {
+			const resolvedEntryPath = path.resolve(outputPath, filePath);
+			if (
+				resolvedEntryPath !== resolvedOutputPath &&
+				!resolvedEntryPath.startsWith(`${resolvedOutputPath}${path.sep}`)
+			) {
 				throw new Error(
 					`Path traversal detected: resolved path escapes output directory: ${filePath}`,
 				);
+			}
+			const fullPath = resolvedEntryPath.replace(/\\/g, "/");
+			if (!readValidDirectory(fullPath, targetServerId)) {
+				throw new Error(`Invalid ZIP entry path: ${filePath}`);
 			}
 
 			if (isDangerousNode(entry)) {

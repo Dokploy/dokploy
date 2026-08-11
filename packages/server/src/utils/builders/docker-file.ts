@@ -2,6 +2,7 @@ import {
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
+import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
@@ -95,13 +96,13 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		}
 
 		command += `
-echo "Building ${appName}" ;
-cd ${dockerContextPath} || {
-  echo "❌ The path ${dockerContextPath} does not exist" ;
+echo ${quote([`Building ${appName}`])} ;
+cd ${quote([dockerContextPath])} || {
+  echo ${quote([`❌ The path ${dockerContextPath} does not exist`])} ;
   exit 1;
 }
 
-docker ${commandArgs.join(" ")} || {
+docker ${quote(commandArgs)} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }

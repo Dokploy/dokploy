@@ -6,16 +6,16 @@ This fork of [Dokploy/dokploy](https://github.com/Dokploy/dokploy) powers Contra
 
 CI builds, humans deploy. GitHub Actions never reaches production; it only publishes images.
 
-### 1. CI (automatic on push)
+### 1. CI (manual publication)
 
-`.github/workflows/ctd-image.yml` builds an amd64 image on every push to `feat/*`, `fix/*`, or `canary-ctd`, and pushes it to GHCR.
+`.github/workflows/ctd-image.yml` builds and publishes an amd64 image only through an explicit `workflow_dispatch`. Ordinary pushes and pull requests cannot publish candidates.
 
-Two tags per build:
+Two tags are published per approved run:
 
-- **Pinned:** `ghcr.io/budivoogt/dokploy:vX.Y.Z-ctd<sha7>` — use this for rollouts. Immutable.
-- **Rolling:** `ghcr.io/budivoogt/dokploy:<branch-slug>` — tracks the branch tip.
+- **Pinned:** `ghcr.io/budivoogt/dokploy:vX.Y.Z-ctd<sha7>`, use its registry digest for rollouts.
+- **Rolling:** `ghcr.io/budivoogt/dokploy:<branch-slug>`, tracks the dispatched branch tip.
 
-Required repo secret: `GHCR_PAT`, a classic PAT with `write:packages` and `read:packages` on the `budivoogt` namespace.
+The build embeds the candidate tag as `RELEASE_TAG` and records OCI version and revision labels. Required repo secret: `GHCR_PAT`, a classic PAT with `write:packages` and `read:packages` on the `budivoogt` namespace.
 
 ### 2. Deploy (manual, local)
 
@@ -23,7 +23,7 @@ Required repo secret: `GHCR_PAT`, a classic PAT with `write:packages` and `read:
 ./bin/deploy-ctd.sh vX.Y.Z-ctd<sha7>
 ```
 
-The script SSHes to the Hetzner host over Tailscale and runs `docker service update` on the `dokploy` swarm service. Rollback is the same command with a previous tag.
+The script accepts pinned CTD tags only, SSHes to the Hetzner host over Tailscale, and updates both the `dokploy` swarm image and `RELEASE_TAG`. Rollback is the same command with a previous pinned tag.
 
 Environment overrides:
 
@@ -41,9 +41,10 @@ The deploy script already passes `--with-registry-auth`, so either path works.
 
 ## Branch conventions
 
-- `canary` — tracks upstream, don't commit here directly.
-- `fix/preview-teardown-race` — current long-lived fork patch stack on top of the latest upstream release we have adopted. New features branch off this.
-- `feat/*`, `fix/*` — per-change branches. PR against `fix/preview-teardown-race`.
+- `canary` tracks upstream; do not commit there directly.
+- `fix/preview-teardown-race-v0.29.8` is the pre-upgrade source stack retained for provenance.
+- `ctd-3512-dokploy-v02914-upgrade-slice-1-rebase-fork-and-publish` is the local `v0.29.14` candidate branch until the upgrade PR is reviewed.
+- Use ticket branches for fork work so an ordinary push cannot match a publication trigger.
 
 ## Rebasing on upstream
 
@@ -51,11 +52,10 @@ When upstream cuts a new release worth taking:
 
 ```sh
 git fetch upstream
-git checkout fix/preview-teardown-race
-git rebase vX.Y.Z
-# resolve conflicts in packages/server/src/services/application.ts
-# and apps/dokploy/pages/api/deploy/github.ts, the usual suspects
-git push --force-with-lease origin fix/preview-teardown-race
+git switch -c <ticket-branch> <current-fork-tip>
+git rebase --onto vX.Y.Z <previous-upstream-tag> <ticket-branch>
+# Trace every conflict against upstream security intent and retained fork intent.
+# Publish or push only after the candidate gates and explicit approval.
 ```
 
 Then rebuild and redeploy via the steps above.
@@ -65,10 +65,13 @@ Then rebuild and redeploy via the steps above.
 | Area | Files | Why |
 |---|---|---|
 | Preview teardown race fixes | `packages/server/src/services/application.ts`, related | Upstream lost preview deployments under teardown+redeploy races |
-| GitHub Deployments API | `packages/server/src/services/github-deployment.ts`, `application.ts`, `apps/dokploy/pages/api/deploy/github.ts` | Upstream only writes commit statuses; we want the "This branch is being deployed" panel populated |
+| GitHub Deployments API | `packages/server/src/services/github-deployment.ts`, `application.ts`, `apps/dokploy/pages/api/deploy/github.ts` | Upstream only writes commit statuses; we want the "This branch is being deployed" panel populated for deploys and redeploys |
 | GitHub App manifest | `apps/dokploy/components/dashboard/settings/git/github/add-github-provider.tsx` | Adds `deployments: write` for the above |
-| Deploy secret hygiene | `packages/server/src/utils/process/secrets.ts`, provider/build/registry helpers | Keeps deploy tokens and registry passwords out of process arguments |
-| Fork CI | `.github/workflows/ctd-image.yml` | Upstream workflows target their Docker Hub namespace; ours pushes to GHCR |
+| Deploy secret hygiene | `packages/server/src/utils/process/secrets.ts`, `execAsync.ts`, provider/build/registry helpers | Keeps deploy tokens and registry passwords out of process arguments and stages temp files on the actual local or SSH execution host |
+| Hung-job recovery | `apps/dokploy/server/queues/deployments-queue.ts` | Adds a bounded watchdog and status reset on top of upstream's per-server in-memory concurrency model |
+| Traefik TLS without a resolver | `packages/server/src/utils/traefik/domain.ts` | Emits `tls: {}` for custom certificate handling without enabling Let's Encrypt |
+| Fork CI and release identity | `.github/workflows/ctd-image.yml`, `Dockerfile`, `bin/deploy-ctd.sh` | Keeps GHCR publication manual and aligns image, package, API, OCI, and runtime release metadata |
+| Host Traefik config | `ctd-host/` | Versioned backup of hand-managed `/etc/dokploy/traefik/dynamic/` files on `contracko-01`, including the marketing-site `inFlightReq` overload cap; see `ctd-host/README.md` |
 
 ## When to remove this file
 

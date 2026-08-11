@@ -26,7 +26,7 @@ export const RemoveContainerDialog = ({ containerId, serverId }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<DropdownMenuItem
-					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+					className="w-full cursor-pointer text-red-500 hover:text-red-600!"
 					onSelect={(e) => e.preventDefault()}
 				>
 					Remove Container

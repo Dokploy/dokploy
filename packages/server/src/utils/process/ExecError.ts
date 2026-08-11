@@ -21,8 +21,12 @@ export class ExecError extends Error {
 		super(redactSecrets(message));
 		this.name = "ExecError";
 		this.command = redactSecrets(details.command);
-		this.stdout = details.stdout ? redactSecrets(details.stdout) : details.stdout;
-		this.stderr = details.stderr ? redactSecrets(details.stderr) : details.stderr;
+		this.stdout = details.stdout
+			? redactSecrets(details.stdout)
+			: details.stdout;
+		this.stderr = details.stderr
+			? redactSecrets(details.stderr)
+			: details.stderr;
 		this.exitCode = details.exitCode;
 		this.originalError = details.originalError
 			? redactError(details.originalError)

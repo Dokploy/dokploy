@@ -68,8 +68,19 @@ Compose Type: ${composeType} ✅`;
 	return bashCommand;
 };
 
+// Shell control characters that must never appear in a user-provided compose
+// command: they would let it break out of the `docker ${command}` invocation
+// into arbitrary host commands. A normal docker compose CLI line never needs them.
+const UNSAFE_COMPOSE_COMMAND = /[;&|`$(){}<>\n\\]/;
+
 const sanitizeCommand = (command: string) => {
 	const sanitizedCommand = command.trim();
+
+	if (UNSAFE_COMPOSE_COMMAND.test(sanitizedCommand)) {
+		throw new Error(
+			"Invalid characters in compose command: shell control characters are not allowed",
+		);
+	}
 
 	const parts = sanitizedCommand.split(/\s+/);
 
@@ -89,9 +100,9 @@ export const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${appName} -f ${path} up -d --build --remove-orphans`;
+		command = `compose -p ${quote([appName])} -f ${quote([path])} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
-		command = `stack deploy -c ${path} ${appName} --prune --with-registry-auth`;
+		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
 
 	return command;
@@ -128,8 +139,8 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const tempPath = join(tempDir, "env");
 	writeFileSync(tempPath, envFileContent || "", { mode: 0o600 });
 	return `
-touch ${envFilePath};
-install -m 600 ${quote([tempPath])} "${envFilePath}";
+touch ${quote([envFilePath])};
+install -m 600 ${quote([tempPath])} ${quote([envFilePath])};
 rm -rf ${quote([tempDir])};
 	`;
 };
