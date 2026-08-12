@@ -211,6 +211,15 @@ export const LibsqlIcon = ({ className }: Props) => {
 	);
 };
 
+export const DB_ENGINE_ICONS = {
+	postgres: PostgresqlIcon,
+	mariadb: MariadbIcon,
+	mysql: MysqlIcon,
+	mongo: MongodbIcon,
+	redis: RedisIcon,
+	libsql: LibsqlIcon,
+} as const;
+
 export const GitlabIcon = ({ className }: Props) => {
 	return (
 		<svg

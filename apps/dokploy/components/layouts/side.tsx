@@ -23,6 +23,7 @@ import {
 	House,
 	Key,
 	KeyRound,
+	LayoutGrid,
 	Loader2,
 	LogIn,
 	type LucideIcon,
@@ -214,6 +215,14 @@ const MENU: Menu = {
 			icon: BlocksIcon,
 			// Only enabled for users with access to Docker
 			isEnabled: ({ permissions }) => !!permissions?.docker.read,
+		},
+		{
+			isSingle: true,
+			title: "Overview",
+			url: "/dashboard/overview",
+			icon: LayoutGrid,
+			// Only enabled for users with access to services
+			isEnabled: ({ permissions }) => !!permissions?.service.read,
 		},
 		{
 			isSingle: true,
