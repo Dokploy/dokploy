@@ -1,3 +1,4 @@
+import path from "node:path";
 import {
 	CLEANUP_CRON_JOB,
 	checkGPUStatus,
@@ -80,6 +81,32 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+
+/**
+ * Confines a caller-supplied Traefik file path to the Traefik configuration
+ * directory (MAIN_TRAEFIK_PATH). The read/write Traefik file endpoints only
+ * expose files listed under this directory, but the raw path was passed
+ * straight to the filesystem helpers, letting a user with the `traefikFiles`
+ * permission read or overwrite arbitrary files on the host (for example
+ * `/etc/dokploy/.env` or `~/.ssh/authorized_keys`) via an absolute path or
+ * `../` traversal. Reject anything that escapes the directory.
+ */
+const resolveTraefikFilePath = (
+	filePath: string,
+	serverId?: string | null,
+): string => {
+	const { MAIN_TRAEFIK_PATH } = paths(!!serverId);
+	const base = path.resolve(MAIN_TRAEFIK_PATH);
+	const resolved = path.resolve(base, filePath);
+	if (resolved !== base && !resolved.startsWith(`${base}${path.sep}`)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Invalid path: file must be inside the Traefik configuration directory",
+		});
+	}
+	return resolved;
+};
 
 export const settingsRouter = createTRPCRouter({
 	getWebServerSettings: protectedProcedure.query(async () => {
@@ -598,8 +625,9 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
 			await checkPermission(ctx, { traefikFiles: ["write"] });
+			const safePath = resolveTraefikFilePath(input.path, input?.serverId);
 			await writeTraefikConfigInPath(
-				input.path,
+				safePath,
 				input.traefikConfig,
 				input?.serverId,
 			);
@@ -624,7 +652,8 @@ export const settingsRouter = createTRPCRouter({
 				}
 			}
 
-			return readConfigInPath(input.path, input.serverId);
+			const safePath = resolveTraefikFilePath(input.path, input.serverId);
+			return readConfigInPath(safePath, input.serverId);
 		}),
 	getIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
