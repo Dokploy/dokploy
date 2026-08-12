@@ -54,10 +54,16 @@ interface DnsRecordValue {
 interface Props {
 	dnsProviderId: string;
 	zoneId: string;
+	zoneName: string;
 	record?: DnsRecordValue;
 }
 
-export const HandleDnsRecord = ({ dnsProviderId, zoneId, record }: Props) => {
+export const HandleDnsRecord = ({
+	dnsProviderId,
+	zoneId,
+	zoneName,
+	record,
+}: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -102,11 +108,12 @@ export const HandleDnsRecord = ({ dnsProviderId, zoneId, record }: Props) => {
 	const type = form.watch("type");
 
 	const onSubmit = async (data: DnsRecordForm) => {
+		const name = data.name.trim() === "@" ? zoneName : data.name;
 		const payload = {
 			dnsProviderId,
 			zoneId,
 			type: data.type,
-			name: data.name,
+			name,
 			content: data.content,
 			ttl: data.ttl ? Number(data.ttl) : undefined,
 			...(record && { recordId: record.id }),

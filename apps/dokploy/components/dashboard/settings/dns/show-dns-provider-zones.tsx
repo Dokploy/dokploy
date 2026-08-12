@@ -24,9 +24,10 @@ import { HandleDnsRecord } from "./handle-dns-record";
 interface ZoneRecordsProps {
 	dnsProviderId: string;
 	zoneId: string;
+	zoneName: string;
 }
 
-const ZoneRecords = ({ dnsProviderId, zoneId }: ZoneRecordsProps) => {
+const ZoneRecords = ({ dnsProviderId, zoneId, zoneName }: ZoneRecordsProps) => {
 	const utils = api.useUtils();
 	const { data, isLoading, isError, error } =
 		api.dnsProvider.listRecords.useQuery({ dnsProviderId, zoneId });
@@ -71,6 +72,7 @@ const ZoneRecords = ({ dnsProviderId, zoneId }: ZoneRecordsProps) => {
 							<HandleDnsRecord
 								dnsProviderId={dnsProviderId}
 								zoneId={zoneId}
+								zoneName={zoneName}
 								record={record}
 							/>
 						)}
@@ -112,7 +114,11 @@ const ZoneRecords = ({ dnsProviderId, zoneId }: ZoneRecordsProps) => {
 			})}
 			{canWrite && (
 				<div className="pt-1">
-					<HandleDnsRecord dnsProviderId={dnsProviderId} zoneId={zoneId} />
+					<HandleDnsRecord
+						dnsProviderId={dnsProviderId}
+						zoneId={zoneId}
+						zoneName={zoneName}
+					/>
 				</div>
 			)}
 		</div>
@@ -198,6 +204,7 @@ export const ShowDnsProviderZones = ({
 										<ZoneRecords
 											dnsProviderId={dnsProviderId}
 											zoneId={zone.id}
+											zoneName={zone.name}
 										/>
 									)}
 								</div>
