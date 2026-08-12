@@ -871,3 +871,57 @@ export const deleteContainerFile = async (
 		throw error;
 	}
 };
+
+export interface DockerEvent {
+	Type?: string;
+	Action?: string;
+	Actor?: {
+		ID?: string;
+		Attributes?: Record<string, string>;
+	};
+	time?: number;
+}
+
+export const getDockerEvents = async (
+	serverId?: string | null,
+	minutes = 15,
+) => {
+	const until = new Date();
+	const since = new Date(until.getTime() - minutes * 60 * 1000);
+	const command = `docker events --since ${quote([since.toISOString()])} --until ${quote([until.toISOString()])} --format '{{json .}}'`;
+
+	let stdout = "";
+	let stderr = "";
+	if (serverId) {
+		const result = await execAsyncRemote(serverId, command);
+		stdout = result.stdout;
+		stderr = result.stderr;
+	} else {
+		const result = await execAsync(command);
+		stdout = result.stdout;
+		stderr = result.stderr;
+	}
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+	}
+
+	const events: DockerEvent[] = stdout
+		.trim()
+		.split("\n")
+		.filter(Boolean)
+		.map((line) => {
+			try {
+				return JSON.parse(line) as DockerEvent;
+			} catch {
+				return null;
+			}
+		})
+		.filter((event): event is DockerEvent => event !== null)
+		.reverse();
+
+	return {
+		events,
+		fetchedAt: until.toISOString(),
+	};
+};

@@ -10,6 +10,7 @@ import {
 	getContainers,
 	getContainersByAppLabel,
 	getContainersByAppNameMatch,
+	getDockerEvents,
 	getServiceContainersByAppName,
 	getStackContainersByAppName,
 	listContainerFiles,
@@ -423,5 +424,22 @@ export const dockerRouter = createTRPCRouter({
 				resourceId: input.containerId,
 				resourceName: `${input.containerId}:${input.path}`,
 			});
+		}),
+
+	getEvents: withPermission("docker", "read")
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				minutes: z.number().min(1).max(1440).default(15),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getDockerEvents(input.serverId, input.minutes);
 		}),
 });
