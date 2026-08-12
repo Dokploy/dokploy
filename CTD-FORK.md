@@ -77,6 +77,10 @@ Then rebuild and redeploy via the steps above.
 
 Before a candidate with encrypted database columns reaches a shared host, run the synthetic Docker-in-Docker harness in [`ctd-harness/encryption-rollback/`](ctd-harness/encryption-rollback/README.md). It keeps Dokploy on a nested Docker socket, exercises the current and candidate images against disposable Postgres and Redis, records only sanitized marker evidence, and requires explicit approval for synthetic rollback and teardown operations.
 
+## Local API, preview, and queue compatibility rehearsal
+
+Before live rollout, run the synthetic Docker-in-Docker harness in [`ctd-harness/api-preview-queue/`](ctd-harness/api-preview-queue/README.md). It boots the pinned candidate only, exercises Contracko REST request/response shapes, proves preview delete does not resurrect Swarm services, checks queue progress after a failing job, and classifies tracked vs orphan preview services. Evidence is sanitized; teardown requires explicit approval.
+
 ## When to remove this file
 
 When upstream merges equivalents of all the rows above, delete this file, delete `bin/deploy-ctd.sh`, delete `.github/workflows/ctd-image.yml`, and go back to upstream's image + update flow.
