@@ -54,6 +54,14 @@ const networkFormSchema = z
 		attachable: z.boolean(),
 		enableIPv4: z.boolean(),
 		enableIPv6: z.boolean(),
+		mtu: z
+			.string()
+			.refine(
+				(value) =>
+					value === "" ||
+					(/^\d+$/.test(value) && +value >= 68 && +value <= 65535),
+				{ message: "MTU must be a number between 68 and 65535" },
+			),
 		ipamDriver: z.string().optional(),
 		ipamConfig: z.array(ipamConfigEntrySchema),
 	})
@@ -85,6 +93,7 @@ const defaultValues: NetworkFormValues = {
 	attachable: false,
 	enableIPv4: true,
 	enableIPv6: false,
+	mtu: "",
 	ipamDriver: "",
 	ipamConfig: [],
 };
@@ -147,6 +156,7 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 				attachable: data.attachable,
 				enableIPv4: data.enableIPv4,
 				enableIPv6: data.enableIPv6,
+				mtu: data.mtu ? Number(data.mtu) : undefined,
 				ipam: {
 					driver: data.ipamDriver || undefined,
 					config: data.ipamConfig,
@@ -227,6 +237,27 @@ export const HandleNetwork = ({ serverId, children }: HandleNetworkProps) => {
 										<FormDescription className="text-muted-foreground">
 											bridge for single-server containers; overlay for Swarm
 											services.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="mtu"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>MTU (optional)</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="1500"
+												inputMode="numeric"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription className="text-muted-foreground">
+											Maximum transmission unit. Leave empty to use Docker's
+											default.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>

@@ -8,17 +8,33 @@ import {
 import { cn } from "@/lib/utils";
 
 function DropdownMenu({
+	open,
+	defaultOpen,
 	onOpenChange,
 	...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
+	const [uncontrolledOpen, setUncontrolledOpen] = React.useState(
+		defaultOpen ?? false,
+	);
+	const isControlled = open !== undefined;
+	const isOpen = isControlled ? open : uncontrolledOpen;
+
 	return (
 		<DropdownMenuPrimitive.Root
 			data-slot="dropdown-menu"
-			onOpenChange={(open) => {
-				if (!open) {
+			open={isOpen}
+			onOpenChange={(nextOpen) => {
+				// Radix closes menus on window blur, unmounting any dialog rendered inside
+				if (!nextOpen && !document.hasFocus()) {
+					return;
+				}
+				if (!isControlled) {
+					setUncontrolledOpen(nextOpen);
+				}
+				if (!nextOpen) {
 					markNestedPopupClosed();
 				}
-				onOpenChange?.(open);
+				onOpenChange?.(nextOpen);
 			}}
 			{...props}
 		/>

@@ -477,14 +477,18 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1"
 											>
 												{path}
-												<X
-													className="size-3 cursor-pointer hover:text-destructive"
+												<button
+													type="button"
+													aria-label="Remove watch path"
+													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														field.onChange(newPaths);
 													}}
-												/>
+												>
+													<X className="size-3 cursor-pointer hover:text-destructive" />
+												</button>
 											</Badge>
 										))}
 									</div>
@@ -531,14 +535,14 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

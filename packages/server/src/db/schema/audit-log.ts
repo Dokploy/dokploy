@@ -92,4 +92,5 @@ export type AuditResourceType =
 	| "mount"
 	| "application"
 	| "compose"
-	| "network";
+	| "network"
+	| "vaultProvider";

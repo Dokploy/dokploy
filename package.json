@@ -23,7 +23,7 @@
 		"generate:openapi": "pnpm --filter=dokploy run generate:openapi"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.1.1",
+		"@biomejs/biome": "2.5.7",
 		"@types/node": "^24.4.0",
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
