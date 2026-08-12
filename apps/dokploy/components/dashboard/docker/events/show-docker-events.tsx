@@ -365,6 +365,38 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 									Page {table.getState().pagination.pageIndex + 1} of{" "}
 									{table.getPageCount()}
 								</span>
+								<div className="flex items-center gap-2">
+									<span className="text-sm text-muted-foreground">Go to</span>
+									<Input
+										type="number"
+										min={1}
+										max={table.getPageCount()}
+										defaultValue={table.getState().pagination.pageIndex + 1}
+										key={table.getState().pagination.pageIndex}
+										onKeyDown={(e) => {
+											if (e.key !== "Enter") return;
+											const value = Number(
+												(e.target as HTMLInputElement).value,
+											);
+											if (!Number.isFinite(value)) return;
+											const page = Math.min(
+												Math.max(value, 1),
+												table.getPageCount(),
+											);
+											table.setPageIndex(page - 1);
+										}}
+										onBlur={(e) => {
+											const value = Number(e.target.value);
+											if (!Number.isFinite(value)) return;
+											const page = Math.min(
+												Math.max(value, 1),
+												table.getPageCount(),
+											);
+											table.setPageIndex(page - 1);
+										}}
+										className="w-16 h-8"
+									/>
+								</div>
 								<div className="flex gap-2">
 									<Button
 										variant="outline"
