@@ -4,7 +4,9 @@ import type { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowDiskUsage } from "@/components/dashboard/docker/disk-usage/show-disk-usage";
 import { ShowDockerEvents } from "@/components/dashboard/docker/events/show-docker-events";
+import { ShowImages } from "@/components/dashboard/docker/images/show-images";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { ShowVolumes } from "@/components/dashboard/docker/volumes/show-volumes";
 import { ShowNetworks } from "@/components/dashboard/networks/show-networks";
@@ -63,9 +65,11 @@ const Dashboard = () => {
 					<TabsList>
 						<TabsTrigger value="containers">Containers</TabsTrigger>
 						<TabsTrigger value="swarm">Swarm</TabsTrigger>
+						<TabsTrigger value="images">Images</TabsTrigger>
 						<TabsTrigger value="volumes">Volumes</TabsTrigger>
 						<TabsTrigger value="networks">Networks</TabsTrigger>
 						<TabsTrigger value="events">Events</TabsTrigger>
+						<TabsTrigger value="disk-usage">Disk Usage</TabsTrigger>
 					</TabsList>
 					<TabsContent value="containers">
 						<ShowContainers serverId={serverId} />
@@ -92,6 +96,9 @@ const Dashboard = () => {
 							</TabsContent>
 						</Tabs>
 					</TabsContent>
+					<TabsContent value="images">
+						<ShowImages serverId={serverId} />
+					</TabsContent>
 					<TabsContent value="volumes">
 						<ShowVolumes serverId={serverId} />
 					</TabsContent>
@@ -100,6 +107,9 @@ const Dashboard = () => {
 					</TabsContent>
 					<TabsContent value="events">
 						<ShowDockerEvents serverId={serverId} />
+					</TabsContent>
+					<TabsContent value="disk-usage">
+						<ShowDiskUsage serverId={serverId} />
 					</TabsContent>
 				</Tabs>
 			)}
