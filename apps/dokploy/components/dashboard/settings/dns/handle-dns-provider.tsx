@@ -53,7 +53,6 @@ const DnsProviderSchema = z.object({
 	apiToken: z.string(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
-	endpoint: z.string(),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -64,7 +63,6 @@ const defaultValues: DnsProviderForm = {
 	apiToken: "",
 	accessKeyId: "",
 	secretAccessKey: "",
-	endpoint: "",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -79,7 +77,6 @@ const buildConfig = (data: DnsProviderForm) => {
 				providerType: "route53" as const,
 				accessKeyId: data.accessKeyId,
 				secretAccessKey: data.secretAccessKey,
-				endpoint: data.endpoint || undefined,
 			};
 	}
 };
@@ -137,7 +134,6 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 				...(provider.config.providerType === "route53" && {
 					accessKeyId: provider.config.accessKeyId,
 					secretAccessKey: provider.config.secretAccessKey,
-					endpoint: provider.config.endpoint ?? "",
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -315,23 +311,6 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<code>route53:ListResourceRecordSets</code> and{" "}
 												<code>route53:ChangeResourceRecordSets</code> — avoid
 												root account credentials.
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="endpoint"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Endpoint (optional)</FormLabel>
-											<FormControl>
-												<Input placeholder="http://localhost:4566" {...field} />
-											</FormControl>
-											<FormDescription>
-												Only for a LocalStack/API-compatible emulator. Leave
-												empty to use AWS.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

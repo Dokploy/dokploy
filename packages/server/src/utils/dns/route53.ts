@@ -18,7 +18,6 @@ const createClient = (config: Route53Config) =>
 			accessKeyId: config.accessKeyId,
 			secretAccessKey: config.secretAccessKey,
 		},
-		...(config.endpoint && { endpoint: config.endpoint }),
 	});
 
 const stripTrailingDot = (name: string) => name.replace(/\.$/, "");

@@ -18,7 +18,6 @@ export const route53DnsConfigSchema = z.object({
 	providerType: z.literal("route53"),
 	accessKeyId: z.string().trim().min(1),
 	secretAccessKey: z.string().trim().min(1),
-	endpoint: z.string().trim().url().optional(),
 });
 
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
