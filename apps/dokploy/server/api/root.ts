@@ -9,6 +9,7 @@ import { clusterRouter } from "./routers/cluster";
 import { composeRouter } from "./routers/compose";
 import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
+import { dnsProviderRouter } from "./routers/dns-provider";
 import { dockerRouter } from "./routers/docker";
 import { dockerVolumeRouter } from "./routers/docker-volume";
 import { domainRouter } from "./routers/domain";
@@ -69,6 +70,7 @@ export const appRouter = createTRPCRouter({
 	compose: composeRouter,
 	deployment: deploymentRouter,
 	destination: destinationRouter,
+	dnsProvider: dnsProviderRouter,
 	docker: dockerRouter,
 	dockerVolume: dockerVolumeRouter,
 	domain: domainRouter,
