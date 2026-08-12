@@ -19,6 +19,7 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
+	Globe,
 	House,
 	Key,
 	KeyRound,
@@ -369,6 +370,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/secrets",
 			icon: Vault,
 			isEnabled: ({ permissions }) => !!permissions?.vaultProvider.create,
+		},
+		{
+			isSingle: true,
+			title: "DNS Providers",
+			url: "/dashboard/settings/dns",
+			icon: Globe,
+			isEnabled: ({ permissions }) => !!permissions?.dnsProvider.read,
 		},
 		{
 			isSingle: true,

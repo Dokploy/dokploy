@@ -175,6 +175,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway) and where their secrets can be referenced",
 	},
+	dnsProvider: {
+		label: "DNS Providers",
+		description:
+			"Manage DNS providers (Cloudflare, AWS Route53) and create, update, or delete their DNS records",
+	},
 };
 
 /** Descriptions for each action within a resource */
@@ -446,6 +451,25 @@ const ACTION_META: Record<
 				"Edit provider credentials and project/environment assignments",
 		},
 		delete: { label: "Delete", description: "Remove secret providers" },
+	},
+	dnsProvider: {
+		read: {
+			label: "Read",
+			description: "View configured DNS providers and their zones/records",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Connect new DNS providers, test their connection, and create records",
+		},
+		update: {
+			label: "Update",
+			description: "Edit provider credentials and update existing records",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove DNS providers and delete their records",
+		},
 	},
 };
 
