@@ -291,9 +291,13 @@ const parseSizeToBytes = (size: string): number => {
 	return value * (multipliers[unit] || 0);
 };
 
-export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+export const getDockerDiskUsage = async (
+	serverId?: string,
+): Promise<DockerDiskUsageItem[]> => {
 	const command = "docker system df --format '{{json .}}'";
-	const { stdout } = await execAsync(command);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
 
 	const lines = stdout.trim().split("\n").filter(Boolean);
 	return lines.map((line) => {
@@ -307,6 +311,49 @@ export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
 			sizeBytes: parseSizeToBytes(data.Size),
 		};
 	});
+};
+
+export interface DockerBuildCacheItem {
+	id: string;
+	type: string;
+	description: string;
+	size: string;
+	sizeBytes: number;
+	createdSince: string;
+	lastUsedSince: string;
+	usageCount: number;
+	shared: boolean;
+	inUse: boolean;
+}
+
+export const getBuildCache = async (
+	serverId?: string,
+): Promise<DockerBuildCacheItem[]> => {
+	try {
+		const command = "docker system df -v --format '{{json .}}'";
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const diskUsage = JSON.parse(stdout.trim());
+		return ((diskUsage?.BuildCache ?? []) as Record<string, string>[]).map(
+			(entry) => ({
+				id: entry.ID ?? "",
+				type: entry.CacheType ?? "",
+				description: entry.Description ?? "",
+				size: entry.Size ?? "",
+				sizeBytes: parseSizeToBytes(entry.Size ?? ""),
+				createdSince: entry.CreatedSince ?? "",
+				lastUsedSince: entry.LastUsedSince ?? "",
+				usageCount: Number.parseInt(entry.UsageCount ?? "0", 10) || 0,
+				shared: entry.Shared === "true",
+				inUse: entry.InUse === "true",
+			}),
+		);
+	} catch (error) {
+		console.error(error);
+		return [];
+	}
 };
 
 /**
