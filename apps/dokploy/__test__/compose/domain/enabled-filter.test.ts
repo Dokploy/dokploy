@@ -3,24 +3,15 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { addDomainToCompose } from "@dokploy/server/utils/docker/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// addDomainToCompose reads the compose file from disk through loadDockerCompose
-// (existsSync + readFileSync). Mock node:fs so the function runs its real
-// label-generation logic against an in-memory compose spec.
+// With sourceType "raw", addDomainToCompose parses compose.composeFile
+// directly instead of reading from disk, so baseCompose exposes it as a
+// getter that always reflects the current composeYaml for each test case.
 const baseComposeYaml = `
 services:
   frigate:
     image: frigate
 `;
 let composeYaml = baseComposeYaml;
-
-vi.mock("node:fs", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("node:fs")>();
-	return {
-		...actual,
-		existsSync: vi.fn(() => true),
-		readFileSync: vi.fn(() => composeYaml),
-	};
-});
 
 const baseCompose = {
 	appName: "test-app",
@@ -31,6 +22,9 @@ const baseCompose = {
 	isolatedDeployment: false,
 	randomize: false,
 	suffix: "",
+	get composeFile() {
+		return composeYaml;
+	},
 } as unknown as Compose;
 
 const baseDomain: Domain = {
