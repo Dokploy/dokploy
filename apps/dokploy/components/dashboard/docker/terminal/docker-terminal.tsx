@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
+import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
@@ -46,6 +47,8 @@ export const DockerTerminal: React.FC<Props> = ({
 		const ws = new WebSocket(wsUrl);
 
 		const addonAttach = new AttachAddon(ws);
+		const clipboardAddon = new ClipboardAddon();
+		term.loadAddon(clipboardAddon);
 		fixMacOsAltKeys(term);
 		// @ts-ignore
 		term.open(termRef.current);
@@ -55,6 +58,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		addonFit.fit();
 		return () => {
 			ws.readyState === WebSocket.OPEN && ws.close();
+			term.dispose();
 		};
 	}, [containerId, activeWay, id]);
 
