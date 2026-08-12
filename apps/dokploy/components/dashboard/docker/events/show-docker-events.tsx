@@ -1,4 +1,14 @@
-import { Activity, Loader2, RefreshCw } from "lucide-react";
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	getPaginationRowModel,
+	getSortedRowModel,
+	type PaginationState,
+	type SortingState,
+	useReactTable,
+} from "@tanstack/react-table";
+import { Activity, ArrowUpDown, Loader2, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +42,7 @@ interface Props {
 }
 
 type DockerEvent = RouterOutputs["docker"]["getEvents"]["events"][number];
+type EventRow = DockerEvent & { key: string };
 
 const RANGE_OPTIONS = [
 	{ label: "Last 5 minutes", value: 5 },
@@ -73,9 +84,46 @@ const getTypeVariant = (type?: string): BadgeVariant =>
 const getActionVariant = (action?: string): BadgeVariant =>
 	(action && ACTION_VARIANTS[action]) || "blank";
 
+const getResource = (event: DockerEvent) =>
+	event.Actor?.Attributes?.name ?? event.Actor?.ID ?? "-";
+
+const getAttributesText = (event: DockerEvent) => {
+	const attributes = Object.entries(event.Actor?.Attributes ?? {}).filter(
+		([key]) => key !== "name",
+	);
+	return attributes.map(([key, value]) => `${key}=${value}`).join(" ") || "-";
+};
+
+const SortableHeader = ({
+	column,
+	title,
+}: {
+	column: {
+		getIsSorted: () => false | "asc" | "desc";
+		toggleSorting: (asc: boolean) => void;
+	};
+	title: string;
+}) => (
+	<Button
+		variant="ghost"
+		className="-ml-3 h-8"
+		onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+	>
+		{title}
+		<ArrowUpDown className="ml-2 size-4" />
+	</Button>
+);
+
 export const ShowDockerEvents = ({ serverId }: Props) => {
 	const [minutes, setMinutes] = useState(15);
 	const [search, setSearch] = useState("");
+	const [sorting, setSorting] = useState<SortingState>([
+		{ id: "time", desc: true },
+	]);
+	const [pagination, setPagination] = useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 15,
+	});
 
 	const { data, isLoading, isRefetching, refetch, error } =
 		api.docker.getEvents.useQuery({
@@ -83,7 +131,14 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 			minutes,
 		});
 
-	const events = data?.events ?? [];
+	const events = useMemo<EventRow[]>(
+		() =>
+			(data?.events ?? []).map((event, index) => ({
+				...event,
+				key: `${event.time}-${event.Action}-${index}`,
+			})),
+		[data],
+	);
 
 	const filteredEvents = useMemo(() => {
 		if (!search.trim()) return events;
@@ -97,6 +152,96 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 			);
 		});
 	}, [events, search]);
+
+	const columns = useMemo<ColumnDef<EventRow>[]>(
+		() => [
+			{
+				id: "time",
+				accessorFn: (event) => event.time ?? 0,
+				header: ({ column }) => <SortableHeader column={column} title="Time" />,
+				cell: ({ row }) => (
+					<span className="text-xs text-muted-foreground whitespace-nowrap">
+						{row.original.time
+							? new Date(row.original.time * 1000).toLocaleTimeString()
+							: "-"}
+					</span>
+				),
+			},
+			{
+				id: "type",
+				accessorFn: (event) => event.Type ?? "",
+				header: ({ column }) => <SortableHeader column={column} title="Type" />,
+				cell: ({ row }) => (
+					<Badge variant={getTypeVariant(row.original.Type)}>
+						{row.original.Type ?? "unknown"}
+					</Badge>
+				),
+			},
+			{
+				id: "action",
+				accessorFn: (event) => event.Action ?? "",
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Action" />
+				),
+				cell: ({ row }) => (
+					<Badge variant={getActionVariant(row.original.Action)}>
+						{row.original.Action ?? "-"}
+					</Badge>
+				),
+			},
+			{
+				id: "resource",
+				accessorFn: (event) => getResource(event),
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Resource" />
+				),
+				cell: ({ row }) => {
+					const resource = getResource(row.original);
+					return (
+						<div
+							className="max-w-[220px] truncate font-mono text-xs"
+							title={resource}
+						>
+							{resource}
+						</div>
+					);
+				},
+			},
+			{
+				id: "attributes",
+				accessorFn: (event) => getAttributesText(event),
+				header: "Attributes",
+				enableSorting: false,
+				cell: ({ row }) => {
+					const attributesText = getAttributesText(row.original);
+					return (
+						<div
+							className="max-w-[360px] truncate text-xs text-muted-foreground"
+							title={attributesText}
+						>
+							{attributesText}
+						</div>
+					);
+				},
+			},
+		],
+		[],
+	);
+
+	const table = useReactTable({
+		data: filteredEvents,
+		columns,
+		getRowId: (row) => row.key,
+		state: {
+			sorting,
+			pagination,
+		},
+		onSortingChange: setSorting,
+		onPaginationChange: setPagination,
+		getCoreRowModel: getCoreRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+	});
 
 	return (
 		<div className="w-full">
@@ -135,7 +280,10 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 							<Input
 								placeholder="Filter by type, action or name..."
 								value={search}
-								onChange={(e) => setSearch(e.target.value)}
+								onChange={(e) => {
+									setSearch(e.target.value);
+									setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+								}}
 								className="max-w-xs"
 							/>
 							<Select
@@ -157,19 +305,26 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 						<div className="rounded-md border overflow-x-auto">
 							<Table>
 								<TableHeader>
-									<TableRow>
-										<TableHead className="w-[110px]">Time</TableHead>
-										<TableHead className="w-[100px]">Type</TableHead>
-										<TableHead className="w-[110px]">Action</TableHead>
-										<TableHead>Resource</TableHead>
-										<TableHead>Attributes</TableHead>
-									</TableRow>
+									{table.getHeaderGroups().map((headerGroup) => (
+										<TableRow key={headerGroup.id}>
+											{headerGroup.headers.map((header) => (
+												<TableHead key={header.id}>
+													{header.isPlaceholder
+														? null
+														: flexRender(
+																header.column.columnDef.header,
+																header.getContext(),
+															)}
+												</TableHead>
+											))}
+										</TableRow>
+									))}
 								</TableHeader>
 								<TableBody>
 									{isLoading ? (
 										<TableRow>
 											<TableCell
-												colSpan={5}
+												colSpan={columns.length}
 												className="h-24 text-center text-muted-foreground"
 											>
 												<div className="flex flex-row items-center justify-center gap-2">
@@ -178,56 +333,23 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 												</div>
 											</TableCell>
 										</TableRow>
-									) : filteredEvents.length ? (
-										filteredEvents.map((event: DockerEvent, index: number) => {
-											const attributes = Object.entries(
-												event.Actor?.Attributes ?? {},
-											).filter(([key]) => key !== "name");
-											const attributesText =
-												attributes
-													.map(([key, value]) => `${key}=${value}`)
-													.join(" ") || "-";
-											const resource =
-												event.Actor?.Attributes?.name ?? event.Actor?.ID ?? "-";
-
-											return (
-												<TableRow
-													key={`${event.time}-${event.Action}-${index}`}
-												>
-													<TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-														{event.time
-															? new Date(event.time * 1000).toLocaleTimeString()
-															: "-"}
+									) : table.getRowModel().rows?.length ? (
+										table.getRowModel().rows.map((row) => (
+											<TableRow key={row.id}>
+												{row.getVisibleCells().map((cell) => (
+													<TableCell key={cell.id}>
+														{flexRender(
+															cell.column.columnDef.cell,
+															cell.getContext(),
+														)}
 													</TableCell>
-													<TableCell>
-														<Badge variant={getTypeVariant(event.Type)}>
-															{event.Type ?? "unknown"}
-														</Badge>
-													</TableCell>
-													<TableCell>
-														<Badge variant={getActionVariant(event.Action)}>
-															{event.Action ?? "-"}
-														</Badge>
-													</TableCell>
-													<TableCell
-														className="max-w-[220px] truncate font-mono text-xs"
-														title={resource}
-													>
-														{resource}
-													</TableCell>
-													<TableCell
-														className="max-w-[360px] truncate text-xs text-muted-foreground"
-														title={attributesText}
-													>
-														{attributesText}
-													</TableCell>
-												</TableRow>
-											);
-										})
+												))}
+											</TableRow>
+										))
 									) : (
 										<TableRow>
 											<TableCell
-												colSpan={5}
+												colSpan={columns.length}
 												className="h-24 text-center text-muted-foreground"
 											>
 												No events found in the selected time range.
@@ -237,6 +359,32 @@ export const ShowDockerEvents = ({ serverId }: Props) => {
 								</TableBody>
 							</Table>
 						</div>
+						{table.getPageCount() > 1 && (
+							<div className="flex items-center justify-end gap-4">
+								<span className="text-sm text-muted-foreground">
+									Page {table.getState().pagination.pageIndex + 1} of{" "}
+									{table.getPageCount()}
+								</span>
+								<div className="flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.previousPage()}
+										disabled={!table.getCanPreviousPage()}
+									>
+										Previous
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.nextPage()}
+										disabled={!table.getCanNextPage()}
+									>
+										Next
+									</Button>
+								</div>
+							</div>
+						)}
 					</CardContent>
 				</div>
 			</Card>
