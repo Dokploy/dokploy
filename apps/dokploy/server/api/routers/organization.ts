@@ -17,15 +17,52 @@ import {
 	user,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+
+const parseOrganizationMetadata = (metadata: string | null) => {
+	if (!metadata) {
+		return {} as Record<string, unknown>;
+	}
+
+	try {
+		const parsed = JSON.parse(metadata);
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+			? (parsed as Record<string, unknown>)
+			: ({} as Record<string, unknown>);
+	} catch {
+		return {} as Record<string, unknown>;
+	}
+};
+
+const stringifyOrganizationMetadata = (
+	metadata: Record<string, unknown>,
+	description?: string,
+) => {
+	const nextMetadata = { ...metadata };
+	const normalizedDescription = description?.trim();
+
+	if (normalizedDescription) {
+		nextMetadata.description = normalizedDescription;
+	} else {
+		delete nextMetadata.description;
+	}
+
+	return Object.keys(nextMetadata).length > 0
+		? JSON.stringify(nextMetadata)
+		: null;
+};
+
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
 			z.object({
 				name: z.string(),
 				logo: z.string().optional(),
+				description: z.string().max(280).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const normalizedDescription = input.description?.trim();
+
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -40,7 +77,9 @@ export const organizationRouter = createTRPCRouter({
 			const result = await db
 				.insert(organization)
 				.values({
-					...input,
+					name: input.name,
+					logo: input.logo,
+					metadata: stringifyOrganizationMetadata({}, input.description),
 					slug: nanoid(),
 					createdAt: new Date(),
 					ownerId: ctx.user.id,
@@ -71,6 +110,9 @@ export const organizationRouter = createTRPCRouter({
 				resourceType: "organization",
 				resourceId: result.id,
 				resourceName: result.name,
+				metadata: normalizedDescription
+					? { description: normalizedDescription }
+					: undefined,
 			});
 			return result;
 		}),
@@ -128,6 +170,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 				name: z.string(),
 				logo: z.string().optional(),
+				description: z.string().max(280).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -175,6 +218,10 @@ export const organizationRouter = createTRPCRouter({
 				.set({
 					name: input.name,
 					logo: input.logo,
+					metadata: stringifyOrganizationMetadata(
+						parseOrganizationMetadata(org.metadata),
+						input.description,
+					),
 				})
 				.where(eq(organization.id, input.organizationId))
 				.returning();
@@ -183,6 +230,7 @@ export const organizationRouter = createTRPCRouter({
 				resourceType: "organization",
 				resourceId: input.organizationId,
 				resourceName: input.name,
+				metadata: { description: input.description?.trim() || null },
 			});
 			return result[0];
 		}),
