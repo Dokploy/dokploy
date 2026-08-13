@@ -286,7 +286,9 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 		}),
-	listSessions: adminProcedure.query(async ({ ctx }) => {
+	listSessions: protectedProcedure.query(async ({ ctx }) => {
+		const isOwner = ctx.user.role === "owner";
+
 		const sessions = await db
 			.select({
 				id: session.id,
@@ -298,23 +300,50 @@ export const userRouter = createTRPCRouter({
 				userAgent: session.userAgent,
 				createdAt: session.createdAt,
 				expiresAt: session.expiresAt,
-				isCurrent: eq(session.id, ctx.session.id),
 			})
 			.from(session)
 			.innerJoin(user, eq(session.userId, user.id))
+			.innerJoin(
+				member,
+				and(
+					eq(member.userId, session.userId),
+					eq(member.organizationId, ctx.session.activeOrganizationId),
+				),
+			)
+			.where(isOwner ? undefined : eq(session.userId, ctx.user.id))
 			.orderBy(desc(session.createdAt));
-		return sessions;
+
+		return sessions.map((s) => ({
+			...s,
+			isCurrent: s.id === ctx.session.id,
+		}));
 	}),
-	revokeSession: adminProcedure
+	revokeSession: protectedProcedure
 		.input(
 			z.object({
 				sessionId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const targetSession = await db.query.session.findFirst({
-				where: eq(session.id, input.sessionId),
-			});
+			const isOwner = ctx.user.role === "owner";
+
+			const [targetSession] = await db
+				.select({
+					id: session.id,
+					userId: session.userId,
+					userEmail: user.email,
+				})
+				.from(session)
+				.innerJoin(user, eq(session.userId, user.id))
+				.innerJoin(
+					member,
+					and(
+						eq(member.userId, session.userId),
+						eq(member.organizationId, ctx.session.activeOrganizationId),
+					),
+				)
+				.where(eq(session.id, input.sessionId));
+
 			if (!targetSession) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
@@ -327,7 +356,21 @@ export const userRouter = createTRPCRouter({
 					message: "Cannot revoke your own session. Use logout instead.",
 				});
 			}
+			if (!isOwner && targetSession.userId !== ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You can only revoke your own sessions",
+				});
+			}
 			await db.delete(session).where(eq(session.id, input.sessionId));
+
+			await audit(ctx, {
+				action: "logout",
+				resourceType: "session",
+				resourceId: targetSession.id,
+				resourceName: targetSession.userEmail,
+			});
+
 			return true;
 		}),
 	getUserByToken: publicProcedure

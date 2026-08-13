@@ -299,6 +299,12 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Sessions",
+			icon: LogIn,
+			url: "/dashboard/settings/sessions",
+		},
+		{
+			isSingle: true,
 			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
@@ -318,13 +324,6 @@ const MENU: Menu = {
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for users with member.read permission
-			isEnabled: ({ permissions }) => !!permissions?.member.read,
-		},
-		{
-			isSingle: true,
-			title: "Sessions",
-			icon: LogIn,
-			url: "/dashboard/settings/sessions",
 			isEnabled: ({ permissions }) => !!permissions?.member.read,
 		},
 		{

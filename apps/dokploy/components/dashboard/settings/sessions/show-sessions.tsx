@@ -1,6 +1,18 @@
+import {
+	type ColumnDef,
+	flexRender,
+	getCoreRowModel,
+	getPaginationRowModel,
+	getSortedRowModel,
+	type PaginationState,
+	type SortingState,
+	useReactTable,
+} from "@tanstack/react-table";
 import { format } from "date-fns";
-import { Loader2, LogOut, Smartphone } from "lucide-react";
+import { ArrowUpDown, Loader2, LogOut, Smartphone } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +22,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import {
 	Table,
 	TableBody,
@@ -19,9 +39,44 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import { DialogAction } from "@/components/shared/dialog-action";
+
+type SessionRow = {
+	id: string;
+	userId: string;
+	email: string;
+	firstName: string | null;
+	lastName: string | null;
+	ipAddress: string | null;
+	userAgent: string | null;
+	createdAt: Date;
+	expiresAt: Date;
+	isCurrent: boolean;
+};
+
+const SortableHeader = ({
+	column,
+	title,
+}: {
+	column: {
+		getIsSorted: () => false | "asc" | "desc";
+		toggleSorting: (asc: boolean) => void;
+	};
+	title: string;
+}) => (
+	<Button
+		variant="ghost"
+		size="sm"
+		className="-ml-3 h-8"
+		onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+	>
+		{title}
+		<ArrowUpDown className="ml-2 size-3.5" />
+	</Button>
+);
 
 export const ShowSessions = () => {
+	const { data: auth } = api.user.get.useQuery();
+	const isOwner = auth?.role === "owner";
 	const {
 		data: sessions,
 		isPending,
@@ -29,6 +84,18 @@ export const ShowSessions = () => {
 	} = api.user.listSessions.useQuery();
 	const { mutateAsync: revoke, isPending: isRevoking } =
 		api.user.revokeSession.useMutation();
+
+	const [statusFilter, setStatusFilter] = useState<
+		"all" | "active" | "expired"
+	>("all");
+	const [globalFilter, setGlobalFilter] = useState("");
+	const [sorting, setSorting] = useState<SortingState>([
+		{ id: "createdAt", desc: true },
+	]);
+	const [pagination, setPagination] = useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
 
 	const handleRevoke = async (sessionId: string) => {
 		try {
@@ -42,16 +109,171 @@ export const ShowSessions = () => {
 		}
 	};
 
-	const activeSessions = sessions?.filter(
-		(s) => new Date(s.expiresAt) > new Date(),
+	const filteredData = useMemo(() => {
+		let list = sessions ?? [];
+
+		if (statusFilter !== "all") {
+			list = list.filter((s) => {
+				const isExpired = new Date(s.expiresAt) <= new Date();
+				return statusFilter === "expired" ? isExpired : !isExpired;
+			});
+		}
+
+		if (globalFilter.trim()) {
+			const query = globalFilter.toLowerCase();
+			list = list.filter((s) =>
+				[
+					s.firstName,
+					s.lastName,
+					s.email,
+					s.ipAddress,
+					s.userAgent ? parseUserAgent(s.userAgent) : null,
+				]
+					.filter(Boolean)
+					.some((field) => field?.toLowerCase().includes(query)),
+			);
+		}
+
+		return list;
+	}, [sessions, statusFilter, globalFilter]);
+
+	const columns = useMemo<ColumnDef<SessionRow>[]>(
+		() => [
+			{
+				id: "user",
+				accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.email}`,
+				header: ({ column }) => <SortableHeader column={column} title="User" />,
+				cell: ({ row }) => (
+					<div className="flex items-center gap-1">
+						<span>
+							{row.original.firstName} {row.original.lastName}
+						</span>
+						<span className="text-muted-foreground">
+							({row.original.email})
+						</span>
+						{row.original.isCurrent && (
+							<Badge variant="secondary" className="ml-1 text-xs">
+								Current
+							</Badge>
+						)}
+					</div>
+				),
+			},
+			{
+				accessorKey: "ipAddress",
+				header: ({ column }) => (
+					<SortableHeader column={column} title="IP Address" />
+				),
+				cell: ({ row }) => (
+					<span className="font-mono text-sm">
+						{row.original.ipAddress || "-"}
+					</span>
+				),
+				meta: { className: "hidden md:table-cell" },
+			},
+			{
+				id: "device",
+				accessorFn: (row) =>
+					row.userAgent ? parseUserAgent(row.userAgent) : "",
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Device" />
+				),
+				cell: ({ row }) => (
+					<span className="max-w-[200px] truncate text-sm text-muted-foreground">
+						{row.original.userAgent
+							? parseUserAgent(row.original.userAgent)
+							: "-"}
+					</span>
+				),
+				meta: { className: "hidden lg:table-cell" },
+			},
+			{
+				id: "status",
+				accessorFn: (row) => (new Date(row.expiresAt) <= new Date() ? 1 : 0),
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Status" />
+				),
+				cell: ({ row }) => {
+					const isExpired = new Date(row.original.expiresAt) <= new Date();
+					return isExpired ? (
+						<Badge variant="outline" className="text-xs">
+							Expired
+						</Badge>
+					) : (
+						<Badge variant="green" className="text-xs">
+							Active
+						</Badge>
+					);
+				},
+			},
+			{
+				accessorKey: "createdAt",
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Active Since" />
+				),
+				cell: ({ row }) => (
+					<span className="text-sm text-muted-foreground whitespace-nowrap">
+						{format(new Date(row.original.createdAt), "MMM d, HH:mm")}
+					</span>
+				),
+			},
+			{
+				accessorKey: "expiresAt",
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Expires" />
+				),
+				cell: ({ row }) => (
+					<span className="text-sm text-muted-foreground whitespace-nowrap">
+						{format(new Date(row.original.expiresAt), "MMM d, HH:mm")}
+					</span>
+				),
+			},
+			{
+				id: "actions",
+				enableSorting: false,
+				header: () => <div className="text-right">Actions</div>,
+				cell: ({ row }) =>
+					!row.original.isCurrent && (
+						<div className="flex justify-end">
+							<DialogAction
+								title="Revoke Session"
+								description={`Force logout for ${row.original.firstName} ${row.original.lastName} (${row.original.email})?`}
+								type="destructive"
+								onClick={async () => handleRevoke(row.original.id)}
+							>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-8 w-8"
+									disabled={isRevoking}
+								>
+									<LogOut className="h-4 w-4 text-red-500" />
+								</Button>
+							</DialogAction>
+						</div>
+					),
+			},
+		],
+		[isRevoking, handleRevoke],
 	);
-	const expiredSessions = sessions?.filter(
-		(s) => new Date(s.expiresAt) <= new Date(),
-	);
+
+	const table = useReactTable({
+		data: filteredData,
+		columns,
+		state: {
+			sorting,
+			pagination,
+		},
+		onSortingChange: setSorting,
+		onPaginationChange: setPagination,
+		getCoreRowModel: getCoreRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+	});
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -59,10 +281,12 @@ export const ShowSessions = () => {
 							Sessions
 						</CardTitle>
 						<CardDescription>
-							Manage active user sessions. Revoke sessions to force logout.
+							{isOwner
+								? "Manage active sessions across your organization. Revoke sessions to force logout."
+								: "Manage your active sessions. Revoke sessions to force logout."}
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-6 py-8 border-t">
+					<CardContent className="space-y-4 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -77,28 +301,108 @@ export const ShowSessions = () => {
 							</div>
 						) : (
 							<>
-								{activeSessions && activeSessions.length > 0 && (
-									<div>
-										<h3 className="text-sm font-medium text-muted-foreground mb-3">
-											Active Sessions ({activeSessions.length})
-										</h3>
-										<SessionTable
-											sessions={activeSessions}
-											onRevoke={handleRevoke}
-											isRevoking={isRevoking}
-										/>
-									</div>
-								)}
-								{expiredSessions && expiredSessions.length > 0 && (
-									<div>
-										<h3 className="text-sm font-medium text-muted-foreground mb-3">
-											Expired Sessions ({expiredSessions.length})
-										</h3>
-										<SessionTable
-											sessions={expiredSessions}
-											onRevoke={handleRevoke}
-											isRevoking={isRevoking}
-										/>
+								<div className="flex flex-wrap items-center gap-2">
+									<Input
+										placeholder="Search by user, IP, device..."
+										value={globalFilter}
+										onChange={(e) => setGlobalFilter(e.target.value)}
+										className="max-w-xs"
+									/>
+									<Select
+										value={statusFilter}
+										onValueChange={(v) =>
+											setStatusFilter(v as "all" | "active" | "expired")
+										}
+									>
+										<SelectTrigger className="w-[150px]">
+											<SelectValue placeholder="Status" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="all">All statuses</SelectItem>
+											<SelectItem value="active">Active</SelectItem>
+											<SelectItem value="expired">Expired</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="rounded-md border overflow-x-auto">
+									<Table>
+										<TableHeader>
+											{table.getHeaderGroups().map((headerGroup) => (
+												<TableRow key={headerGroup.id}>
+													{headerGroup.headers.map((header) => (
+														<TableHead
+															key={header.id}
+															className={
+																(header.column.columnDef.meta as any)?.className
+															}
+														>
+															{header.isPlaceholder
+																? null
+																: flexRender(
+																		header.column.columnDef.header,
+																		header.getContext(),
+																	)}
+														</TableHead>
+													))}
+												</TableRow>
+											))}
+										</TableHeader>
+										<TableBody>
+											{table.getRowModel().rows?.length ? (
+												table.getRowModel().rows.map((row) => (
+													<TableRow key={row.id}>
+														{row.getVisibleCells().map((cell) => (
+															<TableCell
+																key={cell.id}
+																className={
+																	(cell.column.columnDef.meta as any)?.className
+																}
+															>
+																{flexRender(
+																	cell.column.columnDef.cell,
+																	cell.getContext(),
+																)}
+															</TableCell>
+														))}
+													</TableRow>
+												))
+											) : (
+												<TableRow>
+													<TableCell
+														colSpan={columns.length}
+														className="h-24 text-center text-muted-foreground"
+													>
+														No sessions match your filters.
+													</TableCell>
+												</TableRow>
+											)}
+										</TableBody>
+									</Table>
+								</div>
+								{table.getPageCount() > 1 && (
+									<div className="flex items-center justify-end gap-4">
+										<span className="text-sm text-muted-foreground">
+											Page {table.getState().pagination.pageIndex + 1} of{" "}
+											{table.getPageCount()}
+										</span>
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => table.previousPage()}
+												disabled={!table.getCanPreviousPage()}
+											>
+												Previous
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => table.nextPage()}
+												disabled={!table.getCanNextPage()}
+											>
+												Next
+											</Button>
+										</div>
 									</div>
 								)}
 							</>
@@ -110,93 +414,6 @@ export const ShowSessions = () => {
 	);
 };
 
-type SessionRow = {
-	id: string;
-	email: string;
-	firstName: string | null;
-	lastName: string | null;
-	ipAddress: string | null;
-	userAgent: string | null;
-	createdAt: Date;
-	expiresAt: Date;
-	isCurrent: boolean;
-	userId: string;
-};
-
-const SessionTable = ({
-	sessions,
-	onRevoke,
-	isRevoking,
-}: {
-	sessions: SessionRow[];
-	onRevoke: (id: string) => void;
-	isRevoking: boolean;
-}) => (
-	<Table>
-		<TableHeader>
-			<TableRow>
-				<TableHead>User</TableHead>
-				<TableHead className="hidden md:table-cell">IP Address</TableHead>
-				<TableHead className="hidden lg:table-cell">Device</TableHead>
-				<TableHead>Active Since</TableHead>
-				<TableHead>Expires</TableHead>
-				<TableHead className="text-right">Actions</TableHead>
-			</TableRow>
-		</TableHeader>
-		<TableBody>
-			{sessions.map((s) => (
-				<TableRow key={s.id}>
-					<TableCell>
-						<div className="flex items-center gap-1">
-							<span>
-								{s.firstName} {s.lastName}
-							</span>
-							<span className="text-muted-foreground">({s.email})</span>
-							{s.isCurrent && (
-								<Badge variant="secondary" className="ml-1 text-xs">
-									Current
-								</Badge>
-							)}
-						</div>
-					</TableCell>
-					<TableCell className="hidden md:table-cell font-mono text-sm">
-						{s.ipAddress || "-"}
-					</TableCell>
-					<TableCell className="hidden lg:table-cell max-w-[200px] truncate text-sm text-muted-foreground">
-						{s.userAgent ? parseUserAgent(s.userAgent) : "-"}
-					</TableCell>
-					<TableCell className="text-sm text-muted-foreground">
-						{format(new Date(s.createdAt), "MMM d, HH:mm")}
-					</TableCell>
-					<TableCell className="text-sm text-muted-foreground">
-						{format(new Date(s.expiresAt), "MMM d, HH:mm")}
-					</TableCell>
-					<TableCell className="text-right">
-						{!s.isCurrent && (
-							<DialogAction
-								title="Revoke Session"
-								description={`Force logout for ${s.firstName} ${s.lastName} (${s.email})?`}
-								type="destructive"
-								onClick={async () => onRevoke(s.id)}
-							>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-8 w-8"
-									disabled={isRevoking}
-								>
-									<LogOut className="h-4 w-4 text-red-500" />
-								</Button>
-							</DialogAction>
-						)}
-					</TableCell>
-				</TableRow>
-			))}
-		</TableBody>
-	</Table>
-);
-
-/** ponyta: parse UA just enough to show OS + browser, no lib needed */
 function parseUserAgent(ua: string): string {
 	if (ua.includes("Chrome/") && !ua.includes("Edg/")) return "Chrome";
 	if (ua.includes("Edg/")) return "Edge";

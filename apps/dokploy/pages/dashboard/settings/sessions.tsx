@@ -6,15 +6,8 @@ import superjson from "superjson";
 import { ShowSessions } from "@/components/dashboard/settings/sessions/show-sessions";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
-import { api } from "@/utils/api";
 
 const Page = () => {
-	const { data: permissions } = api.user.getPermissions.useQuery();
-
-	if (!permissions?.member.read) {
-		return null;
-	}
-
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<ShowSessions />
@@ -57,17 +50,6 @@ export async function getServerSideProps(
 
 	try {
 		await helpers.user.get.prefetch();
-
-		const userPermissions = await helpers.user.getPermissions.fetch();
-
-		if (!userPermissions?.member.read) {
-			return {
-				redirect: {
-					permanent: false,
-					destination: "/",
-				},
-			};
-		}
 
 		return {
 			props: {
