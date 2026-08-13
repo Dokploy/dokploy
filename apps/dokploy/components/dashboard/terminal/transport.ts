@@ -1,4 +1,30 @@
 const MAX_OSC52_PAYLOAD_LENGTH = 1_000_000;
+const terminalTextEncoder = new TextEncoder();
+
+interface TerminalOutput {
+	write: (data: string | Uint8Array) => unknown;
+}
+
+type TerminalMessageSource = Pick<
+	EventTarget,
+	"addEventListener" | "removeEventListener"
+>;
+
+export const attachTerminalOutput = (
+	source: TerminalMessageSource,
+	terminal: TerminalOutput,
+): (() => void) => {
+	const handleMessage: EventListener = (event) => {
+		const { data } = event as MessageEvent<string | ArrayBuffer>;
+		terminal.write(typeof data === "string" ? data : new Uint8Array(data));
+	};
+
+	source.addEventListener("message", handleMessage);
+	return () => source.removeEventListener("message", handleMessage);
+};
+
+export const encodeTerminalText = (data: string): Uint8Array<ArrayBuffer> =>
+	terminalTextEncoder.encode(data);
 
 export const encodeTerminalBinary = (data: string): Uint8Array<ArrayBuffer> => {
 	const bytes = new Uint8Array(data.length);

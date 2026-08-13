@@ -9,7 +9,12 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
-import { decodeOsc52ClipboardWrite, encodeTerminalBinary } from "./transport";
+import {
+	attachTerminalOutput,
+	decodeOsc52ClipboardWrite,
+	encodeTerminalBinary,
+	encodeTerminalText,
+} from "./transport";
 import "@xterm/xterm/css/xterm.css";
 
 const LIGHT_ANSI_THEME = {
@@ -145,10 +150,9 @@ export const XTerm = ({ path, query }: XTermProps) => {
 			);
 			socket.binaryType = "arraybuffer";
 
-			const encoder = new TextEncoder();
 			const dataDisposable = terminal.onData((data) => {
 				if (socket.readyState === WebSocket.OPEN) {
-					socket.send(encoder.encode(data));
+					socket.send(encodeTerminalText(data));
 				}
 			});
 			const binaryDisposable = terminal.onBinary((data) => {
@@ -156,13 +160,7 @@ export const XTerm = ({ path, query }: XTermProps) => {
 					socket.send(encodeTerminalBinary(data));
 				}
 			});
-			socket.onmessage = (event: MessageEvent<string | ArrayBuffer>) => {
-				terminal.write(
-					typeof event.data === "string"
-						? event.data
-						: new Uint8Array(event.data),
-				);
-			};
+			const disposeSocketOutput = attachTerminalOutput(socket, terminal);
 
 			let resizeFrame: number | undefined;
 			const fitAndResize = () => {
@@ -216,6 +214,7 @@ export const XTerm = ({ path, query }: XTermProps) => {
 				disposed = true;
 				resizeObserver.disconnect();
 				socket.removeEventListener("open", fitAndResize);
+				disposeSocketOutput();
 				dataDisposable.dispose();
 				binaryDisposable.dispose();
 				clipboardDisposable.dispose();

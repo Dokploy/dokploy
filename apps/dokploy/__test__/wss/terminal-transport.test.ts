@@ -1,16 +1,57 @@
 import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import {
+	attachTerminalOutput,
 	decodeOsc52ClipboardWrite,
 	encodeTerminalBinary,
+	encodeTerminalText,
 } from "../../components/dashboard/terminal/transport";
 import { writeTerminalBinaryFrame } from "../../server/wss/terminal-transport";
 
 describe("terminal transport", () => {
+	it("stops forwarding WebSocket messages after terminal cleanup", () => {
+		const socket = new EventTarget();
+		const writes: Array<string | Uint8Array> = [];
+		const dispose = attachTerminalOutput(socket, {
+			write: (data) => writes.push(data),
+		});
+
+		socket.dispatchEvent(
+			new MessageEvent("message", { data: "connected\r\n" }),
+		);
+		socket.dispatchEvent(
+			new MessageEvent("message", {
+				data: Uint8Array.from([0x1b, 0x5b, 0x41]).buffer,
+			}),
+		);
+
+		dispose();
+		socket.dispatchEvent(new MessageEvent("message", { data: "stale" }));
+
+		expect(writes).toEqual([
+			"connected\r\n",
+			new Uint8Array([0x1b, 0x5b, 0x41]),
+		]);
+	});
+
 	it("encodes an xterm X10 mouse report without UTF-8 expansion", () => {
 		expect(encodeTerminalBinary("\x1b[M \x80\xff")).toEqual(
 			new Uint8Array([0x1b, 0x5b, 0x4d, 0x20, 0x80, 0xff]),
 		);
+	});
+
+	it("preserves bracketed multiline paste through the terminal transport", () => {
+		const paste = "\x1b[200~SELECT 'café';\r\nSELECT '東京';\x1b[201~";
+		const writes: Buffer[] = [];
+
+		writeTerminalBinaryFrame(
+			{
+				write: (data) => writes.push(data),
+			},
+			Buffer.from(encodeTerminalText(paste)),
+		);
+
+		expect(Buffer.concat(writes).toString("utf8")).toBe(paste);
 	});
 
 	it("forwards an xterm X10 mouse report to the PTY byte-for-byte", () => {
