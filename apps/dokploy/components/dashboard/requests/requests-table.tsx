@@ -328,7 +328,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 				open={!!selectedRow}
 				onOpenChange={(_open) => setSelectedRow(undefined)}
 			>
-				<SheetContent className="sm:max-w-[740px]  flex flex-col">
+				<SheetContent className="w-full sm:max-w-[740px]! flex flex-col">
 					<SheetHeader>
 						<SheetTitle>Request log</SheetTitle>
 						<SheetDescription>

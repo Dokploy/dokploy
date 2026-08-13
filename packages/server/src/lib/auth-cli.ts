@@ -1,4 +1,5 @@
 import { apiKey } from "@better-auth/api-key";
+import { passkey } from "@better-auth/passkey";
 import { scim } from "@better-auth/scim";
 import { sso } from "@better-auth/sso";
 import { betterAuth } from "better-auth";
@@ -33,6 +34,7 @@ export const auth = betterAuth({
 		apiKey({ enableMetadata: true, references: "user" }),
 		sso(),
 		twoFactor(),
+		passkey(),
 		organization({
 			ac,
 			roles: { owner: ownerRole, admin: adminRole, member: memberRole },

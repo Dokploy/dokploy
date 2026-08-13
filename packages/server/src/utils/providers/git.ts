@@ -4,6 +4,7 @@ import {
 	findSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
+import { quote } from "shell-quote";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 interface CloneGitRepository {
@@ -61,7 +62,7 @@ export const cloneGitRepository = async ({
 	}
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	command += `echo "Cloning Repo Custom ${customGitUrl} to ${outputPath}: ✅";`;
+	command += `echo ${quote([`Cloning Repo Custom ${customGitUrl} to ${outputPath}: ✅`])};`;
 
 	if (customGitSSHKeyId) {
 		await updateSSHKeyById({
@@ -78,8 +79,8 @@ export const cloneGitRepository = async ({
 		command += "chmod 600 /tmp/id_rsa;";
 		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
 	}
-	command += `if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
-				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}";
+	command += `if ! git clone --branch ${quote([String(customGitBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${quote([String(customGitUrl ?? "")])} ${quote([String(outputPath ?? "")])}; then
+				echo ${quote([`❌ [ERROR] Fail to clone the repository ${customGitUrl}`])};
 				exit 1;
 			fi
 			`;
@@ -114,7 +115,7 @@ const addHostToKnownHostsCommand = (repositoryURL: string) => {
 	// ssh-keyscan is best-effort: some Git hosts (e.g. Hugging Face) never answer
 	// it, and its exit code must not abort the clone under `set -e`. The clone's
 	// own host-key check (StrictHostKeyChecking=accept-new) is the real boundary.
-	return `ssh-keyscan -p ${port} ${domain} >> ${knownHostsPath} || true;`;
+	return `ssh-keyscan -p ${Number(port)} ${quote([String(domain ?? "")])} >> ${knownHostsPath} || true;`;
 };
 const sanitizeRepoPathSSH = (input: string) => {
 	const SSH_PATH_RE = new RegExp(

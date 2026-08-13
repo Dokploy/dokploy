@@ -14,7 +14,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
@@ -103,16 +102,19 @@ export function AddOrganization({ organizationId }: Props) {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				{organizationId ? (
-					<DropdownMenuItem
-						className="group cursor-pointer hover:bg-blue-500/10"
-						onSelect={(e) => e.preventDefault()}
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10"
+						title="Edit organization"
 					>
 						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
-					</DropdownMenuItem>
+					</Button>
 				) : (
-					<DropdownMenuItem
-						className="gap-2 p-2"
-						onSelect={(e) => e.preventDefault()}
+					<button
+						type="button"
+						className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
 					>
 						<div className="flex size-6 items-center justify-center rounded-md border bg-background">
 							<Plus className="size-4" />
@@ -120,7 +122,7 @@ export function AddOrganization({ organizationId }: Props) {
 						<div className="font-medium text-muted-foreground">
 							Add organization
 						</div>
-					</DropdownMenuItem>
+					</button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-[425px]">

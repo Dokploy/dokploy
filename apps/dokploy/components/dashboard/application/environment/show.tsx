@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -45,6 +46,13 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		},
 	);
 
+	const completionSource = useEnvCompletionSource({
+		projectEnv: data?.environment?.project?.env,
+		environmentEnv: data?.environment?.env,
+		projectId: data?.environment?.projectId,
+		environmentId: data?.environment?.environmentId,
+	});
+
 	const form = useForm<EnvironmentSchema>({
 		defaultValues: {
 			env: "",
@@ -60,14 +68,16 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const currentBuildArgs = form.watch("buildArgs");
 	const currentBuildSecrets = form.watch("buildSecrets");
 	const currentCreateEnvFile = form.watch("createEnvFile");
+	const { isDirty } = form.formState;
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
 		currentBuildArgs !== (data?.buildArgs || "") ||
 		currentBuildSecrets !== (data?.buildSecrets || "") ||
 		currentCreateEnvFile !== (data?.createEnvFile ?? true);
 
+	// Skip reset while editing so background refetches don't wipe edits
 	useEffect(() => {
-		if (data) {
+		if (data && !isDirty) {
 			form.reset({
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
@@ -75,7 +85,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				createEnvFile: data.createEnvFile ?? true,
 			});
 		}
-	}, [data, form]);
+	}, [data, isDirty, form]);
 
 	const onSubmit = async (formData: EnvironmentSchema) => {
 		mutateAsync({
@@ -87,6 +97,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Environments Added");
+				form.reset(formData);
 				await refetch();
 			})
 			.catch(() => {
@@ -139,6 +150,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							</span>
 						}
 						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
+						completionSource={completionSource}
 					/>
 					{data?.buildType === "dockerfile" && (
 						<Secrets
@@ -160,6 +172,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+							completionSource={completionSource}
 						/>
 					)}
 					{data?.buildType === "dockerfile" && (
@@ -182,6 +195,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+							completionSource={completionSource}
 						/>
 					)}
 					{data?.buildType === "dockerfile" && (

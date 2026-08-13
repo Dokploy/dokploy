@@ -153,19 +153,27 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
  */
 export const dockerSafeExec = (exec: string) => `
 CHECK_INTERVAL=10
+MAX_WAIT=300
+WAITED=0
 
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "^.*docker [A-Za-z]" | grep -v grep)
+    PROCESSES=$(ps -eo args | awk '$1 ~ /(^|\\/)docker$/')
 
     if [ -z "$PROCESSES" ]; then
         echo "Docker is idle. Starting execution..."
         break
-    else
-        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
-        sleep $CHECK_INTERVAL
     fi
+
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        echo "Docker still busy after \${MAX_WAIT}s, proceeding anyway." >&2
+        break
+    fi
+
+    echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+    sleep $CHECK_INTERVAL
+    WAITED=$((WAITED + CHECK_INTERVAL))
 done
 
 ${exec}
@@ -283,9 +291,13 @@ const parseSizeToBytes = (size: string): number => {
 	return value * (multipliers[unit] || 0);
 };
 
-export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+export const getDockerDiskUsage = async (
+	serverId?: string,
+): Promise<DockerDiskUsageItem[]> => {
 	const command = "docker system df --format '{{json .}}'";
-	const { stdout } = await execAsync(command);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
 
 	const lines = stdout.trim().split("\n").filter(Boolean);
 	return lines.map((line) => {
@@ -299,6 +311,49 @@ export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
 			sizeBytes: parseSizeToBytes(data.Size),
 		};
 	});
+};
+
+export interface DockerBuildCacheItem {
+	id: string;
+	type: string;
+	description: string;
+	size: string;
+	sizeBytes: number;
+	createdSince: string;
+	lastUsedSince: string;
+	usageCount: number;
+	shared: boolean;
+	inUse: boolean;
+}
+
+export const getBuildCache = async (
+	serverId?: string,
+): Promise<DockerBuildCacheItem[]> => {
+	try {
+		const command = "docker system df -v --format '{{json .}}'";
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const diskUsage = JSON.parse(stdout.trim());
+		return ((diskUsage?.BuildCache ?? []) as Record<string, string>[]).map(
+			(entry) => ({
+				id: entry.ID ?? "",
+				type: entry.CacheType ?? "",
+				description: entry.Description ?? "",
+				size: entry.Size ?? "",
+				sizeBytes: parseSizeToBytes(entry.Size ?? ""),
+				createdSince: entry.CreatedSince ?? "",
+				lastUsedSince: entry.LastUsedSince ?? "",
+				usageCount: Number.parseInt(entry.UsageCount ?? "0", 10) || 0,
+				shared: entry.Shared === "true",
+				inUse: entry.InUse === "true",
+			}),
+		);
+	} catch (error) {
+		console.error(error);
+		return [];
+	}
 };
 
 /**
@@ -323,7 +378,12 @@ export const cleanupAll = async (serverId?: string) => {
 			} else {
 				await execAsync(dockerSafeExec(command));
 			}
-		} catch {}
+		} catch (error) {
+			console.error(
+				`Docker cleanup: "${key}" failed${serverId ? ` on server ${serverId}` : ""}`,
+				error,
+			);
+		}
 	}
 };
 
@@ -401,6 +461,13 @@ export const prepareEnvironmentVariables = (
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
 ) => {
+	for (const source of [serviceEnv, projectEnv, environmentEnv]) {
+		if (source?.includes("${{vault.")) {
+			throw new Error(
+				"Unresolved vault reference: call withResolvedVaultRefs() on the entity before preparing environment variables",
+			);
+		}
+	}
 	const projectVars = parse(projectEnv ?? "");
 	const environmentVars = parse(environmentEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
@@ -463,6 +530,27 @@ export const prepareEnvironmentVariablesForShell = (
 	// Using shell-quote library to properly escape shell arguments
 	// This is the standard way to handle special characters in shell commands
 	return envVars.map((env) => quote([env]));
+};
+
+export const prepareEnvironmentVariablesForFile = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+): string[] => {
+	const envVars = prepareEnvironmentVariables(
+		serviceEnv,
+		projectEnv,
+		environmentEnv,
+	);
+
+	return envVars.map((pair) => {
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
+		const escapedValue = value
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\$/g, "\\$");
+		return `${key}="${escapedValue}"`;
+	});
 };
 
 export const parseEnvironmentKeyValuePair = (
@@ -548,7 +636,6 @@ export const generateConfigContainer = (
 		labelsSwarm,
 		replicas,
 		mounts,
-		networkSwarm,
 		stopGracePeriodSwarm,
 		endpointSpecSwarm,
 		ulimitsSwarm,
@@ -611,13 +698,6 @@ export const generateConfigContainer = (
 			stopGracePeriodSwarm !== undefined && {
 				StopGracePeriod: stopGracePeriodSwarm,
 			}),
-		...(networkSwarm
-			? {
-					Networks: networkSwarm,
-				}
-			: {
-					Networks: [{ Target: "dokploy-network" }],
-				}),
 		...(endpointSpecSwarm && {
 			EndpointSpec: {
 				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
@@ -712,14 +792,14 @@ export const getCreateFileCommand = (
 ) => {
 	const fullPath = path.join(outputPath, filePath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
-		return `mkdir -p ${fullPath};`;
+		return `mkdir -p ${quote([fullPath])};`;
 	}
 
 	const directory = path.dirname(fullPath);
 	const encodedContent = encodeBase64(content);
 	return `
-		mkdir -p ${directory};
-		echo "${encodedContent}" | base64 -d > "${fullPath}";
+		mkdir -p ${quote([directory])};
+		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
 
@@ -896,50 +976,6 @@ export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
 			status: "unhealthy",
 			message:
 				error instanceof Error ? error.message : "Failed to check PostgreSQL",
-		};
-	}
-};
-
-export const checkRedisHealth = async (): Promise<ServiceHealthStatus> => {
-	const serviceCheck = await checkSwarmServiceRunning("dokploy-redis");
-	if (serviceCheck.status === "unhealthy") {
-		return serviceCheck;
-	}
-
-	// Verify Redis actually responds to PING
-	const containerId = await getSwarmServiceContainerId("dokploy-redis");
-	if (!containerId) {
-		return { status: "unhealthy", message: "Could not find running container" };
-	}
-
-	try {
-		const exec = await docker.getContainer(containerId).exec({
-			Cmd: ["redis-cli", "ping"],
-			AttachStdout: true,
-			AttachStderr: true,
-		});
-		const stream = await exec.start({});
-
-		const output = await new Promise<string>((resolve) => {
-			let data = "";
-			stream.on("data", (chunk: Buffer) => {
-				data += chunk.toString();
-			});
-			stream.on("end", () => resolve(data));
-		});
-
-		if (!output.includes("PONG")) {
-			return {
-				status: "unhealthy",
-				message: `Redis did not respond with PONG: ${output.trim()}`,
-			};
-		}
-
-		return { status: "healthy" };
-	} catch (error) {
-		return {
-			status: "unhealthy",
-			message: error instanceof Error ? error.message : "Failed to check Redis",
 		};
 	}
 };

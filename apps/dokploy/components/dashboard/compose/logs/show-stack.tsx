@@ -35,9 +35,14 @@ export const DockerLogs = dynamic(
 interface Props {
 	appName: string;
 	serverId?: string;
+	serviceId?: string;
 }
 
-export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
+export const ShowDockerLogsStack = ({
+	appName,
+	serverId,
+	serviceId,
+}: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
 	const [containerId, setContainerId] = useState<string | undefined>();
 
@@ -52,7 +57,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 			},
 		);
 
-	const { data: containers, isPending: containersLoading } =
+	const { data, isPending: containersLoading } =
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
 				appName,
@@ -63,6 +68,8 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 				enabled: !!appName && option === "native",
 			},
 		);
+
+	const containers = data?.filter((container) => container.containerId);
 
 	useEffect(() => {
 		if (option === "native") {
@@ -167,6 +174,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}
 					runType={option}
+					serviceId={serviceId}
 				/>
 			</CardContent>
 		</Card>

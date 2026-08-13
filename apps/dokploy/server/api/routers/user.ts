@@ -3,6 +3,7 @@ import {
 	createOrganizationUserWithCredentials,
 	findNotificationById,
 	findOrganizationById,
+	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
 	getUserByToken,
@@ -172,6 +173,9 @@ export const userRouter = createTRPCRouter({
 	}),
 	getPermissions: protectedProcedure.query(async ({ ctx }) => {
 		return resolvePermissions(ctx);
+	}),
+	listPasskeys: protectedProcedure.query(async ({ ctx }) => {
+		return findPasskeysByUserId(ctx.user.id);
 	}),
 	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
 		if (!IS_CLOUD) {

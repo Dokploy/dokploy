@@ -85,9 +85,9 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		}
 
 		command += `
-echo "Building ${appName}" ;
-cd ${dockerContextPath} || {
-  echo "❌ The path ${dockerContextPath} does not exist" ;
+echo ${quote([`Building ${appName}`])} ;
+cd ${quote([dockerContextPath])} || {
+  echo ${quote([`❌ The path ${dockerContextPath} does not exist`])} ;
   exit 1;
 }
 

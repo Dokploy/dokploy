@@ -37,7 +37,10 @@
     "@ai-sdk/mistral": "^3.0.20",
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/openai-compatible": "^2.0.30",
+    "@aws-sdk/client-route-53": "^3.1108.0",
+    "@aws-sdk/client-secrets-manager": "^3.1108.0",
     "@better-auth/api-key": "1.6.23",
+    "@better-auth/passkey": "1.6.23",
     "@better-auth/scim": "1.6.23",
     "@better-auth/sso": "1.6.23",
     "@better-auth/utils": "0.4.2",
@@ -110,7 +113,7 @@
     "tailwindcss": "^3.4.17",
     "tsc-alias": "1.8.10",
     "tsx": "^4.22.4",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "packageManager": "pnpm@10.22.0",
   "engines": {

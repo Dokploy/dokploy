@@ -1,5 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -9,12 +10,14 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type PostgresNested = InferResultType<
 	"postgres",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
-export const buildPostgres = async (postgres: PostgresNested) => {
+export const buildPostgres = async (rawPostgres: PostgresNested) => {
+	const postgres = await withResolvedVaultRefs(rawPostgres);
 	const {
 		appName,
 		env,
@@ -36,6 +39,8 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(postgres);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -44,7 +49,6 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -85,7 +89,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
