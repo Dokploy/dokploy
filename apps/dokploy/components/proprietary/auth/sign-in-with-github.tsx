@@ -13,6 +13,7 @@ export function SignInWithGithub() {
 		try {
 			const { error } = await authClient.signIn.social({
 				provider: "github",
+				errorCallbackURL: "/",
 			});
 			if (error) {
 				toast.error(error.message);
