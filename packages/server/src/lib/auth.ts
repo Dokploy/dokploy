@@ -77,6 +77,9 @@ const createBetterAuth = () =>
 			...(!IS_CLOUD ? ["/verify-email"] : []),
 		],
 		secret: betterAuthSecret,
+		onAPIError: {
+			errorURL: "/",
+		},
 		...(!IS_CLOUD
 			? {
 					advanced: {
@@ -165,6 +168,9 @@ const createBetterAuth = () =>
 			user: {
 				create: {
 					before: async (_user, context) => {
+						if (context?.path.includes("/scim")) {
+							return { data: { emailVerified: true } };
+						}
 						if (!IS_CLOUD) {
 							const xDokployToken =
 								context?.request?.headers?.get("x-dokploy-token");
@@ -197,8 +203,7 @@ const createBetterAuth = () =>
 								}
 							} else {
 								const isSSORequest = context?.path.includes("/sso");
-								const isSCIMRequest = context?.path.includes("/scim");
-								if (isSSORequest || isSCIMRequest) {
+								if (isSSORequest) {
 									return;
 								}
 								const isAdminPresent = await db.query.member.findFirst({
@@ -251,6 +256,20 @@ const createBetterAuth = () =>
 						}
 
 						if (isSCIMRequest) {
+							const membership = await db.query.member.findFirst({
+								where: eq(schema.member.userId, user.id),
+							});
+							if (membership) {
+								const defaultRole = await resolveOrganizationDefaultRole(
+									membership.organizationId,
+								);
+								if (defaultRole !== membership.role) {
+									await db
+										.update(schema.member)
+										.set({ role: defaultRole })
+										.where(eq(schema.member.id, membership.id));
+								}
+							}
 							return;
 						}
 
