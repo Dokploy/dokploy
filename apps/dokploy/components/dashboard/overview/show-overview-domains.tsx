@@ -4,6 +4,7 @@ import { ExternalLink, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { COMPOSE_REDEPLOY_TOAST } from "@/components/dashboard/application/domains/redeploy-hint";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,12 @@ export const ShowOverviewDomains = () => {
 		try {
 			const result = await toggleEnable({ domainId: domain.domainId });
 			utils.overview.domains.invalidate();
-			toast.success(result.enabled ? "Domain enabled" : "Domain disabled");
+			toast.success(
+				result.enabled ? "Domain enabled" : "Domain disabled",
+				result.requiresRedeploy
+					? { description: COMPOSE_REDEPLOY_TOAST }
+					: undefined,
+			);
 		} catch {
 			toast.error(`Error updating "${domain.host}"`);
 		}

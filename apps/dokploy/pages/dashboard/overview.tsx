@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowOverviewBackups } from "@/components/dashboard/overview/show-overview-backups";
+import { ShowOverviewDeployments } from "@/components/dashboard/overview/show-overview-deployments";
 import { ShowOverviewDomains } from "@/components/dashboard/overview/show-overview-domains";
 import { ShowOverviewServices } from "@/components/dashboard/overview/show-overview-services";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -20,17 +21,19 @@ const Overview = () => {
 	const canSeeBackups =
 		!!permissions?.backup.read && !!permissions?.volumeBackup.read;
 	const canSeeDomains = !!permissions?.domain.read;
+	const canSeeDeployments = !!permissions?.deployment.read;
 
 	const queryTab =
 		typeof router.query.tab === "string" ? router.query.tab : DEFAULT_TAB;
 	const activeTab =
 		(queryTab === "backups" && !canSeeBackups) ||
-		(queryTab === "domains" && !canSeeDomains)
+		(queryTab === "domains" && !canSeeDomains) ||
+		(queryTab === "deployments" && !canSeeDeployments)
 			? DEFAULT_TAB
 			: queryTab;
 
 	const setTab = (value: string) => {
-		const { tab: _current, ...query } = router.query;
+		const { tab: _current, subtab: _subtab, ...query } = router.query;
 		router.replace(
 			{
 				pathname: router.pathname,
@@ -47,6 +50,9 @@ const Overview = () => {
 				<TabsTrigger value="services">Services</TabsTrigger>
 				{canSeeBackups && <TabsTrigger value="backups">Backups</TabsTrigger>}
 				{canSeeDomains && <TabsTrigger value="domains">Domains</TabsTrigger>}
+				{canSeeDeployments && (
+					<TabsTrigger value="deployments">Deployments</TabsTrigger>
+				)}
 			</TabsList>
 			<TabsContent value="services">
 				<ShowOverviewServices />
@@ -59,6 +65,11 @@ const Overview = () => {
 			{canSeeDomains && (
 				<TabsContent value="domains">
 					<ShowOverviewDomains />
+				</TabsContent>
+			)}
+			{canSeeDeployments && (
+				<TabsContent value="deployments">
+					<ShowOverviewDeployments />
 				</TabsContent>
 			)}
 		</Tabs>

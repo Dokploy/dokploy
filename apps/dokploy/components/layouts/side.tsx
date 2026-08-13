@@ -29,7 +29,6 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
-	Rocket,
 	Server,
 	ShieldCheck,
 	Smartphone,
@@ -179,10 +178,11 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Deployments",
-			url: "/dashboard/deployments",
-			icon: Rocket,
-			isEnabled: ({ permissions }) => !!permissions?.deployment.read,
+			title: "Overview",
+			url: "/dashboard/overview",
+			icon: LayoutGrid,
+			// Only enabled for users with access to services
+			isEnabled: ({ permissions }) => !!permissions?.service.read,
 		},
 		{
 			isSingle: true,
@@ -215,14 +215,6 @@ const MENU: Menu = {
 			icon: BlocksIcon,
 			// Only enabled for users with access to Docker
 			isEnabled: ({ permissions }) => !!permissions?.docker.read,
-		},
-		{
-			isSingle: true,
-			title: "Overview",
-			url: "/dashboard/overview",
-			icon: LayoutGrid,
-			// Only enabled for users with access to services
-			isEnabled: ({ permissions }) => !!permissions?.service.read,
 		},
 		{
 			isSingle: true,
