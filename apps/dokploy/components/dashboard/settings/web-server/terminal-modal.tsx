@@ -78,8 +78,8 @@ export const TerminalModal = ({
 					<LocalServerConfig onSave={handleLocalServerConfigSave} />
 				)}
 
-				<div className="flex h-[65vh] min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-					<Terminal id="terminal" key={terminalKey} serverId={serverId} />
+				<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+					<Terminal key={terminalKey} serverId={serverId} />
 				</div>
 			</DialogContent>
 		</Dialog>

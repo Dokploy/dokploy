@@ -5,6 +5,7 @@ import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
 import {
+	getErrorMessage,
 	getShell,
 	getTerminalSize,
 	isValidContainerId,
@@ -223,10 +224,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
-			const errorMessage = error?.message as unknown as string;
-
-			ws.send(errorMessage);
+			ws.send(getErrorMessage(error));
 		}
 	});
 };

@@ -12,6 +12,7 @@ import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
 import { writeTerminalBinaryFrame } from "./terminal-transport";
 import {
+	getErrorMessage,
 	getTerminalSize,
 	parseTerminalMessage,
 	setupLocalServerSSHKey,
@@ -225,9 +226,7 @@ export const setupTerminalWebSocketServer = (
 							}
 							writeTerminalBinaryFrame(stream, message);
 						} catch (error) {
-							// @ts-ignore
-							const errorMessage = error?.message as unknown as string;
-							ws.send(errorMessage);
+							ws.send(getErrorMessage(error));
 						}
 					});
 

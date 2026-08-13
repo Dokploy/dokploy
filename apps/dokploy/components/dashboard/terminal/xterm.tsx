@@ -84,18 +84,11 @@ interface XTermProps {
 export const XTerm = ({ path, query }: XTermProps) => {
 	const rootRef = useRef<HTMLDivElement>(null);
 	const mountRef = useRef<HTMLDivElement>(null);
-	const searchInputRef = useRef<HTMLInputElement>(null);
 	const terminalRef = useRef<Terminal | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const { resolvedTheme } = useTheme();
-
-	useEffect(() => {
-		if (isSearchOpen) {
-			searchInputRef.current?.focus();
-		}
-	}, [isSearchOpen]);
 
 	useEffect(() => {
 		const root = rootRef.current;
@@ -285,8 +278,8 @@ export const XTerm = ({ path, query }: XTermProps) => {
 			{isSearchOpen && (
 				<div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-md border bg-background p-1 shadow-md">
 					<Input
-						ref={searchInputRef}
 						aria-label="Search terminal output"
+						autoFocus
 						className="h-8 w-52"
 						value={searchTerm}
 						onChange={(event) => {

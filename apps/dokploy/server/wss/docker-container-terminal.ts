@@ -6,6 +6,7 @@ import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
 import { writeTerminalBinaryFrame } from "./terminal-transport";
 import {
+	getErrorMessage,
 	getTerminalSize,
 	isValidContainerId,
 	isValidShell,
@@ -138,9 +139,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 										}
 										writeTerminalBinaryFrame(stream, message);
 									} catch (error) {
-										// @ts-ignore
-										const errorMessage = error?.message as unknown as string;
-										ws.send(errorMessage);
+										ws.send(getErrorMessage(error));
 									}
 								});
 
@@ -222,19 +221,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 							writeTerminalBinaryFrame(ptyProcess, message);
 						}
 					} catch (error) {
-						// @ts-ignore
-						const errorMessage = error?.message as unknown as string;
 						if (ws.readyState === ws.OPEN) {
-							ws.send(errorMessage);
+							ws.send(getErrorMessage(error));
 						}
 					}
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
-			const errorMessage = error?.message as unknown as string;
-
-			ws.send(errorMessage);
+			ws.send(getErrorMessage(error));
 		}
 	});
 };

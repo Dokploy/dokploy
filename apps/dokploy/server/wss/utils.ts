@@ -13,6 +13,9 @@ export interface TerminalSize {
 	rows: number;
 }
 
+export const getErrorMessage = (error: unknown): string =>
+	error instanceof Error ? error.message : String(error);
+
 export type TerminalMessage =
 	| { type: "resize"; size: TerminalSize }
 	| { type: "input"; data: string };
@@ -20,6 +23,15 @@ export type TerminalMessage =
 interface ResizableTerminal {
 	resize: (cols: number, rows: number) => void;
 }
+
+const isTerminalDimension = (
+	value: unknown,
+	maximum: number,
+): value is number =>
+	typeof value === "number" &&
+	Number.isInteger(value) &&
+	value >= 1 &&
+	value <= maximum;
 
 const parseTerminalDimension = (
 	value: string | null,
@@ -30,8 +42,8 @@ const parseTerminalDimension = (
 		return fallback;
 	}
 
-	const dimension = Number.parseInt(value, 10);
-	return dimension >= 1 && dimension <= maximum ? dimension : fallback;
+	const dimension = Number(value);
+	return isTerminalDimension(dimension, maximum) ? dimension : fallback;
 };
 
 export const getTerminalSize = (
@@ -52,26 +64,20 @@ export const getTerminalSize = (
 export const parseTerminalResize = (message: string): TerminalSize | null => {
 	try {
 		const value: unknown = JSON.parse(message);
+		if (typeof value !== "object" || value === null) {
+			return null;
+		}
+
+		const { type, cols, rows } = value as Record<string, unknown>;
 		if (
-			typeof value !== "object" ||
-			value === null ||
-			!("type" in value) ||
-			value.type !== "resize" ||
-			!("cols" in value) ||
-			!("rows" in value) ||
-			typeof value.cols !== "number" ||
-			typeof value.rows !== "number" ||
-			!Number.isInteger(value.cols) ||
-			!Number.isInteger(value.rows) ||
-			value.cols < 1 ||
-			value.cols > MAX_TERMINAL_COLS ||
-			value.rows < 1 ||
-			value.rows > MAX_TERMINAL_ROWS
+			type !== "resize" ||
+			!isTerminalDimension(cols, MAX_TERMINAL_COLS) ||
+			!isTerminalDimension(rows, MAX_TERMINAL_ROWS)
 		) {
 			return null;
 		}
 
-		return { cols: value.cols, rows: value.rows };
+		return { cols, rows };
 	} catch {
 		return null;
 	}

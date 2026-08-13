@@ -74,7 +74,6 @@ export const DockerTerminalModal = ({
 
 				<div className="min-h-0 flex-1 overflow-hidden">
 					<Terminal
-						id="terminal"
 						containerId={containerId}
 						serverId={serverId || ""}
 						serviceId={serviceId}
