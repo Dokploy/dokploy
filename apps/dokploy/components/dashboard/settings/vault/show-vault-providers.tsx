@@ -20,6 +20,7 @@ const providerLabels: Record<string, string> = {
 	aws: "AWS Secrets Manager",
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
+	scaleway: "Scaleway Secret Manager",
 };
 
 export const ShowVaultProviders = () => {

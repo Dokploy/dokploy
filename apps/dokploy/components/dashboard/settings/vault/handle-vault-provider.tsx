@@ -42,6 +42,7 @@ const providerLabels = {
 	aws: "AWS Secrets Manager",
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
+	scaleway: "Scaleway Secret Manager",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -55,7 +56,14 @@ const VaultProviderSchema = z
 				message:
 					"Only letters, numbers, dashes and underscores (used in ${{vault.<name>.<secret>}})",
 			}),
-		providerType: z.enum(["hashicorp", "infisical", "aws", "doppler", "azure"]),
+		providerType: z.enum([
+			"hashicorp",
+			"infisical",
+			"aws",
+			"doppler",
+			"azure",
+			"scaleway",
+		]),
 		url: z.string(),
 		token: z.string(),
 		namespace: z.string(),
@@ -77,6 +85,10 @@ const VaultProviderSchema = z
 		azureClientSecret: z.string(),
 		dopplerProject: z.string(),
 		dopplerConfig: z.string(),
+		scalewayRegion: z.string(),
+		scalewayProjectId: z.string(),
+		scalewaySecretKey: z.string(),
+		scalewayApiUrl: z.string(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -128,6 +140,17 @@ const VaultProviderSchema = z
 			});
 		}
 		if (
+			data.providerType === "scaleway" &&
+			data.scalewayApiUrl &&
+			!isValidUrl(data.scalewayApiUrl)
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Enter a valid URL (e.g. https://api.scaleway.com)",
+				path: ["scalewayApiUrl"],
+			});
+		}
+		if (
 			data.providerType === "infisical" &&
 			data.siteUrl &&
 			!isValidUrl(data.siteUrl)
@@ -165,6 +188,11 @@ const VaultProviderSchema = z
 				["tenantId", "Tenant ID is required"],
 				["azureClientId", "Client ID is required"],
 				["azureClientSecret", "Client Secret is required"],
+			],
+			scaleway: [
+				["scalewayRegion", "Region is required"],
+				["scalewayProjectId", "Project ID is required"],
+				["scalewaySecretKey", "Secret Key is required"],
 			],
 		};
 
@@ -222,6 +250,10 @@ const defaultValues: VaultProviderForm = {
 	azureClientSecret: "",
 	dopplerProject: "",
 	dopplerConfig: "",
+	scalewayRegion: "fr-par",
+	scalewayProjectId: "",
+	scalewaySecretKey: "",
+	scalewayApiUrl: "https://api.scaleway.com",
 	assignments: [],
 };
 
@@ -267,6 +299,14 @@ const buildConfig = (data: VaultProviderForm) => {
 				tenantId: data.tenantId,
 				clientId: data.azureClientId,
 				clientSecret: data.azureClientSecret,
+			};
+		case "scaleway":
+			return {
+				providerType: "scaleway" as const,
+				region: data.scalewayRegion || "fr-par",
+				projectId: data.scalewayProjectId,
+				secretKey: data.scalewaySecretKey,
+				apiUrl: data.scalewayApiUrl || "https://api.scaleway.com",
 			};
 	}
 };
@@ -382,6 +422,12 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					tenantId: provider.config.tenantId,
 					azureClientId: provider.config.clientId,
 					azureClientSecret: provider.config.clientSecret,
+				}),
+				...(provider.config.providerType === "scaleway" && {
+					scalewayRegion: provider.config.region,
+					scalewayProjectId: provider.config.projectId,
+					scalewaySecretKey: provider.config.secretKey,
+					scalewayApiUrl: provider.config.apiUrl,
 				}),
 			});
 		} else if (!vaultProviderId) {
@@ -855,6 +901,97 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 								<FormDescription>
 									Only needed for personal (dp.pt.) or CLI (dp.ct.) tokens —
 									service tokens already carry them
+								</FormDescription>
+							</>
+						)}
+
+						{providerType === "scaleway" && (
+							<>
+								<div className="grid grid-cols-2 gap-4">
+									<FormField
+										control={form.control}
+										name="scalewayRegion"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Region</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													value={field.value}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="fr-par" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{["fr-par", "nl-ams", "pl-waw"].map((region) => (
+															<SelectItem key={region} value={region}>
+																{region}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="scalewayProjectId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Project ID</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="00000000-0000-0000-0000-000000000000"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<FormField
+									control={form.control}
+									name="scalewaySecretKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												The secret key of an API key with the{" "}
+												<code>SecretManagerReadOnly</code> permission set
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="scalewayApiUrl"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API URL</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="https://api.scaleway.com"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormDescription>
+									Reference format:{" "}
+									<code>{"${{vault.<name>.secret-name}}"}</code>,{" "}
+									<code>{"${{vault.<name>.folder/secret-name}}"}</code> for
+									secrets in a path, or{" "}
+									<code>{"${{vault.<name>.secret-name:field}}"}</code> for JSON
+									secrets
 								</FormDescription>
 							</>
 						)}

@@ -20,6 +20,7 @@ import {
 import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
+import { scalewayClient } from "@dokploy/server/utils/vault/scaleway";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch as typeof fetch;
@@ -438,5 +439,180 @@ describe("doppler client", () => {
 				["FOO"],
 			),
 		).rejects.toThrow("status 401");
+	});
+});
+
+describe("scaleway client", () => {
+	const config = {
+		providerType: "scaleway" as const,
+		region: "fr-par",
+		projectId: "project-1",
+		secretKey: "scw-secret-key",
+		apiUrl: "https://api.scaleway.com",
+	};
+
+	const accessResponse = (value: string) =>
+		jsonResponse({
+			secret_id: "secret-1",
+			revision: 1,
+			data: Buffer.from(value).toString("base64"),
+		});
+
+	it("reads a secret by name from the root path and decodes the payload", async () => {
+		mockFetch.mockResolvedValue(accessResponse("postgres://real"));
+
+		const result = await scalewayClient.getSecrets(config, ["db-url"]);
+
+		expect(result).toEqual({ "db-url": "postgres://real" });
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe(
+			"https://api.scaleway.com/secret-manager/v1beta1/regions/fr-par/secrets-by-path/versions/latest_enabled/access?project_id=project-1&secret_name=db-url&secret_path=%2F",
+		);
+		expect((init.headers as Record<string, string>)["X-Auth-Token"]).toBe(
+			"scw-secret-key",
+		);
+	});
+
+	it("sends the folder of a path-qualified ref as secret_path", async () => {
+		mockFetch.mockResolvedValue(accessResponse("value"));
+
+		await scalewayClient.getSecrets(config, ["prod/db/password"]);
+
+		expect(mockFetch.mock.calls[0]?.[0]).toContain(
+			"secret_name=password&secret_path=%2Fprod%2Fdb",
+		);
+	});
+
+	it("extracts a field from a JSON secret and fetches the secret once", async () => {
+		mockFetch.mockResolvedValue(
+			accessResponse(JSON.stringify({ user: "admin", port: 5432 })),
+		);
+
+		const result = await scalewayClient.getSecrets(config, [
+			"db-creds:user",
+			"db-creds:port",
+		]);
+
+		expect(result).toEqual({
+			"db-creds:user": "admin",
+			"db-creds:port": "5432",
+		});
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+	});
+
+	it("throws when the secret is not JSON but a field is requested", async () => {
+		mockFetch.mockResolvedValue(accessResponse("plain-value"));
+
+		await expect(
+			scalewayClient.getSecrets(config, ["db-creds:user"]),
+		).rejects.toThrow("is not JSON");
+	});
+
+	it("throws when the requested field is missing", async () => {
+		mockFetch.mockResolvedValue(accessResponse(JSON.stringify({ user: "a" })));
+
+		await expect(
+			scalewayClient.getSecrets(config, ["db-creds:password"]),
+		).rejects.toThrow('field "password" not found');
+	});
+
+	it("throws a clear error for a missing secret", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse({ message: "not found" }, false, 404),
+		);
+
+		await expect(scalewayClient.getSecrets(config, ["nope"])).rejects.toThrow(
+			'secret "nope" not found in path "/"',
+		);
+	});
+
+	it("reports authentication failures with the API message", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse({ message: "denied authentication" }, false, 403),
+		);
+
+		await expect(scalewayClient.getSecrets(config, ["db-url"])).rejects.toThrow(
+			"authentication failed (status 403: denied authentication)",
+		);
+	});
+
+	it("throws when the secret has no enabled version", async () => {
+		mockFetch.mockResolvedValue(jsonResponse({ secret_id: "secret-1" }));
+
+		await expect(scalewayClient.getSecrets(config, ["db-url"])).rejects.toThrow(
+			"has no enabled version",
+		);
+	});
+
+	it("rejects a ref without a secret name", async () => {
+		await expect(scalewayClient.getSecrets(config, ["prod/"])).rejects.toThrow(
+			"expected format <name> or <folder>/<name>[:field]",
+		);
+	});
+
+	it("tests the connection against the secrets listing", async () => {
+		mockFetch.mockResolvedValue(jsonResponse({ secrets: [], total_count: 0 }));
+
+		await scalewayClient.testConnection(config);
+
+		expect(mockFetch.mock.calls[0]?.[0]).toBe(
+			"https://api.scaleway.com/secret-manager/v1beta1/regions/fr-par/secrets?project_id=project-1&page_size=1",
+		);
+	});
+
+	it("lists secret names with their folder prefix", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse({
+				secrets: [
+					{ id: "1", name: "db-url", path: "/" },
+					{ id: "2", name: "password", path: "/prod/db" },
+				],
+				total_count: 2,
+			}),
+		);
+
+		const names = await scalewayClient.listSecretNames?.(config);
+
+		expect(names).toEqual(["db-url", "prod/db/password"]);
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+	});
+
+	it("follows pagination until a short page is returned", async () => {
+		const page = (start: number, size: number) =>
+			jsonResponse({
+				secrets: Array.from({ length: size }, (_, index) => ({
+					id: String(start + index),
+					name: `secret-${start + index}`,
+					path: "/",
+				})),
+			});
+		mockFetch.mockImplementation(async (url: string) =>
+			url.includes("page=2") ? page(101, 2) : page(1, 100),
+		);
+
+		const names = await scalewayClient.listSecretNames?.(config);
+
+		expect(names).toHaveLength(102);
+		expect(mockFetch).toHaveBeenCalledTimes(2);
+	});
+
+	it("resolves env refs end to end through a scaleway provider", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "scw-prod",
+				providerType: "scaleway",
+				config,
+				assignments: assignedEverywhere,
+			},
+		]);
+		mockFetch.mockResolvedValue(accessResponse("s3cret"));
+
+		const result = await resolveVaultReferences(
+			"DB_PASSWORD=${{vault.scw-prod.prod/db-password}}",
+			scope,
+		);
+
+		expect(result).toBe("DB_PASSWORD=s3cret");
 	});
 });

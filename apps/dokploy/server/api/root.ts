@@ -9,7 +9,10 @@ import { clusterRouter } from "./routers/cluster";
 import { composeRouter } from "./routers/compose";
 import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
+import { dnsProviderRouter } from "./routers/dns-provider";
 import { dockerRouter } from "./routers/docker";
+import { dockerDiskUsageRouter } from "./routers/docker-disk-usage";
+import { dockerImageRouter } from "./routers/docker-image";
 import { dockerVolumeRouter } from "./routers/docker-volume";
 import { domainRouter } from "./routers/domain";
 import { environmentRouter } from "./routers/environment";
@@ -69,7 +72,10 @@ export const appRouter = createTRPCRouter({
 	compose: composeRouter,
 	deployment: deploymentRouter,
 	destination: destinationRouter,
+	dnsProvider: dnsProviderRouter,
 	docker: dockerRouter,
+	dockerDiskUsage: dockerDiskUsageRouter,
+	dockerImage: dockerImageRouter,
 	dockerVolume: dockerVolumeRouter,
 	domain: domainRouter,
 	gitea: giteaRouter,

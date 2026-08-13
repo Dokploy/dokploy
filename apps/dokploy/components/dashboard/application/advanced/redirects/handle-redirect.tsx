@@ -234,7 +234,7 @@ export const HandleRedirect = ({
 									<FormItem>
 										<FormLabel>Replacement</FormLabel>
 										<FormControl>
-											<Input placeholder="http://mydomain/$${1}" {...field} />
+											<Input placeholder="http://mydomain/$1" {...field} />
 										</FormControl>
 
 										<FormMessage />

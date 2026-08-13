@@ -153,19 +153,27 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
  */
 export const dockerSafeExec = (exec: string) => `
 CHECK_INTERVAL=10
+MAX_WAIT=300
+WAITED=0
 
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "^.*docker [A-Za-z]" | grep -v grep)
+    PROCESSES=$(ps -eo args | awk '$1 ~ /(^|\\/)docker$/')
 
     if [ -z "$PROCESSES" ]; then
         echo "Docker is idle. Starting execution..."
         break
-    else
-        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
-        sleep $CHECK_INTERVAL
     fi
+
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        echo "Docker still busy after \${MAX_WAIT}s, proceeding anyway." >&2
+        break
+    fi
+
+    echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+    sleep $CHECK_INTERVAL
+    WAITED=$((WAITED + CHECK_INTERVAL))
 done
 
 ${exec}
@@ -283,9 +291,13 @@ const parseSizeToBytes = (size: string): number => {
 	return value * (multipliers[unit] || 0);
 };
 
-export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+export const getDockerDiskUsage = async (
+	serverId?: string,
+): Promise<DockerDiskUsageItem[]> => {
 	const command = "docker system df --format '{{json .}}'";
-	const { stdout } = await execAsync(command);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
 
 	const lines = stdout.trim().split("\n").filter(Boolean);
 	return lines.map((line) => {
@@ -299,6 +311,49 @@ export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
 			sizeBytes: parseSizeToBytes(data.Size),
 		};
 	});
+};
+
+export interface DockerBuildCacheItem {
+	id: string;
+	type: string;
+	description: string;
+	size: string;
+	sizeBytes: number;
+	createdSince: string;
+	lastUsedSince: string;
+	usageCount: number;
+	shared: boolean;
+	inUse: boolean;
+}
+
+export const getBuildCache = async (
+	serverId?: string,
+): Promise<DockerBuildCacheItem[]> => {
+	try {
+		const command = "docker system df -v --format '{{json .}}'";
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const diskUsage = JSON.parse(stdout.trim());
+		return ((diskUsage?.BuildCache ?? []) as Record<string, string>[]).map(
+			(entry) => ({
+				id: entry.ID ?? "",
+				type: entry.CacheType ?? "",
+				description: entry.Description ?? "",
+				size: entry.Size ?? "",
+				sizeBytes: parseSizeToBytes(entry.Size ?? ""),
+				createdSince: entry.CreatedSince ?? "",
+				lastUsedSince: entry.LastUsedSince ?? "",
+				usageCount: Number.parseInt(entry.UsageCount ?? "0", 10) || 0,
+				shared: entry.Shared === "true",
+				inUse: entry.InUse === "true",
+			}),
+		);
+	} catch (error) {
+		console.error(error);
+		return [];
+	}
 };
 
 /**
@@ -323,7 +378,12 @@ export const cleanupAll = async (serverId?: string) => {
 			} else {
 				await execAsync(dockerSafeExec(command));
 			}
-		} catch {}
+		} catch (error) {
+			console.error(
+				`Docker cleanup: "${key}" failed${serverId ? ` on server ${serverId}` : ""}`,
+				error,
+			);
+		}
 	}
 };
 

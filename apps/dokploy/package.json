@@ -40,7 +40,6 @@
 		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
-		"@aws-sdk/client-secrets-manager": "^3.1097.0",
 		"@ai-sdk/anthropic": "^3.0.44",
 		"@ai-sdk/azure": "^3.0.30",
 		"@ai-sdk/cohere": "^3.0.21",
@@ -48,6 +47,8 @@
 		"@ai-sdk/mistral": "^3.0.20",
 		"@ai-sdk/openai": "^3.0.29",
 		"@ai-sdk/openai-compatible": "^2.0.30",
+		"@aws-sdk/client-route-53": "^3.1108.0",
+		"@aws-sdk/client-secrets-manager": "^3.1108.0",
 		"@better-auth/api-key": "1.6.23",
 		"@better-auth/passkey": "1.6.23",
 		"@better-auth/scim": "1.6.23",
@@ -107,7 +108,7 @@
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.11",
-		"next": "16.2.6",
+		"next": "16.3.0",
 		"next-themes": "^0.2.1",
 		"nextjs-toploader": "^3.9.17",
 		"node-os-utils": "2.0.1",
@@ -175,7 +176,7 @@
 		"simple-icons": "^16.14.0",
 		"tailwindcss": "^4.3.1",
 		"tsx": "^4.22.4",
-		"typescript": "^5.8.3",
+		"typescript": "^7.0.2",
 		"vite-tsconfig-paths": "4.3.2",
 		"vitest": "^4.0.18"
 	},

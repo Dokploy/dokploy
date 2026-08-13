@@ -1,7 +1,12 @@
 const MAX_OSC52_PAYLOAD_LENGTH = 1_000_000;
 
-export const encodeTerminalBinary = (data: string): Uint8Array =>
-	Uint8Array.from(data, (character) => character.charCodeAt(0) & 0xff);
+export const encodeTerminalBinary = (data: string): Uint8Array<ArrayBuffer> => {
+	const bytes = new Uint8Array(data.length);
+	for (let index = 0; index < data.length; index++) {
+		bytes[index] = data.charCodeAt(index) & 0xff;
+	}
+	return bytes;
+};
 
 export const decodeOsc52ClipboardWrite = (data: string): string | null => {
 	const separatorIndex = data.indexOf(";");
