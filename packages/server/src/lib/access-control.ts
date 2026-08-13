@@ -202,6 +202,5 @@ export const memberRole = ac.newRole({
 	auditLog: [],
 	// Members need provider/secret names for env editor autocomplete; values are never exposed
 	vaultProvider: ["read"],
-	// Members can see configured DNS providers to pick one when adding a domain
-	dnsProvider: ["read"],
+	dnsProvider: [],
 });
