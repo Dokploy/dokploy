@@ -944,8 +944,7 @@ export const findAllDeploymentsCentralized = async (
 	});
 };
 
-// Kept separate from getApplicationIdsInOrg/getComposeIdsInOrg above to avoid
-// touching that existing code path; adds projectId/environmentId filtering.
+// Kept separate from getApplicationIdsInOrg/getComposeIdsInOrg to avoid touching that path.
 type FailedDeploymentIdFilters = { projectId?: string; environmentId?: string };
 
 async function getApplicationIdsForFailedDeployments(
@@ -1038,8 +1037,7 @@ async function mapWithConcurrency<T, R>(
 
 export type FailedDeploymentFilters = z.infer<typeof apiFindFailedDeployments>;
 
-// Same org-wide scope as findAllDeploymentsCentralized, narrowed to failed
-// deployments, each tagged with a classifyFailure() guess from its log tail.
+// Same org-wide scope as findAllDeploymentsCentralized, narrowed to failed deployments.
 export const findFailedDeploymentsCentralized = async (
 	orgId: string,
 	accessedServices: string[] | null,
@@ -1063,8 +1061,7 @@ export const findFailedDeploymentsCentralized = async (
 		return [];
 	}
 
-	// createdAt is stored as text via toISOString(); normalize the filters the
-	// same way so the string range comparison below stays valid.
+	// createdAt is stored as text via toISOString(); normalize filters the same way.
 	const dateFrom = filters.dateFrom
 		? new Date(filters.dateFrom).toISOString()
 		: undefined;
@@ -1093,8 +1090,7 @@ export const findFailedDeploymentsCentralized = async (
 		limit: 200,
 	});
 
-	// Skip further attempts to a server once it's timed out once, so a batch
-	// of failures on one unreachable host doesn't pay the SSH timeout N times.
+	// Skip a server again once it's timed out, so one dead host doesn't cost N SSH timeouts.
 	const deadServers = new Set<string>();
 	return mapWithConcurrency(
 		failed,

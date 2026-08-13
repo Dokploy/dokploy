@@ -219,8 +219,7 @@ const getNetworksIpUsage = async (
 	return rows.sort((a, b) => (b.percentUsed ?? -1) - (a.percentUsed ?? -1));
 };
 
-// Sums Application memoryReservation/cpuReservation (bytes/NanoCPUs, see
-// calculateResources in utils/docker/utils.ts). Compose has no such columns.
+// Sums Application memoryReservation/cpuReservation; Compose has no such columns.
 export const getReservationSummary = async (
 	orgId: string,
 	serverId?: string,
