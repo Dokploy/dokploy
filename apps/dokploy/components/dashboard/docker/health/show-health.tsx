@@ -142,12 +142,6 @@ export const ShowHealth = ({ serverId }: Props) => {
 		{ enabled: false },
 	);
 
-	// Mount-only: filter changes require an explicit Check click, not an auto-refetch.
-	useEffect(() => {
-		refetch();
-		refetchFailed();
-	}, []);
-
 	// Refreshes the default range's "to" bound to now right before checking.
 	const [checkFailedTick, setCheckFailedTick] = useState(0);
 	useEffect(() => {
