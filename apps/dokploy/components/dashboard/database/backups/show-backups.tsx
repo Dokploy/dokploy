@@ -76,6 +76,17 @@ export const ShowBackups = ({
 		? query()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
+	// web-server (Dokploy itself) has no status and is always running.
+	// Every other service must be deployed ("done") to restore into a live container.
+	const isRunning =
+		postgres == null
+			? false
+			: "applicationStatus" in postgres
+				? postgres.applicationStatus === "done"
+				: "composeStatus" in postgres
+					? postgres.composeStatus === "done"
+					: true;
+
 	const mutationMap =
 		backupType === "database"
 			? {
@@ -128,6 +139,7 @@ export const ShowBackups = ({
 							databaseType={databaseType}
 							backupType={backupType}
 							serverId={"serverId" in postgres ? postgres.serverId : undefined}
+							disabled={!isRunning}
 						/>
 					</div>
 				)}
@@ -170,6 +182,7 @@ export const ShowBackups = ({
 										serverId={
 											"serverId" in postgres ? postgres.serverId : undefined
 										}
+										disabled={!isRunning}
 									/>
 								</div>
 							</div>
