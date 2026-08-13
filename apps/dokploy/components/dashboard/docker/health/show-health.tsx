@@ -1,28 +1,18 @@
-import { format } from "date-fns";
 import {
 	AlertTriangle,
-	Calendar as CalendarIcon,
 	Cpu,
 	Download,
 	HardDrive,
-	Info,
 	Loader2,
 	Network,
 	RefreshCw,
 	Server as ServerIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import {
 	Select,
@@ -39,11 +29,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 interface Props {
@@ -62,52 +47,6 @@ const SINCE_HOURS_OPTIONS = [
 	{ label: "Last 7 days", value: 168 },
 ];
 
-const getDefaultDateRange = () => {
-	const to = new Date();
-	const from = new Date();
-	from.setDate(from.getDate() - 7);
-	return { from, to };
-};
-
-const getServiceInfo = (deployment: {
-	application?: {
-		applicationId: string;
-		name: string;
-		environment?: {
-			environmentId: string;
-			project?: { projectId: string; name: string };
-		};
-	} | null;
-	compose?: {
-		composeId: string;
-		name: string;
-		environment?: {
-			environmentId: string;
-			project?: { projectId: string; name: string };
-		};
-	} | null;
-}) => {
-	const app = deployment.application;
-	const comp = deployment.compose;
-	if (app?.environment?.project) {
-		return {
-			name: app.name,
-			projectId: app.environment.project.projectId,
-			projectName: app.environment.project.name,
-			href: `/dashboard/project/${app.environment.project.projectId}/environment/${app.environment.environmentId}/services/application/${app.applicationId}`,
-		};
-	}
-	if (comp?.environment?.project) {
-		return {
-			name: comp.name,
-			projectId: comp.environment.project.projectId,
-			projectName: comp.environment.project.name,
-			href: `/dashboard/project/${comp.environment.project.projectId}/environment/${comp.environment.environmentId}/services/compose/${comp.composeId}`,
-		};
-	}
-	return null;
-};
-
 export const ShowHealth = ({ serverId }: Props) => {
 	const [sinceHours, setSinceHours] = useState(24);
 	const {
@@ -117,40 +56,8 @@ export const ShowHealth = ({ serverId }: Props) => {
 		isFetched,
 	} = api.docker.getServerHealth.useQuery(
 		{ serverId, sinceHours },
-		{ enabled: false },
+		{ refetchOnMount: false, refetchOnWindowFocus: false },
 	);
-
-	const [dateRange, setDateRange] = useState<{
-		from: Date | undefined;
-		to: Date | undefined;
-	}>(() => getDefaultDateRange());
-	const [hasCustomRange, setHasCustomRange] = useState(false);
-	const [projectId, setProjectId] = useState<string | undefined>(undefined);
-	const { data: projects } = api.project.all.useQuery();
-
-	const {
-		data: failedDeployments,
-		isFetching: isFetchingFailed,
-		refetch: refetchFailed,
-		isFetched: isFetchedFailed,
-	} = api.deployment.allFailedCentralized.useQuery(
-		{
-			dateFrom: dateRange.from?.toISOString(),
-			dateTo: dateRange.to?.toISOString(),
-			projectId,
-		},
-		{ enabled: false },
-	);
-
-	// Refreshes the default range's "to" bound to now right before checking.
-	const [checkFailedTick, setCheckFailedTick] = useState(0);
-	useEffect(() => {
-		if (checkFailedTick > 0) refetchFailed();
-	}, [checkFailedTick]);
-	const handleCheckFailed = () => {
-		if (!hasCustomRange) setDateRange(getDefaultDateRange());
-		setCheckFailedTick((t) => t + 1);
-	};
 
 	const memUsedPct = health
 		? pct(health.resources.memUsedBytes, health.resources.memTotalBytes)
@@ -255,20 +162,6 @@ export const ShowHealth = ({ serverId }: Props) => {
 			lines.push("");
 		}
 
-		lines.push("## Failed deployments");
-		if (failedDeployments && failedDeployments.length > 0) {
-			for (const d of failedDeployments) {
-				const info = getServiceInfo(d);
-				const cause = d.classification?.label ?? "Unclassified";
-				lines.push(
-					`- ${format(new Date(d.createdAt), "PPp")} | ${info?.name ?? "—"} | ${info?.projectName ?? "—"} | ${cause}`,
-				);
-			}
-		} else {
-			lines.push("(none checked, or none in range)");
-		}
-		lines.push("");
-
 		lines.push("## Docker daemon errors (raw)");
 		lines.push("```");
 		lines.push(daemonErrorsText);
@@ -298,8 +191,8 @@ export const ShowHealth = ({ serverId }: Props) => {
 							<h3 className="text-lg font-medium">Server diagnostics</h3>
 							<p className="text-sm text-muted-foreground max-w-xl">
 								Runs a read-only check over SSH (inotify limits, disk, Docker
-								network pool, daemon errors). Nothing runs automatically — click
-								to check.
+								network pool, daemon errors). Runs automatically when you open
+								this tab — click Re-check to refresh.
 							</p>
 						</div>
 						<div className="flex items-center gap-2">
@@ -335,12 +228,10 @@ export const ShowHealth = ({ serverId }: Props) => {
 						</div>
 					</div>
 
-					{!isFetched && !isFetching && (
+					{isFetching && !health && (
 						<div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed rounded-xl">
-							<ServerIcon className="size-8" />
-							<span>
-								Nothing checked yet — click "Check server health" above.
-							</span>
+							<Loader2 className="size-8 animate-spin" />
+							<span>Checking server health…</span>
 						</div>
 					)}
 
@@ -351,7 +242,9 @@ export const ShowHealth = ({ serverId }: Props) => {
 					)}
 
 					{health && !health.error && (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						<div
+							className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 transition-opacity ${isFetching ? "opacity-50" : ""}`}
+						>
 							<Card className="p-4">
 								<div className="flex items-center gap-2 text-sm font-medium mb-2">
 									<ServerIcon className="size-4 text-muted-foreground" />
@@ -553,158 +446,6 @@ export const ShowHealth = ({ serverId }: Props) => {
 								wrapperClassName="h-64 rounded-lg border"
 							/>
 						</div>
-					)}
-				</div>
-			</Card>
-
-			<Card className="bg-sidebar p-2.5 rounded-xl w-full">
-				<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
-					<div className="flex items-center justify-between gap-4 flex-wrap">
-						<div>
-							<h3 className="text-lg font-medium">Failed deployments</h3>
-							<p className="text-sm text-muted-foreground max-w-xl">
-								Deployments that ended in error, with an automatic cause guess
-								based on the same patterns used to triage failures manually.
-							</p>
-						</div>
-						<div className="flex items-center gap-2 flex-wrap">
-							<Select
-								value={projectId ?? "all"}
-								onValueChange={(v) => setProjectId(v === "all" ? undefined : v)}
-							>
-								<SelectTrigger className="w-[180px]">
-									<SelectValue placeholder="All projects" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All projects</SelectItem>
-									{projects?.map((project) => (
-										<SelectItem
-											key={project.projectId}
-											value={project.projectId}
-										>
-											{project.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<Popover>
-								<PopoverTrigger asChild>
-									<Button
-										variant="outline"
-										className="justify-start text-left font-normal"
-									>
-										<CalendarIcon className="mr-2 h-4 w-4" />
-										{dateRange.from && dateRange.to
-											? `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`
-											: "Pick a date range"}
-									</Button>
-								</PopoverTrigger>
-								<PopoverContent className="w-auto p-0" align="end">
-									<Calendar
-										mode="range"
-										defaultMonth={dateRange.from}
-										selected={{ from: dateRange.from, to: dateRange.to }}
-										onSelect={(range) => {
-											setHasCustomRange(true);
-											setDateRange({ from: range?.from, to: range?.to });
-										}}
-										numberOfMonths={2}
-									/>
-								</PopoverContent>
-							</Popover>
-							<Button onClick={handleCheckFailed} disabled={isFetchingFailed}>
-								{isFetchingFailed ? (
-									<Loader2 className="size-4 animate-spin mr-2" />
-								) : (
-									<RefreshCw className="size-4 mr-2" />
-								)}
-								{isFetchedFailed ? "Re-check" : "Check"}
-							</Button>
-						</div>
-					</div>
-
-					{!isFetchedFailed && !isFetchingFailed && (
-						<div className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-xl">
-							Nothing checked yet.
-						</div>
-					)}
-
-					{isFetchedFailed && (failedDeployments?.length ?? 0) === 0 && (
-						<div className="text-sm text-muted-foreground py-4 text-center">
-							No failed deployments in this range.
-						</div>
-					)}
-
-					{(failedDeployments?.length ?? 0) > 0 && (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Date</TableHead>
-									<TableHead>Service</TableHead>
-									<TableHead>Project</TableHead>
-									<TableHead>Likely cause</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{failedDeployments?.map((deployment) => {
-									const info = getServiceInfo(deployment);
-									return (
-										<TableRow key={deployment.deploymentId}>
-											<TableCell className="whitespace-nowrap">
-												{format(new Date(deployment.createdAt), "PPp")}
-											</TableCell>
-											<TableCell>
-												{info ? (
-													<Link
-														href={info.href}
-														className="text-primary hover:underline"
-													>
-														{info.name}
-													</Link>
-												) : (
-													"—"
-												)}
-											</TableCell>
-											<TableCell>
-												{info ? (
-													<Link
-														href={`/dashboard/project/${info.projectId}`}
-														className="text-muted-foreground hover:underline"
-													>
-														{info.projectName}
-													</Link>
-												) : (
-													"—"
-												)}
-											</TableCell>
-											<TableCell>
-												<span className="flex items-center gap-1.5">
-													{deployment.classification ? (
-														<Badge variant="destructive">
-															{deployment.classification.label}
-														</Badge>
-													) : (
-														<span className="text-muted-foreground text-xs">
-															Unclassified
-														</span>
-													)}
-													{deployment.rawError && (
-														<Tooltip>
-															<TooltipTrigger>
-																<Info className="size-3.5 text-muted-foreground" />
-															</TooltipTrigger>
-															<TooltipContent className="max-w-md whitespace-pre-wrap break-all font-mono text-xs">
-																{deployment.rawError}
-															</TooltipContent>
-														</Tooltip>
-													)}
-												</span>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
 					)}
 				</div>
 			</Card>

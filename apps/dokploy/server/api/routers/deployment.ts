@@ -6,7 +6,6 @@ import {
 	findAllDeploymentsByServerId,
 	findAllDeploymentsCentralized,
 	findDeploymentById,
-	findFailedDeploymentsCentralized,
 	findScheduleById,
 	IS_CLOUD,
 	removeDeployment,
@@ -15,7 +14,6 @@ import {
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
-	checkPermission,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
@@ -29,7 +27,6 @@ import {
 	apiFindAllByCompose,
 	apiFindAllByServer,
 	apiFindAllByType,
-	apiFindFailedDeployments,
 	deployments,
 	server,
 } from "@/server/db/schema";
@@ -80,23 +77,6 @@ export const deploymentRouter = createTRPCRouter({
 			return findAllDeploymentsCentralized(orgId, accessedServices);
 		},
 	),
-
-	// Reads log tails over SSH, so same host-level gate as docker.getServerHealth.
-	allFailedCentralized: protectedProcedure
-		.input(apiFindFailedDeployments)
-		.query(async ({ ctx, input }) => {
-			await checkPermission(ctx, {
-				deployment: ["read"],
-				docker: ["read"],
-				server: ["read"],
-			});
-			const orgId = ctx.session.activeOrganizationId;
-			const accessedServices =
-				ctx.user.role !== "owner" && ctx.user.role !== "admin"
-					? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
-					: null;
-			return findFailedDeploymentsCentralized(orgId, accessedServices, input);
-		}),
 
 	queueList: withPermission("deployment", "read").query(async ({ ctx }) => {
 		const orgId = ctx.session.activeOrganizationId;
