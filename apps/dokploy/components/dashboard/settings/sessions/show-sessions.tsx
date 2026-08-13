@@ -84,10 +84,14 @@ export const ShowSessions = () => {
 	} = api.user.listSessions.useQuery();
 	const { mutateAsync: revoke, isPending: isRevoking } =
 		api.user.revokeSession.useMutation();
+	const { data: members } = api.user.all.useQuery(undefined, {
+		enabled: isOwner,
+	});
 
 	const [statusFilter, setStatusFilter] = useState<
 		"all" | "active" | "expired"
 	>("all");
+	const [userFilter, setUserFilter] = useState("all");
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "createdAt", desc: true },
@@ -119,23 +123,21 @@ export const ShowSessions = () => {
 			});
 		}
 
+		if (isOwner && userFilter !== "all") {
+			list = list.filter((s) => s.userId === userFilter);
+		}
+
 		if (globalFilter.trim()) {
 			const query = globalFilter.toLowerCase();
 			list = list.filter((s) =>
-				[
-					s.firstName,
-					s.lastName,
-					s.email,
-					s.ipAddress,
-					s.userAgent ? parseUserAgent(s.userAgent) : null,
-				]
+				[s.ipAddress, s.userAgent ? parseUserAgent(s.userAgent) : null]
 					.filter(Boolean)
 					.some((field) => field?.toLowerCase().includes(query)),
 			);
 		}
 
 		return list;
-	}, [sessions, statusFilter, globalFilter]);
+	}, [sessions, statusFilter, userFilter, isOwner, globalFilter]);
 
 	const columns = useMemo<ColumnDef<SessionRow>[]>(
 		() => [
@@ -303,7 +305,7 @@ export const ShowSessions = () => {
 							<>
 								<div className="flex flex-wrap items-center gap-2">
 									<Input
-										placeholder="Search by user, IP, device..."
+										placeholder="Search by IP, device..."
 										value={globalFilter}
 										onChange={(e) => setGlobalFilter(e.target.value)}
 										className="max-w-xs"
@@ -323,6 +325,22 @@ export const ShowSessions = () => {
 											<SelectItem value="expired">Expired</SelectItem>
 										</SelectContent>
 									</Select>
+									{isOwner && (
+										<Select value={userFilter} onValueChange={setUserFilter}>
+											<SelectTrigger className="w-[200px]">
+												<SelectValue placeholder="User" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">All users</SelectItem>
+												{members?.map((m) => (
+													<SelectItem key={m.user.id} value={m.user.id}>
+														{m.user.firstName} {m.user.lastName} ({m.user.email}
+														)
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									)}
 								</div>
 								<div className="rounded-md border overflow-x-auto">
 									<Table>
