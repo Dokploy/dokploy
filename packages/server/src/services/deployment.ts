@@ -1096,8 +1096,10 @@ export const findFailedDeploymentsCentralized = async (
 		failed,
 		LOG_TAIL_CONCURRENCY,
 		async (deployment) => {
+			// Same buildServerId-then-serverId precedence used app-wide (application.ts, drop.ts, etc.)
 			const serverId =
 				deployment.buildServer?.serverId ||
+				deployment.application?.buildServer?.serverId ||
 				deployment.server?.serverId ||
 				deployment.application?.server?.serverId ||
 				deployment.compose?.server?.serverId ||

@@ -26,7 +26,6 @@ const DEFAULT_SWARM_TAB = "overview";
 
 const Dashboard = () => {
 	const router = useRouter();
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	// Host-level diagnostics, so this needs server.read on top of docker.read.
 	const canSeeHealth = !!permissions?.docker.read && !!permissions?.server.read;
@@ -34,10 +33,7 @@ const Dashboard = () => {
 	const queryTab =
 		typeof router.query.tab === "string" ? router.query.tab : DEFAULT_TAB;
 	const activeTab =
-		(isCloud && queryTab === "networks") ||
-		(queryTab === "health" && !canSeeHealth)
-			? DEFAULT_TAB
-			: queryTab;
+		queryTab === "health" && !canSeeHealth ? DEFAULT_TAB : queryTab;
 
 	const activeSwarmTab =
 		typeof router.query.subtab === "string"
@@ -78,7 +74,7 @@ const Dashboard = () => {
 						<TabsTrigger value="swarm">Swarm</TabsTrigger>
 						<TabsTrigger value="images">Images</TabsTrigger>
 						<TabsTrigger value="volumes">Volumes</TabsTrigger>
-						{!isCloud && <TabsTrigger value="networks">Networks</TabsTrigger>}
+						<TabsTrigger value="networks">Networks</TabsTrigger>
 						<TabsTrigger value="events">Events</TabsTrigger>
 						<TabsTrigger value="disk-usage">Disk Usage</TabsTrigger>
 						{canSeeHealth && <TabsTrigger value="health">Health</TabsTrigger>}
@@ -114,11 +110,9 @@ const Dashboard = () => {
 					<TabsContent value="volumes">
 						<ShowVolumes serverId={serverId} />
 					</TabsContent>
-					{!isCloud && (
-						<TabsContent value="networks">
-							<ShowNetworks serverId={serverId} />
-						</TabsContent>
-					)}
+					<TabsContent value="networks">
+						<ShowNetworks serverId={serverId} />
+					</TabsContent>
 					<TabsContent value="events">
 						<ShowDockerEvents serverId={serverId} />
 					</TabsContent>
