@@ -420,9 +420,9 @@ export const ShowOverviewServices = () => {
 											<TableCell>{TYPE_LABELS[service.type]}</TableCell>
 											<TableCell>
 												<StatusTooltip
-												status={service.status as any}
-												className="size-2.5"
-											/>
+													status={service.status as any}
+													className="size-2.5"
+												/>
 											</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-1.5 text-muted-foreground">
