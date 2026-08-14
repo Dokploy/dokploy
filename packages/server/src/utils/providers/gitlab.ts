@@ -114,17 +114,6 @@ interface RegisterGitlabDeployWebhookInput {
 	deployWebhookUrl: string;
 }
 
-const createGitlabHookPayload = ({
-	branch,
-	deployWebhookUrl,
-}: Pick<RegisterGitlabDeployWebhookInput, "branch" | "deployWebhookUrl">) => ({
-	url: deployWebhookUrl,
-	push_events: true,
-	enable_ssl_verification: true,
-	push_events_branch_filter: branch,
-	branch_filter_strategy: "wildcard",
-});
-
 const getGitlabApiBaseUrl = (gitlabProvider: Gitlab) => {
 	return (gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl).replace(
 		/\/+$/,
@@ -181,16 +170,18 @@ export const registerGitlabDeployWebhook = async ({
 		throw new Error("GitLab project ID is required to register webhook");
 	}
 
-	const gitlabProvider = await findGitlabById(gitlabId);
-	if (!gitlabProvider.enableAutoDeploy) {
-		return null;
-	}
-
 	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 	const baseUrl = getGitlabApiBaseUrl(gitlabProvider);
 	const hooksUrl = `${baseUrl}/api/v4/projects/${gitlabProjectId}/hooks`;
 	const headers = getGitlabApiHeaders(gitlabProvider.accessToken);
-	const payload = createGitlabHookPayload({ branch, deployWebhookUrl });
+	const payload = {
+		url: deployWebhookUrl,
+		push_events: true,
+		enable_ssl_verification: true,
+		push_events_branch_filter: branch,
+		branch_filter_strategy: "wildcard",
+	};
 
 	const hooksResponse = await fetch(`${hooksUrl}?per_page=100`, {
 		headers,

@@ -202,7 +202,8 @@ export const composeRouter = createTRPCRouter({
 				input.gitlabId &&
 				input.gitlabProjectId &&
 				input.gitlabBranch &&
-				updated?.refreshToken
+				updated?.refreshToken &&
+				updated?.autoDeploy
 			) {
 				const dokployUrl = await getDokployUrl();
 				await registerGitlabDeployWebhook({

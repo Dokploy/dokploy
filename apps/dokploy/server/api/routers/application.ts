@@ -463,13 +463,15 @@ export const applicationRouter = createTRPCRouter({
 				enableSubmodules: input.enableSubmodules,
 			});
 			const application = await findApplicationById(input.applicationId);
-			const dokployUrl = await getDokployUrl();
-			await registerGitlabDeployWebhook({
-				gitlabId: input.gitlabId,
-				gitlabProjectId: input.gitlabProjectId,
-				branch: input.gitlabBranch,
-				deployWebhookUrl: `${dokployUrl}/api/deploy/${application.refreshToken}`,
-			});
+			if (application.autoDeploy) {
+				const dokployUrl = await getDokployUrl();
+				await registerGitlabDeployWebhook({
+					gitlabId: input.gitlabId,
+					gitlabProjectId: input.gitlabProjectId,
+					branch: input.gitlabBranch,
+					deployWebhookUrl: `${dokployUrl}/api/deploy/${application.refreshToken}`,
+				});
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
