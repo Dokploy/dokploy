@@ -58,7 +58,7 @@ const formSchema = z
 		prefix: z.string(),
 		keepLatestCount: z.coerce
 			.number()
-			.int()
+			.int("Must be a whole number")
 			.gte(1, "Must be at least 1")
 			.optional()
 			.nullable(),
@@ -587,11 +587,10 @@ export const HandleVolumeBackups = ({
 											onChange={(e) => {
 												const raw = e.target.value;
 												setKeepLatestCountInput(raw);
-												if (raw === "") {
-													field.onChange(undefined);
-												} else if (/^\d+$/.test(raw)) {
-													field.onChange(Number(raw));
-												}
+												// Hand the raw value to the form so anything that is
+												// not a whole number is rejected by the schema
+												// instead of being dropped and treated as "cleared".
+												field.onChange(raw === "" ? undefined : raw);
 											}}
 										/>
 									</FormControl>

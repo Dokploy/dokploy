@@ -19,8 +19,10 @@ describe("prepareKeepLatestCount", () => {
 		expect(prepareKeepLatestCount("", 3)).toBeNull();
 	});
 
-	test("normalizes a missing form value to null", () => {
-		expect(prepareKeepLatestCount("3", undefined)).toBeNull();
-		expect(prepareKeepLatestCount("3", null)).toBeNull();
+	test("leaves the stored retention alone when the input is not a valid amount", () => {
+		// A non-empty input with no parsed value is rejected by the form schema.
+		// Clearing the column here would silently disable pruning.
+		expect(prepareKeepLatestCount("3.5", undefined)).toBeUndefined();
+		expect(prepareKeepLatestCount("abc", null)).toBeUndefined();
 	});
 });
