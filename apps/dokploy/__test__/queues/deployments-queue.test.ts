@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
 	deployApplication: vi.fn(),
 	deployCompose: vi.fn(),
 	deployPreviewApplication: vi.fn(),
+	findApplicationById: vi.fn(),
+	findComposeById: vi.fn(),
+	findPreviewDeploymentById: vi.fn(),
 	rebuildApplication: vi.fn(),
 	rebuildCompose: vi.fn(),
 	rebuildPreviewApplication: vi.fn(),
@@ -55,6 +58,13 @@ describe("processDeploymentJob", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.spyOn(console, "log").mockImplementation(() => {});
+		mocks.findApplicationById.mockResolvedValue({
+			applicationStatus: "running",
+		});
+		mocks.findComposeById.mockResolvedValue({ composeStatus: "running" });
+		mocks.findPreviewDeploymentById.mockResolvedValue({
+			previewStatus: "running",
+		});
 	});
 
 	it("keeps the running status when the deploy succeeds", async () => {
@@ -109,6 +119,53 @@ describe("processDeploymentJob", () => {
 			"preview-1",
 			{ previewStatus: "error" },
 		);
+	});
+
+	it("keeps the done status when the application already finished", async () => {
+		mocks.deployApplication.mockRejectedValueOnce(new Error("boom"));
+		mocks.findApplicationById.mockResolvedValue({
+			applicationStatus: "done",
+		});
+
+		await processDeploymentJob(toJob(applicationJob));
+
+		expect(mocks.updateApplicationStatus).toHaveBeenCalledTimes(1);
+		expect(mocks.updateApplicationStatus).toHaveBeenLastCalledWith(
+			"app-1",
+			"running",
+		);
+	});
+
+	it("keeps the done status when the compose already finished", async () => {
+		mocks.deployCompose.mockRejectedValueOnce(new Error("boom"));
+		mocks.findComposeById.mockResolvedValue({ composeStatus: "done" });
+
+		await processDeploymentJob(toJob(composeJob));
+
+		expect(mocks.updateCompose).toHaveBeenCalledTimes(1);
+		expect(mocks.updateCompose).toHaveBeenLastCalledWith("compose-1", {
+			composeStatus: "running",
+		});
+	});
+
+	it("keeps the error status the helper already wrote", async () => {
+		mocks.deployApplication.mockRejectedValueOnce(new Error("boom"));
+		mocks.findApplicationById.mockResolvedValue({
+			applicationStatus: "error",
+		});
+
+		await processDeploymentJob(toJob(applicationJob));
+
+		expect(mocks.updateApplicationStatus).toHaveBeenCalledTimes(1);
+	});
+
+	it("swallows a failing status lookup", async () => {
+		mocks.deployApplication.mockRejectedValueOnce(new Error("boom"));
+		mocks.findApplicationById.mockRejectedValue(new Error("db down"));
+
+		await expect(
+			processDeploymentJob(toJob(applicationJob)),
+		).resolves.toBeUndefined();
 	});
 
 	it("swallows a failing status rollback", async () => {
