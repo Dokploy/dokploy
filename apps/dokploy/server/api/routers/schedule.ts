@@ -259,9 +259,23 @@ export const scheduleRouter = createTRPCRouter({
 				where: where[input.scheduleType],
 				orderBy: [asc(schedules.createdAt)],
 				with: {
-					application: true,
+					application: {
+						columns: {
+							applicationId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
 					server: true,
-					compose: true,
+					compose: {
+						columns: {
+							composeId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
 					deployments: {
 						orderBy: [desc(deployments.createdAt)],
 					},

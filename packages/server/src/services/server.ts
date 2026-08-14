@@ -100,15 +100,16 @@ export const deleteServer = async (serverId: string) => {
 export const haveActiveServices = async (serverId: string) => {
 	const currentServer = await db.query.server.findFirst({
 		where: eq(server.serverId, serverId),
+		columns: { serverId: true },
 		with: {
-			applications: true,
-			compose: true,
-			libsql: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
+			applications: { columns: { applicationId: true } },
+			compose: { columns: { composeId: true } },
+			libsql: { columns: { libsqlId: true } },
+			mariadb: { columns: { mariadbId: true } },
+			mongo: { columns: { mongoId: true } },
+			mysql: { columns: { mysqlId: true } },
+			postgres: { columns: { postgresId: true } },
+			redis: { columns: { redisId: true } },
 		},
 	});
 

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -111,7 +112,10 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Enable Isolated Deployment</CardTitle>
+				<CardTitle className="text-xl flex items-center gap-2">
+					Enable Isolated Deployment
+					<Badge variant="yellow">Deprecated</Badge>
+				</CardTitle>
 				<CardDescription>
 					Configure isolated deployment to the compose file.
 					<div className="text-sm text-muted-foreground flex flex-col gap-2">
@@ -138,6 +142,11 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 			</CardHeader>
 			<CardContent>
 				<div className="space-y-4">
+					<AlertBlock type="warning">
+						Isolated deployment is deprecated. Use the Networks section above to
+						attach networks per service and detach them from dokploy-network —
+						it is declarative and does not break on restarts.
+					</AlertBlock>
 					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 					<Form {...form}>
 						<form

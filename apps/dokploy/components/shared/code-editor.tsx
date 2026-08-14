@@ -3,6 +3,7 @@ import {
 	type Completion,
 	type CompletionContext,
 	type CompletionResult,
+	type CompletionSource,
 } from "@codemirror/autocomplete";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
@@ -160,6 +161,7 @@ interface Props extends ReactCodeMirrorProps {
 	language?: "yaml" | "json" | "properties" | "shell" | "css";
 	lineWrapping?: boolean;
 	lineNumbers?: boolean;
+	completionSource?: CompletionSource;
 }
 
 export const CodeEditor = ({
@@ -167,6 +169,7 @@ export const CodeEditor = ({
 	wrapperClassName,
 	language = "yaml",
 	lineNumbers = true,
+	completionSource,
 	...props
 }: Props) => {
 	const { resolvedTheme } = useTheme();
@@ -200,11 +203,15 @@ export const CodeEditor = ({
 											languageData: { commentTokens: { line: "#" } },
 										}),
 					props.lineWrapping ? EditorView.lineWrapping : [],
-					language === "yaml"
+					completionSource
 						? autocompletion({
-								override: [dockerComposeComplete],
+								override: [completionSource],
 							})
-						: [],
+						: language === "yaml"
+							? autocompletion({
+									override: [dockerComposeComplete],
+								})
+							: [],
 				]}
 				{...props}
 				editable={!props.disabled}
