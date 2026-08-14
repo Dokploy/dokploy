@@ -3,8 +3,10 @@ import {
 	createGitea,
 	findGiteaById,
 	getAccessibleGitProviderIds,
+	getGiteaBranch,
 	getGiteaBranches,
 	getGiteaRepositories,
+	getGiteaRepository,
 	haveGiteaRequirements,
 	testGiteaConnection,
 	updateGitea,
@@ -20,8 +22,10 @@ import {
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateGitea,
+	apiFindBranch,
 	apiFindGiteaBranches,
 	apiFindOneGitea,
+	apiFindRepository,
 	apiGiteaTestConnection,
 	apiUpdateGitea,
 } from "@/server/db/schema";
@@ -119,6 +123,18 @@ export const giteaRouter = createTRPCRouter({
 			}
 		}),
 
+	getGiteaRepository: protectedProcedure
+		.input(apiFindRepository.extend({ giteaId: apiFindOneGitea.shape.giteaId }))
+		.query(async ({ input, ctx }) => {
+			const gitea = await findGiteaById(input.giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
+			return await getGiteaRepository(
+				input.giteaId,
+				input.owner,
+				input.repository,
+			);
+		}),
+
 	getGiteaBranches: protectedProcedure
 		.input(apiFindGiteaBranches)
 		.query(async ({ input, ctx }) => {
@@ -148,6 +164,18 @@ export const giteaRouter = createTRPCRouter({
 					message: error instanceof Error ? error.message : String(error),
 				});
 			}
+		}),
+	getGiteaBranch: protectedProcedure
+		.input(apiFindBranch.extend({ giteaId: apiFindOneGitea.shape.giteaId }))
+		.query(async ({ input, ctx }) => {
+			const gitea = await findGiteaById(input.giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
+			return await getGiteaBranch(
+				input.giteaId,
+				input.owner,
+				input.repository,
+				input.branch,
+			);
 		}),
 
 	testConnection: protectedProcedure

@@ -180,6 +180,40 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 	}
 };
 
+export const getBitbucketRepository = async (
+	bitbucketId: string,
+	owner: string,
+	repository: string,
+) => {
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
+	const response = await fetch(
+		`https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`,
+		{
+			headers: getBitbucketHeaders(bitbucketProvider),
+		},
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: response.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				response.status === 404
+					? `Repository ${owner}/${repository} was not found or is not accessible`
+					: `Failed to look up repository: ${response.statusText}`,
+		});
+	}
+
+	const data = await response.json();
+	return {
+		id: data.uuid as string,
+		name: data.name as string,
+		owner: data.workspace.slug as string,
+		path: data.full_name as string,
+		slug: data.slug as string,
+		url: data.links.html.href as string,
+	};
+};
+
 export const getBitbucketBranches = async (
 	input: z.infer<typeof apiFindBitbucketBranches>,
 ) => {
@@ -233,6 +267,32 @@ export const getBitbucketBranches = async (
 	} catch (error) {
 		throw error;
 	}
+};
+
+export const getBitbucketBranch = async (
+	bitbucketId: string,
+	owner: string,
+	repository: string,
+	branch: string,
+) => {
+	const bitbucketProvider = await findBitbucketById(bitbucketId);
+	const response = await fetch(
+		`https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/refs/branches/${encodeURIComponent(branch)}`,
+		{ headers: getBitbucketHeaders(bitbucketProvider) },
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: response.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				response.status === 404
+					? `Branch ${branch} was not found in ${owner}/${repository}`
+					: `Failed to look up branch: ${response.statusText}`,
+		});
+	}
+
+	const data = await response.json();
+	return { name: data.name as string };
 };
 
 export const testBitbucketConnection = async (
