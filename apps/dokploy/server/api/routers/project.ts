@@ -121,6 +121,20 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 
+				// Select explicit columns, same as findProjectById does for owners/admins.
+				// Drizzle builds one json_build_array per nested relation with a single
+				// argument per column, and Postgres allows at most 100 arguments per
+				// function call. The application table is already at 101 columns, so
+				// pulling the whole table inside a `with` makes the query fail.
+				const serviceColumns = {
+					name: true,
+					description: true,
+					appName: true,
+					createdAt: true,
+					serverId: true,
+					applicationStatus: true,
+				} as const;
+
 				const project = await db.query.projects.findFirst({
 					where: and(
 						eq(projects.projectId, input.projectId),
@@ -130,39 +144,55 @@ export const projectRouter = createTRPCRouter({
 						environments: {
 							with: {
 								applications: {
+									columns: {
+										...serviceColumns,
+										applicationId: true,
+										icon: true,
+									},
 									where: buildServiceFilter(
 										applications.applicationId,
 										accessedServices,
 									),
 								},
 								compose: {
+									columns: {
+										...serviceColumns,
+										composeId: true,
+										composeStatus: true,
+									},
 									where: buildServiceFilter(
 										compose.composeId,
 										accessedServices,
 									),
 								},
 								libsql: {
+									columns: { ...serviceColumns, libsqlId: true },
 									where: buildServiceFilter(libsql.libsqlId, accessedServices),
 								},
 								mariadb: {
+									columns: { ...serviceColumns, mariadbId: true },
 									where: buildServiceFilter(
 										mariadb.mariadbId,
 										accessedServices,
 									),
 								},
 								mongo: {
+									columns: { ...serviceColumns, mongoId: true },
 									where: buildServiceFilter(mongo.mongoId, accessedServices),
 								},
 								mysql: {
+									columns: { ...serviceColumns, mysqlId: true },
 									where: buildServiceFilter(mysql.mysqlId, accessedServices),
 								},
 								postgres: {
+									columns: { ...serviceColumns, postgresId: true },
 									where: buildServiceFilter(
 										postgres.postgresId,
 										accessedServices,
 									),
 								},
 								redis: {
+									columns: { ...serviceColumns, redisId: true },
 									where: buildServiceFilter(redis.redisId, accessedServices),
 								},
 							},
