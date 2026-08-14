@@ -1,9 +1,10 @@
 import { Loader2, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { createLookupRequestGuard } from "./lookup-request-guard";
 
 type GitProvider = "github" | "gitlab" | "bitbucket" | "gitea";
 
@@ -26,11 +27,19 @@ export const BranchDirectLookup = ({
 }: Props) => {
 	const utils = api.useUtils();
 	const [branch, setBranch] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
+	const [loadingRequest, setLoadingRequest] = useState<number | null>(null);
+	const [requestGuard] = useState(createLookupRequestGuard);
+	requestGuard.setContext(
+		JSON.stringify([provider, providerId, owner, repository, projectId]),
+	);
+	const isLoading =
+		loadingRequest !== null && requestGuard.isCurrent(loadingRequest);
 	const canLookup =
 		!!providerId &&
 		!!repository &&
 		(provider === "gitlab" ? !!projectId : !!owner);
+
+	useEffect(() => () => requestGuard.cancel(), [requestGuard]);
 
 	const lookup = async () => {
 		const value = branch.trim();
@@ -43,7 +52,8 @@ export const BranchDirectLookup = ({
 			return;
 		}
 
-		setIsLoading(true);
+		const request = requestGuard.begin();
+		setLoadingRequest(request);
 		try {
 			let result: { name: string };
 			switch (provider) {
@@ -80,15 +90,21 @@ export const BranchDirectLookup = ({
 					break;
 			}
 
+			if (!requestGuard.isCurrent(request)) return;
+
 			onSelect(result.name);
 			setBranch(result.name);
 			toast.success(`Found branch ${result.name}`);
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Branch lookup failed",
-			);
+			if (requestGuard.isCurrent(request)) {
+				toast.error(
+					error instanceof Error ? error.message : "Branch lookup failed",
+				);
+			}
 		} finally {
-			setIsLoading(false);
+			if (requestGuard.isCurrent(request)) {
+				setLoadingRequest(null);
+			}
 		}
 	};
 

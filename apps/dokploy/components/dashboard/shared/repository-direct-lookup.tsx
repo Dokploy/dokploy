@@ -1,9 +1,10 @@
 import { Loader2, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { createLookupRequestGuard } from "./lookup-request-guard";
 import { parseRepositoryPath } from "./repository-path";
 
 type GitProvider = "github" | "gitlab" | "bitbucket" | "gitea";
@@ -30,7 +31,13 @@ export const RepositoryDirectLookup = ({
 }: Props) => {
 	const utils = api.useUtils();
 	const [value, setValue] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
+	const [loadingRequest, setLoadingRequest] = useState<number | null>(null);
+	const [requestGuard] = useState(createLookupRequestGuard);
+	requestGuard.setContext(JSON.stringify([provider, providerId]));
+	const isLoading =
+		loadingRequest !== null && requestGuard.isCurrent(loadingRequest);
+
+	useEffect(() => () => requestGuard.cancel(), [requestGuard]);
 
 	const lookup = async () => {
 		const parsed = parseRepositoryPath(value);
@@ -44,7 +51,8 @@ export const RepositoryDirectLookup = ({
 			return;
 		}
 
-		setIsLoading(true);
+		const request = requestGuard.begin();
+		setLoadingRequest(request);
 		try {
 			let repository: RepositoryLookupResult;
 			switch (provider) {
@@ -74,15 +82,21 @@ export const RepositoryDirectLookup = ({
 					break;
 			}
 
+			if (!requestGuard.isCurrent(request)) return;
+
 			onSelect(repository);
 			setValue(repository.path);
 			toast.success(`Found ${repository.path}`);
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Repository lookup failed",
-			);
+			if (requestGuard.isCurrent(request)) {
+				toast.error(
+					error instanceof Error ? error.message : "Repository lookup failed",
+				);
+			}
 		} finally {
-			setIsLoading(false);
+			if (requestGuard.isCurrent(request)) {
+				setLoadingRequest(null);
+			}
 		}
 	};
 
