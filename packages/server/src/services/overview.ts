@@ -280,7 +280,9 @@ function ownerFrom(
 // Shared by backups, volume backups, and domains — all resolve "which one of these
 // nullable relations is actually set" the same way.
 function pickFirst<TRow, TType extends string>(
-	candidates: Array<[row: TRow | null | undefined, id: string | undefined, type: TType]>,
+	candidates: Array<
+		[row: TRow | null | undefined, id: string | undefined, type: TType]
+	>,
 ): [TRow, string, TType] | null {
 	for (const [row, id, type] of candidates) {
 		if (row && id) return [row, id, type];
@@ -318,7 +320,11 @@ function pickVolumeBackupOwner(volumeBackup: {
 	compose?: (OwnerRow & { composeId: string }) | null;
 }): Owner | null {
 	const found = pickFirst<OwnerRow, OverviewServiceType>([
-		[volumeBackup.application, volumeBackup.application?.applicationId, "application"],
+		[
+			volumeBackup.application,
+			volumeBackup.application?.applicationId,
+			"application",
+		],
 		[volumeBackup.postgres, volumeBackup.postgres?.postgresId, "postgres"],
 		[volumeBackup.mariadb, volumeBackup.mariadb?.mariadbId, "mariadb"],
 		[volumeBackup.mysql, volumeBackup.mysql?.mysqlId, "mysql"],
@@ -634,7 +640,10 @@ function orgScopeCondition(
 	accessedServices: string[] | null,
 ) {
 	return accessedServices !== null
-		? and(eq(projects.organizationId, orgId), inArray(idColumn, accessedServices))
+		? and(
+				eq(projects.organizationId, orgId),
+				inArray(idColumn, accessedServices),
+			)
 		: eq(projects.organizationId, orgId);
 }
 
