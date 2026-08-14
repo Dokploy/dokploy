@@ -1,4 +1,5 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { hasPermission } from "@dokploy/server/services/permission";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -42,8 +43,41 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		transformer: superjson,
 	});
 
-	await helpers.settings.isCloud.prefetch();
-	await helpers.user.get.prefetch();
+	const activeOrganizationId = session?.activeOrganizationId;
+
+	const prefetchTasks: Promise<unknown>[] = [
+		helpers.settings.isCloud.prefetch(),
+		helpers.user.get.prefetch(),
+		helpers.organization.active.prefetch(),
+	];
+
+	// Org-scoped queries require an active membership; skipping them avoids
+	// UNAUTHORIZED during SSR when the user has no organization selected.
+	if (activeOrganizationId) {
+		const permissionCtx = {
+			user: { id: user.id },
+			session: { activeOrganizationId },
+		};
+
+		const [canReadDeployments, canReadServers] = await Promise.all([
+			hasPermission(permissionCtx, { deployment: ["read"] }),
+			hasPermission(permissionCtx, { server: ["read"] }),
+		]);
+
+		prefetchTasks.push(
+			helpers.user.getPermissions.prefetch(),
+			helpers.project.homeStats.prefetch(),
+		);
+
+		if (canReadDeployments) {
+			prefetchTasks.push(helpers.deployment.homeSummary.prefetch());
+		}
+		if (canReadServers) {
+			prefetchTasks.push(helpers.server.all.prefetch());
+		}
+	}
+
+	await Promise.all(prefetchTasks);
 
 	return {
 		props: {
