@@ -250,21 +250,21 @@ export const ShowOverviewServices = () => {
 		if (service.type in DB_ENGINE_ICONS) {
 			const Icon =
 				DB_ENGINE_ICONS[service.type as keyof typeof DB_ENGINE_ICONS];
-			return <Icon className="h-7 w-7" />;
+			return <Icon className="h-5 w-5" />;
 		}
 		if (service.icon) {
 			return (
 				<img
 					src={service.icon}
 					alt={service.name}
-					className="size-7 object-contain rounded-sm"
+					className="size-5 object-contain rounded-sm"
 				/>
 			);
 		}
 		return service.type === "compose" ? (
-			<CircuitBoard className="h-6 w-6" />
+			<CircuitBoard className="h-5 w-5" />
 		) : (
-			<GlobeIcon className="h-6 w-6" />
+			<GlobeIcon className="h-5 w-5" />
 		);
 	};
 
@@ -419,7 +419,10 @@ export const ShowOverviewServices = () => {
 											</TableCell>
 											<TableCell>{TYPE_LABELS[service.type]}</TableCell>
 											<TableCell>
-												<StatusTooltip status={service.status as any} />
+												<StatusTooltip
+												status={service.status as any}
+												className="size-2.5"
+											/>
 											</TableCell>
 											<TableCell>
 												<div className="flex items-center gap-1.5 text-muted-foreground">

@@ -5,24 +5,15 @@ import {
 	CircuitBoard,
 	GlobeIcon,
 	Loader2,
-	MoreHorizontal,
 	RefreshCw,
 	ServerIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { RestoreVolumeBackups } from "@/components/dashboard/application/volume-backups/restore-volume-backups";
-import { RestoreBackup } from "@/components/dashboard/database/backups/restore-backup";
 import { DB_ENGINE_ICONS } from "@/components/icons/data-tools-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
 	Select,
 	SelectContent,
@@ -213,7 +204,6 @@ export const ShowOverviewBackups = () => {
 								<TableHead>Destination</TableHead>
 								<TableHead>Kind</TableHead>
 								<TableHead>Status</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -226,13 +216,6 @@ export const ShowOverviewBackups = () => {
 								) : (
 									row.serviceName
 								);
-								const canRestoreBackup =
-									row.kind === "backup" && !!row.serviceOwnerId;
-								const canRestoreVolumeBackup =
-									row.kind === "volumeBackup" &&
-									!!row.serviceOwnerId &&
-									(row.serviceOwnerType === "application" ||
-										row.serviceOwnerType === "compose");
 								return (
 									<TableRow key={row.deploymentId}>
 										<TableCell className="whitespace-nowrap text-sm">
@@ -257,52 +240,6 @@ export const ShowOverviewBackups = () => {
 												>
 													{row.status}
 												</Badge>
-											)}
-										</TableCell>
-										<TableCell className="text-right">
-											{(canRestoreBackup || canRestoreVolumeBackup) && (
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button variant="ghost" className="h-8 w-8 p-0">
-															<span className="sr-only">Open menu</span>
-															<MoreHorizontal className="h-4 w-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														{canRestoreBackup && row.serviceOwnerId && (
-															<RestoreBackup
-																id={row.serviceOwnerId}
-																databaseType={row.databaseType as any}
-																serverId={row.serverId}
-																backupType={row.backupType ?? "database"}
-																trigger={
-																	<DropdownMenuItem
-																		onSelect={(e) => e.preventDefault()}
-																	>
-																		Restore
-																	</DropdownMenuItem>
-																}
-															/>
-														)}
-														{canRestoreVolumeBackup &&
-															row.serviceOwnerId &&
-															(row.serviceOwnerType === "application" ||
-																row.serviceOwnerType === "compose") && (
-																<RestoreVolumeBackups
-																	id={row.serviceOwnerId}
-																	type={row.serviceOwnerType}
-																	serverId={row.serverId ?? undefined}
-																	trigger={
-																		<DropdownMenuItem
-																			onSelect={(e) => e.preventDefault()}
-																		>
-																			Restore
-																		</DropdownMenuItem>
-																	}
-																/>
-															)}
-													</DropdownMenuContent>
-												</DropdownMenu>
 											)}
 										</TableCell>
 									</TableRow>
