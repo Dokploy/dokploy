@@ -276,6 +276,18 @@ function ownerFrom(
 	};
 }
 
+// Picks the first non-null relation out of several mutually-exclusive owner candidates.
+// Shared by backups, volume backups, and domains — all resolve "which one of these
+// nullable relations is actually set" the same way.
+function pickFirst<TRow, TType extends string>(
+	candidates: Array<[row: TRow | null | undefined, id: string | undefined, type: TType]>,
+): [TRow, string, TType] | null {
+	for (const [row, id, type] of candidates) {
+		if (row && id) return [row, id, type];
+	}
+	return null;
+}
+
 function pickBackupOwner(backup: {
 	postgres?: (OwnerRow & { postgresId: string }) | null;
 	mariadb?: (OwnerRow & { mariadbId: string }) | null;
@@ -284,19 +296,15 @@ function pickBackupOwner(backup: {
 	libsql?: (OwnerRow & { libsqlId: string }) | null;
 	compose?: (OwnerRow & { composeId: string }) | null;
 }): Owner | null {
-	if (backup.postgres)
-		return ownerFrom(backup.postgres, backup.postgres.postgresId, "postgres");
-	if (backup.mariadb)
-		return ownerFrom(backup.mariadb, backup.mariadb.mariadbId, "mariadb");
-	if (backup.mysql)
-		return ownerFrom(backup.mysql, backup.mysql.mysqlId, "mysql");
-	if (backup.mongo)
-		return ownerFrom(backup.mongo, backup.mongo.mongoId, "mongo");
-	if (backup.libsql)
-		return ownerFrom(backup.libsql, backup.libsql.libsqlId, "libsql");
-	if (backup.compose)
-		return ownerFrom(backup.compose, backup.compose.composeId, "compose");
-	return null;
+	const found = pickFirst<OwnerRow, OverviewServiceType>([
+		[backup.postgres, backup.postgres?.postgresId, "postgres"],
+		[backup.mariadb, backup.mariadb?.mariadbId, "mariadb"],
+		[backup.mysql, backup.mysql?.mysqlId, "mysql"],
+		[backup.mongo, backup.mongo?.mongoId, "mongo"],
+		[backup.libsql, backup.libsql?.libsqlId, "libsql"],
+		[backup.compose, backup.compose?.composeId, "compose"],
+	]);
+	return found ? ownerFrom(...found) : null;
 }
 
 function pickVolumeBackupOwner(volumeBackup: {
@@ -309,43 +317,17 @@ function pickVolumeBackupOwner(volumeBackup: {
 	libsql?: (OwnerRow & { libsqlId: string }) | null;
 	compose?: (OwnerRow & { composeId: string }) | null;
 }): Owner | null {
-	if (volumeBackup.application)
-		return ownerFrom(
-			volumeBackup.application,
-			volumeBackup.application.applicationId,
-			"application",
-		);
-	if (volumeBackup.postgres)
-		return ownerFrom(
-			volumeBackup.postgres,
-			volumeBackup.postgres.postgresId,
-			"postgres",
-		);
-	if (volumeBackup.mariadb)
-		return ownerFrom(
-			volumeBackup.mariadb,
-			volumeBackup.mariadb.mariadbId,
-			"mariadb",
-		);
-	if (volumeBackup.mysql)
-		return ownerFrom(volumeBackup.mysql, volumeBackup.mysql.mysqlId, "mysql");
-	if (volumeBackup.mongo)
-		return ownerFrom(volumeBackup.mongo, volumeBackup.mongo.mongoId, "mongo");
-	if (volumeBackup.redis)
-		return ownerFrom(volumeBackup.redis, volumeBackup.redis.redisId, "redis");
-	if (volumeBackup.libsql)
-		return ownerFrom(
-			volumeBackup.libsql,
-			volumeBackup.libsql.libsqlId,
-			"libsql",
-		);
-	if (volumeBackup.compose)
-		return ownerFrom(
-			volumeBackup.compose,
-			volumeBackup.compose.composeId,
-			"compose",
-		);
-	return null;
+	const found = pickFirst<OwnerRow, OverviewServiceType>([
+		[volumeBackup.application, volumeBackup.application?.applicationId, "application"],
+		[volumeBackup.postgres, volumeBackup.postgres?.postgresId, "postgres"],
+		[volumeBackup.mariadb, volumeBackup.mariadb?.mariadbId, "mariadb"],
+		[volumeBackup.mysql, volumeBackup.mysql?.mysqlId, "mysql"],
+		[volumeBackup.mongo, volumeBackup.mongo?.mongoId, "mongo"],
+		[volumeBackup.redis, volumeBackup.redis?.redisId, "redis"],
+		[volumeBackup.libsql, volumeBackup.libsql?.libsqlId, "libsql"],
+		[volumeBackup.compose, volumeBackup.compose?.composeId, "compose"],
+	]);
+	return found ? ownerFrom(...found) : null;
 }
 
 // Ownerless backups (e.g. the Dokploy host's own database) are visible to everyone.
@@ -645,6 +627,17 @@ function domainOwnerFrom(
 	};
 }
 
+// Same scoping rule as ownerAccessCondition, just without the "ownerless rows are public" OR branch.
+function orgScopeCondition(
+	orgId: string,
+	idColumn: AnyPgColumn,
+	accessedServices: string[] | null,
+) {
+	return accessedServices !== null
+		? and(eq(projects.organizationId, orgId), inArray(idColumn, accessedServices))
+		: eq(projects.organizationId, orgId);
+}
+
 // Preview domains inherit access from their parent application, so they're scoped by the same accessedServices check as applications.
 async function getDomainScopeIdsInOrg(
 	orgId: string,
@@ -660,12 +653,7 @@ async function getDomainScopeIdsInOrg(
 			)
 			.innerJoin(projects, eq(environments.projectId, projects.projectId))
 			.where(
-				accessedServices !== null
-					? and(
-							eq(projects.organizationId, orgId),
-							inArray(applications.applicationId, accessedServices),
-						)
-					: eq(projects.organizationId, orgId),
+				orgScopeCondition(orgId, applications.applicationId, accessedServices),
 			),
 		db
 			.select({ id: compose.composeId })
@@ -675,14 +663,7 @@ async function getDomainScopeIdsInOrg(
 				eq(compose.environmentId, environments.environmentId),
 			)
 			.innerJoin(projects, eq(environments.projectId, projects.projectId))
-			.where(
-				accessedServices !== null
-					? and(
-							eq(projects.organizationId, orgId),
-							inArray(compose.composeId, accessedServices),
-						)
-					: eq(projects.organizationId, orgId),
-			),
+			.where(orgScopeCondition(orgId, compose.composeId, accessedServices)),
 		db
 			.select({ id: previewDeployments.previewDeploymentId })
 			.from(previewDeployments)
@@ -696,12 +677,7 @@ async function getDomainScopeIdsInOrg(
 			)
 			.innerJoin(projects, eq(environments.projectId, projects.projectId))
 			.where(
-				accessedServices !== null
-					? and(
-							eq(projects.organizationId, orgId),
-							inArray(applications.applicationId, accessedServices),
-						)
-					: eq(projects.organizationId, orgId),
+				orgScopeCondition(orgId, applications.applicationId, accessedServices),
 			),
 	]);
 
@@ -765,21 +741,16 @@ export const getAllDomainsForOrganization = async (
 
 	const result: OverviewDomain[] = [];
 	for (const domain of rows) {
-		const owner = domain.application
-			? domainOwnerFrom(
-					domain.application,
-					domain.application.applicationId,
-					"application",
-				)
-			: domain.compose
-				? domainOwnerFrom(domain.compose, domain.compose.composeId, "compose")
-				: domain.previewDeployment?.application
-					? domainOwnerFrom(
-							domain.previewDeployment.application,
-							domain.previewDeployment.application.applicationId,
-							"application",
-						)
-					: null;
+		const foundOwner = pickFirst<DomainOwnerRow, OverviewDomainOwnerType>([
+			[domain.application, domain.application?.applicationId, "application"],
+			[domain.compose, domain.compose?.composeId, "compose"],
+			[
+				domain.previewDeployment?.application,
+				domain.previewDeployment?.application?.applicationId,
+				"application",
+			],
+		]);
+		const owner = foundOwner ? domainOwnerFrom(...foundOwner) : null;
 
 		if (!owner || owner.organizationId !== orgId) continue;
 		if (accessedServices !== null && !accessedServices.includes(owner.id)) {
