@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: dokploy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dokploy
+      POSTGRES_PASSWORD: amukds4wi9001583845717ad2
+      POSTGRES_DB: dokploy
+    ports:
+      - "5432:5432"
+    volumes:
+      - dokploy-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dokploy -d dokploy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dokploy-postgres:

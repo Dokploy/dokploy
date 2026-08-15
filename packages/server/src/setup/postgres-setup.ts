@@ -2,7 +2,7 @@ import type { CreateServiceOptions } from "dockerode";
 import { docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 export const initializePostgres = async () => {
-	const imageName = "postgres:16";
+	const imageName = "postgres:18";
 	const containerName = "dokploy-postgres";
 	const settings: CreateServiceOptions = {
 		Name: containerName,
@@ -18,7 +18,10 @@ export const initializePostgres = async () => {
 					{
 						Type: "volume",
 						Source: "dokploy-postgres",
-						Target: "/var/lib/postgresql/data",
+						// postgres:18+ images store data under /var/lib/postgresql/<version>
+						// and refuse to start when a mount is pinned to the old
+						// /var/lib/postgresql/data subpath. Mount the parent instead.
+						Target: "/var/lib/postgresql",
 					},
 				],
 			},
