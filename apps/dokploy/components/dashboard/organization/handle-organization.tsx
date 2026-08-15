@@ -105,8 +105,8 @@ export function AddOrganization({ organizationId }: Props) {
 					<Button
 						type="button"
 						variant="ghost"
-						size="icon"
-						className="group hover:bg-blue-500/10"
+						size="icon-xs"
+						className="group size-7 hover:bg-blue-500/10"
 						title="Edit organization"
 					>
 						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
