@@ -11,6 +11,15 @@ packages:
 # minimumReleaseAge: 1440
 
 # pnpm v10+ settings that previously lived under the "pnpm" key in package.json.
+# Note: keep ALL overrides here. If any are declared via package.json "resolutions"
+# or the old "pnpm" key, pnpm 10 silently drops the workspace ones.
+overrides:
+  "esbuild": "0.20.2"
+  "better-call": "1.3.7"
+  "@better-fetch/fetch": "1.3.1"
+  "@types/react": "18.3.5"
+  "@types/react-dom": "18.3.0"
+
 onlyBuiltDependencies:
   - "@prisma/client"
   - "@prisma/engines"

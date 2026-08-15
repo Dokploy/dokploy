@@ -76,13 +76,39 @@ EOF
 	exit 1
 }
 
+# Wait for the database container to accept connections (compose healthcheck).
+# The compose step returns as soon as the container starts, but Postgres needs a
+# few seconds (initdb on first run) before it listens; migrations run right after.
+wait_until_ready() {
+	local container
+	container=$(docker compose -f "$COMPOSE_FILE" ps -q 2>/dev/null | head -1)
+	[ -z "$container" ] && return 0
+
+	local health
+	health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || echo none)
+	[ "$health" = "none" ] && return 0
+	[ "$health" = "healthy" ] && return 0
+
+	local deadline=$(( $(date +%s) + ${DB_STARTUP_TIMEOUT:-120} ))
+	while :; do
+		health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container" 2>/dev/null || echo none)
+		[ "$health" = "healthy" ] && return 0
+		if [ "$health" = "unhealthy" ] || [ "$(date +%s)" -ge "$deadline" ]; then
+			echo "Dev database did not become healthy within timeout (status: ${health:-unknown})." >&2
+			echo "Check logs with: docker compose -f $COMPOSE_FILE logs postgres" >&2
+			return 1
+		fi
+		sleep 1
+	done
+}
+
 case "$COMMAND" in
 up)
 	require_docker
-	if docker compose -f "$COMPOSE_FILE" up -d; then
-		exit 0
+	if ! docker compose -f "$COMPOSE_FILE" up -d; then
+		diagnose_port_conflict
 	fi
-	diagnose_port_conflict
+	wait_until_ready
 	;;
 down)
 	require_docker
