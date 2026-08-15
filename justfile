@@ -11,16 +11,31 @@ setup:
     pnpm install
     pnpm run dokploy:setup
 
+# Check that the Docker daemon is reachable (used by the db recipes)
+docker-check:
+    @if ! docker info >/dev/null 2>&1; then \
+        if docker info 2>&1 | grep -qi "permission denied"; then \
+            echo "Docker socket permission denied." >&2; \
+            echo "Add your user to the docker group, then log out and back in:" >&2; \
+            echo "  sudo usermod -aG docker $$USER" >&2; \
+            echo "  newgrp docker" >&2; \
+        else \
+            echo "Docker daemon is not running or not reachable." >&2; \
+            echo "Start Docker first (e.g. systemctl start docker), then re-run: just dev" >&2; \
+        fi; \
+        exit 1; \
+    fi
+
 # Start the local Postgres dev database (idempotent)
-db:
+db: docker-check
     docker compose -f docker-compose.dev.yml up -d
 
 # Stop the local Postgres dev database (keeps data)
-db-down:
+db-down: docker-check
     docker compose -f docker-compose.dev.yml down
 
 # Stop and delete the local Postgres dev database volume (full reset)
-db-reset:
+db-reset: docker-check
     docker compose -f docker-compose.dev.yml down -v
 
 # Run all workspaces in dev mode (web app)
