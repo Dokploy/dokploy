@@ -11,7 +11,14 @@ await migrate(db, { migrationsFolder: "drizzle" })
 		console.log("Migration complete");
 	})
 	.catch((error) => {
-		console.log("Migration failed", error);
+		console.error(
+			"Migration failed:",
+			error,
+			"\n\nThe database schema is out of sync with the application, so the server will NOT start",
+			"to avoid running against an incomplete schema.",
+			"\n- Local development: reset the dev database with `just db-reset` and run `just dev` again.",
+			"\n- Production: restart the dokploy service so migrations retry, or restore from a backup.",
+		);
 		process.exit(1);
 	})
 	.finally(() => {
