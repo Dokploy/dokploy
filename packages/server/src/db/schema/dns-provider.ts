@@ -101,6 +101,7 @@ const dnsRecordFieldsSchema = z.object({
 	name: z.string().min(1),
 	content: z.string().min(1),
 	ttl: z.number().int().positive().optional(),
+	proxied: z.boolean().optional(),
 });
 
 export const apiCreateDnsRecord = dnsRecordFieldsSchema.extend({
