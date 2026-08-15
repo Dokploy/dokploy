@@ -85,6 +85,7 @@ export const ShowDnsProviders = () => {
 																<ShowDnsProviderZones
 																	dnsProviderId={provider.dnsProviderId}
 																	providerName={provider.name}
+																	providerType={provider.providerType}
 																/>
 																{permissions?.dnsProvider.update && (
 																	<HandleDnsProvider

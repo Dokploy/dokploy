@@ -32,6 +32,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const DnsRecordSchema = z.object({
@@ -39,6 +40,7 @@ const DnsRecordSchema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	content: z.string().min(1, { message: "Content is required" }),
 	ttl: z.string(),
+	proxied: z.boolean(),
 });
 
 type DnsRecordForm = z.infer<typeof DnsRecordSchema>;
@@ -49,20 +51,27 @@ interface DnsRecordValue {
 	name: string;
 	content: string;
 	ttl: number;
+	proxied?: boolean;
 }
 
 interface Props {
 	dnsProviderId: string;
 	zoneId: string;
 	zoneName: string;
+	providerType: "cloudflare" | "route53";
 	record?: DnsRecordValue;
+	lastCloudflareProxied?: boolean;
+	onCloudflareProxiedSubmit?: (proxied: boolean) => void;
 }
 
 export const HandleDnsRecord = ({
 	dnsProviderId,
 	zoneId,
 	zoneName,
+	providerType,
 	record,
+	lastCloudflareProxied,
+	onCloudflareProxiedSubmit,
 }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
@@ -93,6 +102,13 @@ export const HandleDnsRecord = ({
 			!!suggestion.ip && all.findIndex((s) => s.ip === suggestion.ip) === index,
 	);
 
+	const defaultProxied =
+		providerType === "cloudflare"
+			? record
+				? record.proxied === true
+				: (lastCloudflareProxied ?? true)
+			: false;
+
 	const form = useForm<DnsRecordForm>({
 		defaultValues: record
 			? {
@@ -100,12 +116,20 @@ export const HandleDnsRecord = ({
 					name: record.name,
 					content: record.content,
 					ttl: record.ttl && record.ttl !== 1 ? String(record.ttl) : "",
+					proxied: defaultProxied,
 				}
-			: { type: "A", name: "", content: "", ttl: "" },
+			: {
+					type: "A",
+					name: "",
+					content: "",
+					ttl: "",
+					proxied: defaultProxied,
+				},
 		resolver: zodResolver(DnsRecordSchema),
 	});
 
 	const type = form.watch("type");
+	const proxied = form.watch("proxied");
 
 	const onSubmit = async (data: DnsRecordForm) => {
 		const name = data.name.trim() === "@" ? zoneName : data.name;
@@ -116,12 +140,16 @@ export const HandleDnsRecord = ({
 			name,
 			content: data.content,
 			ttl: data.ttl ? Number(data.ttl) : undefined,
+			...(providerType === "cloudflare" && { proxied: data.proxied }),
 			...(record && { recordId: record.id }),
 		};
 		await mutateAsync(payload as any)
 			.then(() => {
 				toast.success(record ? "Record updated" : "Record created");
 				utils.dnsProvider.listRecords.invalidate({ dnsProviderId, zoneId });
+				if (providerType === "cloudflare") {
+					onCloudflareProxiedSubmit?.(data.proxied);
+				}
 				setIsOpen(false);
 			})
 			.catch(() => {});
@@ -252,12 +280,45 @@ export const HandleDnsRecord = ({
 								<FormItem>
 									<FormLabel>TTL (optional)</FormLabel>
 									<FormControl>
-										<Input type="number" placeholder="Auto" {...field} />
+										<Input
+											type="number"
+											placeholder="Auto"
+											disabled={providerType === "cloudflare" && proxied}
+											{...field}
+										/>
 									</FormControl>
+									{providerType === "cloudflare" && proxied && (
+										<FormDescription>
+											Cloudflare uses Auto TTL when Proxy is on.
+										</FormDescription>
+									)}
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
+						{providerType === "cloudflare" && (
+							<FormField
+								control={form.control}
+								name="proxied"
+								render={({ field }) => (
+									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+										<div className="space-y-0.5">
+											<FormLabel>Proxy</FormLabel>
+											<FormDescription>
+												Orange cloud — traffic goes through Cloudflare. Off is
+												DNS only.
+											</FormDescription>
+										</div>
+										<FormControl>
+											<Switch
+												checked={field.value}
+												onCheckedChange={field.onChange}
+											/>
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+						)}
 						<DialogFooter>
 							<Button type="submit" isLoading={isPending}>
 								{record ? "Update" : "Create"}

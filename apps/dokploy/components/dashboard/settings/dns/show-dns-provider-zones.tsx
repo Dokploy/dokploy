@@ -25,9 +25,19 @@ interface ZoneRecordsProps {
 	dnsProviderId: string;
 	zoneId: string;
 	zoneName: string;
+	providerType: "cloudflare" | "route53";
+	lastCloudflareProxied: boolean;
+	onCloudflareProxiedSubmit: (proxied: boolean) => void;
 }
 
-const ZoneRecords = ({ dnsProviderId, zoneId, zoneName }: ZoneRecordsProps) => {
+const ZoneRecords = ({
+	dnsProviderId,
+	zoneId,
+	zoneName,
+	providerType,
+	lastCloudflareProxied,
+	onCloudflareProxiedSubmit,
+}: ZoneRecordsProps) => {
 	const utils = api.useUtils();
 	const { data, isLoading, isError, error } =
 		api.dnsProvider.listRecords.useQuery({ dnsProviderId, zoneId });
@@ -68,11 +78,20 @@ const ZoneRecords = ({ dnsProviderId, zoneId, zoneName }: ZoneRecordsProps) => {
 						<span className="text-muted-foreground truncate flex-1">
 							→ {record.content}
 						</span>
+						{providerType === "cloudflare" &&
+							typeof record.proxied === "boolean" && (
+								<Badge variant="outline" className="shrink-0">
+									{record.proxied ? "Proxied" : "DNS only"}
+								</Badge>
+							)}
 						{canWrite && isEditable && (
 							<HandleDnsRecord
 								dnsProviderId={dnsProviderId}
 								zoneId={zoneId}
 								zoneName={zoneName}
+								providerType={providerType}
+								lastCloudflareProxied={lastCloudflareProxied}
+								onCloudflareProxiedSubmit={onCloudflareProxiedSubmit}
 								record={record}
 							/>
 						)}
@@ -118,6 +137,9 @@ const ZoneRecords = ({ dnsProviderId, zoneId, zoneName }: ZoneRecordsProps) => {
 						dnsProviderId={dnsProviderId}
 						zoneId={zoneId}
 						zoneName={zoneName}
+						providerType={providerType}
+						lastCloudflareProxied={lastCloudflareProxied}
+						onCloudflareProxiedSubmit={onCloudflareProxiedSubmit}
 					/>
 				</div>
 			)}
@@ -128,14 +150,17 @@ const ZoneRecords = ({ dnsProviderId, zoneId, zoneName }: ZoneRecordsProps) => {
 interface Props {
 	dnsProviderId: string;
 	providerName: string;
+	providerType: "cloudflare" | "route53";
 }
 
 export const ShowDnsProviderZones = ({
 	dnsProviderId,
 	providerName,
+	providerType,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [expandedZoneId, setExpandedZoneId] = useState<string | null>(null);
+	const [lastCloudflareProxied, setLastCloudflareProxied] = useState(true);
 
 	const { data, isLoading, isError, error } =
 		api.dnsProvider.listZones.useQuery({ dnsProviderId }, { enabled: isOpen });
@@ -205,6 +230,9 @@ export const ShowDnsProviderZones = ({
 											dnsProviderId={dnsProviderId}
 											zoneId={zone.id}
 											zoneName={zone.name}
+											providerType={providerType}
+											lastCloudflareProxied={lastCloudflareProxied}
+											onCloudflareProxiedSubmit={setLastCloudflareProxied}
 										/>
 									)}
 								</div>
