@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { OrganizationLogoInput } from "@/components/shared/organization-logo-input";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -163,13 +164,12 @@ export function AddOrganization({ organizationId }: Props) {
 							name="logo"
 							render={({ field }) => (
 								<FormItem className="gap-4">
-									<FormLabel className="text-right">Logo URL</FormLabel>
+									<FormLabel className="text-right">Logo</FormLabel>
 									<FormControl>
-										<Input
+										<OrganizationLogoInput
+											value={field.value}
+											onChange={field.onChange}
 											placeholder="https://example.com/logo.png"
-											{...field}
-											value={field.value || ""}
-											className="col-span-3"
 										/>
 									</FormControl>
 									<FormMessage className="col-span-3 col-start-2" />

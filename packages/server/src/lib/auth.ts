@@ -274,11 +274,24 @@ const createBetterAuth = () =>
 						}
 
 						if (IS_CLOUD || !isAdminPresent) {
+							const signUpBody = context?.body as
+								| {
+										organizationName?: string;
+										organizationLogo?: string;
+								  }
+								| undefined;
+
+							const organizationName =
+								signUpBody?.organizationName?.trim() || "My Organization";
+							const organizationLogo =
+								signUpBody?.organizationLogo?.trim() || undefined;
+
 							await db.transaction(async (tx) => {
 								const organization = await tx
 									.insert(schema.organization)
 									.values({
-										name: "My Organization",
+										name: organizationName,
+										logo: organizationLogo,
 										ownerId: user.id,
 										createdAt: new Date(),
 									})

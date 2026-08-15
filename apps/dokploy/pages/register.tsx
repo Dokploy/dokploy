@@ -13,7 +13,9 @@ import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-git
 import { SignInWithGoogle } from "@/components/proprietary/auth/sign-in-with-google";
 import { SignupShowcase } from "@/components/proprietary/auth/signup-showcase";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { AvatarPicker } from "@/components/shared/avatar-picker";
 import { Logo } from "@/components/shared/logo";
+import { OrganizationLogoInput } from "@/components/shared/organization-logo-input";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
@@ -45,6 +47,9 @@ const registerSchema = z
 			.email({
 				message: "Email must be a valid email",
 			}),
+		image: z.string().optional(),
+		organizationName: z.string().optional(),
+		organizationLogo: z.string().optional(),
 		password: z
 			.string()
 			.min(1, {
@@ -90,6 +95,9 @@ const Register = ({ isCloud }: Props) => {
 			name: "",
 			lastName: "",
 			email: "",
+			image: "",
+			organizationName: "",
+			organizationLogo: "",
 			password: "",
 			confirmPassword: "",
 		},
@@ -106,7 +114,10 @@ const Register = ({ isCloud }: Props) => {
 			password: values.password,
 			name: values.name,
 			lastName: values.lastName,
-		});
+			image: values.image || undefined,
+			organizationName: values.organizationName?.trim() || undefined,
+			organizationLogo: values.organizationLogo?.trim() || undefined,
+		} as Parameters<typeof authClient.signUp.email>[0]);
 
 		if (error) {
 			setIsError(true);
@@ -214,6 +225,53 @@ const Register = ({ isCloud }: Props) => {
 													<FormLabel>Email</FormLabel>
 													<FormControl>
 														<Input placeholder="email@dokploy.com" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="image"
+											render={({ field }) => (
+												<AvatarPicker
+													value={field.value}
+													onChange={field.onChange}
+													fallbackName={`${form.watch("name")} ${form.watch("lastName")}`}
+												/>
+											)}
+										/>
+										<div className="border-b" />
+										<div>
+											<p className="text-sm font-medium">Organization</p>
+											<p className="text-xs text-muted-foreground">
+												Set a name and logo for your organization.
+											</p>
+										</div>
+										<FormField
+											control={form.control}
+											name="organizationName"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Organization name</FormLabel>
+													<FormControl>
+														<Input placeholder="My Organization" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="organizationLogo"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Organization logo</FormLabel>
+													<FormControl>
+														<OrganizationLogoInput
+															value={field.value}
+															onChange={field.onChange}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>

@@ -1,11 +1,11 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { Loader2, Palette, ShieldCheck, User } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, ShieldCheck, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarPicker } from "@/components/shared/avatar-picker";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -24,10 +24,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { getAvatarType, isSolidColorAvatar } from "@/lib/avatar-utils";
-import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
+import { generateSHA256Hash } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
@@ -74,23 +72,10 @@ const profileSchema = z
 
 type Profile = z.infer<typeof profileSchema>;
 
-const randomImages = [
-	"/avatars/avatar-1.png",
-	"/avatars/avatar-2.png",
-	"/avatars/avatar-3.png",
-	"/avatars/avatar-4.png",
-	"/avatars/avatar-5.png",
-	"/avatars/avatar-6.png",
-	"/avatars/avatar-7.png",
-	"/avatars/avatar-8.png",
-	"/avatars/avatar-9.png",
-	"/avatars/avatar-10.png",
-	"/avatars/avatar-11.png",
-	"/avatars/avatar-12.png",
-];
-
 export const ProfileForm = () => {
-	const { data, refetch, isPending } = api.user.get.useQuery();
+	const { data, refetch, isPending } = api.user.get.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const {
@@ -101,13 +86,10 @@ export const ProfileForm = () => {
 	} = api.user.update.useMutation();
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 	const [changePassword, setChangePassword] = useState(false);
-	const colorInputRef = useRef<HTMLInputElement>(null);
 
-	const availableAvatars = useMemo(() => {
-		if (gravatarHash === null) return randomImages;
-		return randomImages.concat([
-			`https://www.gravatar.com/avatar/${gravatarHash}`,
-		]);
+	const extraAvatars = useMemo(() => {
+		if (gravatarHash === null) return [];
+		return [`https://www.gravatar.com/avatar/${gravatarHash}`];
 	}, [gravatarHash]);
 
 	const form = useForm({
@@ -125,6 +107,10 @@ export const ProfileForm = () => {
 
 	useEffect(() => {
 		if (data) {
+			// Don't clobber unsaved edits when the query refetches (e.g. on window
+			// focus after saving elsewhere or a background refetch).
+			if (form.formState.isDirty) return;
+
 			form.reset(
 				{
 					email: data?.user?.email || "",
@@ -139,7 +125,6 @@ export const ProfileForm = () => {
 					keepValues: false,
 				},
 			);
-			form.setValue("allowImpersonation", data?.user?.allowImpersonation);
 
 			if (data.user.email) {
 				generateSHA256Hash(data.user.email).then((hash) => {
@@ -148,6 +133,17 @@ export const ProfileForm = () => {
 			}
 		}
 	}, [form, data]);
+
+	const handleTogglePasswordChange = (checked: boolean) => {
+		setChangePassword(checked);
+		if (!checked) {
+			// Clear the hidden password fields so the superRefine validation
+			// doesn't flag values the user can no longer see.
+			form.setValue("password", "");
+			form.setValue("currentPassword", "");
+			form.clearErrors(["password", "currentPassword"]);
+		}
+	};
 
 	const onSubmit = async (values: Profile) => {
 		try {
@@ -225,195 +221,12 @@ export const ProfileForm = () => {
 											control={form.control}
 											name="image"
 											render={({ field }) => (
-												<FormItem>
-													<div className="flex items-center gap-4 mb-4">
-														{isSolidColorAvatar(field.value) ? (
-															<div
-																className="size-16 rounded-full border shrink-0"
-																style={{
-																	backgroundColor:
-																		field.value?.replace(/^color:/, "") ||
-																		undefined,
-																}}
-															/>
-														) : (
-															<Avatar className="size-16 rounded-full border shrink-0">
-																<AvatarImage
-																	src={field.value}
-																	alt="Avatar preview"
-																/>
-																<AvatarFallback className="rounded-full">
-																	{getFallbackAvatarInitials(
-																		`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
-																	)}
-																</AvatarFallback>
-															</Avatar>
-														)}
-														<div>
-															<FormLabel>Avatar</FormLabel>
-															<FormDescription>
-																Choose a preset, upload your own, or pick a
-																solid color.
-															</FormDescription>
-														</div>
-													</div>
-													<FormControl>
-														<RadioGroup
-															onValueChange={(e) => {
-																field.onChange(e);
-															}}
-															defaultValue={getAvatarType(field.value)}
-															value={getAvatarType(field.value)}
-															className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
-														>
-															<FormItem key="no-avatar">
-																<FormLabel className="[&:has([data-state=checked])>.default-avatar]:border-primary [&:has([data-state=checked])>.default-avatar]:border [&:has([data-state=checked])>.default-avatar]:p-px cursor-pointer">
-																	<FormControl>
-																		<RadioGroupItem
-																			value=""
-																			className="sr-only"
-																		/>
-																	</FormControl>
-
-																	<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
-																		<AvatarFallback className="rounded-full">
-																			{getFallbackAvatarInitials(
-																				`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
-																			)}
-																		</AvatarFallback>
-																	</Avatar>
-																</FormLabel>
-															</FormItem>
-															<FormItem key="custom-upload">
-																<FormLabel className="[&:has([data-state=checked])>.upload-avatar]:border-primary [&:has([data-state=checked])>.upload-avatar]:border [&:has([data-state=checked])>.upload-avatar]:p-px cursor-pointer">
-																	<FormControl>
-																		<RadioGroupItem
-																			value="upload"
-																			className="sr-only"
-																		/>
-																	</FormControl>
-																	<div
-																		className="upload-avatar h-12 w-12 rounded-full border border-dashed border-muted-foreground hover:border-primary transition-colors flex items-center justify-center bg-muted/50 hover:bg-muted overflow-hidden"
-																		onClick={() =>
-																			document
-																				.getElementById("avatar-upload")
-																				?.click()
-																		}
-																	>
-																		{field.value?.startsWith("data:") ? (
-																			<img
-																				src={field.value}
-																				alt="Custom avatar"
-																				className="h-full w-full object-cover rounded-full"
-																			/>
-																		) : (
-																			<svg
-																				className="h-5 w-5 text-muted-foreground"
-																				fill="none"
-																				stroke="currentColor"
-																				viewBox="0 0 24 24"
-																			>
-																				<path
-																					strokeLinecap="round"
-																					strokeLinejoin="round"
-																					strokeWidth={2}
-																					d="M12 4v16m8-8H4"
-																				/>
-																			</svg>
-																		)}
-																	</div>
-																	<input
-																		id="avatar-upload"
-																		type="file"
-																		accept="image/*"
-																		className="hidden"
-																		onChange={async (e) => {
-																			const file = e.target.files?.[0];
-																			if (file) {
-																				// max file size 2mb
-																				if (file.size > 2 * 1024 * 1024) {
-																					toast.error(
-																						"Image size must be less than 2MB",
-																					);
-																					return;
-																				}
-																				const reader = new FileReader();
-																				reader.onload = (event) => {
-																					const result = event.target
-																						?.result as string;
-																					field.onChange(result);
-																				};
-																				reader.readAsDataURL(file);
-																			}
-																		}}
-																	/>
-																</FormLabel>
-															</FormItem>
-															<FormItem key="color-avatar">
-																<FormLabel className="[&:has([data-state=checked])>.color-avatar]:border-primary [&:has([data-state=checked])>.color-avatar]:border [&:has([data-state=checked])>.color-avatar]:p-px cursor-pointer relative">
-																	<FormControl>
-																		<RadioGroupItem
-																			value="color"
-																			className="sr-only"
-																		/>
-																	</FormControl>
-																	<div
-																		className="color-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-colors flex items-center justify-center overflow-hidden cursor-pointer"
-																		style={{
-																			backgroundColor: isSolidColorAvatar(
-																				field.value,
-																			)
-																				? field.value?.replace(/^color:/, "") ||
-																					undefined
-																				: undefined,
-																		}}
-																		onClick={() =>
-																			colorInputRef.current?.click()
-																		}
-																	>
-																		{!isSolidColorAvatar(field.value) && (
-																			<Palette className="h-5 w-5 text-muted-foreground" />
-																		)}
-																	</div>
-																	<input
-																		ref={colorInputRef}
-																		type="color"
-																		className="absolute opacity-0 pointer-events-none w-12 h-12 top-0 left-0"
-																		value={
-																			isSolidColorAvatar(field.value)
-																				? (field.value?.replace(
-																						/^color:/,
-																						"",
-																					) ?? "#000000")
-																				: "#000000"
-																		}
-																		onChange={field.onChange}
-																	/>
-																</FormLabel>
-															</FormItem>
-															{availableAvatars.map((image) => (
-																<FormItem key={image}>
-																	<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border [&:has([data-state=checked])>img]:p-px cursor-pointer">
-																		<FormControl>
-																			<RadioGroupItem
-																				value={image}
-																				className="sr-only"
-																			/>
-																		</FormControl>
-
-																		<img
-																			key={image}
-																			src={image}
-																			alt="avatar"
-																			className="h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform"
-																		/>
-																	</FormLabel>
-																</FormItem>
-															))}
-														</RadioGroup>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
+												<AvatarPicker
+													value={field.value}
+													onChange={field.onChange}
+													fallbackName={`${data?.user?.firstName} ${data?.user?.lastName}`}
+													extraAvatars={extraAvatars}
+												/>
 											)}
 										/>
 
@@ -478,7 +291,7 @@ export const ProfileForm = () => {
 											</div>
 											<Switch
 												checked={changePassword}
-												onCheckedChange={setChangePassword}
+												onCheckedChange={handleTogglePasswordChange}
 												aria-label="Toggle password change"
 											/>
 										</div>
