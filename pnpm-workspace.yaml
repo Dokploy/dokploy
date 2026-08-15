@@ -10,4 +10,33 @@ packages:
 # (see PR #4679). Re-enable when there's a per-scope threshold or exclude list.
 # minimumReleaseAge: 1440
 
+# pnpm v10+ settings that previously lived under the "pnpm" key in package.json.
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "prisma"
+  - "@scarf/scarf"
+  - "@tree-sitter-grammars/tree-sitter-yaml"
+  - "bcrypt"
+  - "better-sqlite3"
+  - "core-js-pure"
+  - "cpu-features"
+  - "esbuild"
+  - "msgpackr-extract"
+  - "node-pty"
+  - "protobufjs"
+  - "sharp"
+  - "ssh2"
+  - "tree-sitter"
+  - "tree-sitter-json"
+
+peerDependencyRules:
+  ignoreMissing:
+    - "prisma"
+    - "@prisma/client"
+    - "@prisma/engines"
+    - "@electric-sql/pglite"
+    - "typescript"
+    - "drizzle-kit"
+
 
