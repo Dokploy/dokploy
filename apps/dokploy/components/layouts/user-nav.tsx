@@ -13,6 +13,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { Badge } from "../ui/badge";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
@@ -60,7 +61,20 @@ export const UserNav = () => {
 			>
 				<div className="flex items-center justify-between px-2 py-1.5">
 					<DropdownMenuLabel className="flex flex-col">
-						My Account
+						<span className="flex items-center gap-1.5">
+							<span className="truncate">
+								{`${data?.user?.firstName ?? ""} ${data?.user?.lastName ?? ""}`.trim() ||
+									data?.user?.email}
+							</span>
+							{data?.role && (
+								<Badge
+									variant={data.role === "owner" ? "default" : "secondary"}
+									className="capitalize"
+								>
+									{data.role}
+								</Badge>
+							)}
+						</span>
 						<span className="text-xs font-normal text-muted-foreground">
 							{data?.user?.email}
 						</span>
