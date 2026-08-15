@@ -134,6 +134,7 @@ const ZoneRecords = ({
 			{canWrite && (
 				<div className="pt-1">
 					<HandleDnsRecord
+						key={`add-${lastCloudflareProxied}`}
 						dnsProviderId={dnsProviderId}
 						zoneId={zoneId}
 						zoneName={zoneName}
@@ -172,6 +173,7 @@ export const ShowDnsProviderZones = ({
 				setIsOpen(open);
 				if (!open) {
 					setExpandedZoneId(null);
+					setLastCloudflareProxied(true);
 				}
 			}}
 		>
