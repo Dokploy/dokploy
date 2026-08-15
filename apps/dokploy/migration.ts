@@ -9,10 +9,10 @@ const db = drizzle(sql);
 await migrate(db, { migrationsFolder: "drizzle" })
 	.then(() => {
 		console.log("Migration complete");
-		sql.end();
 	})
 	.catch((error) => {
 		console.log("Migration failed", error);
+		process.exit(1);
 	})
 	.finally(() => {
 		sql.end();

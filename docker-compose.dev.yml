@@ -5,10 +5,11 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: dokploy
-      POSTGRES_PASSWORD: amukds4wi9001583845717ad2
+      POSTGRES_PASSWORD: a9962c44a95ddc5b7dc804b656b96137dec2ef0abeb77e40
       POSTGRES_DB: dokploy
+      PGDATA: /var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - dokploy-postgres:/var/lib/postgresql
     healthcheck:

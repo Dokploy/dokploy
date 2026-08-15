@@ -1,6 +1,15 @@
-import type { CreateServiceOptions } from "dockerode";
+import type { CreateServiceOptions, PortConfig } from "dockerode";
 import { docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
+
+// Legacy hardcoded default kept only as a fallback for installs that haven't
+// migrated to Docker secrets yet. The installer should always set
+// POSTGRES_PASSWORD (or POSTGRES_PASSWORD_FILE) so the known default is never
+// used against a network-reachable database.
+const LEGACY_POSTGRES_PASSWORD = "amukds4wi9001583845717ad2";
+const POSTGRES_PASSWORD =
+	process.env.POSTGRES_PASSWORD ?? LEGACY_POSTGRES_PASSWORD;
+
 export const initializePostgres = async () => {
 	const imageName = "postgres:18";
 	const containerName = "dokploy-postgres";
@@ -12,15 +21,21 @@ export const initializePostgres = async () => {
 				Env: [
 					"POSTGRES_USER=dokploy",
 					"POSTGRES_DB=dokploy",
-					"POSTGRES_PASSWORD=amukds4wi9001583845717ad2",
+					`POSTGRES_PASSWORD=${POSTGRES_PASSWORD}`,
+					// Pin PGDATA to the historical, version-agnostic layout so an
+					// existing volume is never abandoned when the image is upgraded
+					// (pre-18 images kept data at /var/lib/postgresql/data).
+					"PGDATA=/var/lib/postgresql/data",
 				],
 				Mounts: [
 					{
 						Type: "volume",
 						Source: "dokploy-postgres",
-						// postgres:18+ images store data under /var/lib/postgresql/<version>
-						// and refuse to start when a mount is pinned to the old
-						// /var/lib/postgresql/data subpath. Mount the parent instead.
+						// Mount the parent directory: postgres 18+ stores data in a
+						// version-specific subdirectory, but with PGDATA pinned above
+						// initdb still writes to /var/lib/postgresql/data. Keeping the
+						// parent as the mount point also lets major-version upgrades
+						// run `pg_upgrade --link` without mount-boundary issues.
 						Target: "/var/lib/postgresql",
 					},
 				],
@@ -43,7 +58,10 @@ export const initializePostgres = async () => {
 						PublishedPort: 5432,
 						Protocol: "tcp",
 						PublishMode: "host",
-					},
+						// Only expose the dev database on localhost so the known
+						// legacy credential is never reachable from the network.
+						HostIp: "127.0.0.1",
+					} as PortConfig,
 				],
 			},
 		}),

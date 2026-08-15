@@ -11,8 +11,21 @@ setup:
     pnpm install
     pnpm run dokploy:setup
 
+# Start the local Postgres dev database (idempotent)
+db:
+    docker compose -f docker-compose.dev.yml up -d
+
+# Stop the local Postgres dev database (keeps data)
+db-down:
+    docker compose -f docker-compose.dev.yml down
+
+# Stop and delete the local Postgres dev database volume (full reset)
+db-reset:
+    docker compose -f docker-compose.dev.yml down -v
+
 # Run all workspaces in dev mode (web app)
 dev:
+    just db
     pnpm run dokploy:dev
 
 # Type-check all workspaces
