@@ -11,6 +11,7 @@ export interface DnsRecordInput {
 	name: string;
 	content: string;
 	ttl?: number;
+	proxied?: boolean;
 }
 
 export interface DnsRecord {
@@ -19,6 +20,7 @@ export interface DnsRecord {
 	name: string;
 	content: string;
 	ttl: number;
+	proxied?: boolean;
 }
 
 export interface DnsClient<C extends DnsProviderConfig = DnsProviderConfig> {

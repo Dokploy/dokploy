@@ -68,6 +68,7 @@ describe("cloudflareClient.listRecords", () => {
 					name: "app.example.com",
 					content: "1.2.3.4",
 					ttl: 1,
+					proxied: true,
 				},
 			]),
 		);
@@ -81,9 +82,37 @@ describe("cloudflareClient.listRecords", () => {
 				name: "app.example.com",
 				content: "1.2.3.4",
 				ttl: 1,
+				proxied: true,
 			},
 		]);
 		expect(mockFetch.mock.calls[0]?.[0]).toContain("/zones/zone-1/dns_records");
+	});
+
+	it("maps proxied true and false from Cloudflare", async () => {
+		mockFetch.mockResolvedValue(
+			cfSuccess([
+				{
+					id: "r1",
+					type: "A",
+					name: "app.example.com",
+					content: "1.2.3.4",
+					ttl: 1,
+					proxied: true,
+				},
+				{
+					id: "r2",
+					type: "CNAME",
+					name: "www.example.com",
+					content: "example.com",
+					ttl: 1,
+					proxied: false,
+				},
+			]),
+		);
+
+		const records = await cloudflareClient.listRecords(config, "zone-1");
+
+		expect(records.map((record) => record.proxied)).toEqual([true, false]);
 	});
 });
 

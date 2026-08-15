@@ -62,6 +62,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 			name: string;
 			content: string;
 			ttl: number;
+			proxied?: boolean;
 		}[] = [];
 		let page = 1;
 		while (true) {
@@ -72,9 +73,19 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 					name: string;
 					content: string;
 					ttl: number;
+					proxied?: boolean;
 				}[]
 			>(config, `/zones/${zoneId}/dns_records?per_page=50&page=${page}`);
-			records.push(...result);
+			records.push(
+				...result.map((row) => ({
+					id: row.id,
+					type: row.type,
+					name: row.name,
+					content: row.content,
+					ttl: row.ttl,
+					...(typeof row.proxied === "boolean" ? { proxied: row.proxied } : {}),
+				})),
+			);
 			if (result.length < 50) {
 				break;
 			}
