@@ -171,6 +171,64 @@ describe("cloudflareClient.upsertRecord", () => {
 		const body = JSON.parse(createInit.body as string);
 		expect(body.ttl).toBe(1);
 	});
+
+	it("sends proxied true and forces ttl 1", async () => {
+		mockFetch
+			.mockResolvedValueOnce(cfSuccess([]))
+			.mockResolvedValueOnce(cfSuccess({ id: "new-1" }));
+
+		await cloudflareClient.upsertRecord(config, {
+			zoneId: "zone-1",
+			type: "A",
+			name: "app.example.com",
+			content: "1.2.3.4",
+			proxied: true,
+			ttl: 300,
+		});
+
+		const [, createInit] = mockFetch.mock.calls[1] as [string, RequestInit];
+		expect(JSON.parse(createInit.body as string)).toMatchObject({
+			proxied: true,
+			ttl: 1,
+		});
+	});
+
+	it("sends proxied false and keeps the given ttl", async () => {
+		mockFetch
+			.mockResolvedValueOnce(cfSuccess([]))
+			.mockResolvedValueOnce(cfSuccess({ id: "new-1" }));
+
+		await cloudflareClient.upsertRecord(config, {
+			zoneId: "zone-1",
+			type: "A",
+			name: "app.example.com",
+			content: "1.2.3.4",
+			proxied: false,
+			ttl: 300,
+		});
+
+		const [, createInit] = mockFetch.mock.calls[1] as [string, RequestInit];
+		expect(JSON.parse(createInit.body as string)).toMatchObject({
+			proxied: false,
+			ttl: 300,
+		});
+	});
+
+	it("defaults omitted proxied to true", async () => {
+		mockFetch
+			.mockResolvedValueOnce(cfSuccess([]))
+			.mockResolvedValueOnce(cfSuccess({ id: "new-1" }));
+
+		await cloudflareClient.upsertRecord(config, {
+			zoneId: "zone-1",
+			type: "CNAME",
+			name: "www.example.com",
+			content: "example.com",
+		});
+
+		const [, createInit] = mockFetch.mock.calls[1] as [string, RequestInit];
+		expect(JSON.parse(createInit.body as string).proxied).toBe(true);
+	});
 });
 
 describe("cloudflareClient.updateRecord", () => {
@@ -182,6 +240,7 @@ describe("cloudflareClient.updateRecord", () => {
 			name: "app.example.com",
 			content: "9.9.9.9",
 			ttl: 300,
+			proxied: false,
 		});
 
 		expect(result).toEqual({ id: "r1" });
@@ -193,6 +252,24 @@ describe("cloudflareClient.updateRecord", () => {
 			name: "app.example.com",
 			content: "9.9.9.9",
 			ttl: 300,
+			proxied: false,
+		});
+	});
+
+	it("includes proxied in the PUT body", async () => {
+		mockFetch.mockResolvedValue(cfSuccess({ id: "r1" }));
+
+		await cloudflareClient.updateRecord(config, "zone-1", "r1", {
+			type: "A",
+			name: "app.example.com",
+			content: "9.9.9.9",
+			proxied: true,
+		});
+
+		const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			proxied: true,
+			ttl: 1,
 		});
 	});
 });

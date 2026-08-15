@@ -1,5 +1,6 @@
 import type { cloudflareDnsConfigSchema } from "@dokploy/server/db/schema";
 import type { z } from "zod";
+import type { DnsRecordInput } from "./types";
 import { type DnsClient, dnsFetch } from "./types";
 
 type CloudflareConfig = z.infer<typeof cloudflareDnsConfigSchema>;
@@ -35,6 +36,17 @@ const cfFetch = async <T>(
 		);
 	}
 	return body.result;
+};
+
+const cloudflareRecordPayload = (record: Omit<DnsRecordInput, "zoneId">) => {
+	const proxied = record.proxied ?? true;
+	return {
+		type: record.type,
+		name: record.name,
+		content: record.content,
+		ttl: proxied ? 1 : (record.ttl ?? 1),
+		proxied,
+	};
 };
 
 export const cloudflareClient: DnsClient<CloudflareConfig> = {
@@ -100,12 +112,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 			`/zones/${record.zoneId}/dns_records?type=${record.type}&name=${encodeURIComponent(record.name)}`,
 		);
 
-		const payload = {
-			type: record.type,
-			name: record.name,
-			content: record.content,
-			ttl: record.ttl ?? 1,
-		};
+		const payload = cloudflareRecordPayload(record);
 
 		const existingRecord = existing[0];
 		if (existingRecord) {
@@ -131,12 +138,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 			`/zones/${zoneId}/dns_records/${recordId}`,
 			{
 				method: "PUT",
-				body: JSON.stringify({
-					type: record.type,
-					name: record.name,
-					content: record.content,
-					ttl: record.ttl ?? 1,
-				}),
+				body: JSON.stringify(cloudflareRecordPayload(record)),
 			},
 		);
 		return { id: updated.id };
