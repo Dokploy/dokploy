@@ -1,4 +1,14 @@
-import { ChevronsUpDown } from "lucide-react";
+import {
+	Activity,
+	ChevronsUpDown,
+	Container,
+	CreditCard,
+	Folder,
+	LogOut,
+	Network,
+	Server,
+	User,
+} from "lucide-react";
 import { useRouter } from "next/router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -89,6 +99,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/profile");
 						}}
 					>
+						<User className="text-muted-foreground" />
 						Profile
 					</DropdownMenuItem>
 					<DropdownMenuItem
@@ -97,6 +108,7 @@ export const UserNav = () => {
 							router.push("/dashboard/home");
 						}}
 					>
+						<Folder className="text-muted-foreground" />
 						Projects
 					</DropdownMenuItem>
 					{!isCloud ? (
@@ -107,6 +119,7 @@ export const UserNav = () => {
 									router.push("/dashboard/monitoring");
 								}}
 							>
+								<Activity className="text-muted-foreground" />
 								Monitoring
 							</DropdownMenuItem>
 							{permissions?.traefikFiles.read && (
@@ -116,6 +129,7 @@ export const UserNav = () => {
 										router.push("/dashboard/traefik");
 									}}
 								>
+									<Network className="text-muted-foreground" />
 									Traefik
 								</DropdownMenuItem>
 							)}
@@ -128,6 +142,7 @@ export const UserNav = () => {
 										});
 									}}
 								>
+									<Container className="text-muted-foreground" />
 									Docker
 								</DropdownMenuItem>
 							)}
@@ -140,6 +155,7 @@ export const UserNav = () => {
 									router.push("/dashboard/settings/servers");
 								}}
 							>
+								<Server className="text-muted-foreground" />
 								Servers
 							</DropdownMenuItem>
 						)
@@ -152,21 +168,20 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/billing");
 						}}
 					>
+						<CreditCard className="text-muted-foreground" />
 						Billing
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
-					className="cursor-pointer"
+					className="cursor-pointer text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
 					onClick={async () => {
 						await authClient.signOut().then(() => {
 							router.push("/");
 						});
-						// await mutateAsync().then(() => {
-						// 	router.push("/");
-						// });
 					}}
 				>
+					<LogOut />
 					Log out
 				</DropdownMenuItem>
 			</DropdownMenuContent>
