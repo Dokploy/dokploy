@@ -1,3 +1,4 @@
+import type { CompletionSource } from "@codemirror/autocomplete";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { type CSSProperties, type ReactNode, useState } from "react";
 import { useFormContext } from "react-hook-form";
@@ -21,6 +22,7 @@ interface Props {
 	title: string;
 	description: ReactNode;
 	placeholder: string;
+	completionSource?: CompletionSource;
 }
 
 export const Secrets = (props: Props) => {
@@ -61,6 +63,7 @@ export const Secrets = (props: Props) => {
 										} as CSSProperties
 									}
 									language="properties"
+									completionSource={props.completionSource}
 									disabled={isVisible}
 									lineWrapping
 									placeholder={props.placeholder}

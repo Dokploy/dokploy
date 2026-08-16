@@ -49,6 +49,7 @@ export const gitProviderRouter = createTRPCRouter({
 						githubAppName: r.github.githubAppName,
 						githubAppId: r.github.githubAppId,
 						githubInstallationId: r.github.githubInstallationId,
+						githubUrl: r.github.githubUrl,
 						isConfigured: !!(
 							r.github.githubPrivateKey &&
 							r.github.githubAppId &&

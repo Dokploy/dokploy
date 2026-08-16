@@ -33,6 +33,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
@@ -161,6 +162,14 @@ export const ShowGitProviders = () => {
 																		<span className="text-sm font-medium">
 																			{gitProvider.name}
 																		</span>
+																		{isGithub &&
+																			gitProvider.github?.githubUrl &&
+																			gitProvider.github.githubUrl !==
+																				DEFAULT_GITHUB_URL && (
+																				<span className="text-xs text-muted-foreground">
+																					{gitProvider.github.githubUrl}
+																				</span>
+																			)}
 																		<span className="text-xs text-muted-foreground">
 																			{formatDate(
 																				gitProvider.createdAt,
