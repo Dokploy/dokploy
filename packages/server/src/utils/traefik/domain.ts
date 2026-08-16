@@ -19,6 +19,15 @@ import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
+
+	// A disabled domain keeps its configuration in the database but must never
+	// expose a traefik router. Guarding here covers every caller (create, update,
+	// forward-auth, toggle) so a disabled domain can't be revived from any path.
+	if (!domain.enabled) {
+		await removeDomain(app, domain.uniqueConfigKey);
+		return;
+	}
+
 	let config: FileConfig;
 
 	if (app.serverId) {

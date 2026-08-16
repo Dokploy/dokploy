@@ -1,0 +1,28 @@
+name: Hotfix Release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: hotfix-to-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.HOTFIX_PUSH_TOKEN }}
+
+      - name: Bump patch version and push
+        run: |
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          CURRENT=$(node -p "require('./apps/dokploy/package.json').version")
+          NEW=$(echo "$CURRENT" | awk -F. -v OFS=. '{$NF++; print}')
+          sed -i "s/\"version\": \"$CURRENT\"/\"version\": \"$NEW\"/" apps/dokploy/package.json
+          git commit -am "chore: release ${NEW}"
+          git push origin main

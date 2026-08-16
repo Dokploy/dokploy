@@ -57,7 +57,7 @@ export const ShowDockerLogsStack = ({
 			},
 		);
 
-	const { data: containers, isPending: containersLoading } =
+	const { data, isPending: containersLoading } =
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
 				appName,
@@ -68,6 +68,8 @@ export const ShowDockerLogsStack = ({
 				enabled: !!appName && option === "native",
 			},
 		);
+
+	const containers = data?.filter((container) => container.containerId);
 
 	useEffect(() => {
 		if (option === "native") {

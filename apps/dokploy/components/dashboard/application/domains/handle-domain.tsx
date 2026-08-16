@@ -46,6 +46,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
 
 export type CacheType = "fetch" | "cache";
 
@@ -305,15 +306,24 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					"traefikReloadRequired" in result &&
 					result.traefikReloadRequired;
 
-				toast.success(dictionary.success, {
-					...(traefikReloadRequired && {
+				// A compose domain is rendered as a docker label and only reaches
+				// Traefik on the next deployment. An application domain that just left
+				// Let's Encrypt needs a restart instead, because Traefik reads
+				// acme.json only at startup. A domain is never in both cases.
+				let hint: { description: string; duration?: number } | undefined;
+				if (data.domainType === "compose") {
+					hint = { description: COMPOSE_REDEPLOY_TOAST };
+				} else if (traefikReloadRequired) {
+					hint = {
 						description:
 							"Restart Traefik to apply the certificate change for this domain.",
 						// The default duration is tuned for one-line confirmations; this
 						// one asks the user to go and do something, so give them longer.
 						duration: 10000,
-					}),
-				});
+					};
+				}
+
+				toast.success(dictionary.success, hint);
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
@@ -350,12 +360,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				{type === "compose" && (
-					<AlertBlock type="info" className="mb-4">
-						Whenever you make changes to domains, remember to redeploy your
-						compose to apply the changes.
-					</AlertBlock>
-				)}
+				{type === "compose" && <ComposeRedeployAlert className="mb-4" />}
 
 				<Form {...form}>
 					<form

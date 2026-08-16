@@ -12,6 +12,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ShowContainerConfig } from "../config/show-container-config";
+import { FilesExplorerModal } from "../files/files-explorer-modal";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { ShowContainerMounts } from "../mounts/show-container-mounts";
 import { ShowContainerNetworks } from "../networks/show-container-networks";
@@ -173,6 +174,12 @@ export const columns: ColumnDef<Container>[] = [
 						>
 							Terminal
 						</DockerTerminalModal>
+						<FilesExplorerModal
+							containerId={container.containerId}
+							serverId={container.serverId || undefined}
+						>
+							Browse Files
+						</FilesExplorerModal>
 						<UploadFileModal
 							containerId={container.containerId}
 							serverId={container.serverId || undefined}
