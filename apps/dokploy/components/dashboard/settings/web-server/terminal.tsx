@@ -41,11 +41,22 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		});
 
 		const addonFit = new FitAddon();
+		const clipboardAddon = new ClipboardAddon();
+		term.loadAddon(clipboardAddon);
+		fixMacOsAltKeys(term);
+
+		// @ts-ignore
+		term.open(termRef.current);
+		// @ts-ignore
+		term.loadAddon(addonFit);
+		addonFit.fit();
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
 		const urlParams = new URLSearchParams();
 		urlParams.set("serverId", serverId);
+		urlParams.set("cols", term.cols.toString());
+		urlParams.set("rows", term.rows.toString());
 
 		if (serverId === "local") {
 			const { port, username } = getLocalServerData();
@@ -57,17 +68,22 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		const ws = new WebSocket(wsUrl);
 		const addonAttach = new AttachAddon(ws);
-		const clipboardAddon = new ClipboardAddon();
-		term.loadAddon(clipboardAddon);
-		fixMacOsAltKeys(term);
-
-		// @ts-ignore
-		term.open(termRef.current);
-		// @ts-ignore
-		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
-		addonFit.fit();
+
+		const sendResize = (cols: number, rows: number) => {
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: "resize", cols, rows }));
+			}
+		};
+		term.onResize(({ cols, rows }) => sendResize(cols, rows));
+
+		const resizeObserver = new ResizeObserver(() => addonFit.fit());
+		if (termRef.current) {
+			resizeObserver.observe(termRef.current);
+		}
+
 		return () => {
+			resizeObserver.disconnect();
 			ws.readyState === WebSocket.OPEN && ws.close();
 		};
 	}, [id, serverId]);
