@@ -664,9 +664,30 @@ describe("prepareEnvironmentVariablesForFile (no extra quotes)", () => {
 		const value = stackLiteralValue(line ?? "");
 
 		expect(value[0]).toBe("h");
-		expect(value.at(-1)).toBe("4");
-		expect(value.length).toBe(92);
+		expect(value.startsWith('"')).toBe(false);
+		expect(value.endsWith('"')).toBe(false);
+		expect(value.length).toBe(dsn.length);
 		expect(value).toBe(dsn);
+	});
+
+	it("still quotes values that dotenv or Compose would otherwise alter", () => {
+		const serviceEnv = `
+PASSWORD=pa$$word
+HASH="abc#de"
+SPACED=hello world
+`;
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+		const byKey = Object.fromEntries(
+			resolved.map((line) => {
+				const separator = line.indexOf("=");
+				return [line.slice(0, separator), line.slice(separator + 1)];
+			}),
+		);
+
+		expect(byKey.PASSWORD).toBe('"pa\\$\\$word"');
+		expect(byKey.HASH).toBe('"abc#de"');
+		expect(byKey.SPACED).toBe('"hello world"');
 	});
 
 	it("does not wrap values just because they contain : / @ = _", () => {
