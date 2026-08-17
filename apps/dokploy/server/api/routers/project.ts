@@ -38,6 +38,7 @@ import {
 	checkProjectAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { serviceColumns } from "@dokploy/server/services/project";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -130,39 +131,63 @@ export const projectRouter = createTRPCRouter({
 						environments: {
 							with: {
 								applications: {
+									columns: {
+										...serviceColumns,
+										applicationId: true,
+										icon: true,
+									},
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										applications.applicationId,
 										accessedServices,
 									),
 								},
 								compose: {
+									columns: {
+										...serviceColumns,
+										composeId: true,
+										composeStatus: true,
+									},
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										compose.composeId,
 										accessedServices,
 									),
 								},
 								libsql: {
+									columns: { ...serviceColumns, libsqlId: true },
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(libsql.libsqlId, accessedServices),
 								},
 								mariadb: {
+									columns: { ...serviceColumns, mariadbId: true },
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										mariadb.mariadbId,
 										accessedServices,
 									),
 								},
 								mongo: {
+									columns: { ...serviceColumns, mongoId: true },
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(mongo.mongoId, accessedServices),
 								},
 								mysql: {
+									columns: { ...serviceColumns, mysqlId: true },
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(mysql.mysqlId, accessedServices),
 								},
 								postgres: {
+									columns: { ...serviceColumns, postgresId: true },
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										postgres.postgresId,
 										accessedServices,
 									),
 								},
 								redis: {
+									columns: { ...serviceColumns, redisId: true },
+									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(redis.redisId, accessedServices),
 								},
 							},
