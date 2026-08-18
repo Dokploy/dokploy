@@ -91,6 +91,13 @@ vi.mock("@/server/utils/deploy", () => ({
 	deploy: vi.fn(),
 }));
 
+// These come from the mocked "@dokploy/server" module above, so importing them
+// here gives us the same vi.fn() instances the handler calls.
+import {
+	checkUserRepositoryPermissions,
+	createPreviewDeployment,
+	createSecurityBlockedComment,
+} from "@dokploy/server";
 import handler from "@/pages/api/deploy/github";
 
 const getConditionValue = (
@@ -319,5 +326,132 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(mocks.queueAdd).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
+	});
+});
+
+const createPullRequestRequest = ({
+	action = "opened",
+	labels = [],
+	author = "renovate[bot]",
+}: {
+	action?: string;
+	labels?: Array<{ name: string }>;
+	author?: string;
+} = {}) =>
+	({
+		headers: {
+			"x-hub-signature-256": "sha256=test-signature",
+			"x-github-event": "pull_request",
+		},
+		body: {
+			installation: { id: 12345 },
+			action,
+			pull_request: {
+				id: 987,
+				number: 371,
+				title: "chore(deps): update dependency",
+				html_url: "https://github.com/agentHits/dokploy/pull/371",
+				user: { login: author },
+				labels,
+				head: { ref: "renovate/some-dep", sha: "deadbeef" },
+				base: { ref: "main" },
+			},
+			repository: {
+				name: "dokploy",
+				owner: { login: "agentHits", name: "agentHits" },
+			},
+		},
+	}) as unknown as NextApiRequest;
+
+describe("GitHub app webhook preview deployments (issue #4902)", () => {
+	const previewApp = (overrides: Record<string, unknown> = {}) => ({
+		applicationId: "application-id",
+		name: "preview-app",
+		serverId: null,
+		previewLimit: 0,
+		previewLabels: ["preview"],
+		previewRequireCollaboratorPermissions: true,
+		previewDeployments: [],
+		...overrides,
+	});
+
+	const givenPreviewApp = (overrides: Record<string, unknown> = {}) =>
+		mocks.applicationsFindMany.mockResolvedValue([previewApp(overrides)]);
+
+	const givenAuthorPermission = (permission: {
+		hasWriteAccess: boolean;
+		permission: string | null;
+	}) => vi.mocked(checkUserRepositoryPermissions).mockResolvedValue(permission);
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.githubFindFirst.mockResolvedValue({
+			githubId: "github-provider-id",
+			githubInstallationId: 12345,
+			githubWebhookSecret: "webhook-secret",
+		});
+		mocks.verify.mockResolvedValue(true);
+		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		vi.mocked(createPreviewDeployment).mockResolvedValue({
+			previewDeploymentId: "preview-deployment-id",
+		} as unknown as Awaited<ReturnType<typeof createPreviewDeployment>>);
+	});
+
+	it("neither checks permissions nor comments when a bot PR fails the label filter", async () => {
+		givenPreviewApp(); // requires the "preview" label
+		const res = createResponse();
+
+		// A renovate PR carries none of the configured preview labels.
+		await handler(
+			createPullRequestRequest({
+				labels: [{ name: "dependencies" }, { name: "renovate" }],
+			}),
+			res,
+		);
+
+		expect(checkUserRepositoryPermissions).not.toHaveBeenCalled();
+		expect(createSecurityBlockedComment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("posts the security comment when a label-matched PR author lacks write access", async () => {
+		givenPreviewApp();
+		givenAuthorPermission({ hasWriteAccess: false, permission: "none" });
+		const res = createResponse();
+
+		await handler(
+			createPullRequestRequest({ labels: [{ name: "preview" }] }),
+			res,
+		);
+
+		expect(createSecurityBlockedComment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+	});
+
+	it("queues a preview deployment when the PR matches labels and the author has write access", async () => {
+		givenPreviewApp();
+		givenAuthorPermission({ hasWriteAccess: true, permission: "write" });
+		const res = createResponse();
+
+		await handler(
+			createPullRequestRequest({ labels: [{ name: "preview" }] }),
+			res,
+		);
+
+		expect(createSecurityBlockedComment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "application-id",
+				applicationType: "application-preview",
+				previewDeploymentId: "preview-deployment-id",
+				type: "deploy",
+			}),
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
 	});
 });
