@@ -63,6 +63,11 @@ const getLogTerminalSize = (viewport: HTMLDivElement): TerminalSize => {
 	});
 };
 
+// Sentinel the container-picker views fall back to before a real container
+// is selected/auto-selected — querying logs for it just surfaces Docker's
+// raw "No such container: select-a-container" daemon error.
+const PLACEHOLDER_CONTAINER_ID = "select-a-container";
+
 export const priorities = [
 	{
 		label: "Info",
@@ -92,13 +97,16 @@ export const DockerLogsId: React.FC<Props> = ({
 	runType,
 	serviceId,
 }) => {
+	const hasContainer =
+		!!containerId && containerId !== PLACEHOLDER_CONTAINER_ID;
+
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
 			serverId: serverId ?? undefined,
 		},
 		{
-			enabled: !!containerId,
+			enabled: hasContainer,
 		},
 	);
 
@@ -171,7 +179,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	};
 
 	useEffect(() => {
-		if (!containerId) return;
+		if (!hasContainer) return;
 
 		let isCurrentConnection = true;
 		let noDataTimeout: NodeJS.Timeout;
@@ -278,7 +286,16 @@ export const DockerLogsId: React.FC<Props> = ({
 				ws.close();
 			}
 		};
-	}, [containerId, serverId, serviceId, lines, search, since, runType]);
+	}, [
+		containerId,
+		hasContainer,
+		serverId,
+		serviceId,
+		lines,
+		search,
+		since,
+		runType,
+	]);
 
 	const handleDownload = () => {
 		const logContent = filteredLogs
@@ -475,9 +492,14 @@ export const DockerLogsId: React.FC<Props> = ({
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								<Loader2 className="h-6 w-6 animate-spin" />
 							</div>
-						) : (
+						) : hasContainer ? (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								No logs found
+							</div>
+						) : (
+							<div className="flex justify-center items-center h-full text-center text-sm text-muted-foreground px-8">
+								Select a container above to view its logs. If none are listed,
+								make sure the service is deployed and running.
 							</div>
 						)}
 					</div>

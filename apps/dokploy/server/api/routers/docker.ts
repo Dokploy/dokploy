@@ -11,6 +11,7 @@ import {
 	getContainersByAppLabel,
 	getContainersByAppNameMatch,
 	getDockerEvents,
+	getServerHealth as getServerHealthData,
 	getServiceContainersByAppName,
 	getStackContainersByAppName,
 	listContainerFiles,
@@ -18,11 +19,12 @@ import {
 	uploadFileToContainer,
 	writeContainerFile,
 } from "@dokploy/server";
+import { checkPermission } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { uploadFileToContainerSchema } from "@/utils/schema";
-import { createTRPCRouter, withPermission } from "../trpc";
+import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 
@@ -50,6 +52,29 @@ export const dockerRouter = createTRPCRouter({
 				}
 			}
 			return await getContainers(input.serverId);
+		}),
+
+	// Host-level diagnostics, so this requires docker.read AND server.read.
+	getServerHealth: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				sinceHours: z.number().int().min(1).max(168).optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkPermission(ctx, { docker: ["read"], server: ["read"] });
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getServerHealthData(
+				ctx.session.activeOrganizationId,
+				input.serverId,
+				input.sinceHours,
+			);
 		}),
 
 	restartContainer: withPermission("docker", "read")

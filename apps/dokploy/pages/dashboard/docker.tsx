@@ -6,6 +6,7 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowDiskUsage } from "@/components/dashboard/docker/disk-usage/show-disk-usage";
 import { ShowDockerEvents } from "@/components/dashboard/docker/events/show-docker-events";
+import { ShowHealth } from "@/components/dashboard/docker/health/show-health";
 import { ShowImages } from "@/components/dashboard/docker/images/show-images";
 import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
 import { ShowVolumes } from "@/components/dashboard/docker/volumes/show-volumes";
@@ -18,15 +19,21 @@ import { ServerFilter } from "@/components/shared/server-filter";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { appRouter } from "@/server/api/root";
+import { api } from "@/utils/api";
 
 const DEFAULT_TAB = "containers";
 const DEFAULT_SWARM_TAB = "overview";
 
 const Dashboard = () => {
 	const router = useRouter();
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	// Host-level diagnostics, so this needs server.read on top of docker.read.
+	const canSeeHealth = !!permissions?.docker.read && !!permissions?.server.read;
 
-	const activeTab =
+	const queryTab =
 		typeof router.query.tab === "string" ? router.query.tab : DEFAULT_TAB;
+	const activeTab =
+		queryTab === "health" && !canSeeHealth ? DEFAULT_TAB : queryTab;
 
 	const activeSwarmTab =
 		typeof router.query.subtab === "string"
@@ -70,6 +77,7 @@ const Dashboard = () => {
 						<TabsTrigger value="networks">Networks</TabsTrigger>
 						<TabsTrigger value="events">Events</TabsTrigger>
 						<TabsTrigger value="disk-usage">Disk Usage</TabsTrigger>
+						{canSeeHealth && <TabsTrigger value="health">Health</TabsTrigger>}
 					</TabsList>
 					<TabsContent value="containers">
 						<ShowContainers serverId={serverId} />
@@ -111,6 +119,11 @@ const Dashboard = () => {
 					<TabsContent value="disk-usage">
 						<ShowDiskUsage serverId={serverId} />
 					</TabsContent>
+					{canSeeHealth && (
+						<TabsContent value="health">
+							<ShowHealth serverId={serverId} />
+						</TabsContent>
+					)}
 				</Tabs>
 			)}
 		</ServerFilter>

@@ -10,7 +10,7 @@ import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -84,6 +84,29 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			password: "",
 		},
 	});
+
+	useEffect(() => {
+		const queryError = router.query.error;
+		if (!queryError) return;
+
+		const raw = Array.isArray(queryError) ? queryError[0] : queryError;
+		if (!raw) return;
+		const normalized = raw.replace(/[+_]/g, " ").toLowerCase();
+
+		setError(
+			normalized.includes("account not linked")
+				? "This account already exists but isn't linked to that sign-in provider yet. Contact your administrator to link it."
+				: normalized.includes("access denied")
+					? "Access was denied by the identity provider."
+					: "We couldn't complete sign-in. Please try again or contact your administrator.",
+		);
+
+		const { error: _removed, ...rest } = router.query;
+		router.replace({ pathname: router.pathname, query: rest }, undefined, {
+			shallow: true,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [router.query.error]);
 
 	const onSubmit = async (values: LoginForm) => {
 		setIsLoginLoading(true);

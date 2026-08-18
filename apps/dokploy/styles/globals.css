@@ -132,6 +132,10 @@
 	}
 }
 
+body[data-scroll-locked] [data-slot="sidebar-inset"] {
+	overflow: hidden !important;
+}
+
 @utility no-scrollbar {
 	/* Chrome, Safari and Opera */
 	&::-webkit-scrollbar {
