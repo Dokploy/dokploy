@@ -167,7 +167,7 @@ export const getContainersByAppNameMatch = async (
 		return containers || [];
 	} catch {}
 
-	return [];
+	return appType === "stack" ? undefined : [];
 };
 
 const getStackTaskContainers = async (appName: string, serverId?: string) => {
@@ -227,7 +227,7 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 		return containers;
 	} catch {}
 
-	return [];
+	return undefined;
 };
 
 export const getStackContainersByAppName = async (
@@ -243,7 +243,7 @@ export const getStackContainersByAppName = async (
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
 			if (stderr) {
-				return [];
+				return undefined;
 			}
 
 			if (!stdout) return [];
@@ -252,7 +252,7 @@ export const getStackContainersByAppName = async (
 			const { stdout, stderr } = await execAsync(command);
 
 			if (stderr) {
-				return [];
+				return undefined;
 			}
 
 			if (!stdout) return [];
@@ -292,7 +292,7 @@ export const getStackContainersByAppName = async (
 		return containers || [];
 	} catch {}
 
-	return [];
+	return undefined;
 };
 
 export const getServiceContainersByAppName = async (
