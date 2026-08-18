@@ -100,7 +100,7 @@ describe("database backup/restore command injection", () => {
 		expect(cmd).toContain("-e DB_NAME=my-db_prod");
 		expect(cmd).toContain("-e DB_USER=app_user");
 		expect(cmd).toContain(
-			'pg_dump -Fc --no-acl --no-owner -h localhost -U "$DB_USER"',
+			'pg_dump -Fc --exclude-table-data="*__exclude_data" --no-acl --no-owner -h localhost -U "$DB_USER"',
 		);
 	});
 });
