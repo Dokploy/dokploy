@@ -110,6 +110,7 @@ export const ShowDockerLogsStack = ({
 						<Switch
 							checked={option === "native"}
 							onCheckedChange={(checked) => {
+								setContainerId(undefined);
 								setOption(checked ? "native" : "swarm");
 							}}
 						/>
