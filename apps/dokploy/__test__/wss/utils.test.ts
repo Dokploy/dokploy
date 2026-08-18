@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { tryResizeTerminal } from "../../server/wss/terminal-transport";
 import {
 	getTerminalSize,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
 	isValidTail,
-	parseTerminalMessage,
 	parseTerminalResize,
-	tryResizeTerminal,
 } from "../../server/wss/utils";
 
 describe("terminal dimensions", () => {
@@ -23,7 +22,7 @@ describe("terminal dimensions", () => {
 			cols: 80,
 			rows: 24,
 		});
-		expect(getTerminalSize(new URLSearchParams("cols=0&rows=999999"))).toEqual({
+		expect(getTerminalSize(new URLSearchParams("cols=0&rows=0"))).toEqual({
 			cols: 80,
 			rows: 24,
 		});
@@ -33,23 +32,24 @@ describe("terminal dimensions", () => {
 		});
 	});
 
+	it("clamps oversized initial dimensions to the maximum", () => {
+		expect(
+			getTerminalSize(new URLSearchParams("cols=999999&rows=999999")),
+		).toEqual({
+			cols: 500,
+			rows: 200,
+		});
+	});
+
 	it("accepts valid resize control messages", () => {
 		expect(
 			parseTerminalResize('{"type":"resize","cols":160,"rows":50}'),
 		).toEqual({ cols: 160, rows: 50 });
 	});
 
-	it("preserves non-control text as terminal input", () => {
-		expect(parseTerminalMessage("ls -la\r")).toEqual({
-			type: "input",
-			data: "ls -la\r",
-		});
-		expect(
-			parseTerminalMessage('{"type":"resize","cols":160,"rows":50}'),
-		).toEqual({
-			type: "resize",
-			size: { cols: 160, rows: 50 },
-		});
+	it("does not mistake terminal input for resize control messages", () => {
+		expect(parseTerminalResize("ls -la\r")).toBeNull();
+		expect(parseTerminalResize("")).toBeNull();
 	});
 
 	it("handles resize failures without throwing", () => {
@@ -72,7 +72,7 @@ describe("terminal dimensions", () => {
 		);
 	});
 
-	it("rejects malformed and out-of-range resize messages", () => {
+	it("rejects malformed resize messages", () => {
 		expect(parseTerminalResize("not-json")).toBeNull();
 		expect(
 			parseTerminalResize('{"type":"input","cols":80,"rows":24}'),
@@ -83,9 +83,17 @@ describe("terminal dimensions", () => {
 		expect(
 			parseTerminalResize('{"type":"resize","cols":80.5,"rows":24}'),
 		).toBeNull();
+	});
+
+	it("clamps oversized resize messages instead of rejecting them", () => {
+		// Rejecting would demote the message to terminal input and type the
+		// raw JSON into the shell on every resize of an oversized viewport.
 		expect(
-			parseTerminalResize('{"type":"resize","cols":80,"rows":201}'),
-		).toBeNull();
+			parseTerminalResize('{"type":"resize","cols":900,"rows":201}'),
+		).toEqual({ cols: 500, rows: 200 });
+		expect(
+			parseTerminalResize('{"type":"resize","cols":900,"rows":50}'),
+		).toEqual({ cols: 500, rows: 50 });
 	});
 });
 

@@ -8,9 +8,12 @@ import {
 	Play,
 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
+import { createTerminalResizeSync } from "@/components/dashboard/terminal/transport";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { clampTerminalSize, type TerminalSize } from "@/lib/terminal-size";
+import { buildWsUrl } from "@/lib/ws-url";
 import { api } from "@/utils/api";
 import { AnalyzeLogs } from "./analyze-logs";
 import { LineCountFilter } from "./line-count-filter";
@@ -26,10 +29,39 @@ interface Props {
 	serviceId?: string;
 }
 
-const getLogTerminalSize = (viewport: HTMLDivElement) => ({
-	cols: Math.max(1, Math.min(500, Math.floor(viewport.clientWidth / 8))),
-	rows: Math.max(1, Math.min(200, Math.floor(viewport.clientHeight / 20))),
-});
+const FALLBACK_CELL_WIDTH = 8;
+const FALLBACK_LINE_HEIGHT = 20;
+const CELL_MEASURE_SAMPLE = "0123456789abcdefghij";
+let measureContext: CanvasRenderingContext2D | null | undefined;
+
+// Measure the rendered font instead of assuming a cell size, so the PTY
+// width the server wraps at tracks browser zoom and font settings.
+const getLogTerminalSize = (viewport: HTMLDivElement): TerminalSize => {
+	measureContext ??= document.createElement("canvas").getContext("2d");
+	const probe = viewport.firstElementChild ?? viewport;
+	const styles = window.getComputedStyle(probe);
+
+	let cellWidth = FALLBACK_CELL_WIDTH;
+	if (measureContext) {
+		measureContext.font = `${styles.fontSize} ${styles.fontFamily}`;
+		const measured =
+			measureContext.measureText(CELL_MEASURE_SAMPLE).width /
+			CELL_MEASURE_SAMPLE.length;
+		if (measured > 0) {
+			cellWidth = measured;
+		}
+	}
+	const lineHeight = Number.parseFloat(styles.lineHeight);
+	const cellHeight =
+		Number.isFinite(lineHeight) && lineHeight > 0
+			? lineHeight
+			: FALLBACK_LINE_HEIGHT;
+
+	return clampTerminalSize({
+		cols: viewport.clientWidth / cellWidth,
+		rows: viewport.clientHeight / cellHeight,
+	});
+};
 
 export const priorities = [
 	{
@@ -151,7 +183,6 @@ export const DockerLogsId: React.FC<Props> = ({
 		setIsPaused(false);
 		isPausedRef.current = false;
 
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const params = new globalThis.URLSearchParams({
 			containerId,
 			tail: lines.toString(),
@@ -168,32 +199,19 @@ export const DockerLogsId: React.FC<Props> = ({
 			params.append("serviceId", serviceId);
 		}
 		const logViewport = scrollRef.current;
-		if (logViewport) {
-			const size = getLogTerminalSize(logViewport);
-			params.set("cols", size.cols.toString());
-			params.set("rows", size.rows.toString());
+		const initialSize = logViewport ? getLogTerminalSize(logViewport) : null;
+		if (initialSize) {
+			params.set("cols", initialSize.cols.toString());
+			params.set("rows", initialSize.rows.toString());
 		}
 
-		const wsUrl = `${protocol}//${
-			window.location.host
-		}/docker-container-logs?${params.toString()}`;
-		const ws = new WebSocket(wsUrl);
-		let resizeFrame: number | undefined;
-		const sendSize = () => {
-			if (resizeFrame !== undefined) return;
-			resizeFrame = window.requestAnimationFrame(() => {
-				resizeFrame = undefined;
-				const viewport = scrollRef.current;
-				if (!viewport || ws.readyState !== WebSocket.OPEN) return;
-				ws.send(
-					JSON.stringify({
-						type: "resize",
-						...getLogTerminalSize(viewport),
-					}),
-				);
-			});
-		};
-		const resizeObserver = new ResizeObserver(sendSize);
+		const ws = new WebSocket(buildWsUrl("/docker-container-logs", params));
+		const resizeSync = createTerminalResizeSync(
+			ws,
+			() => (scrollRef.current ? getLogTerminalSize(scrollRef.current) : null),
+			initialSize,
+		);
+		const resizeObserver = new ResizeObserver(resizeSync.schedule);
 		if (logViewport) {
 			resizeObserver.observe(logViewport);
 		}
@@ -213,7 +231,6 @@ export const DockerLogsId: React.FC<Props> = ({
 				return;
 			}
 			resetNoDataTimeout();
-			sendSize();
 		};
 
 		ws.onmessage = (e) => {
@@ -255,9 +272,7 @@ export const DockerLogsId: React.FC<Props> = ({
 		return () => {
 			isCurrentConnection = false;
 			resizeObserver.disconnect();
-			if (resizeFrame !== undefined) {
-				window.cancelAnimationFrame(resizeFrame);
-			}
+			resizeSync.dispose();
 			if (noDataTimeout) clearTimeout(noDataTimeout);
 			if (ws.readyState < WebSocket.CLOSING) {
 				ws.close();

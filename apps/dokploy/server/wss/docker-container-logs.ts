@@ -4,6 +4,7 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { attachTerminalResize, bindPtyLifecycle } from "./terminal-transport";
 import {
 	getErrorMessage,
 	getShell,
@@ -12,8 +13,6 @@ import {
 	isValidSearch,
 	isValidSince,
 	isValidTail,
-	parseTerminalResize,
-	tryResizeTerminal,
 } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
@@ -138,15 +137,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 									.stderr.on("data", (data) => {
 										ws.send(data.toString());
 									});
-								ws.on("message", (message, isBinary) => {
-									if (isBinary) return;
-									const size = parseTerminalResize(message.toString());
-									if (size) {
-										try {
-											stream.setWindow(size.rows, size.cols, 0, 0);
-										} catch {
-											ws.close();
-										}
+								attachTerminalResize(ws, (size) => {
+									try {
+										stream.setWindow(size.rows, size.cols, 0, 0);
+									} catch {
+										ws.close();
 									}
 								});
 							},
@@ -196,32 +191,10 @@ export const setupDockerContainerLogsWebSocketServer = (
 				ptyProcess.onData((data) => {
 					ws.send(data);
 				});
-				let ptyExited = false;
-				const exitDisposable = ptyProcess.onExit(() => {
-					ptyExited = true;
-					clearInterval(pingInterval);
-					if (ws.readyState === ws.OPEN) {
-						ws.close();
-					}
-				});
-				ws.on("close", () => {
-					clearInterval(pingInterval);
-					exitDisposable.dispose();
-					if (!ptyExited) {
-						try {
-							ptyProcess.kill();
-						} catch {
-							// The PTY may have exited before its exit callback ran.
-						}
-					}
-				});
-				ws.on("message", (message, isBinary) => {
-					if (isBinary) return;
-					const size = parseTerminalResize(message.toString());
-					if (size && !ptyExited && !tryResizeTerminal(ptyProcess, size)) {
-						ws.close();
-					}
-				});
+				const pty = bindPtyLifecycle(ws, ptyProcess, () =>
+					clearInterval(pingInterval),
+				);
+				attachTerminalResize(ws, pty.resize);
 			}
 		} catch (error) {
 			ws.send(getErrorMessage(error));

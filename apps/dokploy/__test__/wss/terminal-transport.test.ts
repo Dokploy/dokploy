@@ -104,8 +104,17 @@ describe("terminal transport", () => {
 		expect(decodeOsc52ClipboardWrite("c;")).toBe("");
 	});
 
+	it("accepts empty and multi-target OSC 52 selections", () => {
+		// An empty selection defaults to the clipboard; emitters like yank(1)
+		// and tmux pass-through also send combined targets such as "cs0".
+		expect(decodeOsc52ClipboardWrite(";aGVsbG8=")).toBe("hello");
+		expect(decodeOsc52ClipboardWrite("cs0;aGVsbG8=")).toBe("hello");
+		expect(decodeOsc52ClipboardWrite("pc;aGVsbG8=")).toBe("hello");
+	});
+
 	it("refuses OSC 52 clipboard reads and unsupported selections", () => {
 		expect(decodeOsc52ClipboardWrite("c;?")).toBeNull();
+		expect(decodeOsc52ClipboardWrite(";?")).toBeNull();
 		expect(decodeOsc52ClipboardWrite("p;aGVsbG8=")).toBeNull();
 		expect(decodeOsc52ClipboardWrite("c;not base64")).toBeNull();
 	});

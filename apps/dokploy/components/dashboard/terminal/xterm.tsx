@@ -8,9 +8,16 @@ import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
+import {
+	attachTerminalKeyHandlers,
+	IS_MAC_PLATFORM,
+	macOsAltKeyHandler,
+} from "@/lib/terminal-keyboard";
+import { clampTerminalSize } from "@/lib/terminal-size";
+import { buildWsUrl } from "@/lib/ws-url";
 import {
 	attachTerminalOutput,
+	createTerminalResizeSync,
 	decodeOsc52ClipboardWrite,
 	encodeTerminalBinary,
 	encodeTerminalText,
@@ -102,140 +109,128 @@ export const XTerm = ({ path, query }: XTermProps) => {
 			return;
 		}
 
-		let dispose: (() => void) | undefined;
-		const initializationFrame = window.requestAnimationFrame(() => {
-			const terminal = new Terminal({
-				allowProposedApi: true,
-				convertEol: true,
-				cursorBlink: true,
-				fontFamily: window.getComputedStyle(root).fontFamily,
-				lineHeight: 1.4,
-				scrollback: 10_000,
-				theme: getTerminalTheme(root),
-			});
-			const fitAddon = new FitAddon();
-			const searchAddon = new SearchAddon();
-			const unicodeAddon = new Unicode11Addon();
+		const terminal = new Terminal({
+			allowProposedApi: true,
+			convertEol: true,
+			cursorBlink: true,
+			fontFamily: window.getComputedStyle(root).fontFamily,
+			lineHeight: 1.4,
+			scrollback: 10_000,
+			theme: getTerminalTheme(root),
+		});
+		const fitAddon = new FitAddon();
+		const searchAddon = new SearchAddon();
+		const unicodeAddon = new Unicode11Addon();
 
-			terminalRef.current = terminal;
-			searchAddonRef.current = searchAddon;
-			terminal.loadAddon(fitAddon);
-			terminal.loadAddon(searchAddon);
-			terminal.loadAddon(unicodeAddon);
-			terminal.loadAddon(new WebLinksAddon());
-			const clipboardDisposable = terminal.parser.registerOscHandler(
-				52,
-				(data) => {
-					const clipboardText = decodeOsc52ClipboardWrite(data);
-					if (clipboardText !== null && navigator.clipboard) {
-						void navigator.clipboard
-							.writeText(clipboardText)
-							.catch(() => undefined);
-					}
-					return true;
-				},
-			);
-			terminal.unicode.activeVersion = "11";
-			terminal.open(mount);
+		terminalRef.current = terminal;
+		searchAddonRef.current = searchAddon;
+		terminal.loadAddon(fitAddon);
+		terminal.loadAddon(searchAddon);
+		terminal.loadAddon(unicodeAddon);
+		terminal.loadAddon(new WebLinksAddon());
+		const clipboardDisposable = terminal.parser.registerOscHandler(
+			52,
+			(data) => {
+				const clipboardText = decodeOsc52ClipboardWrite(data);
+				if (clipboardText !== null && navigator.clipboard) {
+					void navigator.clipboard
+						.writeText(clipboardText)
+						.catch(() => undefined);
+				}
+				return true;
+			},
+		);
+		terminal.unicode.activeVersion = "11";
+		terminal.open(mount);
+
+		// Keep the rendered buffer in step with the clamped size the PTY is
+		// told about, so wide viewports don't wrap at an invisible column.
+		const fitTerminal = () => {
 			fitAddon.fit();
-
-			let disposed = false;
-
-			const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-			const params = new URLSearchParams(query);
-			params.set("cols", terminal.cols.toString());
-			params.set("rows", terminal.rows.toString());
-			const socket = new WebSocket(
-				`${protocol}//${window.location.host}${path}?${params.toString()}`,
-			);
-			socket.binaryType = "arraybuffer";
-
-			const dataDisposable = terminal.onData((data) => {
-				if (socket.readyState === WebSocket.OPEN) {
-					socket.send(encodeTerminalText(data));
-				}
+			const size = clampTerminalSize({
+				cols: terminal.cols,
+				rows: terminal.rows,
 			});
-			const binaryDisposable = terminal.onBinary((data) => {
-				if (socket.readyState === WebSocket.OPEN) {
-					socket.send(encodeTerminalBinary(data));
+			if (terminal.cols !== size.cols || terminal.rows !== size.rows) {
+				terminal.resize(size.cols, size.rows);
+			}
+			return size;
+		};
+
+		const params = new URLSearchParams(query);
+		const initialSize = fitTerminal();
+		params.set("cols", initialSize.cols.toString());
+		params.set("rows", initialSize.rows.toString());
+		const socket = new WebSocket(buildWsUrl(path, params));
+		socket.binaryType = "arraybuffer";
+
+		const dataDisposable = terminal.onData((data) => {
+			if (socket.readyState === WebSocket.OPEN) {
+				socket.send(encodeTerminalText(data));
+			}
+		});
+		const binaryDisposable = terminal.onBinary((data) => {
+			if (socket.readyState === WebSocket.OPEN) {
+				socket.send(encodeTerminalBinary(data));
+			}
+		});
+		const disposeSocketOutput = attachTerminalOutput(socket, terminal);
+		const resizeSync = createTerminalResizeSync(
+			socket,
+			fitTerminal,
+			initialSize,
+		);
+		const resizeObserver = new ResizeObserver(resizeSync.schedule);
+		resizeObserver.observe(root);
+
+		// Plain Ctrl+F must keep reaching the shell (readline forward-char,
+		// paging in less/vim), so search binds to Cmd+F on macOS and
+		// Ctrl+Shift+F elsewhere. Ctrl+Shift+C copies the selection, since
+		// plain Ctrl+C is SIGINT inside a terminal.
+		attachTerminalKeyHandlers(terminal, [
+			macOsAltKeyHandler(terminal),
+			(event) => {
+				if (event.type !== "keydown" || event.altKey) {
+					return true;
 				}
-			});
-			const disposeSocketOutput = attachTerminalOutput(socket, terminal);
-
-			let resizeFrame: number | undefined;
-			const fitAndResize = () => {
-				if (resizeFrame !== undefined) {
-					return;
-				}
-
-				resizeFrame = window.requestAnimationFrame(() => {
-					resizeFrame = undefined;
-					if (disposed) {
-						return;
-					}
-
-					fitAddon.fit();
-					if (socket.readyState === WebSocket.OPEN) {
-						socket.send(
-							JSON.stringify({
-								type: "resize",
-								cols: terminal.cols,
-								rows: terminal.rows,
-							}),
-						);
-					}
-				});
-			};
-			const resizeObserver = new ResizeObserver(fitAndResize);
-			resizeObserver.observe(root);
-			socket.addEventListener("open", fitAndResize);
-
-			fixMacOsAltKeys(terminal, (event) => {
-				if (
-					event.type === "keydown" &&
-					(event.ctrlKey || event.metaKey) &&
-					event.key.toLowerCase() === "f"
-				) {
+				const key = event.key.toLowerCase();
+				const isSearchShortcut =
+					key === "f" &&
+					((IS_MAC_PLATFORM && event.metaKey && !event.ctrlKey) ||
+						(event.ctrlKey && event.shiftKey && !event.metaKey));
+				if (isSearchShortcut) {
 					event.preventDefault();
 					setIsSearchOpen(true);
 					return false;
 				}
+				const isCopyShortcut =
+					key === "c" && event.ctrlKey && event.shiftKey && !event.metaKey;
+				if (isCopyShortcut && terminal.hasSelection()) {
+					event.preventDefault();
+					if (navigator.clipboard) {
+						void navigator.clipboard
+							.writeText(terminal.getSelection())
+							.catch(() => undefined);
+					}
+					return false;
+				}
 				return true;
-			});
-
-			const selectionDisposable = terminal.onSelectionChange(() => {
-				const selection = terminal.getSelection();
-				if (selection && navigator.clipboard) {
-					void navigator.clipboard.writeText(selection).catch(() => undefined);
-				}
-			});
-
-			dispose = () => {
-				disposed = true;
-				resizeObserver.disconnect();
-				socket.removeEventListener("open", fitAndResize);
-				disposeSocketOutput();
-				dataDisposable.dispose();
-				binaryDisposable.dispose();
-				clipboardDisposable.dispose();
-				selectionDisposable.dispose();
-				if (resizeFrame !== undefined) {
-					window.cancelAnimationFrame(resizeFrame);
-				}
-				if (socket.readyState < WebSocket.CLOSING) {
-					socket.close();
-				}
-				terminal.dispose();
-				if (terminalRef.current === terminal) {
-					terminalRef.current = null;
-					searchAddonRef.current = null;
-				}
-			};
-		});
+			},
+		]);
 
 		return () => {
-			window.cancelAnimationFrame(initializationFrame);
-			dispose?.();
+			resizeObserver.disconnect();
+			resizeSync.dispose();
+			disposeSocketOutput();
+			dataDisposable.dispose();
+			binaryDisposable.dispose();
+			clipboardDisposable.dispose();
+			if (socket.readyState < WebSocket.CLOSING) {
+				socket.close();
+			}
+			terminal.dispose();
+			terminalRef.current = null;
+			searchAddonRef.current = null;
 		};
 	}, [path, query]);
 

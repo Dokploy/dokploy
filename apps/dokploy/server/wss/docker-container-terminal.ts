@@ -4,14 +4,16 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
-import { writeTerminalBinaryFrame } from "./terminal-transport";
+import {
+	attachTerminalInput,
+	bindPtyLifecycle,
+	sshTerminalTarget,
+} from "./terminal-transport";
 import {
 	getErrorMessage,
 	getTerminalSize,
 	isValidContainerId,
 	isValidShell,
-	parseTerminalMessage,
-	tryResizeTerminal,
 } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
@@ -114,6 +116,9 @@ export const setupDockerContainerTerminalWebSocketServer = (
 									.on("close", (code: number, _signal: string) => {
 										ws.send(`\nContainer closed with code: ${code}\n`);
 										conn.end();
+										if (ws.readyState === ws.OPEN) {
+											ws.close();
+										}
 									})
 									.on("data", (data: string) => {
 										ws.send(data.toString());
@@ -123,25 +128,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 										console.error("Error: ", data.toString());
 									});
 
-								ws.on("message", (message, isBinary) => {
-									try {
-										if (!isBinary) {
-											const terminalMessage = parseTerminalMessage(
-												message.toString(),
-											);
-											if (terminalMessage.type === "resize") {
-												const { cols, rows } = terminalMessage.size;
-												stream.setWindow(rows, cols, 0, 0);
-											} else {
-												stream.write(terminalMessage.data);
-											}
-											return;
-										}
-										writeTerminalBinaryFrame(stream, message);
-									} catch (error) {
-										ws.send(getErrorMessage(error));
-									}
-								});
+								attachTerminalInput(ws, sshTerminalTarget(stream));
 
 								ws.on("close", () => {
 									stream.end();
@@ -184,48 +171,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				ptyProcess.onData((data) => {
 					ws.send(data);
 				});
-				let ptyExited = false;
-				const exitDisposable = ptyProcess.onExit(() => {
-					ptyExited = true;
-					if (ws.readyState === ws.OPEN) {
-						ws.close();
-					}
-				});
-				ws.on("close", () => {
-					exitDisposable.dispose();
-					if (!ptyExited) {
-						try {
-							ptyProcess.kill();
-						} catch {
-							// The PTY may have exited before its exit callback ran.
-						}
-					}
-				});
-				ws.on("message", (message, isBinary) => {
-					try {
-						if (!isBinary) {
-							const terminalMessage = parseTerminalMessage(message.toString());
-							if (terminalMessage.type === "resize") {
-								if (
-									!ptyExited &&
-									!tryResizeTerminal(ptyProcess, terminalMessage.size)
-								) {
-									ws.close();
-								}
-							} else if (!ptyExited) {
-								ptyProcess.write(terminalMessage.data);
-							}
-							return;
-						}
-						if (!ptyExited) {
-							writeTerminalBinaryFrame(ptyProcess, message);
-						}
-					} catch (error) {
-						if (ws.readyState === ws.OPEN) {
-							ws.send(getErrorMessage(error));
-						}
-					}
-				});
+				attachTerminalInput(ws, bindPtyLifecycle(ws, ptyProcess));
 			}
 		} catch (error) {
 			ws.send(getErrorMessage(error));

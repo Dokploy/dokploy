@@ -2,66 +2,49 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execAsync, IS_CLOUD, paths } from "@dokploy/server";
-
-const DEFAULT_TERMINAL_COLS = 80;
-const DEFAULT_TERMINAL_ROWS = 24;
-const MAX_TERMINAL_COLS = 500;
-const MAX_TERMINAL_ROWS = 200;
-
-export interface TerminalSize {
-	cols: number;
-	rows: number;
-}
+import {
+	clampTerminalSize,
+	DEFAULT_TERMINAL_COLS,
+	DEFAULT_TERMINAL_ROWS,
+	type TerminalSize,
+} from "../../lib/terminal-size";
 
 export const getErrorMessage = (error: unknown): string =>
 	error instanceof Error ? error.message : String(error);
 
-export type TerminalMessage =
-	| { type: "resize"; size: TerminalSize }
-	| { type: "input"; data: string };
+const isTerminalDimension = (value: unknown): value is number =>
+	typeof value === "number" && Number.isInteger(value) && value >= 1;
 
-interface ResizableTerminal {
-	resize: (cols: number, rows: number) => void;
-}
-
-const isTerminalDimension = (
-	value: unknown,
-	maximum: number,
-): value is number =>
-	typeof value === "number" &&
-	Number.isInteger(value) &&
-	value >= 1 &&
-	value <= maximum;
-
-const parseTerminalDimension = (
-	value: string | null,
-	fallback: number,
-	maximum: number,
-) => {
+const parseTerminalDimension = (value: string | null, fallback: number) => {
 	if (!value || !/^\d+$/.test(value)) {
 		return fallback;
 	}
 
 	const dimension = Number(value);
-	return isTerminalDimension(dimension, maximum) ? dimension : fallback;
+	return isTerminalDimension(dimension) ? dimension : fallback;
 };
 
-export const getTerminalSize = (
-	searchParams: URLSearchParams,
-): TerminalSize => ({
-	cols: parseTerminalDimension(
-		searchParams.get("cols"),
-		DEFAULT_TERMINAL_COLS,
-		MAX_TERMINAL_COLS,
-	),
-	rows: parseTerminalDimension(
-		searchParams.get("rows"),
-		DEFAULT_TERMINAL_ROWS,
-		MAX_TERMINAL_ROWS,
-	),
-});
+// Oversized dimensions come from legitimately large viewports (ultrawide
+// displays, zoomed-out browsers), so clamp them instead of rejecting them.
+export const getTerminalSize = (searchParams: URLSearchParams): TerminalSize =>
+	clampTerminalSize({
+		cols: parseTerminalDimension(
+			searchParams.get("cols"),
+			DEFAULT_TERMINAL_COLS,
+		),
+		rows: parseTerminalDimension(
+			searchParams.get("rows"),
+			DEFAULT_TERMINAL_ROWS,
+		),
+	});
 
 export const parseTerminalResize = (message: string): TerminalSize | null => {
+	// Legacy clients send every keystroke as a text frame; skip the
+	// JSON.parse (and its thrown SyntaxError) unless this can be JSON.
+	if (message.charCodeAt(0) !== 0x7b /* '{' */) {
+		return null;
+	}
+
 	try {
 		const value: unknown = JSON.parse(message);
 		if (typeof value !== "object" || value === null) {
@@ -71,32 +54,15 @@ export const parseTerminalResize = (message: string): TerminalSize | null => {
 		const { type, cols, rows } = value as Record<string, unknown>;
 		if (
 			type !== "resize" ||
-			!isTerminalDimension(cols, MAX_TERMINAL_COLS) ||
-			!isTerminalDimension(rows, MAX_TERMINAL_ROWS)
+			!isTerminalDimension(cols) ||
+			!isTerminalDimension(rows)
 		) {
 			return null;
 		}
 
-		return { cols, rows };
+		return clampTerminalSize({ cols, rows });
 	} catch {
 		return null;
-	}
-};
-
-export const parseTerminalMessage = (message: string): TerminalMessage => {
-	const size = parseTerminalResize(message);
-	return size ? { type: "resize", size } : { type: "input", data: message };
-};
-
-export const tryResizeTerminal = (
-	terminal: ResizableTerminal,
-	size: TerminalSize,
-): boolean => {
-	try {
-		terminal.resize(size.cols, size.rows);
-		return true;
-	} catch {
-		return false;
 	}
 };
 

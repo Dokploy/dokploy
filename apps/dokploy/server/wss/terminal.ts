@@ -10,13 +10,8 @@ import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
-import { writeTerminalBinaryFrame } from "./terminal-transport";
-import {
-	getErrorMessage,
-	getTerminalSize,
-	parseTerminalMessage,
-	setupLocalServerSSHKey,
-} from "./utils";
+import { attachTerminalInput, sshTerminalTarget } from "./terminal-transport";
+import { getTerminalSize, setupLocalServerSSHKey } from "./utils";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
 # ----------------------------------------
@@ -35,20 +30,19 @@ sudo chown -R $USER:$USER /etc/dokploy/ssh
 `;
 
 export const getPublicIpWithFallback = async () => {
-	// @ts-ignore
-	let ip = null;
+	let ip: string | null = null;
 	try {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
 			"Error to obtain public IPv4 address, falling back to IPv6",
-			// @ts-ignore
+			// @ts-expect-error
 			error.message,
 		);
 		try {
 			ip = await publicIpv6();
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			console.error("Error to obtain public IPv6 address", error.message);
 			ip = null;
 		}
@@ -58,7 +52,7 @@ export const getPublicIpWithFallback = async () => {
 
 export const getLocalServerIp = async () => {
 	try {
-		const command = `ip addr show | grep -E "inet (192\.168\.|10\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
+		const command = `ip addr show | grep -E "inet (192.168.|10.|172.1[6-9].|172.2[0-9].|172.3[0-1].)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
 		const { stdout } = await execAsync(command);
 		const ip = stdout.trim();
 		return (
@@ -201,6 +195,9 @@ export const setupTerminalWebSocketServer = (
 						.on("close", (code: number, _signal: string) => {
 							ws.send(`\nContainer closed with code: ${code}\n`);
 							conn.end();
+							if (ws.readyState === ws.OPEN) {
+								ws.close();
+							}
 						})
 						.on("data", (data: string) => {
 							ws.send(data.toString());
@@ -210,25 +207,7 @@ export const setupTerminalWebSocketServer = (
 							console.error("Error: ", data.toString());
 						});
 
-					ws.on("message", (message, isBinary) => {
-						try {
-							if (!isBinary) {
-								const terminalMessage = parseTerminalMessage(
-									message.toString(),
-								);
-								if (terminalMessage.type === "resize") {
-									const { cols, rows } = terminalMessage.size;
-									stream.setWindow(rows, cols, 0, 0);
-								} else {
-									stream.write(terminalMessage.data);
-								}
-								return;
-							}
-							writeTerminalBinaryFrame(stream, message);
-						} catch (error) {
-							ws.send(getErrorMessage(error));
-						}
-					});
+					attachTerminalInput(ws, sshTerminalTarget(stream));
 
 					ws.on("close", () => {
 						stream.end();
