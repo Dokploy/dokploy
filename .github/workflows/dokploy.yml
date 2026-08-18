@@ -162,13 +162,44 @@ jobs:
           { head -1 install.sh; echo "DOKPLOY_VERSION=\"\${DOKPLOY_VERSION:-${{ steps.get_version.outputs.version }}}\""; tail -n +2 install.sh; } > install-pinned.sh
           mv install-pinned.sh install.sh
 
+      - name: Generate release notes
+        # Hotfixes land on main via `git cherry-pick` (hotfix-cherry-pick.yml),
+        # not a PR merged into main, so GitHub's own generate_release_notes
+        # can't associate any PR with these commits and comes back empty.
+        # Build the "What's Changed" list ourselves from the cherry-picked
+        # "Merge pull request #N ..." commit messages instead.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          RANGE="HEAD"
+          [ -n "$PREV_TAG" ] && RANGE="${PREV_TAG}..HEAD"
+
+          {
+            echo "## What's Changed"
+            git log "$RANGE" --reverse --format='%s' \
+              | grep -oE '^Merge pull request #[0-9]+' \
+              | grep -oE '[0-9]+' \
+              | while read -r PR; do
+                gh pr view "$PR" --repo "${{ github.repository }}" \
+                  --json title,author -q '"* \(.title) by @\(.author.login) in #'"$PR"'"' \
+                  2>/dev/null || true
+              done
+            if [ -n "$PREV_TAG" ]; then
+              echo ""
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${{ steps.get_version.outputs.version }}"
+            fi
+          } > release-notes.md
+
+          cat release-notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.version }}
           target_commitish: ${{ github.sha }}
           name: ${{ steps.get_version.outputs.version }}
-          generate_release_notes: true
+          body_path: release-notes.md
           draft: false
           prerelease: false
           files: install.sh
