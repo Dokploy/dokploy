@@ -175,7 +175,7 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 		const divider = "__DOKPLOY_DIVIDER__";
 		const tasksCommand = `docker stack ps ${appName} --no-trunc --filter "desired-state=running" --format 'TASK : {{.ID}} | Name: {{.Name}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
 		const inspectCommand = `docker stack ps ${appName} -q --no-trunc --filter "desired-state=running" | xargs -r docker inspect --format '{{if .Status.ContainerStatus}}TASK : {{.ID}} | ContainerId: {{.Status.ContainerStatus.ContainerID}}{{end}}' 2>/dev/null`;
-		const command = `${tasksCommand} && echo "${divider}" && (${inspectCommand} || true)`;
+		const command = `${tasksCommand} && echo "${divider}" && ${inspectCommand}`;
 
 		let stdout = "";
 

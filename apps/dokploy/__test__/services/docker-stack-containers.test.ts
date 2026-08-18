@@ -30,6 +30,10 @@ describe("stack container lookup results", () => {
 		await expect(
 			getContainersByAppNameMatch("farmgate-odoo", "stack"),
 		).resolves.toBeUndefined();
+
+		const command = execAsyncMock.mock.calls[0]?.[0];
+		expect(command).toBeDefined();
+		expect(command).not.toContain("|| true");
 	});
 
 	it("returns an empty list for a successful native lookup with no tasks", async () => {
