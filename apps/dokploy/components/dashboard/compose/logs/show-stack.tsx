@@ -72,16 +72,19 @@ export const ShowDockerLogsStack = ({
 	const containers = data?.filter((container) => container.containerId);
 
 	useEffect(() => {
-		if (option === "native") {
-			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
-			}
-		} else {
-			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
-			}
+		const currentContainers = option === "native" ? containers : services;
+
+		if (
+			currentContainers &&
+			currentContainers.length > 0 &&
+			(!containerId ||
+				!currentContainers.some(
+					(container) => container.containerId === containerId,
+				))
+		) {
+			setContainerId(currentContainers[0]?.containerId);
 		}
-	}, [option, services, containers]);
+	}, [option, services, containers, containerId]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =
