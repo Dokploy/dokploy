@@ -74,15 +74,16 @@ export const ShowDockerLogsStack = ({
 	useEffect(() => {
 		const currentContainers = option === "native" ? containers : services;
 
-		if (
-			currentContainers &&
-			currentContainers.length > 0 &&
-			(!containerId ||
-				!currentContainers.some(
-					(container) => container.containerId === containerId,
-				))
-		) {
-			setContainerId(currentContainers[0]?.containerId);
+		if (currentContainers) {
+			const nextContainerId = currentContainers.some(
+				(container) => container.containerId === containerId,
+			)
+				? containerId
+				: currentContainers[0]?.containerId;
+
+			if (nextContainerId !== containerId) {
+				setContainerId(nextContainerId);
+			}
 		}
 	}, [option, services, containers, containerId]);
 
