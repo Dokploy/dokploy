@@ -161,6 +161,8 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		envContent,
 		compose.environment.project.env,
 		compose.environment.env,
+		// docker stack deploy reads env_file literally, no unquoting
+		compose.composeType === "stack",
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);

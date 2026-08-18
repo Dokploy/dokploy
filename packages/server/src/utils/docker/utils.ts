@@ -456,6 +456,16 @@ export const removeService = async (
 	}
 };
 
+// dotenv ends an unquoted value at the first `#`; compose only does so after a space
+const HASH_PLACEHOLDER = "\u0000dokploy-hash\u0000";
+
+const parseEnvVariables = (src: string): Record<string, string> =>
+	Object.fromEntries(
+		Object.entries(parse(src.replace(/(?<! )#/g, HASH_PLACEHOLDER))).map(
+			([key, value]) => [key, value.replaceAll(HASH_PLACEHOLDER, "#")],
+		),
+	);
+
 export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
@@ -468,9 +478,9 @@ export const prepareEnvironmentVariables = (
 			);
 		}
 	}
-	const projectVars = parse(projectEnv ?? "");
-	const environmentVars = parse(environmentEnv ?? "");
-	const serviceVars = parse(serviceEnv ?? "");
+	const projectVars = parseEnvVariables(projectEnv ?? "");
+	const environmentVars = parseEnvVariables(environmentEnv ?? "");
+	const serviceVars = parseEnvVariables(serviceEnv ?? "");
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
@@ -536,12 +546,15 @@ export const prepareEnvironmentVariablesForFile = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	rawValues = false,
 ): string[] => {
 	const envVars = prepareEnvironmentVariables(
 		serviceEnv,
 		projectEnv,
 		environmentEnv,
 	);
+
+	if (rawValues) return envVars;
 
 	return envVars.map((pair) => {
 		const [key, value] = parseEnvironmentKeyValuePair(pair);

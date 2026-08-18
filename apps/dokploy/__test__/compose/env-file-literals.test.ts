@@ -34,13 +34,13 @@ const cases: Record<string, string> = {
 	MULTILINE_PEM: "-----BEGIN KEY-----\nabc123\n-----END KEY-----",
 };
 
-// How each value must be typed in the UI so the (unchanged) dotenv input
-// parser resolves it to the raw string in `cases` above.
+// How each value must be typed in the UI so the env input parser resolves it
+// to the raw string in `cases` above.
 const inputEncoding: Record<string, string> = {
 	PASSWORD: "pa$$word",
 	SPECIAL: `'!"#$%&/()=?'`,
 	NESTED_JSON: '{"nested":{"a":1}}',
-	MAIL_PASSWORD: `"abc#de"`,
+	MAIL_PASSWORD: "abc#de",
 	TRAILING_BACKSLASH: "trailing\\",
 	QUOTE_INSIDE: 'she said "hi"',
 	APOSTROPHE: "it's a test",
