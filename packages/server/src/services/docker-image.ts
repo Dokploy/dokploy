@@ -78,7 +78,7 @@ const remoteDigestCache = new Map<
 	string,
 	{ digests: string[]; timestamp: number }
 >();
-const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours in milliseconds
+const CACHE_TTL = 1000 * 60 * 60 * 24;
 
 const getRemoteDigestCacheKey = (reference: string, serverId?: string) =>
 	`${serverId ?? "local"}-${reference}`;
@@ -96,6 +96,15 @@ export const invalidateRemoteDigestCache = (
 	serverId?: string,
 ) => {
 	remoteDigestCache.delete(getRemoteDigestCacheKey(reference, serverId));
+};
+
+export const clearRemoteDigestCache = (serverId?: string) => {
+	const prefix = `${serverId ?? "local"}-`;
+	for (const key of remoteDigestCache.keys()) {
+		if (key.startsWith(prefix)) {
+			remoteDigestCache.delete(key);
+		}
+	}
 };
 
 const getRemoteDigestCandidates = async (
@@ -212,7 +221,6 @@ const buildOutdatedStatus = async (
 
 		const localSet = new Set([local.id, ...local.digests]);
 
-		// Try to find a direct match
 		const match = remoteCandidates.find((candidate) => localSet.has(candidate));
 
 		if (match) {
@@ -224,13 +232,10 @@ const buildOutdatedStatus = async (
 			};
 		}
 
-		// If no match is found, it means the local digests are completely different
-		// from what is currently on the remote registry. The image is outdated.
 		return {
 			reference,
 			status: "outdated",
 			localDigest: local.digests[0] ?? local.id,
-			// Return the first digest (which is the Index digest we hashed)
 			remoteDigest: remoteCandidates[0] ?? null,
 			reason: "Digest differs",
 		};

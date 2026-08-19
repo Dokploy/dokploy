@@ -17,6 +17,7 @@ import {
 	Eye,
 	Layers,
 	Loader2,
+	RefreshCw,
 	Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -216,6 +217,8 @@ export const ShowImages = ({ serverId }: Props) => {
 	const { mutateAsync: pullImage } = api.dockerImage.pullImage.useMutation();
 	const { mutateAsync: removeImage } =
 		api.dockerImage.removeImage.useMutation();
+	const { mutateAsync: checkUpdates } =
+		api.dockerImage.checkUpdates.useMutation();
 
 	const rows = useMemo<ImageRow[]>(
 		() =>
@@ -244,8 +247,8 @@ export const ShowImages = ({ serverId }: Props) => {
 				{ references: chunk, serverId },
 				{
 					enabled: chunk.length > 0,
-					staleTime: 1000 * 60 * 60 * 24, // Data stays fresh for 24 hours
-					refetchOnWindowFocus: false, // Don't refetch just because user alt-tabbed
+					staleTime: 1000 * 60 * 60 * 24,
+					refetchOnWindowFocus: false,
 				},
 			),
 		),
@@ -257,7 +260,7 @@ export const ShowImages = ({ serverId }: Props) => {
 	);
 
 	const isOutdatedStatusLoading = outdatedStatusQueries.some(
-		(query) => query.isLoading,
+		(query) => query.isFetching,
 	);
 
 	const outdatedStatusMap = useMemo(() => {
@@ -312,6 +315,19 @@ export const ShowImages = ({ serverId }: Props) => {
 				const next = { ...prev };
 				delete next[reference];
 				return next;
+			});
+		}
+	};
+
+	const handleCheckUpdates = async () => {
+		try {
+			await checkUpdates({ serverId });
+
+			await utils.dockerImage.getImagesOutdatedStatus.invalidate();
+			toast.success("Update Check Completed");
+		} catch (error) {
+			toast.error("Error checking for updates", {
+				description: error instanceof Error ? error.message : "Unknown error",
 			});
 		}
 	};
@@ -563,7 +579,7 @@ export const ShowImages = ({ serverId }: Props) => {
 							</div>
 						) : (
 							<>
-								<div className="flex flex-wrap items-center gap-2">
+								<div className="flex items-center justify-between w-full gap-4">
 									<Input
 										placeholder="Search by repository, tag or id..."
 										value={globalFilter}
@@ -576,6 +592,16 @@ export const ShowImages = ({ serverId }: Props) => {
 										}}
 										className="max-w-xs"
 									/>
+									<Button
+										variant="outline"
+										onClick={handleCheckUpdates}
+										disabled={isOutdatedStatusLoading}
+									>
+										<RefreshCw
+											className={`mr-2 size-4 ${isOutdatedStatusLoading ? "animate-spin" : ""}`}
+										/>
+										Check Updates
+									</Button>
 								</div>
 								<div className="rounded-md border overflow-x-auto">
 									<Table>

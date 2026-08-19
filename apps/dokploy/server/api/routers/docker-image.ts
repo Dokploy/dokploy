@@ -1,4 +1,5 @@
 import {
+	clearRemoteDigestCache,
 	findServerById,
 	getImageConfig,
 	getImages,
@@ -74,6 +75,22 @@ export const dockerImageRouter = createTRPCRouter({
 				}
 			}
 			return await getImageConfig(input.imageRef, input.serverId);
+		}),
+
+	checkUpdates: withPermission("docker", "read")
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			clearRemoteDigestCache(input.serverId);
 		}),
 
 	pullImage: withPermission("docker", "read")
