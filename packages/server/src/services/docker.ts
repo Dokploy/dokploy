@@ -167,7 +167,7 @@ export const getContainersByAppNameMatch = async (
 		return containers || [];
 	} catch {}
 
-	return appType === "stack" ? undefined : [];
+	return [];
 };
 
 const getStackTaskContainers = async (appName: string, serverId?: string) => {
@@ -175,7 +175,7 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 		const divider = "__DOKPLOY_DIVIDER__";
 		const tasksCommand = `docker stack ps ${appName} --no-trunc --filter "desired-state=running" --format 'TASK : {{.ID}} | Name: {{.Name}} | Node: {{.Node}} | CurrentState: {{.CurrentState}} | Error: {{.Error}}'`;
 		const inspectCommand = `docker stack ps ${appName} -q --no-trunc --filter "desired-state=running" | xargs -r docker inspect --format '{{if .Status.ContainerStatus}}TASK : {{.ID}} | ContainerId: {{.Status.ContainerStatus.ContainerID}}{{end}}' 2>/dev/null`;
-		const command = `${tasksCommand} && echo "${divider}" && ${inspectCommand}`;
+		const command = `${tasksCommand} && echo "${divider}" && (${inspectCommand} || true)`;
 
 		let stdout = "";
 
@@ -227,7 +227,7 @@ const getStackTaskContainers = async (appName: string, serverId?: string) => {
 		return containers;
 	} catch {}
 
-	return undefined;
+	return [];
 };
 
 export const getStackContainersByAppName = async (
@@ -243,7 +243,7 @@ export const getStackContainersByAppName = async (
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
 			if (stderr) {
-				return undefined;
+				return [];
 			}
 
 			if (!stdout) return [];
@@ -252,7 +252,7 @@ export const getStackContainersByAppName = async (
 			const { stdout, stderr } = await execAsync(command);
 
 			if (stderr) {
-				return undefined;
+				return [];
 			}
 
 			if (!stdout) return [];
@@ -292,7 +292,7 @@ export const getStackContainersByAppName = async (
 		return containers || [];
 	} catch {}
 
-	return undefined;
+	return [];
 };
 
 export const getServiceContainersByAppName = async (
