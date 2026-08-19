@@ -1,5 +1,6 @@
 import {
 	addDomainToCompose,
+	assertGitlabProviderAccess,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -196,6 +197,9 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			if (input.gitlabId) {
+				await assertGitlabProviderAccess(input.gitlabId, ctx.session);
+			}
 			const updated = await updateCompose(input.composeId, input);
 			if (
 				input.sourceType === "gitlab" &&

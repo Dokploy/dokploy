@@ -119,3 +119,17 @@ export const getAccessibleGitProviderIds = async (session: {
 	}
 	return result;
 };
+
+export const assertGitProviderAccess = async (
+	gitProviderId: string,
+	session: { userId: string; activeOrganizationId: string },
+	message = "You are not authorized to access this Git provider",
+) => {
+	const accessibleIds = await getAccessibleGitProviderIds(session);
+	if (!accessibleIds.has(gitProviderId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message,
+		});
+	}
+};

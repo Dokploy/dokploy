@@ -1,4 +1,5 @@
 import {
+	assertGitlabProviderAccess,
 	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
@@ -449,6 +450,7 @@ export const applicationRouter = createTRPCRouter({
 					message: "GitLab provider is required",
 				});
 			}
+			await assertGitlabProviderAccess(input.gitlabId, ctx.session);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,

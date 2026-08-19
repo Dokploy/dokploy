@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+	assertGitProviderAccess,
 	canEditDeployGitSource,
 	getAccessibleGitProviderIds,
 } from "@dokploy/server/services/git-provider";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDb = vi.hoisted(() => ({
 	query: {
@@ -364,6 +365,37 @@ describe("canEditDeployGitSource", () => {
 				session(USER_MEMBER),
 			);
 			expect(result).toBe(false);
+		});
+	});
+});
+
+describe("assertGitProviderAccess", () => {
+	describe("member", () => {
+		beforeEach(() => {
+			mockDb.query.member.findFirst.mockResolvedValue({
+				role: "member",
+				accessedGitProviders: [],
+			});
+		});
+
+		it("allows access to an owned provider", async () => {
+			await expect(
+				assertGitProviderAccess(
+					providerOwned.gitProviderId,
+					session(USER_MEMBER),
+				),
+			).resolves.toBeUndefined();
+		});
+
+		it("rejects access to another member's private provider", async () => {
+			await expect(
+				assertGitProviderAccess(
+					providerOtherMember.gitProviderId,
+					session(USER_MEMBER),
+				),
+			).rejects.toMatchObject({
+				code: "UNAUTHORIZED",
+			});
 		});
 	});
 });
