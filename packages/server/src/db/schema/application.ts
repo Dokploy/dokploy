@@ -1,3 +1,7 @@
+import {
+	ENV_FILE_NAME_MESSAGE,
+	VALID_ENV_FILE_NAME_REGEX,
+} from "@dokploy/server/utils/env-file-name-validation";
 import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { relations } from "drizzle-orm";
 import {
@@ -194,6 +198,7 @@ export const applications = pgTable("application", {
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),
 	createEnvFile: boolean("createEnvFile").notNull().default(true),
+	envFileName: text("envFileName").notNull().default(".env"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -357,6 +362,12 @@ const createSchema = createInsertSchema(applications, {
 	publishDirectory: z.string().optional(),
 	isStaticSpa: z.boolean().optional(),
 	createEnvFile: z.boolean().optional(),
+	envFileName: z
+			.string()
+			.min(1)
+			.max(255)
+			.regex(VALID_ENV_FILE_NAME_REGEX, ENV_FILE_NAME_MESSAGE)
+			.optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -540,7 +551,15 @@ export const apiSaveEnvironmentVariables = createSchema
 		buildSecrets: true,
 		createEnvFile: true,
 	})
-	.required();
+	.required()
+	.extend({
+		envFileName: z
+			.string()
+			.min(1)
+			.max(255)
+			.regex(VALID_ENV_FILE_NAME_REGEX, ENV_FILE_NAME_MESSAGE)
+			.optional(),
+	});
 
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),

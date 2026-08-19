@@ -20,6 +20,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		dockerBuildStage,
 		cleanCache,
 		createEnvFile,
+		envFileName,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
@@ -74,6 +75,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 				env,
 				application.environment.project.env,
 				application.environment.env,
+				envFileName,
 			);
 		}
 
