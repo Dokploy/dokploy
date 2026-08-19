@@ -11,8 +11,15 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import type { inferRouterOutputs } from "@trpc/server";
-import { ArrowUpDown, Eye, Layers, Loader2, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+	ArrowUpDown,
+	Download,
+	Eye,
+	Layers,
+	Loader2,
+	Trash2,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -46,6 +53,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -59,10 +73,15 @@ import { api } from "@/utils/api";
 type ImageBase =
 	inferRouterOutputs<AppRouter>["dockerImage"]["getImages"][number];
 type ImageRow = ImageBase & { key: string };
+type ImageOutdatedStatus =
+	inferRouterOutputs<AppRouter>["dockerImage"]["getImagesOutdatedStatus"][number];
 
 interface Props {
 	serverId?: string;
 }
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200];
+const OUTDATED_STATUS_CHUNK_SIZE = 250;
 
 const SIZE_UNITS: Record<string, number> = {
 	b: 1,
@@ -83,6 +102,18 @@ const getReference = (image: ImageBase) =>
 	image.Repository !== "<none>" && image.Tag !== "<none>"
 		? `${image.Repository}:${image.Tag}`
 		: image.ID;
+
+const hasTagReference = (image: ImageBase) =>
+	image.Repository !== "<none>" && image.Tag !== "<none>";
+
+const splitIntoChunks = <T,>(items: T[], size: number) => {
+	if (size <= 0) return [items];
+	const chunks: T[][] = [];
+	for (let i = 0; i < items.length; i += size) {
+		chunks.push(items.slice(i, i + size));
+	}
+	return chunks;
+};
 
 const FORCE_HINT_REGEX =
 	/must be forced|image is being used|referenced in multiple repositories/i;
@@ -175,10 +206,14 @@ export const ShowImages = ({ serverId }: Props) => {
 		image: ImageRow;
 		message: string;
 	} | null>(null);
+	const [pullingReferences, setPullingReferences] = useState<
+		Record<string, boolean>
+	>({});
 
 	const { data: images, isLoading } = api.dockerImage.getImages.useQuery({
 		serverId,
 	});
+	const { mutateAsync: pullImage } = api.dockerImage.pullImage.useMutation();
 	const { mutateAsync: removeImage } =
 		api.dockerImage.removeImage.useMutation();
 
@@ -190,6 +225,48 @@ export const ShowImages = ({ serverId }: Props) => {
 			})),
 		[images],
 	);
+
+	const tagReferences = useMemo(
+		() => [
+			...new Set(rows.filter(hasTagReference).map((row) => getReference(row))),
+		],
+		[rows],
+	);
+
+	const outdatedStatusChunks = useMemo(
+		() => splitIntoChunks(tagReferences, OUTDATED_STATUS_CHUNK_SIZE),
+		[tagReferences],
+	);
+
+	const outdatedStatusQueries = api.useQueries((t) =>
+		outdatedStatusChunks.map((chunk) =>
+			t.dockerImage.getImagesOutdatedStatus(
+				{ references: chunk, serverId },
+				{
+					enabled: chunk.length > 0,
+					staleTime: 1000 * 60 * 60 * 24, // Data stays fresh for 24 hours
+					refetchOnWindowFocus: false, // Don't refetch just because user alt-tabbed
+				},
+			),
+		),
+	);
+
+	const outdatedStatuses = useMemo(
+		() => outdatedStatusQueries.flatMap((query) => query.data ?? []),
+		[outdatedStatusQueries],
+	);
+
+	const isOutdatedStatusLoading = outdatedStatusQueries.some(
+		(query) => query.isLoading,
+	);
+
+	const outdatedStatusMap = useMemo(() => {
+		const map = new Map<string, ImageOutdatedStatus>();
+		for (const status of outdatedStatuses ?? []) {
+			map.set(status.reference, status);
+		}
+		return map;
+	}, [outdatedStatuses]);
 
 	const filteredData = useMemo(() => {
 		if (!globalFilter.trim()) {
@@ -204,6 +281,41 @@ export const ShowImages = ({ serverId }: Props) => {
 		);
 	}, [rows, globalFilter]);
 
+	useEffect(() => {
+		setPagination((current) =>
+			current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+		);
+	}, [filteredData.length, serverId]);
+
+	const handlePull = async (image: ImageRow) => {
+		if (!hasTagReference(image)) {
+			return;
+		}
+
+		const reference = getReference(image);
+		setPullingReferences((prev) => ({ ...prev, [reference]: true }));
+		try {
+			await pullImage({
+				imageRef: reference,
+				serverId,
+			});
+			toast.success("Image pulled");
+			await Promise.all([
+				utils.dockerImage.getImages.invalidate(),
+				utils.dockerImage.getImagesOutdatedStatus.invalidate(),
+			]);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			toast.error("Error pulling image", { description: message });
+		} finally {
+			setPullingReferences((prev) => {
+				const next = { ...prev };
+				delete next[reference];
+				return next;
+			});
+		}
+	};
+
 	const handleDelete = async (image: ImageRow, force = false) => {
 		try {
 			await removeImage({
@@ -216,6 +328,7 @@ export const ShowImages = ({ serverId }: Props) => {
 			toast.success("Image deleted");
 			setForcePrompt(null);
 			await utils.dockerImage.getImages.invalidate();
+			await utils.dockerImage.getImagesOutdatedStatus.invalidate();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "Unknown error";
 			if (!force && FORCE_HINT_REGEX.test(message)) {
@@ -279,6 +392,72 @@ export const ShowImages = ({ serverId }: Props) => {
 				),
 			},
 			{
+				id: "Outdated",
+				accessorFn: (image) => {
+					if (!hasTagReference(image)) return -1;
+					const status = outdatedStatusMap.get(getReference(image))?.status;
+					if (status === "outdated") return 2;
+					if (status === "up_to_date") return 1;
+					return 0;
+				},
+				header: ({ column }) => (
+					<SortableHeader column={column} title="Outdated" />
+				),
+				cell: ({ row }) => {
+					if (!hasTagReference(row.original)) {
+						return <Badge variant="blank">N/A</Badge>;
+					}
+
+					if (isOutdatedStatusLoading && outdatedStatuses.length === 0) {
+						return (
+							<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+								<Loader2 className="size-3 animate-spin" />
+								Checking
+							</span>
+						);
+					}
+
+					const status = outdatedStatusMap.get(getReference(row.original));
+
+					if (!status && isOutdatedStatusLoading) {
+						return (
+							<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+								<Loader2 className="size-3 animate-spin" />
+								Checking
+							</span>
+						);
+					}
+
+					if (!status || status.status === "unknown") {
+						return (
+							<Badge
+								variant="blank"
+								title={status?.reason ?? "Status unavailable"}
+							>
+								Unknown
+							</Badge>
+						);
+					}
+
+					if (status.status === "outdated") {
+						return (
+							<Badge
+								variant="yellow"
+								title={
+									status.localDigest && status.remoteDigest
+										? `Local: ${status.localDigest} | Remote: ${status.remoteDigest}`
+										: undefined
+								}
+							>
+								Outdated
+							</Badge>
+						);
+					}
+
+					return <Badge variant="green">Up to date</Badge>;
+				},
+			},
+			{
 				id: "actions",
 				enableSorting: false,
 				header: () => <div className="text-right">Actions</div>,
@@ -288,6 +467,28 @@ export const ShowImages = ({ serverId }: Props) => {
 							imageRef={getReference(row.original)}
 							serverId={serverId}
 						/>
+						{hasTagReference(row.original) && (
+							<DialogAction
+								title="Pull image"
+								description={`The image "${getReference(row.original)}" will be pulled from its registry.`}
+								onClick={() => handlePull(row.original)}
+								type="default"
+								disabled={!!pullingReferences[getReference(row.original)]}
+							>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label="Pull image"
+									disabled={!!pullingReferences[getReference(row.original)]}
+								>
+									{pullingReferences[getReference(row.original)] ? (
+										<Loader2 className="size-4 animate-spin text-green-600" />
+									) : (
+										<Download className="size-4 text-green-600" />
+									)}
+								</Button>
+							</DialogAction>
+						)}
 						<DialogAction
 							title="Delete image"
 							description={`The image "${getReference(row.original)}" will be removed from Docker. This action cannot be undone.`}
@@ -301,7 +502,15 @@ export const ShowImages = ({ serverId }: Props) => {
 				),
 			},
 		],
-		[serverId],
+		[
+			handleDelete,
+			handlePull,
+			isOutdatedStatusLoading,
+			outdatedStatusMap,
+			outdatedStatuses.length,
+			pullingReferences,
+			serverId,
+		],
 	);
 
 	const table = useReactTable({
@@ -358,7 +567,13 @@ export const ShowImages = ({ serverId }: Props) => {
 									<Input
 										placeholder="Search by repository, tag or id..."
 										value={globalFilter}
-										onChange={(e) => setGlobalFilter(e.target.value)}
+										onChange={(e) => {
+											setGlobalFilter(e.target.value);
+											setPagination((current) => ({
+												...current,
+												pageIndex: 0,
+											}));
+										}}
 										className="max-w-xs"
 									/>
 								</div>
@@ -407,11 +622,36 @@ export const ShowImages = ({ serverId }: Props) => {
 										</TableBody>
 									</Table>
 								</div>
-								{table.getPageCount() > 1 && (
-									<div className="flex items-center justify-end gap-4">
-										<span className="text-sm text-muted-foreground">
+								<div className="flex items-center justify-between text-sm text-muted-foreground">
+									<span>
+										{filteredData.length}{" "}
+										{filteredData.length === 1 ? "image" : "images"} total
+									</span>
+									<div className="flex items-center gap-3">
+										<div className="flex items-center gap-2">
+											<span className="whitespace-nowrap">Rows per page</span>
+											<Select
+												value={String(table.getState().pagination.pageSize)}
+												onValueChange={(value) => {
+													table.setPageSize(Number(value));
+													table.setPageIndex(0);
+												}}
+											>
+												<SelectTrigger className="w-[80px] h-8">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{PAGE_SIZE_OPTIONS.map((size) => (
+														<SelectItem key={size} value={String(size)}>
+															{size}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+										<span className="whitespace-nowrap">
 											Page {table.getState().pagination.pageIndex + 1} of{" "}
-											{table.getPageCount()}
+											{Math.max(1, table.getPageCount())}
 										</span>
 										<div className="flex gap-2">
 											<Button
@@ -432,7 +672,7 @@ export const ShowImages = ({ serverId }: Props) => {
 											</Button>
 										</div>
 									</div>
-								)}
+								</div>
 							</>
 						)}
 					</CardContent>
