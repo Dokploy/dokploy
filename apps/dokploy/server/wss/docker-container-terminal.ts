@@ -4,7 +4,12 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
-import { isValidContainerId, isValidShell } from "./utils";
+import {
+	isValidContainerId,
+	isValidShell,
+	parseResizeMessage,
+	parseTerminalSize,
+} from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -34,6 +39,10 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");
 		const serviceId = url.searchParams.get("serviceId");
+		const { cols, rows } = parseTerminalSize(
+			url.searchParams.get("cols"),
+			url.searchParams.get("rows"),
+		);
 		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
@@ -92,7 +101,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 							containerId,
 							shell,
 						].join(" ");
-						conn.exec(dockerCommand, { pty: true }, (err, stream) => {
+						conn.exec(dockerCommand, { pty: { cols, rows } }, (err, stream) => {
 							if (err) {
 								console.error("SSH exec error:", err);
 								ws.close();
@@ -123,7 +132,13 @@ export const setupDockerContainerTerminalWebSocketServer = (
 									} else {
 										command = message;
 									}
-									stream.write(command.toString());
+									const text = command.toString();
+									const resize = parseResizeMessage(text);
+									if (resize) {
+										stream.setWindow(resize.rows, resize.cols, 0, 0);
+										return;
+									}
+									stream.write(text);
 								} catch (error) {
 									// @ts-ignore
 									const errorMessage = error?.message as unknown as string;
@@ -161,7 +176,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				const ptyProcess = spawn(
 					"docker",
 					["exec", "-it", "-w", "/", containerId, shell],
-					{},
+					{ cols, rows },
 				);
 
 				ptyProcess.onData((data) => {
@@ -178,7 +193,13 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						} else {
 							command = message;
 						}
-						ptyProcess.write(command.toString());
+						const text = command.toString();
+						const resize = parseResizeMessage(text);
+						if (resize) {
+							ptyProcess.resize(resize.cols, resize.rows);
+							return;
+						}
+						ptyProcess.write(text);
 					} catch (error) {
 						// @ts-ignore
 						const errorMessage = error?.message as unknown as string;
