@@ -72,16 +72,20 @@ export const ShowDockerLogsStack = ({
 	const containers = data?.filter((container) => container.containerId);
 
 	useEffect(() => {
-		if (option === "native") {
-			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
-			}
-		} else {
-			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
+		const currentContainers = option === "native" ? containers : services;
+
+		if (currentContainers) {
+			const nextContainerId = currentContainers.some(
+				(container) => container.containerId === containerId,
+			)
+				? containerId
+				: currentContainers[0]?.containerId;
+
+			if (nextContainerId !== containerId) {
+				setContainerId(nextContainerId);
 			}
 		}
-	}, [option, services, containers]);
+	}, [option, services, containers, containerId]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =
@@ -106,6 +110,7 @@ export const ShowDockerLogsStack = ({
 						<Switch
 							checked={option === "native"}
 							onCheckedChange={(checked) => {
+								setContainerId(undefined);
 								setOption(checked ? "native" : "swarm");
 							}}
 						/>
