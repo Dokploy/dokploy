@@ -8,6 +8,7 @@ import {
 	updateDestinationById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
@@ -94,10 +95,11 @@ export const destinationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
+					message: redactRcloneCredentials(
 						error instanceof Error
 							? error?.message
 							: "Error connecting to bucket",
+					),
 					cause: error,
 				});
 			}
@@ -172,10 +174,11 @@ export const destinationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
+					message: redactRcloneCredentials(
 						error instanceof Error
 							? error?.message
 							: "Error connecting to bucket",
+					),
 					cause: error,
 				});
 			}

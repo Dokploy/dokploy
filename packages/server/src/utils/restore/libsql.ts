@@ -3,6 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Libsql } from "@dokploy/server/services/libsql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { redactRcloneCredentials } from "../backups/redact";
 import { getS3Credentials, getServiceContainerCommand } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
@@ -38,11 +39,10 @@ export const restoreLibsqlBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring libsql backup"
-			}`,
+		const safeMessage = redactRcloneCredentials(
+			error instanceof Error ? error.message : "Error restoring libsql backup",
 		);
+		emit(`Error: ${safeMessage}`);
 		throw error;
 	}
 };
