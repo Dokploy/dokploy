@@ -36,7 +36,11 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	assertCanEditExistingDeployGitSource,
+	canEditDeployGitSource,
+	getConnectedGitProviderId,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -199,6 +203,11 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			if (input.gitlabId) {
+				const compose = await findComposeById(input.composeId);
+				await assertCanEditExistingDeployGitSource(
+					getConnectedGitProviderId(compose),
+					ctx.session,
+				);
 				await assertGitlabProviderAccess(input.gitlabId, ctx.session);
 			}
 			const updated = await updateCompose(input.composeId, input);

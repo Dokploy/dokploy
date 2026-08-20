@@ -35,7 +35,11 @@ import {
 	writeConfigRemote,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	assertCanEditExistingDeployGitSource,
+	canEditDeployGitSource,
+	getConnectedGitProviderId,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -461,6 +465,11 @@ export const applicationRouter = createTRPCRouter({
 					message: "GitLab provider is required",
 				});
 			}
+			const application = await findApplicationById(input.applicationId);
+			await assertCanEditExistingDeployGitSource(
+				getConnectedGitProviderId(application),
+				ctx.session,
+			);
 			await assertGitlabProviderAccess(input.gitlabId, ctx.session);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
@@ -475,7 +484,6 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
 			if (application.autoDeploy) {
 				const dokployUrl = await getDokployUrl();
 				await registerGitlabDeployWebhook({
