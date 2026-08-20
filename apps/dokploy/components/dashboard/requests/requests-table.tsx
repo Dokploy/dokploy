@@ -17,6 +17,7 @@ import {
 	Download,
 	Globe,
 	InfoIcon,
+	Loader2,
 	Server,
 	TrendingUpIcon,
 } from "lucide-react";
@@ -100,7 +101,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 		pageSize: 10,
 	});
 
-	const { data: statsLogs } = api.settings.readStatsLogs.useQuery(
+	const { data: statsLogs, isLoading } = api.settings.readStatsLogs.useQuery(
 		{
 			sort: sorting[0],
 			page: pagination,
@@ -273,7 +274,12 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												colSpan={columns.length}
 												className="h-24 text-center"
 											>
-												{statsLogs?.data.length === 0 && (
+												{isLoading ? (
+													<div className="w-full flex gap-4 items-center justify-center h-[55vh] text-muted-foreground">
+														<Loader2 className="size-4 animate-spin" />
+														<span>Loading requests...</span>
+													</div>
+												) : (
 													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 														<span className="text-muted-foreground text-lg font-medium">
 															No results.
