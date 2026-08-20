@@ -164,6 +164,22 @@ export const cloneGiteaRepository = async ({
 		return command;
 	}
 
+	if (!giteaProvider.accessToken) {
+		command += `echo "❌ [ERROR] Gitea provider is not authorized, please re-authorize it in the Git provider settings"; exit 1;`;
+		return command;
+	}
+
+	const cloneRequirements = getErrorCloneRequirements({
+		giteaRepository,
+		giteaOwner,
+		giteaBranch,
+	});
+
+	if (cloneRequirements.length > 0) {
+		command += `echo ${quote([`❌ [ERROR] Repository configuration is incomplete: ${cloneRequirements.join(" ")}`])}; exit 1;`;
+		return command;
+	}
+
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
@@ -391,4 +407,245 @@ export const getGiteaBranches = async (input: {
 			id: string;
 		};
 	}[];
+};
+
+/**
+ * Resolve the base URL used to talk to the Gitea/Forgejo REST API, preferring
+ * the internal URL when Gitea runs on the same host as Dokploy.
+ */
+const getGiteaApiBaseUrl = (giteaProvider: {
+	giteaUrl: string;
+	giteaInternalUrl?: string | null;
+}) =>
+	(giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl).replace(
+		/\/+$/,
+		"",
+	);
+
+interface GiteaApiRequestOptions {
+	method?: "GET" | "POST" | "PATCH" | "DELETE";
+	body?: unknown;
+	/** Status codes that should resolve to `null` instead of throwing. */
+	allowedErrorStatuses?: number[];
+}
+
+/**
+ * Perform an authenticated request against the Gitea/Forgejo REST API.
+ *
+ * The access token is always read through `findGiteaById` because
+ * `findApplicationById` redacts `accessToken` from the `gitea` relation.
+ *
+ * Returns `null` when the response status is listed in `allowedErrorStatuses`.
+ */
+export const giteaApiRequest = async <T>(
+	giteaId: string,
+	path: string,
+	{
+		method = "GET",
+		body,
+		allowedErrorStatuses = [],
+	}: GiteaApiRequestOptions = {},
+): Promise<T | null> => {
+	await refreshGiteaToken(giteaId);
+	const giteaProvider = await findGiteaById(giteaId);
+
+	if (!giteaProvider?.accessToken) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "No Gitea access token available. Please authorize with Gitea.",
+		});
+	}
+
+	const response = await fetch(
+		`${getGiteaApiBaseUrl(giteaProvider)}/api/v1${path}`,
+		{
+			method,
+			headers: {
+				Accept: "application/json",
+				Authorization: `token ${giteaProvider.accessToken}`,
+				...(body ? { "Content-Type": "application/json" } : {}),
+			},
+			...(body ? { body: JSON.stringify(body) } : {}),
+		},
+	);
+
+	if (!response.ok) {
+		if (allowedErrorStatuses.includes(response.status)) {
+			return null;
+		}
+		const details = await response.text().catch(() => "");
+		throw new Error(
+			`Gitea API ${method} ${path} failed: ${response.status} ${response.statusText}${
+				details ? ` - ${details.slice(0, 300)}` : ""
+			}`,
+		);
+	}
+
+	if (response.status === 204) {
+		return null;
+	}
+
+	return (await response.json()) as T;
+};
+
+/** Gitea access levels that may trigger a preview deployment. */
+export const GITEA_WRITE_PERMISSIONS = ["write", "admin", "owner"];
+
+export interface GiteaRepositoryPermission {
+	hasWriteAccess: boolean;
+	permission: string | null;
+	/**
+	 * `false` when Gitea refused to answer, which is a Dokploy-side
+	 * misconfiguration rather than a statement about the user.
+	 */
+	verified: boolean;
+}
+
+/**
+ * Gitea/Forgejo equivalent of GitHub's collaborator permission check.
+ *
+ * Possible `permission` values are `none`, `read`, `write`, `admin` and
+ * `owner` - the last one is only ever returned by the API, so it has to be
+ * allow-listed or repository owners get blocked from their own pull requests.
+ * Gitea has no `maintain` level.
+ *
+ * Note that Gitea only answers this for site admins, repository admins and
+ * users asking about themselves; everyone else gets a 403. The Gitea account
+ * connected to Dokploy therefore needs admin access on the repository.
+ *
+ * @link https://docs.gitea.com/api/1.24/#tag/repository/operation/repoGetRepoPermissions
+ */
+export const checkGiteaUserRepositoryPermissions = async (
+	giteaId: string,
+	owner: string,
+	repository: string,
+	username: string,
+): Promise<GiteaRepositoryPermission> => {
+	try {
+		const result = await giteaApiRequest<{ permission?: string }>(
+			giteaId,
+			`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+				repository,
+			)}/collaborators/${encodeURIComponent(username)}/permission`,
+			{ allowedErrorStatuses: [404] },
+		);
+
+		if (!result?.permission) {
+			// 404: the user is not a collaborator of this repository.
+			return { hasWriteAccess: false, permission: null, verified: true };
+		}
+
+		return {
+			hasWriteAccess: GITEA_WRITE_PERMISSIONS.includes(result.permission),
+			permission: result.permission,
+			verified: true,
+		};
+	} catch (error) {
+		console.warn(
+			`Unable to resolve Gitea permissions for ${username} on ${owner}/${repository}:`,
+			error,
+		);
+		return { hasWriteAccess: false, permission: null, verified: false };
+	}
+};
+
+/**
+ * Create a comment on a Gitea/Forgejo issue or pull request.
+ * Pull requests share the issue index, so `index` is the PR number.
+ */
+export const createGiteaIssueComment = async ({
+	giteaId,
+	owner,
+	repository,
+	index,
+	body,
+}: {
+	giteaId: string;
+	owner: string;
+	repository: string;
+	index: string | number;
+	body: string;
+}) => {
+	const comment = await giteaApiRequest<{ id: number }>(
+		giteaId,
+		`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+			repository,
+		)}/issues/${encodeURIComponent(String(index))}/comments`,
+		{ method: "POST", body: { body } },
+	);
+
+	if (!comment?.id) {
+		throw new Error("Gitea did not return an id for the created comment");
+	}
+
+	return comment;
+};
+
+export const updateGiteaIssueComment = async ({
+	giteaId,
+	owner,
+	repository,
+	commentId,
+	body,
+}: {
+	giteaId: string;
+	owner: string;
+	repository: string;
+	commentId: string | number;
+	body: string;
+}) => {
+	await giteaApiRequest(
+		giteaId,
+		`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+			repository,
+		)}/issues/comments/${encodeURIComponent(String(commentId))}`,
+		{ method: "PATCH", body: { body } },
+	);
+};
+
+export const giteaIssueCommentExists = async ({
+	giteaId,
+	owner,
+	repository,
+	commentId,
+}: {
+	giteaId: string;
+	owner: string;
+	repository: string;
+	commentId: string | number;
+}) => {
+	try {
+		const comment = await giteaApiRequest<{ id: number }>(
+			giteaId,
+			`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+				repository,
+			)}/issues/comments/${encodeURIComponent(String(commentId))}`,
+			{ allowedErrorStatuses: [404] },
+		);
+		return !!comment;
+	} catch {
+		return false;
+	}
+};
+
+export const listGiteaIssueComments = async ({
+	giteaId,
+	owner,
+	repository,
+	index,
+}: {
+	giteaId: string;
+	owner: string;
+	repository: string;
+	index: string | number;
+}) => {
+	const comments = await giteaApiRequest<{ body?: string }[]>(
+		giteaId,
+		`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+			repository,
+		)}/issues/${encodeURIComponent(String(index))}/comments`,
+		{ allowedErrorStatuses: [404] },
+	);
+
+	return comments ?? [];
 };
