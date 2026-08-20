@@ -74,8 +74,10 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			});
 		case "ollama":
 			return createOllama({
-				// optional settings, e.g.
 				baseURL: config.apiUrl,
+				headers: config.apiKey
+					? { Authorization: `Bearer ${config.apiKey}` }
+					: undefined,
 			});
 		case "deepinfra":
 			return createDeepInfra({

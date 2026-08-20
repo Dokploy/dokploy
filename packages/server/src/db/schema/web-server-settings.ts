@@ -105,7 +105,7 @@ export const webServerSettings = pgTable("webServerSettings", {
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
-	// Concurrent builds on the local web server (enterprise-gated to > 1)
+	// Concurrent builds on the local web server
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),

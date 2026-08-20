@@ -7,6 +7,8 @@ const baseApp: ApplicationNested = {
 	rollbackActive: false,
 	applicationId: "",
 	previewLabels: [],
+	networkIds: [],
+	detachDokployNetwork: false,
 	createEnvFile: true,
 	bitbucketRepositorySlug: "",
 	herokuVersion: "",
@@ -149,6 +151,7 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	enabled: true,
 };
 
 const baseRedirect: Redirect = {

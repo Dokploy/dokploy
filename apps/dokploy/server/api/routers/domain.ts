@@ -141,6 +141,58 @@ export const domainRouter = createTRPCRouter({
 			}
 			return result;
 		}),
+	toggleEnable: protectedProcedure
+		.input(apiFindDomain)
+		.mutation(async ({ input, ctx }) => {
+			const currentDomain = await findDomainById(input.domainId);
+			const serviceId = currentDomain.applicationId || currentDomain.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					domain: ["create"],
+				});
+			} else if (currentDomain.previewDeploymentId) {
+				const preview = await findPreviewDeploymentById(
+					currentDomain.previewDeploymentId,
+				);
+				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
+					domain: ["create"],
+				});
+			}
+
+			const result = await updateDomainById(input.domainId, {
+				enabled: !currentDomain.enabled,
+			});
+			const domain = await findDomainById(input.domainId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "domain",
+				resourceId: domain.domainId,
+				resourceName: domain.host,
+			});
+
+			// Applications apply instantly through the traefik file provider:
+			// manageDomain creates the router when enabled and removes it when
+			// disabled. Compose domains are docker labels and only change on the
+			// next deployment, so we just persist the flag here.
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				await manageDomain(application, domain);
+			} else if (domain.previewDeploymentId) {
+				const previewDeployment = await findPreviewDeploymentById(
+					domain.previewDeploymentId,
+				);
+				const application = await findApplicationById(
+					previewDeployment.applicationId,
+				);
+				application.appName = previewDeployment.appName;
+				await manageDomain(application, domain);
+			}
+
+			return {
+				...result,
+				requiresRedeploy: domain.domainType === "compose",
+			};
+		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
 		const domain = await findDomainById(input.domainId);
 		const serviceId = domain.applicationId || domain.composeId;

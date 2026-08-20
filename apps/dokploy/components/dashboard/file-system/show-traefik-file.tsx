@@ -100,7 +100,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(onSubmit)}
-					className="w-full relative z-[5]"
+					className="w-full relative z-5"
 				>
 					<div className="flex flex-col overflow-auto">
 						{isLoadingFile ? (
@@ -123,7 +123,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 										<FormControl>
 											<CodeEditor
 												lineWrapping
-												wrapperClassName="h-[35rem] font-mono"
+												wrapperClassName="h-140 font-mono"
 												placeholder={`http:
 routers:
     router-name:
@@ -143,7 +143,7 @@ routers:
 										</pre>
 										<div className="flex justify-end absolute z-50 right-6 top-8">
 											<Button
-												className="shadow-sm"
+												className="shadow-xs"
 												variant="secondary"
 												type="button"
 												onClick={async () => {

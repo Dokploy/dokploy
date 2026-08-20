@@ -69,22 +69,7 @@ export const assertGitlabProviderAccess = async (
 	session: { userId: string; activeOrganizationId: string },
 ) => {
 	const gitlabProvider = await findGitlabById(gitlabId);
-
-	if (
-		gitlabProvider.gitProvider.organizationId !== session.activeOrganizationId
-	) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not authorized to access this GitLab provider",
-		});
-	}
-
-	await assertGitProviderAccess(
-		gitlabProvider.gitProvider.gitProviderId,
-		session,
-		"You are not authorized to access this GitLab provider",
-	);
-
+	await assertGitProviderAccess(session, gitlabProvider.gitProvider);
 	return gitlabProvider;
 };
 

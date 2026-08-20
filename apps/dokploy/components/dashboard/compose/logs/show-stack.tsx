@@ -35,9 +35,14 @@ export const DockerLogs = dynamic(
 interface Props {
 	appName: string;
 	serverId?: string;
+	serviceId?: string;
 }
 
-export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
+export const ShowDockerLogsStack = ({
+	appName,
+	serverId,
+	serviceId,
+}: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
 	const [containerId, setContainerId] = useState<string | undefined>();
 
@@ -52,7 +57,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 			},
 		);
 
-	const { data: containers, isPending: containersLoading } =
+	const { data, isPending: containersLoading } =
 		api.docker.getContainersByAppNameMatch.useQuery(
 			{
 				appName,
@@ -64,17 +69,23 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 			},
 		);
 
+	const containers = data?.filter((container) => container.containerId);
+
 	useEffect(() => {
-		if (option === "native") {
-			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
-			}
-		} else {
-			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
+		const currentContainers = option === "native" ? containers : services;
+
+		if (currentContainers) {
+			const nextContainerId = currentContainers.some(
+				(container) => container.containerId === containerId,
+			)
+				? containerId
+				: currentContainers[0]?.containerId;
+
+			if (nextContainerId !== containerId) {
+				setContainerId(nextContainerId);
 			}
 		}
-	}, [option, services, containers]);
+	}, [option, services, containers, containerId]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =
@@ -99,6 +110,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 						<Switch
 							checked={option === "native"}
 							onCheckedChange={(checked) => {
+								setContainerId(undefined);
 								setOption(checked ? "native" : "swarm");
 							}}
 						/>
@@ -167,6 +179,7 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 					serverId={serverId || ""}
 					containerId={containerId || "select-a-container"}
 					runType={option}
+					serviceId={serviceId}
 				/>
 			</CardContent>
 		</Card>

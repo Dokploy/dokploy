@@ -104,7 +104,7 @@ describe("assertGitlabProviderAccess", () => {
 		await expect(
 			assertGitlabProviderAccess("gitlab-private", session(USER_MEMBER)),
 		).rejects.toMatchObject({
-			code: "UNAUTHORIZED",
+			code: "FORBIDDEN",
 		});
 	});
 
@@ -119,7 +119,7 @@ describe("assertGitlabProviderAccess", () => {
 		await expect(
 			assertGitlabProviderAccess("gitlab-other-org", session(USER_MEMBER)),
 		).rejects.toMatchObject({
-			code: "UNAUTHORIZED",
+			code: "NOT_FOUND",
 		});
 	});
 });

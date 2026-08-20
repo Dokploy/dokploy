@@ -1,5 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -9,12 +10,14 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type RedisNested = InferResultType<
 	"redis",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
-export const buildRedis = async (redis: RedisNested) => {
+export const buildRedis = async (rawRedis: RedisNested) => {
+	const redis = await withResolvedVaultRefs(rawRedis);
 	const {
 		appName,
 		env,
@@ -34,6 +37,8 @@ export const buildRedis = async (redis: RedisNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(redis);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -42,7 +47,6 @@ export const buildRedis = async (redis: RedisNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -91,7 +95,7 @@ export const buildRedis = async (redis: RedisNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {

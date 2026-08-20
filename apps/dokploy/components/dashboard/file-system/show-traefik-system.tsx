@@ -97,7 +97,7 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 									<>
 										<Tree
 											data={directories}
-											className="lg:max-w-[19rem] w-full lg:h-[660px] border rounded-lg"
+											className="lg:max-w-76 w-full lg:h-[660px] border rounded-lg"
 											onSelectChange={(item) => setFile(item?.id || null)}
 											folderIcon={Folder}
 											itemIcon={Workflow}
