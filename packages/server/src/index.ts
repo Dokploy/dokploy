@@ -74,6 +74,7 @@ export {
 	startLogCleanup,
 	stopLogCleanup,
 } from "./utils/access-log/handler";
+export * from "./utils/access-log/reader";
 export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
 export * from "./utils/backups/compose";
