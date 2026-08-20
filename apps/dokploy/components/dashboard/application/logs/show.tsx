@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { resolveContainerSelection } from "./container-selection";
 export const DockerLogs = dynamic(
 	() =>
 		import("@/components/dashboard/docker/logs/docker-logs-id").then(
@@ -79,17 +80,13 @@ export const ShowDockerLogs = ({ appName, serverId, serviceId }: Props) => {
 			},
 		);
 
+	const availableContainers = option === "native" ? containers : services;
+
 	useEffect(() => {
-		if (option === "native") {
-			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
-			}
-		} else {
-			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
-			}
-		}
-	}, [option, services, containers]);
+		setContainerId((currentContainerId) =>
+			resolveContainerSelection(currentContainerId, availableContainers),
+		);
+	}, [availableContainers]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =
@@ -114,6 +111,7 @@ export const ShowDockerLogs = ({ appName, serverId, serviceId }: Props) => {
 						<Switch
 							checked={option === "native"}
 							onCheckedChange={(checked) => {
+								setContainerId(undefined);
 								setOption(checked ? "native" : "swarm");
 							}}
 						/>
