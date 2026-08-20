@@ -5,12 +5,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 interface Props {
-	statusCode: number;
-	error?: Error;
+	statusCode?: number;
 }
 
-export default function Custom404({ statusCode, error }: Props) {
-	const displayStatusCode = statusCode || 400;
+export default function ErrorPage({ statusCode }: Props) {
+	const displayStatusCode = statusCode || 500;
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const appName = whitelabeling?.appName || "Dokploy";
 	const logoUrl = whitelabeling?.logoUrl || undefined;
@@ -45,12 +44,6 @@ export default function Custom404({ statusCode, error }: Props) {
 								{errorDescription}
 							</p>
 						)}
-						{error && (
-							<div className="mt-3 text-red-500">
-								<p>{error.message}</p>
-							</div>
-						)}
-
 						<div className="mt-5 flex flex-col justify-center items-center gap-2 sm:flex-row sm:gap-3">
 							<Link
 								href="/dashboard/home"
@@ -101,8 +94,7 @@ export default function Custom404({ statusCode, error }: Props) {
 	);
 }
 
-// @ts-ignore
-Error.getInitialProps = ({ res, err }: NextPageContext) => {
-	const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
-	return { statusCode, error: err };
+ErrorPage.getInitialProps = ({ res, err }: NextPageContext) => {
+	const statusCode = res ? res.statusCode : err ? (err.statusCode ?? 500) : 404;
+	return { statusCode };
 };

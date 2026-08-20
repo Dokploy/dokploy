@@ -3,33 +3,26 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
+import { ShowDnsProviders } from "@/components/dashboard/settings/dns/show-dns-providers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { ServerFilter } from "@/components/shared/server-filter";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return (
-		<ServerFilter>
-			{(serverId) => (
-				<div className="flex flex-col gap-4 w-full">
-					<ShowNodes serverId={serverId} />
-				</div>
-			)}
-		</ServerFilter>
+		<div className="flex flex-col gap-4 w-full">
+			<ShowDnsProviders />
+		</div>
 	);
 };
 
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Nodes">{page}</DashboardLayout>;
+	return <DashboardLayout metaName="DNS Providers">{page}</DashboardLayout>;
 };
-export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ serviceId: string }>,
-) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { req, res } = ctx;
-	const { user, session } = await validateRequest(ctx.req);
+	const { user, session } = await validateRequest(req);
 	if (!user || user.role === "member") {
 		return {
 			redirect: {
@@ -50,6 +43,7 @@ export async function getServerSideProps(
 		transformer: superjson,
 	});
 	await helpers.user.get.prefetch();
+	await helpers.settings.isCloud.prefetch();
 
 	return {
 		props: {

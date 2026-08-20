@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 
 const GithubProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -96,6 +97,11 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 
 	const repository = form.watch("repository");
 	const githubId = form.watch("githubId");
+
+	// Enterprise repositories do not live on github.com.
+	const providerUrl =
+		githubProviders?.find((provider) => provider.githubId === githubId)
+			?.githubUrl ?? DEFAULT_GITHUB_URL;
 	const triggerType = form.watch("triggerType");
 
 	const { data: repositories, isPending: isLoadingRepositories } =
@@ -227,7 +233,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										<FormLabel>Repository</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
-												href={`https://github.com/${field.value.owner}/${field.value.repo}`}
+												href={`${providerUrl}/${field.value.owner}/${field.value.repo}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -438,8 +444,12 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										</TooltipProvider>
 									</div>
 									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
+										onValueChange={(value) => {
+											if (!value) {
+												return;
+											}
+											field.onChange(value);
+										}}
 										value={field.value}
 									>
 										<FormControl>
@@ -487,14 +497,18 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 													className="flex items-center gap-1"
 												>
 													{path}
-													<X
-														className="size-3 cursor-pointer hover:text-destructive"
+													<button
+														type="button"
+														aria-label="Remove watch path"
+														className="inline-flex items-center focus-visible:ring-2"
 														onClick={() => {
 															const newPaths = [...(field.value || [])];
 															newPaths.splice(index, 1);
 															field.onChange(newPaths);
 														}}
-													/>
+													>
+														<X className="size-3 cursor-pointer hover:text-destructive" />
+													</button>
 												</Badge>
 											))}
 										</div>
@@ -543,14 +557,14 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

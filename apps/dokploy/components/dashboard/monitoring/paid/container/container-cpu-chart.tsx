@@ -111,6 +111,7 @@ export const ContainerCPUChart = ({ data }: Props) => {
 							name="CPU"
 							dataKey="cpu"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillCPU)"
 							stroke="hsl(var(--chart-1))"
 							strokeWidth={2}
