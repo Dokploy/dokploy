@@ -11,6 +11,7 @@ export const vaultProviderType = pgEnum("VaultProviderType", [
 	"doppler",
 	"azure",
 	"scaleway",
+	"onepassword",
 ]);
 
 export const hashicorpVaultConfigSchema = z.object({
@@ -62,6 +63,12 @@ export const scalewayVaultConfigSchema = z.object({
 	apiUrl: z.string().url().default("https://api.scaleway.com"),
 });
 
+export const onePasswordVaultConfigSchema = z.object({
+	providerType: z.literal("onepassword"),
+	serviceAccountToken: z.string().min(1),
+	environmentId: z.string().min(1),
+});
+
 export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	hashicorpVaultConfigSchema,
 	infisicalVaultConfigSchema,
@@ -69,6 +76,7 @@ export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	dopplerVaultConfigSchema,
 	azureVaultConfigSchema,
 	scalewayVaultConfigSchema,
+	onePasswordVaultConfigSchema,
 ]);
 
 export type VaultProviderConfig = z.infer<typeof vaultProviderConfigSchema>;
