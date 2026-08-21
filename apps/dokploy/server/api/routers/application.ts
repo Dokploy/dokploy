@@ -1,4 +1,5 @@
 import {
+	assertGitlabProviderAccess,
 	clearOldDeployments,
 	createApplication,
 	deleteAllMiddlewares,
@@ -9,11 +10,13 @@ import {
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getDokployUrl,
 	getWebServerSettings,
 	IS_CLOUD,
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
+	registerGitlabDeployWebhook,
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
@@ -32,7 +35,11 @@ import {
 	writeConfigRemote,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	assertCanEditExistingDeployGitSource,
+	canEditDeployGitSource,
+	getConnectedGitProviderId,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -452,6 +459,18 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			if (!input.gitlabId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "GitLab provider is required",
+				});
+			}
+			const application = await findApplicationById(input.applicationId);
+			await assertCanEditExistingDeployGitSource(
+				getConnectedGitProviderId(application),
+				ctx.session,
+			);
+			await assertGitlabProviderAccess(input.gitlabId, ctx.session);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
@@ -465,7 +484,15 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
 			});
-			const application = await findApplicationById(input.applicationId);
+			if (application.autoDeploy) {
+				const dokployUrl = await getDokployUrl();
+				await registerGitlabDeployWebhook({
+					gitlabId: input.gitlabId,
+					gitlabProjectId: input.gitlabProjectId,
+					branch: input.gitlabBranch,
+					deployWebhookUrl: `${dokployUrl}/api/deploy/${application.refreshToken}`,
+				});
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
