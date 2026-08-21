@@ -500,9 +500,10 @@ export const createDomainLabels = (
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=${customCertResolver}`,
 			);
-		} else if (certificateType === "none" && https) {
+		} else if (https) {
 			// No cert resolver, but HTTPS is enabled (default/custom certificate):
-			// explicitly enable TLS so Traefik serves the router over HTTPS.
+			// explicitly enable TLS so Traefik serves the router over HTTPS and
+			// does not inherit the entrypoint's certResolver default.
 			labels.push(`traefik.http.routers.${routerName}.tls=true`);
 		}
 	}

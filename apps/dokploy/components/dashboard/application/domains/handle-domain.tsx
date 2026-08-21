@@ -300,13 +300,30 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			...data,
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
-			.then(async () => {
-				toast.success(
-					dictionary.success,
-					data.domainType === "compose"
-						? { description: COMPOSE_REDEPLOY_TOAST }
-						: undefined,
-				);
+			.then(async (result) => {
+				const traefikReloadRequired =
+					result &&
+					"traefikReloadRequired" in result &&
+					result.traefikReloadRequired;
+
+				// A compose domain is rendered as a docker label and only reaches
+				// Traefik on the next deployment. An application domain that just left
+				// Let's Encrypt needs a restart instead, because Traefik reads
+				// acme.json only at startup. A domain is never in both cases.
+				let hint: { description: string; duration?: number } | undefined;
+				if (data.domainType === "compose") {
+					hint = { description: COMPOSE_REDEPLOY_TOAST };
+				} else if (traefikReloadRequired) {
+					hint = {
+						description:
+							"Restart Traefik to apply the certificate change for this domain.",
+						// The default duration is tuned for one-line confirmations; this
+						// one asks the user to go and do something, so give them longer.
+						duration: 10000,
+					};
+				}
+
+				toast.success(dictionary.success, hint);
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
