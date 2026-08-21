@@ -22,6 +22,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
@@ -82,8 +83,20 @@ const DnsRecordSchema = z
 		proxied: z.boolean(),
 	})
 	.superRefine((data, ctx) => {
+		const values = data.content
+			.split("\n")
+			.map((value) => value.trim())
+			.filter(Boolean);
+		if (!values.length) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["content"],
+				message: "Content is required",
+			});
+			return;
+		}
 		const pattern = structuredValuePatterns[data.type];
-		if (pattern && !pattern.test(data.content.trim())) {
+		if (pattern && !values.every((value) => pattern.test(value))) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["content"],
@@ -161,6 +174,7 @@ export const DnsRecordPanel = ({
 	const proxied = form.watch("proxied");
 	const canProxy =
 		provider?.providerType === "cloudflare" && PROXIABLE_TYPES.includes(type);
+	const supportsMultipleValues = provider?.providerType === "route53";
 	const usesAutomaticTtl = canProxy && proxied;
 
 	const onSubmit = async (data: DnsRecordForm) => {
@@ -286,13 +300,29 @@ export const DnsRecordPanel = ({
 							<FormItem>
 								<FormLabel>{valueFields[type].label}</FormLabel>
 								<FormControl>
-									<Input
-										placeholder={valueFields[type].placeholder}
-										{...field}
-									/>
+									{supportsMultipleValues ? (
+										<Textarea
+											className="min-h-[60px] font-mono text-xs"
+											placeholder={valueFields[type].placeholder}
+											{...field}
+										/>
+									) : (
+										<Input
+											placeholder={valueFields[type].placeholder}
+											{...field}
+										/>
+									)}
 								</FormControl>
-								{valueFields[type].hint && (
-									<FormDescription>{valueFields[type].hint}</FormDescription>
+								{(supportsMultipleValues || valueFields[type].hint) && (
+									<FormDescription>
+										{[
+											valueFields[type].hint,
+											supportsMultipleValues &&
+												"One value per line: every line belongs to the same record set.",
+										]
+											.filter(Boolean)
+											.join(" ")}
+									</FormDescription>
 								)}
 								<FormMessage />
 							</FormItem>

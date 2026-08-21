@@ -68,6 +68,9 @@ const findExactRecordSet = async (
 	return undefined;
 };
 
+const formatValue = (type: DnsRecordType, value: string) =>
+	type === "TXT" && !value.startsWith('"') ? JSON.stringify(value) : value;
+
 const buildRecordSet = (record: {
 	type: DnsRecordType;
 	name: string;
@@ -77,7 +80,11 @@ const buildRecordSet = (record: {
 	Name: ensureTrailingDot(record.name),
 	Type: record.type as ResourceRecordSet["Type"],
 	TTL: record.ttl ?? 300,
-	ResourceRecords: [{ Value: record.content }],
+	ResourceRecords: record.content
+		.split("\n")
+		.map((value) => value.trim())
+		.filter(Boolean)
+		.map((value) => ({ Value: formatValue(record.type, value) })),
 });
 
 export const route53Client: DnsClient<Route53Config> = {
@@ -129,7 +136,7 @@ export const route53Client: DnsClient<Route53Config> = {
 					id: buildRecordId(set.Type, set.Name),
 					type: set.Type,
 					name: stripTrailingDot(set.Name),
-					content: set.ResourceRecords.map((r) => r.Value).join(", "),
+					content: set.ResourceRecords.map((r) => r.Value).join("\n"),
 					ttl: set.TTL ?? 300,
 				});
 			}
@@ -141,13 +148,25 @@ export const route53Client: DnsClient<Route53Config> = {
 
 	async upsertRecord(config, record) {
 		const client = createClient(config);
+		const existing = await findExactRecordSet(
+			config,
+			record.zoneId,
+			record.type,
+			record.name,
+		);
+		const recordSet = buildRecordSet(record);
+		if (existing?.ResourceRecords?.length) {
+			const values = new Set([
+				...existing.ResourceRecords.map((r) => r.Value),
+				...(recordSet.ResourceRecords ?? []).map((r) => r.Value),
+			]);
+			recordSet.ResourceRecords = [...values].map((Value) => ({ Value }));
+		}
 		await client.send(
 			new ChangeResourceRecordSetsCommand({
 				HostedZoneId: record.zoneId,
 				ChangeBatch: {
-					Changes: [
-						{ Action: "UPSERT", ResourceRecordSet: buildRecordSet(record) },
-					],
+					Changes: [{ Action: "UPSERT", ResourceRecordSet: recordSet }],
 				},
 			}),
 		);
