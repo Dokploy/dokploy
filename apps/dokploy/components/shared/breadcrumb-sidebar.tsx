@@ -15,7 +15,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
@@ -37,11 +36,10 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-			<div className="flex items-center justify-between w-full px-4">
+		<header className="sticky top-0 z-20 -mx-4 mb-px flex shrink-0 items-center bg-background px-4 py-2 md:-mx-2 md:px-2">
+			<div className="flex h-12 w-full items-center justify-between rounded-lg bg-sidebar px-4 shadow-sm ring-1 ring-sidebar-border">
 				<div className="flex items-center gap-2">
 					<SidebarTrigger className="-ml-1" />
-					<Separator orientation="vertical" className="mr-2 h-4" />
 					<Breadcrumb>
 						<BreadcrumbList>
 							{list.map((item, index) => (
