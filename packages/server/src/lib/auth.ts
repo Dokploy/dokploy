@@ -82,11 +82,18 @@ const createBetterAuth = () =>
 		},
 		...(!IS_CLOUD
 			? {
+					// Self-hosted instances behind a TLS-terminating reverse proxy
+					// (Traefik, Cloudflare, Nginx) need Secure cookies so that
+					// browsers honour the __Secure-* cookie prefix over HTTPS.
+					// Set SECURE_COOKIES=true in your environment / docker-compose
+					// when serving Dokploy over HTTPS.
+					// Without this, BetterAuth emits non-Secure cookies, the browser
+					// silently drops them on HTTPS, and every tRPC request returns 403.
 					advanced: {
-						useSecureCookies: false,
+						useSecureCookies: process.env.SECURE_COOKIES === "true",
 						defaultCookieAttributes: {
-							sameSite: "lax",
-							secure: false,
+							sameSite: "lax" as const,
+							secure: process.env.SECURE_COOKIES === "true",
 							httpOnly: true,
 							path: "/",
 						},
