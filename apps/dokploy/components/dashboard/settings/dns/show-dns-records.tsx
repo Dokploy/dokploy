@@ -294,11 +294,23 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 		[canWrite, canDelete, deletingId, editing?.id, isCloudflare],
 	);
 
+	const pageCount = Math.max(
+		1,
+		Math.ceil(filteredRecords.length / pagination.pageSize),
+	);
+	const pageIndex = Math.min(pagination.pageIndex, pageCount - 1);
+
+	const resetToFirstPage = () =>
+		setPagination((previous) => ({ ...previous, pageIndex: 0 }));
+
 	const table = useReactTable({
 		data: filteredRecords,
 		columns,
 		getRowId: (row) => row.id,
-		state: { sorting, pagination },
+		state: {
+			sorting,
+			pagination: { pageIndex, pageSize: pagination.pageSize },
+		},
 		onSortingChange: setSorting,
 		onPaginationChange: setPagination,
 		getCoreRowModel: getCoreRowModel(),
@@ -369,12 +381,21 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 												<FocusShortcutInput
 													placeholder="Filter records..."
 													value={search}
-													onChange={(e) => setSearch(e.target.value)}
+													onChange={(e) => {
+														setSearch(e.target.value);
+														resetToFirstPage();
+													}}
 													className="pr-10"
 												/>
 												<Search className="absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 											</div>
-											<Select value={typeFilter} onValueChange={setTypeFilter}>
+											<Select
+												value={typeFilter}
+												onValueChange={(value) => {
+													setTypeFilter(value);
+													resetToFirstPage();
+												}}
+											>
 												<SelectTrigger className="w-36">
 													<SelectValue />
 												</SelectTrigger>
@@ -504,8 +525,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 											</div>
 											<div className="flex items-center gap-4">
 												<span className="text-sm text-muted-foreground tabular-nums">
-													Page {table.getState().pagination.pageIndex + 1} of{" "}
-													{Math.max(table.getPageCount(), 1)}
+													Page {pageIndex + 1} of {pageCount}
 												</span>
 												<div className="flex gap-2">
 													<Button
