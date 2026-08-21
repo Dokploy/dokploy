@@ -44,6 +44,7 @@ const providerLabels = {
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
 	phase: "Phase",
+	onepassword: "1Password",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -65,6 +66,7 @@ const VaultProviderSchema = z
 			"azure",
 			"scaleway",
 			"phase",
+			"onepassword",
 		]),
 		url: z.string(),
 		token: z.string(),
@@ -96,6 +98,8 @@ const VaultProviderSchema = z
 		phaseEnv: z.string(),
 		phasePath: z.string(),
 		phaseApiUrl: z.string(),
+		onePasswordServiceAccountToken: z.string(),
+		onePasswordEnvironmentId: z.string(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -217,6 +221,13 @@ const VaultProviderSchema = z
 				["phaseAppId", "App ID is required"],
 				["phaseEnv", "Environment is required"],
 			],
+			onepassword: [
+				[
+					"onePasswordServiceAccountToken",
+					"Service Account Token is required",
+				],
+				["onePasswordEnvironmentId", "Environment ID is required"],
+			],
 		};
 
 		for (const [field, message] of required[data.providerType] ?? []) {
@@ -282,6 +293,8 @@ const defaultValues: VaultProviderForm = {
 	phaseEnv: "",
 	phasePath: "/",
 	phaseApiUrl: "https://api.phase.dev",
+	onePasswordServiceAccountToken: "",
+	onePasswordEnvironmentId: "",
 	assignments: [],
 };
 
@@ -344,6 +357,12 @@ const buildConfig = (data: VaultProviderForm) => {
 				env: data.phaseEnv,
 				path: data.phasePath || "/",
 				apiUrl: data.phaseApiUrl || "https://api.phase.dev",
+			};
+		case "onepassword":
+			return {
+				providerType: "onepassword" as const,
+				serviceAccountToken: data.onePasswordServiceAccountToken,
+				environmentId: data.onePasswordEnvironmentId,
 			};
 	}
 };
@@ -472,6 +491,10 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					phaseEnv: provider.config.env,
 					phasePath: provider.config.path,
 					phaseApiUrl: provider.config.apiUrl,
+				}),
+				...(provider.config.providerType === "onepassword" && {
+					onePasswordServiceAccountToken: provider.config.serviceAccountToken,
+					onePasswordEnvironmentId: provider.config.environmentId,
 				}),
 			});
 		} else if (!vaultProviderId) {
@@ -1124,6 +1147,51 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 								<FormDescription>
 									Reference format:{" "}
 									<code>{"${{vault.<name>.SECRET_KEY}}"}</code>
+								</FormDescription>
+							</>
+						)}
+
+						{providerType === "onepassword" && (
+							<>
+								<FormField
+									control={form.control}
+									name="onePasswordServiceAccountToken"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Service Account Token</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="onePasswordEnvironmentId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Environment ID</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormDescription>
+									Create a service account with read access to the{" "}
+									<a
+										className="text-primary"
+										href="https://www.1password.dev/environments"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										1Password Environment
+									</a>{" "}
+									you want to use, then paste its token and the Environment ID
+									above. Reference format:{" "}
+									<code>{"${{vault.<name>.VARIABLE_NAME}}"}</code>
 								</FormDescription>
 							</>
 						)}
