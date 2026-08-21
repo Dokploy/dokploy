@@ -3,8 +3,10 @@ import {
 	createGitlab,
 	findGitlabById,
 	getAccessibleGitProviderIds,
+	getGitlabBranch,
 	getGitlabBranches,
 	getGitlabRepositories,
+	getGitlabRepository,
 	haveGitlabRequirements,
 	testGitlabConnection,
 	updateGitlab,
@@ -20,8 +22,10 @@ import {
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateGitlab,
+	apiFindBranch,
 	apiFindGitlabBranches,
 	apiFindOneGitlab,
+	apiFindRepository,
 	apiGitlabTestConnection,
 	apiUpdateGitlab,
 } from "@/server/db/schema";
@@ -96,6 +100,19 @@ export const gitlabRouter = createTRPCRouter({
 			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
 			return await getGitlabRepositories(input.gitlabId);
 		}),
+	getGitlabRepository: protectedProcedure
+		.input(
+			apiFindRepository.extend({ gitlabId: apiFindOneGitlab.shape.gitlabId }),
+		)
+		.query(async ({ input, ctx }) => {
+			const gitlab = await findGitlabById(input.gitlabId);
+			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+			return await getGitlabRepository(
+				input.gitlabId,
+				input.owner,
+				input.repository,
+			);
+		}),
 
 	getGitlabBranches: protectedProcedure
 		.input(apiFindGitlabBranches)
@@ -105,6 +122,22 @@ export const gitlabRouter = createTRPCRouter({
 				await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
 			}
 			return await getGitlabBranches(input);
+		}),
+	getGitlabBranch: protectedProcedure
+		.input(
+			apiFindBranch.pick({ branch: true }).extend({
+				gitlabId: apiFindOneGitlab.shape.gitlabId,
+				projectId: apiFindGitlabBranches.shape.id.unwrap(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const gitlab = await findGitlabById(input.gitlabId);
+			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+			return await getGitlabBranch(
+				input.gitlabId,
+				input.projectId,
+				input.branch,
+			);
 		}),
 	testConnection: protectedProcedure
 		.input(apiGitlabTestConnection)
