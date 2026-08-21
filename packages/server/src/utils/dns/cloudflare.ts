@@ -1,4 +1,7 @@
-import type { cloudflareDnsConfigSchema } from "@dokploy/server/db/schema";
+import {
+	type cloudflareDnsConfigSchema,
+	proxiableDnsRecordTypes,
+} from "@dokploy/server/db/schema";
 import type { z } from "zod";
 import { type DnsClient, dnsFetch } from "./types";
 
@@ -12,6 +15,31 @@ type CloudflareResponse<T> = {
 };
 
 const CLOUDFLARE_API = "https://api.cloudflare.com/client/v4";
+
+const inlinePriority = (record: {
+	type: string;
+	content: string;
+	priority?: number;
+}) =>
+	record.type === "MX" && typeof record.priority === "number"
+		? `${record.priority} ${record.content}`
+		: record.content;
+
+const proxySettings = (record: { type: string; proxied?: boolean }) =>
+	record.proxied !== undefined &&
+	(proxiableDnsRecordTypes as readonly string[]).includes(record.type)
+		? { proxied: record.proxied }
+		: {};
+
+const splitPriority = (record: { type: string; content: string }) => {
+	if (record.type !== "MX") {
+		return { content: record.content };
+	}
+	const match = /^\s*(\d+)\s+(\S.*)$/.exec(record.content);
+	return match
+		? { content: match[2] as string, priority: Number(match[1]) }
+		: { content: record.content.trim(), priority: 10 };
+};
 
 const cfFetch = async <T>(
 	config: CloudflareConfig,
@@ -72,9 +100,20 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 					name: string;
 					content: string;
 					ttl: number;
+					priority?: number;
+					proxied?: boolean;
 				}[]
 			>(config, `/zones/${zoneId}/dns_records?per_page=50&page=${page}`);
-			records.push(...result);
+			records.push(
+				...result.map((record) => ({
+					id: record.id,
+					type: record.type,
+					name: record.name,
+					content: inlinePriority(record),
+					ttl: record.ttl,
+					proxied: record.proxied,
+				})),
+			);
 			if (result.length < 50) {
 				break;
 			}
@@ -92,7 +131,8 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 		const payload = {
 			type: record.type,
 			name: record.name,
-			content: record.content,
+			...splitPriority(record),
+			...proxySettings(record),
 			ttl: record.ttl ?? 1,
 		};
 
@@ -123,7 +163,8 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 				body: JSON.stringify({
 					type: record.type,
 					name: record.name,
-					content: record.content,
+					...splitPriority(record),
+					...proxySettings(record),
 					ttl: record.ttl ?? 1,
 				}),
 			},

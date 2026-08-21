@@ -5,7 +5,10 @@ import {
 	type ResourceRecordSet,
 	Route53Client,
 } from "@aws-sdk/client-route-53";
-import type { route53DnsConfigSchema } from "@dokploy/server/db/schema";
+import type {
+	DnsRecordType,
+	route53DnsConfigSchema,
+} from "@dokploy/server/db/schema";
 import type { z } from "zod";
 import type { DnsClient } from "./types";
 
@@ -66,13 +69,13 @@ const findExactRecordSet = async (
 };
 
 const buildRecordSet = (record: {
-	type: "A" | "CNAME";
+	type: DnsRecordType;
 	name: string;
 	content: string;
 	ttl?: number;
 }): ResourceRecordSet => ({
 	Name: ensureTrailingDot(record.name),
-	Type: record.type,
+	Type: record.type as ResourceRecordSet["Type"],
 	TTL: record.ttl ?? 300,
 	ResourceRecords: [{ Value: record.content }],
 });
