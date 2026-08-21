@@ -328,10 +328,9 @@ export const AdvanceBreadcrumb = () => {
 	// If we're just on the projects page, show simple breadcrumb
 	if (!projectId) {
 		return (
-			<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-				<div className="flex items-center gap-2">
+			<header className="sticky top-0 z-20 -mx-4 mb-px flex shrink-0 items-center bg-background px-4 py-2 md:-mx-2 md:px-2">
+				<div className="flex h-12 w-full items-center gap-2 rounded-lg bg-sidebar px-4 shadow-sm ring-1 ring-sidebar-border">
 					<SidebarTrigger className="-ml-1" />
-					<Separator orientation="vertical" className="mr-2 h-4" />
 					<div className="flex items-center gap-2">
 						<FolderInput className="size-4 text-muted-foreground" />
 						<span className="font-medium">Projects</span>
@@ -342,10 +341,9 @@ export const AdvanceBreadcrumb = () => {
 	}
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-			<div className="flex items-center gap-2">
+		<header className="sticky top-0 z-20 -mx-4 mb-px flex shrink-0 items-center bg-background px-4 py-2 md:-mx-2 md:px-2">
+			<div className="flex h-12 w-full items-center gap-2 rounded-lg bg-sidebar px-4 shadow-sm ring-1 ring-sidebar-border">
 				<SidebarTrigger className="-ml-1" />
-				<Separator orientation="vertical" className="mr-2 h-4" />
 
 				<div className="flex items-center">
 					{/* Project Selector */}

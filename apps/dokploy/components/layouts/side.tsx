@@ -75,7 +75,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import {
 	SIDEBAR_COOKIE_NAME,
 	Sidebar,
@@ -988,7 +987,7 @@ export default function Page({ children }: Props) {
 			}
 		>
 			<MobileCloser />
-			<Sidebar collapsible="icon" variant="floating">
+			<Sidebar collapsible="icon" variant="floating" className="z-30">
 				<SidebarHeader>
 					{/* <SidebarMenuButton
 						className="group-data-[collapsible=icon]:p-0!"
@@ -1223,13 +1222,12 @@ export default function Page({ children }: Props) {
 				</SidebarFooter>
 				<SidebarRail />
 			</Sidebar>
-			<SidebarInset>
+			<SidebarInset className="h-svh md:-ml-2">
 				{!includesProjects && (
-					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-						<div className="flex items-center justify-between w-full px-4">
+					<header className="sticky top-0 z-20 mb-px flex shrink-0 items-center bg-background px-4 py-2 md:pl-2 md:pr-2">
+						<div className="flex h-12 w-full items-center justify-between rounded-lg bg-sidebar px-4 shadow-sm ring-1 ring-sidebar-border">
 							<div className="flex items-center gap-2">
 								<SidebarTrigger className="-ml-1" />
-								<Separator orientation="vertical" className="mr-2 h-4" />
 								<Breadcrumb>
 									<BreadcrumbList>
 										<BreadcrumbItem className="block">
@@ -1250,7 +1248,9 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<div className="flex flex-col w-full p-4 pt-0">{children}</div>
+				<div className="flex flex-col w-full p-4 pt-0 md:pl-2 md:pr-2">
+					{children}
+				</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);
