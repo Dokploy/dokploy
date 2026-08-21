@@ -1,8 +1,16 @@
 import {
 	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForFile,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/index";
 import { describe, expect, it } from "vitest";
+
+// docker stack deploy treats everything after the first "=" as the literal
+// value — it does not strip dotenv quotes the way `docker compose` does.
+const stackLiteralValue = (line: string) => {
+	const separator = line.indexOf("=");
+	return line.slice(separator + 1);
+};
 
 const projectEnv = `
 ENVIRONMENT=staging
@@ -640,5 +648,69 @@ SPECIAL=café résumé naïve
 		expect(resolved[0]).toContain("🌍");
 		expect(resolved[1]).toContain("你好");
 		expect(resolved[2]).toContain("café");
+	});
+});
+
+describe("prepareEnvironmentVariablesForFile (no extra quotes)", () => {
+	it("emits a Sentry DSN exactly as entered so stack deploy does not keep surrounding quotes", () => {
+		const dsn =
+			"https://examplePublicKey@o0000000000000000.ingest.sentry.io/0000000000000000";
+		const [line] = prepareEnvironmentVariablesForFile(
+			`QUARKUS_LOG_SENTRY_DSN=${dsn}`,
+			"",
+			"",
+		);
+
+		const value = stackLiteralValue(line ?? "");
+
+		expect(value[0]).toBe("h");
+		expect(value.startsWith('"')).toBe(false);
+		expect(value.endsWith('"')).toBe(false);
+		expect(value.length).toBe(dsn.length);
+		expect(value).toBe(dsn);
+	});
+
+	it("still quotes values that dotenv or Compose would otherwise alter", () => {
+		const serviceEnv = `
+PASSWORD=pa$$word
+HASH="abc#de"
+SPACED=hello world
+`;
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+		const byKey = Object.fromEntries(
+			resolved.map((line) => {
+				const separator = line.indexOf("=");
+				return [line.slice(0, separator), line.slice(separator + 1)];
+			}),
+		);
+
+		expect(byKey.PASSWORD).toBe('"pa\\$\\$word"');
+		expect(byKey.HASH).toBe('"abc#de"');
+		expect(byKey.SPACED).toBe('"hello world"');
+	});
+
+	it("does not wrap values just because they contain : / @ = _", () => {
+		const serviceEnv = `
+COLON=https://example.com
+SLASH=a/b/c
+AT=user@host
+EQUALS=foo=bar
+UNDERSCORE=hello_world
+`;
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+		const values = Object.fromEntries(
+			resolved.map((line) => {
+				const separator = line.indexOf("=");
+				return [line.slice(0, separator), stackLiteralValue(line)];
+			}),
+		);
+
+		expect(values.COLON).toBe("https://example.com");
+		expect(values.SLASH).toBe("a/b/c");
+		expect(values.AT).toBe("user@host");
+		expect(values.EQUALS).toBe("foo=bar");
+		expect(values.UNDERSCORE).toBe("hello_world");
 	});
 });

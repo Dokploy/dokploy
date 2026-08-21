@@ -532,6 +532,13 @@ export const prepareEnvironmentVariablesForShell = (
 	return envVars.map((env) => quote([env]));
 };
 
+// Quote only when dotenv / `docker compose` would otherwise alter the value.
+// Characters such as `: / @ = _` are safe unquoted. Wrapping every value in
+// `"..."` makes those quotes part of the value under `docker stack deploy`,
+// which does not strip dotenv quotes (#5096).
+const requiresDotenvQuotes = (value: string): boolean =>
+	/[\s#"$\\]/.test(value);
+
 export const prepareEnvironmentVariablesForFile = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
@@ -545,6 +552,9 @@ export const prepareEnvironmentVariablesForFile = (
 
 	return envVars.map((pair) => {
 		const [key, value] = parseEnvironmentKeyValuePair(pair);
+		if (!requiresDotenvQuotes(value)) {
+			return `${key}=${value}`;
+		}
 		const escapedValue = value
 			.replace(/\\/g, "\\\\")
 			.replace(/"/g, '\\"')
