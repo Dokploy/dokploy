@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveContainerSelection } from "@/components/dashboard/application/logs/container-selection";
+import { resolveContainerSelection } from "@/components/dashboard/docker/logs/utils";
 
 const containers = [
 	{ containerId: "first-container" },

@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { resolveContainerSelection } from "@/components/dashboard/docker/logs/utils";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { resolveContainerSelection } from "./container-selection";
 export const DockerLogs = dynamic(
 	() =>
 		import("@/components/dashboard/docker/logs/docker-logs-id").then(
