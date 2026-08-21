@@ -31,14 +31,51 @@ const proxySettings = (record: { type: string; proxied?: boolean }) =>
 		? { proxied: record.proxied }
 		: {};
 
-const splitPriority = (record: { type: string; content: string }) => {
-	if (record.type !== "MX") {
-		return { content: record.content };
+const buildValue = (record: { type: string; content: string }) => {
+	const value = record.content.trim();
+
+	if (record.type === "MX") {
+		const match = /^(\d+)\s+(\S.*)$/.exec(value);
+		return match
+			? { content: match[2] as string, priority: Number(match[1]) }
+			: { content: value, priority: 10 };
 	}
-	const match = /^\s*(\d+)\s+(\S.*)$/.exec(record.content);
-	return match
-		? { content: match[2] as string, priority: Number(match[1]) }
-		: { content: record.content.trim(), priority: 10 };
+
+	if (record.type === "SRV") {
+		const parts = value.split(/\s+/);
+		const [priority, weight, port, target] = parts;
+		if (parts.length !== 4 || !target) {
+			throw new Error(
+				`Cloudflare: an SRV value must be "priority weight port target", got "${value}"`,
+			);
+		}
+		return {
+			data: {
+				priority: Number(priority),
+				weight: Number(weight),
+				port: Number(port),
+				target,
+			},
+		};
+	}
+
+	if (record.type === "CAA") {
+		const match = /^(\d+)\s+(\S+)\s+"?([^"]+)"?$/.exec(value);
+		if (!match) {
+			throw new Error(
+				`Cloudflare: a CAA value must be \`flags tag "value"\`, got "${value}"`,
+			);
+		}
+		return {
+			data: {
+				flags: Number(match[1]),
+				tag: match[2] as string,
+				value: match[3] as string,
+			},
+		};
+	}
+
+	return { content: value };
 };
 
 const cfFetch = async <T>(
@@ -123,18 +160,18 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 	},
 
 	async upsertRecord(config, record) {
+		const payload = {
+			type: record.type,
+			name: record.name,
+			...buildValue(record),
+			...proxySettings(record),
+			ttl: record.ttl ?? 1,
+		};
+
 		const existing = await cfFetch<{ id: string }[]>(
 			config,
 			`/zones/${record.zoneId}/dns_records?type=${record.type}&name=${encodeURIComponent(record.name)}`,
 		);
-
-		const payload = {
-			type: record.type,
-			name: record.name,
-			...splitPriority(record),
-			...proxySettings(record),
-			ttl: record.ttl ?? 1,
-		};
 
 		const existingRecord = existing[0];
 		if (existingRecord) {
@@ -163,7 +200,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 				body: JSON.stringify({
 					type: record.type,
 					name: record.name,
-					...splitPriority(record),
+					...buildValue(record),
 					...proxySettings(record),
 					ttl: record.ttl ?? 1,
 				}),

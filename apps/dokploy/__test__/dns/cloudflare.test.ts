@@ -164,6 +164,76 @@ describe("cloudflareClient MX priority", () => {
 	});
 });
 
+describe("cloudflareClient structured records", () => {
+	const stubCreate = () =>
+		mockFetch
+			.mockResolvedValueOnce(cfSuccess([]))
+			.mockResolvedValueOnce(cfSuccess({ id: "rec-1" }));
+
+	it("sends SRV values as structured data", async () => {
+		stubCreate();
+
+		await cloudflareClient.upsertRecord(config, {
+			zoneId: "zone-1",
+			type: "SRV",
+			name: "_sip._tcp.example.com",
+			content: "1 10 5269 talk.example.com",
+		});
+
+		const [, init] = mockFetch.mock.calls[1] as [string, RequestInit];
+		const body = JSON.parse(init.body as string);
+		expect(body.data).toEqual({
+			priority: 1,
+			weight: 10,
+			port: 5269,
+			target: "talk.example.com",
+		});
+		expect(body.content).toBeUndefined();
+	});
+
+	it("sends CAA values as structured data and drops the quotes", async () => {
+		stubCreate();
+
+		await cloudflareClient.upsertRecord(config, {
+			zoneId: "zone-1",
+			type: "CAA",
+			name: "example.com",
+			content: '0 issue "letsencrypt.org"',
+		});
+
+		const [, init] = mockFetch.mock.calls[1] as [string, RequestInit];
+		const body = JSON.parse(init.body as string);
+		expect(body.data).toEqual({
+			flags: 0,
+			tag: "issue",
+			value: "letsencrypt.org",
+		});
+		expect(body.content).toBeUndefined();
+	});
+
+	it("rejects an SRV value that is missing a part", async () => {
+		await expect(
+			cloudflareClient.upsertRecord(config, {
+				zoneId: "zone-1",
+				type: "SRV",
+				name: "_sip._tcp.example.com",
+				content: "1 10 5269",
+			}),
+		).rejects.toThrow(/SRV value/);
+	});
+
+	it("rejects a CAA value that has no tag", async () => {
+		await expect(
+			cloudflareClient.upsertRecord(config, {
+				zoneId: "zone-1",
+				type: "CAA",
+				name: "example.com",
+				content: "0",
+			}),
+		).rejects.toThrow(/CAA value/);
+	});
+});
+
 describe("cloudflareClient proxy status", () => {
 	it("sends the proxy status for proxiable types", async () => {
 		mockFetch

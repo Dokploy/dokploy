@@ -68,13 +68,29 @@ const valueFields: Record<
 	PTR: { label: "Target", placeholder: "host.example.com" },
 };
 
-const DnsRecordSchema = z.object({
-	type: z.enum(DNS_RECORD_TYPES),
-	name: z.string().min(1, { message: "Name is required" }),
-	content: z.string().min(1, { message: "Content is required" }),
-	ttl: z.string(),
-	proxied: z.boolean(),
-});
+const structuredValuePatterns: Partial<Record<RecordType, RegExp>> = {
+	SRV: /^\d+\s+\d+\s+\d+\s+\S+$/,
+	CAA: /^\d+\s+\S+\s+.+$/,
+};
+
+const DnsRecordSchema = z
+	.object({
+		type: z.enum(DNS_RECORD_TYPES),
+		name: z.string().min(1, { message: "Name is required" }),
+		content: z.string().min(1, { message: "Content is required" }),
+		ttl: z.string(),
+		proxied: z.boolean(),
+	})
+	.superRefine((data, ctx) => {
+		const pattern = structuredValuePatterns[data.type];
+		if (pattern && !pattern.test(data.content.trim())) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["content"],
+				message: `Expected ${valueFields[data.type].placeholder}`,
+			});
+		}
+	});
 
 type DnsRecordForm = z.infer<typeof DnsRecordSchema>;
 
