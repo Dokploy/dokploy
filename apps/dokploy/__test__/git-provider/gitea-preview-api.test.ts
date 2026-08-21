@@ -195,7 +195,9 @@ describe("checkGiteaUserRepositoryPermissions", () => {
 		).resolves.toEqual({ hasWriteAccess, permission, verified: true });
 	});
 
-	it("treats a 404 as a verified 'not a collaborator'", async () => {
+	// On a public repository Gitea reports a non-collaborator as `read` rather
+	// than 404, which the `read` case above already covers.
+	it("treats a 404 as a verified 'no permission'", async () => {
 		fetchMock.mockResolvedValue(jsonResponse({ message: "not found" }, 404));
 
 		await expect(

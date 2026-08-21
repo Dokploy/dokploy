@@ -510,8 +510,10 @@ export interface GiteaRepositoryPermission {
  * Gitea has no `maintain` level.
  *
  * Note that Gitea only answers this for site admins, repository admins and
- * users asking about themselves; everyone else gets a 403. The Gitea account
- * connected to Dokploy therefore needs admin access on the repository.
+ * users asking about themselves; everyone else gets a 403 (verified against
+ * Gitea 1.24.3). The Gitea account connected to Dokploy therefore needs admin
+ * access on the repository, and a 403 is reported as unverified rather than as
+ * a statement about the pull request author.
  *
  * @link https://docs.gitea.com/api/1.24/#tag/repository/operation/repoGetRepoPermissions
  */
@@ -531,7 +533,8 @@ export const checkGiteaUserRepositoryPermissions = async (
 		);
 
 		if (!result?.permission) {
-			// 404: the user is not a collaborator of this repository.
+			// A 404 means Gitea would not name a permission at all; on public
+			// repositories a non-collaborator is instead reported as `read`.
 			return { hasWriteAccess: false, permission: null, verified: true };
 		}
 
