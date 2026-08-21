@@ -1,5 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
 	createFile,
@@ -61,6 +68,27 @@ describe("getCreateFileCommand", () => {
 		expect(statSync(fullPath).isFile()).toBe(true);
 		expect(readFileSync(fullPath, "utf8")).toBe("acl all\n");
 	});
+
+	it("refuses a filePath that escapes the base files directory", () => {
+		expect(() =>
+			getCreateFileCommand(baseFilesPath, "../../etc/cron.d/evil", "x"),
+		).toThrow(/resolves outside/);
+	});
+
+	it("does not destroy a populated directory sitting at the target path", () => {
+		const filePath = "nginx/conf.d";
+		const fullPath = join(baseFilesPath, filePath);
+		const survivingFile = join(fullPath, "important-existing-file.conf");
+		mkdirSync(fullPath, { recursive: true });
+		writeFileSync(survivingFile, "do not delete me\n");
+
+		const command = getCreateFileCommand(baseFilesPath, filePath, "x");
+		expect(() => execFileSync("bash", ["-c", command])).toThrow();
+
+		// the pre-existing directory and its contents must survive the failed write
+		expect(statSync(fullPath).isDirectory()).toBe(true);
+		expect(readFileSync(survivingFile, "utf8")).toBe("do not delete me\n");
+	});
 });
 
 describe("createFile", () => {
@@ -74,5 +102,25 @@ describe("createFile", () => {
 
 		expect(statSync(fullPath).isFile()).toBe(true);
 		expect(readFileSync(fullPath, "utf8")).toBe("app:\n  port: 8194\n");
+	});
+
+	it("refuses a filePath that escapes the base files directory", async () => {
+		await expect(
+			createFile(baseFilesPath, "../../etc/cron.d/evil", "x"),
+		).rejects.toThrow(/resolves outside/);
+	});
+
+	it("does not destroy a populated directory sitting at the target path", async () => {
+		const filePath = "nginx/conf.d";
+		const fullPath = join(baseFilesPath, filePath);
+		const survivingFile = join(fullPath, "important-existing-file.conf");
+		mkdirSync(fullPath, { recursive: true });
+		writeFileSync(survivingFile, "do not delete me\n");
+
+		await expect(createFile(baseFilesPath, filePath, "x")).rejects.toThrow();
+
+		// the pre-existing directory and its contents must survive the failed write
+		expect(statSync(fullPath).isDirectory()).toBe(true);
+		expect(readFileSync(survivingFile, "utf8")).toBe("do not delete me\n");
 	});
 });
