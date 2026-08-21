@@ -8,7 +8,6 @@ import {
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
-	encodeBase64,
 	getCreateFileCommand,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
@@ -261,19 +260,25 @@ export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
 
 	try {
 		const serverId = await getServerId(mount);
-		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${quote([fullPath])}`;
+		// Reuses the same mkdir-p + stale-directory-clearing logic as createFileMount,
+		// so editing a mount whose path was previously created as an empty directory
+		// (nested File Path, or a container's bind-mount fallback beating us to it)
+		// self-heals instead of silently failing.
+		const command = getCreateFileCommand(
+			basePath,
+			mount.filePath,
+			mount.content || "",
+		);
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
-	} catch {
-		console.log("Error updating file mount");
+	} catch (error) {
+		console.log("Error updating file mount", error);
 	}
 };
 

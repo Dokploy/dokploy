@@ -777,6 +777,14 @@ export const createFile = async (
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+
+		// A previous deploy may have left an empty directory at fullPath (e.g. Docker's
+		// bind-mount fallback creating one when the source didn't exist yet). Clear it
+		// first so fs.writeFileSync doesn't throw EISDIR.
+		if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+			fs.rmSync(fullPath, { recursive: true, force: true });
+		}
+
 		fs.writeFileSync(fullPath, content || "");
 	} catch (error) {
 		throw error;
@@ -799,6 +807,7 @@ export const getCreateFileCommand = (
 	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${quote([directory])};
+		if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
 		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
