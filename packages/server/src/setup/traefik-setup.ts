@@ -2,16 +2,22 @@ import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
+	readFileSync,
+	renameSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
-import { stringify } from "yaml";
+import { parse, stringify } from "yaml";
 import { paths } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
-import type { FileConfig } from "../utils/traefik/file-types";
+import type {
+	FileConfig,
+	HttpMiddleware,
+	HttpRouter,
+} from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
 
 export const TRAEFIK_SSL_PORT =
@@ -31,6 +37,9 @@ export interface TraefikOptions {
 		protocol?: string;
 	}[];
 }
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
 
 export const initializeStandaloneTraefik = async ({
 	env,
@@ -213,22 +222,37 @@ export const initializeTraefikService = async ({
 export const createDefaultServerTraefikConfig = () => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configFilePath = path.join(DYNAMIC_TRAEFIK_PATH, "dokploy.yml");
-
-	if (existsSync(configFilePath)) {
-		console.log("Default traefik config already exists");
-		return;
-	}
-
 	const appName = "dokploy";
+	const routerName = `${appName}-router-app`;
+	const middlewareName = `${appName}-local-access`;
+	const defaultRule = `Host(\`${appName}.docker.localhost\`) && PathPrefix(\`/\`)`;
+	const fallbackHostRule = `Host(\`${appName}.docker.localhost\`)`;
+	const isFallbackRule = (rule: unknown) =>
+		rule === defaultRule || rule === fallbackHostRule;
 	const serviceURLDefault = `http://${appName}:${process.env.PORT || 3000}`;
+	const defaultRouter: HttpRouter = {
+		rule: defaultRule,
+		service: `${appName}-service-app`,
+		entryPoints: ["web"],
+		middlewares: [middlewareName],
+	};
+	const localAccessMiddleware: HttpMiddleware = {
+		ipAllowList: {
+			sourceRange: [
+				"127.0.0.1/32",
+				"10.0.0.0/8",
+				"172.16.0.0/12",
+				"192.168.0.0/16",
+			],
+		},
+	};
 	const config: FileConfig = {
 		http: {
 			routers: {
-				[`${appName}-router-app`]: {
-					rule: `Host(\`${appName}.docker.localhost\`) && PathPrefix(\`/\`)`,
-					service: `${appName}-service-app`,
-					entryPoints: ["web"],
-				},
+				[routerName]: defaultRouter,
+			},
+			middlewares: {
+				[middlewareName]: localAccessMiddleware,
 			},
 			services: {
 				[`${appName}-service-app`]: {
@@ -241,13 +265,132 @@ export const createDefaultServerTraefikConfig = () => {
 		},
 	};
 
+	if (existsSync(configFilePath)) {
+		let existingConfig: FileConfig;
+		try {
+			if (!statSync(configFilePath).isFile()) {
+				console.error(
+					`Default traefik config path is not a file: ${configFilePath}; migration skipped`,
+				);
+				return;
+			}
+			const parsedConfig = parse(readFileSync(configFilePath, "utf8"));
+			if (!isObject(parsedConfig)) {
+				console.error(
+					`Default traefik config at ${configFilePath} is not a YAML object; migration skipped`,
+				);
+				return;
+			}
+			existingConfig = parsedConfig as FileConfig;
+		} catch (error) {
+			console.error(
+				`Default traefik config at ${configFilePath} is unreadable or unparseable; migration skipped`,
+				error,
+			);
+			// Do not overwrite an unreadable or unparseable config and risk losing operator changes.
+			return;
+		}
+
+		if (
+			!isObject(existingConfig.http) ||
+			!isObject(existingConfig.http.routers)
+		) {
+			console.error(
+				`Default traefik config at ${configFilePath} has no HTTP routers; migration skipped`,
+			);
+			return;
+		}
+		if (
+			existingConfig.http.middlewares !== undefined &&
+			!isObject(existingConfig.http.middlewares)
+		) {
+			console.error(
+				`Default traefik config at ${configFilePath} has invalid HTTP middlewares; migration skipped`,
+			);
+			return;
+		}
+
+		const existingHttp = existingConfig.http;
+		const existingRouters = existingHttp.routers as Record<string, HttpRouter>;
+		const existingRouter = existingRouters[routerName];
+		if (!isObject(existingRouter)) {
+			console.error(
+				`Default router not found in ${configFilePath}; migration skipped`,
+			);
+			return;
+		}
+		if (
+			existingRouter.middlewares !== undefined &&
+			!Array.isArray(existingRouter.middlewares)
+		) {
+			console.error(
+				`Default router in ${configFilePath} has invalid middlewares; migration skipped`,
+			);
+			return;
+		}
+
+		if (!isFallbackRule(existingRouter.rule)) {
+			console.log(
+				"Custom domain detected on dokploy-router-app, skipping local-access migration",
+			);
+			return;
+		}
+
+		existingHttp.middlewares = existingHttp.middlewares || {};
+		existingRouters[routerName] = {
+			...defaultRouter,
+			...existingRouter,
+			middlewares: existingRouter.middlewares?.includes(middlewareName)
+				? existingRouter.middlewares
+				: [...(existingRouter.middlewares || []), middlewareName],
+		};
+		existingHttp.middlewares[middlewareName] = localAccessMiddleware;
+
+		const secureRouterName = `${routerName}-secure`;
+		const existingSecureRouter = existingRouters[secureRouterName];
+		if (
+			isObject(existingSecureRouter) &&
+			isFallbackRule(existingSecureRouter.rule) &&
+			(existingSecureRouter.middlewares === undefined ||
+				Array.isArray(existingSecureRouter.middlewares))
+		) {
+			existingRouters[secureRouterName] = {
+				...existingSecureRouter,
+				middlewares: existingSecureRouter.middlewares?.includes(middlewareName)
+					? existingSecureRouter.middlewares
+					: [...(existingSecureRouter.middlewares || []), middlewareName],
+			};
+		}
+
+		console.log(
+			"Migrating default traefik config to add local-access allowlist",
+		);
+		const temporaryConfigFilePath = `${configFilePath}.tmp`;
+		try {
+			writeFileSync(temporaryConfigFilePath, stringify(existingConfig), "utf8");
+			renameSync(temporaryConfigFilePath, configFilePath);
+		} catch (error) {
+			console.error(
+				`Unable to write migrated default traefik config at ${configFilePath}; migration skipped`,
+				error,
+			);
+			// Write to a temporary file first so a failed migration cannot truncate the original config.
+		}
+		// Callers invoke this synchronously; setup is a one-shot provisioning command before server bootstrap.
+		return;
+	}
+
 	const yamlStr = stringify(config);
-	mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
-	writeFileSync(
-		path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`),
-		yamlStr,
-		"utf8",
-	);
+	try {
+		mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
+		writeFileSync(configFilePath, yamlStr, "utf8");
+	} catch (error) {
+		console.error(
+			`Unable to create default traefik config at ${configFilePath}`,
+			error,
+		);
+		// A filesystem error must not turn a missing default route into a startup outage.
+	}
 };
 
 export const getDefaultTraefikConfig = () => {
