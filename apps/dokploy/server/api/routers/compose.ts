@@ -15,6 +15,7 @@ import {
 	findDomainsByComposeId,
 	findEnvironmentById,
 	findProjectById,
+	findRegistryById,
 	findServerById,
 	getAccessibleServerIds,
 	getComposeContainer,
@@ -204,6 +205,16 @@ export const composeRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this build server",
+					});
+				}
+			}
+
+			if (input.buildRegistryId) {
+				const reg = await findRegistryById(input.buildRegistryId);
+				if (reg.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this build registry",
 					});
 				}
 			}
