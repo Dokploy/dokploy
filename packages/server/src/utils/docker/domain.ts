@@ -321,7 +321,9 @@ export const addDomainToCompose = async (
 
 	if (!compose.isolatedDeployment) {
 		for (const service of Object.values(result.services ?? {})) {
-			service.networks = addDokployNetworkToService(service.networks);
+			if (!service.network_mode) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
 		}
 	}
 
