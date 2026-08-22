@@ -417,7 +417,10 @@ const Service = (
 													id={applicationId}
 													type="application"
 												/>
-												<ShowBuildServer applicationId={applicationId} />
+												<ShowBuildServer
+													serviceType="application"
+													applicationId={applicationId}
+												/>
 												<ShowResources id={applicationId} type="application" />
 												<ShowVolumes id={applicationId} type="application" />
 												<AssignNetworks id={applicationId} type="application" />

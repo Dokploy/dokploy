@@ -21,6 +21,7 @@ import { ShowIconSettings } from "@/components/dashboard/application/icon/show-i
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
+import { ShowBuildServer } from "@/components/dashboard/application/advanced/show-build-server";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
@@ -430,6 +431,10 @@ const Service = (
 										<TabsContent value="advanced">
 											<div className="flex flex-col gap-4 pt-2.5">
 												<AddCommandCompose composeId={composeId} />
+												<ShowBuildServer
+													serviceType="compose"
+													composeId={composeId}
+												/>
 												<ShowVolumes id={composeId} type="compose" />
 												<ShowImport composeId={composeId} />
 												<AssignComposeNetworks composeId={composeId} />
