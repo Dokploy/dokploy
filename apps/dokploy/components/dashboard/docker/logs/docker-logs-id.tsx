@@ -8,9 +8,12 @@ import {
 	Play,
 } from "lucide-react";
 import React, { useEffect, useRef } from "react";
+import { createTerminalResizeSync } from "@/components/dashboard/terminal/transport";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { clampTerminalSize, type TerminalSize } from "@/lib/terminal-size";
+import { buildWsUrl } from "@/lib/ws-url";
 import { api } from "@/utils/api";
 import { AnalyzeLogs } from "./analyze-logs";
 import { LineCountFilter } from "./line-count-filter";
@@ -25,6 +28,40 @@ interface Props {
 	runType: "swarm" | "native";
 	serviceId?: string;
 }
+
+const FALLBACK_CELL_WIDTH = 8;
+const FALLBACK_LINE_HEIGHT = 20;
+const CELL_MEASURE_SAMPLE = "0123456789abcdefghij";
+let measureContext: CanvasRenderingContext2D | null | undefined;
+
+// Measure the rendered font instead of assuming a cell size, so the PTY
+// width the server wraps at tracks browser zoom and font settings.
+const getLogTerminalSize = (viewport: HTMLDivElement): TerminalSize => {
+	measureContext ??= document.createElement("canvas").getContext("2d");
+	const probe = viewport.firstElementChild ?? viewport;
+	const styles = window.getComputedStyle(probe);
+
+	let cellWidth = FALLBACK_CELL_WIDTH;
+	if (measureContext) {
+		measureContext.font = `${styles.fontSize} ${styles.fontFamily}`;
+		const measured =
+			measureContext.measureText(CELL_MEASURE_SAMPLE).width /
+			CELL_MEASURE_SAMPLE.length;
+		if (measured > 0) {
+			cellWidth = measured;
+		}
+	}
+	const lineHeight = Number.parseFloat(styles.lineHeight);
+	const cellHeight =
+		Number.isFinite(lineHeight) && lineHeight > 0
+			? lineHeight
+			: FALLBACK_LINE_HEIGHT;
+
+	return clampTerminalSize({
+		cols: viewport.clientWidth / cellWidth,
+		rows: viewport.clientHeight / cellHeight,
+	});
+};
 
 // Sentinel the container-picker views fall back to before a real container
 // is selected/auto-selected — querying logs for it just surfaces Docker's
@@ -154,7 +191,6 @@ export const DockerLogsId: React.FC<Props> = ({
 		setIsPaused(false);
 		isPausedRef.current = false;
 
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const params = new globalThis.URLSearchParams({
 			containerId,
 			tail: lines.toString(),
@@ -170,11 +206,23 @@ export const DockerLogsId: React.FC<Props> = ({
 		if (serviceId) {
 			params.append("serviceId", serviceId);
 		}
+		const logViewport = scrollRef.current;
+		const initialSize = logViewport ? getLogTerminalSize(logViewport) : null;
+		if (initialSize) {
+			params.set("cols", initialSize.cols.toString());
+			params.set("rows", initialSize.rows.toString());
+		}
 
-		const wsUrl = `${protocol}//${
-			window.location.host
-		}/docker-container-logs?${params.toString()}`;
-		const ws = new WebSocket(wsUrl);
+		const ws = new WebSocket(buildWsUrl("/docker-container-logs", params));
+		const resizeSync = createTerminalResizeSync(
+			ws,
+			() => (scrollRef.current ? getLogTerminalSize(scrollRef.current) : null),
+			initialSize,
+		);
+		const resizeObserver = new ResizeObserver(resizeSync.schedule);
+		if (logViewport) {
+			resizeObserver.observe(logViewport);
+		}
 
 		const resetNoDataTimeout = () => {
 			if (noDataTimeout) clearTimeout(noDataTimeout);
@@ -231,12 +279,23 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		return () => {
 			isCurrentConnection = false;
+			resizeObserver.disconnect();
+			resizeSync.dispose();
 			if (noDataTimeout) clearTimeout(noDataTimeout);
-			if (ws.readyState === WebSocket.OPEN) {
+			if (ws.readyState < WebSocket.CLOSING) {
 				ws.close();
 			}
 		};
-	}, [containerId, serverId, serviceId, lines, search, since]);
+	}, [
+		containerId,
+		hasContainer,
+		serverId,
+		serviceId,
+		lines,
+		search,
+		since,
+		runType,
+	]);
 
 	const handleDownload = () => {
 		const logContent = filteredLogs

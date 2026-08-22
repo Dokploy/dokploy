@@ -2,6 +2,69 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execAsync, IS_CLOUD, paths } from "@dokploy/server";
+import {
+	clampTerminalSize,
+	DEFAULT_TERMINAL_COLS,
+	DEFAULT_TERMINAL_ROWS,
+	type TerminalSize,
+} from "../../lib/terminal-size";
+
+export const getErrorMessage = (error: unknown): string =>
+	error instanceof Error ? error.message : String(error);
+
+const isTerminalDimension = (value: unknown): value is number =>
+	typeof value === "number" && Number.isInteger(value) && value >= 1;
+
+const parseTerminalDimension = (value: string | null, fallback: number) => {
+	if (!value || !/^\d+$/.test(value)) {
+		return fallback;
+	}
+
+	const dimension = Number(value);
+	return isTerminalDimension(dimension) ? dimension : fallback;
+};
+
+// Oversized dimensions come from legitimately large viewports (ultrawide
+// displays, zoomed-out browsers), so clamp them instead of rejecting them.
+export const getTerminalSize = (searchParams: URLSearchParams): TerminalSize =>
+	clampTerminalSize({
+		cols: parseTerminalDimension(
+			searchParams.get("cols"),
+			DEFAULT_TERMINAL_COLS,
+		),
+		rows: parseTerminalDimension(
+			searchParams.get("rows"),
+			DEFAULT_TERMINAL_ROWS,
+		),
+	});
+
+export const parseTerminalResize = (message: string): TerminalSize | null => {
+	// Legacy clients send every keystroke as a text frame; skip the
+	// JSON.parse (and its thrown SyntaxError) unless this can be JSON.
+	if (message.charCodeAt(0) !== 0x7b /* '{' */) {
+		return null;
+	}
+
+	try {
+		const value: unknown = JSON.parse(message);
+		if (typeof value !== "object" || value === null) {
+			return null;
+		}
+
+		const { type, cols, rows } = value as Record<string, unknown>;
+		if (
+			type !== "resize" ||
+			!isTerminalDimension(cols) ||
+			!isTerminalDimension(rows)
+		) {
+			return null;
+		}
+
+		return clampTerminalSize({ cols, rows });
+	} catch {
+		return null;
+	}
+};
 
 /**
  * Validates that the container ID matches Docker's expected format.
@@ -61,48 +124,6 @@ export const isValidShell = (shell: string): boolean => {
 		"/bin/ash",
 	];
 	return allowedShells.includes(shell);
-};
-
-/**
- * Clamps cols/rows read from the client's initial connection query params
- * to a sane range, falling back to the standard 80x24 default.
- */
-export const parseTerminalSize = (
-	colsParam: string | null,
-	rowsParam: string | null,
-) => {
-	const cols = Number(colsParam);
-	const rows = Number(rowsParam);
-	return {
-		cols: Number.isInteger(cols) && cols > 0 && cols <= 1000 ? cols : 80,
-		rows: Number.isInteger(rows) && rows > 0 && rows <= 1000 ? rows : 24,
-	};
-};
-
-/**
- * Terminal input and resize control messages share the same websocket
- * channel. Resize messages are JSON envelopes; regular keystrokes never
- * start with "{", so this distinguishes them without an extra channel.
- */
-export const parseResizeMessage = (data: string) => {
-	if (!data.startsWith("{")) return null;
-	try {
-		const parsed = JSON.parse(data);
-		if (
-			parsed?.type === "resize" &&
-			Number.isInteger(parsed.cols) &&
-			Number.isInteger(parsed.rows) &&
-			parsed.cols > 0 &&
-			parsed.cols <= 1000 &&
-			parsed.rows > 0 &&
-			parsed.rows <= 1000
-		) {
-			return { cols: parsed.cols, rows: parsed.rows };
-		}
-	} catch {
-		return null;
-	}
-	return null;
 };
 
 export const getShell = () => {

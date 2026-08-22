@@ -102,7 +102,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${container.Id} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
@@ -119,7 +119,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 					}),
 				);
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error
 				ws.close(4000, `Error: ${error.message}`);
 			}
 		}, 1300);

@@ -183,7 +183,7 @@ export const setupDeploymentLogsWebSocketServer = (
 				sshClient.end();
 			}
 			if (ws.readyState === ws.OPEN) {
-				// @ts-ignore
+				// @ts-expect-error
 				const errorMessage = error?.message as unknown as string;
 				ws.send(errorMessage || "An error occurred");
 				ws.close();

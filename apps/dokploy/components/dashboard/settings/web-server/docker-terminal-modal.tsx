@@ -92,7 +92,7 @@ export const DockerTerminalModal = ({
 		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent
-				className="max-h-[85vh] sm:max-w-7xl"
+				className="flex h-[85vh] flex-col sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
@@ -129,12 +129,13 @@ export const DockerTerminalModal = ({
 						</SelectGroup>
 					</SelectContent>
 				</Select>
-				<Terminal
-					serverId={serverId || ""}
-					id="terminal"
-					containerId={containerId || "select-a-container"}
-					serviceId={serviceId}
-				/>
+				<div className="min-h-0 flex-1 overflow-hidden">
+					<Terminal
+						serverId={serverId || ""}
+						containerId={containerId || "select-a-container"}
+						serviceId={serviceId}
+					/>
+				</div>
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
