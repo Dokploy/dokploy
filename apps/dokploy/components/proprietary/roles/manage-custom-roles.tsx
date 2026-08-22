@@ -173,7 +173,7 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 	vaultProvider: {
 		label: "Secrets Providers",
 		description:
-			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway) and where their secrets can be referenced",
+			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway, Phase) and where their secrets can be referenced",
 	},
 	dnsProvider: {
 		label: "DNS Providers",

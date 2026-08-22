@@ -11,6 +11,7 @@ export const vaultProviderType = pgEnum("VaultProviderType", [
 	"doppler",
 	"azure",
 	"scaleway",
+	"phase",
 ]);
 
 export const hashicorpVaultConfigSchema = z.object({
@@ -62,6 +63,15 @@ export const scalewayVaultConfigSchema = z.object({
 	apiUrl: z.string().url().default("https://api.scaleway.com"),
 });
 
+export const phaseVaultConfigSchema = z.object({
+	providerType: z.literal("phase"),
+	token: z.string().min(1),
+	appId: z.string().min(1),
+	env: z.string().min(1),
+	path: z.string().default("/"),
+	apiUrl: z.string().url().default("https://api.phase.dev"),
+});
+
 export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	hashicorpVaultConfigSchema,
 	infisicalVaultConfigSchema,
@@ -69,6 +79,7 @@ export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	dopplerVaultConfigSchema,
 	azureVaultConfigSchema,
 	scalewayVaultConfigSchema,
+	phaseVaultConfigSchema,
 ]);
 
 export type VaultProviderConfig = z.infer<typeof vaultProviderConfigSchema>;
