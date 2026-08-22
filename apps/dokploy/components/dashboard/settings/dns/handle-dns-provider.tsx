@@ -33,6 +33,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 const providerLabels = {
@@ -180,22 +185,30 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				{dnsProviderId ? (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="group hover:bg-blue-500/10"
-					>
-						<PenBoxIcon className="size-4 text-primary group-hover:text-blue-500" />
-					</Button>
-				) : (
-					<Button className="cursor-pointer space-x-3">
-						<PlusIcon className="h-4 w-4" />
+			{dnsProviderId ? (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DialogTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="text-muted-foreground"
+							>
+								<PenBoxIcon className="size-4" />
+								<span className="sr-only">Edit provider</span>
+							</Button>
+						</DialogTrigger>
+					</TooltipTrigger>
+					<TooltipContent>Edit provider</TooltipContent>
+				</Tooltip>
+			) : (
+				<DialogTrigger asChild>
+					<Button>
+						<PlusIcon className="size-4" />
 						Add Provider
 					</Button>
-				)}
-			</DialogTrigger>
+				</DialogTrigger>
+			)}
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
