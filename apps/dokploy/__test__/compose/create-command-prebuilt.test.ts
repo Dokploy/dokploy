@@ -19,8 +19,11 @@ describe("createCommand prebuilt remote build", () => {
 
 	it("uses pull and --no-build when prebuilt", () => {
 		const command = createCommand(base, { prebuilt: true });
-		expect(command).toContain("pull");
-		expect(command).toContain("up -d --no-build --remove-orphans");
+		// First segment is prefixed with `docker ` at exec time; chained segment
+		// must already include `docker compose` or it runs as bare `compose`.
+		expect(command).toMatch(
+			/^compose -p .+ pull && docker compose -p .+ up -d --no-build --remove-orphans$/,
+		);
 		expect(command).not.toContain("--build");
 	});
 
