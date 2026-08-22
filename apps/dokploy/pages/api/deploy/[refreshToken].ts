@@ -11,6 +11,7 @@ import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { handleGiteaPullRequestEvent } from "@/server/utils/gitea-preview";
 
 /**
  * Log a webhook handler error server-side without leaking its shape to the HTTP
@@ -51,6 +52,7 @@ export default async function handler(
 					},
 				},
 				bitbucket: true,
+				previewDeployments: true,
 			},
 		});
 
@@ -58,6 +60,27 @@ export default async function handler(
 			res.status(404).json({ message: "Application Not Found" });
 			return;
 		}
+
+		// Preview deployments are driven by pull request events and are a separate
+		// feature from push auto deployments, so they are handled before the
+		// `autoDeploy` gate below.
+		if (isGiteaPullRequestEvent(req.headers)) {
+			if (application.sourceType !== "gitea") {
+				res.status(400).json({
+					message:
+						"Preview deployments require the Gitea source type, a custom Git URL cannot be used",
+				});
+				return;
+			}
+
+			const result = await handleGiteaPullRequestEvent({
+				application,
+				body: req.body,
+			});
+			res.status(result.status).json({ message: result.message });
+			return;
+		}
+
 		if (!application?.autoDeploy) {
 			res.status(400).json({
 				message: "Automatic deployments are disabled for this application",
@@ -547,6 +570,41 @@ export const extractBranchName = (headers: any, body: any) => {
 	}
 
 	return null;
+};
+
+/**
+ * Detect whether a Gitea/Forgejo webhook delivery is a pull request event.
+ *
+ * Gitea folds every pull request sub event into `X-Gitea-Event: pull_request`
+ * and keeps the specific one in `X-Gitea-Event-Type` (`pull_request_sync`,
+ * `pull_request_label`, ...), so the generic header alone covers every pull
+ * request sub event. Forgejo mirrors both into `X-Forgejo-*`. Both also populate
+ * the GitHub compatibility headers, which are deliberately ignored here so that
+ * GitHub deliveries keep taking the existing code path.
+ *
+ * @link https://github.com/go-gitea/gitea/blob/main/services/webhook/deliver.go
+ */
+const GITEA_PULL_REQUEST_EVENT_TYPES = [
+	"pull_request",
+	"pull_request_sync",
+	"pull_request_label",
+	"pull_request_assign",
+	"pull_request_milestone",
+	"pull_request_review_request",
+];
+
+export const isGiteaPullRequestEvent = (headers: any): boolean => {
+	const event = headers["x-gitea-event"] ?? headers["x-forgejo-event"];
+
+	if (event) {
+		return event === "pull_request";
+	}
+
+	// Only reached when the generic header was stripped on the way in.
+	const eventType =
+		headers["x-gitea-event-type"] ?? headers["x-forgejo-event-type"];
+
+	return GITEA_PULL_REQUEST_EVENT_TYPES.includes(eventType);
 };
 
 export const getProviderByHeader = (headers: any) => {
