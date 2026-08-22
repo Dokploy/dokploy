@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { getCreateEnvFileCommand } from "@dokploy/server/utils/builders/compose";
+import { prepareEnvironmentVariablesForFile } from "@dokploy/server/utils/docker/utils";
 import { afterEach, describe, expect, it } from "vitest";
 
 // Regression coverage for https://github.com/Dokploy/dokploy/issues/4694 —
@@ -23,6 +24,9 @@ afterEach(() => {
 });
 
 const cases: Record<string, string> = {
+	APP_URL: "https://example.com",
+	ASSET_URL: "https://example.com",
+	UNBRACED_URL: "https://example.com",
 	PASSWORD: "pa$$word",
 	SPECIAL: '!"#$%&/()=?',
 	NESTED_JSON: '{"nested":{"a":1}}',
@@ -37,6 +41,9 @@ const cases: Record<string, string> = {
 // How each value must be typed in the UI so the (unchanged) dotenv input
 // parser resolves it to the raw string in `cases` above.
 const inputEncoding: Record<string, string> = {
+	APP_URL: "https://example.com",
+	ASSET_URL: "${APP_URL}",
+	UNBRACED_URL: "$APP_URL",
 	PASSWORD: "pa$$word",
 	SPECIAL: `'!"#$%&/()=?'`,
 	NESTED_JSON: '{"nested":{"a":1}}',
@@ -47,6 +54,21 @@ const inputEncoding: Record<string, string> = {
 	UNICODE: "héllo wörld 日本語 🚀",
 	MULTILINE_PEM: '"-----BEGIN KEY-----\nabc123\n-----END KEY-----"',
 };
+
+describe("prepareEnvironmentVariablesForFile", () => {
+	it("preserves Docker Compose interpolation references", () => {
+		const resolved = prepareEnvironmentVariablesForFile(
+			"APP_URL=https://example.com\nASSET_URL=${APP_URL}\nUNBRACED_URL=$APP_URL\nPASSWORD=pa$$word",
+		);
+
+		expect(resolved).toEqual([
+			'APP_URL="https://example.com"',
+			'ASSET_URL="${APP_URL}"',
+			'UNBRACED_URL="$APP_URL"',
+			'PASSWORD="pa\\$\\$word"',
+		]);
+	});
+});
 
 describe("getCreateEnvFileCommand", () => {
 	it("writes special environment values that Docker Compose reads back literally", () => {
