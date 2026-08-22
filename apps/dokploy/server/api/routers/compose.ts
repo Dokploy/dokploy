@@ -199,6 +199,17 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this compose",
+				});
+			}
+
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);
 				if (!accessibleIds.has(input.buildServerId)) {
