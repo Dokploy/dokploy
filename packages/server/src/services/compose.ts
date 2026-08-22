@@ -1,4 +1,5 @@
-import { join } from "node:path";
+import { promises as fsPromises } from "node:fs";
+import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
@@ -217,17 +218,47 @@ type ComposeEntity = Awaited<ReturnType<typeof findComposeById>> & {
 	type: "compose";
 };
 
+const ensureLogDirectory = async (
+	serverId: string | null,
+	logPath: string,
+) => {
+	const logDir = dirname(logPath);
+	if (serverId) {
+		await execAsyncRemote(serverId, `mkdir -p ${quote([logDir])}`);
+		return;
+	}
+	await fsPromises.mkdir(logDir, { recursive: true });
+};
+
 const runWithLog = async (
 	serverId: string | null,
 	command: string,
 	logPath: string,
 ) => {
+	await ensureLogDirectory(serverId, logPath);
 	const commandWithLog = `(${command}) >> ${quote([logPath])} 2>&1`;
 	if (serverId) {
 		await execAsyncRemote(serverId, commandWithLog);
 	} else {
 		await execAsync(commandWithLog);
 	}
+};
+
+const appendDeployLogsIfSplit = async (
+	deployTarget: string | null,
+	deployLogPath: string,
+	logTarget: string | null,
+	mainLogPath: string,
+) => {
+	if (logTarget === deployTarget) return;
+
+	await appendLogFromTarget(
+		deployTarget,
+		deployLogPath,
+		logTarget,
+		mainLogPath,
+		"Deploy phase",
+	);
 };
 
 const appendLogFromTarget = async (
@@ -360,6 +391,11 @@ export const deployCompose = async ({
 		}
 	};
 
+	const deployLogPath =
+		logTarget !== deployTarget
+			? `${deployment.logPath}.deploy`
+			: deployment.logPath;
+
 	try {
 		if (usesRemoteBuild && buildTarget) {
 			await cloneAndPatchOnTarget(entity, buildTarget, deployment.logPath);
@@ -369,11 +405,6 @@ export const deployCompose = async ({
 			);
 			await runWithLog(buildTarget, buildCommand, deployment.logPath);
 		}
-
-		const deployLogPath =
-			logTarget !== deployTarget
-				? `${deployment.logPath}.deploy`
-				: deployment.logPath;
 
 		if (usesRemoteBuild && deployTarget !== buildTarget) {
 			await cloneAndPatchOnTarget(entity, deployTarget, deployLogPath);
@@ -387,15 +418,12 @@ export const deployCompose = async ({
 		});
 		await runWithLog(deployTarget, deployCommand, deployLogPath);
 
-		if (logTarget !== deployTarget) {
-			await appendLogFromTarget(
-				deployTarget,
-				deployLogPath,
-				logTarget,
-				deployment.logPath,
-				"Deploy phase",
-			);
-		}
+		await appendDeployLogsIfSplit(
+			deployTarget,
+			deployLogPath,
+			logTarget,
+			deployment.logPath,
+		);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
@@ -412,6 +440,16 @@ export const deployCompose = async ({
 			environmentName: compose.environment.name,
 		});
 	} catch (error) {
+		try {
+			await appendDeployLogsIfSplit(
+				deployTarget,
+				deployLogPath,
+				logTarget,
+				deployment.logPath,
+			);
+		} catch {
+			// Best effort: deploy logs may not exist yet.
+		}
 		await logErrorToTarget(error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
@@ -469,6 +507,11 @@ export const rebuildCompose = async ({
 		type: "compose" as const,
 	};
 
+	const deployLogPath =
+		logTarget !== deployTarget
+			? `${deployment.logPath}.deploy`
+			: deployment.logPath;
+
 	try {
 		if (usesRemoteBuild && buildTarget) {
 			if (compose.sourceType === "raw") {
@@ -484,11 +527,6 @@ export const rebuildCompose = async ({
 			);
 			await runWithLog(buildTarget, buildCommand, deployment.logPath);
 		}
-
-		const deployLogPath =
-			logTarget !== deployTarget
-				? `${deployment.logPath}.deploy`
-				: deployment.logPath;
 
 		if (usesRemoteBuild && deployTarget !== buildTarget) {
 			if (compose.sourceType === "raw") {
@@ -514,21 +552,29 @@ export const rebuildCompose = async ({
 		});
 		await runWithLog(deployTarget, deployCommand, deployLogPath);
 
-		if (logTarget !== deployTarget) {
-			await appendLogFromTarget(
-				deployTarget,
-				deployLogPath,
-				logTarget,
-				deployment.logPath,
-				"Deploy phase",
-			);
-		}
+		await appendDeployLogsIfSplit(
+			deployTarget,
+			deployLogPath,
+			logTarget,
+			deployment.logPath,
+		);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
 	} catch (error) {
+		try {
+			await appendDeployLogsIfSplit(
+				deployTarget,
+				deployLogPath,
+				logTarget,
+				deployment.logPath,
+			);
+		} catch {
+			// Best effort: deploy logs may not exist yet.
+		}
+
 		let command = "";
 
 		if (!(error instanceof ExecError)) {

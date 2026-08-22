@@ -253,7 +253,9 @@ export const createCommand = (
 
 	if (composeType === "docker-compose") {
 		if (options?.prebuilt) {
-			command = `compose -p ${quote([appName])} -f ${quote([path])} pull && compose -p ${quote([appName])} -f ${quote([path])} up -d --no-build --remove-orphans`;
+			// Executed as `docker ${command}` — only the first segment gets that
+			// prefix, so chained segments must start with `docker compose `.
+			command = `compose -p ${quote([appName])} -f ${quote([path])} pull && docker compose -p ${quote([appName])} -f ${quote([path])} up -d --no-build --remove-orphans`;
 		} else {
 			command = `compose -p ${quote([appName])} -f ${quote([path])} up -d --build --remove-orphans`;
 		}
