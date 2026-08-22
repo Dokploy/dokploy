@@ -195,7 +195,19 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
-			const updated = await updateCompose(input.composeId, input);
+
+			if (input.buildServerId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.buildServerId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this build server",
+					});
+				}
+			}
+
+			const { composeId, ...rest } = input;
+			const updated = await updateCompose(composeId, rest);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
@@ -291,7 +303,10 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await clearOldDeployments(compose.appName, compose.serverId);
+			await clearOldDeployments(
+				compose.appName,
+				compose.buildServerId || compose.serverId,
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
@@ -307,7 +322,10 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await killDockerBuild("compose", compose.serverId);
+			await killDockerBuild(
+				"compose",
+				compose.buildServerId || compose.serverId,
+			);
 		}),
 
 	loadServices: protectedProcedure
