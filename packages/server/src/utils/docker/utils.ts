@@ -4,7 +4,6 @@ import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
-import { parse } from "dotenv";
 import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 import type { LibsqlNested } from "../databases/libsql";
@@ -16,6 +15,7 @@ import type { RedisNested } from "../databases/redis";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { parseEnvVariables } from "./env-parser";
 
 interface RegistryAuth {
 	username: string;
@@ -468,9 +468,9 @@ export const prepareEnvironmentVariables = (
 			);
 		}
 	}
-	const projectVars = parse(projectEnv ?? "");
-	const environmentVars = parse(environmentEnv ?? "");
-	const serviceVars = parse(serviceEnv ?? "");
+	const projectVars = parseEnvVariables(projectEnv ?? "");
+	const environmentVars = parseEnvVariables(environmentEnv ?? "");
+	const serviceVars = parseEnvVariables(serviceEnv ?? "");
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
