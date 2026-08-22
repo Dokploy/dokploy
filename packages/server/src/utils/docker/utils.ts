@@ -548,7 +548,16 @@ export const prepareEnvironmentVariablesForFile = (
 		const escapedValue = value
 			.replace(/\\/g, "\\\\")
 			.replace(/"/g, '\\"')
-			.replace(/\$/g, "\\$");
+			.replace(/\$/g, (match, offset: number, source: string) => {
+				const suffix = source.slice(offset + 1);
+				const isVariableReference =
+					source[offset - 1] !== "$" &&
+					(/^\{[A-Za-z_][A-Za-z0-9_]*(?:(?::[-+?]|[-+?])[^}]*)?\}/.test(
+						suffix,
+					) ||
+						/^[A-Za-z_][A-Za-z0-9_]*/.test(suffix));
+				return isVariableReference ? match : `\\${match}`;
+			});
 		return `${key}="${escapedValue}"`;
 	});
 };
