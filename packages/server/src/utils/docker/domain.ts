@@ -317,12 +317,13 @@ export const addDomainToCompose = async (
 				);
 			}
 		}
+	}
 
-		if (!compose.isolatedDeployment) {
-			// Add the dokploy-network to the service
-			result.services[serviceName].networks = addDokployNetworkToService(
-				result.services[serviceName].networks,
-			);
+	if (!compose.isolatedDeployment) {
+		for (const service of Object.values(result.services ?? {})) {
+			if (!service.network_mode) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
 		}
 	}
 
