@@ -1,10 +1,12 @@
 import type { Compose, ComposeSpecification } from "@dokploy/server";
 import {
+	addDomainToCompose,
 	applyServiceNetworks,
 	declareUsedNetworksInRoot,
 	resolveServiceNetworks,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import type { Domain } from "@dokploy/server/services/domain";
 import { beforeEach, expect, test, type vi } from "vitest";
 import { parse } from "yaml";
 
@@ -23,6 +25,77 @@ const baseCompose = {
 const withServiceNetworks = (
 	serviceNetworks: Compose["serviceNetworks"],
 ): Compose => ({ ...baseCompose, serviceNetworks });
+
+test("addDomainToCompose: attaches every compose service to dokploy-network by default", async () => {
+	const compose = {
+		...baseCompose,
+		appName: "test-app",
+		composeType: "docker-compose",
+		sourceType: "raw",
+		randomize: false,
+		suffix: "",
+		serviceNetworks: [],
+		composeFile: `
+services:
+  api:
+    image: example/app:latest
+  worker:
+    image: example/app:latest
+  cache:
+    image: redis:7
+`,
+	} as unknown as Compose;
+
+	const result = await addDomainToCompose(compose, [
+		{
+			host: "app.example.com",
+			serviceName: "api",
+			port: 3000,
+			https: false,
+			enabled: true,
+			uniqueConfigKey: 1,
+		} as Domain,
+	]);
+
+	for (const serviceName of ["api", "worker", "cache"]) {
+		expect(result?.services?.[serviceName]?.networks).toContain(
+			"dokploy-network",
+		);
+	}
+	expect(result?.networks).toHaveProperty("dokploy-network", {
+		external: true,
+	});
+});
+
+test("addDomainToCompose: preserves an explicit per-service detachment", async () => {
+	const compose = {
+		...baseCompose,
+		appName: "test-app",
+		composeType: "docker-compose",
+		sourceType: "raw",
+		randomize: false,
+		suffix: "",
+		serviceNetworks: [
+			{
+				serviceName: "worker",
+				networkIds: [],
+				detachDokployNetwork: true,
+			},
+		],
+		composeFile: `
+services:
+  api:
+    image: example/app:latest
+  worker:
+    image: example/app:latest
+`,
+	} as unknown as Compose;
+
+	const result = await addDomainToCompose(compose, []);
+
+	expect(result?.services?.api?.networks).toContain("dokploy-network");
+	expect(result?.services?.worker?.networks).not.toContain("dokploy-network");
+});
 
 test("applyServiceNetworks: no-op when serviceNetworks is empty", async () => {
 	const result = parse(`
