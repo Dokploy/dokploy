@@ -763,6 +763,24 @@ export const generateFileMounts = (
 		});
 };
 
+// File Mounts are supposed to be sandboxed to the app's own "files" directory.
+// filePath comes straight from user input (the mount schema has no format
+// constraint on it), so without this check a value like "../../etc/cron.d/x"
+// would let mkdir/write/rm below operate anywhere the Dokploy process can
+// reach on the host.
+const assertPathIsContained = (outputPath: string, fullPath: string) => {
+	const resolvedBase = path.resolve(outputPath);
+	const resolvedFull = path.resolve(fullPath);
+	if (
+		resolvedFull !== resolvedBase &&
+		!resolvedFull.startsWith(`${resolvedBase}${path.sep}`)
+	) {
+		throw new Error(
+			`Invalid file mount path: "${fullPath}" resolves outside of "${outputPath}"`,
+		);
+	}
+};
+
 export const createFile = async (
 	outputPath: string,
 	filePath: string,
@@ -770,6 +788,7 @@ export const createFile = async (
 ) => {
 	try {
 		const fullPath = path.join(outputPath, filePath);
+		assertPathIsContained(outputPath, fullPath);
 		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
@@ -777,6 +796,19 @@ export const createFile = async (
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+
+		// A previous deploy may have left an empty directory at fullPath (e.g. Docker's
+		// bind-mount fallback creating one when the source didn't exist yet). Only clear
+		// it if it's actually empty — a directory that already holds data is left alone,
+		// and fs.writeFileSync below will fail loudly (EISDIR) rather than destroy it.
+		if (
+			fs.existsSync(fullPath) &&
+			fs.statSync(fullPath).isDirectory() &&
+			fs.readdirSync(fullPath).length === 0
+		) {
+			fs.rmdirSync(fullPath);
+		}
+
 		fs.writeFileSync(fullPath, content || "");
 	} catch (error) {
 		throw error;
@@ -791,6 +823,7 @@ export const getCreateFileCommand = (
 	content: string,
 ) => {
 	const fullPath = path.join(outputPath, filePath);
+	assertPathIsContained(outputPath, fullPath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 		return `mkdir -p ${quote([fullPath])};`;
 	}
@@ -799,6 +832,7 @@ export const getCreateFileCommand = (
 	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${quote([directory])};
+		rmdir ${quote([fullPath])} 2>/dev/null || true;
 		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
