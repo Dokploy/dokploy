@@ -265,6 +265,7 @@ export const deploymentRouter = createTRPCRouter({
 
 			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
 			const serverId =
+				deployment.buildServerId ||
 				deployment.serverId ||
 				deployment.schedule?.serverId ||
 				deployment.application?.serverId ||
