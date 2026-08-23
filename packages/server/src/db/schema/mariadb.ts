@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { bigint, integer, json, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	bigint,
+	boolean,
+	integer,
+	json,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -33,6 +40,7 @@ import {
 	APP_NAME_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
+	encryptedText,
 	generateAppName,
 } from "./utils";
 
@@ -54,7 +62,7 @@ export const mariadb = pgTable("mariadb", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
-	env: text("env"),
+	env: encryptedText("env"),
 	// RESOURCES
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -88,6 +96,10 @@ export const mariadb = pgTable("mariadb", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
+	detachDokployNetwork: boolean("detachDokployNetwork")
+		.notNull()
+		.default(false),
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
@@ -149,6 +161,8 @@ const createSchema = createInsertSchema(mariadb, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
+	detachDokployNetwork: z.boolean().optional(),
 });
 
 export const apiCreateMariaDB = createSchema.pick({

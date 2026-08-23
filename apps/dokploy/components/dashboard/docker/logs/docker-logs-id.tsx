@@ -23,7 +23,13 @@ interface Props {
 	containerId: string;
 	serverId?: string | null;
 	runType: "swarm" | "native";
+	serviceId?: string;
 }
+
+// Sentinel the container-picker views fall back to before a real container
+// is selected/auto-selected — querying logs for it just surfaces Docker's
+// raw "No such container: select-a-container" daemon error.
+const PLACEHOLDER_CONTAINER_ID = "select-a-container";
 
 export const priorities = [
 	{
@@ -52,14 +58,18 @@ export const DockerLogsId: React.FC<Props> = ({
 	containerId,
 	serverId,
 	runType,
+	serviceId,
 }) => {
+	const hasContainer =
+		!!containerId && containerId !== PLACEHOLDER_CONTAINER_ID;
+
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
 			serverId: serverId ?? undefined,
 		},
 		{
-			enabled: !!containerId,
+			enabled: hasContainer,
 		},
 	);
 
@@ -132,7 +142,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	};
 
 	useEffect(() => {
-		if (!containerId) return;
+		if (!hasContainer) return;
 
 		let isCurrentConnection = true;
 		let noDataTimeout: NodeJS.Timeout;
@@ -155,6 +165,10 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		if (serverId) {
 			params.append("serverId", serverId);
+		}
+
+		if (serviceId) {
+			params.append("serviceId", serviceId);
 		}
 
 		const wsUrl = `${protocol}//${
@@ -222,7 +236,7 @@ export const DockerLogsId: React.FC<Props> = ({
 				ws.close();
 			}
 		};
-	}, [containerId, serverId, lines, search, since]);
+	}, [containerId, serverId, serviceId, lines, search, since]);
 
 	const handleDownload = () => {
 		const logContent = filteredLogs
@@ -347,11 +361,13 @@ export const DockerLogsId: React.FC<Props> = ({
 								title={isPaused ? "Resume logs" : "Pause logs"}
 							>
 								{isPaused ? (
-									<Play className="mr-2 h-4 w-4" />
+									<Play className="size-4" />
 								) : (
-									<Pause className="mr-2 h-4 w-4" />
+									<Pause className="size-4" />
 								)}
-								{isPaused ? "Resume" : "Pause"}
+								<span className="hidden lg:ml-2 lg:inline">
+									{isPaused ? "Resume" : "Pause"}
+								</span>
 							</Button>
 							<Button
 								variant="outline"
@@ -362,11 +378,13 @@ export const DockerLogsId: React.FC<Props> = ({
 								title="Copy logs to clipboard"
 							>
 								{copied ? (
-									<Check className="mr-2 h-4 w-4" />
+									<Check className="size-4" />
 								) : (
-									<Copy className="mr-2 h-4 w-4" />
+									<Copy className="size-4" />
 								)}
-								Copy
+								<span className="hidden lg:ml-2 lg:inline">
+									{copied ? "Copied" : "Copy"}
+								</span>
 							</Button>
 							<Button
 								variant="outline"
@@ -374,17 +392,18 @@ export const DockerLogsId: React.FC<Props> = ({
 								className="h-9 sm:w-auto w-full"
 								onClick={handleDownload}
 								disabled={filteredLogs.length === 0 || !data?.Name}
+								title="Download logs as text file"
 							>
-								<DownloadIcon className="mr-2 h-4 w-4" />
-								Download logs
+								<DownloadIcon className="size-4" />
+								<span className="hidden lg:ml-2 lg:inline">Download logs</span>
 							</Button>
 							<AnalyzeLogs logs={filteredLogs} context="runtime" />
 						</div>
 					</div>
 					{isPaused && (
-						<AlertBlock type="warning">
+						<AlertBlock type="warning" className="items-center">
 							<div className="flex items-center gap-2">
-								<Pause className="h-4 w-4" />
+								<Pause className="size-4" />
 								<span>
 									Logs paused
 									{messageBuffer.length > 0 && (
@@ -414,9 +433,14 @@ export const DockerLogsId: React.FC<Props> = ({
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								<Loader2 className="h-6 w-6 animate-spin" />
 							</div>
-						) : (
+						) : hasContainer ? (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								No logs found
+							</div>
+						) : (
+							<div className="flex justify-center items-center h-full text-center text-sm text-muted-foreground px-8">
+								Select a container above to view its logs. If none are listed,
+								make sure the service is deployed and running.
 							</div>
 						)}
 					</div>

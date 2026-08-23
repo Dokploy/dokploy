@@ -1,3 +1,4 @@
+import { formatMb } from "@dokploy/server/monitoring/units";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -227,7 +228,7 @@ export const ContainerFreeMonitoring = ({
 									String(currentData.cpu.value ?? "0%").replace("%", ""),
 									10,
 								)}
-								className="w-[100%]"
+								className="w-full"
 							/>
 							<DockerCpuChart accumulativeData={accumulativeData.cpu} />
 						</div>
@@ -250,7 +251,7 @@ export const ContainerFreeMonitoring = ({
 										convertMemoryToBytes(currentData.memory.value.total)) *
 									100
 								}
-								className="w-[100%]"
+								className="w-full"
 							/>
 							<DockerMemoryChart
 								accumulativeData={accumulativeData.memory}
@@ -275,7 +276,7 @@ export const ContainerFreeMonitoring = ({
 								</span>
 								<Progress
 									value={currentData.disk.value.diskUsedPercentage}
-									className="w-[100%]"
+									className="w-full"
 								/>
 								<DockerDiskChart
 									accumulativeData={accumulativeData.disk}
@@ -305,7 +306,7 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`Read:  ${currentData.block.value.readMb}  / Write: ${currentData.block.value.writeMb} `}
+								{`Read: ${formatMb(currentData.block.value.readMb)} / Write: ${formatMb(currentData.block.value.writeMb)}`}
 							</span>
 							<DockerBlockChart accumulativeData={accumulativeData.block} />
 						</div>
@@ -318,7 +319,7 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`In MB: ${currentData.network.value.inputMb}  / Out MB: ${currentData.network.value.outputMb} `}
+								{`In: ${formatMb(currentData.network.value.inputMb)} / Out: ${formatMb(currentData.network.value.outputMb)}`}
 							</span>
 							<DockerNetworkChart accumulativeData={accumulativeData.network} />
 						</div>

@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { bigint, integer, json, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	bigint,
+	boolean,
+	integer,
+	json,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -27,7 +34,12 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	encryptedText,
+	generateAppName,
+} from "./utils";
 
 export const redis = pgTable("redis", {
 	redisId: text("redisId")
@@ -44,7 +56,7 @@ export const redis = pgTable("redis", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
-	env: text("env"),
+	env: encryptedText("env"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -76,6 +88,10 @@ export const redis = pgTable("redis", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	networkIds: text("networkIds").array().default([]),
+	detachDokployNetwork: boolean("detachDokployNetwork")
+		.notNull()
+		.default(false),
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
@@ -126,6 +142,8 @@ const createSchema = createInsertSchema(redis, {
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
+	detachDokployNetwork: z.boolean().optional(),
 });
 
 export const apiCreateRedis = createSchema.pick({

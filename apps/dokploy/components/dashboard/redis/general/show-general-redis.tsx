@@ -1,5 +1,5 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -21,6 +21,8 @@ interface Props {
 }
 
 export const ShowGeneralRedis = ({ redisId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.redis.one.useQuery(
 		{
 			redisId,
@@ -28,12 +30,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 		{ enabled: !!redisId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.redis.reload.useMutation();
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.redis.start.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.redis.stop.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -72,176 +74,162 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
-							<DialogAction
-								title="Deploy Redis"
-								description="Are you sure you want to deploy this redis?"
-								type="default"
-								onClick={async () => {
-									setIsDeploying(true);
-									await new Promise((resolve) => setTimeout(resolve, 1000));
-									refetch();
-								}}
-							>
-								<Button
-									variant="default"
-									isLoading={data?.applicationStatus === "running"}
-									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-								>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<div className="flex items-center">
-												<Rocket className="size-4 mr-1" />
-												Deploy
-											</div>
-										</TooltipTrigger>
-										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Downloads and sets up the Redis database</p>
-											</TooltipContent>
-										</TooltipPrimitive.Portal>
-									</Tooltip>
-								</Button>
-							</DialogAction>
-							<DialogAction
-								title="Reload Redis"
-								description="Are you sure you want to reload this redis?"
-								type="default"
-								onClick={async () => {
-									await reload({
-										redisId: redisId,
-										appName: data?.appName || "",
-									})
-										.then(() => {
-											toast.success("Redis reloaded successfully");
-											refetch();
-										})
-										.catch(() => {
-											toast.error("Error reloading Redis");
-										});
-								}}
-							>
-								<Button
-									variant="secondary"
-									isLoading={isReloading}
-									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-								>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<div className="flex items-center">
-												<RefreshCcw className="size-4 mr-1" />
-												Reload
-											</div>
-										</TooltipTrigger>
-										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Restart the Redis service without rebuilding</p>
-											</TooltipContent>
-										</TooltipPrimitive.Portal>
-									</Tooltip>
-								</Button>
-							</DialogAction>
-							{data?.applicationStatus === "idle" ||
-							data?.applicationStatus === "paused" ? (
+							{canDeploy && (
 								<DialogAction
-									title={
-										data?.applicationStatus === "paused"
-											? "Resume Redis"
-											: "Start Redis"
-									}
-									description={
-										data?.applicationStatus === "paused"
-											? "Are you sure you want to resume this redis?"
-											: "Are you sure you want to start this redis?"
-									}
+									title="Deploy Redis"
+									description="Are you sure you want to deploy this redis?"
 									type="default"
 									onClick={async () => {
-										await start({
-											redisId: redisId,
-										})
-											.then(() => {
-												toast.success(
-													data?.applicationStatus === "paused"
-														? "Redis resumed successfully"
-														: "Redis started successfully",
-												);
-												refetch();
-											})
-											.catch(() => {
-												toast.error(
-													data?.applicationStatus === "paused"
-														? "Error resuming Redis"
-														: "Error starting Redis",
-												);
-											});
+										setIsDeploying(true);
+										await new Promise((resolve) => setTimeout(resolve, 1000));
+										refetch();
 									}}
 								>
 									<Button
-										variant="secondary"
-										isLoading={isStarting}
+										variant="default"
+										isLoading={data?.applicationStatus === "running"}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
-													<CheckCircle2 className="size-4 mr-1" />
-													{data?.applicationStatus === "paused"
-														? "Resume"
-														: "Start"}
+													<Rocket className="size-4 mr-1" />
+													Deploy
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>
-														{data?.applicationStatus === "paused"
-															? "Resume the paused Redis database with its original configuration"
-															: "Start the Redis database (requires a previous successful setup)"}
-													</p>
-												</TooltipContent>
-											</TooltipPrimitive.Portal>
-										</Tooltip>
-									</Button>
-								</DialogAction>
-							) : (
-								<DialogAction
-									title="Pause Redis"
-									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
-									onClick={async () => {
-										await stop({
-											redisId: redisId,
-										})
-											.then(() => {
-												toast.success("Redis paused successfully");
-												refetch();
-											})
-											.catch(() => {
-												toast.error("Error pausing Redis");
-											});
-									}}
-								>
-									<Button
-										variant="warning"
-										isLoading={isStopping}
-										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-									>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<div className="flex items-center">
-													<Ban className="size-4 mr-1" />
-													Pause
-												</div>
-											</TooltipTrigger>
-											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Pause the Redis database (can be resumed later)</p>
+												<TooltipContent sideOffset={5} className="z-60">
+													<p>Downloads and sets up the Redis database</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
 									</Button>
 								</DialogAction>
 							)}
+							{canDeploy && (
+								<DialogAction
+									title="Reload Redis"
+									description="Are you sure you want to reload this redis?"
+									type="default"
+									onClick={async () => {
+										await reload({
+											redisId: redisId,
+											appName: data?.appName || "",
+										})
+											.then(() => {
+												toast.success("Redis reloaded successfully");
+												refetch();
+											})
+											.catch(() => {
+												toast.error("Error reloading Redis");
+											});
+									}}
+								>
+									<Button
+										variant="secondary"
+										isLoading={isReloading}
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="flex items-center">
+													<RefreshCcw className="size-4 mr-1" />
+													Reload
+												</div>
+											</TooltipTrigger>
+											<TooltipPrimitive.Portal>
+												<TooltipContent sideOffset={5} className="z-60">
+													<p>Restart the Redis service without rebuilding</p>
+												</TooltipContent>
+											</TooltipPrimitive.Portal>
+										</Tooltip>
+									</Button>
+								</DialogAction>
+							)}
+							{canDeploy &&
+								(data?.applicationStatus === "idle" ? (
+									<DialogAction
+										title="Start Redis"
+										description="Are you sure you want to start this redis?"
+										type="default"
+										onClick={async () => {
+											await start({
+												redisId: redisId,
+											})
+												.then(() => {
+													toast.success("Redis started successfully");
+													refetch();
+												})
+												.catch(() => {
+													toast.error("Error starting Redis");
+												});
+										}}
+									>
+										<Button
+											variant="secondary"
+											isLoading={isStarting}
+											className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+										>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div className="flex items-center">
+														<CheckCircle2 className="size-4 mr-1" />
+														Start
+													</div>
+												</TooltipTrigger>
+												<TooltipPrimitive.Portal>
+													<TooltipContent sideOffset={5} className="z-60">
+														<p>
+															Start the Redis database (requires a previous
+															successful setup)
+														</p>
+													</TooltipContent>
+												</TooltipPrimitive.Portal>
+											</Tooltip>
+										</Button>
+									</DialogAction>
+								) : (
+									<DialogAction
+										title="Stop Redis"
+										description="Are you sure you want to stop this redis?"
+										onClick={async () => {
+											await stop({
+												redisId: redisId,
+											})
+												.then(() => {
+													toast.success("Redis stopped successfully");
+													refetch();
+												})
+												.catch(() => {
+													toast.error("Error stopping Redis");
+												});
+										}}
+									>
+										<Button
+											variant="destructive"
+											isLoading={isStopping}
+											className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+										>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div className="flex items-center">
+														<Ban className="size-4 mr-1" />
+														Stop
+													</div>
+												</TooltipTrigger>
+												<TooltipPrimitive.Portal>
+													<TooltipContent sideOffset={5} className="z-60">
+														<p>Stop the currently running Redis database</p>
+													</TooltipContent>
+												</TooltipPrimitive.Portal>
+											</Tooltip>
+										</Button>
+									</DialogAction>
+								))}
 						</TooltipProvider>
 						<DockerTerminalModal
 							appName={data?.appName || ""}
+							serviceId={data?.redisId}
 							serverId={data?.serverId || ""}
 						>
 							<Button
@@ -256,7 +244,7 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
+										<TooltipContent sideOffset={5} className="z-60">
 											<p>Open a terminal to the Redis container</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>

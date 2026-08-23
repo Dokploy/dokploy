@@ -1,0 +1,1 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "enforceSSO" boolean DEFAULT false NOT NULL;

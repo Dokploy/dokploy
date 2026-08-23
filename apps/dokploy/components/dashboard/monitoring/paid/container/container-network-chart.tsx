@@ -122,7 +122,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 								if (active && payload && payload.length) {
 									const data = payload?.[0]?.payload;
 									return (
-										<div className="rounded-lg border bg-background p-2 shadow-sm">
+										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
@@ -161,6 +161,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							name="Input"
 							dataKey="input"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillInput)"
 							stroke="hsl(var(--chart-3))"
 							strokeWidth={2}
@@ -169,6 +170,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							name="Output"
 							dataKey="output"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillOutput)"
 							stroke="hsl(var(--chart-4))"
 							strokeWidth={2}

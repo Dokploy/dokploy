@@ -13,6 +13,15 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 
 /**
+ * Log a webhook handler error server-side without leaking its shape to the HTTP
+ * response. Drizzle errors carry the raw SQL query, column list and parameters,
+ * so we never forward the error object to the client.
+ */
+export const logWebhookError = (context: string, error: unknown) => {
+	console.error(context, error);
+};
+
+/**
  * Helper function to get package_version from registry_package events
  */
 const getPackageVersion = (headers: any, body: any) => {
@@ -110,9 +119,11 @@ export default async function handler(
 			}
 			// If webhook doesn't provide image info, we'll use the configured image (old behavior)
 		} else if (sourceType === "github") {
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -141,21 +152,29 @@ export default async function handler(
 			let normalizedCommits: string[] = [];
 
 			if (provider === "github") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "gitlab") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "gitea") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "soft-serve") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			}
 
 			const shouldDeployPaths = shouldDeploy(
@@ -170,9 +189,11 @@ export default async function handler(
 		} else if (sourceType === "gitlab") {
 			const branchName = extractBranchName(req.headers, req.body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -216,9 +237,11 @@ export default async function handler(
 		} else if (sourceType === "gitea") {
 			const branchName = extractBranchName(req.headers, req.body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -262,14 +285,15 @@ export default async function handler(
 				);
 			}
 		} catch (error) {
-			res.status(400).json({ message: "Error deploying Application", error });
+			logWebhookError("Error deploying Application:", error);
+			res.status(400).json({ message: "Error deploying Application" });
 			return;
 		}
 
 		res.status(200).json({ message: "Application deployed successfully" });
 	} catch (error) {
-		console.log(error);
-		res.status(400).json({ message: "Error deploying Application", error });
+		logWebhookError("Error deploying Application:", error);
+		res.status(400).json({ message: "Error deploying Application" });
 	}
 }
 

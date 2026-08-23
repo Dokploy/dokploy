@@ -43,6 +43,38 @@ export const updateGitProvider = async (
 		.then((response) => response[0]);
 };
 
+// Returns true if the user can edit the git source configuration of an existing
+// deploy that is connected to the given provider.
+// Owner/admin: always yes.
+// Member: only if they own the provider or it's shared with the org.
+// Being in accessedGitProviders only grants permission to connect NEW deploys,
+// not to modify the git config of an existing deploy owned by someone else.
+export const canEditDeployGitSource = async (
+	gitProviderId: string,
+	session: { userId: string; activeOrganizationId: string },
+): Promise<boolean> => {
+	const { userId, activeOrganizationId } = session;
+
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, userId),
+			eq(member.organizationId, activeOrganizationId),
+		),
+		columns: { role: true },
+	});
+
+	if (memberRecord?.role === "owner") return true;
+
+	const provider = await db.query.gitProvider.findFirst({
+		where: eq(gitProvider.gitProviderId, gitProviderId),
+		columns: { userId: true, sharedWithOrganization: true },
+	});
+
+	if (!provider) return false;
+
+	return provider.userId === userId || provider.sharedWithOrganization;
+};
+
 export const getAccessibleGitProviderIds = async (session: {
 	userId: string;
 	activeOrganizationId: string;
@@ -86,4 +118,31 @@ export const getAccessibleGitProviderIds = async (session: {
 		}
 	}
 	return result;
+};
+
+/**
+ * Authorizes read access to a specific git provider for the current session.
+ * Throws if the provider belongs to a different organization (cross-org IDOR)
+ * or if the caller is not entitled to it within the active organization.
+ * Must be called before returning any git-provider record that carries secrets
+ * (OAuth tokens, app private keys, webhook secrets).
+ */
+export const assertGitProviderAccess = async (
+	session: { userId: string; activeOrganizationId: string },
+	provider: { gitProviderId: string; organizationId: string },
+) => {
+	if (provider.organizationId !== session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Git provider not found",
+		});
+	}
+
+	const accessibleIds = await getAccessibleGitProviderIds(session);
+	if (!accessibleIds.has(provider.gitProviderId)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You don't have access to this git provider",
+		});
+	}
 };

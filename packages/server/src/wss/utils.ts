@@ -40,6 +40,10 @@ export const readValidDirectory = (
 	directory: string,
 	serverId?: string | null,
 ) => {
+	if (!/^[\w/. :[\]-]{1,500}$/.test(directory)) {
+		return false;
+	}
+
 	const { BASE_PATH } = paths(!!serverId);
 
 	const resolvedBase = path.resolve(BASE_PATH);

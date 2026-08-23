@@ -142,7 +142,9 @@ export const findDomainById = async (domainId: string) => {
 	const domain = await db.query.domains.findFirst({
 		where: eq(domains.domainId, domainId),
 		with: {
-			application: true,
+			application: {
+				columns: { applicationId: true, appName: true, name: true },
+			},
 		},
 	});
 	if (!domain) {
@@ -158,7 +160,9 @@ export const findDomainsByApplicationId = async (applicationId: string) => {
 	const domainsArray = await db.query.domains.findMany({
 		where: eq(domains.applicationId, applicationId),
 		with: {
-			application: true,
+			application: {
+				columns: { applicationId: true, appName: true, name: true },
+			},
 		},
 	});
 
@@ -169,7 +173,9 @@ export const findDomainsByComposeId = async (composeId: string) => {
 	const domainsArray = await db.query.domains.findMany({
 		where: eq(domains.composeId, composeId),
 		with: {
-			compose: true,
+			compose: {
+				columns: { composeId: true, appName: true, name: true },
+			},
 		},
 	});
 

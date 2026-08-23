@@ -9,6 +9,7 @@ import {
 	validateRequest,
 } from "@dokploy/server";
 import { WebSocketServer } from "ws";
+import { canAccessDockerOverWss } from "./authorize";
 
 export const setupDockerStatsMonitoringSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -44,6 +45,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			| "application"
 			| "stack"
 			| "docker-compose";
+		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
 
 		if (!appName) {
@@ -53,6 +55,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 
 		if (!user || !session) {
 			ws.close();
+			return;
+		}
+
+		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
+			ws.close(4003, "Not authorized");
 			return;
 		}
 		const intervalId = setInterval(async () => {

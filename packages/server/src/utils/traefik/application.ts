@@ -3,6 +3,7 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
+import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { encodeBase64 } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -57,7 +58,7 @@ export const removeTraefikConfig = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const command = `rm -f ${configPath}`;
+		const command = `rm -f ${quote([configPath])}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
@@ -76,7 +77,7 @@ export const removeTraefikConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		await execAsyncRemote(serverId, `rm -f ${configPath}`);
+		await execAsyncRemote(serverId, `rm -f ${quote([configPath])}`);
 	} catch (error) {
 		console.error(
 			`Error removing remote traefik config for ${appName}:`,
@@ -106,7 +107,10 @@ export const loadOrCreateConfigRemote = async (
 	const fileConfig: FileConfig = { http: { routers: {}, services: {} } };
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	try {
-		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${quote([configPath])}`,
+		);
 
 		if (!stdout) return fileConfig;
 
@@ -133,7 +137,10 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	try {
-		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${quote([configPath])}`,
+		);
 		if (!stdout) return null;
 		return stdout;
 	} catch {
@@ -189,7 +196,10 @@ export const readConfigInPath = async (pathFile: string, serverId?: string) => {
 	const configPath = path.join(pathFile);
 
 	if (serverId) {
-		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${quote([configPath])}`,
+		);
 		if (!stdout) return null;
 		return stdout;
 	}
@@ -218,7 +228,11 @@ export const writeConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		await execAsyncRemote(serverId, `echo '${traefikConfig}' > ${configPath}`);
+		const encoded = encodeBase64(traefikConfig);
+		await execAsyncRemote(
+			serverId,
+			`echo "${encoded}" | base64 -d > ${quote([configPath])}`,
+		);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}
@@ -235,7 +249,7 @@ export const writeTraefikConfigInPath = async (
 			const encoded = encodeBase64(traefikConfig);
 			await execAsyncRemote(
 				serverId,
-				`echo "${encoded}" | base64 -d > "${configPath}"`,
+				`echo "${encoded}" | base64 -d > ${quote([configPath])}`,
 			);
 		} else {
 			fs.writeFileSync(configPath, traefikConfig, "utf8");
@@ -268,7 +282,11 @@ export const writeTraefikConfigRemote = async (
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		const yamlStr = stringify(traefikConfig);
-		await execAsyncRemote(serverId, `echo '${yamlStr}' > ${configPath}`);
+		const encoded = encodeBase64(yamlStr);
+		await execAsyncRemote(
+			serverId,
+			`echo "${encoded}" | base64 -d > ${quote([configPath])}`,
+		);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}

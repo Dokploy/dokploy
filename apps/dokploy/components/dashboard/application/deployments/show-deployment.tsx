@@ -148,7 +148,7 @@ export const ShowDeployment = ({
 					<DialogDescription className="flex items-center gap-2">
 						<span className="flex items-center gap-2">
 							See all the details of this deployment |{" "}
-							<Badge variant="blank" className="text-xs">
+							<Badge variant="blank" className="text-xs tabular-nums">
 								{filteredLogs.length} lines
 							</Badge>
 						</span>
@@ -191,7 +191,7 @@ export const ShowDeployment = ({
 				<div
 					ref={scrollRef}
 					onScroll={handleScroll}
-					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-background rounded custom-logs-scrollbar"
 				>
 					{" "}
 					{filteredLogs.length > 0 ? (

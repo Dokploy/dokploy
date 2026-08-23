@@ -62,7 +62,7 @@ const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:18",
-	redis: "redis:7",
+	redis: "redis:8",
 };
 
 const databasesUserDefaultPlaceholder: Record<
@@ -219,6 +219,9 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+	const showLocalOption = !isCloud && !webServerSettings?.remoteServersOnly;
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const libsqlMutation = api.libsql.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
@@ -409,7 +412,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 															/>
 															<Label
 																htmlFor={key}
-																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																{value.icon}
 																{value.label}
@@ -470,19 +473,20 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={
-														field.value || (!isCloud ? "dokploy" : undefined)
+														field.value ||
+														(showLocalOption ? "dokploy" : undefined)
 													}
 												>
 													<SelectTrigger>
 														<SelectValue
 															placeholder={
-																!isCloud ? "Dokploy" : "Select a Server"
+																showLocalOption ? "Dokploy" : "Select a Server"
 															}
 														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															{!isCloud && (
+															{showLocalOption && (
 																<SelectItem value="dokploy">
 																	<span className="flex items-center gap-2 justify-between w-full">
 																		<span>Dokploy</span>
@@ -501,7 +505,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length + (!isCloud ? 1 : 0)})
+																Servers (
+																{servers?.length + (showLocalOption ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>
@@ -632,7 +637,6 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										control={form.control}
 										name="enableNamespaces"
 										render={({ field }) => {
-											console.log(field.value);
 											return (
 												<FormItem>
 													<FormLabel>Enable Namespaces</FormLabel>
@@ -761,7 +765,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="replicaSets"
 										render={({ field }) => {
 											return (
-												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Use Replica Sets</FormLabel>
 													</div>

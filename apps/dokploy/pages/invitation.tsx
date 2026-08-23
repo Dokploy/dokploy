@@ -21,6 +21,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
@@ -139,6 +140,9 @@ const Invitation = ({
 			});
 
 			toast.success("Account created successfully");
+			if (isCloud) {
+				pushToDataLayer("sign_up", { method: "invitation" });
+			}
 			router.push("/dashboard/home");
 		} catch {
 			toast.error("An error occurred while creating your account");
@@ -333,7 +337,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	// if (IS_CLOUD) {
 	// 	return {
 	// 		redirect: {
-	// 			permanent: true,
+	// 			permanent: false,
 	// 			destination: "/",
 	// 		},
 	// 	};
@@ -342,7 +346,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (typeof token !== "string") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -365,7 +369,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		if (invitation.isExpired) {
 			return {
 				redirect: {
-					permanent: true,
+					permanent: false,
 					destination: "/",
 				},
 			};
@@ -382,7 +386,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		console.log("error", error);
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

@@ -106,6 +106,21 @@ export const serverSetup = async (
 	}
 };
 
+export const reportDockerVersion = () => `
+if command -v docker >/dev/null 2>&1; then
+	INSTALLED_DOCKER_VERSION=$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)
+	if [ -z "$INSTALLED_DOCKER_VERSION" ]; then
+		INSTALLED_DOCKER_VERSION=$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || true)
+	fi
+	if [ -z "$INSTALLED_DOCKER_VERSION" ]; then
+		INSTALLED_DOCKER_VERSION="unknown"
+	fi
+	DOCKER_VERSION_REPORT="$INSTALLED_DOCKER_VERSION (already installed)"
+else
+	DOCKER_VERSION_REPORT="$DOCKER_VERSION (will be installed)"
+fi
+`;
+
 export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
 set -e;
@@ -162,6 +177,17 @@ else
 	OS_VERSION=$(grep -w "VERSION_ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 fi
 
+# Ubuntu 26.04 (resolute) ships a docker-ce repo that has no 28.5.0, so the
+# default pin is absent from apt-cache madison and get.docker.com aborts before
+# installing Docker. Repin to a version present on every architecture Docker
+# ships resolute for: amd64/arm64/armhf start at 29.3.1, but s390x only carries
+# 29.4.0-29.4.2, so 29.4.2 is the newest version common to all of them. This
+# must run after OS_VERSION is resolved and before the banner so the reported
+# Docker version stays accurate.
+if [ "$OS_TYPE" = "ubuntu" ] && [ "$OS_VERSION" = "26.04" ]; then
+	DOCKER_VERSION=29.4.2
+fi
+
 if [ "$OS_TYPE" = 'amzn' ]; then
     $SUDO_CMD dnf install -y findutils >/dev/null
 fi
@@ -174,10 +200,11 @@ arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles |
 	;;
 esac
 
+${reportDockerVersion()}
 echo -e "---------------------------------------------"
 echo "| CPU Architecture  | $SYS_ARCH"
 echo "| Operating System  | $OS_TYPE $OS_VERSION"
-echo "| Docker            | $DOCKER_VERSION"
+echo "| Docker            | $DOCKER_VERSION_REPORT"
 ${isBuildServer ? 'echo "| Server Type       | Build Server"' : ""}
 echo -e "---------------------------------------------\n"
 echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
@@ -466,7 +493,7 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		$SUDO_CMD pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
+		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
 		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories

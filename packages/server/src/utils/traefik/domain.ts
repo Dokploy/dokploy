@@ -10,16 +10,25 @@ import {
 	writeTraefikConfigRemote,
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
-import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 import {
-	isWildcardDomain,
-	getCertificateType,
-	generateResolverName,
-	canUseHttpChallenge,
-} from "../../utils/wildcard-domain";
+	createForwardAuthMiddleware,
+	forwardAuthMiddlewareName,
+	removeForwardAuthMiddleware,
+} from "./forward-auth";
+import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+import { isWildcardDomain } from "../../utils/wildcard-domain";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
+
+	// A disabled domain keeps its configuration in the database but must never
+	// expose a traefik router. Guarding here covers every caller (create, update,
+	// forward-auth, toggle) so a disabled domain can't be revived from any path.
+	if (!domain.enabled) {
+		await removeDomain(app, domain.uniqueConfigKey);
+		return;
+	}
+
 	let config: FileConfig;
 
 	if (app.serverId) {
@@ -54,6 +63,10 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
 
 	await createPathMiddlewares(app, domain);
+	// SSO forward-auth: writes the per-app forwardAuth + errors middlewares (the
+	// /oauth2/* router lives on the central auth domain, not here). No-op unless
+	// the domain links a provider and the org has an auth domain configured.
+	await createForwardAuthMiddleware(app, domain);
 
 	if (app.serverId) {
 		await writeTraefikConfigRemote(config, appName, app.serverId);
@@ -90,6 +103,7 @@ export const removeDomain = async (
 	}
 
 	await removePathMiddlewares(application, uniqueKey);
+	await removeForwardAuthMiddleware(application, uniqueKey);
 
 	// verify if is the last router if so we delete the router
 	if (
@@ -118,19 +132,20 @@ export const createRouterConfig = async (
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
-		domain;
+	const {
+		host,
+		path,
+		https,
+		uniqueConfigKey,
+		internalPath,
+		stripPath,
+		customEntrypoint,
+	} = domain;
 
-	// Check if this is a wildcard domain
 	const isWildcard = isWildcardDomain(host);
-	const certType = getCertificateType(host);
-
-	// Adjust the rule for wildcard domains
-	let hostRule = `Host(\`${host}\`)`;
-	if (isWildcard) {
-		// For wildcard domains, we need to use a more specific rule
-		hostRule = `HostRegexp(\`${host.replace("*.", "{subdomain:[a-zA-Z0-9-]+}.")}\`)`;
-	}
+	const hostRule = isWildcard
+		? `HostRegexp(\`${host.replace("*.", "{subdomain:[a-zA-Z0-9-]+}.")}\`)`
+		: `Host(\`${toPunycode(host)}\`)`;
 
 	const routerConfig: HttpRouter = {
 		rule: `${hostRule}${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
@@ -139,25 +154,21 @@ export const createRouterConfig = async (
 		entryPoints: [entryPoint],
 	};
 
-	if (stripPath && path && path !== "/") {
-		const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(stripMiddleware);
-	}
+	const isRedirectRouter = entryPoint === "web" && https && !customEntrypoint;
 
-	// Add path rewriting middleware if needed
-	if (internalPath && internalPath !== "/" && internalPath !== path) {
-		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(pathMiddleware);
-	}
-
-	if (entryPoint === "web" && https) {
-		// Only add redirect if we can actually get certificates
-		if (canUseHttpChallenge(host) || certificateType === "custom") {
-			routerConfig.middlewares = ["redirect-to-https"];
+	if (isRedirectRouter) {
+		routerConfig.middlewares?.push("redirect-to-https");
+	} else {
+		if (stripPath && path && path !== "/") {
+			const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(stripMiddleware);
 		}
-	}
 
-	if ((entryPoint === "websecure" && https) || !https) {
+		if (internalPath && internalPath !== "/" && internalPath !== path) {
+			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(pathMiddleware);
+		}
+
 		// redirects
 		for (const redirect of redirects) {
 			let middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
@@ -181,20 +192,31 @@ export const createRouterConfig = async (
 			}
 			routerConfig.middlewares?.push(middlewareName);
 		}
+
+		// Enterprise SSO forward-auth gate. Placed before custom middlewares so
+		// authentication runs first. No-op unless the domain links a provider.
+		// The -errors middleware must come first so a 401 from the auth check is
+		// rewritten to a 302 redirect to the login page.
+		if (domain.forwardAuthEnabled) {
+			const name = forwardAuthMiddlewareName(appName, uniqueConfigKey);
+			routerConfig.middlewares?.push(`${name}-errors`);
+			routerConfig.middlewares?.push(name);
+		}
+
+		// custom middlewares from domain
+		if (domain.middlewares && domain.middlewares.length > 0) {
+			routerConfig.middlewares?.push(...domain.middlewares);
+		}
 	}
 
-	if (entryPoint === "websecure") {
+	if (entryPoint === "websecure" || (customEntrypoint && https)) {
 		if (certificateType === "letsencrypt") {
 			if (isWildcard) {
-				// For wildcard domains, we need to use DNS challenge resolver
-				// For now, we'll use a generic DNS resolver - this should be enhanced
-				// to select the appropriate DNS provider
 				routerConfig.tls = {
-					certResolver: "letsencrypt-dns-cloudflare-0", // Default to first cloudflare DNS resolver
-					domains: [{ main: host, sans: [] }]
+					certResolver: "letsencrypt-dns-cloudflare-0",
+					domains: [{ main: host, sans: [] }],
 				};
 			} else {
-				// For regular domains, use HTTP challenge
 				routerConfig.tls = { certResolver: "letsencrypt" };
 			}
 		} else if (certificateType === "custom" && domain.customCertResolver) {

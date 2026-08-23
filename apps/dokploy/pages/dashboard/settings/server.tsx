@@ -44,7 +44,7 @@ export async function getServerSideProps(
 	if (IS_CLOUD) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/dashboard/home",
 			},
 		};
@@ -53,7 +53,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -61,7 +61,7 @@ export async function getServerSideProps(
 	if (user.role === "member") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/dashboard/settings/profile",
 			},
 		};

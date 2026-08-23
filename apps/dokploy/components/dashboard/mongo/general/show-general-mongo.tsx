@@ -1,5 +1,5 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -21,6 +21,8 @@ interface Props {
 }
 
 export const ShowGeneralMongo = ({ mongoId }: Props) => {
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canDeploy = permissions?.deployment.create ?? false;
 	const { data, refetch } = api.mongo.one.useQuery(
 		{
 			mongoId,
@@ -28,13 +30,13 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 		{ enabled: !!mongoId },
 	);
 
-	const { mutateAsync: reload, isLoading: isReloading } =
+	const { mutateAsync: reload, isPending: isReloading } =
 		api.mongo.reload.useMutation();
 
-	const { mutateAsync: start, isLoading: isStarting } =
+	const { mutateAsync: start, isPending: isStarting } =
 		api.mongo.start.useMutation();
 
-	const { mutateAsync: stop, isLoading: isStopping } =
+	const { mutateAsync: stop, isPending: isStopping } =
 		api.mongo.stop.useMutation();
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -73,178 +75,162 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
-							<DialogAction
-								title="Deploy Mongo"
-								description="Are you sure you want to deploy this mongo?"
-								type="default"
-								onClick={async () => {
-									setIsDeploying(true);
-									await new Promise((resolve) => setTimeout(resolve, 1000));
-									refetch();
-								}}
-							>
-								<Button
-									variant="default"
-									isLoading={data?.applicationStatus === "running"}
-									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-								>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<div className="flex items-center">
-												<Rocket className="size-4 mr-1" />
-												Deploy
-											</div>
-										</TooltipTrigger>
-										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Downloads and sets up the MongoDB database</p>
-											</TooltipContent>
-										</TooltipPrimitive.Portal>
-									</Tooltip>
-								</Button>
-							</DialogAction>
-							<DialogAction
-								title="Reload Mongo"
-								description="Are you sure you want to reload this mongo?"
-								type="default"
-								onClick={async () => {
-									await reload({
-										mongoId: mongoId,
-										appName: data?.appName || "",
-									})
-										.then(() => {
-											toast.success("Mongo reloaded successfully");
-											refetch();
-										})
-										.catch(() => {
-											toast.error("Error reloading Mongo");
-										});
-								}}
-							>
-								<Button
-									variant="secondary"
-									isLoading={isReloading}
-									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-								>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<div className="flex items-center">
-												<RefreshCcw className="size-4 mr-1" />
-												Reload
-											</div>
-										</TooltipTrigger>
-										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Restart the MongoDB service without rebuilding</p>
-											</TooltipContent>
-										</TooltipPrimitive.Portal>
-									</Tooltip>
-								</Button>
-							</DialogAction>
-							{data?.applicationStatus === "idle" ||
-							data?.applicationStatus === "paused" ? (
+							{canDeploy && (
 								<DialogAction
-									title={
-										data?.applicationStatus === "paused"
-											? "Resume Mongo"
-											: "Start Mongo"
-									}
-									description={
-										data?.applicationStatus === "paused"
-											? "Are you sure you want to resume this mongo?"
-											: "Are you sure you want to start this mongo?"
-									}
+									title="Deploy Mongo"
+									description="Are you sure you want to deploy this mongo?"
 									type="default"
 									onClick={async () => {
-										await start({
-											mongoId: mongoId,
-										})
-											.then(() => {
-												toast.success(
-													data?.applicationStatus === "paused"
-														? "Mongo resumed successfully"
-														: "Mongo started successfully",
-												);
-												refetch();
-											})
-											.catch(() => {
-												toast.error(
-													data?.applicationStatus === "paused"
-														? "Error resuming Mongo"
-														: "Error starting Mongo",
-												);
-											});
+										setIsDeploying(true);
+										await new Promise((resolve) => setTimeout(resolve, 1000));
+										refetch();
 									}}
 								>
 									<Button
-										variant="secondary"
-										isLoading={isStarting}
+										variant="default"
+										isLoading={data?.applicationStatus === "running"}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
-													<CheckCircle2 className="size-4 mr-1" />
-													{data?.applicationStatus === "paused"
-														? "Resume"
-														: "Start"}
+													<Rocket className="size-4 mr-1" />
+													Deploy
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>
-														{data?.applicationStatus === "paused"
-															? "Resume the paused MongoDB database with its original configuration"
-															: "Start the MongoDB database (requires a previous successful setup)"}
-													</p>
-												</TooltipContent>
-											</TooltipPrimitive.Portal>
-										</Tooltip>
-									</Button>
-								</DialogAction>
-							) : (
-								<DialogAction
-									title="Pause Mongo"
-									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
-									onClick={async () => {
-										await stop({
-											mongoId: mongoId,
-										})
-											.then(() => {
-												toast.success("Mongo paused successfully");
-												refetch();
-											})
-											.catch(() => {
-												toast.error("Error pausing Mongo");
-											});
-									}}
-								>
-									<Button
-										variant="warning"
-										isLoading={isStopping}
-										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-									>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<div className="flex items-center">
-													<Ban className="size-4 mr-1" />
-													Pause
-												</div>
-											</TooltipTrigger>
-											<TooltipPrimitive.Portal>
-												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>
-														Pause the MongoDB database (can be resumed later)
-													</p>
+												<TooltipContent sideOffset={5} className="z-60">
+													<p>Downloads and sets up the MongoDB database</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
 									</Button>
 								</DialogAction>
 							)}
+							{canDeploy && (
+								<DialogAction
+									title="Reload Mongo"
+									description="Are you sure you want to reload this mongo?"
+									type="default"
+									onClick={async () => {
+										await reload({
+											mongoId: mongoId,
+											appName: data?.appName || "",
+										})
+											.then(() => {
+												toast.success("Mongo reloaded successfully");
+												refetch();
+											})
+											.catch(() => {
+												toast.error("Error reloading Mongo");
+											});
+									}}
+								>
+									<Button
+										variant="secondary"
+										isLoading={isReloading}
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="flex items-center">
+													<RefreshCcw className="size-4 mr-1" />
+													Reload
+												</div>
+											</TooltipTrigger>
+											<TooltipPrimitive.Portal>
+												<TooltipContent sideOffset={5} className="z-60">
+													<p>Restart the MongoDB service without rebuilding</p>
+												</TooltipContent>
+											</TooltipPrimitive.Portal>
+										</Tooltip>
+									</Button>
+								</DialogAction>
+							)}
+							{canDeploy &&
+								(data?.applicationStatus === "idle" ? (
+									<DialogAction
+										title="Start Mongo"
+										description="Are you sure you want to start this mongo?"
+										type="default"
+										onClick={async () => {
+											await start({
+												mongoId: mongoId,
+											})
+												.then(() => {
+													toast.success("Mongo started successfully");
+													refetch();
+												})
+												.catch(() => {
+													toast.error("Error starting Mongo");
+												});
+										}}
+									>
+										<Button
+											variant="secondary"
+											isLoading={isStarting}
+											className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+										>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div className="flex items-center">
+														<CheckCircle2 className="size-4 mr-1" />
+														Start
+													</div>
+												</TooltipTrigger>
+												<TooltipPrimitive.Portal>
+													<TooltipContent sideOffset={5} className="z-60">
+														<p>
+															Start the MongoDB database (requires a previous
+															successful setup)
+														</p>
+													</TooltipContent>
+												</TooltipPrimitive.Portal>
+											</Tooltip>
+										</Button>
+									</DialogAction>
+								) : (
+									<DialogAction
+										title="Stop Mongo"
+										description="Are you sure you want to stop this mongo?"
+										onClick={async () => {
+											await stop({
+												mongoId: mongoId,
+											})
+												.then(() => {
+													toast.success("Mongo stopped successfully");
+													refetch();
+												})
+												.catch(() => {
+													toast.error("Error stopping Mongo");
+												});
+										}}
+									>
+										<Button
+											variant="destructive"
+											isLoading={isStopping}
+											className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+										>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div className="flex items-center">
+														<Ban className="size-4 mr-1" />
+														Stop
+													</div>
+												</TooltipTrigger>
+												<TooltipPrimitive.Portal>
+													<TooltipContent sideOffset={5} className="z-60">
+														<p>Stop the currently running MongoDB database</p>
+													</TooltipContent>
+												</TooltipPrimitive.Portal>
+											</Tooltip>
+										</Button>
+									</DialogAction>
+								))}
 						</TooltipProvider>
 						<DockerTerminalModal
 							appName={data?.appName || ""}
+							serviceId={data?.mongoId}
 							serverId={data?.serverId || ""}
 						>
 							<Button
@@ -259,7 +245,7 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
+										<TooltipContent sideOffset={5} className="z-60">
 											<p>Open a terminal to the MongoDB container</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
