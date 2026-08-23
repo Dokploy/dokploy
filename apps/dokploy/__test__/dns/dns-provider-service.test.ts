@@ -11,9 +11,29 @@ vi.mock("@dokploy/server/db", () => ({
 
 import {
 	DNS_SECRET_MASK,
+	findDnsZoneForHost,
 	maskDnsProviderConfig,
 	mergeDnsProviderConfig,
 } from "@dokploy/server/services/dns-provider";
+
+describe("findDnsZoneForHost", () => {
+	const zones = [
+		{ id: "example", name: "example.com" },
+		{ id: "apps", name: "apps.example.com." },
+	];
+
+	it("selects the most specific matching zone", () => {
+		expect(findDnsZoneForHost(zones, "api.apps.example.com")).toEqual(zones[1]);
+	});
+
+	it("matches wildcard hosts and ignores a trailing dot", () => {
+		expect(findDnsZoneForHost(zones, "*.example.com.")).toEqual(zones[0]);
+	});
+
+	it("does not match a hostname with only a similar suffix", () => {
+		expect(findDnsZoneForHost(zones, "notexample.com")).toBeUndefined();
+	});
+});
 
 describe("maskDnsProviderConfig", () => {
 	it("masks the apiToken for a cloudflare config", () => {

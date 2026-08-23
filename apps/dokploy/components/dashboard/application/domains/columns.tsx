@@ -121,6 +121,18 @@ export const createColumns = ({
 		},
 	},
 	{
+		id: "dnsProvider",
+		header: "DNS Provider",
+		cell: ({ row }) => {
+			const provider = row.original.dnsProvider;
+			return provider ? (
+				<Badge variant="outline">{provider.name}</Badge>
+			) : (
+				<span className="text-muted-foreground">Manual</span>
+			);
+		},
+	},
+	{
 		accessorKey: "port",
 		header: ({ column }) => {
 			return (
@@ -306,6 +318,8 @@ export const createColumns = ({
 								https: domain.https,
 								path: domain.path || undefined,
 							}}
+							domainId={domain.domainId}
+							dnsProvider={domain.dnsProvider}
 							serverIp={serverIp}
 						/>
 					)}

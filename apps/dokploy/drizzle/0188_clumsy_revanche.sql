@@ -1,0 +1,2 @@
+ALTER TABLE "domain" ADD COLUMN "dnsProviderId" text;--> statement-breakpoint
+ALTER TABLE "domain" ADD CONSTRAINT "domain_dnsProviderId_dns_provider_dnsProviderId_fk" FOREIGN KEY ("dnsProviderId") REFERENCES "public"."dns_provider"("dnsProviderId") ON DELETE set null ON UPDATE no action;

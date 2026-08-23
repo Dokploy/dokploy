@@ -74,23 +74,17 @@ export const HandleDnsRecord = ({
 	const { data: servers } = api.server.all.useQuery(undefined, {
 		enabled: isOpen,
 	});
-	const { data: panelPublicIp } = api.server.publicIp.useQuery(undefined, {
+	const { data: panelPublicIpv4 } = api.server.publicIpv4.useQuery(undefined, {
 		enabled: isOpen,
 	});
-	const { data: panelStoredIp } = api.settings.getIp.useQuery(undefined, {
+	const { data: panelPublicIpv6 } = api.server.publicIpv6.useQuery(undefined, {
 		enabled: isOpen,
 	});
-
-	const panelIp = panelPublicIp || panelStoredIp;
-	const ipSuggestions = [
-		...(panelIp ? [{ ip: panelIp, label: "This Dokploy server" }] : []),
-		...(servers ?? []).map((server) => ({
-			ip: server.ipAddress,
-			label: server.name,
-		})),
-	].filter(
-		(suggestion, index, all) =>
-			!!suggestion.ip && all.findIndex((s) => s.ip === suggestion.ip) === index,
+	const { data: panelSettings } = api.settings.getWebServerSettings.useQuery(
+		undefined,
+		{
+			enabled: isOpen,
+		},
 	);
 
 	const form = useForm<DnsRecordForm>({
@@ -111,6 +105,20 @@ export const HandleDnsRecord = ({
 	});
 
 	const type = form.watch("type");
+	const panelIp =
+		type === "AAAA"
+			? panelPublicIpv6 || panelSettings?.serverIpv6
+			: panelPublicIpv4 || panelSettings?.serverIp;
+	const ipSuggestions = [
+		...(panelIp ? [{ ip: panelIp, label: "This Dokploy server" }] : []),
+		...(servers ?? []).map((server) => ({
+			ip: type === "AAAA" ? server.ipv6Address : server.ipAddress,
+			label: server.name,
+		})),
+	].filter(
+		(suggestion, index, all): suggestion is { ip: string; label: string } =>
+			!!suggestion.ip && all.findIndex((s) => s.ip === suggestion.ip) === index,
+	);
 
 	const onSubmit = async (data: DnsRecordForm) => {
 		const name = data.name.trim() === "@" ? zoneName : data.name;
@@ -203,7 +211,7 @@ export const HandleDnsRecord = ({
 								</FormItem>
 							)}
 						/>
-						{type === "A" && ipSuggestions.length > 0 && (
+						{(type === "A" || type === "AAAA") && ipSuggestions.length > 0 && (
 							<FormItem>
 								<FormLabel>Fill from server (optional)</FormLabel>
 								<Select

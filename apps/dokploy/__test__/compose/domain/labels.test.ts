@@ -14,6 +14,7 @@ describe("createDomainLabels", () => {
 		certificateType: "none",
 		applicationId: "",
 		composeId: "",
+		dnsProviderId: null,
 		domainType: "compose",
 		serviceName: "test-app",
 		domainId: "",

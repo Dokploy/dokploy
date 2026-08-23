@@ -24,6 +24,11 @@ interface AutoDnsResponse<T> {
 		text?: string;
 		type?: string;
 	};
+	messages?: {
+		code?: string;
+		text?: string;
+		status?: string;
+	}[];
 	object?: {
 		summary?: number;
 		data?: T;
@@ -142,7 +147,13 @@ const autoDnsFetch = async <T>(
 
 	const statusType = body.status?.type?.toUpperCase();
 	if (!response.ok || (statusType && statusType !== "SUCCESS")) {
-		const detail = body.status?.text || body.status?.code;
+		const detail =
+			body.messages
+				?.map(({ code, text }) => [code, text].filter(Boolean).join(": "))
+				.filter(Boolean)
+				.join("; ") ||
+			body.status?.text ||
+			body.status?.code;
 		throw new Error(
 			`AutoDNS: request to ${path} failed${detail ? `: ${detail}` : ` (status ${response.status})`}`,
 		);

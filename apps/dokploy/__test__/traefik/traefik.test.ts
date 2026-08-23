@@ -143,6 +143,7 @@ const baseDomain: Domain = {
 	customEntrypoint: null,
 	serviceName: "",
 	composeId: "",
+	dnsProviderId: null,
 	customCertResolver: null,
 	domainType: "application",
 	uniqueConfigKey: 1,

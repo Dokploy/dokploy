@@ -37,6 +37,7 @@ const baseDomain: Domain = {
 	certificateType: "none",
 	applicationId: "",
 	composeId: "compose-id",
+	dnsProviderId: null,
 	domainType: "compose",
 	serviceName: "frigate",
 	domainId: "domain-id",

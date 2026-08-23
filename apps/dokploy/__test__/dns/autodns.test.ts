@@ -147,19 +147,22 @@ describe("autodnsClient.testConnection", () => {
 		mockFetch.mockResolvedValue(
 			response(
 				{
-					status: {
-						type: "ERROR",
-						code: "E0103",
-						text: "Authentication failed",
-					},
+					status: { type: "ERROR" },
+					messages: [
+						{
+							status: "ERROR",
+							code: "EF13012",
+							text: "This subuser is not available in this system.",
+						},
+					],
 				},
 				false,
-				401,
+				404,
 			),
 		);
 
 		await expect(autodnsClient.testConnection(config)).rejects.toThrow(
-			"Authentication failed",
+			"EF13012: This subuser is not available in this system.",
 		);
 	});
 });

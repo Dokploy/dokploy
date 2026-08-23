@@ -1317,6 +1317,13 @@
       "when": 1787395963797,
       "tag": "0187_parallel_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 188,
+      "version": "7",
+      "when": 1787515132628,
+      "tag": "0188_clumsy_revanche",
+      "breakpoints": true
     }
   ]
 }

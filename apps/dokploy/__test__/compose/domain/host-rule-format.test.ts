@@ -24,6 +24,7 @@ describe("Host rule format regression tests", () => {
 		certificateType: "none",
 		applicationId: "",
 		composeId: "",
+		dnsProviderId: null,
 		domainType: "compose",
 		serviceName: "test-app",
 		domainId: "",
