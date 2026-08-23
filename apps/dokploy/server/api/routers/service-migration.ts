@@ -1,17 +1,48 @@
 import {
 	checkServerResources,
-	completeMigration,
+	findApplicationById,
 	createServiceMigration,
 	failMigration,
 	findMigrationsByServiceId,
 	findServiceMigrationById,
+	findServerById,
+	getAccessibleServerIds,
 	migrateApplication,
 	updateServiceMigration,
 	validateTargetServer,
 } from "@dokploy/server";
+import { checkServiceAccess } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+
+const assertCanAccessService = async (
+	ctx: Parameters<typeof checkServiceAccess>[0],
+	serviceId: string,
+) => {
+	await checkServiceAccess(ctx, serviceId, "read");
+};
+
+const assertCanAccessServer = async (
+	ctx: Parameters<typeof checkServiceAccess>[0],
+	serverId: string,
+) => {
+	const server = await findServerById(serverId);
+	if (server.organizationId !== ctx.session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+
+	const accessibleIds = await getAccessibleServerIds(ctx.session);
+	if (!accessibleIds.has(serverId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
 
 export const serviceMigrationRouter = createTRPCRouter({
 	// Create a new migration job
@@ -42,6 +73,14 @@ export const serviceMigrationRouter = createTRPCRouter({
 				});
 			}
 
+			await assertCanAccessService(ctx, input.serviceId);
+			await assertCanAccessServer(ctx, input.targetServerId);
+
+			const application = await findApplicationById(input.serviceId);
+			if (application.serverId) {
+				await assertCanAccessServer(ctx, application.serverId);
+			}
+
 			const migration = await createServiceMigration({
 				...input,
 				initiatedBy: input.initiatedBy || ctx.user.id,
@@ -66,8 +105,10 @@ export const serviceMigrationRouter = createTRPCRouter({
 				migrationId: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
-			return await findServiceMigrationById(input.migrationId);
+		.query(async ({ input, ctx }) => {
+			const migration = await findServiceMigrationById(input.migrationId);
+			await assertCanAccessService(ctx, migration.serviceId);
+			return migration;
 		}),
 
 	// Get all migrations for a service
@@ -77,7 +118,8 @@ export const serviceMigrationRouter = createTRPCRouter({
 				serviceId: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertCanAccessService(ctx, input.serviceId);
 			return await findMigrationsByServiceId(input.serviceId);
 		}),
 
@@ -88,7 +130,8 @@ export const serviceMigrationRouter = createTRPCRouter({
 				serverId: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertCanAccessServer(ctx, input.serverId);
 			const validation = await validateTargetServer(input.serverId);
 			const resources = validation.valid
 				? await checkServerResources(input.serverId)
@@ -107,8 +150,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 				migrationId: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const migration = await findServiceMigrationById(input.migrationId);
+			await assertCanAccessService(ctx, migration.serviceId);
 
 			if (migration.status === "completed" || migration.status === "failed") {
 				throw new TRPCError({
@@ -129,8 +173,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 				migrationId: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const migration = await findServiceMigrationById(input.migrationId);
+			await assertCanAccessService(ctx, migration.serviceId);
 
 			if (migration.status !== "failed") {
 				throw new TRPCError({

@@ -9,6 +9,7 @@ import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
+import { serviceType } from "./mount";
 import { redis } from "./redis";
 import { server } from "./server";
 import { user } from "./user";
@@ -26,16 +27,6 @@ export const migrationStatus = pgEnum("migrationStatus", [
 	"rolled_back",
 ]);
 
-export const migrationServiceType = pgEnum("serviceType", [
-	"application",
-	"postgres",
-	"mysql",
-	"mariadb",
-	"mongo",
-	"redis",
-	"compose",
-]);
-
 export const serviceMigrations = pgTable("service_migration", {
 	migrationId: text("migrationId")
 		.notNull()
@@ -44,7 +35,7 @@ export const serviceMigrations = pgTable("service_migration", {
 
 	// Service being migrated
 	serviceId: text("serviceId").notNull(),
-	serviceType: migrationServiceType("serviceType").notNull(),
+	serviceType: serviceType("serviceType").notNull(),
 	serviceName: text("serviceName").notNull(),
 
 	// Source and target servers

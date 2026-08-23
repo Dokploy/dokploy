@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import { db } from "../db";
 import type { Application } from "../db/schema";
 import { findApplicationById, updateApplication } from "./application";
@@ -90,8 +89,7 @@ export const migrateApplication = async (
 		}
 
 		await updateApplication(applicationId, {
-			applicationStatus: "paused",
-			pausedAt: new Date().toISOString(),
+			applicationStatus: "idle",
 		});
 
 		addProgress("pause_source", "completed", "Application paused successfully");
@@ -113,8 +111,9 @@ export const migrateApplication = async (
 					await backupVolume(application.serverId || null, volume, migrationId);
 					backedUpVolumes.push(volume);
 				} catch (error) {
-					console.error(`Failed to backup volume ${volume}:`, error);
-					// Continue with other volumes
+					throw new Error(
+						`Failed to backup volume ${volume}: ${error instanceof Error ? error.message : "Unknown error"}`,
+					);
 				}
 			}
 
@@ -280,6 +279,8 @@ async function transferVolume(
 	const tarFile = `${volumeName}.tar.gz`;
 
 	if (sourceServerId) {
+		await execAsync(`mkdir -p ${backupPath}`);
+
 		// Transfer from remote source to remote target
 		// Use rsync over SSH
 		const sourceServer = await db.query.server.findFirst({
@@ -299,6 +300,7 @@ async function transferVolume(
 		const downloadCmd = `scp -i ~/.ssh/dokploy_key ${sourceServer.username}@${sourceServer.ipAddress}:${backupPath}/${tarFile} ${backupPath}/${tarFile}`;
 		await execAsync(downloadCmd);
 
+		await execAsyncRemote(targetServerId, `mkdir -p ${backupPath}`);
 		const uploadCmd = `scp -i ~/.ssh/dokploy_key ${backupPath}/${tarFile} ${targetServer.username}@${targetServer.ipAddress}:${backupPath}/${tarFile}`;
 		await execAsync(uploadCmd);
 	} else {
@@ -311,6 +313,7 @@ async function transferVolume(
 			throw new Error("Target server not found");
 		}
 
+		await execAsyncRemote(targetServerId, `mkdir -p ${backupPath}`);
 		const uploadCmd = `scp -i ~/.ssh/dokploy_key ${backupPath}/${tarFile} ${targetServer.username}@${targetServer.ipAddress}:${backupPath}/${tarFile}`;
 		await execAsync(uploadCmd);
 	}
