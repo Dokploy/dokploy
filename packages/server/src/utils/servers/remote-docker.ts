@@ -1,5 +1,8 @@
 import { docker } from "@dokploy/server/constants";
-import { findServerById } from "@dokploy/server/services/server";
+import {
+	findServerById,
+	resolveServerSshHost,
+} from "@dokploy/server/services/server";
 import Dockerode from "dockerode";
 
 export const getRemoteDocker = async (serverId?: string | null) => {
@@ -7,7 +10,7 @@ export const getRemoteDocker = async (serverId?: string | null) => {
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) return docker;
 	const dockerode = new Dockerode({
-		host: server.ipAddress,
+		host: resolveServerSshHost(server),
 		port: server.port,
 		username: server.username,
 		protocol: "ssh",

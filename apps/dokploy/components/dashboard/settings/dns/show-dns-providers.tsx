@@ -18,6 +18,7 @@ import { ShowDnsProviderZones } from "./show-dns-provider-zones";
 const providerLabels: Record<string, string> = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
+	autodns: "AutoDNS",
 };
 
 export const ShowDnsProviders = () => {

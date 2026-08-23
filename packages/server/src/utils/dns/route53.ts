@@ -66,7 +66,7 @@ const findExactRecordSet = async (
 };
 
 const buildRecordSet = (record: {
-	type: "A" | "CNAME";
+	type: "A" | "AAAA" | "CNAME";
 	name: string;
 	content: string;
 	ttl?: number;

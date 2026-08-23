@@ -50,6 +50,24 @@ describe("maskDnsProviderConfig", () => {
 
 		expect(masked).toEqual({ providerType: "cloudflare", apiToken: "" });
 	});
+
+	it("masks only the AutoDNS password", () => {
+		const masked = maskDnsProviderConfig({
+			providerType: "autodns",
+			user: "api-user",
+			password: "secret",
+			context: 92059,
+			endpoint: "https://api.autodns.com/v1",
+		});
+
+		expect(masked).toEqual({
+			providerType: "autodns",
+			user: "api-user",
+			password: DNS_SECRET_MASK,
+			context: 92059,
+			endpoint: "https://api.autodns.com/v1",
+		});
+	});
 });
 
 describe("mergeDnsProviderConfig", () => {
@@ -111,6 +129,26 @@ describe("mergeDnsProviderConfig", () => {
 			providerType: "route53",
 			accessKeyId: "AKIA_NEW",
 			secretAccessKey: "old-secret",
+		});
+	});
+
+	it("restores an AutoDNS password while allowing context changes", () => {
+		const existing = {
+			providerType: "autodns" as const,
+			user: "api-user",
+			password: "stored-secret",
+			context: 4,
+			endpoint: "https://api.autodns.com/v1",
+		};
+		const incoming = {
+			...existing,
+			password: DNS_SECRET_MASK,
+			context: 92059,
+		};
+
+		expect(mergeDnsProviderConfig(incoming, existing)).toEqual({
+			...incoming,
+			password: "stored-secret",
 		});
 	});
 });

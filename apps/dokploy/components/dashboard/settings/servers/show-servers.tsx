@@ -177,10 +177,10 @@ export const ShowServers = () => {
 																	</TooltipProvider>
 																</CardHeader>
 																<CardContent className="space-y-3 flex-1 flex flex-col">
-																	<div className="flex items-center gap-2 text-sm">
+																	<div className="flex flex-wrap items-center gap-2 text-sm">
 																		<Network className="size-4 text-muted-foreground" />
 																		<span className="text-muted-foreground">
-																			IP:
+																			Public IPv4:
 																		</span>
 																		<Badge variant="outline">
 																			{server.ipAddress}
@@ -191,6 +191,45 @@ export const ShowServers = () => {
 																		<span className="font-medium">
 																			{server.port}
 																		</span>
+																	</div>
+																	{server.internalIpAddress && (
+																		<div className="flex flex-wrap items-center gap-2 text-sm">
+																			<Network className="size-4 text-muted-foreground" />
+																			<span className="text-muted-foreground">
+																				Internal IPv4:
+																			</span>
+																			<Badge
+																				variant="outline"
+																				className="break-all"
+																			>
+																				{server.internalIpAddress}
+																			</Badge>
+																		</div>
+																	)}
+																	{server.ipv6Address && (
+																		<div className="flex flex-wrap items-center gap-2 text-sm">
+																			<Network className="size-4 text-muted-foreground" />
+																			<span className="text-muted-foreground">
+																				Public IPv6:
+																			</span>
+																			<Badge
+																				variant="outline"
+																				className="break-all"
+																			>
+																				{server.ipv6Address}
+																			</Badge>
+																		</div>
+																	)}
+																	<div className="flex flex-wrap items-center gap-2 text-sm">
+																		<Network className="size-4 text-muted-foreground" />
+																		<span className="text-muted-foreground">
+																			SSH route:
+																		</span>
+																		<Badge variant="secondary">
+																			{server.useInternalIp
+																				? "Internal IPv4"
+																				: "Public IPv4"}
+																		</Badge>
 																	</div>
 																	<div className="flex items-center gap-2 text-sm">
 																		<User className="size-4 text-muted-foreground" />

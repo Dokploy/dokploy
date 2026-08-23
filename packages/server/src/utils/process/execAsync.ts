@@ -1,6 +1,9 @@
 import { exec, execFile } from "node:child_process";
 import util from "node:util";
-import { findServerById } from "@dokploy/server/services/server";
+import {
+	findServerById,
+	resolveServerSshHost,
+} from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
 
@@ -61,8 +64,8 @@ export const execAsyncStream = (
 						command,
 						stdout: stdoutComplete,
 						stderr: stderrComplete,
-						// @ts-ignore
-						exitCode: error.code,
+							// @ts-ignore
+							exitCode: error.code,
 						originalError: error,
 					}),
 				);
@@ -240,7 +243,7 @@ export const execAsyncRemote = async (
 				}
 			})
 			.connect({
-				host: server.ipAddress,
+				host: resolveServerSshHost(server),
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,

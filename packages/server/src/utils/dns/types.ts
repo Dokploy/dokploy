@@ -7,7 +7,7 @@ export interface DnsZone {
 
 export interface DnsRecordInput {
 	zoneId: string;
-	type: "A" | "CNAME";
+	type: "A" | "AAAA" | "CNAME";
 	name: string;
 	content: string;
 	ttl?: number;

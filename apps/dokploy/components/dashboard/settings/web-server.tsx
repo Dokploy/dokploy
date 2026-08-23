@@ -52,12 +52,24 @@ export const WebServer = () => {
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
 							<span className="text-sm text-muted-foreground flex items-center gap-1.5">
-								Server IP: {webServerSettings?.serverIp}
+								Public IPv4: {webServerSettings?.serverIp || "Not set"}
 								{webServerSettings?.serverIp && (
 									<CopyIcon
 										className="size-3.5 cursor-pointer hover:text-foreground transition-colors"
 										onClick={() => {
 											copy(webServerSettings.serverIp ?? "");
+											toast.success("Copied to clipboard");
+										}}
+									/>
+								)}
+							</span>
+							<span className="text-sm text-muted-foreground flex items-center gap-1.5">
+								Public IPv6: {webServerSettings?.serverIpv6 || "Not set"}
+								{webServerSettings?.serverIpv6 && (
+									<CopyIcon
+										className="size-3.5 cursor-pointer hover:text-foreground transition-colors"
+										onClick={() => {
+											copy(webServerSettings.serverIpv6 ?? "");
 											toast.success("Copied to clipboard");
 										}}
 									/>

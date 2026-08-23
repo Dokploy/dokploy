@@ -22,6 +22,7 @@ const baseSettings: WebServerSettings = {
 	certificateType: "none",
 	host: null,
 	serverIp: null,
+	serverIpv6: null,
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
 	enableDockerCleanup: false,

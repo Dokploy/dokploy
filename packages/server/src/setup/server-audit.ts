@@ -1,5 +1,5 @@
 import { Client } from "ssh2";
-import { findServerById } from "../services/server";
+import { findServerById, resolveServerSshHost } from "../services/server";
 
 // Thanks for the idea to https://github.com/healthyhost/audit-vps-script/tree/main
 const validateUfw = () => `
@@ -142,7 +142,7 @@ export const serverAudit = async (serverId: string) => {
 				}
 			})
 			.connect({
-				host: server.ipAddress,
+				host: resolveServerSshHost(server),
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,

@@ -6,6 +6,8 @@ import {
 	findServersByUserId,
 	findUserById,
 	getAccessibleServerIds,
+	getPublicIpv4,
+	getPublicIpv6,
 	getPublicIpWithFallback,
 	haveActiveServices,
 	IS_CLOUD,
@@ -508,6 +510,14 @@ export const serverRouter = createTRPCRouter({
 		}
 		const ip = await getPublicIpWithFallback();
 		return ip;
+	}),
+	publicIpv4: protectedProcedure.query(async () => {
+		if (IS_CLOUD) return "";
+		return (await getPublicIpv4()) ?? "";
+	}),
+	publicIpv6: protectedProcedure.query(async () => {
+		if (IS_CLOUD) return "";
+		return (await getPublicIpv6()) ?? "";
 	}),
 	getServerTime: protectedProcedure.query(() => {
 		if (IS_CLOUD) {

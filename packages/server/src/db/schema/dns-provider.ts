@@ -7,6 +7,7 @@ import { organization } from "./account";
 export const dnsProviderType = pgEnum("DnsProviderType", [
 	"cloudflare",
 	"route53",
+	"autodns",
 ]);
 
 export const cloudflareDnsConfigSchema = z.object({
@@ -20,9 +21,18 @@ export const route53DnsConfigSchema = z.object({
 	secretAccessKey: z.string().trim().min(1),
 });
 
+export const autodnsDnsConfigSchema = z.object({
+	providerType: z.literal("autodns"),
+	user: z.string().trim().min(1),
+	password: z.string().trim().min(1),
+	context: z.number().int().positive(),
+	endpoint: z.string().trim().url(),
+});
+
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
 	cloudflareDnsConfigSchema,
 	route53DnsConfigSchema,
+	autodnsDnsConfigSchema,
 ]);
 
 export type DnsProviderConfig = z.infer<typeof dnsProviderConfigSchema>;
@@ -97,7 +107,7 @@ export const apiListDnsRecords = z.object({
 });
 
 const dnsRecordFieldsSchema = z.object({
-	type: z.enum(["A", "CNAME"]),
+	type: z.enum(["A", "AAAA", "CNAME"]),
 	name: z.string().min(1),
 	content: z.string().min(1),
 	ttl: z.number().int().positive().optional(),
