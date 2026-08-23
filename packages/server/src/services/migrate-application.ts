@@ -4,11 +4,13 @@ import { findApplicationById, updateApplication } from "./application";
 import {
 	completeMigration,
 	failMigration,
+	findServiceMigrationById,
 	updateServiceMigration,
 	validateTargetServer,
 } from "./service-migration";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { stopService, stopServiceRemote } from "../utils/docker/utils";
+import { startService, startServiceRemote } from "../utils/docker/utils";
 
 interface MigrationProgress {
 	step: string;
@@ -26,6 +28,10 @@ export const migrateApplication = async (
 	migrationId: string,
 ): Promise<void> => {
 	const progress: MigrationProgress[] = [];
+	let application: Application | null = null;
+	let sourcePaused = false;
+	let originalServerId: string | null = null;
+	let originalApplicationStatus: Application["applicationStatus"] = "idle";
 
 	const addProgress = (
 		step: string,
@@ -44,6 +50,13 @@ export const migrateApplication = async (
 		}).catch(console.error);
 	};
 
+	const ensureMigrationActive = async () => {
+		const migration = await findServiceMigrationById(migrationId);
+		if (migration.status === "failed") {
+			throw new Error(migration.errorMessage || "Migration cancelled");
+		}
+	};
+
 	try {
 		// Step 1: Validate source application
 		addProgress(
@@ -51,11 +64,16 @@ export const migrateApplication = async (
 			"in_progress",
 			"Validating source application",
 		);
-		const application = await findApplicationById(applicationId);
+		application = await findApplicationById(applicationId);
 
 		if (!application) {
 			throw new Error("Application not found");
 		}
+
+		originalServerId = application.serverId || null;
+		originalApplicationStatus = application.applicationStatus;
+
+		await ensureMigrationActive();
 
 		addProgress("validate_source", "completed", "Source application validated");
 
@@ -66,6 +84,7 @@ export const migrateApplication = async (
 			"Validating target server connectivity",
 		);
 		await updateServiceMigration(migrationId, { status: "validating" });
+		await ensureMigrationActive();
 
 		const validation = await validateTargetServer(targetServerId);
 		if (!validation.valid) {
@@ -91,6 +110,8 @@ export const migrateApplication = async (
 		await updateApplication(applicationId, {
 			applicationStatus: "idle",
 		});
+		sourcePaused = true;
+		await ensureMigrationActive();
 
 		addProgress("pause_source", "completed", "Application paused successfully");
 
@@ -102,18 +123,25 @@ export const migrateApplication = async (
 		);
 		await updateServiceMigration(migrationId, { status: "backing_up" });
 
-		const volumes = await getApplicationVolumes(application);
+		const { volumes, unsupportedMounts } =
+			await getApplicationMigrationMounts(application);
+
+		if (unsupportedMounts.length > 0) {
+			throw new Error(
+				`Application contains unsupported mount types: ${unsupportedMounts.join(", ")}. Only volume mounts can be migrated automatically.`,
+			);
+		}
+
 		const backedUpVolumes: string[] = [];
 
 		if (volumes.length > 0) {
 			for (const volume of volumes) {
+				await ensureMigrationActive();
 				try {
 					await backupVolume(application.serverId || null, volume, migrationId);
 					backedUpVolumes.push(volume);
 				} catch (error) {
-					throw new Error(
-						`Failed to backup volume ${volume}: ${error instanceof Error ? error.message : "Unknown error"}`,
-					);
+					throw error;
 				}
 			}
 
@@ -136,12 +164,13 @@ export const migrateApplication = async (
 				"transfer_volumes",
 				"in_progress",
 				"Transferring volumes to target server",
-			);
-			await updateServiceMigration(migrationId, { status: "transferring" });
+		);
+		await updateServiceMigration(migrationId, { status: "transferring" });
+		await ensureMigrationActive();
 
-			for (const volume of backedUpVolumes) {
-				await transferVolume(
-					application.serverId || null,
+		for (const volume of backedUpVolumes) {
+			await transferVolume(
+				application.serverId || null,
 					targetServerId,
 					volume,
 					migrationId,
@@ -162,6 +191,7 @@ export const migrateApplication = async (
 			"Updating application configuration",
 		);
 		await updateServiceMigration(migrationId, { status: "recreating" });
+		await ensureMigrationActive();
 
 		await updateApplication(applicationId, {
 			serverId: targetServerId,
@@ -176,14 +206,15 @@ export const migrateApplication = async (
 		// Step 7: Restore volumes on target server
 		if (backedUpVolumes.length > 0) {
 			addProgress(
-				"restore_volumes",
-				"in_progress",
-				"Restoring volumes on target server",
-			);
+			"restore_volumes",
+			"in_progress",
+			"Restoring volumes on target server",
+		);
 
-			for (const volume of backedUpVolumes) {
-				await restoreVolume(targetServerId, volume, migrationId);
-			}
+		for (const volume of backedUpVolumes) {
+			await ensureMigrationActive();
+			await restoreVolume(targetServerId, volume, migrationId);
+		}
 
 			addProgress(
 				"restore_volumes",
@@ -193,6 +224,7 @@ export const migrateApplication = async (
 		}
 
 		// Step 8: Deploy application on target server
+		await ensureMigrationActive();
 		addProgress(
 			"deploy_target",
 			"in_progress",
@@ -215,26 +247,51 @@ export const migrateApplication = async (
 		const errorMessage =
 			error instanceof Error ? error.message : "Unknown error";
 		addProgress("error", "failed", errorMessage);
+
+		if (sourcePaused && originalServerId !== undefined) {
+			try {
+				await updateApplication(applicationId, {
+					serverId: originalServerId,
+					applicationStatus: originalApplicationStatus,
+				});
+
+				if (originalApplicationStatus === "done" && application) {
+					if (originalServerId) {
+						await startServiceRemote(originalServerId, application.appName);
+					} else {
+						await startService(application.appName);
+					}
+				}
+			} catch (rollbackError) {
+				console.error("Failed to roll back application after migration error:", rollbackError);
+			}
+		}
+
 		await failMigration(migrationId, errorMessage);
 		throw error;
 	}
 };
 
 /**
- * Get all volumes for an application
+ * Get volumes for an application and flag unsupported mounts.
  */
-async function getApplicationVolumes(
+async function getApplicationMigrationMounts(
 	application: Application,
-): Promise<string[]> {
-	// Query mounts table for this application
+): Promise<{ volumes: string[]; unsupportedMounts: string[] }> {
 	const mounts = await db.query.mounts.findMany({
 		where: (mounts, { eq }) =>
 			eq(mounts.applicationId, application.applicationId),
 	});
 
-	return mounts
+	const unsupportedMounts = mounts
+		.filter((mount) => mount.type !== "volume")
+		.map((mount) => mount.type);
+
+	const volumes = mounts
 		.filter((mount) => mount.type === "volume" && mount.volumeName)
 		.map((mount) => mount.volumeName as string);
+
+	return { volumes, unsupportedMounts };
 }
 
 /**

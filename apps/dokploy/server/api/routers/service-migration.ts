@@ -11,20 +11,15 @@ import {
 	updateServiceMigration,
 	validateTargetServer,
 } from "@dokploy/server";
-import { checkServiceAccess } from "@dokploy/server/services/permission";
+import {
+	checkServicePermissionAndAccess,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
-const assertCanAccessService = async (
-	ctx: Parameters<typeof checkServiceAccess>[0],
-	serviceId: string,
-) => {
-	await checkServiceAccess(ctx, serviceId, "read");
-};
-
 const assertCanAccessServer = async (
-	ctx: Parameters<typeof checkServiceAccess>[0],
+	ctx: Parameters<typeof checkServicePermissionAndAccess>[0],
 	serverId: string,
 ) => {
 	const server = await findServerById(serverId);
@@ -73,7 +68,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 				});
 			}
 
-			await assertCanAccessService(ctx, input.serviceId);
+			await checkServicePermissionAndAccess(ctx, input.serviceId, {
+				deployment: ["create"],
+			});
 			await assertCanAccessServer(ctx, input.targetServerId);
 
 			const application = await findApplicationById(input.serviceId);
@@ -107,7 +104,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			const migration = await findServiceMigrationById(input.migrationId);
-			await assertCanAccessService(ctx, migration.serviceId);
+			await checkServicePermissionAndAccess(ctx, migration.serviceId, {
+				deployment: ["create"],
+			});
 			return migration;
 		}),
 
@@ -119,7 +118,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			await assertCanAccessService(ctx, input.serviceId);
+			await checkServicePermissionAndAccess(ctx, input.serviceId, {
+				deployment: ["create"],
+			});
 			return await findMigrationsByServiceId(input.serviceId);
 		}),
 
@@ -152,7 +153,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const migration = await findServiceMigrationById(input.migrationId);
-			await assertCanAccessService(ctx, migration.serviceId);
+			await checkServicePermissionAndAccess(ctx, migration.serviceId, {
+				deployment: ["create"],
+			});
 
 			if (migration.status === "completed" || migration.status === "failed") {
 				throw new TRPCError({
@@ -175,7 +178,9 @@ export const serviceMigrationRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const migration = await findServiceMigrationById(input.migrationId);
-			await assertCanAccessService(ctx, migration.serviceId);
+			await checkServicePermissionAndAccess(ctx, migration.serviceId, {
+				deployment: ["create"],
+			});
 
 			if (migration.status !== "failed") {
 				throw new TRPCError({
