@@ -516,6 +516,42 @@ export const containerRestart = async (containerId: string) => {
 	} catch {}
 };
 
+export const containerStart = async (containerId: string, serverId?: string) => {
+	const command = `docker container start ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerStop = async (containerId: string, serverId?: string) => {
+	const command = `docker container stop ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
+export const containerKill = async (containerId: string, serverId?: string) => {
+	const command = `docker container kill ${containerId}`;
+	const { stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr) {
+		console.error(`Error: ${stderr}`);
+		throw new Error(stderr);
+	}
+};
+
 export const containerRemove = async (
 	containerId: string,
 	serverId?: string,

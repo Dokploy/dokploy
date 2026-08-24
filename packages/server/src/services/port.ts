@@ -3,6 +3,7 @@ import { type apiCreatePort, ports } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
+import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 
 export type Port = typeof ports.$inferSelect;
 
@@ -52,6 +53,41 @@ export const removePortById = async (portId: string) => {
 		.returning();
 
 	return result[0];
+};
+
+export const checkPortInUse = async (
+	port: number,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker ps --filter "publish=${port}" --format '{{json .}}'`;
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const firstContainer = stdout.trim().split("\n")[0];
+		if (!firstContainer) {
+			return {
+				isInUse: false,
+				conflictingContainer: null,
+			};
+		}
+
+		const container = JSON.parse(firstContainer) as {
+			ID?: string;
+			Names?: string;
+		};
+
+		return {
+			isInUse: true,
+			conflictingContainer: container.Names || container.ID || null,
+		};
+	} catch {
+		return {
+			isInUse: false,
+			conflictingContainer: null,
+		};
+	}
 };
 
 export const updatePortById = async (
