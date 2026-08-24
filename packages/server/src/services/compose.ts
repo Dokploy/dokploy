@@ -7,7 +7,10 @@ import {
 	cleanAppName,
 	compose,
 } from "@dokploy/server/db/schema";
-import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	getBuildComposeCommand,
+	ROLLBACK_OK_MARKER,
+} from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
@@ -212,10 +215,8 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
-const ROLLBACK_OK_MARKER = "__DOKPLOY_ROLLBACK_OK__";
-
 export const didRollbackSucceed = async (compose: Compose, logPath: string) => {
-	const command = `if grep -q "${ROLLBACK_OK_MARKER}" "${logPath}" 2>/dev/null; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
+	const command = `if grep -q '^${ROLLBACK_OK_MARKER}$' "${logPath}" 2>/dev/null; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
 	try {
 		if (compose.serverId) {
 			const { stdout } = await execAsyncRemote(compose.serverId, command);

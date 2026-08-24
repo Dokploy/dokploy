@@ -12,6 +12,8 @@ import {
 } from "../docker/utils";
 import { withResolvedVaultRefs } from "../vault";
 
+export const ROLLBACK_OK_MARKER = "__DOKPLOY_ROLLBACK_OK__";
+
 export type ComposeNested = InferResultType<
 	"compose",
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
@@ -61,8 +63,8 @@ Compose Type: ${composeType} ✅`;
 		echo "Restoring previous working deployment... ⏪";
 		RESTORE_FILES_OK=1;
 		cp "${backupDir}/last-good-docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || RESTORE_FILES_OK=0;
-		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || RESTORE_FILES_OK=0;
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && [ "$RESTORE_FILES_OK" = "1" ] && echo "__DOKPLOY_ROLLBACK_OK__" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
+		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || true;
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && [ "$RESTORE_FILES_OK" = "1" ] && echo "${ROLLBACK_OK_MARKER}" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
 		`
 		: "";
 
