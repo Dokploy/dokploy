@@ -61,7 +61,7 @@ Compose Type: ${composeType} ✅`;
 		echo "Restoring previous working deployment... ⏪";
 		cp "${backupDir}/last-good-docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || true;
 		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || true;
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && echo "__DOKPLOY_ROLLBACK_OK__" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
 		`
 		: "";
 

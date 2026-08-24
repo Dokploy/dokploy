@@ -212,6 +212,22 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
+const ROLLBACK_OK_MARKER = "__DOKPLOY_ROLLBACK_OK__";
+
+export const didRollbackSucceed = async (compose: Compose, logPath: string) => {
+	const command = `grep -q "${ROLLBACK_OK_MARKER}" "${logPath}" && echo "ROLLBACK_OK" || echo "ROLLBACK_FAILED"`;
+	try {
+		if (compose.serverId) {
+			const { stdout } = await execAsyncRemote(compose.serverId, command);
+			return stdout.trim() === "ROLLBACK_OK";
+		}
+		const { stdout } = await execAsync(command);
+		return stdout.trim() === "ROLLBACK_OK";
+	} catch {
+		return false;
+	}
+};
+
 export const backupCurrentDeployment = async (
 	compose: Compose,
 	logPath: string,
@@ -337,8 +353,9 @@ export const deployCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+		const rollbackSucceeded = await didRollbackSucceed(compose, deployment.logPath);
 		await updateCompose(composeId, {
-			composeStatus: "error",
+			composeStatus: rollbackSucceeded ? "done" : "error",
 		});
 		await sendBuildErrorNotifications({
 			projectName: compose.environment.project.name,
@@ -441,8 +458,9 @@ export const rebuildCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+		const rollbackSucceeded = await didRollbackSucceed(compose, deployment.logPath);
 		await updateCompose(composeId, {
-			composeStatus: "error",
+			composeStatus: rollbackSucceeded ? "done" : "error",
 		});
 		throw error;
 	}
