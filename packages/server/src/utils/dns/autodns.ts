@@ -41,7 +41,7 @@ interface AutoDnsZoneId {
 	virtualNameServer: string;
 }
 
-const normalizeEndpoint = (endpoint: string) => endpoint.replace(/\/+$/, "");
+const AUTODNS_API_ENDPOINT = "https://api.autodns.com/v1";
 const stripTrailingDot = (value: string) => value.replace(/\.$/, "");
 
 const buildZoneId = (zone: AutoDnsZoneId) =>
@@ -117,21 +117,18 @@ const autoDnsFetch = async <T>(
 	path: string,
 	init: RequestInit = {},
 ): Promise<AutoDnsResponse<T>> => {
-	const response = await dnsFetch(
-		`${normalizeEndpoint(config.endpoint)}${path}`,
-		{
-			...init,
-			headers: {
-				Accept: "application/json",
-				Authorization: `Basic ${Buffer.from(
-					`${config.user.trim()}:${config.password.trim()}`,
-				).toString("base64")}`,
-				"Content-Type": "application/json",
-				"X-Domainrobot-Context": String(config.context),
-				...init.headers,
-			},
+	const response = await dnsFetch(`${AUTODNS_API_ENDPOINT}${path}`, {
+		...init,
+		headers: {
+			Accept: "application/json",
+			Authorization: `Basic ${Buffer.from(
+				`${config.user.trim()}:${config.password.trim()}`,
+			).toString("base64")}`,
+			"Content-Type": "application/json",
+			"X-Domainrobot-Context": String(config.context),
+			...init.headers,
 		},
-	);
+	});
 
 	const rawBody = await response.text();
 	let body: AutoDnsResponse<T> = {};

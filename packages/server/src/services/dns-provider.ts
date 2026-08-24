@@ -1,3 +1,5 @@
+import { resolve4, resolve6 } from "node:dns/promises";
+import { isIP } from "node:net";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDnsProvider,
@@ -246,9 +248,9 @@ export const findDnsZoneForHost = (zones: DnsZone[], host: string) => {
 		.sort((a, b) => b.name.length - a.name.length)[0];
 };
 
-export const findDnsWildcardRecord = (records: DnsRecord[], host: string) => {
+export const findDnsWildcardRecords = (records: DnsRecord[], host: string) => {
 	const normalizedHost = normalizeDnsName(host);
-	return records.find((record) => {
+	const matchingRecords = records.filter((record) => {
 		const name = normalizeDnsName(record.name);
 		return (
 			["A", "AAAA", "CNAME"].includes(record.type.toUpperCase()) &&
@@ -256,6 +258,81 @@ export const findDnsWildcardRecord = (records: DnsRecord[], host: string) => {
 			normalizedHost.endsWith(name.slice(1))
 		);
 	});
+	const mostSpecificName = matchingRecords
+		.map((record) => normalizeDnsName(record.name))
+		.sort((a, b) => b.length - a.length)[0];
+	return matchingRecords.filter(
+		(record) => normalizeDnsName(record.name) === mostSpecificName,
+	);
+};
+
+export const findDnsWildcardRecord = (records: DnsRecord[], host: string) =>
+	findDnsWildcardRecords(records, host)[0];
+
+const normalizeIpAddress = (value: string) => {
+	const address = value.trim().toLowerCase();
+	return isIP(address) === 6
+		? new URL(`http://[${address}]/`).hostname.slice(1, -1)
+		: address;
+};
+
+const DNS_LOOKUP_MISS_CODES = new Set([
+	"ENODATA",
+	"ENOTFOUND",
+	"EREFUSED",
+	"ESERVFAIL",
+	"ETIMEOUT",
+]);
+
+const resolveWildcardTarget = async (target: string, type: "A" | "AAAA") => {
+	try {
+		return type === "A"
+			? await resolve4(normalizeDnsName(target))
+			: await resolve6(normalizeDnsName(target));
+	} catch (error) {
+		const code =
+			error instanceof Error
+				? (error as NodeJS.ErrnoException).code
+				: undefined;
+		if (code && DNS_LOOKUP_MISS_CODES.has(code)) return [];
+		throw error;
+	}
+};
+
+const wildcardCoversRecords = async (
+	wildcards: DnsRecord[],
+	records: { type: "A" | "AAAA"; content: string }[],
+) => {
+	const cnameTargets = wildcards
+		.filter((record) => record.type.toUpperCase() === "CNAME")
+		.map((record) => record.content);
+
+	return (
+		await Promise.all(
+			records.map(async (record) => {
+				const expected = normalizeIpAddress(record.content);
+				if (
+					wildcards.some(
+						(wildcard) =>
+							wildcard.type.toUpperCase() === record.type &&
+							normalizeIpAddress(wildcard.content) === expected,
+					)
+				) {
+					return true;
+				}
+				const resolved = (
+					await Promise.all(
+						cnameTargets.map((target) =>
+							resolveWildcardTarget(target, record.type),
+						),
+					)
+				).flat();
+				return resolved.some(
+					(address) => normalizeIpAddress(address) === expected,
+				);
+			}),
+		)
+	).every(Boolean);
 };
 
 export const getDnsProviderDomainInfo = async (
@@ -275,14 +352,15 @@ export const getDnsProviderDomainInfo = async (
 	}
 
 	const records = await listDnsProviderRecords(config, zone.id);
-	const wildcard = findDnsWildcardRecord(records, recordName);
+	const wildcards = findDnsWildcardRecords(records, recordName);
+	const wildcard = wildcards[0];
 	const exactRecords = records.filter(
 		(record) =>
 			normalizeDnsName(record.name) === normalizeDnsName(recordName) &&
 			["A", "AAAA", "CNAME"].includes(record.type.toUpperCase()),
 	);
 
-	return { zone, wildcard, exactRecords };
+	return { zone, wildcard, wildcards, exactRecords };
 };
 
 export const syncDnsProviderDomainRecords = async (
@@ -307,7 +385,10 @@ export const syncDnsProviderDomainRecords = async (
 	}
 
 	const info = await getDnsProviderDomainInfo(config, recordName);
-	if (info.wildcard) {
+	if (
+		info.wildcards.length > 0 &&
+		(await wildcardCoversRecords(info.wildcards, records))
+	) {
 		return {
 			...info,
 			recordTypes: [],

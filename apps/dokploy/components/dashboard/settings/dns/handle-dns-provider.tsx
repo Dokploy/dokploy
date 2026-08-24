@@ -59,7 +59,6 @@ const DnsProviderSchema = z.object({
 	autodnsContext: z
 		.string()
 		.regex(/^[1-9]\d*$/, "Context must be a positive integer"),
-	autodnsEndpoint: z.string().url(),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -73,7 +72,6 @@ const defaultValues: DnsProviderForm = {
 	autodnsUser: "",
 	autodnsPassword: "",
 	autodnsContext: "4",
-	autodnsEndpoint: "https://api.autodns.com/v1",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -95,7 +93,6 @@ const buildConfig = (data: DnsProviderForm) => {
 				user: data.autodnsUser,
 				password: data.autodnsPassword,
 				context: Number(data.autodnsContext),
-				endpoint: data.autodnsEndpoint,
 			};
 	}
 };
@@ -158,7 +155,6 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					autodnsUser: provider.config.user,
 					autodnsPassword: provider.config.password,
 					autodnsContext: String(provider.config.context),
-					autodnsEndpoint: provider.config.endpoint,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -384,23 +380,6 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 											<FormDescription>
 												Use 4 for standard production accounts or your Personal
 												AutoDNS context number.
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="autodnsEndpoint"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>API Endpoint</FormLabel>
-											<FormControl>
-												<Input {...field} />
-											</FormControl>
-											<FormDescription>
-												Use the default endpoint unless Personal AutoDNS
-												provides a custom URL.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

@@ -113,8 +113,9 @@ export const DnsHelperModal = ({
 													{dnsInfo.wildcard.content}
 												</p>
 												<p className="text-muted-foreground">
-													The wildcard covers this domain, so no dedicated
-													record is needed.
+													{dnsInfo.exactRecords.length === 0
+														? "The wildcard covers this domain, so no dedicated record is needed."
+														: "Dedicated records override this wildcard to route the domain to the selected server."}
 												</p>
 											</>
 										) : (

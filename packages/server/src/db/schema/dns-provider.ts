@@ -26,7 +26,6 @@ export const autodnsDnsConfigSchema = z.object({
 	user: z.string().trim().min(1),
 	password: z.string().trim().min(1),
 	context: z.number().int().positive(),
-	endpoint: z.string().trim().url(),
 });
 
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [

@@ -24,7 +24,6 @@ const config = {
 	user: " api-user ",
 	password: " secret ",
 	context: 92059,
-	endpoint: "https://api.autodns.com/v1/",
 };
 
 const zone = {

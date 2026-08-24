@@ -77,7 +77,6 @@ describe("maskDnsProviderConfig", () => {
 			user: "api-user",
 			password: "secret",
 			context: 92059,
-			endpoint: "https://api.autodns.com/v1",
 		});
 
 		expect(masked).toEqual({
@@ -85,7 +84,6 @@ describe("maskDnsProviderConfig", () => {
 			user: "api-user",
 			password: DNS_SECRET_MASK,
 			context: 92059,
-			endpoint: "https://api.autodns.com/v1",
 		});
 	});
 });
@@ -158,7 +156,6 @@ describe("mergeDnsProviderConfig", () => {
 			user: "api-user",
 			password: "stored-secret",
 			context: 4,
-			endpoint: "https://api.autodns.com/v1",
 		};
 		const incoming = {
 			...existing,
