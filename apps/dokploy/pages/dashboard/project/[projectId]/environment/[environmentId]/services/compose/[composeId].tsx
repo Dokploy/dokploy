@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { HelpCircle, ServerOff } from "lucide-react";
+import { AlertTriangle, HelpCircle, Loader2, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -84,6 +84,19 @@ const Service = (
 
 	const { data } = api.compose.one.useQuery({ composeId });
 
+	const { data: deployments } = api.deployment.allByCompose.useQuery(
+		{
+			composeId,
+		},
+		{ refetchInterval: 5000 },
+	);
+	const latestLiveDeployment = deployments
+		?.filter((d) => d.status === "done")
+		.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
+	const latestDeployment = deployments
+		?.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
+	const isDeploying = ["running", "queued"].includes(latestDeployment?.status || "");
+
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -134,6 +147,43 @@ const Service = (
 									<span className="text-sm text-muted-foreground">
 										{data?.appName}
 									</span>
+									<div className="flex flex-wrap gap-2 items-center mt-1">
+										<Badge
+											variant="secondary"
+											className={
+												latestLiveDeployment
+													? "bg-green-500/15 text-green-600"
+													: "text-muted-foreground"
+											}
+										>
+											<span
+												className={`mr-1 size-1.5 rounded-full ${
+													latestLiveDeployment
+														? "bg-green-500"
+														: "bg-muted-foreground/40"
+												}`}
+											/>
+											Live:{" "}
+											{latestLiveDeployment?.title ||
+												"No successful deployment yet"}
+										</Badge>
+										{isDeploying && (
+											<Badge variant="secondary" className="bg-amber-500/15 text-amber-600">
+												<Loader2 className="size-3 animate-spin mr-1" />
+												Deploying...
+											</Badge>
+										)}
+										{latestDeployment?.status === "error" &&
+											latestLiveDeployment && (
+												<Badge
+													variant="secondary"
+													className="bg-red-500/15 text-red-600"
+												>
+													<AlertTriangle className="size-3 mr-1" />
+													Last deploy failed — live kept
+												</Badge>
+											)}
+									</div>
 								</div>
 								<div className="flex flex-col h-fit w-fit gap-2">
 									<div className="flex flex-row h-fit w-fit gap-2">
