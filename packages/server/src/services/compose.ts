@@ -215,14 +215,21 @@ export const updateCompose = async (
 const ROLLBACK_OK_MARKER = "__DOKPLOY_ROLLBACK_OK__";
 
 export const didRollbackSucceed = async (compose: Compose, logPath: string) => {
-	const command = `grep -q "${ROLLBACK_OK_MARKER}" "${logPath}" && echo "ROLLBACK_OK" || echo "ROLLBACK_FAILED"`;
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const lastGoodFile = join(
+		COMPOSE_PATH,
+		compose.appName,
+		".deploy-backup",
+		"last-good-docker-compose.yml.bak",
+	);
+	const command = `if grep -q "${ROLLBACK_OK_MARKER}" "${logPath}" 2>/dev/null || [ -f "${lastGoodFile}" ]; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
 	try {
 		if (compose.serverId) {
 			const { stdout } = await execAsyncRemote(compose.serverId, command);
-			return stdout.trim() === "ROLLBACK_OK";
+			return stdout.trim() === "LIVE_OK";
 		}
 		const { stdout } = await execAsync(command);
-		return stdout.trim() === "ROLLBACK_OK";
+		return stdout.trim() === "LIVE_OK";
 	} catch {
 		return false;
 	}
