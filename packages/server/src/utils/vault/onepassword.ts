@@ -22,9 +22,7 @@ const fetchVariables = async (config: OnePasswordConfig) => {
 		);
 	}
 
-	let response: Awaited<
-		ReturnType<typeof client.environments.getVariables>
-	>;
+	let response: Awaited<ReturnType<typeof client.environments.getVariables>>;
 	try {
 		response = await vaultFetchWithTimeout(
 			client.environments.getVariables(config.environmentId),

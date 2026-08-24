@@ -222,10 +222,7 @@ const VaultProviderSchema = z
 				["phaseEnv", "Environment is required"],
 			],
 			onepassword: [
-				[
-					"onePasswordServiceAccountToken",
-					"Service Account Token is required",
-				],
+				["onePasswordServiceAccountToken", "Service Account Token is required"],
 				["onePasswordEnvironmentId", "Environment ID is required"],
 			],
 		};
