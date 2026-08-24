@@ -90,6 +90,10 @@ const Service = (
 		},
 		{ refetchInterval: 5000 },
 	);
+	const { data: serviceDomains } = api.domain.byComposeId.useQuery(
+		{ composeId },
+		{ refetchInterval: 10000 },
+	);
 	const latestLiveDeployment = deployments
 		?.filter((d) => d.status === "done")
 		.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
@@ -147,28 +151,44 @@ const Service = (
 									<span className="text-sm text-muted-foreground">
 										{data?.appName}
 									</span>
-									<div className="flex flex-wrap gap-2 items-center mt-1">
-										<Badge
-											variant="secondary"
-											className={
-												latestLiveDeployment
-													? "bg-green-500/15 text-green-600"
-													: "text-muted-foreground"
-											}
-										>
-											<span
-												className={`mr-1 size-1.5 rounded-full ${
-													latestLiveDeployment
-														? "bg-green-500"
-														: "bg-muted-foreground/40"
-												}`}
-											/>
-											Live:{" "}
-											{latestLiveDeployment?.title ||
-												"No successful deployment yet"}
-										</Badge>
+									{(serviceDomains?.length ?? 0) > 0 && (
+										<div className="flex flex-wrap gap-2 mt-2">
+											{serviceDomains?.map((domain) => (
+												<a
+													key={domain.domainId}
+													href={`http${domain.https ? "s" : ""}://${domain.host}`}
+													target="_blank"
+													rel="noreferrer"
+													className={`text-xs font-medium rounded-md px-2 py-0.5 border transition-colors ${
+														domain.enabled
+															? "border-green-500/30 bg-green-500/10 text-green-600"
+															: "border-muted bg-muted/40 text-muted-foreground line-through"
+													}`}
+												>
+													{domain.enabled ? "🔗 " : "🔒 "}
+													{domain.host}
+												</a>
+											))}
+										</div>
+									)}
+								</div>
+								<div className="flex flex-col h-fit w-fit gap-2">
+									<div className="flex flex-row gap-2 justify-end flex-wrap">
+										{latestLiveDeployment && (
+											<Badge
+												variant="secondary"
+												className="bg-green-500/15 text-green-600"
+												title={`Live since ${latestLiveDeployment?.createdAt}`}
+											>
+												<span className="mr-1 size-1.5 rounded-full bg-green-500" />
+												Live ✓
+											</Badge>
+										)}
 										{isDeploying && (
-											<Badge variant="secondary" className="bg-amber-500/15 text-amber-600">
+											<Badge
+												variant="secondary"
+												className="bg-amber-500/15 text-amber-600"
+											>
 												<Loader2 className="size-3 animate-spin mr-1" />
 												Deploying...
 											</Badge>
@@ -178,14 +198,18 @@ const Service = (
 												<Badge
 													variant="secondary"
 													className="bg-red-500/15 text-red-600"
+													title="The last deployment failed; the previous successful one is still serving traffic"
 												>
 													<AlertTriangle className="size-3 mr-1" />
-													Last deploy failed — live kept
+													Last deploy failed
 												</Badge>
 											)}
+										{!latestLiveDeployment && (
+											<Badge variant="secondary" className="text-muted-foreground">
+												No deployments yet
+											</Badge>
+										)}
 									</div>
-								</div>
-								<div className="flex flex-col h-fit w-fit gap-2">
 									<div className="flex flex-row h-fit w-fit gap-2">
 										<Badge
 											className="cursor-pointer"
