@@ -1,6 +1,7 @@
 import { createClient } from "@1password/sdk";
 import type { onePasswordVaultConfigSchema } from "@dokploy/server/db/schema";
 import type { z } from "zod";
+import { vaultFetchWithTimeout } from "./types";
 import type { VaultClient } from "./types";
 
 type OnePasswordConfig = z.infer<typeof onePasswordVaultConfigSchema>;
@@ -8,11 +9,13 @@ type OnePasswordConfig = z.infer<typeof onePasswordVaultConfigSchema>;
 const fetchVariables = async (config: OnePasswordConfig) => {
 	let client: Awaited<ReturnType<typeof createClient>>;
 	try {
-		client = await createClient({
-			auth: config.serviceAccountToken,
-			integrationName: "Dokploy",
-			integrationVersion: "v1.0.0",
-		});
+		client = await vaultFetchWithTimeout(
+			createClient({
+				auth: config.serviceAccountToken,
+				integrationName: "Dokploy",
+				integrationVersion: "v1.0.0",
+			}),
+		);
 	} catch (error) {
 		throw new Error(
 			`1Password: authentication failed (${error instanceof Error ? error.message : String(error)})`,
@@ -23,7 +26,9 @@ const fetchVariables = async (config: OnePasswordConfig) => {
 		ReturnType<typeof client.environments.getVariables>
 	>;
 	try {
-		response = await client.environments.getVariables(config.environmentId);
+		response = await vaultFetchWithTimeout(
+			client.environments.getVariables(config.environmentId),
+		);
 	} catch (error) {
 		throw new Error(
 			`1Password: failed to read environment "${config.environmentId}" (${
