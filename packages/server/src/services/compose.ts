@@ -215,14 +215,7 @@ export const updateCompose = async (
 const ROLLBACK_OK_MARKER = "__DOKPLOY_ROLLBACK_OK__";
 
 export const didRollbackSucceed = async (compose: Compose, logPath: string) => {
-	const { COMPOSE_PATH } = paths(!!compose.serverId);
-	const lastGoodFile = join(
-		COMPOSE_PATH,
-		compose.appName,
-		".deploy-backup",
-		"last-good-docker-compose.yml.bak",
-	);
-	const command = `if grep -q "${ROLLBACK_OK_MARKER}" "${logPath}" 2>/dev/null || [ -f "${lastGoodFile}" ]; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
+	const command = `if grep -q "${ROLLBACK_OK_MARKER}" "${logPath}" 2>/dev/null; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
 	try {
 		if (compose.serverId) {
 			const { stdout } = await execAsyncRemote(compose.serverId, command);
@@ -360,7 +353,10 @@ export const deployCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		const rollbackSucceeded = await didRollbackSucceed(compose, deployment.logPath);
+		const rollbackSucceeded = await didRollbackSucceed(
+			compose,
+			deployment.logPath,
+		);
 		await updateCompose(composeId, {
 			composeStatus: rollbackSucceeded ? "done" : "error",
 		});
@@ -368,7 +364,7 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
@@ -408,6 +404,7 @@ export const rebuildCompose = async ({
 	});
 
 	try {
+		await backupCurrentDeployment(compose, deployment.logPath);
 		let command = "set -e;";
 		if (compose.sourceType === "raw") {
 			command += getCreateComposeFileCommand(compose);
@@ -465,7 +462,10 @@ export const rebuildCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		const rollbackSucceeded = await didRollbackSucceed(compose, deployment.logPath);
+		const rollbackSucceeded = await didRollbackSucceed(
+			compose,
+			deployment.logPath,
+		);
 		await updateCompose(composeId, {
 			composeStatus: rollbackSucceeded ? "done" : "error",
 		});

@@ -93,26 +93,38 @@ const Service = (
 
 	const { data } = api.compose.one.useQuery({ composeId });
 
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canReadDeployments = !!permissions?.deployment.read;
+	const canReadDomains = !!permissions?.domain.read;
+
 	const { data: deployments } = api.deployment.allByCompose.useQuery(
 		{
 			composeId,
 		},
-		{ refetchInterval: 5000 },
+		{
+			enabled: canReadDeployments,
+			refetchInterval: canReadDeployments ? 5000 : false,
+		},
 	);
 	const { data: serviceDomains } = api.domain.byComposeId.useQuery(
 		{ composeId },
-		{ refetchInterval: 10000 },
+		{
+			enabled: canReadDomains,
+			refetchInterval: canReadDomains ? 10000 : false,
+		},
 	);
 	const latestLiveDeployment = deployments
 		?.filter((d) => d.status === "done")
 		.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
-	const latestDeployment = deployments
-		?.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
-	const isDeploying = ["running", "queued"].includes(latestDeployment?.status || "");
+	const latestDeployment = deployments?.sort((a, b) =>
+		(b.createdAt || "").localeCompare(a.createdAt || ""),
+	)[0];
+	const isDeploying = ["running", "queued"].includes(
+		latestDeployment?.status || "",
+	);
 	const [appNameCopied, setAppNameCopied] = useState(false);
 
 	const { data: auth } = api.user.get.useQuery();
-	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
@@ -215,7 +227,10 @@ const Service = (
 												</Badge>
 											)}
 										{!latestLiveDeployment && (
-											<Badge variant="secondary" className="text-muted-foreground">
+											<Badge
+												variant="secondary"
+												className="text-muted-foreground"
+											>
 												No deployments yet
 											</Badge>
 										)}
