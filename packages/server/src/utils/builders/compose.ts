@@ -3,7 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
-import { writeDomainsToCompose } from "../docker/domain";
+import { getComposePath, writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
@@ -47,10 +47,40 @@ Compose Type: ${composeType} ✅`;
 		borderStyle: "double",
 	});
 
+	const backupDir = join(COMPOSE_PATH, compose.appName, ".deploy-backup");
+	const composeFilePath = getComposePath(compose);
+	const envFilePath = join(dirname(composeFilePath), ".env");
+	const isTransactional = composeType === "docker-compose";
+	const restoreCommand = command
+		.split(" ")
+		.join(" ")
+		.replace(/ --build/g, "");
+
+	const backupCommands = isTransactional
+		? `
+		mkdir -p "${backupDir}";
+		cp "${composeFilePath}" "${backupDir}/docker-compose.yml.bak" 2>/dev/null || true;
+		cp "${envFilePath}" "${backupDir}/env.bak" 2>/dev/null || true;
+		`
+		: "";
+
+	const restoreCommands = isTransactional
+		? `
+		echo "Restoring previous working deployment... ⏪";
+		cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || true;
+		cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || true;
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
+		`
+		: "";
+
+	const cleanupBackup = isTransactional ? `rm -rf "${backupDir}";` : "";
+
 	const bashCommand = `
 	set -e
 	{
 		echo "${logBox}";
+
+		${backupCommands}
 
 		${newCompose}
 
@@ -59,8 +89,10 @@ Compose Type: ${composeType} ✅`;
 		cd "${projectPath}";
 
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
+
+		${cleanupBackup}
 
 		echo "Docker Compose Deployed: ✅";
 	} || {
