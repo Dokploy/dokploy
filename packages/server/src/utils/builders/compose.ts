@@ -56,31 +56,27 @@ Compose Type: ${composeType} ✅`;
 		.join(" ")
 		.replace(/ --build/g, "");
 
-	const backupCommands = isTransactional
-		? `
-		mkdir -p "${backupDir}";
-		cp "${composeFilePath}" "${backupDir}/docker-compose.yml.bak" 2>/dev/null || true;
-		cp "${envFilePath}" "${backupDir}/env.bak" 2>/dev/null || true;
-		`
-		: "";
-
 	const restoreCommands = isTransactional
 		? `
 		echo "Restoring previous working deployment... ⏪";
-		cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || true;
-		cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || true;
+		cp "${backupDir}/last-good-docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || true;
+		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || true;
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
 		`
 		: "";
 
-	const cleanupBackup = isTransactional ? `rm -rf "${backupDir}";` : "";
+	const persistLastGood = isTransactional
+		? `
+		mkdir -p "${backupDir}";
+		cp "${composeFilePath}" "${backupDir}/last-good-docker-compose.yml.bak" 2>/dev/null || true;
+		cp "${envFilePath}" "${backupDir}/last-good-env.bak" 2>/dev/null || true;
+		`
+		: "";
 
 	const bashCommand = `
 	set -e
 	{
 		echo "${logBox}";
-
-		${backupCommands}
 
 		${newCompose}
 
@@ -92,7 +88,7 @@ Compose Type: ${composeType} ✅`;
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 
-		${cleanupBackup}
+		${persistLastGood}
 
 		echo "Docker Compose Deployed: ✅";
 	} || {

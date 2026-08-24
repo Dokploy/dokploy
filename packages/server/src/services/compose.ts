@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
@@ -11,6 +11,7 @@ import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
+	getComposePath,
 	loadDockerCompose,
 	loadDockerComposeRemote,
 } from "@dokploy/server/utils/docker/domain";
@@ -211,6 +212,29 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
+export const backupCurrentDeployment = async (
+	compose: Compose,
+	logPath: string,
+) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const backupDir = join(COMPOSE_PATH, compose.appName, ".deploy-backup");
+	const composeFilePath = getComposePath(compose);
+	const envFilePath = join(dirname(composeFilePath), ".env");
+
+	const backupCommand = `
+mkdir -p ${quote([backupDir])};
+cp ${quote([composeFilePath])} ${quote([join(backupDir, "docker-compose.yml.bak")])} 2>/dev/null || echo "No previous compose file found";
+cp ${quote([envFilePath])} ${quote([join(backupDir, "env.bak")])} 2>/dev/null || echo "No previous env file found";
+	`;
+
+	const command = `(${backupCommand}) >> ${logPath} 2>&1`;
+	if (compose.serverId) {
+		await execAsyncRemote(compose.serverId, command);
+	} else {
+		await execAsync(command);
+	}
+};
+
 export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
@@ -232,6 +256,7 @@ export const deployCompose = async ({
 	});
 
 	try {
+		await backupCurrentDeployment(compose, deployment.logPath);
 		const entity = {
 			...compose,
 			type: "compose" as const,
