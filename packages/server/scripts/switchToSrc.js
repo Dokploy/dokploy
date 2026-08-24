@@ -31,6 +31,10 @@ pkg.exports = {
 		import: "./src/providers/types-client.ts",
 		require: "./dist/providers/types-client.cjs.js",
 	},
+	"./providers/registry-client": {
+		import: "./src/providers/registry-client.ts",
+		require: "./dist/providers/registry-client.cjs.js",
+	},
 };
 
 // Guardar los cambios en package.json

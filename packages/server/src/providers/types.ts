@@ -1,16 +1,23 @@
 import type { z } from "zod";
 
 /**
- * Supported cloud providers
+ * Supported cloud providers.
+ *
+ * This is a const-backed value object plus a string-literal union so the same
+ * ids can be used in the database, API validation, and UI without the extra
+ * nominal friction of a TypeScript enum.
  */
-export enum CloudProvider {
-	HETZNER = "hetzner",
+export const CloudProvider = {
+	HETZNER: "hetzner",
+	AWS: "aws",
+	DIGITALOCEAN: "digitalocean",
 	// Future providers:
-	// DIGITALOCEAN = "digitalocean",
-	// VULTR = "vultr",
-	// AWS = "aws",
-	// LINODE = "linode",
-}
+	// VULTR: "vultr",
+	// LINODE: "linode",
+} as const;
+
+export type CloudProvider =
+	(typeof CloudProvider)[keyof typeof CloudProvider];
 
 /**
  * Server provisioning status
@@ -100,16 +107,6 @@ export interface SSHKey {
 }
 
 /**
- * Provisioning result
- */
-export interface ProvisioningResult {
-	id: string;
-	ipAddress: string;
-	ipv6?: string;
-	status: ProvisioningStatus;
-}
-
-/**
  * Base interface that all cloud providers must implement
  */
 export interface ICloudProvider {
@@ -181,15 +178,6 @@ export interface ICloudProvider {
 	 * Delete a server
 	 */
 	deleteServer(id: string): Promise<void>;
-
-	/**
-	 * Provision a complete server with Dokploy setup
-	 */
-	provisionServer(
-		config: ServerConfig,
-		sshKeyIds?: string[],
-		onProgress?: (status: ProvisioningStatus, message?: string) => void,
-	): Promise<ProvisioningResult>;
 }
 
 /**

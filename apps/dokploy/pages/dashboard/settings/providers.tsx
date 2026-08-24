@@ -3,7 +3,6 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowCloudProviders } from "@/components/dashboard/settings/cloud-providers/show-cloud-providers";
 import { ShowDomainProviders } from "@/components/dashboard/settings/domain-providers/show-domain-providers";
 import { WildcardDomain } from "@/components/dashboard/settings/wildcard-domain";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -16,17 +15,12 @@ const Page = () => {
 			<div>
 				<h1 className="text-2xl font-bold mb-2">Providers</h1>
 				<p className="text-muted-foreground">
-					Manage cloud providers for server provisioning, domain providers for unified domain management, and custom wildcard domain settings
+					Manage domain providers and wildcard domain settings.
 				</p>
 			</div>
 
 			<div className="space-y-8">
 				<WildcardDomain />
-
-				<div>
-					<h2 className="text-lg font-semibold mb-4">Cloud Providers</h2>
-					<ShowCloudProviders />
-				</div>
 
 				<div>
 					<h2 className="text-lg font-semibold mb-4">Domain Providers</h2>

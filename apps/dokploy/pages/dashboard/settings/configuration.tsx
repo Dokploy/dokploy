@@ -3,15 +3,28 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowCloudProviders } from "@/components/dashboard/settings/cloud-providers/show-cloud-providers";
 import { ShowSidebarConfig } from "@/components/dashboard/settings/configuration/show-sidebar-config";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return (
-		<div className="w-full">
-			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
+		<div className="flex w-full flex-col gap-6">
+			<div>
+				<h1 className="text-2xl font-bold mb-2">Configuration</h1>
+				<p className="text-muted-foreground">
+					Manage organization-wide settings, sidebar visibility, and cloud
+					provider credentials from one place.
+				</p>
+			</div>
+
+			<div className="grid gap-6">
 				<ShowSidebarConfig />
+
+				<section id="cloud-providers" className="scroll-mt-24">
+					<ShowCloudProviders />
+				</section>
 			</div>
 		</div>
 	);

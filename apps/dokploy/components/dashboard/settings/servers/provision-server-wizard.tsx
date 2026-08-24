@@ -1,11 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CloudIcon, Loader2, PlusIcon, RocketIcon } from "lucide-react";
-import { useRouter } from "next/router";
+import { CloudIcon, Loader2, RocketIcon, Search } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { HetznerIcon } from "@/components/icons/cloud-provider-icons";
+import { CloudProviderLogo } from "@/components/icons/cloud-provider-icons";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -25,7 +25,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -34,10 +34,16 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { CloudProvider } from "@dokploy/server/providers/types-client";
+import {
+	getCloudProviderDefinition,
+	cloudProviderCatalogDefinitions,
+	supportedCloudProviderIds,
+	type CloudProviderDefinition,
+	type CloudProviderAvailability,
+} from "@dokploy/server/providers/registry-client";
 
 const provisionServerSchema = z.object({
-	provider: z.nativeEnum(CloudProvider),
+	provider: z.enum(supportedCloudProviderIds),
 	name: z
 		.string()
 		.min(1, "Server name is required")
@@ -52,13 +58,68 @@ const provisionServerSchema = z.object({
 });
 
 type ProvisionServerInput = z.infer<typeof provisionServerSchema>;
+type ProviderId = ProvisionServerInput["provider"];
+
+const ProviderCard = ({
+	provider,
+	disabled,
+	onSelect,
+	hasCredentials,
+}: {
+	provider: CloudProviderDefinition;
+	disabled: boolean;
+	onSelect: (provider: ProviderId) => void;
+	hasCredentials: boolean;
+}) => {
+	const statusLabel =
+		provider.availability === "supported"
+			? hasCredentials
+				? "Ready"
+				: "Not configured"
+			: "Coming soon";
+
+	return (
+		<Button
+			variant="outline"
+			className="h-auto w-full items-start justify-start gap-4 p-4 text-left"
+			onClick={() => onSelect(provider.id as ProviderId)}
+			disabled={disabled}
+		>
+			<div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+				<CloudProviderLogo icon={provider.icon} className="size-7" />
+			</div>
+			<div className="flex min-w-0 flex-1 flex-col gap-1">
+				<div className="flex items-center gap-2">
+					<span className="font-semibold">{provider.label}</span>
+						<Badge
+							variant={
+								provider.availability === "supported" && hasCredentials
+									? "default"
+									: provider.availability === "planned"
+										? "secondary"
+										: "outline"
+							}
+						>
+							{statusLabel}
+						</Badge>
+				</div>
+				<span className="text-sm text-muted-foreground line-clamp-2">
+					{provider.description}
+				</span>
+			</div>
+		</Button>
+	);
+};
 
 export const ProvisionServerWizard = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [step, setStep] = useState<"provider" | "config">("provider");
-	const [selectedProvider, setSelectedProvider] =
-		useState<CloudProvider | null>(null);
-	const router = useRouter();
+	const [selectedProvider, setSelectedProvider] = useState<ProviderId | null>(
+		null,
+	);
+	const [providerQuery, setProviderQuery] = useState("");
+	const [providerFilter, setProviderFilter] =
+		useState<CloudProviderAvailability | "all">("all");
 	const utils = api.useUtils();
 
 	const { data: credentials } = api.cloudProvider.credentials.list.useQuery();
@@ -81,29 +142,40 @@ export const ProvisionServerWizard = () => {
 	const { mutateAsync: provisionServer, isLoading: isProvisioning } =
 		api.cloudProvider.server.provision.useMutation({
 			onSuccess: async () => {
-				// Immediately refetch jobs to show the new one
 				await utils.cloudProvider.job.list.refetch();
 			},
 		});
 
 	const form = useForm<ProvisionServerInput>({
 		defaultValues: {
-			provider: CloudProvider.HETZNER,
+			provider: supportedCloudProviderIds[0],
 			name: "",
 			location: "",
 			serverType: "",
 			image: "",
 		},
-		resolver: zodResolver(provisionServerSchema),
+		resolver: (zodResolver as any)(provisionServerSchema),
 	});
 
-	const hasHetznerCredentials = credentials?.some(
-		(c) => c.provider === CloudProvider.HETZNER && c.isValid === "valid",
-	);
+	const hasValidCredentials = (provider: ProviderId) =>
+		credentials?.some(
+			(credential: any) =>
+				credential.provider === provider && credential.isValid === "valid",
+		) ?? false;
+
+	const filteredProviders = cloudProviderCatalogDefinitions.filter((provider) => {
+		const matchesQuery =
+			providerQuery.trim() === "" ||
+			provider.label.toLowerCase().includes(providerQuery.toLowerCase()) ||
+			provider.description.toLowerCase().includes(providerQuery.toLowerCase());
+		const matchesFilter =
+			providerFilter === "all" || provider.availability === providerFilter;
+		return matchesQuery && matchesFilter;
+	});
 
 	const onSubmit = async (data: ProvisionServerInput) => {
 		await provisionServer(data)
-			.then(async (result) => {
+			.then(async (result: any) => {
 				toast.success(
 					`Server provisioning started! Job ID: ${result.jobId.slice(0, 8)}`,
 					{
@@ -111,17 +183,14 @@ export const ProvisionServerWizard = () => {
 					},
 				);
 
-				// Close dialog and reset form first for better UX
 				setIsOpen(false);
 				form.reset();
 				setStep("provider");
 				setSelectedProvider(null);
 
-				// Force immediate refetch of job list (will be called again by onSuccess)
 				await utils.cloudProvider.job.list.refetch();
 				await utils.server.all.invalidate();
 
-				// Scroll to jobs section immediately
 				setTimeout(() => {
 					const jobsSection = document.querySelector(
 						"[data-provisioning-jobs]",
@@ -134,12 +203,16 @@ export const ProvisionServerWizard = () => {
 					}
 				}, 100);
 			})
-			.catch((error) => {
-				toast.error(error?.message || "Error starting server provisioning");
+			.catch((error: unknown) => {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Error starting server provisioning",
+				);
 			});
 	};
 
-	const handleProviderSelect = (provider: CloudProvider) => {
+	const handleProviderSelect = (provider: ProviderId) => {
 		setSelectedProvider(provider);
 		form.setValue("provider", provider);
 		setStep("config");
@@ -154,8 +227,13 @@ export const ProvisionServerWizard = () => {
 		setIsOpen(false);
 		setStep("provider");
 		setSelectedProvider(null);
+		setProviderQuery("");
+		setProviderFilter("all");
 		form.reset();
 	};
+
+	const selectedProviderDefinition =
+		selectedProvider && getCloudProviderDefinition(selectedProvider);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -165,57 +243,116 @@ export const ProvisionServerWizard = () => {
 					<span>Provision Server</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
-				<DialogHeader>
-					<DialogTitle className="flex items-center gap-2">
-						<CloudIcon className="size-5" />
-						Provision New Server
-					</DialogTitle>
-					<DialogDescription>
-						{step === "provider"
-							? "Select a cloud provider to provision a new server"
-							: "Configure your new server"}
-					</DialogDescription>
-				</DialogHeader>
+			<DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden p-0">
+				<div className="flex max-h-[90vh] min-h-0 flex-col">
+					<DialogHeader className="border-b px-6 py-5">
+						<DialogTitle className="flex items-center gap-2">
+							<CloudIcon className="size-5" />
+							Provision New Server
+						</DialogTitle>
+						<DialogDescription>
+							{step === "provider"
+								? "Search and filter providers, then choose where to provision."
+								: selectedProviderDefinition
+									? `Configure your ${selectedProviderDefinition.label} server`
+									: "Configure your new server"}
+						</DialogDescription>
+					</DialogHeader>
 
-				{step === "provider" ? (
-					<div className="space-y-4">
-						{!hasHetznerCredentials && (
-							<div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-								No cloud provider credentials configured. Please add your
-								provider credentials in{" "}
-								<a
-									href="/dashboard/settings/cloud-providers"
-									className="text-primary hover:underline"
-									onClick={() => setIsOpen(false)}
-								>
-									Cloud Providers settings
-								</a>{" "}
-								first.
-							</div>
-						)}
-
-						<div className="space-y-2">
-							<Label>Select Cloud Provider</Label>
-							<div className="grid gap-4">
-								<Button
-									variant="outline"
-									className="h-auto flex-col gap-2 p-6"
-									onClick={() => handleProviderSelect(CloudProvider.HETZNER)}
-									disabled={!hasHetznerCredentials}
-								>
-									<HetznerIcon className="size-8" />
-									<div className="flex flex-col items-center gap-1">
-										<span className="font-semibold">Hetzner Cloud</span>
-										<span className="text-xs text-muted-foreground">
-											Fast servers in Europe & US
-										</span>
+					{step === "provider" ? (
+						<div className="flex min-h-0 flex-1 flex-col">
+							<div className="border-b px-6 py-4 space-y-4">
+								{credentials?.length === 0 && (
+									<div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
+										No cloud provider credentials configured. Please add your
+										provider credentials in{" "}
+										<a
+											href="/dashboard/settings/configuration#cloud-providers"
+											className="text-primary hover:underline"
+											onClick={() => setIsOpen(false)}
+										>
+											Configuration
+										</a>{" "}
+										first.
 									</div>
-								</Button>
+								)}
+
+								<div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+									<div className="relative">
+										<Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											value={providerQuery}
+											onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+												setProviderQuery(event.target.value)
+											}
+											placeholder="Search providers..."
+											className="pl-9"
+										/>
+									</div>
+									<div className="flex flex-wrap items-center gap-2">
+										{(
+											[
+												["all", "All"],
+												["supported", "Supported"],
+												["planned", "Coming soon"],
+											] as const
+										).map(([value, label]) => (
+											<Button
+												key={value}
+												type="button"
+												variant={
+													providerFilter === value ? "default" : "outline"
+												}
+												size="sm"
+												onClick={() => setProviderFilter(value)}
+											>
+												{label}
+											</Button>
+										))}
+									</div>
+								</div>
+
+								<div className="flex items-center justify-between text-sm text-muted-foreground">
+									<span>
+										{filteredProviders.length} provider
+										{filteredProviders.length === 1 ? "" : "s"}
+									</span>
+									<a
+										href="/dashboard/settings/configuration#cloud-providers"
+										className="text-primary hover:underline"
+										onClick={() => setIsOpen(false)}
+									>
+										Manage credentials
+									</a>
+								</div>
 							</div>
+
+							<ScrollArea className="flex-1 px-6 py-6">
+								<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+									{filteredProviders.map((provider) => (
+										<ProviderCard
+											key={provider.id}
+											provider={provider}
+											disabled={
+												provider.availability !== "supported" ||
+												!hasValidCredentials(provider.id as ProviderId)
+											}
+											hasCredentials={hasValidCredentials(
+												provider.id as ProviderId,
+											)}
+											onSelect={handleProviderSelect}
+										/>
+									))}
+								</div>
+								{filteredProviders.length === 0 && (
+									<div className="flex min-h-[30vh] items-center justify-center rounded-xl border border-dashed bg-muted/30 px-6 py-10 text-sm text-muted-foreground">
+										No providers match your search.
+									</div>
+								)}
+							</ScrollArea>
 						</div>
-					</div>
-				) : (
+					) : (
+						<div className="flex-1 overflow-y-auto px-6 py-6">
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 							<FormField
@@ -258,7 +395,7 @@ export const ProvisionServerWizard = () => {
 														<Loader2 className="size-4 animate-spin" />
 													</div>
 												) : (
-													locations?.map((location) => (
+													locations?.map((location: any) => (
 														<SelectItem key={location.id} value={location.id}>
 															{location.city}, {location.country} -{" "}
 															{location.name}
@@ -297,11 +434,11 @@ export const ProvisionServerWizard = () => {
 														<Loader2 className="size-4 animate-spin" />
 													</div>
 												) : (
-													serverTypes?.map((type) => (
+													serverTypes?.map((type: any) => (
 														<SelectItem key={type.id} value={type.id}>
-															{type.name} - {type.cores} vCPU, {type.memory}
-															GB RAM, {type.disk}GB SSD (€
-															{type.priceMonthly.toFixed(2)}/mo)
+															{type.name} - {type.cores} vCPU, {type.memory} GB
+															RAM, {type.disk}GB SSD (€{type.priceMonthly.toFixed(2)}
+															/mo)
 														</SelectItem>
 													))
 												)}
@@ -337,7 +474,7 @@ export const ProvisionServerWizard = () => {
 														<Loader2 className="size-4 animate-spin" />
 													</div>
 												) : (
-													images?.map((image) => (
+													images?.map((image: any) => (
 														<SelectItem key={image.id} value={image.id}>
 															{image.name} ({image.osType}{" "}
 															{image.osVersion && `- ${image.osVersion}`})
@@ -368,7 +505,9 @@ export const ProvisionServerWizard = () => {
 							</div>
 						</form>
 					</Form>
-				)}
+						</div>
+					)}
+				</div>
 			</DialogContent>
 		</Dialog>
 	);

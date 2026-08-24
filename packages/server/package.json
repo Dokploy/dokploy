@@ -20,6 +20,10 @@
     "./providers/types-client": {
       "import": "./src/providers/types-client.ts",
       "require": "./dist/providers/types-client.cjs.js"
+    },
+    "./providers/registry-client": {
+      "import": "./src/providers/registry-client.ts",
+      "require": "./dist/providers/registry-client.cjs.js"
     }
   },
   "scripts": {
@@ -41,6 +45,7 @@
     "@ai-sdk/mistral": "^3.0.20",
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/openai-compatible": "^2.0.30",
+    "@aws-sdk/client-ec2": "^3.1116.0",
     "@aws-sdk/client-route-53": "^3.1108.0",
     "@aws-sdk/client-secrets-manager": "^3.1108.0",
     "@better-auth/api-key": "1.6.23",

@@ -4,7 +4,10 @@ import {
 	type IProviderFactory,
 	type ProviderCredentials,
 } from "./types";
+import { supportedCloudProviderIds } from "./registry-client";
 import { HetznerProvider } from "./hetzner/provider";
+import { AwsProvider } from "./aws/provider";
+import { DigitalOceanProvider } from "./digitalocean/provider";
 
 /**
  * Factory for creating cloud provider instances
@@ -16,22 +19,18 @@ export class ProviderFactory implements IProviderFactory {
 	): ICloudProvider {
 		switch (provider) {
 			case CloudProvider.HETZNER:
-				return new HetznerProvider(credentials.apiToken);
-			// Future providers can be added here:
-			// case CloudProvider.DIGITALOCEAN:
-			//   return new DigitalOceanProvider(credentials.apiToken);
-			// case CloudProvider.VULTR:
-			//   return new VultrProvider(credentials.apiToken);
+				return new HetznerProvider(credentials);
+			case CloudProvider.AWS:
+				return new AwsProvider(credentials);
+			case CloudProvider.DIGITALOCEAN:
+				return new DigitalOceanProvider(credentials);
 			default:
 				throw new Error(`Unsupported provider: ${provider}`);
 		}
 	}
 
 	getSupportedProviders(): CloudProvider[] {
-		return [
-			CloudProvider.HETZNER,
-			// Add more providers as they are implemented
-		];
+		return [...supportedCloudProviderIds];
 	}
 }
 
@@ -41,7 +40,7 @@ export const providerFactory = new ProviderFactory();
 // Helper function for creating providers
 export function createCloudProvider(
 	provider: CloudProvider,
-	apiToken: string,
+	credentials: ProviderCredentials,
 ): ICloudProvider {
-	return providerFactory.createProvider(provider, { provider, apiToken });
+	return providerFactory.createProvider(provider, credentials);
 }

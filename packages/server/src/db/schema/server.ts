@@ -57,9 +57,14 @@ export const server = pgTable("server", {
 	cloudProvider: text("cloudProvider"), // e.g., "hetzner", "digitalocean"
 	providerServerId: text("providerServerId"), // Provider's server ID for cleanup
 	providerMetadata: jsonb("providerMetadata").$type<{
+		provider: string;
 		location?: string;
+		region?: string;
 		serverType?: string;
+		instanceType?: string;
 		image?: string;
+		imageId?: string;
+		sshKeyIds?: string[];
 	}>(),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{

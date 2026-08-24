@@ -36,7 +36,6 @@ const SIDEBAR_ITEMS = {
 		{ key: "cluster", label: "Cluster" },
 		{ key: "notifications", label: "Notifications" },
 		{ key: "billing", label: "Billing" },
-		{ key: "cloud-providers", label: "Cloud Providers" },
 	],
 };
 

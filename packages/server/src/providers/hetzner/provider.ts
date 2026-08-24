@@ -3,8 +3,7 @@ import {
 	type ICloudProvider,
 	type Image,
 	type Location,
-	type ProvisioningResult,
-	ProvisioningStatus,
+	type ProviderCredentials,
 	type ServerConfig,
 	type ServerInstance,
 	type ServerType,
@@ -19,8 +18,31 @@ export class HetznerProvider implements ICloudProvider {
 	readonly name = CloudProvider.HETZNER;
 	private client: HetznerClient;
 
-	constructor(apiToken: string) {
-		this.client = new HetznerClient(apiToken);
+	constructor(credentials: ProviderCredentials) {
+		this.client = new HetznerClient(credentials.apiToken);
+	}
+
+	private async paginate<TItem, TResponse extends { meta: { pagination: { page: number; per_page: number; total_entries: number } } }>(
+		loadPage: (page: number, perPage: number) => Promise<TResponse>,
+		extract: (response: TResponse) => TItem[],
+	): Promise<TItem[]> {
+		const perPage = 50;
+		let page = 1;
+		const items: TItem[] = [];
+
+		while (true) {
+			const response = await loadPage(page, perPage);
+			items.push(...extract(response));
+
+			const { pagination } = response.meta;
+			if (pagination.page * pagination.per_page >= pagination.total_entries) {
+				break;
+			}
+
+			page += 1;
+		}
+
+		return items;
 	}
 
 	async validateCredentials(): Promise<boolean> {
@@ -36,8 +58,16 @@ export class HetznerProvider implements ICloudProvider {
 	}
 
 	async listLocations(): Promise<Location[]> {
-		const response = await this.client.getLocations();
-		return response.locations.map((loc) => ({
+		const locations = await this.paginate(
+			(page, perPage) =>
+				this.client.getLocations({
+					page,
+					per_page: perPage,
+				}),
+			(response) => response.locations,
+		);
+
+		return locations.map((loc) => ({
 			id: loc.name,
 			name: loc.name,
 			description: loc.description,
@@ -48,8 +78,16 @@ export class HetznerProvider implements ICloudProvider {
 	}
 
 	async listServerTypes(): Promise<ServerType[]> {
-		const response = await this.client.getServerTypes();
-		return response.server_types
+		const serverTypes = await this.paginate(
+			(page, perPage) =>
+				this.client.getServerTypes({
+					page,
+					per_page: perPage,
+				}),
+			(response) => response.server_types,
+		);
+
+		return serverTypes
 			.filter((type) => !type.deprecated)
 			.map((type) => {
 				// Get the first price as reference
@@ -75,12 +113,18 @@ export class HetznerProvider implements ICloudProvider {
 	}
 
 	async listImages(): Promise<Image[]> {
-		const response = await this.client.getImages({
-			type: "system",
-			architecture: "x86",
-		});
+		const images = await this.paginate(
+			(page, perPage) =>
+				this.client.getImages({
+					type: "system",
+					architecture: "x86",
+					page,
+					per_page: perPage,
+				}),
+			(response) => response.images,
+		);
 
-		return response.images
+		return images
 			.filter((img) => img.status === "available" && !img.deprecated)
 			.map((img) => ({
 				id: img.name || img.id.toString(),
@@ -94,8 +138,15 @@ export class HetznerProvider implements ICloudProvider {
 
 	async ensureSSHKey(name: string, publicKey: string): Promise<SSHKey> {
 		// Check if SSH key already exists
-		const existingKeys = await this.client.getSSHKeys();
-		const existing = existingKeys.ssh_keys.find(
+		const existingKeys = await this.paginate(
+			(page, perPage) =>
+				this.client.getSSHKeys({
+					page,
+					per_page: perPage,
+				}),
+			(response) => response.ssh_keys,
+		);
+		const existing = existingKeys.find(
 			(key) => key.public_key === publicKey,
 		);
 
@@ -199,50 +250,5 @@ export class HetznerProvider implements ICloudProvider {
 
 	async deleteServer(id: string): Promise<void> {
 		await this.client.deleteServer(Number.parseInt(id, 10));
-	}
-
-	async provisionServer(
-		config: ServerConfig,
-		sshKeyIds?: string[],
-		onProgress?: (status: ProvisioningStatus, message?: string) => void,
-	): Promise<ProvisioningResult> {
-		if (onProgress) {
-			onProgress(ProvisioningStatus.CREATING_SERVER, "Creating server...");
-		}
-
-		// Add SSH keys to config if provided
-		const serverConfig = {
-			...config,
-			sshKeyIds: sshKeyIds || config.sshKeyIds,
-		};
-
-		const serverInstance = await this.createServer(serverConfig);
-
-		if (onProgress) {
-			onProgress(
-				ProvisioningStatus.CREATING_SERVER,
-				"Waiting for server to be ready...",
-			);
-		}
-
-		const readyServer = await this.waitForServer(
-			serverInstance.id,
-			300000,
-			(status) => {
-				if (onProgress) {
-					onProgress(
-						ProvisioningStatus.CREATING_SERVER,
-						`Server status: ${status}`,
-					);
-				}
-			},
-		);
-
-		return {
-			id: readyServer.id,
-			ipAddress: readyServer.ipv4 || "",
-			ipv6: readyServer.ipv6,
-			status: ProvisioningStatus.COMPLETED,
-		};
 	}
 }

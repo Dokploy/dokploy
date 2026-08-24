@@ -10,17 +10,17 @@ import {
 	updateProvisioningJobStatus,
 	getProvisioningJob,
 	listProvisioningJobs,
-	provisionServer,
-	deleteCloudServer,
-	getDecryptedApiToken,
+	getDecryptedProviderCredentials,
 } from "@dokploy/server/services/cloud-provider";
 import {
-	CloudProvider,
-	ProvisioningStatus,
-} from "@dokploy/server/providers/types";
+	provisionServer,
+	deleteCloudServer,
+} from "@dokploy/server/services/server-provisioning";
+import { ProvisioningStatus } from "@dokploy/server/providers/types";
 import { createCloudProvider } from "@dokploy/server/providers/factory";
+import { supportedCloudProviderIds } from "@dokploy/server/providers/registry-client";
 
-const cloudProviderEnum = z.nativeEnum(CloudProvider);
+const cloudProviderEnum = z.enum(supportedCloudProviderIds);
 
 export const cloudProviderRouter = createTRPCRouter({
 	// Credentials Management
@@ -104,11 +104,14 @@ export const cloudProviderRouter = createTRPCRouter({
 			)
 			.query(async ({ ctx, input }) => {
 				try {
-					const apiToken = await getDecryptedApiToken(
+					const providerCredentials = await getDecryptedProviderCredentials(
 						ctx.session.activeOrganizationId,
 						input.provider,
 					);
-					const providerClient = createCloudProvider(input.provider, apiToken);
+					const providerClient = createCloudProvider(
+						input.provider,
+						providerCredentials,
+					);
 					return await providerClient.listLocations();
 				} catch (error) {
 					throw new TRPCError({
@@ -130,11 +133,14 @@ export const cloudProviderRouter = createTRPCRouter({
 			)
 			.query(async ({ ctx, input }) => {
 				try {
-					const apiToken = await getDecryptedApiToken(
+					const providerCredentials = await getDecryptedProviderCredentials(
 						ctx.session.activeOrganizationId,
 						input.provider,
 					);
-					const providerClient = createCloudProvider(input.provider, apiToken);
+					const providerClient = createCloudProvider(
+						input.provider,
+						providerCredentials,
+					);
 					return await providerClient.listServerTypes();
 				} catch (error) {
 					throw new TRPCError({
@@ -156,11 +162,14 @@ export const cloudProviderRouter = createTRPCRouter({
 			)
 			.query(async ({ ctx, input }) => {
 				try {
-					const apiToken = await getDecryptedApiToken(
+					const providerCredentials = await getDecryptedProviderCredentials(
 						ctx.session.activeOrganizationId,
 						input.provider,
 					);
-					const providerClient = createCloudProvider(input.provider, apiToken);
+					const providerClient = createCloudProvider(
+						input.provider,
+						providerCredentials,
+					);
 					return await providerClient.listImages();
 				} catch (error) {
 					throw new TRPCError({
@@ -217,7 +226,6 @@ export const cloudProviderRouter = createTRPCRouter({
 					provisionServer(
 						job.jobId,
 						ctx.session.activeOrganizationId,
-						credentials.credentialId,
 						input.provider,
 						{
 							name: input.name,

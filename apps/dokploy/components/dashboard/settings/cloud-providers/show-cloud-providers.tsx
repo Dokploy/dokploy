@@ -1,10 +1,7 @@
 import { format } from "date-fns";
 import { Cloud, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-	CloudProviderIcon,
-	HetznerIcon,
-} from "@/components/icons/cloud-provider-icons";
+import { CloudProviderLogo, CloudProviderIcon } from "@/components/icons/cloud-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,24 +13,26 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { AddHetznerProvider } from "./hetzner/add-hetzner-provider";
+import {
+	getCloudProviderDefinition,
+	plannedCloudProviderDefinitions,
+	provisionableCloudProviderDefinitions,
+} from "@dokploy/server/providers/registry-client";
+import { AddCloudProvider } from "./add-cloud-provider";
 
 const ProviderIcon = ({ provider }: { provider: string }) => {
-	switch (provider) {
-		case "hetzner":
-			return <HetznerIcon className="size-5" />;
-		default:
-			return <Cloud className="size-5" />;
-	}
+	const definition = getCloudProviderDefinition(provider);
+
+	return definition ? (
+		<CloudProviderLogo icon={definition.icon} className="size-5" />
+	) : (
+		<Cloud className="size-5" />
+	);
 };
 
 const ProviderName = ({ provider }: { provider: string }) => {
-	switch (provider) {
-		case "hetzner":
-			return "Hetzner Cloud";
-		default:
-			return provider;
-	}
+	const definition = getCloudProviderDefinition(provider);
+	return definition?.label ?? provider;
 };
 
 export const ShowCloudProviders = () => {
@@ -48,9 +47,11 @@ export const ShowCloudProviders = () => {
 				toast.success("Cloud provider credentials removed successfully");
 				await refetch();
 			})
-			.catch((error) => {
+			.catch((error: unknown) => {
 				toast.error(
-					error?.message || "Error removing cloud provider credentials",
+					error instanceof Error
+						? error.message
+						: "Error removing cloud provider credentials",
 				);
 			});
 	};
@@ -86,7 +87,9 @@ export const ShowCloudProviders = () => {
 										<div>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddHetznerProvider />
+													{provisionableCloudProviderDefinitions.map((provider) => (
+														<AddCloudProvider key={provider.id} provider={provider} />
+													))}
 												</div>
 											</div>
 										</div>
@@ -99,10 +102,45 @@ export const ShowCloudProviders = () => {
 											</span>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddHetznerProvider />
+													{provisionableCloudProviderDefinitions.map((provider) => (
+														<AddCloudProvider key={provider.id} provider={provider} />
+													))}
 												</div>
 											</div>
 										</div>
+
+										{plannedCloudProviderDefinitions.length > 0 && (
+											<div className="flex flex-col gap-2 rounded-lg">
+												<span className="text-base font-medium">
+													Coming Soon
+												</span>
+												<div className="grid gap-3 md:grid-cols-2">
+													{plannedCloudProviderDefinitions.map((provider) => (
+														<Card key={provider.id} className="border-dashed">
+															<CardContent className="flex items-start gap-3 p-4">
+																<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar">
+																	<CloudProviderLogo
+																		icon={provider.icon}
+																		className="size-5"
+																	/>
+																</div>
+																<div className="space-y-1">
+																	<div className="flex items-center gap-2">
+																		<span className="font-medium">
+																			{provider.label}
+																		</span>
+																		<Badge variant="secondary">Coming soon</Badge>
+																	</div>
+																	<p className="text-sm text-muted-foreground">
+																		{provider.apiTokenHelpText}
+																	</p>
+																</div>
+															</CardContent>
+														</Card>
+													))}
+												</div>
+											</div>
+										)}
 
 										<div className="flex flex-col gap-2">
 											<span className="text-base font-medium">
@@ -110,7 +148,7 @@ export const ShowCloudProviders = () => {
 											</span>
 
 											<div className="grid gap-4">
-												{data?.map((credential) => (
+												{data?.map((credential: any) => (
 													<Card key={credential.credentialId}>
 														<CardContent className="p-6">
 															<div className="flex items-center justify-between">

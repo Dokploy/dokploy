@@ -1,0 +1,21 @@
+{
+	"extends": "./tsconfig.server.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"declaration": false,
+		"declarationMap": false,
+		"paths": {
+		"@dokploy/server/*": ["./src/*"]
+		}
+	},
+	"include": [
+		"next-env.d.ts",
+		"src/providers/aws/provider.ts",
+		"src/providers/digitalocean/provider.ts",
+		"src/providers/factory.ts",
+		"src/providers/hetzner/provider.ts",
+		"src/providers/registry-client.ts",
+		"src/providers/types.ts",
+		"src/providers/types-client.ts"
+	]
+}

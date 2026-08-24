@@ -11,6 +11,5 @@ export {
 	type Image,
 	type SSHKey,
 	type ServerInstance,
-	type ProvisioningResult,
 	type ServerConfig,
 } from "./types";

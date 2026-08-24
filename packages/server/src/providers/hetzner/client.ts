@@ -62,15 +62,31 @@ export class HetznerClient {
 	/**
 	 * Get available locations
 	 */
-	async getLocations(): Promise<HetznerLocationsResponse> {
-		return this.request<HetznerLocationsResponse>("/locations");
+	async getLocations(params?: {
+		page?: number;
+		per_page?: number;
+	}): Promise<HetznerLocationsResponse> {
+		const query = new URLSearchParams();
+		if (params?.page) query.set("page", String(params.page));
+		if (params?.per_page) query.set("per_page", String(params.per_page));
+		return this.request<HetznerLocationsResponse>(
+			`/locations${query.toString() ? `?${query.toString()}` : ""}`,
+		);
 	}
 
 	/**
 	 * Get available server types
 	 */
-	async getServerTypes(): Promise<HetznerServerTypesResponse> {
-		return this.request<HetznerServerTypesResponse>("/server_types");
+	async getServerTypes(params?: {
+		page?: number;
+		per_page?: number;
+	}): Promise<HetznerServerTypesResponse> {
+		const query = new URLSearchParams();
+		if (params?.page) query.set("page", String(params.page));
+		if (params?.per_page) query.set("per_page", String(params.per_page));
+		return this.request<HetznerServerTypesResponse>(
+			`/server_types${query.toString() ? `?${query.toString()}` : ""}`,
+		);
 	}
 
 	/**
@@ -79,6 +95,8 @@ export class HetznerClient {
 	async getImages(query?: {
 		type?: "system" | "app" | "snapshot" | "backup";
 		architecture?: "x86" | "arm";
+		page?: number;
+		per_page?: number;
 	}): Promise<HetznerImagesResponse> {
 		const params = new URLSearchParams();
 		if (query) {
@@ -95,8 +113,16 @@ export class HetznerClient {
 	/**
 	 * Get SSH keys
 	 */
-	async getSSHKeys(): Promise<HetznerSSHKeysResponse> {
-		return this.request<HetznerSSHKeysResponse>("/ssh_keys");
+	async getSSHKeys(params?: {
+		page?: number;
+		per_page?: number;
+	}): Promise<HetznerSSHKeysResponse> {
+		const query = new URLSearchParams();
+		if (params?.page) query.set("page", String(params.page));
+		if (params?.per_page) query.set("per_page", String(params.per_page));
+		return this.request<HetznerSSHKeysResponse>(
+			`/ssh_keys${query.toString() ? `?${query.toString()}` : ""}`,
+		);
 	}
 
 	/**

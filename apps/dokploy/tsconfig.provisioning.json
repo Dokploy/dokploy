@@ -1,0 +1,20 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"paths": {
+			"@/*": ["./*"],
+			"@/utils/api": ["./provisioning-api.ts"],
+			"@dokploy/server/*": ["../../packages/server/src/*"]
+		}
+	},
+	"include": [
+		"next-env.d.ts",
+		"components/dashboard/settings/cloud-providers/add-cloud-provider.tsx",
+		"components/dashboard/settings/cloud-providers/show-cloud-providers.tsx",
+		"components/dashboard/settings/configuration/show-sidebar-config.tsx",
+		"components/dashboard/settings/servers/provision-server-wizard.tsx",
+		"components/icons/cloud-provider-icons.tsx",
+		"provisioning-api.ts"
+	]
+}

@@ -5,15 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { server } from "./server";
-
-export const cloudProviderEnum = pgEnum("cloudProvider", [
-	"hetzner",
-	// Future providers can be added here
-	// "digitalocean",
-	// "vultr",
-	// "aws",
-	// "linode",
-]);
+import { supportedCloudProviderIds } from "../../providers/registry-client";
 
 export const provisioningStatusEnum = pgEnum("provisioningStatus", [
 	"pending",
@@ -35,7 +27,7 @@ export const cloudProviderCredentials = pgTable("cloud_provider_credentials", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	provider: cloudProviderEnum("provider").notNull(),
+	provider: text("provider").notNull(),
 	name: text("name").notNull(),
 	description: text("description"),
 	// Encrypted API token/credentials
@@ -136,7 +128,7 @@ const createCredentialSchema = createInsertSchema(cloudProviderCredentials, {
 	credentialId: z.string().min(1),
 	name: z.string().min(1).max(100),
 	description: z.string().max(500).optional(),
-	provider: z.enum(["hetzner"]),
+	provider: z.enum(supportedCloudProviderIds),
 	encryptedApiToken: z.string().min(1),
 });
 
