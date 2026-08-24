@@ -28,6 +28,11 @@ const cases: Record<string, string> = {
 	ASSET_URL: "https://example.com",
 	UNBRACED_URL: "https://example.com",
 	PASSWORD: "pa$$word",
+	MISSING: "expanded",
+	SERVICE_SOURCE: "serviceexpanded",
+	FROM_SERVICE_LITERAL: "service$MISSING",
+	FROM_PROJECT_LITERAL: "project$MISSING",
+	FROM_ENVIRONMENT_LITERAL: "environment${MISSING}",
 	SPECIAL: '!"#$%&/()=?',
 	NESTED_JSON: '{"nested":{"a":1}}',
 	MAIL_PASSWORD: "abc#de",
@@ -45,6 +50,11 @@ const inputEncoding: Record<string, string> = {
 	ASSET_URL: "${APP_URL}",
 	UNBRACED_URL: "$APP_URL",
 	PASSWORD: "pa$$word",
+	MISSING: "expanded",
+	SERVICE_SOURCE: "service$MISSING",
+	FROM_SERVICE_LITERAL: "${{SERVICE_SOURCE}}",
+	FROM_PROJECT_LITERAL: "${{project.PROJECT_LITERAL}}",
+	FROM_ENVIRONMENT_LITERAL: "${{environment.ENVIRONMENT_LITERAL}}",
 	SPECIAL: `'!"#$%&/()=?'`,
 	NESTED_JSON: '{"nested":{"a":1}}',
 	MAIL_PASSWORD: `"abc#de"`,
@@ -68,6 +78,30 @@ describe("prepareEnvironmentVariablesForFile", () => {
 			'PASSWORD="pa\\$\\$word"',
 		]);
 	});
+
+	it("escapes Compose-looking values introduced by Dokploy placeholders", () => {
+		const resolved = prepareEnvironmentVariablesForFile(
+			[
+				"FROM_PROJECT=${{project.PROJECT_SECRET}}",
+				"FROM_ENVIRONMENT=${{environment.ENVIRONMENT_SECRET}}",
+				"FROM_SERVICE=${{SERVICE_SECRET}}",
+				"DIRECT=$MISSING",
+				"DIRECT_BRACED=${MISSING}",
+				"SERVICE_SECRET=service$MISSING",
+			].join("\n"),
+			"PROJECT_SECRET=project$MISSING",
+			"ENVIRONMENT_SECRET=environment${MISSING}",
+		);
+
+		expect(resolved).toEqual([
+			'FROM_PROJECT="project\\$MISSING"',
+			'FROM_ENVIRONMENT="environment\\${MISSING}"',
+			'FROM_SERVICE="service\\$MISSING"',
+			'DIRECT="$MISSING"',
+			'DIRECT_BRACED="${MISSING}"',
+			'SERVICE_SECRET="service$MISSING"',
+		]);
+	});
 });
 
 describe("getCreateEnvFileCommand", () => {
@@ -85,7 +119,10 @@ describe("getCreateEnvFileCommand", () => {
 			randomize: false,
 			suffix: "",
 			serverId: null,
-			environment: { project: { env: "" }, env: "" },
+			environment: {
+				project: { env: "PROJECT_LITERAL=project$MISSING" },
+				env: "ENVIRONMENT_LITERAL=environment${MISSING}",
+			},
 		} as Parameters<typeof getCreateEnvFileCommand>[0]);
 
 		execFileSync("bash", ["-c", command]);

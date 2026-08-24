@@ -456,10 +456,11 @@ export const removeService = async (
 	}
 };
 
-export const prepareEnvironmentVariables = (
+const prepareEnvironmentVariablesInternal = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	composeReferenceMarker?: string,
 ) => {
 	for (const source of [serviceEnv, projectEnv, environmentEnv]) {
 		if (source?.includes("${{vault.")) {
@@ -471,6 +472,10 @@ export const prepareEnvironmentVariables = (
 	const projectVars = parse(projectEnv ?? "");
 	const environmentVars = parse(environmentEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
+	const resolveReplacement = (value: string) =>
+		composeReferenceMarker
+			? value.replaceAll(composeReferenceMarker, "$")
+			: value;
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
@@ -481,7 +486,7 @@ export const prepareEnvironmentVariables = (
 				/\$\{\{project\.(.*?)\}\}/g,
 				(_, ref) => {
 					if (projectVars[ref] !== undefined) {
-						return projectVars[ref];
+						return resolveReplacement(projectVars[ref] as string);
 					}
 					throw new Error(
 						`Invalid project environment variable: project.${ref}`,
@@ -496,7 +501,7 @@ export const prepareEnvironmentVariables = (
 				/\$\{\{environment\.(.*?)\}\}/g,
 				(_, ref) => {
 					if (environmentVars[ref] !== undefined) {
-						return environmentVars[ref];
+						return resolveReplacement(environmentVars[ref] as string);
 					}
 					throw new Error(`Invalid environment variable: environment.${ref}`);
 				},
@@ -506,7 +511,7 @@ export const prepareEnvironmentVariables = (
 		// Replace self-references (service variables)
 		resolvedValue = resolvedValue.replace(/\$\{\{(.*?)\}\}/g, (_, ref) => {
 			if (serviceVars[ref] !== undefined) {
-				return serviceVars[ref];
+				return resolveReplacement(serviceVars[ref] as string);
 			}
 			throw new Error(`Invalid service environment variable: ${ref}`);
 		});
@@ -516,6 +521,13 @@ export const prepareEnvironmentVariables = (
 
 	return resolvedVars;
 };
+
+export const prepareEnvironmentVariables = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+) =>
+	prepareEnvironmentVariablesInternal(serviceEnv, projectEnv, environmentEnv);
 
 export const prepareEnvironmentVariablesForShell = (
 	serviceEnv: string | null,
@@ -537,10 +549,31 @@ export const prepareEnvironmentVariablesForFile = (
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
 ): string[] => {
-	const envVars = prepareEnvironmentVariables(
-		serviceEnv,
+	let composeReferenceMarker = "__DOKPLOY_COMPOSE_REFERENCE__";
+	while (
+		[serviceEnv, projectEnv, environmentEnv].some((source) =>
+			source?.includes(composeReferenceMarker),
+		)
+	) {
+		composeReferenceMarker += "_";
+	}
+
+	const protectedServiceEnv = (serviceEnv ?? "").replace(
+		/\$/g,
+		(match, offset: number, source: string) => {
+			const suffix = source.slice(offset + 1);
+			const isVariableReference =
+				source[offset - 1] !== "$" &&
+				(/^\{[A-Za-z_][A-Za-z0-9_]*(?:(?::[-+?]|[-+?])[^}]*)?\}/.test(suffix) ||
+					/^[A-Za-z_][A-Za-z0-9_]*/.test(suffix));
+			return isVariableReference ? composeReferenceMarker : match;
+		},
+	);
+	const envVars = prepareEnvironmentVariablesInternal(
+		protectedServiceEnv,
 		projectEnv,
 		environmentEnv,
+		composeReferenceMarker,
 	);
 
 	return envVars.map((pair) => {
@@ -548,16 +581,8 @@ export const prepareEnvironmentVariablesForFile = (
 		const escapedValue = value
 			.replace(/\\/g, "\\\\")
 			.replace(/"/g, '\\"')
-			.replace(/\$/g, (match, offset: number, source: string) => {
-				const suffix = source.slice(offset + 1);
-				const isVariableReference =
-					source[offset - 1] !== "$" &&
-					(/^\{[A-Za-z_][A-Za-z0-9_]*(?:(?::[-+?]|[-+?])[^}]*)?\}/.test(
-						suffix,
-					) ||
-						/^[A-Za-z_][A-Za-z0-9_]*/.test(suffix));
-				return isVariableReference ? match : `\\${match}`;
-			});
+			.replace(/\$/g, "\\$")
+			.replaceAll(composeReferenceMarker, "$");
 		return `${key}="${escapedValue}"`;
 	});
 };
