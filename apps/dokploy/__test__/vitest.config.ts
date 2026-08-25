@@ -29,6 +29,10 @@ export default defineConfig({
 				__dirname,
 				"../../../packages/server/src",
 			),
+			"@1password/sdk": path.resolve(
+				__dirname,
+				"../../../packages/server/node_modules/@1password/sdk",
+			),
 		},
 	},
 });

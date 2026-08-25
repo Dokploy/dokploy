@@ -12,6 +12,13 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+const getVariables = vi.fn();
+const createClient = vi.fn();
+
+vi.mock("@1password/sdk", () => ({
+	createClient: (...args: unknown[]) => createClient(...args),
+}));
+
 import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
 import {
 	resolveVaultReferences,
@@ -20,6 +27,7 @@ import {
 import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
+import { onePasswordClient } from "@dokploy/server/utils/vault/onepassword";
 import { phaseClient } from "@dokploy/server/utils/vault/phase";
 import { scalewayClient } from "@dokploy/server/utils/vault/scaleway";
 
@@ -36,6 +44,11 @@ const jsonResponse = (body: unknown, ok = true, status = 200) =>
 beforeEach(() => {
 	findMany.mockReset();
 	mockFetch.mockReset();
+	getVariables.mockReset();
+	createClient.mockReset();
+	createClient.mockResolvedValue({
+		environments: { getVariables: (...args: unknown[]) => getVariables(...args) },
+	});
 });
 
 const scope = {
@@ -737,6 +750,108 @@ describe("phase client", () => {
 
 		const result = await resolveVaultReferences(
 			"DB_PASSWORD=${{vault.phase-prod.DB_PASSWORD}}",
+			scope,
+		);
+
+		expect(result).toBe("DB_PASSWORD=s3cret");
+	});
+});
+
+describe("onepassword client", () => {
+	const config = {
+		providerType: "onepassword" as const,
+		serviceAccountToken: "ops_service-account-token",
+		environmentId: "env-123",
+	};
+
+	const variablesResponse = (
+		variables: Array<{ name: string; value: string }>,
+	) => ({
+		variables: variables.map((variable) => ({ ...variable, masked: false })),
+	});
+
+	it("authenticates with the service account token and reads variables by name", async () => {
+		getVariables.mockResolvedValue(
+			variablesResponse([{ name: "DB_PASSWORD", value: "op-secret" }]),
+		);
+
+		const result = await onePasswordClient.getSecrets(config, [
+			"DB_PASSWORD",
+		]);
+
+		expect(result).toEqual({ DB_PASSWORD: "op-secret" });
+		expect(createClient).toHaveBeenCalledWith(
+			expect.objectContaining({ auth: config.serviceAccountToken }),
+		);
+		expect(getVariables).toHaveBeenCalledWith(config.environmentId);
+	});
+
+	it("wraps authentication failures with a clear message", async () => {
+		createClient.mockRejectedValue(new Error("invalid token"));
+
+		await expect(
+			onePasswordClient.getSecrets(config, ["DB_PASSWORD"]),
+		).rejects.toThrow("1Password: authentication failed (invalid token)");
+	});
+
+	it("wraps environment read failures with a clear message", async () => {
+		getVariables.mockRejectedValue(new Error("environment not found"));
+
+		await expect(
+			onePasswordClient.getSecrets(config, ["DB_PASSWORD"]),
+		).rejects.toThrow(
+			'1Password: failed to read environment "env-123" (environment not found)',
+		);
+	});
+
+	it("throws a clear error for a missing variable", async () => {
+		getVariables.mockResolvedValue(
+			variablesResponse([{ name: "OTHER", value: "x" }]),
+		);
+
+		await expect(
+			onePasswordClient.getSecrets(config, ["MISSING"]),
+		).rejects.toThrow(
+			'1Password: variable "MISSING" not found in environment "env-123"',
+		);
+	});
+
+	it("tests the connection by fetching variables", async () => {
+		getVariables.mockResolvedValue(variablesResponse([]));
+
+		await onePasswordClient.testConnection(config);
+
+		expect(getVariables).toHaveBeenCalledWith(config.environmentId);
+	});
+
+	it("lists variable names from the environment", async () => {
+		getVariables.mockResolvedValue(
+			variablesResponse([
+				{ name: "DB_PASSWORD", value: "a" },
+				{ name: "API_KEY", value: "b" },
+			]),
+		);
+
+		const names = await onePasswordClient.listSecretNames?.(config);
+
+		expect(names).toEqual(["DB_PASSWORD", "API_KEY"]);
+	});
+
+	it("resolves env refs end to end through a onepassword provider", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "op-prod",
+				providerType: "onepassword",
+				config,
+				assignments: assignedEverywhere,
+			},
+		]);
+		getVariables.mockResolvedValue(
+			variablesResponse([{ name: "DB_PASSWORD", value: "s3cret" }]),
+		);
+
+		const result = await resolveVaultReferences(
+			"DB_PASSWORD=${{vault.op-prod.DB_PASSWORD}}",
 			scope,
 		);
 
