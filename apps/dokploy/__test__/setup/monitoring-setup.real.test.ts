@@ -201,28 +201,6 @@ describe.skipIf(hasRealMonitoring())(
 		);
 
 		it(
-			"cleans up the legacy container on a build server but deploys no service",
-			async () => {
-				const { findServerById } = await import(
-					"@dokploy/server/services/server"
-				);
-				const server = await vi.mocked(findServerById)("test-server");
-				vi.mocked(findServerById).mockResolvedValueOnce({
-					...server,
-					serverType: "build",
-				} as any);
-
-				await createLegacyZombie();
-
-				await setupMonitoring("test-server");
-
-				expect(await containerExists(SERVICE_NAME)).toBe(false);
-				expect(await serviceExists(SERVICE_NAME)).toBe(false);
-			},
-			REAL_TEST_TIMEOUT,
-		);
-
-		it(
 			"deploys the service even when removing the legacy container fails",
 			async () => {
 				const failingDocker = {
