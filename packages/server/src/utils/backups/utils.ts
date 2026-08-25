@@ -131,7 +131,7 @@ export const getLibsqlBackupCommand = (database: string) => {
 };
 
 export const getServiceContainerCommand = (appName: string) => {
-	return `docker ps -q --filter "status=running" --filter "label=com.docker.swarm.service.name=${appName}" | head -n 1`;
+	return `docker ps -q --no-trunc --filter "status=running" --filter "label=com.docker.swarm.service.name=${appName}" | head -n 1`;
 };
 
 export const getComposeContainerCommand = (
@@ -140,9 +140,9 @@ export const getComposeContainerCommand = (
 	composeType: "stack" | "docker-compose" | undefined,
 ) => {
 	if (composeType === "stack") {
-		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "label=com.docker.swarm.service.name=${appName}_${serviceName}" | head -n 1`;
+		return `docker ps -q --no-trunc --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "label=com.docker.swarm.service.name=${appName}_${serviceName}" | head -n 1`;
 	}
-	return `docker ps -q --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
+	return `docker ps -q --no-trunc --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
 };
 
 export const getContainerSearchCommand = (backup: BackupSchedule) => {
@@ -257,12 +257,17 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 	return null;
 };
 
+export const BACKUP_WORKER_CONTAINER_NOT_FOUND_EXIT_CODE = 75;
+
 export const getBackupCommand = (
 	backup: BackupSchedule,
 	rcloneFlags: string[],
 	rcloneDestination: string,
 	logPath: string,
-	options: { containerId?: string } = {},
+	options: {
+		containerId?: string;
+		containerNotFoundExitCode?: number;
+	} = {},
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
@@ -271,8 +276,20 @@ export const getBackupCommand = (
 	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${quotedRcloneDestination}`;
 	const quotedLogPath = quote([logPath]);
 	const containerId = options.containerId;
+	const containerNotFoundExitCode = options.containerNotFoundExitCode ?? 1;
+	const containerNotFoundMessage =
+		containerNotFoundExitCode === BACKUP_WORKER_CONTAINER_NOT_FOUND_EXIT_CODE
+			? "Database container moved before the backup started"
+			: "❌ Error: Container not found";
 	if (containerId && !/^[a-f0-9]{12,64}$/i.test(containerId)) {
 		throw new Error("Invalid backup container ID");
+	}
+	if (
+		!Number.isInteger(containerNotFoundExitCode) ||
+		containerNotFoundExitCode < 1 ||
+		containerNotFoundExitCode > 255
+	) {
+		throw new Error("Invalid container-not-found exit code");
 	}
 	// A Swarm task can restart while the helper image starts, so re-resolve the
 	// original service locally if the captured task container is no longer running.
@@ -299,8 +316,8 @@ export const getBackupCommand = (
 	${containerAssignment}
 
 	if [ -z "$CONTAINER_ID" ]; then
-		echo "[$(date)] ❌ Error: Container not found" >> ${quotedLogPath};
-		exit 1;
+		echo "[$(date)] ${containerNotFoundMessage}" >> ${quotedLogPath};
+		exit ${containerNotFoundExitCode};
 	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${quotedLogPath};

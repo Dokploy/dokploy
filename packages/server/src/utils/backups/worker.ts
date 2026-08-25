@@ -9,6 +9,7 @@ const BACKUP_SCRIPT_PATH = "/run/secrets/dokploy-backup-script";
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const DEFAULT_START_TIMEOUT_MS = 5 * 60 * 1_000;
 const DEFAULT_MISSING_TASK_GRACE_POLLS = 3;
+const DEFAULT_REPLACEMENT_TASK_POLLS = 5 * 60;
 
 const terminalFailureStates = new Set([
 	"failed",
@@ -42,6 +43,12 @@ type WaitForTaskOptions = {
 	sleepFn?: (milliseconds: number) => Promise<unknown>;
 };
 
+type WaitForReplacementTaskOptions = {
+	maxPolls?: number;
+	pollIntervalMs?: number;
+	sleepFn?: (milliseconds: number) => Promise<unknown>;
+};
+
 export const getBackupTargetServiceName = (
 	backup: BackupSchedule,
 ): string | null => {
@@ -59,9 +66,9 @@ export const getBackupTargetServiceName = (
 	return null;
 };
 
-export const getBackupResourceNames = (executionId: string) => {
+export const getBackupResourceNames = (executionId: string, attempt = 0) => {
 	const suffix = createHash("sha256")
-		.update(executionId)
+		.update(attempt === 0 ? executionId : `${executionId}:retry:${attempt}`)
 		.digest("hex")
 		.slice(0, 16);
 	const serviceName = `dokploy-backup-${suffix}`;
@@ -71,6 +78,13 @@ export const getBackupResourceNames = (executionId: string) => {
 		serviceName,
 	};
 };
+
+export class RunningServiceTaskNotFoundError extends Error {
+	constructor(serviceName: string) {
+		super(`No running Swarm task found for database service ${serviceName}`);
+		this.name = "RunningServiceTaskNotFoundError";
+	}
+}
 
 export const findRunningServiceTask = async (
 	docker: DockerClient,
@@ -83,22 +97,65 @@ export const findRunningServiceTask = async (
 		}),
 	})) as SwarmTask[];
 
-	const task = tasks.find(
-		(candidate) =>
-			candidate.Status?.State === "running" &&
-			candidate.NodeID &&
-			candidate.Status.ContainerStatus?.ContainerID,
-	);
+	const task = [...tasks]
+		.sort(
+			(left, right) => (right.Version?.Index ?? 0) - (left.Version?.Index ?? 0),
+		)
+		.find(
+			(candidate) =>
+				candidate.Status?.State === "running" &&
+				candidate.NodeID &&
+				candidate.Status.ContainerStatus?.ContainerID,
+		);
 
 	const nodeId = task?.NodeID;
 	const containerId = task?.Status?.ContainerStatus?.ContainerID;
 	if (!nodeId || !containerId) {
-		throw new Error(
-			`No running Swarm task found for database service ${serviceName}`,
-		);
+		throw new RunningServiceTaskNotFoundError(serviceName);
 	}
 
 	return { containerId, nodeId };
+};
+
+const isSameContainerId = (left: string, right: string) =>
+	left === right ||
+	(left.length >= 12 &&
+		right.length >= 12 &&
+		(left.startsWith(right) || right.startsWith(left)));
+
+export const waitForReplacementServiceTask = async (
+	docker: DockerClient,
+	serviceName: string,
+	previousContainerId: string,
+	options: WaitForReplacementTaskOptions = {},
+) => {
+	const maxPolls = Math.max(
+		1,
+		Math.floor(options.maxPolls ?? DEFAULT_REPLACEMENT_TASK_POLLS),
+	);
+	const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+	const sleepFn = options.sleepFn ?? sleep;
+
+	for (let poll = 0; poll < maxPolls; poll += 1) {
+		try {
+			const task = await findRunningServiceTask(docker, serviceName);
+			if (!isSameContainerId(task.containerId, previousContainerId)) {
+				return task;
+			}
+		} catch (error) {
+			if (!(error instanceof RunningServiceTaskNotFoundError)) {
+				throw error;
+			}
+		}
+
+		if (poll < maxPolls - 1) {
+			await sleepFn(pollIntervalMs);
+		}
+	}
+
+	throw new Error(
+		`No replacement Swarm task became ready for database service ${serviceName} after relocation`,
+	);
 };
 
 const getLatestTask = (tasks: SwarmTask[]) =>
@@ -145,6 +202,24 @@ const getTaskFailureMessage = (task: SwarmTask) => {
 	return `Backup worker task ${state}${suffix ? `: ${suffix}` : ""}`;
 };
 
+export class BackupWorkerTaskError extends Error {
+	constructor(
+		message: string,
+		readonly state: string,
+		readonly exitCode?: number,
+	) {
+		super(message);
+		this.name = "BackupWorkerTaskError";
+	}
+}
+
+const getTaskFailureError = (task: SwarmTask) =>
+	new BackupWorkerTaskError(
+		getTaskFailureMessage(task),
+		task.Status?.State ?? "unknown",
+		task.Status?.ContainerStatus?.ExitCode,
+	);
+
 export const waitForBackupWorkerTask = async (
 	docker: DockerClient,
 	serviceId: string,
@@ -171,7 +246,7 @@ export const waitForBackupWorkerTask = async (
 			const state = task?.Status?.State;
 
 			if (task && state && terminalFailureStates.has(state)) {
-				throw new Error(getTaskFailureMessage(task));
+				throw getTaskFailureError(task);
 			}
 
 			const replacement = getReplacementTask(tasks, startedTaskId);
@@ -218,7 +293,7 @@ export const waitForBackupWorkerTask = async (
 			return;
 		}
 		if (task && state && terminalFailureStates.has(state)) {
-			throw new Error(getTaskFailureMessage(task));
+			throw getTaskFailureError(task);
 		}
 		if (state === "running") {
 			if (!task?.ID) {
@@ -267,7 +342,7 @@ export const getBackupWorkerServiceSpec = ({
 				Image: BACKUP_WORKER_IMAGE,
 				Command: ["/bin/sh", "-c"],
 				Args: [
-					`apk add --no-cache bash rclone >/dev/null && exec /bin/bash ${BACKUP_SCRIPT_PATH}`,
+					`apk add --no-cache bash rclone >/dev/null || exit 1; exec /bin/bash ${BACKUP_SCRIPT_PATH}`,
 				],
 				Labels: labels,
 				Mounts: [
