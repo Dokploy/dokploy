@@ -28,6 +28,7 @@ export const statements = {
 	gitProviders: ["read", "create", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
+	resourceProfiles: ["read", "create", "update", "delete"],
 
 	// Enterprise-only resources (custom roles only)
 	volume: ["read", "create", "delete"],
@@ -99,6 +100,7 @@ export const ownerRole = ac.newRole({
 	gitProviders: ["read", "create", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
+	resourceProfiles: ["read", "create", "update", "delete"],
 	volume: ["read", "create", "delete"],
 	deployment: ["read", "create", "cancel"],
 	envVars: ["read", "write"],
@@ -138,6 +140,7 @@ export const adminRole = ac.newRole({
 	gitProviders: ["read", "create", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
+	resourceProfiles: ["read", "create", "update", "delete"],
 	volume: ["read", "create", "delete"],
 	deployment: ["read", "create", "cancel"],
 	envVars: ["read", "write"],
@@ -180,6 +183,7 @@ export const memberRole = ac.newRole({
 	gitProviders: [],
 	traefikFiles: [],
 	api: [],
+	resourceProfiles: [],
 	// Service-level enterprise resources — member can do everything within services they have access to
 	volume: ["read", "create", "delete"],
 	deployment: ["read", "create", "cancel"],

@@ -15,6 +15,7 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import { applyResourceProfilesToSpecification } from "../../services/resource-profile";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
@@ -219,6 +220,11 @@ export const addDomainToCompose = async (
 	}
 
 	result = (await applyComposeFilePatch(compose)) ?? result;
+
+	result = await applyResourceProfilesToSpecification(
+		compose.composeId,
+		result,
+	);
 
 	if (compose.isolatedDeployment) {
 		const randomized = randomizeDeployableSpecificationFile(

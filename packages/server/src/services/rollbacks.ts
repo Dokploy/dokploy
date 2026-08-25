@@ -9,7 +9,6 @@ import {
 } from "../db/schema";
 import { getRegistryTag } from "../utils/cluster/upload";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateVolumeMounts,
@@ -23,6 +22,7 @@ import { findDeploymentById } from "./deployment";
 import type { Environment } from "./environment";
 import type { Mount } from "./mount";
 import { resolveServiceNetworks } from "./network";
+import { resolveEffectiveResources } from "./resource-profile";
 import type { Port } from "./port";
 import type { Project } from "./project";
 import {
@@ -230,23 +230,9 @@ const rollbackApplication = async (
 
 	const docker = await getRemoteDocker(serverId);
 
-	const {
-		env,
-		mounts,
-		cpuLimit,
-		memoryLimit,
-		memoryReservation,
-		cpuReservation,
-		command,
-		ports,
-	} = resolvedContext;
+	const { env, mounts, command, ports } = resolvedContext;
 
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(resolvedContext);
 
 	const volumesMount = generateVolumeMounts(mounts);
 
