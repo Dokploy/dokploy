@@ -173,6 +173,9 @@ export const updateResourceProfileById = async (
 export const findResourceProfileById = async (profileId: string) => {
 	const profile = await db.query.resourceProfile.findFirst({
 		where: eq(resourceProfile.profileId, profileId),
+		with: {
+			group: true,
+		},
 	});
 	return profile;
 };
@@ -325,6 +328,17 @@ export const findComposeServiceAssignments = (composeId: string) => {
 		.select()
 		.from(composeServiceResourceProfile)
 		.where(eq(composeServiceResourceProfile.composeId, composeId));
+};
+
+export const findComposeServiceAssignmentById = async (
+	composeServiceId: string,
+) => {
+	return db.query.composeServiceResourceProfile.findFirst({
+		where: eq(
+			composeServiceResourceProfile.composeServiceId,
+			composeServiceId,
+		),
+	});
 };
 
 export const saveComposeServiceAssignment = async (
