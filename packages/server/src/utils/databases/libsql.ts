@@ -3,13 +3,13 @@ import type { CreateServiceOptions, PortConfig } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 
@@ -28,14 +28,10 @@ export const buildLibsql = async (rawLibsql: LibsqlNested) => {
 		externalPort,
 		externalGRPCPort,
 		externalAdminPort,
-		memoryLimit,
-		memoryReservation,
 		databaseUser,
 		databasePassword,
 		sqldNode,
 		sqldPrimaryUrl,
-		cpuLimit,
-		cpuReservation,
 		command,
 		mounts,
 		enableNamespaces,
@@ -61,12 +57,7 @@ export const buildLibsql = async (rawLibsql: LibsqlNested) => {
 		RollbackConfig,
 		UpdateConfig,
 	} = generateConfigContainer(libsql);
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(libsql);
 	const envVariables = prepareEnvironmentVariables(
 		defaultLibsqlEnv,
 		libsql.environment.project.env,

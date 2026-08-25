@@ -13,6 +13,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { resourceProfile } from "./resource-profile";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -67,6 +68,10 @@ export const postgres = pgTable("postgres", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	resourceProfileId: text("resourceProfileId").references(
+		() => resourceProfile.profileId,
+		{ onDelete: "set null" },
+	),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -104,6 +109,10 @@ export const postgresRelations = relations(postgres, ({ one, many }) => ({
 		fields: [postgres.environmentId],
 		references: [environments.environmentId],
 	}),
+	resourceProfile: one(resourceProfile, {
+		fields: [postgres.resourceProfileId],
+		references: [resourceProfile.profileId],
+	}),
 	backups: many(backups),
 	mounts: many(mounts),
 	server: one(server, {
@@ -134,6 +143,7 @@ const createSchema = createInsertSchema(postgres, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	resourceProfileId: z.string().nullish(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
