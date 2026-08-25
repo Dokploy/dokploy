@@ -1,6 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { InfoIcon, Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -155,6 +155,16 @@ export const ShowResources = ({ id, type }: Props) => {
 	const selectedGroupId = form.watch("resourceGroupId");
 	const selectedProfileId = form.watch("resourceProfileId");
 
+	const prevGroupIdRef = useRef<string>("");
+	useEffect(() => {
+		if (prevGroupIdRef.current !== selectedGroupId) {
+			if (prevGroupIdRef.current !== "") {
+				form.setValue("resourceProfileId", "");
+			}
+			prevGroupIdRef.current = selectedGroupId;
+		}
+	}, [selectedGroupId, form]);
+
 	const selectedGroup = groups?.find(
 		(group) => group.groupId === selectedGroupId,
 	);
@@ -255,7 +265,6 @@ export const ShowResources = ({ id, type }: Props) => {
 										<Select
 											onValueChange={(value) => {
 												field.onChange(value);
-												form.setValue("resourceProfileId", "");
 											}}
 											value={field.value || undefined}
 										>
@@ -283,9 +292,10 @@ export const ShowResources = ({ id, type }: Props) => {
 									<FormItem>
 										<FormLabel>Profile</FormLabel>
 										<Select
-											onValueChange={(value) =>
-												field.onChange(value === "none" ? null : value)
-											}
+											onValueChange={(value) => {
+												if (value === "") return;
+												field.onChange(value === "none" ? null : value);
+											}}
 											value={field.value || undefined}
 										>
 											<FormControl>
