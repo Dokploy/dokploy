@@ -18,6 +18,7 @@ import {
 	getBackupTargetServiceName,
 	getBackupWorkerServiceSpec,
 	ReplacementServiceTaskNotFoundError,
+	RunningServiceTaskNotFoundError,
 	waitForBackupWorkerTask,
 	waitForReplacementServiceTask,
 } from "./worker";
@@ -317,12 +318,34 @@ const runBackupOnWorker = async (
 			}
 
 			if (isPreStartError) {
+				let currentDatabaseTask: Awaited<
+					ReturnType<typeof findRunningServiceTask>
+				> | null = null;
 				try {
-					databaseTask = await waitForReplacementServiceTask(
+					currentDatabaseTask = await findRunningServiceTask(
 						docker,
 						serviceTarget,
-						databaseTask.containerId,
 					);
+				} catch (discoveryError) {
+					if (!(discoveryError instanceof RunningServiceTaskNotFoundError)) {
+						throw discoveryError;
+					}
+				}
+
+				// A rejected helper is not evidence of relocation by itself. Fail fast
+				// when the database is still on the node selected for this attempt.
+				if (currentDatabaseTask?.containerId === databaseTask.containerId) {
+					throw error;
+				}
+
+				try {
+					databaseTask =
+						currentDatabaseTask ??
+						(await waitForReplacementServiceTask(
+							docker,
+							serviceTarget,
+							databaseTask.containerId,
+						));
 				} catch (replacementError) {
 					if (replacementError instanceof ReplacementServiceTaskNotFoundError) {
 						throw error;

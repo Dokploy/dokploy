@@ -985,6 +985,7 @@ describe("executeBackup", () => {
 					Version: { Index: 2 },
 				},
 			])
+			.mockResolvedValueOnce([])
 			.mockResolvedValueOnce([runningDatabaseTask])
 			.mockResolvedValueOnce([
 				{
@@ -1036,6 +1037,37 @@ describe("executeBackup", () => {
 				),
 			),
 		).toBe(true);
+	});
+
+	it("fails a rejected worker immediately when the database has not moved", async () => {
+		const { docker, secretRemove, serviceRemove } = createDockerMock();
+		docker.listTasks.mockReset();
+		docker.listTasks
+			.mockResolvedValueOnce([runningDatabaseTask])
+			.mockResolvedValueOnce([
+				{
+					ID: "worker-task",
+					Status: { State: "rejected", Err: "image pull failed" },
+					Version: { Index: 2 },
+				},
+			])
+			.mockResolvedValueOnce([runningDatabaseTask]);
+		mocks.getRemoteDocker.mockResolvedValue(docker);
+
+		await expect(executeBackup(input())).rejects.toThrow(
+			"Backup worker task rejected: image pull failed",
+		);
+
+		expect(docker.createService).toHaveBeenCalledOnce();
+		expect(docker.listTasks).toHaveBeenCalledTimes(3);
+		expect(serviceRemove).toHaveBeenCalledOnce();
+		expect(secretRemove).toHaveBeenCalledOnce();
+		expect(mocks.sleep).not.toHaveBeenCalled();
+		expect(
+			mocks.execAsync.mock.calls.some(([command]) =>
+				command.includes("retrying on its new node"),
+			),
+		).toBe(false);
 	});
 
 	it("stops after one relocation retry and cleans both attempts", async () => {
