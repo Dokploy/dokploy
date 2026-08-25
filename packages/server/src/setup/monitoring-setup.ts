@@ -73,12 +73,6 @@ export const setupMonitoring = async (serverId: string) => {
 	const serviceName = "dokploy-monitoring";
 	const imageName = getMonitoringImage();
 
-	// No swarm on build servers: clean up the legacy container, deploy nothing.
-	if (server.serverType === "build") {
-		await removeLegacyContainer(await getRemoteDocker(serverId), serviceName);
-		return;
-	}
-
 	const settings: CreateServiceOptions = {
 		Name: serviceName,
 		TaskTemplate: {
