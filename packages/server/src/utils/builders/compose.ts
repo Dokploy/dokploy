@@ -63,6 +63,7 @@ Compose Type: ${composeType} ✅`;
 	const rollbackMarkerLine = deploymentId
 		? `${ROLLBACK_OK_MARKER}:${deploymentId}`
 		: ROLLBACK_OK_MARKER;
+	const isEnvRequired = compose.createEnvFile ? "1" : "0";
 
 	const restoreCommands = isTransactional
 		? `
@@ -71,7 +72,7 @@ Compose Type: ${composeType} ✅`;
 		cp "${backupDir}/last-good-docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || RESTORE_FILES_OK=0;
 		RESTORE_ENV_OK=1;
 		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || RESTORE_ENV_OK=0;
-		if [ "$RESTORE_ENV_OK" = "0" ] && [ -f "${backupDir}/last-good-env.bak" -o -f "${backupDir}/env.bak" ]; then RESTORE_FILES_OK=0; echo "Warning: ⚠️ Previous .env could not be restored"; fi
+		if [ "$RESTORE_ENV_OK" = "0" ] && { [ "${isEnvRequired}" = "1" ] || [ -f "${backupDir}/last-good-env.bak" -o -f "${backupDir}/env.bak" ]; }; then RESTORE_FILES_OK=0; echo "Warning: ⚠️ Previous .env could not be restored"; fi
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && [ "$RESTORE_FILES_OK" = "1" ] && echo "${rollbackMarkerLine}" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
 		`
 		: "";
