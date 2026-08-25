@@ -165,15 +165,14 @@ const runBackupOnWorker = async ({
 			Name: secretName,
 			Labels: labels,
 			Data: Buffer.from(workerCommand).toString("base64"),
-		})) as { ID?: string };
-		const secretId =
-			createdSecret.ID || ((await secret.inspect()) as { ID?: string }).ID;
+		})) as { id?: string };
+		const secretId = createdSecret.id;
 		if (!secretId) {
 			throw new Error("Docker did not return a backup worker secret ID");
 		}
 
 		serviceMayExist = true;
-		const createdService = (await docker.createService(
+		const createdService = await docker.createService(
 			getBackupWorkerServiceSpec({
 				backupId: backup.backupId,
 				executionId,
@@ -182,8 +181,11 @@ const runBackupOnWorker = async ({
 				secretName,
 				serviceName,
 			}),
-		)) as { ID?: string };
-		await waitForBackupWorkerTask(docker, createdService.ID || serviceName);
+		);
+		if (!createdService.id) {
+			throw new Error("Docker did not return a backup worker service ID");
+		}
+		await waitForBackupWorkerTask(docker, createdService.id);
 	} catch (error) {
 		primaryError = error;
 	} finally {

@@ -112,8 +112,8 @@ const createDockerMock = () => {
 	const secretRemove = vi.fn().mockResolvedValue(undefined);
 	const serviceRemove = vi.fn().mockResolvedValue(undefined);
 	const docker = {
-		createSecret: vi.fn().mockResolvedValue({ ID: "secret-id" }),
-		createService: vi.fn().mockResolvedValue({ ID: "service-id" }),
+		createSecret: vi.fn().mockResolvedValue({ id: "secret-id" }),
+		createService: vi.fn().mockResolvedValue({ id: "service-id" }),
 		getSecret: vi.fn(() => ({ remove: secretRemove })),
 		getService: vi.fn(() => ({ remove: serviceRemove })),
 		listTasks: vi
@@ -589,6 +589,13 @@ describe("executeBackup", () => {
 		expect(serviceSpec.TaskTemplate.Placement.Constraints).toEqual([
 			"node.id==worker-node-id",
 		]);
+		expect(serviceSpec.TaskTemplate.ContainerSpec.Secrets).toEqual([
+			expect.objectContaining({ SecretID: "secret-id" }),
+		]);
+		const workerTaskFilters = JSON.parse(
+			docker.listTasks.mock.calls[1]?.[0].filters,
+		);
+		expect(workerTaskFilters).toEqual({ service: ["service-id"] });
 		expect(JSON.stringify(serviceSpec)).not.toContain("ACCESS_KEY");
 		expect(JSON.stringify(serviceSpec)).not.toContain("SECRET_KEY");
 		expect(serviceRemove).toHaveBeenCalledOnce();
