@@ -80,8 +80,8 @@ Compose Type: ${composeType} ✅`;
 	const persistLastGood = isTransactional
 		? `
 		mkdir -p "${backupDir}";
-		cp "${composeFilePath}" "${backupDir}/last-good-docker-compose.yml.bak" 2>/dev/null || true;
-		cp "${envFilePath}" "${backupDir}/last-good-env.bak" 2>/dev/null || true;
+		cp "${composeFilePath}" "${backupDir}/last-good-docker-compose.yml.bak" 2>/dev/null || rm -f "${backupDir}/last-good-docker-compose.yml.bak";
+		cp "${envFilePath}" "${backupDir}/last-good-env.bak" 2>/dev/null || rm -f "${backupDir}/last-good-env.bak";
 		`
 		: "";
 
