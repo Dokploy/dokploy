@@ -1,0 +1,19 @@
+{
+	"worktree": {
+		"baseRef": "fresh",
+		"symlinkDirectories": ["node_modules"]
+	},
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "EnterWorktree",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR/scripts/assign-worktree-port.sh\""
+					}
+				]
+			}
+		]
+	}
+}
