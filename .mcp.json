@@ -1,0 +1,13 @@
+{
+	"mcpServers": {
+		"dokploy": {
+			"type": "http",
+			"url": "${DOKPLOY_BASE_URL}/api/mcp",
+			"headers": { "Authorization": "Bearer ${DOKPLOY_TOKEN}" }
+		},
+		"playwright": {
+			"command": "npx",
+			"args": ["-y", "@playwright/mcp@latest", "--headless", "--isolated"]
+		}
+	}
+}
