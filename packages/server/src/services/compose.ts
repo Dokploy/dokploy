@@ -215,8 +215,12 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
-export const didRollbackSucceed = async (compose: Compose, logPath: string) => {
-	const command = `if grep -q '^${ROLLBACK_OK_MARKER}$' "${logPath}" 2>/dev/null; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
+export const didRollbackSucceed = async (
+	compose: Compose,
+	logPath: string,
+	deploymentId: string,
+) => {
+	const command = `if grep -q '^${ROLLBACK_OK_MARKER}:${deploymentId}$' "${logPath}" 2>/dev/null; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
 	try {
 		if (compose.serverId) {
 			const { stdout } = await execAsyncRemote(compose.serverId, command);
@@ -315,7 +319,7 @@ export const deployCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(entity);
+		command += await getBuildComposeCommand(entity, deployment.deploymentId);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -357,6 +361,7 @@ export const deployCompose = async ({
 		const rollbackSucceeded = await didRollbackSucceed(
 			compose,
 			deployment.logPath,
+			deployment.deploymentId,
 		);
 		await updateCompose(composeId, {
 			composeStatus: rollbackSucceeded ? "done" : "error",
@@ -434,7 +439,7 @@ export const rebuildCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(compose);
+		command += await getBuildComposeCommand(compose, deployment.deploymentId);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -466,6 +471,7 @@ export const rebuildCompose = async ({
 		const rollbackSucceeded = await didRollbackSucceed(
 			compose,
 			deployment.logPath,
+			deployment.deploymentId,
 		);
 		await updateCompose(composeId, {
 			composeStatus: rollbackSucceeded ? "done" : "error",

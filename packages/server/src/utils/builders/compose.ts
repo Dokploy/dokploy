@@ -19,7 +19,10 @@ export type ComposeNested = InferResultType<
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
 
-export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+export const getBuildComposeCommand = async (
+	rawCompose: ComposeNested,
+	deploymentId?: string,
+) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
@@ -57,14 +60,19 @@ Compose Type: ${composeType} ✅`;
 		.split(" ")
 		.join(" ")
 		.replace(/ --build/g, "");
+	const rollbackMarkerLine = deploymentId
+		? `${ROLLBACK_OK_MARKER}:${deploymentId}`
+		: ROLLBACK_OK_MARKER;
 
 	const restoreCommands = isTransactional
 		? `
 		echo "Restoring previous working deployment... ⏪";
 		RESTORE_FILES_OK=1;
 		cp "${backupDir}/last-good-docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || RESTORE_FILES_OK=0;
-		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || true;
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && [ "$RESTORE_FILES_OK" = "1" ] && echo "${ROLLBACK_OK_MARKER}" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
+		RESTORE_ENV_OK=1;
+		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || RESTORE_ENV_OK=0;
+		if [ "$RESTORE_ENV_OK" = "0" ] && [ -f "${backupDir}/last-good-env.bak" -o -f "${backupDir}/env.bak" ]; then RESTORE_FILES_OK=0; echo "Warning: ⚠️ Previous .env could not be restored"; fi
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && [ "$RESTORE_FILES_OK" = "1" ] && echo "${rollbackMarkerLine}" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
 		`
 		: "";
 
