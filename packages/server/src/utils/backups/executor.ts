@@ -194,10 +194,15 @@ const runBackupOnWorker = async ({
 			try {
 				await collectServiceLogs(serverId, serviceName, logPath);
 			} catch (error) {
-				cleanupErrors.push(
-					new Error(
-						`Failed to collect backup worker logs: ${getSafeErrorMessage(error)}`,
-					),
+				const message = getSafeErrorMessage(error);
+				logger.error(
+					{ error: message },
+					"Failed to collect backup worker logs",
+				);
+				await appendBackupMessage(
+					serverId,
+					logPath,
+					`⚠️ Warning: Could not collect backup worker logs: ${message}`,
 				);
 			}
 

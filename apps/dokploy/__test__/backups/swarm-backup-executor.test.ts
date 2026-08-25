@@ -134,15 +134,7 @@ const createDockerMock = () => {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.sleep.mockResolvedValue(undefined);
-	mocks.execAsync.mockImplementation(async (command: string) => {
-		if (command.includes("nohup docker service logs")) {
-			return { stdout: "4321\n", stderr: "" };
-		}
-		if (command.startsWith("if ps -p")) {
-			return { stdout: "running\n", stderr: "" };
-		}
-		return { stdout: "", stderr: "" };
-	});
+	mocks.execAsync.mockResolvedValue({ stdout: "", stderr: "" });
 	mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
 });
 
@@ -195,6 +187,13 @@ describe("backup worker target and service specification", () => {
 			"node.id==worker-node-id",
 		]);
 		expect(spec.TaskTemplate?.RestartPolicy?.Condition).toBe("none");
+		expect(spec.TaskTemplate?.LogDriver).toEqual({
+			Name: "json-file",
+			Options: {
+				"max-size": "10m",
+				"max-file": "1",
+			},
+		});
 		expect(containerSpec?.Mounts).toContainEqual({
 			Type: "bind",
 			Source: "/var/run/docker.sock",
@@ -214,13 +213,25 @@ describe("backup worker task lifecycle", () => {
 			listTasks: vi
 				.fn()
 				.mockResolvedValueOnce([
-					{ Status: { State: "pending" }, Version: { Index: 1 } },
+					{
+						ID: "worker-task",
+						Status: { State: "pending" },
+						Version: { Index: 1 },
+					},
 				])
 				.mockResolvedValueOnce([
-					{ Status: { State: "running" }, Version: { Index: 2 } },
+					{
+						ID: "worker-task",
+						Status: { State: "running" },
+						Version: { Index: 2 },
+					},
 				])
 				.mockResolvedValueOnce([
-					{ Status: { State: "complete" }, Version: { Index: 3 } },
+					{
+						ID: "worker-task",
+						Status: { State: "complete" },
+						Version: { Index: 3 },
+					},
 				]),
 		};
 		const sleepFn = vi.fn().mockResolvedValue(undefined);
@@ -276,7 +287,11 @@ describe("backup worker task lifecycle", () => {
 			listTasks: vi
 				.fn()
 				.mockResolvedValueOnce([
-					{ Status: { State: "running" }, Version: { Index: 1 } },
+					{
+						ID: "worker-task",
+						Status: { State: "running" },
+						Version: { Index: 1 },
+					},
 				])
 				.mockResolvedValue([]),
 		};
@@ -288,6 +303,234 @@ describe("backup worker task lifecycle", () => {
 				sleepFn: vi.fn().mockResolvedValue(undefined),
 			}),
 		).rejects.toThrow("Backup worker task disappeared after starting");
+	});
+
+	it("fails instead of waiting forever on a replacement pending task", async () => {
+		const replacementTask = {
+			ID: "replacement-task",
+			Status: { State: "pending" },
+			Version: { Index: 2 },
+		};
+		const docker = {
+			listTasks: vi
+				.fn()
+				.mockResolvedValueOnce([
+					{
+						ID: "worker-task",
+						Status: { State: "running" },
+						Version: { Index: 1 },
+					},
+				])
+				.mockResolvedValueOnce([replacementTask])
+				.mockResolvedValueOnce([replacementTask])
+				.mockResolvedValue([
+					{
+						...replacementTask,
+						Status: { State: "failed", Err: "replacement failed" },
+						Version: { Index: 3 },
+					},
+				]),
+		};
+		const sleepFn = vi.fn().mockResolvedValue(undefined);
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id", {
+				missingTaskGracePolls: 2,
+				pollIntervalMs: 0,
+				sleepFn,
+			}),
+		).rejects.toThrow(
+			"Backup worker task worker-task was replaced after starting by task replacement-task (pending)",
+		);
+		expect(docker.listTasks).toHaveBeenCalledTimes(3);
+		expect(sleepFn).toHaveBeenCalledTimes(2);
+	});
+
+	it("fails when a replacement appears beside the task already running", async () => {
+		const runningTask = {
+			ID: "worker-task",
+			Status: { State: "running" },
+			Version: { Index: 1 },
+		};
+		const docker = {
+			listTasks: vi
+				.fn()
+				.mockResolvedValueOnce([runningTask])
+				.mockResolvedValueOnce([
+					runningTask,
+					{
+						ID: "replacement-task",
+						Status: { State: "pending" },
+						Version: { Index: 2 },
+					},
+				]),
+		};
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id", {
+				pollIntervalMs: 0,
+				sleepFn: vi.fn().mockResolvedValue(undefined),
+			}),
+		).rejects.toThrow(
+			"Backup worker task worker-task was replaced after starting by task replacement-task (pending)",
+		);
+	});
+
+	it("detects a replacement that completes between lifecycle polls", async () => {
+		const runningTask = {
+			ID: "worker-task",
+			Status: { State: "running" },
+			Version: { Index: 1 },
+		};
+		const docker = {
+			listTasks: vi
+				.fn()
+				.mockResolvedValueOnce([runningTask])
+				.mockResolvedValueOnce([
+					runningTask,
+					{
+						ID: "replacement-task",
+						Status: { State: "complete" },
+						Version: { Index: 2 },
+					},
+				]),
+		};
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id", {
+				pollIntervalMs: 0,
+				sleepFn: vi.fn().mockResolvedValue(undefined),
+			}),
+		).rejects.toThrow(
+			"Backup worker task worker-task was replaced after starting by task replacement-task (complete)",
+		);
+	});
+
+	it("rejects duplicate completed task attempts", async () => {
+		const docker = {
+			listTasks: vi
+				.fn()
+				.mockResolvedValueOnce([
+					{
+						ID: "worker-task",
+						Status: { State: "running" },
+						Version: { Index: 1 },
+					},
+				])
+				.mockResolvedValueOnce([
+					{
+						ID: "worker-task",
+						Status: { State: "complete" },
+						Version: { Index: 2 },
+					},
+					{
+						ID: "replacement-task",
+						Status: { State: "complete" },
+						Version: { Index: 3 },
+					},
+				]),
+		};
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id", {
+				pollIntervalMs: 0,
+				sleepFn: vi.fn().mockResolvedValue(undefined),
+			}),
+		).rejects.toThrow(
+			"Backup worker task worker-task was replaced after starting by task replacement-task (complete)",
+		);
+	});
+
+	it("fails closed when multiple task attempts exist on the first poll", async () => {
+		const docker = {
+			listTasks: vi.fn().mockResolvedValue([
+				{
+					ID: "worker-task",
+					Status: { State: "running" },
+					Version: { Index: 1 },
+				},
+				{
+					ID: "replacement-task",
+					Status: { State: "pending" },
+					Version: { Index: 2 },
+				},
+			]),
+		};
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id"),
+		).rejects.toThrow(
+			"Backup worker service reported multiple task attempts before execution could be tracked: replacement-task (pending), worker-task (running)",
+		);
+	});
+
+	it("allows one running task to outlive the start timeout", async () => {
+		const runningTask = {
+			ID: "worker-task",
+			Status: { State: "running" },
+			Version: { Index: 1 },
+		};
+		const docker = {
+			listTasks: vi
+				.fn()
+				.mockResolvedValueOnce([runningTask])
+				.mockResolvedValueOnce([runningTask])
+				.mockResolvedValueOnce([runningTask])
+				.mockResolvedValueOnce([
+					{
+						...runningTask,
+						Status: { State: "complete" },
+						Version: { Index: 2 },
+					},
+				]),
+		};
+		const sleepFn = vi.fn().mockResolvedValue(undefined);
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id", {
+				pollIntervalMs: 0,
+				sleepFn,
+				startTimeoutMs: 0,
+			}),
+		).resolves.toBeUndefined();
+		expect(sleepFn).toHaveBeenCalledTimes(3);
+	});
+
+	it("reports the started task failure instead of following its replacement", async () => {
+		const docker = {
+			listTasks: vi
+				.fn()
+				.mockResolvedValueOnce([
+					{
+						ID: "worker-task",
+						Status: { State: "running" },
+						Version: { Index: 1 },
+					},
+				])
+				.mockResolvedValueOnce([
+					{
+						ID: "worker-task",
+						Status: {
+							State: "failed",
+							Err: "node lost",
+							ContainerStatus: { ExitCode: 1 },
+						},
+						Version: { Index: 2 },
+					},
+					{
+						ID: "replacement-task",
+						Status: { State: "pending" },
+						Version: { Index: 3 },
+					},
+				]),
+		};
+
+		await expect(
+			waitForBackupWorkerTask(docker as never, "service-id", {
+				pollIntervalMs: 0,
+				sleepFn: vi.fn().mockResolvedValue(undefined),
+			}),
+		).rejects.toThrow("Backup worker task failed: node lost, exit code 1");
 	});
 });
 
@@ -426,6 +669,34 @@ describe("executeBackup", () => {
 		await expect(executeBackup(input())).rejects.toThrow(
 			"Failed to remove backup worker service: cleanup unavailable",
 		);
+	});
+
+	it("keeps a completed backup successful when service logs cannot be read", async () => {
+		const { docker, secretRemove, serviceRemove } = createDockerMock();
+		mocks.getRemoteDocker.mockResolvedValue(docker);
+		mocks.execAsync.mockImplementation(async (command: string) => {
+			if (command.includes("docker service logs --raw")) {
+				throw new Error("service logging driver cannot be read");
+			}
+			return { stdout: "", stderr: "" };
+		});
+
+		await expect(executeBackup(input())).resolves.toEqual({
+			mode: "swarm-worker",
+		});
+		expect(serviceRemove).toHaveBeenCalledOnce();
+		expect(secretRemove).toHaveBeenCalledOnce();
+		expect(mocks.loggerError).toHaveBeenCalledWith(
+			{ error: "service logging driver cannot be read" },
+			"Failed to collect backup worker logs",
+		);
+		expect(
+			mocks.execAsync.mock.calls.some(([command]) =>
+				command.includes(
+					"⚠️ Warning: Could not collect backup worker logs: service logging driver cannot be read",
+				),
+			),
+		).toBe(true);
 	});
 
 	it("fails before creating resources when no running database task exists", async () => {

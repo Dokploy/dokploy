@@ -106,6 +106,31 @@ const getLatestTask = (tasks: SwarmTask[]) =>
 		(left, right) => (right.Version?.Index ?? 0) - (left.Version?.Index ?? 0),
 	)[0];
 
+const getReplacementTask = (tasks: SwarmTask[], startedTaskId: string) =>
+	getLatestTask(tasks.filter((task) => task.ID !== startedTaskId));
+
+const getUniqueTaskAttempts = (tasks: SwarmTask[]) => {
+	const seen = new Set<string>();
+	return [...tasks]
+		.sort(
+			(left, right) => (right.Version?.Index ?? 0) - (left.Version?.Index ?? 0),
+		)
+		.filter((task) => {
+			if (!task.ID || seen.has(task.ID)) return false;
+			seen.add(task.ID);
+			return true;
+		});
+};
+
+const getTaskSummary = (task: SwarmTask) =>
+	`${task.ID ?? "unknown"} (${task.Status?.State ?? "unknown"})`;
+
+const getTaskReplacementMessage = (
+	startedTaskId: string,
+	replacement: SwarmTask,
+) =>
+	`Backup worker task ${startedTaskId} was replaced after starting by task ${getTaskSummary(replacement)}`;
+
 const getTaskFailureMessage = (task: SwarmTask) => {
 	const state = task.Status?.State ?? "unknown";
 	const detail = task.Status?.Err || task.Status?.Message;
@@ -133,13 +158,59 @@ export const waitForBackupWorkerTask = async (
 	);
 	const sleepFn = options.sleepFn ?? sleep;
 	const startedAt = Date.now();
-	let hasStarted = false;
+	let startedTaskId: string | null = null;
 	let missingTaskPolls = 0;
 
 	while (true) {
 		const tasks = (await docker.listTasks({
 			filters: JSON.stringify({ service: [serviceId] }),
 		})) as SwarmTask[];
+
+		if (startedTaskId) {
+			const task = tasks.find((candidate) => candidate.ID === startedTaskId);
+			const state = task?.Status?.State;
+
+			if (task && state && terminalFailureStates.has(state)) {
+				throw new Error(getTaskFailureMessage(task));
+			}
+
+			const replacement = getReplacementTask(tasks, startedTaskId);
+			if (task && replacement) {
+				throw new Error(getTaskReplacementMessage(startedTaskId, replacement));
+			}
+
+			if (state === "complete") {
+				return;
+			}
+			if (state === "running") {
+				missingTaskPolls = 0;
+			} else if (task) {
+				throw new Error(
+					`Backup worker task ${startedTaskId} entered ${state ?? "an unknown state"} after starting`,
+				);
+			} else {
+				missingTaskPolls += 1;
+				if (missingTaskPolls >= missingTaskGracePolls) {
+					if (replacement) {
+						throw new Error(
+							getTaskReplacementMessage(startedTaskId, replacement),
+						);
+					}
+					throw new Error("Backup worker task disappeared after starting");
+				}
+			}
+
+			await sleepFn(pollIntervalMs);
+			continue;
+		}
+
+		const taskAttempts = getUniqueTaskAttempts(tasks);
+		if (taskAttempts.length > 1) {
+			throw new Error(
+				`Backup worker service reported multiple task attempts before execution could be tracked: ${taskAttempts.map(getTaskSummary).join(", ")}`,
+			);
+		}
+
 		const task = getLatestTask(tasks);
 		const state = task?.Status?.State;
 
@@ -150,18 +221,13 @@ export const waitForBackupWorkerTask = async (
 			throw new Error(getTaskFailureMessage(task));
 		}
 		if (state === "running") {
-			hasStarted = true;
-		}
-		if (hasStarted && !task) {
-			missingTaskPolls += 1;
-			if (missingTaskPolls >= missingTaskGracePolls) {
-				throw new Error("Backup worker task disappeared after starting");
+			if (!task?.ID) {
+				throw new Error("Backup worker running task did not provide an ID");
 			}
-		} else {
-			missingTaskPolls = 0;
+			startedTaskId = task.ID;
 		}
 
-		if (!hasStarted && Date.now() - startedAt >= startTimeoutMs) {
+		if (!startedTaskId && Date.now() - startedAt >= startTimeoutMs) {
 			throw new Error(
 				`Backup worker did not start within ${Math.round(startTimeoutMs / 1_000)} seconds`,
 			);
@@ -223,6 +289,13 @@ export const getBackupWorkerServiceSpec = ({
 						},
 					},
 				],
+			},
+			LogDriver: {
+				Name: "json-file",
+				Options: {
+					"max-size": "10m",
+					"max-file": "1",
+				},
 			},
 			Placement: {
 				Constraints: [`node.id==${nodeId}`],
