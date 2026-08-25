@@ -10,12 +10,14 @@ import {
 	getContainerSearchCommand,
 } from "./utils";
 import {
+	BackupWorkerPreStartError,
 	BackupWorkerTaskError,
 	type DockerClient,
 	findRunningServiceTask,
 	getBackupResourceNames,
 	getBackupTargetServiceName,
 	getBackupWorkerServiceSpec,
+	ReplacementServiceTaskNotFoundError,
 	waitForBackupWorkerTask,
 	waitForReplacementServiceTask,
 } from "./worker";
@@ -59,6 +61,9 @@ const getSafeErrorMessage = (error: unknown) => {
 		error instanceof Error ? error.message : String(error),
 	);
 };
+
+const getPublicExecErrorMessage = (error: ExecError) =>
+	`Backup command failed with exit code ${error.exitCode ?? "unknown"}`;
 
 const appendBackupError = async (
 	serverId: string | null | undefined,
@@ -125,6 +130,10 @@ const removeResource = async (
 const isDatabaseTaskRelocationError = (error: unknown) =>
 	error instanceof BackupWorkerTaskError &&
 	error.exitCode === BACKUP_WORKER_CONTAINER_NOT_FOUND_EXIT_CODE;
+
+const isRetryableWorkerHandoffError = (error: unknown) =>
+	isDatabaseTaskRelocationError(error) ||
+	error instanceof BackupWorkerPreStartError;
 
 const isDirectDatabaseTaskRelocationError = (error: unknown) =>
 	error instanceof ExecError &&
@@ -216,7 +225,7 @@ const runBackupOnWorkerAttempt = async ({
 
 		if (serviceMayExist) {
 			// Collect once after the terminal task state to avoid follower races or duplicates.
-			if (!isDatabaseTaskRelocationError(primaryError)) {
+			if (!isRetryableWorkerHandoffError(primaryError)) {
 				try {
 					await collectServiceLogs(serverId, serviceName, logPath);
 				} catch (error) {
@@ -247,7 +256,7 @@ const runBackupOnWorkerAttempt = async ({
 					{ errors: cleanupErrors.map((error) => error.message) },
 					"Backup worker cleanup also failed",
 				);
-				if (isDatabaseTaskRelocationError(primaryError)) {
+				if (isRetryableWorkerHandoffError(primaryError)) {
 					primaryError = new Error(
 						`${getSafeErrorMessage(primaryError)}; ${cleanupErrors.map((error) => error.message).join("; ")}`,
 					);
@@ -292,26 +301,51 @@ const runBackupOnWorker = async (
 			});
 			return;
 		} catch (error) {
-			if (!isDatabaseTaskRelocationError(error)) {
+			const isRelocationError = isDatabaseTaskRelocationError(error);
+			const isPreStartError = error instanceof BackupWorkerPreStartError;
+			if (!isRelocationError && !isPreStartError) {
 				throw error;
 			}
 			if (attempt === MAX_BACKUP_WORKER_ATTEMPTS - 1) {
+				if (isPreStartError) {
+					throw error;
+				}
 				throw new Error(
 					`Database task moved while the backup worker was starting; retry limit reached (${getSafeErrorMessage(error)})`,
 					{ cause: error },
 				);
 			}
 
-			await appendBackupMessage(
-				input.serverId,
-				input.logPath,
-				"Database task moved before the backup started; rediscovering its node and retrying...",
-			);
-			databaseTask = await waitForReplacementServiceTask(
-				docker,
-				serviceTarget,
-				databaseTask.containerId,
-			);
+			if (isPreStartError) {
+				try {
+					databaseTask = await waitForReplacementServiceTask(
+						docker,
+						serviceTarget,
+						databaseTask.containerId,
+					);
+				} catch (replacementError) {
+					if (replacementError instanceof ReplacementServiceTaskNotFoundError) {
+						throw error;
+					}
+					throw replacementError;
+				}
+				await appendBackupMessage(
+					input.serverId,
+					input.logPath,
+					"Database task moved while the backup worker was waiting to start; retrying on its new node...",
+				);
+			} else {
+				await appendBackupMessage(
+					input.serverId,
+					input.logPath,
+					"Database task moved before the backup started; rediscovering its node and retrying...",
+				);
+				databaseTask = await waitForReplacementServiceTask(
+					docker,
+					serviceTarget,
+					databaseTask.containerId,
+				);
+			}
 		}
 	}
 };
@@ -357,7 +391,13 @@ export const executeBackup = async (input: ExecuteBackupInput) => {
 		await runBackupOnWorker(input, previousContainerId);
 		return { mode: "swarm-worker" as const };
 	} catch (error) {
-		await appendBackupError(input.serverId, input.logPath, error);
-		throw error;
+		// ExecError retains the full shell command, which contains backup credentials.
+		// Its output may echo that command too, so only expose non-secret metadata.
+		const publicError =
+			error instanceof ExecError
+				? new Error(getPublicExecErrorMessage(error))
+				: error;
+		await appendBackupError(input.serverId, input.logPath, publicError);
+		throw publicError;
 	}
 };

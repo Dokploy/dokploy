@@ -86,6 +86,15 @@ export class RunningServiceTaskNotFoundError extends Error {
 	}
 }
 
+export class ReplacementServiceTaskNotFoundError extends Error {
+	constructor(serviceName: string) {
+		super(
+			`No replacement Swarm task became ready for database service ${serviceName} after relocation`,
+		);
+		this.name = "ReplacementServiceTaskNotFoundError";
+	}
+}
+
 export const findRunningServiceTask = async (
 	docker: DockerClient,
 	serviceName: string,
@@ -153,9 +162,7 @@ export const waitForReplacementServiceTask = async (
 		}
 	}
 
-	throw new Error(
-		`No replacement Swarm task became ready for database service ${serviceName} after relocation`,
-	);
+	throw new ReplacementServiceTaskNotFoundError(serviceName);
 };
 
 const getLatestTask = (tasks: SwarmTask[]) =>
@@ -213,12 +220,34 @@ export class BackupWorkerTaskError extends Error {
 	}
 }
 
-const getTaskFailureError = (task: SwarmTask) =>
-	new BackupWorkerTaskError(
+export class BackupWorkerPreStartError extends Error {
+	constructor(
+		message: string,
+		readonly state: string,
+	) {
+		super(message);
+		this.name = "BackupWorkerPreStartError";
+	}
+}
+
+const getTaskFailureError = (task: SwarmTask, observedRunning = false) => {
+	const state = task.Status?.State ?? "unknown";
+	const containerStatus = task.Status?.ContainerStatus;
+	if (
+		!observedRunning &&
+		state === "rejected" &&
+		!containerStatus?.ContainerID &&
+		containerStatus?.ExitCode === undefined
+	) {
+		return new BackupWorkerPreStartError(getTaskFailureMessage(task), state);
+	}
+
+	return new BackupWorkerTaskError(
 		getTaskFailureMessage(task),
-		task.Status?.State ?? "unknown",
-		task.Status?.ContainerStatus?.ExitCode,
+		state,
+		containerStatus?.ExitCode,
 	);
+};
 
 export const waitForBackupWorkerTask = async (
 	docker: DockerClient,
@@ -246,7 +275,7 @@ export const waitForBackupWorkerTask = async (
 			const state = task?.Status?.State;
 
 			if (task && state && terminalFailureStates.has(state)) {
-				throw getTaskFailureError(task);
+				throw getTaskFailureError(task, true);
 			}
 
 			const replacement = getReplacementTask(tasks, startedTaskId);
@@ -303,9 +332,8 @@ export const waitForBackupWorkerTask = async (
 		}
 
 		if (!startedTaskId && Date.now() - startedAt >= startTimeoutMs) {
-			throw new Error(
-				`Backup worker did not start within ${Math.round(startTimeoutMs / 1_000)} seconds`,
-			);
+			const message = `Backup worker did not start within ${Math.round(startTimeoutMs / 1_000)} seconds`;
+			throw new Error(message);
 		}
 
 		await sleepFn(pollIntervalMs);

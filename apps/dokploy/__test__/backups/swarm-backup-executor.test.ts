@@ -5,6 +5,7 @@ import {
 	getBackupCommand,
 } from "@dokploy/server/utils/backups/utils";
 import {
+	BackupWorkerPreStartError,
 	BackupWorkerTaskError,
 	findRunningServiceTask,
 	getBackupResourceNames,
@@ -373,7 +374,7 @@ describe("backup worker task lifecycle", () => {
 		);
 	});
 
-	it("times out when the worker never starts", async () => {
+	it("keeps a pending-task timeout non-retryable", async () => {
 		const docker = {
 			listTasks: vi
 				.fn()
@@ -382,11 +383,37 @@ describe("backup worker task lifecycle", () => {
 				]),
 		};
 
-		await expect(
-			waitForBackupWorkerTask(docker as never, "service-id", {
-				startTimeoutMs: 0,
-			}),
-		).rejects.toThrow("Backup worker did not start within 0 seconds");
+		const error = await waitForBackupWorkerTask(docker as never, "service-id", {
+			startTimeoutMs: 0,
+		}).catch((caught) => caught);
+
+		expect(error).toBeInstanceOf(Error);
+		expect(error).not.toBeInstanceOf(BackupWorkerPreStartError);
+		expect((error as Error).message).toBe(
+			"Backup worker did not start within 0 seconds",
+		);
+	});
+
+	it("does not mark a starting-task timeout as safe to retry", async () => {
+		const docker = {
+			listTasks: vi.fn().mockResolvedValue([
+				{
+					ID: "worker-task",
+					Status: { State: "starting" },
+					Version: { Index: 1 },
+				},
+			]),
+		};
+
+		const error = await waitForBackupWorkerTask(docker as never, "service-id", {
+			startTimeoutMs: 0,
+		}).catch((caught) => caught);
+
+		expect(error).toBeInstanceOf(Error);
+		expect(error).not.toBeInstanceOf(BackupWorkerPreStartError);
+		expect((error as Error).message).toBe(
+			"Backup worker did not start within 0 seconds",
+		);
 	});
 
 	it("fails when a task disappears after it started", async () => {
@@ -669,23 +696,47 @@ describe("executeBackup", () => {
 		expect(docker.createService).not.toHaveBeenCalled();
 	});
 
-	it("does not switch to a worker after a direct backup failure", async () => {
+	it("sanitizes direct backup failures without switching to a worker", async () => {
 		const { docker } = createDockerMock();
+		const exposedSecret = "notification-secret";
+		const credentialBearingCommand = `rclone --s3-secret-access-key=${exposedSecret}`;
+		const originalError = new Error(`original error: ${exposedSecret}`);
 		mocks.getRemoteDocker.mockResolvedValue(docker);
 		mocks.execAsync
 			.mockResolvedValueOnce({ stdout: `${containerId}\n`, stderr: "" })
 			.mockRejectedValueOnce(
-				new ExecError("direct backup failed", {
-					command: "backup",
+				new ExecError(`direct backup failed: ${credentialBearingCommand}`, {
+					command: credentialBearingCommand,
 					exitCode: 1,
-					stderr: "dump failed",
+					stdout: `stdout echoed ${exposedSecret}`,
+					stderr: `stderr echoed ${exposedSecret}`,
+					originalError,
 				}),
 			);
 
-		await expect(executeBackup(input())).rejects.toThrow(
-			"direct backup failed",
-		);
+		const error = await executeBackup(input()).catch((caught) => caught);
 
+		expect(error).toBeInstanceOf(Error);
+		expect(error).not.toBeInstanceOf(ExecError);
+		expect(error).toMatchObject({
+			message: "Backup command failed with exit code 1",
+		});
+		expect(error).not.toHaveProperty("command");
+		expect(error).not.toHaveProperty("stdout");
+		expect(error).not.toHaveProperty("stderr");
+		expect(error).not.toHaveProperty("originalError");
+		const publicRepresentation = [
+			String(error),
+			(error as Error).stack ?? "",
+			JSON.stringify(error),
+		].join("\n");
+		expect(publicRepresentation).not.toContain(exposedSecret);
+		const appendedLogCommand =
+			mocks.execAsync.mock.calls[mocks.execAsync.mock.calls.length - 1]?.[0];
+		expect(appendedLogCommand).toContain(
+			"Backup command failed with exit code 1",
+		);
+		expect(appendedLogCommand).not.toContain(exposedSecret);
 		expect(mocks.getRemoteDocker).not.toHaveBeenCalled();
 		expect(docker.createService).not.toHaveBeenCalled();
 	});
@@ -915,6 +966,78 @@ describe("executeBackup", () => {
 		).toBe(true);
 	});
 
+	it("retries on the replacement node when the first worker cannot start", async () => {
+		const { docker, secretRemove, serviceRemove } = createDockerMock();
+		const relocatedContainerId = "b".repeat(64);
+		docker.createSecret
+			.mockResolvedValueOnce({ id: "secret-id-a" })
+			.mockResolvedValueOnce({ id: "secret-id-b" });
+		docker.createService
+			.mockResolvedValueOnce({ id: "service-id-a" })
+			.mockResolvedValueOnce({ id: "service-id-b" });
+		docker.listTasks.mockReset();
+		docker.listTasks
+			.mockResolvedValueOnce([runningDatabaseTask])
+			.mockResolvedValueOnce([
+				{
+					ID: "worker-task-a",
+					Status: { State: "rejected", Err: "node unavailable" },
+					Version: { Index: 2 },
+				},
+			])
+			.mockResolvedValueOnce([runningDatabaseTask])
+			.mockResolvedValueOnce([
+				{
+					...runningDatabaseTask,
+					ID: "relocated-database-task",
+					NodeID: "worker-node-b",
+					Status: {
+						State: "running",
+						ContainerStatus: { ContainerID: relocatedContainerId },
+					},
+					Version: { Index: 3 },
+				},
+			])
+			.mockResolvedValueOnce([
+				{
+					ID: "worker-task-b",
+					Status: { State: "complete", ContainerStatus: { ExitCode: 0 } },
+					Version: { Index: 4 },
+				},
+			]);
+		mocks.getRemoteDocker.mockResolvedValue(docker);
+
+		await expect(executeBackup(input())).resolves.toEqual({
+			mode: "swarm-worker",
+		});
+
+		expect(docker.createService).toHaveBeenCalledTimes(2);
+		expect(
+			docker.createService.mock.calls[0]?.[0].TaskTemplate.Placement
+				.Constraints,
+		).toEqual(["node.id==worker-node-id"]);
+		expect(
+			docker.createService.mock.calls[1]?.[0].TaskTemplate.Placement
+				.Constraints,
+		).toEqual(["node.id==worker-node-b"]);
+		expect(serviceRemove).toHaveBeenCalledTimes(2);
+		expect(secretRemove).toHaveBeenCalledTimes(2);
+		expect(serviceRemove.mock.invocationCallOrder[0]).toBeLessThan(
+			docker.listTasks.mock.invocationCallOrder[2] ?? Number.POSITIVE_INFINITY,
+		);
+		expect(secretRemove.mock.invocationCallOrder[0]).toBeLessThan(
+			docker.listTasks.mock.invocationCallOrder[2] ?? Number.POSITIVE_INFINITY,
+		);
+		expect(mocks.sleep).toHaveBeenCalledOnce();
+		expect(
+			mocks.execAsync.mock.calls.some(([command]) =>
+				command.includes(
+					"Database task moved while the backup worker was waiting to start; retrying on its new node",
+				),
+			),
+		).toBe(true);
+	});
+
 	it("stops after one relocation retry and cleans both attempts", async () => {
 		const { docker, secretRemove, serviceRemove } = createDockerMock();
 		const relocationFailure = {
@@ -1040,6 +1163,8 @@ describe("executeBackup", () => {
 			"Backup worker task rejected: worker rejected",
 		);
 		expect(secretRemove).toHaveBeenCalledOnce();
+		expect(docker.createService).toHaveBeenCalledOnce();
+		expect(docker.listTasks).toHaveBeenCalledTimes(2);
 		expect(mocks.loggerError).toHaveBeenCalledWith(
 			expect.objectContaining({
 				errors: expect.arrayContaining([
