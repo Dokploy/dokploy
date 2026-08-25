@@ -243,9 +243,9 @@ export const backupCurrentDeployment = async (
 	const envFilePath = join(dirname(composeFilePath), ".env");
 
 	const backupCommand = `
-mkdir -p ${quote([backupDir])};
-cp ${quote([composeFilePath])} ${quote([join(backupDir, "docker-compose.yml.bak")])} 2>/dev/null || echo "No previous compose file found";
-cp ${quote([envFilePath])} ${quote([join(backupDir, "env.bak")])} 2>/dev/null || echo "No previous env file found";
+mkdir -p ${quote([backupDir])} 2>/dev/null || exit 1;
+if [ -f ${quote([composeFilePath])} ]; then cp ${quote([composeFilePath])} ${quote([join(backupDir, "docker-compose.yml.bak")])} || exit 1; else echo "No previous compose file found"; fi
+if [ -f ${quote([envFilePath])} ]; then cp ${quote([envFilePath])} ${quote([join(backupDir, "env.bak")])} || exit 1; else echo "No previous env file found"; fi
 	`;
 
 	const command = `(${backupCommand}) >> ${logPath} 2>&1`;
