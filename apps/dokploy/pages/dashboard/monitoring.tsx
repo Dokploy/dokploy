@@ -1,19 +1,17 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { hasPermission } from "@dokploy/server/services/permission";
-import { Loader2 } from "lucide-react";
+import { Cpu, HardDrive, Loader2, MemoryStick, Server } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
-
-const BASE_URL = "http://localhost:3001/metrics";
-
-const DEFAULT_TOKEN = "metrics";
 
 const Dashboard = () => {
 	const [toggleMonitoring, _setToggleMonitoring] = useLocalStorage(
@@ -22,6 +20,32 @@ const Dashboard = () => {
 	);
 
 	const { data: monitoring, isPending } = api.user.getMetricsToken.useQuery();
+	const { data: remoteServers } = api.server.monitoringServers.useQuery();
+	const hasRemoteServers = (remoteServers?.length ?? 0) > 0;
+	const { data: overview } = api.server.monitoringOverview.useQuery(undefined, {
+		enabled: hasRemoteServers,
+		refetchInterval: 30000,
+	});
+	const [selectedServerId, setSelectedServerId] = useState("local");
+
+	useEffect(() => {
+		if (
+			selectedServerId !== "local" &&
+			!remoteServers?.some((server) => server.serverId === selectedServerId)
+		) {
+			setSelectedServerId("local");
+		}
+	}, [remoteServers, selectedServerId]);
+
+	const renderMetric = (
+		metric: Record<string, unknown> | null | undefined,
+		key: string,
+		suffix = "",
+	) => {
+		const value = metric?.[key];
+		return value === undefined || value === null ? "N/A" : `${value}${suffix}`;
+	};
+
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>
@@ -44,6 +68,69 @@ const Dashboard = () => {
 				</Card>
 			) : (
 				<>
+					{hasRemoteServers && (
+						<div className="space-y-3">
+							<div className="flex items-center justify-between">
+								<div>
+									<h1 className="text-2xl font-semibold">Server Monitoring</h1>
+									<p className="text-sm text-muted-foreground">
+										Select a server to inspect its detailed metrics.
+									</p>
+								</div>
+							</div>
+							<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+								{overview?.map((item) => {
+									const value = item.serverId || "local";
+									return (
+										<Button
+											key={value}
+											type="button"
+											variant="outline"
+											className={`h-auto items-stretch justify-start p-0 text-left ${
+												selectedServerId === value ? "border-primary" : ""
+											}`}
+											onClick={() => setSelectedServerId(value)}
+										>
+											<div className="w-full space-y-4 p-4">
+												<div className="flex items-center justify-between gap-2">
+													<div className="flex items-center gap-2">
+														<Server className="size-4 text-muted-foreground" />
+														<span className="font-semibold">{item.name}</span>
+													</div>
+													<Badge
+														variant={item.available ? "default" : "destructive"}
+													>
+														{item.available ? "Available" : "Unavailable"}
+													</Badge>
+												</div>
+												<div className="grid grid-cols-3 gap-3 text-xs">
+													<div className="space-y-1">
+														<Cpu className="size-4 text-muted-foreground" />
+														<p>{renderMetric(item.metrics, "cpu", "%")}</p>
+													</div>
+													<div className="space-y-1">
+														<MemoryStick className="size-4 text-muted-foreground" />
+														<p>
+															{renderMetric(item.metrics, "memUsedGB", " GB")}
+														</p>
+													</div>
+													<div className="space-y-1">
+														<HardDrive className="size-4 text-muted-foreground" />
+														<p>{renderMetric(item.metrics, "diskUsed", "%")}</p>
+													</div>
+												</div>
+												{!item.available && (
+													<p className="line-clamp-2 text-xs text-muted-foreground">
+														{item.error}
+													</p>
+												)}
+											</div>
+										</Button>
+									);
+								})}
+							</div>
+						</div>
+					)}
 					{/* {monitoring?.enabledFeatures && (
 						<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
 							<Label className="text-muted-foreground">Change Monitoring</Label>
@@ -53,21 +140,16 @@ const Dashboard = () => {
 							/>
 						</div>
 					)} */}
-					{toggleMonitoring ? (
+					{hasRemoteServers && selectedServerId !== "local" ? (
+						<Card className="bg-sidebar p-2.5 rounded-xl mx-auto">
+							<div className="rounded-xl bg-background shadow-md">
+								<ShowPaidMonitoring serverId={selectedServerId} />
+							</div>
+						</Card>
+					) : toggleMonitoring ? (
 						<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto">
 							<div className="rounded-xl bg-background shadow-md">
-								<ShowPaidMonitoring
-									BASE_URL={
-										process.env.NODE_ENV === "production"
-											? `http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}/metrics`
-											: BASE_URL
-									}
-									token={
-										process.env.NODE_ENV === "production"
-											? monitoring?.metricsConfig?.server?.token
-											: DEFAULT_TOKEN
-									}
-								/>
+								<ShowPaidMonitoring />
 							</div>
 						</Card>
 					) : (

@@ -22,6 +22,7 @@ import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/gener
 import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { MoveServiceToServer } from "@/components/dashboard/shared/move-service-to-server";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MongodbIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -157,7 +158,13 @@ const Mongo = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									{permissions?.service.create && (
-										<UpdateMongo mongoId={mongoId} />
+										<>
+											<MoveServiceToServer
+												serviceType="mongo"
+												serviceId={mongoId}
+											/>
+											<UpdateMongo mongoId={mongoId} />
+										</>
 									)}
 									{permissions?.service.delete && (
 										<DeleteService id={mongoId} type="mongo" />
@@ -220,7 +227,7 @@ const Mongo = (
 												<TabsTrigger value="logs">Logs</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
-												((data?.serverId && isCloud) || !data?.server) && (
+												(data?.serverId || !data?.server) && (
 													<TabsTrigger value="monitoring">
 														Monitoring
 													</TabsTrigger>
@@ -250,13 +257,10 @@ const Mongo = (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">
 												<div className="flex flex-col gap-4 border rounded-lg p-6">
-													{data?.serverId && isCloud ? (
+													{data?.serverId ? (
 														<ContainerPaidMonitoring
 															appName={data?.appName || ""}
-															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
+															serverId={data.serverId}
 														/>
 													) : (
 														<>

@@ -22,6 +22,7 @@ import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
+import { MoveServiceToServer } from "@/components/dashboard/shared/move-service-to-server";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -156,7 +157,13 @@ const Postgresql = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									{permissions?.service.create && (
-										<UpdatePostgres postgresId={postgresId} />
+										<>
+											<MoveServiceToServer
+												serviceType="postgres"
+												serviceId={postgresId}
+											/>
+											<UpdatePostgres postgresId={postgresId} />
+										</>
 									)}
 									{permissions?.service.delete && (
 										<DeleteService id={postgresId} type="postgres" />
@@ -221,7 +228,7 @@ const Postgresql = (
 												<TabsTrigger value="logs">Logs</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
-												((data?.serverId && isCloud) || !data?.server) && (
+												(data?.serverId || !data?.server) && (
 													<TabsTrigger value="monitoring">
 														Monitoring
 													</TabsTrigger>
@@ -255,17 +262,10 @@ const Postgresql = (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">
 												<div className="flex flex-col gap-4 border rounded-lg p-6">
-													{data?.serverId && isCloud ? (
+													{data?.serverId ? (
 														<ContainerPaidMonitoring
 															appName={data?.appName || ""}
-															baseUrl={`${
-																data?.serverId
-																	? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
-																	: "http://localhost:4500"
-															}`}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
+															serverId={data.serverId}
 														/>
 													) : (
 														<>

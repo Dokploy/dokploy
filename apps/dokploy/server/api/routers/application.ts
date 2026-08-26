@@ -1,16 +1,28 @@
 import {
+	assertNoUnresolvedServiceMigration,
+	beginServiceMigrationFinalization,
 	clearOldDeployments,
 	createApplication,
+	createPendingServiceMigration,
 	deleteAllMiddlewares,
+	deleteServiceMigration,
+	deployApplication,
+	finalizeServiceMigration,
 	findApplicationById,
 	findEnvironmentById,
 	findPreviewDeploymentsByApplicationId,
 	findProjectById,
+	findServerById,
+	findServiceMigrationById,
+	findUnresolvedServiceMigration,
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
 	getWebServerSettings,
 	IS_CLOUD,
+	markServiceMigrationFailed,
+	markServiceMigrationReady,
+	markServiceMigrationRollingBack,
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
@@ -19,7 +31,11 @@ import {
 	removeMonitoringDirectory,
 	removePreviewDeployment,
 	removeService,
+	removeServiceIdempotent,
 	removeTraefikConfig,
+	reserveServiceName,
+	resolveServiceMigrationAfterRollback,
+	runtimeExistsOnTarget,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -27,7 +43,9 @@ import {
 	unzipDrop,
 	updateApplication,
 	updateApplicationStatus,
+	updateDeployment,
 	updateDeploymentStatus,
+	updateServiceMigrationProgress,
 	writeConfig,
 	writeConfigRemote,
 } from "@dokploy/server";
@@ -40,7 +58,7 @@ import {
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
@@ -197,6 +215,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
 			const application = await findApplicationById(input.applicationId);
 
 			try {
@@ -224,6 +246,10 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.applicationId, "delete");
+			await assertNoUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
 			const application = await findApplicationById(input.applicationId);
 
 			if (
@@ -291,6 +317,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
 			const service = await findApplicationById(input.applicationId);
 			if (service.serverId) {
 				await stopServiceRemote(service.serverId, service.appName);
@@ -313,6 +343,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
 			const service = await findApplicationById(input.applicationId);
 			if (service.serverId) {
 				await startServiceRemote(service.serverId, service.appName);
@@ -335,6 +369,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
 			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
@@ -703,6 +741,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
 			const application = await findApplicationById(input.applicationId);
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
@@ -926,6 +968,422 @@ export const applicationRouter = createTRPCRouter({
 				resourceName: updatedApplication.appName,
 			});
 			return updatedApplication;
+		}),
+	moveToServer: protectedProcedure
+		.input(
+			z.object({
+				applicationId: z.string(),
+				targetServerId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["create"],
+				deployment: ["create"],
+			});
+			const application = await findApplicationById(input.applicationId);
+			const sourceServerId = application.serverId;
+			const normalizedTargetServerId = input.targetServerId || null;
+			if (application.applicationStatus === "running") {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Wait for the current application deployment to finish before moving it",
+				});
+			}
+
+			if (sourceServerId === normalizedTargetServerId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The application is already assigned to this server",
+				});
+			}
+
+			const unsupportedMounts = application.mounts.filter(
+				(mount) => mount.type === "bind" || mount.type === "volume",
+			);
+			if (unsupportedMounts.length > 0) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Applications with bind mounts or named volumes cannot be moved automatically",
+				});
+			}
+
+			if (normalizedTargetServerId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(normalizedTargetServerId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access the target server",
+					});
+				}
+				const targetServer = await findServerById(normalizedTargetServerId);
+				if (
+					targetServer.organizationId !== ctx.session.activeOrganizationId ||
+					targetServer.serverStatus !== "active" ||
+					targetServer.serverType !== "deploy" ||
+					!targetServer.sshKeyId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"The target server must be an active deployment server with an SSH key",
+					});
+				}
+			} else {
+				const webServerSettings = await getWebServerSettings();
+				if (IS_CLOUD || webServerSettings?.remoteServersOnly) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "The local Dokploy server is not available",
+					});
+				}
+			}
+
+			if (
+				await runtimeExistsOnTarget(
+					"service",
+					application.appName,
+					normalizedTargetServerId,
+				)
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: `A Docker service named "${application.appName}" already exists on the target server`,
+				});
+			}
+
+			const migration = await createPendingServiceMigration({
+				serviceType: "application",
+				id: input.applicationId,
+				sourceServerId,
+				targetServerId: normalizedTargetServerId,
+				originalNetworkIds: application.networkIds ?? [],
+				originalStatus: application.applicationStatus,
+			});
+			let targetReserved = false;
+			let deploymentId: string | undefined;
+			try {
+				await reserveServiceName(application.appName, normalizedTargetServerId);
+				targetReserved = true;
+				await updateServiceMigrationProgress(migration.serviceMigrationId, {
+					phase: "target_reserved",
+					targetRuntimeCreated: true,
+				});
+
+				const [updatedApplication] = await db
+					.update(applications)
+					.set({
+						serverId: normalizedTargetServerId,
+						networkIds: [],
+					})
+					.where(
+						and(
+							eq(applications.applicationId, input.applicationId),
+							sourceServerId
+								? eq(applications.serverId, sourceServerId)
+								: isNull(applications.serverId),
+						),
+					)
+					.returning();
+				if (!updatedApplication) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Application server assignment changed during the move",
+					});
+				}
+				await updateServiceMigrationProgress(migration.serviceMigrationId, {
+					phase: "ownership_moved",
+					ownershipMoved: true,
+				});
+				await updateApplicationStatus(input.applicationId, "running");
+
+				await deployApplication({
+					applicationId: input.applicationId,
+					titleLog: "Move to another server",
+					descriptionLog: JSON.stringify({
+						type: "server-move",
+						status: "pending",
+						sourceServerId,
+						targetServerId: normalizedTargetServerId,
+					}),
+					preserveDescription: true,
+					onDeploymentCreated: (id) => {
+						deploymentId = id;
+					},
+					allowMigrationId: migration.serviceMigrationId,
+				});
+				if (!deploymentId) {
+					throw new Error("Application deployment record was not created");
+				}
+				await markServiceMigrationReady({
+					serviceMigrationId: migration.serviceMigrationId,
+					deploymentId,
+				});
+				await audit(ctx, {
+					action: "update",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					resourceName: application.appName,
+					metadata: {
+						operation: "move-to-server",
+						sourceServerId: sourceServerId || "dokploy",
+						targetServerId: normalizedTargetServerId || "dokploy",
+						sourceCleanupPending: true,
+					},
+				});
+
+				return {
+					migrationId: migration.serviceMigrationId,
+					deploymentId,
+					sourceServerId,
+					targetServerId: normalizedTargetServerId,
+					sourceCleanupPending: true,
+				};
+			} catch (error) {
+				await markServiceMigrationRollingBack(
+					migration.serviceMigrationId,
+				).catch(() => undefined);
+
+				const cleanupResults = targetReserved
+					? await Promise.allSettled([
+							removeServiceIdempotent(
+								application.appName,
+								normalizedTargetServerId,
+							),
+							removeDirectoryCode(
+								application.appName,
+								normalizedTargetServerId,
+							),
+							removeMonitoringDirectory(
+								application.appName,
+								normalizedTargetServerId,
+							),
+							removeTraefikConfig(
+								application.appName,
+								normalizedTargetServerId,
+								true,
+							),
+						])
+					: [];
+				const cleanupErrors = cleanupResults.flatMap((result) =>
+					result.status === "rejected" ? [result.reason] : [],
+				);
+				try {
+					await updateApplication(input.applicationId, {
+						serverId: sourceServerId,
+						networkIds: application.networkIds,
+						applicationStatus: application.applicationStatus,
+					});
+				} catch (rollbackError) {
+					cleanupErrors.push(rollbackError);
+				}
+				throw await resolveServiceMigrationAfterRollback({
+					serviceMigrationId: migration.serviceMigrationId,
+					originalError: error,
+					cleanupErrors,
+					restartError: null,
+				});
+			}
+		}),
+	pendingServerMove: protectedProcedure
+		.input(z.object({ applicationId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.applicationId);
+			const application = await findApplicationById(input.applicationId);
+			const migration = await findUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
+			if (!migration) {
+				return null;
+			}
+			return {
+				migrationId: migration.serviceMigrationId,
+				deploymentId: migration.deploymentId,
+				sourceServerId: migration.sourceServerId,
+				targetServerId: migration.targetServerId,
+				status: migration.status,
+				phase: migration.phase,
+				error: migration.error,
+			};
+		}),
+	rollbackServerMove: protectedProcedure
+		.input(
+			z.object({
+				applicationId: z.string(),
+				migrationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["delete"],
+			});
+			const application = await findApplicationById(input.applicationId);
+			const migration = await findUnresolvedServiceMigration(
+				"application",
+				input.applicationId,
+			);
+			if (!migration || migration.serviceMigrationId !== input.migrationId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No matching unresolved migration was found",
+				});
+			}
+			if (migration.status === "finalizing") {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Source cleanup has already started; retry finalization instead of rolling back",
+				});
+			}
+			if (migration.sourceServerId || migration.targetServerId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (
+					(migration.sourceServerId &&
+						!accessibleIds.has(migration.sourceServerId)) ||
+					(migration.targetServerId &&
+						!accessibleIds.has(migration.targetServerId))
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access a migration server",
+					});
+				}
+			}
+			await markServiceMigrationRollingBack(input.migrationId);
+			const errors: unknown[] = [];
+			if (migration.targetRuntimeCreated) {
+				await Promise.allSettled([
+					removeServiceIdempotent(
+						application.appName,
+						migration.targetServerId,
+					),
+					removeDirectoryCode(application.appName, migration.targetServerId),
+					removeMonitoringDirectory(
+						application.appName,
+						migration.targetServerId,
+					),
+					removeTraefikConfig(
+						application.appName,
+						migration.targetServerId,
+						true,
+					),
+				]).then((results) => {
+					errors.push(
+						...results
+							.filter(
+								(result): result is PromiseRejectedResult =>
+									result.status === "rejected",
+							)
+							.map((result) => result.reason),
+					);
+				});
+			}
+			if (migration.ownershipMoved) {
+				const originalStatus = z
+					.enum(["done", "error", "idle", "running"])
+					.catch("idle")
+					.parse(migration.originalStatus);
+				await updateApplication(input.applicationId, {
+					serverId: migration.sourceServerId,
+					networkIds: migration.originalNetworkIds,
+					applicationStatus: originalStatus,
+				}).catch((error) => errors.push(error));
+			}
+			if (errors.length > 0) {
+				const message = errors
+					.map((error) =>
+						error instanceof Error ? error.message : String(error),
+					)
+					.join("; ");
+				await markServiceMigrationFailed({
+					serviceMigrationId: input.migrationId,
+					error: message,
+				});
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Migration rollback needs manual attention: ${message}`,
+				});
+			}
+			await deleteServiceMigration(input.migrationId);
+			return true;
+		}),
+	finalizeServerMove: protectedProcedure
+		.input(
+			z.object({
+				applicationId: z.string(),
+				migrationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["delete"],
+			});
+			const application = await findApplicationById(input.applicationId);
+			const migration = await findServiceMigrationById(input.migrationId);
+			if (
+				!migration ||
+				!["ready", "finalizing"].includes(migration.status) ||
+				migration.applicationId !== input.applicationId ||
+				migration.targetServerId !== application.serverId
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This deployment is not a pending move for the application",
+				});
+			}
+
+			if (migration.sourceServerId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(migration.sourceServerId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to clean up the source server",
+					});
+				}
+			}
+
+			await beginServiceMigrationFinalization(input.migrationId);
+			await removeServiceIdempotent(
+				application.appName,
+				migration.sourceServerId,
+			);
+			await removeDirectoryCode(application.appName, migration.sourceServerId);
+			await removeMonitoringDirectory(
+				application.appName,
+				migration.sourceServerId,
+			);
+			await removeTraefikConfig(
+				application.appName,
+				migration.sourceServerId,
+				true,
+			);
+			await finalizeServiceMigration(input.migrationId);
+			if (migration.deploymentId) {
+				await updateDeployment(migration.deploymentId, {
+					description: JSON.stringify({
+						type: "server-move",
+						status: "finalized",
+						sourceServerId: migration.sourceServerId,
+						targetServerId: migration.targetServerId,
+					}),
+				});
+			}
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "application",
+				resourceId: application.applicationId,
+				resourceName: application.appName,
+				metadata: {
+					operation: "finalize-server-move",
+					sourceServerId: migration.sourceServerId || "dokploy",
+					targetServerId: application.serverId || "dokploy",
+				},
+			});
+			return true;
 		}),
 
 	cancelDeployment: protectedProcedure

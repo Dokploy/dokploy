@@ -13,6 +13,7 @@ import { eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 
 export type Redis = typeof redis.$inferSelect;
 
@@ -100,7 +101,11 @@ export const removeRedisById = async (redisId: string) => {
 export const deployRedis = async (
 	redisId: string,
 	onData?: (data: any) => void,
+	allowMigrationId?: string,
 ) => {
+	if (!allowMigrationId) {
+		await assertNoUnresolvedServiceMigration("redis", redisId);
+	}
 	const redis = await findRedisById(redisId);
 	try {
 		await updateRedisById(redisId, {

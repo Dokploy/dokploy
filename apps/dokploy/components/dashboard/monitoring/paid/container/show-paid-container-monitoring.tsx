@@ -62,11 +62,10 @@ interface ContainerMetric {
 
 interface Props {
 	appName: string;
-	baseUrl: string;
-	token: string;
+	serverId: string;
 }
 
-export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
+export const ContainerPaidMonitoring = ({ appName, serverId }: Props) => {
 	const [historicalData, setHistoricalData] = useState<ContainerMetric[]>([]);
 	const [metrics, setMetrics] = useState<ContainerMetric>(
 		{} as ContainerMetric,
@@ -79,26 +78,23 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 		data,
 		isLoading,
 		error: queryError,
-	} = api.user.getContainerMetrics.useQuery(
+	} = api.server.getContainerMetrics.useQuery(
 		{
-			url: baseUrl,
-			token,
+			serverId,
 			dataPoints,
 			appName,
 		},
 		{
 			refetchInterval:
-				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval),
-			enabled: !!appName,
+				dataPoints === "all" ? undefined : Number.parseInt(refreshInterval, 10),
+			enabled: !!appName && !!serverId,
 		},
 	);
 
 	useEffect(() => {
 		if (!data) return;
 
-		// @ts-ignore
 		setHistoricalData(data);
-		// @ts-ignore
 		setMetrics(data[data.length - 1]);
 	}, [data]);
 
@@ -123,7 +119,6 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 							? queryError.message
 							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
 					</p>
-					<p className="text-sm text-muted-foreground">URL: {baseUrl}</p>
 				</div>
 			</div>
 		);

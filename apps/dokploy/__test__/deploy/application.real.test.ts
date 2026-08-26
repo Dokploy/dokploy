@@ -17,6 +17,7 @@ vi.mock("@dokploy/server/db", () => {
 			returning: vi.fn().mockResolvedValue([{}]),
 			from: vi.fn(() => chain),
 			innerJoin: vi.fn(() => chain),
+			// biome-ignore lint/suspicious/noThenProperty: Drizzle query mocks are intentionally thenable.
 			then: (resolve: (v: any) => void) => {
 				resolve([]);
 			},
@@ -33,6 +34,9 @@ vi.mock("@dokploy/server/db", () => {
 			query: {
 				applications: {
 					findFirst: vi.fn(),
+				},
+				serviceMigrations: {
+					findFirst: vi.fn().mockResolvedValue(undefined),
 				},
 				patch: {
 					findMany: vi.fn().mockResolvedValue([]),

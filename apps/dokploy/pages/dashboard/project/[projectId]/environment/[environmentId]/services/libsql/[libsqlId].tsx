@@ -22,6 +22,7 @@ import { ShowInternalLibsqlCredentials } from "@/components/dashboard/libsql/gen
 import { UpdateLibsql } from "@/components/dashboard/libsql/update-libsql";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { MoveServiceToServer } from "@/components/dashboard/shared/move-service-to-server";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { LibsqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -61,6 +62,7 @@ const Libsql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.libsql.one.useQuery({ libsqlId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: serverIp } = api.settings.getIp.useQuery();
@@ -144,6 +146,12 @@ const Libsql = (
 									)}
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
+									{permissions?.service.create && (
+										<MoveServiceToServer
+											serviceType="libsql"
+											serviceId={libsqlId}
+										/>
+									)}
 									<UpdateLibsql libsqlId={libsqlId} />
 									{(auth?.role === "owner" || auth?.canDeleteServices) && (
 										<DeleteService id={libsqlId} type="libsql" />
@@ -199,7 +207,7 @@ const Libsql = (
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
-											{((data?.serverId && isCloud) || !data?.server) && (
+											{(data?.serverId || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
 											<TabsTrigger value="backups">Backups</TabsTrigger>
@@ -222,13 +230,10 @@ const Libsql = (
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId && isCloud ? (
+												{data?.serverId ? (
 													<ContainerPaidMonitoring
 														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
+														serverId={data.serverId}
 													/>
 												) : (
 													<>
