@@ -365,7 +365,8 @@ const Service = (
 										<TabsContent value="file-system">
 											<div className="pt-2.5">
 												<ShowContainerFileSystem
-													applicationId={applicationId}
+													serviceType="application"
+													serviceId={applicationId}
 												/>
 											</div>
 										</TabsContent>

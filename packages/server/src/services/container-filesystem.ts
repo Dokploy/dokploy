@@ -2,17 +2,19 @@ import { posix } from "node:path";
 import type { Readable, Writable } from "node:stream";
 import { Transform } from "node:stream";
 import type { ContainerInfo } from "dockerode";
-import { extract } from "tar-stream";
+import { extract, pack } from "tar-stream";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 
 const MAX_PATH_LENGTH = 4096;
 const MAX_PATH_COMPONENTS = 128;
-const MAX_DIRECTORY_ARCHIVE_BYTES = 32 * 1024 * 1024;
+const MAX_DIRECTORY_ARCHIVE_BYTES = 128 * 1024 * 1024;
 const MAX_DIRECTORY_ENTRIES = 2000;
 const PATH_INSPECTION_TIMEOUT_MS = 10_000;
 const ARCHIVE_REQUEST_TIMEOUT_MS = 10_000;
 export const MAX_FILE_PREVIEW_BYTES = 1024 * 1024;
 export const MAX_FILE_DOWNLOAD_BYTES = 100 * 1024 * 1024;
+export const MAX_FILE_UPLOAD_BYTES = 100 * 1024 * 1024;
+const MAX_FILE_NAME_LENGTH = 255;
 
 const RESTRICTED_PATHS = ["/proc", "/sys", "/dev", "/run/secrets"];
 const CONTAINER_ID_REGEX = /^[a-f0-9]{64}$/i;
@@ -45,6 +47,7 @@ export type ApplicationFilesystemContainer = {
 	image?: string;
 	state: string;
 	status?: string;
+	workingDir?: string;
 };
 
 export type ContainerFilePreview =
@@ -88,7 +91,6 @@ export class ContainerFilesystemError extends Error {
 			| "INVALID_PATH"
 			| "RESTRICTED_PATH"
 			| "CONTAINER_NOT_FOUND"
-			| "DIRECTORY_TOO_LARGE"
 			| "FILE_TOO_LARGE"
 			| "NOT_A_DIRECTORY"
 			| "NOT_A_FILE"
@@ -151,6 +153,36 @@ export const normalizeContainerPath = (input: string): string => {
 	return normalized;
 };
 
+export const normalizeUploadFileName = (input: string): string => {
+	if (typeof input !== "string" || input.length === 0) {
+		throw new ContainerFilesystemError(
+			"INVALID_PATH",
+			"A file name is required.",
+		);
+	}
+
+	if (input.length > MAX_FILE_NAME_LENGTH || hasControlCharacter(input)) {
+		throw new ContainerFilesystemError(
+			"INVALID_PATH",
+			"The file name is invalid.",
+		);
+	}
+
+	if (
+		input === "." ||
+		input === ".." ||
+		input.includes("/") ||
+		input.includes("\\")
+	) {
+		throw new ContainerFilesystemError(
+			"INVALID_PATH",
+			"The file name must not contain path separators.",
+		);
+	}
+
+	return input;
+};
+
 const normalizeContainerId = (containerId: string) => {
 	if (!CONTAINER_ID_REGEX.test(containerId)) {
 		throw new ContainerFilesystemError(
@@ -166,13 +198,26 @@ const getContainerName = (container: ContainerInfo) =>
 
 const mapContainer = (
 	container: ContainerInfo,
+	workingDir?: string,
 ): ApplicationFilesystemContainer => ({
 	containerId: container.Id,
 	name: getContainerName(container),
 	image: container.Image,
 	state: container.State || "unknown",
 	status: container.Status,
+	workingDir,
 });
+
+const getContainerWorkingDir = async (
+	container: DockerContainer,
+): Promise<string | undefined> => {
+	try {
+		const inspection = await container.inspect();
+		return inspection.Config?.WorkingDir || undefined;
+	} catch {
+		return undefined;
+	}
+};
 
 const getRunningContainers = async (
 	docker: DockerClient,
@@ -200,9 +245,16 @@ export const getApplicationFilesystemContainers = async (
 	const docker = await getRemoteDocker(serverId);
 	const containers = await getRunningContainers(docker, appName);
 
-	return containers
-		.map(mapContainer)
-		.sort((first, second) => first.name.localeCompare(second.name));
+	const mapped = await Promise.all(
+		containers.map(async (container) =>
+			mapContainer(
+				container,
+				await getContainerWorkingDir(docker.getContainer(container.Id)),
+			),
+		),
+	);
+
+	return mapped.sort((first, second) => first.name.localeCompare(second.name));
 };
 
 export const getApplicationFilesystemContainer = async (
@@ -227,9 +279,114 @@ export const getApplicationFilesystemContainer = async (
 		);
 	}
 
+	const container = docker.getContainer(selected.Id);
+
 	return {
-		container: docker.getContainer(selected.Id),
-		containerInfo: mapContainer(selected),
+		container,
+		containerInfo: mapContainer(
+			selected,
+			await getContainerWorkingDir(container),
+		),
+	};
+};
+
+// Compose deploys multiple containers under one entity, labeled differently
+// depending on how it was deployed: plain `docker compose` tags every
+// container with `com.docker.compose.project=<appName>`, while a swarm
+// `docker stack deploy` names each sub-service `<appName>_<service>`, so its
+// containers carry `com.docker.swarm.service.name=<appName>_<service>`.
+const getRunningComposeContainers = async (
+	docker: DockerClient,
+	appName: string,
+	composeType: "docker-compose" | "stack",
+): Promise<ContainerInfo[]> => {
+	if (composeType === "docker-compose") {
+		const filters = {
+			status: ["running"],
+			label: [`com.docker.compose.project=${appName}`],
+		};
+		const containers = await docker.listContainers({
+			filters: JSON.stringify(filters),
+		});
+		return containers.filter(
+			(container) =>
+				container.State === "running" &&
+				container.Labels?.["com.docker.compose.project"] === appName,
+		);
+	}
+
+	const filters = { status: ["running"] };
+	const containers = await docker.listContainers({
+		filters: JSON.stringify(filters),
+	});
+	return containers.filter((container) => {
+		if (container.State !== "running") return false;
+		const serviceName = container.Labels?.["com.docker.swarm.service.name"];
+		return (
+			serviceName === appName || serviceName?.startsWith(`${appName}_`)
+		);
+	});
+};
+
+export const getComposeFilesystemContainers = async (
+	appName: string,
+	composeType: "docker-compose" | "stack",
+	serverId?: string | null,
+): Promise<ApplicationFilesystemContainer[]> => {
+	const docker = await getRemoteDocker(serverId);
+	const containers = await getRunningComposeContainers(
+		docker,
+		appName,
+		composeType,
+	);
+
+	const mapped = await Promise.all(
+		containers.map(async (container) =>
+			mapContainer(
+				container,
+				await getContainerWorkingDir(docker.getContainer(container.Id)),
+			),
+		),
+	);
+
+	return mapped.sort((first, second) => first.name.localeCompare(second.name));
+};
+
+export const getComposeFilesystemContainer = async (
+	appName: string,
+	composeType: "docker-compose" | "stack",
+	containerId: string,
+	serverId?: string | null,
+): Promise<{
+	container: DockerContainer;
+	containerInfo: ApplicationFilesystemContainer;
+}> => {
+	const normalizedContainerId = normalizeContainerId(containerId);
+	const docker = await getRemoteDocker(serverId);
+	const containers = await getRunningComposeContainers(
+		docker,
+		appName,
+		composeType,
+	);
+	const selected = containers.find(
+		(container) => container.Id === normalizedContainerId,
+	);
+
+	if (!selected) {
+		throw new ContainerFilesystemError(
+			"CONTAINER_NOT_FOUND",
+			"The selected container is not a running container for this compose.",
+		);
+	}
+
+	const container = docker.getContainer(selected.Id);
+
+	return {
+		container,
+		containerInfo: mapContainer(
+			selected,
+			await getContainerWorkingDir(container),
+		),
 	};
 };
 
@@ -332,12 +489,9 @@ const entryTypeFromTarHeader = (
 const addEntry = (
 	entries: Map<string, ContainerFilesystemEntry>,
 	entry: ContainerFilesystemEntry,
-) => {
+): boolean => {
 	if (entries.size >= MAX_DIRECTORY_ENTRIES && !entries.has(entry.path)) {
-		throw new ContainerFilesystemError(
-			"DIRECTORY_TOO_LARGE",
-			`This directory contains more than ${MAX_DIRECTORY_ENTRIES} entries.`,
-		);
+		return false;
 	}
 
 	const current = entries.get(entry.path);
@@ -347,6 +501,7 @@ const addEntry = (
 	) {
 		entries.set(entry.path, entry);
 	}
+	return true;
 };
 
 // Docker's GET archive operation resolves symlinks. HEAD archive responses
@@ -491,22 +646,36 @@ const getDirectChild = (path: string, tarName: string) => {
 const listDirectoryFromArchive = async (
 	container: DockerContainer,
 	path: string,
-): Promise<ContainerFilesystemEntry[]> => {
+): Promise<{ entries: ContainerFilesystemEntry[]; truncated: boolean }> => {
 	const archive = await getContainerArchive(container, path);
 	const stat = requireArchiveStat(archive);
 	ensureDirectoryStat(stat);
 	const extractor = extract();
 	const entries = new Map<string, ContainerFilesystemEntry>();
-	let failure: Error | undefined;
+	const source = asReadable(archive);
+	let truncated = false;
 
 	const finished = new Promise<void>((resolve, reject) => {
+		const stopEarly = () => {
+			if (truncated) return;
+			truncated = true;
+			source.destroy();
+			extractor.destroy();
+			resolve();
+		};
+
 		extractor.on(
 			"entry",
 			(header: TarHeader, entry: Readable, next: () => void) => {
+				if (truncated) {
+					entry.resume();
+					return;
+				}
+
 				try {
 					const child = getDirectChild(path, header.name);
 					if (child) {
-						addEntry(entries, {
+						const added = addEntry(entries, {
 							name: child.name,
 							path: path === "/" ? `/${child.name}` : `${path}/${child.name}`,
 							type: child.isNested
@@ -517,11 +686,18 @@ const listDirectoryFromArchive = async (
 							mode: header.mode?.toString(8),
 							linkTarget: header.linkname,
 						});
+						if (!added) {
+							entry.resume();
+							stopEarly();
+							return;
+						}
 					}
 				} catch (error) {
-					failure = error instanceof Error ? error : new Error(String(error));
+					const failure =
+						error instanceof Error ? error : new Error(String(error));
 					entry.destroy(failure);
 					extractor.destroy(failure);
+					reject(failure);
 					return;
 				}
 
@@ -531,34 +707,33 @@ const listDirectoryFromArchive = async (
 			},
 		);
 		extractor.once("finish", resolve);
-		extractor.once("error", reject);
-	});
+		extractor.once("error", (error) => {
+			if (truncated) return;
+			reject(error);
+		});
 
-	try {
-		const source = asReadable(archive);
 		let archiveBytes = 0;
 		source.on("data", (chunk: Buffer) => {
 			archiveBytes += chunk.length;
 			if (archiveBytes > MAX_DIRECTORY_ARCHIVE_BYTES) {
-				const error = new ContainerFilesystemError(
-					"DIRECTORY_TOO_LARGE",
-					"The directory is too large to browse safely.",
-				);
-				failure = error;
-				source.destroy(error);
-				extractor.destroy(error);
+				stopEarly();
 			}
 		});
-		source.once("error", (error) => extractor.destroy(error));
+		source.once("error", (error) => {
+			if (truncated) return;
+			extractor.destroy(error);
+		});
 		source.pipe(extractor);
-		await finished;
-	} catch (error) {
-		throw failure ?? error;
-	}
+	});
 
-	return [...entries.values()].sort((first, second) =>
-		first.name.localeCompare(second.name),
-	);
+	await finished;
+
+	return {
+		entries: [...entries.values()].sort((first, second) =>
+			first.name.localeCompare(second.name),
+		),
+		truncated,
+	};
 };
 
 const ensureDirectoryStat = (stat: VerifiedArchiveStat) => {
@@ -580,10 +755,78 @@ const ensureDirectoryStat = (stat: VerifiedArchiveStat) => {
 export const listContainerDirectory = async (
 	container: DockerContainer,
 	inputPath: string,
-): Promise<{ path: string; entries: ContainerFilesystemEntry[] }> => {
+): Promise<{
+	path: string;
+	entries: ContainerFilesystemEntry[];
+	truncated: boolean;
+}> => {
 	const path = normalizeContainerPath(inputPath);
 	ensureDirectoryStat(await inspectContainerPath(container, path));
-	return { path, entries: await listDirectoryFromArchive(container, path) };
+	const { entries, truncated } = await listDirectoryFromArchive(
+		container,
+		path,
+	);
+	return { path, entries, truncated };
+};
+
+export const uploadFileToContainerDirectory = async (
+	container: DockerContainer,
+	inputPath: string,
+	fileName: string,
+	fileBuffer: Buffer,
+): Promise<ContainerFilesystemEntry> => {
+	if (fileBuffer.byteLength > MAX_FILE_UPLOAD_BYTES) {
+		throw new ContainerFilesystemError(
+			"FILE_TOO_LARGE",
+			`Uploads are limited to ${Math.floor(MAX_FILE_UPLOAD_BYTES / (1024 * 1024))}MB.`,
+		);
+	}
+
+	const path = normalizeContainerPath(inputPath);
+	const safeFileName = normalizeUploadFileName(fileName);
+	ensureDirectoryStat(await inspectContainerPath(container, path));
+
+	const archive = pack();
+	archive.entry(
+		{ name: safeFileName, size: fileBuffer.byteLength, mode: 0o644 },
+		fileBuffer,
+	);
+	archive.finalize();
+
+	const abortController = new AbortController();
+	const timeout = setTimeout(
+		() => abortController.abort(),
+		ARCHIVE_REQUEST_TIMEOUT_MS,
+	);
+
+	try {
+		await container.putArchive(archive, {
+			path,
+			abortSignal: abortController.signal,
+		});
+	} catch (error) {
+		if (abortController.signal.aborted) {
+			throw new ContainerFilesystemError(
+				"ARCHIVE_UNAVAILABLE",
+				"The container took too long to accept the uploaded file.",
+			);
+		}
+		throw new ContainerFilesystemError(
+			"ARCHIVE_UNAVAILABLE",
+			"The container could not accept the uploaded file.",
+		);
+	} finally {
+		clearTimeout(timeout);
+	}
+
+	return {
+		name: safeFileName,
+		path: path === "/" ? `/${safeFileName}` : `${path}/${safeFileName}`,
+		type: "file",
+		size: fileBuffer.byteLength,
+		modifiedAt: new Date().toISOString(),
+		mode: "644",
+	};
 };
 
 const isText = (buffer: Buffer) => {

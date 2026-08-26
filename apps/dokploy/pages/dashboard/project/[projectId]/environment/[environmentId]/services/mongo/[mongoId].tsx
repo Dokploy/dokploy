@@ -15,6 +15,7 @@ import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowContainerFileSystem } from "@/components/dashboard/docker/file-system/show-container-file-system";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
 import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
@@ -204,10 +205,10 @@ const Mongo = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-6"
+													? "md:grid-cols-7"
 													: data?.serverId
-														? "md:grid-cols-5"
-														: "md:grid-cols-6",
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -218,6 +219,11 @@ const Mongo = (
 											)}
 											{permissions?.logs.read && (
 												<TabsTrigger value="logs">Logs</TabsTrigger>
+											)}
+											{permissions?.containerFilesystem.read && (
+												<TabsTrigger value="file-system">
+													Files System
+												</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
 												((data?.serverId && isCloud) || !data?.server) && (
@@ -300,6 +306,16 @@ const Mongo = (
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
 													serviceId={data?.mongoId}
+												/>
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.containerFilesystem.read && (
+										<TabsContent value="file-system">
+											<div className="pt-2.5">
+												<ShowContainerFileSystem
+													serviceType="mongo"
+													serviceId={mongoId}
 												/>
 											</div>
 										</TabsContent>

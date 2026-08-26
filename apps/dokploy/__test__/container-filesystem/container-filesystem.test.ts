@@ -14,13 +14,18 @@ vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 
 const {
 	ContainerFilesystemError,
+	MAX_FILE_UPLOAD_BYTES,
 	getContainerFileDownload,
 	getApplicationFilesystemContainer,
 	getApplicationFilesystemContainers,
+	getComposeFilesystemContainer,
+	getComposeFilesystemContainers,
 	listContainerDirectory,
 	normalizeContainerPath,
+	normalizeUploadFileName,
 	pipeContainerFileArchive,
 	readContainerFile,
+	uploadFileToContainerDirectory,
 } = await import("@dokploy/server/services/container-filesystem");
 
 const APPLICATION_CONTAINER_ID = "a".repeat(64);
@@ -366,6 +371,102 @@ describe("application container ownership", () => {
 	});
 });
 
+describe("compose container ownership", () => {
+	it("matches docker-compose containers by project label", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.compose.project": "my-stack" },
+			}),
+			dockerContainer({
+				Id: OTHER_CONTAINER_ID,
+				Names: ["/other.1.xxxxxxxxx"],
+				Labels: { "com.docker.compose.project": "another-stack" },
+			}),
+		]);
+
+		await expect(
+			getComposeFilesystemContainers("my-stack", "docker-compose", "server-1"),
+		).resolves.toEqual([
+			{
+				containerId: APPLICATION_CONTAINER_ID,
+				image: "example:latest",
+				name: "test-app.1.xxxxxxxxx",
+				state: "running",
+				status: "Up 1 minute",
+			},
+		]);
+
+		expect(listContainersMock).toHaveBeenCalledWith({
+			filters: JSON.stringify({
+				status: ["running"],
+				label: ["com.docker.compose.project=my-stack"],
+			}),
+		});
+	});
+
+	it("matches stack containers by swarm service name prefix", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+			}),
+			dockerContainer({
+				Id: OTHER_CONTAINER_ID,
+				Names: ["/other.1.xxxxxxxxx"],
+				Labels: { "com.docker.swarm.service.name": "my-stack-unrelated" },
+			}),
+		]);
+
+		await expect(
+			getComposeFilesystemContainers("my-stack", "stack", "server-1"),
+		).resolves.toEqual([
+			{
+				containerId: APPLICATION_CONTAINER_ID,
+				image: "example:latest",
+				name: "test-app.1.xxxxxxxxx",
+				state: "running",
+				status: "Up 1 minute",
+			},
+		]);
+	});
+
+	it("resolves a compose container handle only after exact membership in the stack", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.compose.project": "my-stack" },
+			}),
+		]);
+
+		await expect(
+			getComposeFilesystemContainer(
+				"my-stack",
+				"docker-compose",
+				APPLICATION_CONTAINER_ID,
+				"server-1",
+			),
+		).resolves.toMatchObject({
+			container: containerHandle,
+			containerInfo: { containerId: APPLICATION_CONTAINER_ID },
+		});
+	});
+
+	it("rejects a container id not found in the compose project", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.compose.project": "my-stack" },
+			}),
+		]);
+
+		await expect(
+			getComposeFilesystemContainer(
+				"my-stack",
+				"docker-compose",
+				OTHER_CONTAINER_ID,
+				"server-1",
+			),
+		).rejects.toMatchObject({ code: "CONTAINER_NOT_FOUND" });
+	});
+});
+
 describe("archive access safeguards", () => {
 	it("lists direct children from Docker root archives with absolute entry names", async () => {
 		const { container } = createInfoArchiveContainer(
@@ -570,5 +671,89 @@ describe("archive access safeguards", () => {
 		).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
 
 		expect(Buffer.concat(chunks)).toHaveLength(0);
+	});
+});
+
+describe("upload safeguards", () => {
+	it("rejects an empty file name", () => {
+		expect(() => normalizeUploadFileName("")).toThrow(
+			expect.objectContaining({ code: "INVALID_PATH" }),
+		);
+	});
+
+	it("rejects a file name containing a path separator", () => {
+		expect(() => normalizeUploadFileName("nested/name.txt")).toThrow(
+			expect.objectContaining({ code: "INVALID_PATH" }),
+		);
+	});
+
+	it("rejects a traversal file name", () => {
+		expect(() => normalizeUploadFileName("..")).toThrow(
+			expect.objectContaining({ code: "INVALID_PATH" }),
+		);
+	});
+
+	it("accepts an ordinary file name", () => {
+		expect(normalizeUploadFileName("report.txt")).toBe("report.txt");
+	});
+
+	it("rejects an upload that exceeds the size cap before touching the container", async () => {
+		const { container, infoArchiveMock } = createInfoArchiveContainer([
+			{ mode: 0x80000000, size: 0 },
+		]);
+		const oversized = Buffer.alloc(MAX_FILE_UPLOAD_BYTES + 1);
+
+		await expect(
+			uploadFileToContainerDirectory(container, "/app", "big.bin", oversized),
+		).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
+
+		expect(infoArchiveMock).not.toHaveBeenCalled();
+	});
+
+	it("rejects uploading into a path that is not a directory", async () => {
+		const { container } = createInfoArchiveContainer([
+			{ mode: 0x80000000, size: 0 },
+			{ mode: 0o644, size: 3 },
+		]);
+
+		await expect(
+			uploadFileToContainerDirectory(
+				container,
+				"/app/data.txt",
+				"note.txt",
+				Buffer.from("hi"),
+			),
+		).rejects.toMatchObject({ code: "NOT_A_DIRECTORY" });
+	});
+
+	it("packs the file into a tar archive and puts it at the requested directory", async () => {
+		const { container, infoArchiveMock } = createInfoArchiveContainer([
+			{ mode: 0x80000000, size: 0 },
+			{ mode: 0x80000000, size: 0 },
+		]);
+		const putArchiveMock = vi.fn().mockResolvedValue(undefined);
+		const uploadContainer = {
+			...container,
+			putArchive: putArchiveMock,
+		} as unknown as Parameters<typeof uploadFileToContainerDirectory>[0];
+
+		const entry = await uploadFileToContainerDirectory(
+			uploadContainer,
+			"/app/data",
+			"note.txt",
+			Buffer.from("hello"),
+		);
+
+		expect(infoArchiveMock).toHaveBeenCalledTimes(2);
+		expect(putArchiveMock).toHaveBeenCalledTimes(1);
+		expect(putArchiveMock.mock.calls[0]?.[1]).toMatchObject({
+			path: "/app/data",
+		});
+		expect(entry).toMatchObject({
+			name: "note.txt",
+			path: "/app/data/note.txt",
+			type: "file",
+			size: 5,
+		});
 	});
 });

@@ -10,8 +10,10 @@ import {
 	Loader2,
 	MousePointerClick,
 	RefreshCw,
+	Upload,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,8 +36,18 @@ import { api } from "@/utils/api";
 
 const ROOT_PATH = "/";
 
+export type ServiceFilesystemType =
+	| "application"
+	| "postgres"
+	| "mysql"
+	| "mariadb"
+	| "mongo"
+	| "redis"
+	| "compose";
+
 interface Props {
-	applicationId: string;
+	serviceType: ServiceFilesystemType;
+	serviceId: string;
 }
 
 const formatBytes = (size?: number) => {
@@ -96,19 +108,25 @@ const getParentPath = (path: string) => {
 	return parent ? `/${parent}` : ROOT_PATH;
 };
 
-export const ShowContainerFileSystem = ({ applicationId }: Props) => {
+export const ShowContainerFileSystem = ({ serviceType, serviceId }: Props) => {
 	const [containerId, setContainerId] = useState<string>();
 	const [path, setPath] = useState(ROOT_PATH);
 	const [selectedFilePath, setSelectedFilePath] = useState<string>();
+	const [isUploading, setIsUploading] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	const containersQuery = api.application.filesystemContainers.useQuery(
-		{ applicationId },
+	const { data: permissions } = api.user.getPermissions.useQuery();
+
+	const containersQuery = api.filesystem.containers.useQuery(
+		{ serviceType, serviceId },
 		{
 			refetchInterval: 15_000,
 			retry: 1,
 		},
 	);
 	const containers = containersQuery.data ?? [];
+	const containersRef = useRef(containers);
+	containersRef.current = containers;
 
 	useEffect(() => {
 		setContainerId((currentContainerId) => {
@@ -126,13 +144,17 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 	}, [containers]);
 
 	useEffect(() => {
-		setPath(ROOT_PATH);
+		const workingDir = containersRef.current.find(
+			(container) => container.containerId === containerId,
+		)?.workingDir;
+		setPath(workingDir || ROOT_PATH);
 		setSelectedFilePath(undefined);
 	}, [containerId]);
 
-	const directoryQuery = api.application.filesystemList.useQuery(
+	const directoryQuery = api.filesystem.list.useQuery(
 		{
-			applicationId,
+			serviceType,
+			serviceId,
 			containerId: containerId ?? "",
 			path,
 		},
@@ -142,9 +164,10 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 		},
 	);
 
-	const fileQuery = api.application.filesystemReadFile.useQuery(
+	const fileQuery = api.filesystem.readFile.useQuery(
 		{
-			applicationId,
+			serviceType,
+			serviceId,
 			containerId: containerId ?? "",
 			path: selectedFilePath ?? ROOT_PATH,
 		},
@@ -155,6 +178,7 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 	);
 
 	const entries = directoryQuery.data?.entries ?? [];
+	const truncated = directoryQuery.data?.truncated ?? false;
 	const sortedEntries = useMemo(
 		() =>
 			[...entries].sort((first, second) => {
@@ -173,7 +197,8 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 	const downloadHref =
 		containerId && selectedFilePath
 			? `/api/filesystem/download?${new URLSearchParams({
-					applicationId,
+					serviceType,
+					serviceId,
 					containerId,
 					path: selectedFilePath,
 				}).toString()}`
@@ -201,6 +226,43 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 		directoryQuery.isRefetching ||
 		fileQuery.isRefetching;
 
+	const triggerUpload = () => fileInputRef.current?.click();
+
+	const handleFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		event.target.value = "";
+		if (!file || !containerId) return;
+
+		setIsUploading(true);
+		try {
+			const params = new URLSearchParams({
+				serviceType,
+				serviceId,
+				containerId,
+				path,
+				fileName: file.name,
+			});
+			const response = await fetch(`/api/filesystem/upload?${params.toString()}`, {
+				method: "POST",
+				body: file,
+			});
+			const data = await response.json().catch(() => ({}));
+
+			if (!response.ok) {
+				throw new Error(data.message || "Failed to upload the file.");
+			}
+
+			toast.success(`Uploaded ${file.name}`);
+			await directoryQuery.refetch();
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to upload the file.",
+			);
+		} finally {
+			setIsUploading(false);
+		}
+	};
+
 	return (
 		<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 			<div className="rounded-xl bg-background shadow-md">
@@ -210,19 +272,19 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 						Files System
 					</CardTitle>
 					<CardDescription>
-						Browse files from a running application container. The selected
-						container can be replaced by a deployment.
+						Browse files from a running container for this service. The
+						selected container can be replaced by a deployment.
 					</CardDescription>
 					<AlertBlock type="warning">
-						This view is read-only. Files outside persistent mounts are usually
-						ephemeral and can disappear after a restart or deployment.
+						Files outside persistent mounts are usually ephemeral and can
+						disappear after a restart or deployment.
 					</AlertBlock>
 				</CardHeader>
 				<CardContent className="space-y-4 py-8 border-t">
 					{containersQuery.isError ? (
 						<AlertBlock type="error">
 							{containersQuery.error.message ||
-								"Unable to load running containers for this application."}
+								"Unable to load running containers for this service."}
 						</AlertBlock>
 					) : containersQuery.isPending ? (
 						<LoadingState label="Loading running containers" />
@@ -246,7 +308,14 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 													<span className="flex min-w-0 items-center gap-2">
 														<Container className="size-4 shrink-0" />
 														<span className="truncate">{container.name}</span>
-														<Badge variant="secondary" className="capitalize">
+														<Badge
+															variant={
+																container.state === "running"
+																	? "green"
+																	: "secondary"
+															}
+															className="capitalize"
+														>
 															{container.state}
 														</Badge>
 													</span>
@@ -297,7 +366,39 @@ export const ShowContainerFileSystem = ({ applicationId }: Props) => {
 												</Button>
 											))}
 										</div>
+										{permissions?.containerFilesystem.write && (
+											<>
+												<input
+													ref={fileInputRef}
+													type="file"
+													className="hidden"
+													onChange={(event) => void handleFileSelected(event)}
+												/>
+												<Button
+													variant="ghost"
+													size="icon-xs"
+													className="shrink-0"
+													onClick={triggerUpload}
+													disabled={isUploading || directoryQuery.isPending}
+												>
+													{isUploading ? (
+														<Loader2 className="size-3.5 animate-spin" />
+													) : (
+														<Upload className="size-3.5" />
+													)}
+													<span className="sr-only">
+														Upload a file to this directory
+													</span>
+												</Button>
+											</>
+										)}
 									</div>
+									{truncated && (
+										<AlertBlock type="warning" className="mx-2 mt-2">
+											This directory is too large to browse in full. Showing a
+											partial listing — open a subdirectory directly for more.
+										</AlertBlock>
+									)}
 									<DirectoryList
 										entries={sortedEntries}
 										isLoading={directoryQuery.isPending}
@@ -343,7 +444,7 @@ const EmptyContainerState = () => (
 		<div className="flex max-w-md flex-col gap-1">
 			<span className="text-base font-medium">No running containers found</span>
 			<span className="text-sm text-muted-foreground">
-				Deploy or start this application, then refresh to browse its file
+				Deploy or start this service, then refresh to browse its file
 				system.
 			</span>
 		</div>

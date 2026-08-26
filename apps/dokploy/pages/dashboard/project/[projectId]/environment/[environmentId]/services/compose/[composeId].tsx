@@ -24,6 +24,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
+import { ShowContainerFileSystem } from "@/components/dashboard/docker/file-system/show-container-file-system";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -243,6 +244,11 @@ const Service = (
 											{permissions?.service.read && (
 												<TabsTrigger value="containers">Containers</TabsTrigger>
 											)}
+											{permissions?.containerFilesystem.read && (
+												<TabsTrigger value="file-system">
+													Files System
+												</TabsTrigger>
+											)}
 											{permissions?.service.create && (
 												<TabsTrigger value="backups">Backups</TabsTrigger>
 											)}
@@ -318,6 +324,16 @@ const Service = (
 													appName={data?.appName || ""}
 													appType={data?.composeType || "docker-compose"}
 													serviceId={data?.composeId}
+												/>
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.containerFilesystem.read && (
+										<TabsContent value="file-system">
+											<div className="pt-2.5">
+												<ShowContainerFileSystem
+													serviceType="compose"
+													serviceId={composeId}
 												/>
 											</div>
 										</TabsContent>

@@ -7,14 +7,11 @@ import {
 	findPreviewDeploymentsByApplicationId,
 	findProjectById,
 	getAccessibleServerIds,
-	getApplicationFilesystemContainers,
 	getApplicationStats,
 	getContainerLogs,
 	getWebServerSettings,
 	IS_CLOUD,
-	listContainerDirectory,
 	mechanizeDockerContainer,
-	readContainerFile,
 	readConfig,
 	readRemoteConfig,
 	removeDeployments,
@@ -53,11 +50,6 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
-import {
-	getAuthorizedApplicationFilesystem,
-	getAuthorizedApplicationFilesystemContainer,
-	toFilesystemTRPCError,
-} from "@/server/api/utils/application-filesystem";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -1116,67 +1108,6 @@ export const applicationRouter = createTRPCRouter({
 				items,
 				total: countResult[0]?.count ?? 0,
 			};
-		}),
-
-	filesystemContainers: protectedProcedure
-		.input(apiFindOneApplication)
-		.query(async ({ input, ctx }) => {
-			try {
-				const application = await getAuthorizedApplicationFilesystem(
-					ctx,
-					input.applicationId,
-				);
-				return await getApplicationFilesystemContainers(
-					application.appName,
-					application.serverId,
-				);
-			} catch (error) {
-				return toFilesystemTRPCError(error);
-			}
-		}),
-
-	filesystemList: protectedProcedure
-		.input(
-			apiFindOneApplication.extend({
-				containerId: z
-					.string()
-					.regex(/^[a-f0-9]{64}$/i, "Invalid container id."),
-				path: z.string().min(1).max(4096),
-			}),
-		)
-		.query(async ({ input, ctx }) => {
-			try {
-				const { container } = await getAuthorizedApplicationFilesystemContainer(
-					ctx,
-					input.applicationId,
-					input.containerId,
-				);
-				return await listContainerDirectory(container, input.path);
-			} catch (error) {
-				return toFilesystemTRPCError(error);
-			}
-		}),
-
-	filesystemReadFile: protectedProcedure
-		.input(
-			apiFindOneApplication.extend({
-				containerId: z
-					.string()
-					.regex(/^[a-f0-9]{64}$/i, "Invalid container id."),
-				path: z.string().min(1).max(4096),
-			}),
-		)
-		.query(async ({ input, ctx }) => {
-			try {
-				const { container } = await getAuthorizedApplicationFilesystemContainer(
-					ctx,
-					input.applicationId,
-					input.containerId,
-				);
-				return await readContainerFile(container, input.path);
-			} catch (error) {
-				return toFilesystemTRPCError(error);
-			}
 		}),
 
 	readLogs: protectedProcedure

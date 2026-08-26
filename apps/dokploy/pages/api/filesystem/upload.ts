@@ -1,7 +1,7 @@
 import {
 	ContainerFilesystemError,
-	getContainerFileDownload,
-	pipeContainerFileArchive,
+	MAX_FILE_UPLOAD_BYTES,
+	uploadFileToContainerDirectory,
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -13,7 +13,7 @@ import {
 
 export const config = {
 	api: {
-		responseLimit: false,
+		bodyParser: false,
 	},
 };
 
@@ -28,7 +28,9 @@ const isFilesystemServiceType = (
 
 const errorStatus = (error: unknown) => {
 	if (error instanceof ContainerFilesystemError) {
-		return error.code === "CONTAINER_NOT_FOUND" ? 404 : 400;
+		if (error.code === "CONTAINER_NOT_FOUND") return 404;
+		if (error.code === "FILE_TOO_LARGE") return 413;
+		return 400;
 	}
 
 	if (
@@ -46,11 +48,37 @@ const errorStatus = (error: unknown) => {
 const errorMessage = (error: unknown) =>
 	error instanceof Error
 		? error.message
-		: "Unable to download the selected container file.";
+		: "Unable to upload the file to the container.";
+
+const readRequestBody = (
+	req: NextApiRequest,
+	maxBytes: number,
+): Promise<Buffer> =>
+	new Promise((resolve, reject) => {
+		const chunks: Buffer[] = [];
+		let total = 0;
+
+		req.on("data", (chunk: Buffer) => {
+			total += chunk.length;
+			if (total > maxBytes) {
+				req.destroy();
+				reject(
+					new ContainerFilesystemError(
+						"FILE_TOO_LARGE",
+						`Uploads are limited to ${Math.floor(maxBytes / (1024 * 1024))}MB.`,
+					),
+				);
+				return;
+			}
+			chunks.push(chunk);
+		});
+		req.once("end", () => resolve(Buffer.concat(chunks)));
+		req.once("error", reject);
+	});
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-	if (req.method !== "GET") {
-		res.setHeader("Allow", "GET");
+	if (req.method !== "POST") {
+		res.setHeader("Allow", "POST");
 		res.status(405).json({ message: "Method not allowed" });
 		return;
 	}
@@ -59,9 +87,16 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 	const serviceId = getSingleQueryValue(req.query.serviceId);
 	const containerId = getSingleQueryValue(req.query.containerId);
 	const path = getSingleQueryValue(req.query.path);
+	const fileName = getSingleQueryValue(req.query.fileName);
 
-	if (!isFilesystemServiceType(serviceType) || !serviceId || !containerId || !path) {
-		res.status(400).json({ message: "Missing download parameters" });
+	if (
+		!isFilesystemServiceType(serviceType) ||
+		!serviceId ||
+		!containerId ||
+		!path ||
+		!fileName
+	) {
+		res.status(400).json({ message: "Missing upload parameters" });
 		return;
 	}
 
@@ -80,41 +115,19 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 			serviceType,
 			serviceId,
 			containerId,
+			["read", "write"],
 		);
-		const download = await getContainerFileDownload(container, path);
 
-		res.statusCode = 200;
-		res.setHeader("Content-Type", "application/octet-stream");
-		res.setHeader("X-Content-Type-Options", "nosniff");
-		res.setHeader("Cache-Control", "no-store");
-		res.setHeader(
-			"Content-Disposition",
-			`attachment; filename*=UTF-8''${encodeURIComponent(download.fileName)}`,
+		const fileBuffer = await readRequestBody(req, MAX_FILE_UPLOAD_BYTES);
+		const entry = await uploadFileToContainerDirectory(
+			container,
+			path,
+			fileName,
+			fileBuffer,
 		);
-		// The container can change between metadata inspection and streaming, so
-		// omit Content-Length and let the bounded archive stream use chunked output.
 
-		const abort = () => {
-			download.archive.destroy();
-		};
-		req.once("aborted", abort);
-		res.once("close", abort);
-
-		try {
-			await pipeContainerFileArchive(download.archive, res);
-			if (!res.writableEnded) {
-				res.end();
-			}
-		} finally {
-			req.off("aborted", abort);
-			res.off("close", abort);
-		}
+		res.status(200).json({ entry });
 	} catch (error) {
-		if (res.headersSent) {
-			res.destroy(error instanceof Error ? error : undefined);
-			return;
-		}
-
 		res.status(errorStatus(error)).json({ message: errorMessage(error) });
 	}
 };
