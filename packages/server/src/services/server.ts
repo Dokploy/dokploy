@@ -12,6 +12,32 @@ import type { z } from "zod";
 
 export type Server = typeof server.$inferSelect;
 
+type ServerSshAddress = Pick<
+	Server,
+	"ipAddress" | "internalIpAddress" | "useInternalIp"
+>;
+
+export const resolveServerSshHost = (server: ServerSshAddress) => {
+	const publicIp = server.ipAddress.trim();
+	const internalIp = server.internalIpAddress?.trim() ?? "";
+
+	if (server.useInternalIp) {
+		if (!internalIp) {
+			throw new Error(
+				"Internal IPv4 is selected for SSH, but no internal IPv4 address is configured",
+			);
+		}
+		return internalIp;
+	}
+
+	if (!publicIp) {
+		throw new Error(
+			"Public IPv4 is selected for SSH, but no public IPv4 address is configured",
+		);
+	}
+	return publicIp;
+};
+
 export const createServer = async (
 	input: z.infer<typeof apiCreateServer>,
 	organizationId: string,

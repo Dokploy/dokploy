@@ -83,6 +83,13 @@ export const findDomainById = async (domainId: string) => {
 			application: {
 				columns: { applicationId: true, appName: true, name: true },
 			},
+			dnsProvider: {
+				columns: {
+					dnsProviderId: true,
+					name: true,
+					providerType: true,
+				},
+			},
 		},
 	});
 	if (!domain) {
@@ -101,6 +108,13 @@ export const findDomainsByApplicationId = async (applicationId: string) => {
 			application: {
 				columns: { applicationId: true, appName: true, name: true },
 			},
+			dnsProvider: {
+				columns: {
+					dnsProviderId: true,
+					name: true,
+					providerType: true,
+				},
+			},
 		},
 	});
 
@@ -113,6 +127,13 @@ export const findDomainsByComposeId = async (composeId: string) => {
 		with: {
 			compose: {
 				columns: { composeId: true, appName: true, name: true },
+			},
+			dnsProvider: {
+				columns: {
+					dnsProviderId: true,
+					name: true,
+					providerType: true,
+				},
 			},
 		},
 	});

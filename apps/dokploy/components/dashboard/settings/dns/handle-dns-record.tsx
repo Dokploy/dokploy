@@ -35,7 +35,7 @@ import {
 import { api } from "@/utils/api";
 
 const DnsRecordSchema = z.object({
-	type: z.enum(["A", "CNAME"]),
+	type: z.enum(["A", "AAAA", "CNAME"]),
 	name: z.string().min(1, { message: "Name is required" }),
 	content: z.string().min(1, { message: "Content is required" }),
 	ttl: z.string(),
@@ -74,29 +74,28 @@ export const HandleDnsRecord = ({
 	const { data: servers } = api.server.all.useQuery(undefined, {
 		enabled: isOpen,
 	});
-	const { data: panelPublicIp } = api.server.publicIp.useQuery(undefined, {
+	const { data: panelPublicIpv4 } = api.server.publicIpv4.useQuery(undefined, {
 		enabled: isOpen,
 	});
-	const { data: panelStoredIp } = api.settings.getIp.useQuery(undefined, {
+	const { data: panelPublicIpv6 } = api.server.publicIpv6.useQuery(undefined, {
 		enabled: isOpen,
 	});
-
-	const panelIp = panelPublicIp || panelStoredIp;
-	const ipSuggestions = [
-		...(panelIp ? [{ ip: panelIp, label: "This Dokploy server" }] : []),
-		...(servers ?? []).map((server) => ({
-			ip: server.ipAddress,
-			label: server.name,
-		})),
-	].filter(
-		(suggestion, index, all) =>
-			!!suggestion.ip && all.findIndex((s) => s.ip === suggestion.ip) === index,
+	const { data: panelSettings } = api.settings.getWebServerSettings.useQuery(
+		undefined,
+		{
+			enabled: isOpen,
+		},
 	);
 
 	const form = useForm<DnsRecordForm>({
 		defaultValues: record
 			? {
-					type: record.type === "CNAME" ? "CNAME" : "A",
+					type:
+						record.type === "CNAME"
+							? "CNAME"
+							: record.type === "AAAA"
+								? "AAAA"
+								: "A",
 					name: record.name,
 					content: record.content,
 					ttl: record.ttl && record.ttl !== 1 ? String(record.ttl) : "",
@@ -106,6 +105,20 @@ export const HandleDnsRecord = ({
 	});
 
 	const type = form.watch("type");
+	const panelIp =
+		type === "AAAA"
+			? panelPublicIpv6 || panelSettings?.serverIpv6
+			: panelPublicIpv4 || panelSettings?.serverIp;
+	const ipSuggestions = [
+		...(panelIp ? [{ ip: panelIp, label: "This Dokploy server" }] : []),
+		...(servers ?? []).map((server) => ({
+			ip: type === "AAAA" ? server.ipv6Address : server.ipAddress,
+			label: server.name,
+		})),
+	].filter(
+		(suggestion, index, all): suggestion is { ip: string; label: string } =>
+			!!suggestion.ip && all.findIndex((s) => s.ip === suggestion.ip) === index,
+	);
 
 	const onSubmit = async (data: DnsRecordForm) => {
 		const name = data.name.trim() === "@" ? zoneName : data.name;
@@ -151,7 +164,7 @@ export const HandleDnsRecord = ({
 					<DialogDescription>
 						{record
 							? "Update this DNS record."
-							: "Create a new A or CNAME record in this zone."}
+							: "Create a new A, AAAA or CNAME record in this zone."}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -174,6 +187,7 @@ export const HandleDnsRecord = ({
 										</FormControl>
 										<SelectContent>
 											<SelectItem value="A">A</SelectItem>
+											<SelectItem value="AAAA">AAAA</SelectItem>
 											<SelectItem value="CNAME">CNAME</SelectItem>
 										</SelectContent>
 									</Select>
@@ -197,7 +211,7 @@ export const HandleDnsRecord = ({
 								</FormItem>
 							)}
 						/>
-						{type === "A" && ipSuggestions.length > 0 && (
+						{(type === "A" || type === "AAAA") && ipSuggestions.length > 0 && (
 							<FormItem>
 								<FormLabel>Fill from server (optional)</FormLabel>
 								<Select
@@ -231,12 +245,20 @@ export const HandleDnsRecord = ({
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>
-										{type === "A" ? "IPv4 Address" : "Target"}
+										{type === "A"
+											? "IPv4 Address"
+											: type === "AAAA"
+												? "IPv6 Address"
+												: "Target"}
 									</FormLabel>
 									<FormControl>
 										<Input
 											placeholder={
-												type === "A" ? "203.0.113.10" : "app.example.com"
+												type === "A"
+													? "203.0.113.10"
+													: type === "AAAA"
+														? "2001:db8::10"
+														: "app.example.com"
 											}
 											{...field}
 										/>

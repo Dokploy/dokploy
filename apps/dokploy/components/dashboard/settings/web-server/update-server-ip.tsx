@@ -34,6 +34,7 @@ import { api } from "@/utils/api";
 
 const schema = z.object({
 	serverIp: z.string(),
+	serverIpv6: z.string(),
 });
 
 type Schema = z.infer<typeof schema>;
@@ -47,7 +48,8 @@ export const UpdateServerIp = ({ children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
-	const { data: ip } = api.server.publicIp.useQuery();
+	const { data: ipv4 } = api.server.publicIpv4.useQuery();
+	const { data: ipv6 } = api.server.publicIpv6.useQuery();
 
 	const { mutateAsync, isPending, error, isError } =
 		api.settings.updateServerIp.useMutation();
@@ -55,6 +57,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			serverIp: data?.serverIp || "",
+			serverIpv6: data?.serverIpv6 || "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -63,18 +66,25 @@ export const UpdateServerIp = ({ children }: Props) => {
 		if (data) {
 			form.reset({
 				serverIp: data.serverIp || "",
+				serverIpv6: data.serverIpv6 || "",
 			});
 		}
 	}, [form, form.reset, data]);
 
-	const setCurrentIp = () => {
-		if (!ip) return;
-		form.setValue("serverIp", ip);
+	const setCurrentIpv4 = () => {
+		if (!ipv4) return;
+		form.setValue("serverIp", ipv4);
+	};
+
+	const setCurrentIpv6 = () => {
+		if (!ipv6) return;
+		form.setValue("serverIpv6", ipv6);
 	};
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
-			serverIp: data.serverIp,
+			serverIp: data.serverIp.trim(),
+			serverIpv6: data.serverIpv6.trim(),
 		})
 			.then(async () => {
 				toast.success("Server IP Updated");
@@ -100,13 +110,14 @@ export const UpdateServerIp = ({ children }: Props) => {
 					<form
 						id="hook-form-update-server-ip"
 						onSubmit={form.handleSubmit(onSubmit)}
+						className="space-y-4"
 					>
 						<FormField
 							control={form.control}
 							name="serverIp"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Server IP</FormLabel>
+									<FormLabel>Public IPv4</FormLabel>
 									<FormControl className="flex gap-2">
 										<div>
 											<Input {...field} />
@@ -117,7 +128,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 														<Button
 															variant="secondary"
 															type="button"
-															onClick={setCurrentIp}
+															onClick={setCurrentIpv4}
 														>
 															<RefreshCw className="size-4 text-muted-foreground" />
 														</Button>
@@ -127,7 +138,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 														sideOffset={5}
 														className="max-w-44"
 													>
-														<p>Set current public IP</p>
+														<p>Set current public IPv4</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -136,6 +147,41 @@ export const UpdateServerIp = ({ children }: Props) => {
 									<pre>
 										<FormMessage />
 									</pre>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="serverIpv6"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Public IPv6</FormLabel>
+									<FormControl className="flex gap-2">
+										<div>
+											<Input placeholder="2001:db8::10" {...field} />
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Button
+															variant="secondary"
+															type="button"
+															onClick={setCurrentIpv6}
+														>
+															<RefreshCw className="size-4 text-muted-foreground" />
+														</Button>
+													</TooltipTrigger>
+													<TooltipContent
+														side="left"
+														sideOffset={5}
+														className="max-w-44"
+													>
+														<p>Set current public IPv6</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+									</FormControl>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>

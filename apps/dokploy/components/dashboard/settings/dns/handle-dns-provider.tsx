@@ -38,6 +38,7 @@ import { api } from "@/utils/api";
 const providerLabels = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
+	autodns: "AutoDNS",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -49,10 +50,15 @@ const DnsProviderSchema = z.object({
 		.regex(/^[a-zA-Z0-9_-]+$/, {
 			message: "Only letters, numbers, dashes and underscores",
 		}),
-	providerType: z.enum(["cloudflare", "route53"]),
+	providerType: z.enum(["cloudflare", "route53", "autodns"]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
+	autodnsUser: z.string(),
+	autodnsPassword: z.string(),
+	autodnsContext: z
+		.string()
+		.regex(/^[1-9]\d*$/, "Context must be a positive integer"),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -63,6 +69,9 @@ const defaultValues: DnsProviderForm = {
 	apiToken: "",
 	accessKeyId: "",
 	secretAccessKey: "",
+	autodnsUser: "",
+	autodnsPassword: "",
+	autodnsContext: "4",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -77,6 +86,13 @@ const buildConfig = (data: DnsProviderForm) => {
 				providerType: "route53" as const,
 				accessKeyId: data.accessKeyId,
 				secretAccessKey: data.secretAccessKey,
+			};
+		case "autodns":
+			return {
+				providerType: "autodns" as const,
+				user: data.autodnsUser,
+				password: data.autodnsPassword,
+				context: Number(data.autodnsContext),
 			};
 	}
 };
@@ -134,6 +150,11 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 				...(provider.config.providerType === "route53" && {
 					accessKeyId: provider.config.accessKeyId,
 					secretAccessKey: provider.config.secretAccessKey,
+				}),
+				...(provider.config.providerType === "autodns" && {
+					autodnsUser: provider.config.user,
+					autodnsPassword: provider.config.password,
+					autodnsContext: String(provider.config.context),
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -311,6 +332,54 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<code>route53:ListResourceRecordSets</code> and{" "}
 												<code>route53:ChangeResourceRecordSets</code> — avoid
 												root account credentials.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "autodns" && (
+							<>
+								<FormField
+									control={form.control}
+									name="autodnsUser"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>User</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="autodnsPassword"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Password</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="autodnsContext"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Context</FormLabel>
+											<FormControl>
+												<Input type="number" min="1" {...field} />
+											</FormControl>
+											<FormDescription>
+												Use 4 for standard production accounts or your Personal
+												AutoDNS context number.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

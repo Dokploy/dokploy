@@ -7,6 +7,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import {
 	findServerById,
+	resolveServerSshHost,
 	updateServerById,
 } from "@dokploy/server/services/server";
 import {
@@ -366,7 +367,7 @@ const installRequirements = async (
 				}
 			})
 			.connect({
-				host: server.ipAddress,
+				host: resolveServerSshHost(server),
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,

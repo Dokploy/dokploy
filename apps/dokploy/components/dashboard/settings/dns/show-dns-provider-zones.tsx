@@ -55,7 +55,10 @@ const ZoneRecords = ({ dnsProviderId, zoneId, zoneName }: ZoneRecordsProps) => {
 				</p>
 			)}
 			{data?.map((record) => {
-				const isEditable = record.type === "A" || record.type === "CNAME";
+				const isEditable =
+					record.type === "A" ||
+					record.type === "AAAA" ||
+					record.type === "CNAME";
 				return (
 					<div
 						key={record.id}

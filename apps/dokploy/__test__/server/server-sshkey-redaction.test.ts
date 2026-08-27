@@ -1,4 +1,7 @@
-import { redactServerSshKey } from "@dokploy/server/services/server";
+import {
+	redactServerSshKey,
+	resolveServerSshHost,
+} from "@dokploy/server/services/server";
 import { describe, expect, it } from "vitest";
 
 describe("redactServerSshKey (server SSH private key disclosure guard)", () => {
@@ -40,5 +43,37 @@ describe("redactServerSshKey (server SSH private key disclosure guard)", () => {
 		// e.g. server.update returns the plain row where sshKey is not populated.
 		const server: { serverId: string; sshKey?: null } = { serverId: "srv-3" };
 		expect(redactServerSshKey(server)).toEqual(server);
+	});
+});
+
+describe("resolveServerSshHost", () => {
+	it("uses the public IPv4 by default", () => {
+		expect(
+			resolveServerSshHost({
+				ipAddress: " 203.0.113.10 ",
+				internalIpAddress: "10.0.0.10",
+				useInternalIp: false,
+			}),
+		).toBe("203.0.113.10");
+	});
+
+	it("uses the internal IPv4 when selected", () => {
+		expect(
+			resolveServerSshHost({
+				ipAddress: "203.0.113.10",
+				internalIpAddress: " 10.0.0.10 ",
+				useInternalIp: true,
+			}),
+		).toBe("10.0.0.10");
+	});
+
+	it("fails clearly when the selected address is missing", () => {
+		expect(() =>
+			resolveServerSshHost({
+				ipAddress: "203.0.113.10",
+				internalIpAddress: "",
+				useInternalIp: true,
+			}),
+		).toThrow("no internal IPv4 address is configured");
 	});
 });

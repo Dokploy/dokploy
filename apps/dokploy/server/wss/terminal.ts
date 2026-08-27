@@ -3,6 +3,7 @@ import {
 	execAsync,
 	findServerById,
 	IS_CLOUD,
+	resolveServerSshHost,
 	validateRequest,
 } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
@@ -173,7 +174,8 @@ export const setupTerminalWebSocketServer = (
 				return;
 			}
 
-			const { ipAddress: host, port, username, sshKey, sshKeyId } = server;
+			const { port, username, sshKey, sshKeyId } = server;
+			const host = resolveServerSshHost(server);
 
 			if (!sshKeyId) {
 				throw new Error("No SSH key available for this server");

@@ -12,6 +12,7 @@ import {
 import {
 	CheckCircle2,
 	ChevronDown,
+	DatabaseZap,
 	ExternalLink,
 	GlobeIcon,
 	InfoIcon,
@@ -468,6 +469,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	https: item.https,
 																	path: item.path || undefined,
 																}}
+																domainId={item.domainId}
+																dnsProvider={item.dnsProvider}
 																serverIp={
 																	application?.server?.ipAddress?.toString() ||
 																	ip?.toString()
@@ -555,6 +558,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 												{/* Domain Details */}
 												<div className="flex flex-wrap gap-3">
+													<Badge variant="outline">
+														<DatabaseZap className="size-3 mr-1" />
+														DNS: {item.dnsProvider?.name || "Manual"}
+													</Badge>
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>

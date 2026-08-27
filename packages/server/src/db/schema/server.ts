@@ -36,6 +36,9 @@ export const server = pgTable("server", {
 	name: text("name").notNull(),
 	description: text("description"),
 	ipAddress: text("ipAddress").notNull(),
+	internalIpAddress: text("internalIpAddress"),
+	ipv6Address: text("ipv6Address"),
+	useInternalIp: boolean("useInternalIp").notNull().default(false),
 	port: integer("port").notNull(),
 	username: text("username").notNull().default("root"),
 	appName: text("appName")
@@ -141,11 +144,34 @@ const createSchema = createInsertSchema(server, {
 	serverType: z.enum(["deploy", "build"]).optional(),
 });
 
+const validateSshAddress = (
+	data: {
+		ipAddress: string;
+		internalIpAddress?: string | null;
+		useInternalIp: boolean;
+	},
+	ctx: z.RefinementCtx,
+) => {
+	const selectedIp = data.useInternalIp
+		? data.internalIpAddress?.trim()
+		: data.ipAddress.trim();
+	if (!selectedIp) {
+		ctx.addIssue({
+			code: "custom",
+			path: [data.useInternalIp ? "internalIpAddress" : "ipAddress"],
+			message: `${data.useInternalIp ? "Internal" : "Public"} IPv4 is required for SSH`,
+		});
+	}
+};
+
 export const apiCreateServer = createSchema
 	.pick({
 		name: true,
 		description: true,
 		ipAddress: true,
+		internalIpAddress: true,
+		ipv6Address: true,
+		useInternalIp: true,
 		port: true,
 		username: true,
 		sshKeyId: true,
@@ -155,7 +181,11 @@ export const apiCreateServer = createSchema
 	.required()
 	.extend({
 		enableDockerCleanup: z.boolean().default(true),
-	});
+		internalIpAddress: z.string().nullable().optional(),
+		ipv6Address: z.string().nullable().optional(),
+		useInternalIp: z.boolean().default(false),
+	})
+	.superRefine(validateSshAddress);
 
 export const apiFindOneServer = z.object({
 	serverId: z.string().min(1),
@@ -173,6 +203,9 @@ export const apiUpdateServer = createSchema
 		description: true,
 		serverId: true,
 		ipAddress: true,
+		internalIpAddress: true,
+		ipv6Address: true,
+		useInternalIp: true,
 		port: true,
 		username: true,
 		sshKeyId: true,
@@ -183,7 +216,11 @@ export const apiUpdateServer = createSchema
 	.extend({
 		command: z.string().optional(),
 		enableDockerCleanup: z.boolean().default(true),
-	});
+		internalIpAddress: z.string().nullable().optional(),
+		ipv6Address: z.string().nullable().optional(),
+		useInternalIp: z.boolean().default(false),
+	})
+	.superRefine(validateSshAddress);
 
 export const apiUpdateServerBuildsConcurrency = z.object({
 	serverId: z.string().min(1),

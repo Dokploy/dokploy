@@ -34,7 +34,26 @@ export const Route53Icon = ({ className }: Props) => (
 	</svg>
 );
 
+export const AutoDnsIcon = ({ className }: Props) => (
+	<svg
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="1.8"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		xmlns="http://www.w3.org/2000/svg"
+		className={className}
+	>
+		<title>AutoDNS</title>
+		<circle cx="12" cy="12" r="9" />
+		<path d="M3 12h18M12 3c2.4 2.5 3.7 5.5 3.7 9S14.4 18.5 12 21c-2.4-2.5-3.7-5.5-3.7-9S9.6 5.5 12 3Z" />
+		<path d="M7.5 7.5h9M7.5 16.5h9" />
+	</svg>
+);
+
 export const dnsProviderIcons = {
 	cloudflare: CloudflareIcon,
 	route53: Route53Icon,
+	autodns: AutoDnsIcon,
 } as const;

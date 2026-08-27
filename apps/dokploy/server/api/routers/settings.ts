@@ -637,6 +637,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				serverIp: z.string(),
+				serverIpv6: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -645,6 +646,9 @@ export const settingsRouter = createTRPCRouter({
 			}
 			const settings = await updateWebServerSettings({
 				serverIp: input.serverIp,
+				...(input.serverIpv6 !== undefined && {
+					serverIpv6: input.serverIpv6,
+				}),
 			});
 			await audit(ctx, {
 				action: "update",

@@ -14,6 +14,7 @@ import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { dnsProvider } from "./dns-provider";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
 
@@ -47,6 +48,10 @@ export const domains = pgTable("domain", {
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
 	),
+	dnsProviderId: text("dnsProviderId").references(
+		() => dnsProvider.dnsProviderId,
+		{ onDelete: "set null" },
+	),
 	previewDeploymentId: text("previewDeploymentId").references(
 		(): AnyPgColumn => previewDeployments.previewDeploymentId,
 		{ onDelete: "cascade" },
@@ -68,6 +73,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 		fields: [domains.composeId],
 		references: [compose.composeId],
 	}),
+	dnsProvider: one(dnsProvider, {
+		fields: [domains.dnsProviderId],
+		references: [dnsProvider.dnsProviderId],
+	}),
 	previewDeployment: one(previewDeployments, {
 		fields: [domains.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
@@ -87,6 +96,7 @@ export const apiCreateDomain = createSchema.pick({
 	customEntrypoint: true,
 	https: true,
 	applicationId: true,
+	dnsProviderId: true,
 	certificateType: true,
 	customCertResolver: true,
 	composeId: true,
@@ -126,6 +136,7 @@ export const apiUpdateDomain = createSchema
 		customCertResolver: true,
 		serviceName: true,
 		domainType: true,
+		dnsProviderId: true,
 		internalPath: true,
 		stripPath: true,
 		middlewares: true,

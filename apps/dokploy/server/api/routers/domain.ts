@@ -1,20 +1,29 @@
 import {
 	createDomain,
 	findApplicationById,
+	findComposeById,
+	findDnsProviderInOrganization,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
+	getDnsProviderDomainInfo,
+	getPublicIpv4,
+	getPublicIpv6,
 	getWebServerSettings,
 	manageDomain,
 	removeDomain,
 	removeDomainById,
+	syncDnsProviderDomainRecords,
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import {
+	checkPermission,
+	checkServicePermissionAndAccess,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -31,6 +40,46 @@ import {
 	apiUpdateDomain,
 } from "@/server/db/schema";
 
+const syncDomainDns = async (
+	input: {
+		host: string;
+		dnsProviderId?: string | null;
+		applicationId?: string | null;
+		composeId?: string | null;
+		previewDeploymentId?: string | null;
+	},
+	organizationId: string,
+) => {
+	if (!input.dnsProviderId) return;
+
+	const provider = await findDnsProviderInOrganization(
+		input.dnsProviderId,
+		organizationId,
+	);
+	const preview = input.previewDeploymentId
+		? await findPreviewDeploymentById(input.previewDeploymentId)
+		: undefined;
+	const service = input.applicationId
+		? await findApplicationById(input.applicationId)
+		: input.composeId
+			? await findComposeById(input.composeId)
+			: preview
+				? await findApplicationById(preview.applicationId)
+				: undefined;
+	const settings = service?.server ? undefined : await getWebServerSettings();
+
+	await syncDnsProviderDomainRecords(provider.config, input.host, {
+		ipv4:
+			service?.server?.ipAddress ||
+			settings?.serverIp ||
+			(await getPublicIpv4()),
+		ipv6:
+			service?.server?.ipv6Address ||
+			settings?.serverIpv6 ||
+			(await getPublicIpv6()),
+	});
+};
+
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
@@ -45,6 +94,12 @@ export const domainRouter = createTRPCRouter({
 						domain: ["create"],
 					});
 				}
+				if (input.dnsProviderId) {
+					await checkPermission(ctx, {
+						dnsProvider: ["read", "update"],
+					});
+				}
+				await syncDomainDns(input, ctx.session.activeOrganizationId);
 				const domain = await createDomain(input);
 				await audit(ctx, {
 					action: "create",
@@ -118,6 +173,21 @@ export const domainRouter = createTRPCRouter({
 				});
 			}
 
+			if (input.dnsProviderId) {
+				await checkPermission(ctx, {
+					dnsProvider: ["read", "update"],
+				});
+			}
+			await syncDomainDns(
+				{
+					host: input.host,
+					dnsProviderId: input.dnsProviderId,
+					applicationId: currentDomain.applicationId,
+					composeId: currentDomain.composeId,
+					previewDeploymentId: currentDomain.previewDeploymentId,
+				},
+				ctx.session.activeOrganizationId,
+			);
 			const result = await updateDomainById(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 			await audit(ctx, {
@@ -210,6 +280,39 @@ export const domainRouter = createTRPCRouter({
 		}
 		return domain;
 	}),
+	dnsInfo: protectedProcedure
+		.input(apiFindDomain)
+		.query(async ({ input, ctx }) => {
+			const domain = await findDomainById(input.domainId);
+			const serviceId = domain.applicationId || domain.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					domain: ["read"],
+				});
+			} else if (domain.previewDeploymentId) {
+				const preview = await findPreviewDeploymentById(
+					domain.previewDeploymentId,
+				);
+				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
+					domain: ["read"],
+				});
+			}
+			if (!domain.dnsProviderId) return null;
+
+			await checkPermission(ctx, { dnsProvider: ["read"] });
+			const provider = await findDnsProviderInOrganization(
+				domain.dnsProviderId,
+				ctx.session.activeOrganizationId,
+			);
+			const info = await getDnsProviderDomainInfo(provider.config, domain.host);
+			return {
+				provider: {
+					name: provider.name,
+					providerType: provider.providerType,
+				},
+				...info,
+			};
+		}),
 	delete: protectedProcedure
 		.input(apiFindDomain)
 		.mutation(async ({ input, ctx }) => {

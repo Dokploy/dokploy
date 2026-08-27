@@ -77,6 +77,7 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		dnsProviderId: z.string().nullable().optional(),
 		middlewares: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
@@ -159,6 +160,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			enabled: !!domainId,
 		},
 	);
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const { data: dnsProviders } = api.dnsProvider.all.useQuery(undefined, {
+		enabled: isOpen && !!permissions?.dnsProvider.read,
+		retry: false,
+	});
 
 	const { data: application } =
 		type === "application"
@@ -223,6 +229,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			dnsProviderId: null,
 			middlewares: [],
 		},
 		mode: "onChange",
@@ -250,6 +257,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				dnsProviderId: data?.dnsProviderId || null,
 				middlewares: data?.middlewares || [],
 			});
 		}
@@ -267,6 +275,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				dnsProviderId: null,
 				middlewares: [],
 			});
 		}
@@ -289,33 +298,37 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	};
 
 	const onSubmit = async (data: Domain) => {
+		const { dnsProviderId, ...domainData } = data;
 		await mutateAsync({
 			domainId,
-			...(data.domainType === "application" && {
+			...(domainData.domainType === "application" && {
 				applicationId: id,
 			}),
-			...(data.domainType === "compose" && {
+			...(domainData.domainType === "compose" && {
 				composeId: id,
 			}),
-			...data,
-			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
+			...domainData,
+			...(permissions?.dnsProvider.update && { dnsProviderId }),
+			customEntrypoint: domainData.useCustomEntrypoint
+				? domainData.customEntrypoint
+				: null,
 		})
 			.then(async () => {
 				toast.success(
 					dictionary.success,
-					data.domainType === "compose"
+					domainData.domainType === "compose"
 						? { description: COMPOSE_REDEPLOY_TOAST }
 						: undefined,
 				);
 
-				if (data.domainType === "application") {
+				if (domainData.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
 						applicationId: id,
 					});
 					await utils.application.readTraefikConfig.invalidate({
 						applicationId: id,
 					});
-				} else if (data.domainType === "compose") {
+				} else if (domainData.domainType === "compose") {
 					await utils.domain.byComposeId.invalidate({
 						composeId: id,
 					});
@@ -582,6 +595,50 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										</FormItem>
 									)}
 								/>
+
+								{permissions?.dnsProvider.update &&
+									dnsProviders &&
+									dnsProviders.length > 0 && (
+										<FormField
+											control={form.control}
+											name="dnsProviderId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>DNS Provider</FormLabel>
+													<Select
+														value={field.value || "none"}
+														onValueChange={(value) =>
+															field.onChange(value === "none" ? null : value)
+														}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Do not manage DNS automatically" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															<SelectItem value="none">
+																Do not manage DNS automatically
+															</SelectItem>
+															{dnsProviders.map((provider) => (
+																<SelectItem
+																	key={provider.dnsProviderId}
+																	value={provider.dnsProviderId}
+																>
+																	{provider.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+													<FormDescription>
+														Creates or verifies the A and AAAA records using the
+														selected server addresses.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
 
 								<FormField
 									control={form.control}

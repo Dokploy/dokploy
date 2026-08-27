@@ -40,22 +40,36 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-	ipAddress: z.string().min(1, {
-		message: "IP Address is required",
-	}),
-	port: z.number().optional(),
-	username: z.string().optional(),
-	sshKeyId: z.string().min(1, {
-		message: "SSH Key is required",
-	}),
-	serverType: z.enum(["deploy", "build"]).default("deploy"),
-	enableDockerCleanup: z.boolean().default(true),
-});
+const Schema = z
+	.object({
+		name: z.string().min(1, {
+			message: "Name is required",
+		}),
+		description: z.string().optional(),
+		ipAddress: z.string(),
+		internalIpAddress: z.string(),
+		ipv6Address: z.string(),
+		useInternalIp: z.boolean().default(false),
+		port: z.number().optional(),
+		username: z.string().optional(),
+		sshKeyId: z.string().min(1, {
+			message: "SSH Key is required",
+		}),
+		serverType: z.enum(["deploy", "build"]).default("deploy"),
+		enableDockerCleanup: z.boolean().default(true),
+	})
+	.superRefine((data, ctx) => {
+		const selectedIp = data.useInternalIp
+			? data.internalIpAddress.trim()
+			: data.ipAddress.trim();
+		if (!selectedIp) {
+			ctx.addIssue({
+				code: "custom",
+				path: [data.useInternalIp ? "internalIpAddress" : "ipAddress"],
+				message: `${data.useInternalIp ? "Internal" : "Public"} IPv4 is required for SSH`,
+			});
+		}
+	});
 
 type Schema = z.infer<typeof Schema>;
 
@@ -88,6 +102,9 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			description: "",
 			name: "",
 			ipAddress: "",
+			internalIpAddress: "",
+			ipv6Address: "",
+			useInternalIp: false,
 			port: 22,
 			username: "root",
 			sshKeyId: "",
@@ -102,6 +119,9 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			description: data?.description || "",
 			name: data?.name || "",
 			ipAddress: data?.ipAddress || "",
+			internalIpAddress: data?.internalIpAddress || "",
+			ipv6Address: data?.ipv6Address || "",
+			useInternalIp: data?.useInternalIp ?? false,
 			port: data?.port || 22,
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
@@ -119,6 +139,9 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			name: data.name,
 			description: data.description || "",
 			ipAddress: data.ipAddress?.trim() || "",
+			internalIpAddress: data.internalIpAddress?.trim() || "",
+			ipv6Address: data.ipv6Address?.trim() || "",
+			useInternalIp: data.useInternalIp,
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
@@ -167,7 +190,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 					</Button>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-3xl ">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
 					<DialogDescription>
@@ -361,17 +384,43 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
 								name="ipAddress"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>IP Address</FormLabel>
+										<FormLabel>Public IPv4</FormLabel>
 										<FormControl>
-											<Input placeholder="192.168.1.100" {...field} />
+											<Input placeholder="203.0.113.10" {...field} />
 										</FormControl>
 
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="internalIpAddress"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Internal IPv4</FormLabel>
+										<FormControl>
+											<Input placeholder="10.0.0.10" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="ipv6Address"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Public IPv6</FormLabel>
+										<FormControl>
+											<Input placeholder="2001:db8::10" {...field} />
+										</FormControl>
 										<FormMessage />
 									</FormItem>
 								)}
@@ -405,6 +454,28 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								)}
 							/>
 						</div>
+
+						<FormField
+							control={form.control}
+							name="useInternalIp"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+									<div className="space-y-0.5">
+										<FormLabel>Use Internal IPv4 for SSH</FormLabel>
+										<FormDescription>
+											Connect through the internal IPv4 instead of the public
+											IPv4.
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
 
 						<FormField
 							control={form.control}

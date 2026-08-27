@@ -36,6 +36,22 @@ export const getPublicIpWithFallback = async () => {
 	return ip;
 };
 
+export const getPublicIpv4 = async () => {
+	try {
+		return await publicIpv4();
+	} catch {
+		return null;
+	}
+};
+
+export const getPublicIpv6 = async () => {
+	try {
+		return await publicIpv6();
+	} catch {
+		return null;
+	}
+};
+
 export const readValidDirectory = (
 	directory: string,
 	serverId?: string | null,
