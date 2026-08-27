@@ -93,4 +93,37 @@ describe("getCreateEnvFileCommand", () => {
 			expect(actual[key], key).toBe(value);
 		}
 	}, 60000);
+
+	it("still interpolates a ${VAR} self-reference in the .env file", () => {
+		mkdirSync(codePath, { recursive: true });
+
+		const serviceEnv = [
+			"APP_URL=https://example.com",
+			'ASSET_URL="${APP_URL}"',
+		].join("\n");
+
+		const command = getCreateEnvFileCommand({
+			appName,
+			composePath: "docker-compose.yml",
+			env: serviceEnv,
+			randomize: false,
+			suffix: "",
+			serverId: null,
+			environment: { project: { env: "" }, env: "" },
+		} as Parameters<typeof getCreateEnvFileCommand>[0]);
+
+		execFileSync("bash", ["-c", command]);
+
+		const composeFile =
+			"services:\n  test:\n    image: busybox\n    environment:\n      - ASSET_URL=${ASSET_URL}\n";
+		writeFileSync(join(codePath, "docker-compose.yml"), composeFile);
+
+		const out = execFileSync(
+			"docker",
+			["compose", "run", "--rm", "-T", "test", "sh", "-c", "printf '%s' \"$ASSET_URL\""],
+			{ cwd: codePath, encoding: "utf8" },
+		);
+
+		expect(out).toBe("https://example.com");
+	}, 60000);
 });

@@ -1,5 +1,6 @@
 import {
 	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForFile,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/index";
 import { describe, expect, it } from "vitest";
@@ -640,5 +641,55 @@ SPECIAL=café résumé naïve
 		expect(resolved[0]).toContain("🌍");
 		expect(resolved[1]).toContain("你好");
 		expect(resolved[2]).toContain("café");
+	});
+});
+
+describe("prepareEnvironmentVariablesForFile (.env file escaping)", () => {
+	it("keeps a well-formed ${VAR} self-reference interpolatable", () => {
+		const serviceEnv = `
+APP_URL=https://example.com
+ASSET_URL=\${APP_URL}
+`;
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+
+		expect(resolved).toEqual([
+			`APP_URL="https://example.com"`,
+			`ASSET_URL="\${APP_URL}"`,
+		]);
+	});
+
+	it("keeps a ${VAR:-default} self-reference with a modifier interpolatable", () => {
+		const serviceEnv = `ASSET_URL=\${APP_URL:-https://default.com}`;
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+
+		expect(resolved).toEqual([`ASSET_URL="\${APP_URL:-https://default.com}"`]);
+	});
+
+	it("escapes a literal dollar sign followed by a word so it isn't interpolated", () => {
+		const serviceEnv = "PASSWORD=pa$word";
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+
+		expect(resolved).toEqual([`PASSWORD="pa\\$word"`]);
+	});
+
+	it("escapes a trailing dollar sign", () => {
+		const serviceEnv = "PRICE=100$";
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+
+		expect(resolved).toEqual([`PRICE="100\\$"`]);
+	});
+
+	it("still escapes double quotes and backslashes", () => {
+		const serviceEnv = String.raw`MESSAGE=say "hi" and \backslash`;
+
+		const resolved = prepareEnvironmentVariablesForFile(serviceEnv, "", "");
+
+		expect(resolved).toEqual([
+			String.raw`MESSAGE="say \"hi\" and \\backslash"`,
+		]);
 	});
 });
