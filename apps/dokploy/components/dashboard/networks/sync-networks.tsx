@@ -218,7 +218,9 @@ export const SyncNetworks = ({ serverId }: Props) => {
 												variant="outline"
 												size="xs"
 												isLoading={resyncMutation.isPending}
-												onClick={() => onResync(changed.networkId, changed.name)}
+												onClick={() =>
+													onResync(changed.networkId, changed.name)
+												}
 											>
 												<RotateCcw className="size-3.5" />
 												Update
