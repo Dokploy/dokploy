@@ -11,6 +11,8 @@ import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
+import { MigrationProgress } from "@/components/dashboard/application/general/migration-progress";
+import { ShowServerSettings } from "@/components/dashboard/application/general/show-server-settings";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,7 +60,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap gap-4">
+				<CardContent className="flex flex-row gap-4 flex-wrap">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						{canDeploy && (
 							<DialogAction
@@ -94,7 +96,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-60">
+											<TooltipContent sideOffset={5} className="z-[60]">
 												<p>
 													Downloads the source code and performs a complete
 													build
@@ -137,7 +139,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-60">
+											<TooltipContent sideOffset={5} className="z-[60]">
 												<p>Reload the application without rebuilding it</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -176,7 +178,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-60">
+											<TooltipContent sideOffset={5} className="z-[60]">
 												<p>
 													Only rebuilds the application without downloading new
 													code
@@ -188,21 +190,38 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							</DialogAction>
 						)}
 
-						{canDeploy && data?.applicationStatus === "idle" ? (
+						{data?.applicationStatus === "idle" ||
+						data?.applicationStatus === "paused" ? (
 							<DialogAction
-								title="Start Application"
-								description="Are you sure you want to start this application?"
+								title={
+									data?.applicationStatus === "paused"
+										? "Resume Application"
+										: "Start Application"
+								}
+								description={
+									data?.applicationStatus === "paused"
+										? "Are you sure you want to resume this application?"
+										: "Are you sure you want to start this application?"
+								}
 								type="default"
 								onClick={async () => {
 									await start({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application started successfully");
+											toast.success(
+												data?.applicationStatus === "paused"
+													? "Application resumed successfully"
+													: "Application started successfully",
+											);
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error starting application");
+											toast.error(
+												data?.applicationStatus === "paused"
+													? "Error resuming application"
+													: "Error starting application",
+											);
 										});
 								}}
 							>
@@ -215,14 +234,17 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<CheckCircle2 className="size-4 mr-1" />
-												Start
+												{data?.applicationStatus === "paused"
+													? "Resume"
+													: "Start"}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-60">
+											<TooltipContent sideOffset={5} className="z-[60]">
 												<p>
-													Start the application (requires a previous successful
-													build)
+													{data?.applicationStatus === "paused"
+														? "Resume the paused application with its original configuration"
+														: "Start the application (requires a previous successful build)"}
 												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -231,23 +253,23 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 							</DialogAction>
 						) : canDeploy ? (
 							<DialogAction
-								title="Stop Application"
-								description="Are you sure you want to stop this application?"
+								title="Pause Application"
+								description="This will temporarily stop the application without data loss. You can resume it later with the same configuration."
 								onClick={async () => {
 									await stop({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application stopped successfully");
+											toast.success("Application paused successfully");
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error stopping application");
+											toast.error("Error pausing application");
 										});
 								}}
 							>
 								<Button
-									variant="destructive"
+									variant="warning"
 									isLoading={isStopping}
 									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
@@ -255,12 +277,12 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<Ban className="size-4 mr-1" />
-												Stop
+												Pause
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-60">
-												<p>Stop the currently running application</p>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>Pause the application (can be resumed later)</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -271,18 +293,17 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					<DockerTerminalModal
 						appName={data?.appName || ""}
 						serverId={data?.serverId || ""}
-						serviceId={applicationId}
 					>
 						<Button
 							variant="outline"
-							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2 col-span-2"
+							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 						>
 							<Terminal className="size-4 mr-1" />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
+						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 							<span className="text-sm font-medium">Autodeploy</span>
 							<Switch
 								aria-label="Toggle autodeploy"
@@ -306,7 +327,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					)}
 
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
+						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 							<span className="text-sm font-medium">Clean Cache</span>
 							<Switch
 								aria-label="Toggle clean cache"
@@ -332,6 +353,8 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />
 			<ShowBuildChooseForm applicationId={applicationId} />
+			<MigrationProgress applicationId={applicationId} />
+			<ShowServerSettings applicationId={applicationId} />
 		</>
 	);
 };
