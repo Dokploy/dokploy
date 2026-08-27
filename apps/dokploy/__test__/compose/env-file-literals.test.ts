@@ -34,6 +34,7 @@ const cases: Record<string, string> = {
 	MULTILINE_PEM: "-----BEGIN KEY-----\nabc123\n-----END KEY-----",
 	APP_URL: "https://example.com",
 	ASSET_URL: "https://example.com",
+	DB_HOST: "localhost",
 };
 
 // How each value must be typed in the UI so the (unchanged) dotenv input
@@ -50,6 +51,7 @@ const inputEncoding: Record<string, string> = {
 	MULTILINE_PEM: '"-----BEGIN KEY-----\nabc123\n-----END KEY-----"',
 	APP_URL: "https://example.com",
 	ASSET_URL: '"${APP_URL}"',
+	DB_HOST: '"${UNDEFINED_HOST:-localhost}"',
 };
 
 describe("getCreateEnvFileCommand", () => {
