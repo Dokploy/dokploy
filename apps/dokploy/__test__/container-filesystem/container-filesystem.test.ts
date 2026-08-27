@@ -1,11 +1,12 @@
 import { Readable, Writable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getContainerMock, getRemoteDockerMock, listContainersMock } =
+const { getContainerMock, getRemoteDockerMock, listContainersMock, listTasksMock } =
 	vi.hoisted(() => ({
 		getContainerMock: vi.fn(),
 		getRemoteDockerMock: vi.fn(),
 		listContainersMock: vi.fn(),
+		listTasksMock: vi.fn(),
 	}));
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
@@ -199,9 +200,11 @@ beforeEach(() => {
 	getRemoteDockerMock.mockResolvedValue({
 		getContainer: getContainerMock,
 		listContainers: listContainersMock,
+		listTasks: listTasksMock,
 	});
 	getContainerMock.mockReturnValue(containerHandle);
 	listContainersMock.mockResolvedValue([]);
+	listTasksMock.mockResolvedValue([]);
 });
 
 describe("normalizeContainerPath", () => {
@@ -386,15 +389,19 @@ describe("compose container ownership", () => {
 
 		await expect(
 			getComposeFilesystemContainers("my-stack", "docker-compose", "server-1"),
-		).resolves.toEqual([
-			{
-				containerId: APPLICATION_CONTAINER_ID,
-				image: "example:latest",
-				name: "test-app.1.xxxxxxxxx",
-				state: "running",
-				status: "Up 1 minute",
-			},
-		]);
+		).resolves.toEqual({
+			containers: [
+				{
+					containerId: APPLICATION_CONTAINER_ID,
+					image: "example:latest",
+					name: "test-app.1.xxxxxxxxx",
+					state: "running",
+					status: "Up 1 minute",
+					workingDir: undefined,
+				},
+			],
+			expectedRunningCount: undefined,
+		});
 
 		expect(listContainersMock).toHaveBeenCalledWith({
 			filters: JSON.stringify({
@@ -402,6 +409,7 @@ describe("compose container ownership", () => {
 				label: ["com.docker.compose.project=my-stack"],
 			}),
 		});
+		expect(listTasksMock).not.toHaveBeenCalled();
 	});
 
 	it("matches stack containers by swarm service name prefix", async () => {
@@ -418,15 +426,93 @@ describe("compose container ownership", () => {
 
 		await expect(
 			getComposeFilesystemContainers("my-stack", "stack", "server-1"),
-		).resolves.toEqual([
-			{
-				containerId: APPLICATION_CONTAINER_ID,
-				image: "example:latest",
-				name: "test-app.1.xxxxxxxxx",
-				state: "running",
-				status: "Up 1 minute",
-			},
+		).resolves.toEqual({
+			containers: [
+				{
+					containerId: APPLICATION_CONTAINER_ID,
+					image: "example:latest",
+					name: "test-app.1.xxxxxxxxx",
+					state: "running",
+					status: "Up 1 minute",
+					workingDir: undefined,
+				},
+			],
+			expectedRunningCount: 0,
+		});
+	});
+
+	it("flags when swarm reports more running tasks than are visible from this node", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+			}),
 		]);
+		listTasksMock.mockResolvedValue([
+			{ Status: { State: "running" } },
+			{ Status: { State: "running" } },
+			{ Status: { State: "running" } },
+			{ Status: { State: "shutdown" } },
+		]);
+
+		const result = await getComposeFilesystemContainers(
+			"my-stack",
+			"stack",
+			"server-1",
+		);
+
+		expect(result.containers).toHaveLength(1);
+		expect(result.expectedRunningCount).toBe(3);
+		expect(listTasksMock).toHaveBeenCalledWith({
+			filters: JSON.stringify({
+				"desired-state": ["running"],
+				label: ["com.docker.stack.namespace=my-stack"],
+			}),
+		});
+	});
+
+	it("does not flag anything when the visible count exactly matches the running task count", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+			}),
+			dockerContainer({
+				Id: OTHER_CONTAINER_ID,
+				Names: ["/my-stack_db.1.yyyyyyyyy"],
+				Labels: { "com.docker.swarm.service.name": "my-stack_db" },
+			}),
+		]);
+		listTasksMock.mockResolvedValue([
+			{ Status: { State: "running" } },
+			{ Status: { State: "running" } },
+		]);
+
+		const result = await getComposeFilesystemContainers(
+			"my-stack",
+			"stack",
+			"server-1",
+		);
+
+		expect(result.containers).toHaveLength(2);
+		expect(result.expectedRunningCount).toBe(2);
+		expect(result.expectedRunningCount).toBe(result.containers.length);
+	});
+
+	it("does not fail container listing when the swarm task cross-check is unavailable", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+			}),
+		]);
+		listTasksMock.mockRejectedValue(new Error("this node is not a swarm manager"));
+
+		const result = await getComposeFilesystemContainers(
+			"my-stack",
+			"stack",
+			"server-1",
+		);
+
+		expect(result.containers).toHaveLength(1);
+		expect(result.expectedRunningCount).toBeUndefined();
 	});
 
 	it("resolves a compose container handle only after exact membership in the stack", async () => {
@@ -708,6 +794,30 @@ describe("upload safeguards", () => {
 		).rejects.toMatchObject({ code: "FILE_TOO_LARGE" });
 
 		expect(infoArchiveMock).not.toHaveBeenCalled();
+	});
+
+	it("accepts an upload at exactly the size cap", async () => {
+		const { container, infoArchiveMock } = createInfoArchiveContainer([
+			{ mode: 0x80000000, size: 0 },
+		]);
+		const putArchiveMock = vi.fn().mockResolvedValue(undefined);
+		const uploadContainer = {
+			...container,
+			putArchive: putArchiveMock,
+		} as unknown as Parameters<typeof uploadFileToContainerDirectory>[0];
+		const exactlyAtCap = Buffer.alloc(MAX_FILE_UPLOAD_BYTES);
+
+		await expect(
+			uploadFileToContainerDirectory(
+				uploadContainer,
+				"/app",
+				"big.bin",
+				exactlyAtCap,
+			),
+		).resolves.toMatchObject({ size: MAX_FILE_UPLOAD_BYTES });
+
+		expect(infoArchiveMock).toHaveBeenCalled();
+		expect(putArchiveMock).toHaveBeenCalledTimes(1);
 	});
 
 	it("rejects uploading into a path that is not a directory", async () => {

@@ -328,11 +328,44 @@ const getRunningComposeContainers = async (
 	});
 };
 
+// `listContainers()` only ever sees containers on the one node this
+// connection is attached to; it can't tell us about stack replicas
+// scheduled onto other Swarm nodes. `listTasks()` talks to the swarm
+// control plane instead, which any manager can answer for the whole
+// cluster, so it's used here purely as a cross-check: if it reports more
+// running tasks than we could actually see, some replicas live on a node
+// we have no connection to and callers should say so rather than silently
+// showing a partial, unlabeled list. Requires the connected node to be a
+// swarm manager; on any failure (worker node, swarm disabled, etc.) the
+// cross-check is simply skipped.
+const getExpectedRunningStackTaskCount = async (
+	docker: DockerClient,
+	appName: string,
+): Promise<number | undefined> => {
+	try {
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				"desired-state": ["running"],
+				label: [`com.docker.stack.namespace=${appName}`],
+			}),
+		});
+		return tasks.filter(
+			(task: { Status?: { State?: string } }) =>
+				task.Status?.State === "running",
+		).length;
+	} catch {
+		return undefined;
+	}
+};
+
 export const getComposeFilesystemContainers = async (
 	appName: string,
 	composeType: "docker-compose" | "stack",
 	serverId?: string | null,
-): Promise<ApplicationFilesystemContainer[]> => {
+): Promise<{
+	containers: ApplicationFilesystemContainer[];
+	expectedRunningCount?: number;
+}> => {
 	const docker = await getRemoteDocker(serverId);
 	const containers = await getRunningComposeContainers(
 		docker,
@@ -349,7 +382,17 @@ export const getComposeFilesystemContainers = async (
 		),
 	);
 
-	return mapped.sort((first, second) => first.name.localeCompare(second.name));
+	const expectedRunningCount =
+		composeType === "stack"
+			? await getExpectedRunningStackTaskCount(docker, appName)
+			: undefined;
+
+	return {
+		containers: mapped.sort((first, second) =>
+			first.name.localeCompare(second.name),
+		),
+		expectedRunningCount,
+	};
 };
 
 export const getComposeFilesystemContainer = async (

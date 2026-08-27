@@ -88,16 +88,19 @@ export const listServiceFilesystemContainers = async (
 		serviceId,
 	);
 
-	return serviceType === "compose"
-		? await getComposeFilesystemContainers(
-				service.appName,
-				service.composeType ?? "docker-compose",
-				service.serverId,
-			)
-		: await getApplicationFilesystemContainers(
-				service.appName,
-				service.serverId,
-			);
+	if (serviceType === "compose") {
+		return await getComposeFilesystemContainers(
+			service.appName,
+			service.composeType ?? "docker-compose",
+			service.serverId,
+		);
+	}
+
+	const containers = await getApplicationFilesystemContainers(
+		service.appName,
+		service.serverId,
+	);
+	return { containers, expectedRunningCount: undefined as number | undefined };
 };
 
 export const getAuthorizedServiceFilesystemContainer = async (

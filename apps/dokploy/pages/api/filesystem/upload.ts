@@ -57,23 +57,41 @@ const readRequestBody = (
 	new Promise((resolve, reject) => {
 		const chunks: Buffer[] = [];
 		let total = 0;
+		let rejected = false;
 
 		req.on("data", (chunk: Buffer) => {
 			total += chunk.length;
 			if (total > maxBytes) {
-				req.destroy();
-				reject(
-					new ContainerFilesystemError(
-						"FILE_TOO_LARGE",
-						`Uploads are limited to ${Math.floor(maxBytes / (1024 * 1024))}MB.`,
-					),
-				);
+				// Do NOT destroy req here: it shares its socket with res, so
+				// destroying it now would drop the connection before the 413
+				// response below can reach the client. Instead, stop buffering
+				// and pause the stream so Node stops reading more of a
+				// potentially huge remaining body off the socket — the caller
+				// destroys req itself, but only once the response has actually
+				// been flushed (see the FILE_TOO_LARGE handling in `handler`).
+				if (!rejected) {
+					rejected = true;
+					req.pause();
+					reject(
+						new ContainerFilesystemError(
+							"FILE_TOO_LARGE",
+							`Uploads are limited to ${Math.floor(maxBytes / (1024 * 1024))}MB.`,
+						),
+					);
+				}
 				return;
 			}
 			chunks.push(chunk);
 		});
-		req.once("end", () => resolve(Buffer.concat(chunks)));
-		req.once("error", reject);
+		req.once("end", () => {
+			if (!rejected) resolve(Buffer.concat(chunks));
+		});
+		req.once("error", (error) => {
+			if (!rejected) {
+				rejected = true;
+				reject(error);
+			}
+		});
 	});
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -129,6 +147,20 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 		res.status(200).json({ entry });
 	} catch (error) {
 		res.status(errorStatus(error)).json({ message: errorMessage(error) });
+
+		const isOversizedUpload =
+			error instanceof ContainerFilesystemError &&
+			error.code === "FILE_TOO_LARGE";
+		if (isOversizedUpload) {
+			// The request stream was paused with an unread remainder still
+			// sitting on the socket. Now that the response has been handed
+			// to Node, drop the connection once it's actually been flushed
+			// to the client instead of receiving and discarding the rest of
+			// a potentially huge body.
+			res.once("finish", () => {
+				if (!req.destroyed) req.destroy();
+			});
+		}
 	}
 };
 

@@ -124,7 +124,8 @@ export const ShowContainerFileSystem = ({ serviceType, serviceId }: Props) => {
 			retry: 1,
 		},
 	);
-	const containers = containersQuery.data ?? [];
+	const containers = containersQuery.data?.containers ?? [];
+	const expectedRunningCount = containersQuery.data?.expectedRunningCount;
 	const containersRef = useRef(containers);
 	containersRef.current = containers;
 
@@ -289,9 +290,17 @@ export const ShowContainerFileSystem = ({ serviceType, serviceId }: Props) => {
 					) : containersQuery.isPending ? (
 						<LoadingState label="Loading running containers" />
 					) : containers.length === 0 ? (
-						<EmptyContainerState />
+						<EmptyContainerState expectedRunningCount={expectedRunningCount} />
 					) : (
 						<>
+							{typeof expectedRunningCount === "number" &&
+								expectedRunningCount > containers.length && (
+									<AlertBlock type="warning">
+										Showing {containers.length} of {expectedRunningCount} running
+										containers. The rest are replicas on other cluster nodes that
+										this Dokploy server has no direct connection to.
+									</AlertBlock>
+								)}
 							<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
 								<div className="flex min-w-0 flex-1 flex-col gap-1.5">
 									<span className="text-sm font-medium">Running container</span>
@@ -436,16 +445,25 @@ const LoadingState = ({ label }: { label: string }) => (
 	</div>
 );
 
-const EmptyContainerState = () => (
+const EmptyContainerState = ({
+	expectedRunningCount,
+}: {
+	expectedRunningCount?: number;
+}) => (
 	<div className="flex h-[32rem] flex-col items-center justify-center gap-4 rounded-lg border border-dashed px-4 text-center">
 		<div className="flex size-14 items-center justify-center rounded-full bg-muted">
 			<Container className="size-7 text-muted-foreground" />
 		</div>
 		<div className="flex max-w-md flex-col gap-1">
-			<span className="text-base font-medium">No running containers found</span>
+			<span className="text-base font-medium">
+				{expectedRunningCount
+					? "No containers reachable from this server"
+					: "No running containers found"}
+			</span>
 			<span className="text-sm text-muted-foreground">
-				Deploy or start this service, then refresh to browse its file
-				system.
+				{expectedRunningCount
+					? `${expectedRunningCount} container${expectedRunningCount === 1 ? "" : "s"} appear to be running, but on cluster nodes this Dokploy server has no direct connection to.`
+					: "Deploy or start this service, then refresh to browse its file system."}
 			</span>
 		</div>
 	</div>
