@@ -51,6 +51,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -179,11 +180,20 @@ export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	preserveDescription = false,
+	onDeploymentCreated,
+	allowMigrationId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	preserveDescription?: boolean;
+	onDeploymentCreated?: (deploymentId: string) => void;
+	allowMigrationId?: string;
 }) => {
+	if (!allowMigrationId) {
+		await assertNoUnresolvedServiceMigration("application", applicationId);
+	}
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
 	const applicationEntity = {
@@ -197,6 +207,7 @@ export const deployApplication = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	onDeploymentCreated?.(deployment.deploymentId);
 
 	try {
 		let command = "set -e;";
@@ -267,7 +278,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
@@ -285,7 +296,9 @@ export const deployApplication = async ({
 			if (commitInfo) {
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
-					description: `Commit: ${commitInfo.hash}`,
+					...(!preserveDescription && {
+						description: `Commit: ${commitInfo.hash}`,
+					}),
 				});
 			}
 		}
@@ -390,7 +403,7 @@ export const deployPreviewApplication = async ({
 		owner: application?.owner || "",
 		repository: application?.repository || "",
 		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId, 10),
 		githubId: application?.githubId || "",
 	};
 	try {
@@ -413,7 +426,7 @@ export const deployPreviewApplication = async ({
 				});
 			}
 
-			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+			issueParams.comment_id = Number.parseInt(result.pullRequestCommentId, 10);
 		}
 		const buildingComment = getIssueComment(
 			application.name,
@@ -505,7 +518,7 @@ export const rebuildPreviewApplication = async ({
 		owner: application?.owner || "",
 		repository: application?.repository || "",
 		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId, 10),
 		githubId: application?.githubId || "",
 	};
 
@@ -529,7 +542,7 @@ export const rebuildPreviewApplication = async ({
 				});
 			}
 
-			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+			issueParams.comment_id = Number.parseInt(result.pullRequestCommentId, 10);
 		}
 
 		const buildingComment = getIssueComment(
@@ -624,7 +637,7 @@ export const getApplicationStats = async (appName: string) => {
 	});
 
 	const container = containers[0];
-	if (!container || container?.State !== "running") {
+	if (container?.State !== "running") {
 		return null;
 	}
 

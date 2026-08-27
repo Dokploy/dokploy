@@ -15,6 +15,7 @@ import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 
 export type Mongo = typeof mongo.$inferSelect;
 
@@ -110,7 +111,7 @@ export const findMongoByBackupId = async (backupId: string) => {
 		.where(eq(backups.backupId, backupId))
 		.limit(1);
 
-	if (!result || !result[0]) {
+	if (!result?.[0]) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Mongo not found",
@@ -129,7 +130,7 @@ export const findComposeByBackupId = async (backupId: string) => {
 		.where(eq(backups.backupId, backupId))
 		.limit(1);
 
-	if (!result || !result[0]) {
+	if (!result?.[0]) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Compose not found",
@@ -150,7 +151,11 @@ export const removeMongoById = async (mongoId: string) => {
 export const deployMongo = async (
 	mongoId: string,
 	onData?: (data: any) => void,
+	allowMigrationId?: string,
 ) => {
+	if (!allowMigrationId) {
+		await assertNoUnresolvedServiceMigration("mongo", mongoId);
+	}
 	const mongo = await findMongoById(mongoId);
 	try {
 		await updateMongoById(mongoId, {

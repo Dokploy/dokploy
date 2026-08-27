@@ -27,6 +27,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
 import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { MoveApplicationToServer } from "@/components/dashboard/application/move-to-server";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
@@ -192,7 +193,10 @@ const Service = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									{permissions?.service.create && (
-										<UpdateApplication applicationId={applicationId} />
+										<>
+											<MoveApplicationToServer applicationId={applicationId} />
+											<UpdateApplication applicationId={applicationId} />
+										</>
 									)}
 									{permissions?.service.delete && (
 										<DeleteService id={applicationId} type="application" />
@@ -269,7 +273,7 @@ const Service = (
 												<TabsTrigger value="patches">Patches</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
-												((data?.serverId && isCloud) || !data?.server) && (
+												(data?.serverId || !data?.server) && (
 													<TabsTrigger value="monitoring">
 														Monitoring
 													</TabsTrigger>
@@ -297,13 +301,10 @@ const Service = (
 										<TabsContent value="monitoring">
 											<div className="pt-2.5">
 												<div className="flex flex-col gap-4 border rounded-lg p-6">
-													{data?.serverId && isCloud ? (
+													{data?.serverId ? (
 														<ContainerPaidMonitoring
 															appName={data?.appName || ""}
-															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-															token={
-																data?.server?.metricsConfig?.server?.token || ""
-															}
+															serverId={data.serverId}
 														/>
 													) : (
 														<>

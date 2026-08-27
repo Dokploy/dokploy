@@ -2,6 +2,7 @@ import { Copy, Loader2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -61,11 +62,18 @@ export const DuplicateProject = ({
 		useState<string>("");
 	const [selectedTargetEnvironment, setSelectedTargetEnvironment] =
 		useState<string>("");
+	const [selectedTargetServer, setSelectedTargetServer] =
+		useState<string>("source");
 	const utils = api.useUtils();
 	const router = useRouter();
 
 	// Queries for project and environment selection
 	const { data: allProjects } = api.project.all.useQuery();
+	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+	const showLocalOption = !isCloud && !webServerSettings?.remoteServersOnly;
 	const { data: selectedProjectEnvironments } =
 		api.environment.byProjectId.useQuery(
 			{ projectId: selectedTargetProject },
@@ -148,6 +156,12 @@ export const DuplicateProject = ({
 				type: service.type,
 			})),
 			duplicateInSameProject: duplicateType === "existing-environment",
+			targetServerId:
+				selectedTargetServer === "source"
+					? undefined
+					: selectedTargetServer === "dokploy"
+						? null
+						: selectedTargetServer,
 		});
 	};
 
@@ -163,6 +177,7 @@ export const DuplicateProject = ({
 					setDuplicateType("new-project");
 					setSelectedTargetProject("");
 					setSelectedTargetEnvironment("");
+					setSelectedTargetServer("source");
 				}
 			}}
 		>
@@ -298,6 +313,45 @@ export const DuplicateProject = ({
 											</Select>
 										</div>
 									)}
+
+									<div className="grid gap-2">
+										<Label>Target server</Label>
+										<Select
+											value={selectedTargetServer}
+											onValueChange={setSelectedTargetServer}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Use source server" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="source">
+													Use source server
+												</SelectItem>
+												{showLocalOption && (
+													<SelectItem value="dokploy">
+														Dokploy Server
+													</SelectItem>
+												)}
+												{servers?.map((server) => (
+													<SelectItem
+														key={server.serverId}
+														value={server.serverId}
+													>
+														{server.name} ({server.ipAddress})
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+
+									{selectedTargetServer !== "source" &&
+										selectedServices.length > 0 && (
+											<AlertBlock type="warning">
+												Mount configuration is duplicated, but named-volume and
+												bind-mount data is not copied to the target server.
+												Server-specific network assignments are reset.
+											</AlertBlock>
+										)}
 								</>
 							)}
 						</>

@@ -14,6 +14,7 @@ import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 
 export type Mariadb = typeof mariadb.$inferSelect;
 
@@ -124,7 +125,7 @@ export const findMariadbByBackupId = async (backupId: string) => {
 		.where(eq(backups.backupId, backupId))
 		.limit(1);
 
-	if (!result || !result[0]) {
+	if (!result?.[0]) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "MariaDB not found",
@@ -136,7 +137,11 @@ export const findMariadbByBackupId = async (backupId: string) => {
 export const deployMariadb = async (
 	mariadbId: string,
 	onData?: (data: any) => void,
+	allowMigrationId?: string,
 ) => {
+	if (!allowMigrationId) {
+		await assertNoUnresolvedServiceMigration("mariadb", mariadbId);
+	}
 	const mariadb = await findMariadbById(mariadbId);
 	try {
 		await updateMariadbById(mariadbId, {

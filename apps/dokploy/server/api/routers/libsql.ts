@@ -1,18 +1,23 @@
 import {
+	assertNoUnresolvedServiceMigration,
 	checkPortInUse,
 	createLibsql,
 	createMount,
 	deployLibsql,
+	finalizeDatabaseMove,
 	findEnvironmentById,
 	findLibsqlById,
 	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
+	getPendingDatabaseMove,
 	getWebServerSettings,
 	IS_CLOUD,
+	moveDatabaseToServer,
 	rebuildDatabase,
 	removeLibsqlById,
 	removeService,
+	rollbackDatabaseMove,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -128,6 +133,7 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("libsql", input.libsqlId);
 			const libsql = await findLibsqlById(input.libsqlId);
 
 			if (libsql.serverId) {
@@ -240,6 +246,7 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("libsql", input.libsqlId);
 			const libsql = await findLibsqlById(input.libsqlId);
 			await audit(ctx, {
 				action: "deploy",
@@ -308,6 +315,7 @@ export const libsqlRouter = createTRPCRouter({
 		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.libsqlId, "delete");
+			await assertNoUnresolvedServiceMigration("libsql", input.libsqlId);
 
 			const libsql = await findLibsqlById(input.libsqlId);
 
@@ -369,6 +377,7 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("libsql", input.libsqlId);
 			const libsql = await findLibsqlById(input.libsqlId);
 			if (libsql.serverId) {
 				await stopServiceRemote(libsql.serverId, libsql.appName);
@@ -457,12 +466,98 @@ export const libsqlRouter = createTRPCRouter({
 			});
 			return updatedLibsql;
 		}),
+	moveToServer: protectedProcedure
+		.input(
+			z.object({
+				libsqlId: z.string(),
+				targetServerId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				service: ["create"],
+				deployment: ["create"],
+			});
+			const libsql = await findLibsqlById(input.libsqlId);
+			const result = await moveDatabaseToServer({
+				serviceType: "libsql",
+				id: input.libsqlId,
+				targetServerId: input.targetServerId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+				metadata: {
+					operation: "move-to-server",
+					sourceServerId: result.sourceServerId || "dokploy",
+					targetServerId: result.targetServerId || "dokploy",
+					sourceCleanupPending: true,
+				},
+			});
+			return result;
+		}),
+	pendingServerMove: protectedProcedure
+		.input(apiFindOneLibsql)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.libsqlId, "read");
+			return getPendingDatabaseMove({
+				serviceType: "libsql",
+				id: input.libsqlId,
+			});
+		}),
+	rollbackServerMove: protectedProcedure
+		.input(z.object({ libsqlId: z.string(), migrationId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				service: ["delete"],
+			});
+			return rollbackDatabaseMove({
+				serviceType: "libsql",
+				id: input.libsqlId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+		}),
+	finalizeServerMove: protectedProcedure
+		.input(
+			z.object({
+				libsqlId: z.string(),
+				migrationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
+				service: ["delete"],
+			});
+			const libsql = await findLibsqlById(input.libsqlId);
+			await finalizeDatabaseMove({
+				serviceType: "libsql",
+				id: input.libsqlId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "service",
+				resourceId: libsql.libsqlId,
+				resourceName: libsql.appName,
+				metadata: {
+					operation: "finalize-server-move",
+					targetServerId: libsql.serverId || "dokploy",
+				},
+			});
+			return true;
+		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildLibsql)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.libsqlId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("libsql", input.libsqlId);
 
 			await rebuildDatabase(input.libsqlId, "libsql");
 			await audit(ctx, {

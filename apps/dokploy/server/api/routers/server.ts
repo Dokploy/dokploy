@@ -6,7 +6,10 @@ import {
 	findServersByUserId,
 	findUserById,
 	getAccessibleServerIds,
+	getApplicationStats,
 	getPublicIpWithFallback,
+	getWebServerSettings,
+	hasUnresolvedServerMigration,
 	haveActiveServices,
 	IS_CLOUD,
 	redactServerSshKey,
@@ -48,6 +51,153 @@ import {
 	server,
 } from "@/server/db/schema";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
+
+const monitoringDataPoints = z.enum([
+	"50",
+	"200",
+	"500",
+	"800",
+	"1200",
+	"1600",
+	"2000",
+	"all",
+]);
+
+type MonitoringContext = {
+	session: { userId: string; activeOrganizationId: string };
+};
+
+const getMonitoringTarget = async (
+	ctx: MonitoringContext,
+	serverId?: string,
+) => {
+	if (!serverId) {
+		if (IS_CLOUD) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "A remote server is required",
+			});
+		}
+		const settings = await getWebServerSettings();
+		const metrics = settings?.metricsConfig?.server;
+		if (!metrics?.token || !metrics.port) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: "Monitoring is not configured on the Dokploy server",
+			});
+		}
+		return {
+			url: `http://localhost:${metrics.port}`,
+			token: metrics.token,
+		};
+	}
+
+	const accessibleIds = await getAccessibleServerIds(ctx.session);
+	if (!accessibleIds.has(serverId)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+
+	const target = await findServerById(serverId);
+	if (
+		target.organizationId !== ctx.session.activeOrganizationId ||
+		target.serverStatus !== "active" ||
+		target.serverType !== "deploy"
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "The target must be an active deployment server",
+		});
+	}
+
+	const metrics = target.metricsConfig?.server;
+	if (!metrics?.token || !metrics.port) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: `Monitoring is not configured on ${target.name}`,
+		});
+	}
+
+	const host = target.ipAddress;
+	const urlHost =
+		host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+	return {
+		url: `http://${urlHost}:${metrics.port}`,
+		token: metrics.token,
+	};
+};
+
+const fetchMonitoringMetrics = async ({
+	baseUrl,
+	token,
+	dataPoints,
+	appName,
+}: {
+	baseUrl: string;
+	token: string;
+	dataPoints: string;
+	appName?: string;
+}) => {
+	const url = new URL(
+		appName ? `${baseUrl}/metrics/containers` : `${baseUrl}/metrics`,
+	);
+	url.searchParams.append("limit", dataPoints);
+	if (appName) {
+		url.searchParams.append("appName", appName);
+	}
+
+	const response = await fetch(url.toString(), {
+		headers: { Authorization: ["Bearer", token].join(" ") },
+	});
+	if (!response.ok) {
+		throw new TRPCError({
+			code: "BAD_GATEWAY",
+			message: `Monitoring returned ${response.status}: ${response.statusText}`,
+		});
+	}
+
+	const data: unknown = await response.json();
+	if (!Array.isArray(data) || data.length === 0) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: appName
+				? `No monitoring data is available for "${appName}"`
+				: "No monitoring data is available",
+		});
+	}
+	return data;
+};
+
+const parseLocalMetric = (value: unknown) => {
+	if (typeof value === "number") return value;
+	if (typeof value !== "string") return undefined;
+	const parsed = Number.parseFloat(value);
+	return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+const getLocalMonitoringOverview = async () => {
+	const stats = await getApplicationStats("dokploy");
+	if (!stats) {
+		return {};
+	}
+	const cpu = stats.cpu.at(-1)?.value;
+	const memory = stats.memory.at(-1)?.value;
+	const disk = stats.disk.at(-1)?.value;
+
+	return {
+		cpu: parseLocalMetric(cpu),
+		memUsedGB:
+			typeof memory === "object" && memory !== null && "used" in memory
+				? parseLocalMetric(memory.used)
+				: undefined,
+		diskUsed:
+			typeof disk === "object" && disk !== null && "diskUsedPercentage" in disk
+				? parseLocalMetric(disk.diskUsedPercentage)
+				: undefined,
+	};
+};
 
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
@@ -192,6 +342,103 @@ export const serverRouter = createTRPCRouter({
 		});
 		return result.filter((s) => accessibleIds.has(s.serverId));
 	}),
+	monitoringServers: withPermission("monitoring", "read").query(
+		async ({ ctx }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			const result = await db.query.server.findMany({
+				columns: {
+					serverId: true,
+					name: true,
+					ipAddress: true,
+					serverStatus: true,
+					serverType: true,
+					metricsConfig: true,
+				},
+				orderBy: desc(server.createdAt),
+				where: and(
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+					eq(server.serverStatus, "active"),
+					eq(server.serverType, "deploy"),
+				),
+			});
+
+			return result
+				.filter((item) => accessibleIds.has(item.serverId))
+				.map((item) => ({
+					serverId: item.serverId,
+					name: item.name,
+					ipAddress: item.ipAddress,
+					monitoringConfigured: Boolean(
+						item.metricsConfig?.server?.token &&
+							item.metricsConfig?.server?.port,
+					),
+				}));
+		},
+	),
+	monitoringOverview: withPermission("monitoring", "read").query(
+		async ({ ctx }) => {
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			const remoteServers = await db.query.server.findMany({
+				where: and(
+					eq(server.organizationId, ctx.session.activeOrganizationId),
+					eq(server.serverStatus, "active"),
+					eq(server.serverType, "deploy"),
+				),
+				orderBy: desc(server.createdAt),
+			});
+			const accessibleServers = remoteServers.filter((item) =>
+				accessibleIds.has(item.serverId),
+			);
+			const targets = [
+				...(IS_CLOUD
+					? []
+					: [{ serverId: undefined, name: "Dokploy Server", ipAddress: null }]),
+				...accessibleServers.map((item) => ({
+					serverId: item.serverId,
+					name: item.name,
+					ipAddress: item.ipAddress,
+				})),
+			];
+
+			return await Promise.all(
+				targets.map(async (target) => {
+					try {
+						if (!target.serverId) {
+							return {
+								...target,
+								available: true as const,
+								metrics: await getLocalMonitoringOverview(),
+							};
+						}
+						const monitoringTarget = await getMonitoringTarget(
+							ctx,
+							target.serverId,
+						);
+						const metrics = await fetchMonitoringMetrics({
+							baseUrl: monitoringTarget.url,
+							token: monitoringTarget.token,
+							dataPoints: "1",
+						});
+						return {
+							...target,
+							available: true as const,
+							metrics: metrics.at(-1) as Record<string, unknown>,
+						};
+					} catch (error) {
+						return {
+							...target,
+							available: false as const,
+							metrics: null,
+							error:
+								error instanceof Error
+									? error.message
+									: "Monitoring is unavailable",
+						};
+					}
+				}),
+			);
+		},
+	),
 	buildServers: withPermission("server", "read").query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
@@ -429,6 +676,13 @@ export const serverRouter = createTRPCRouter({
 						message: "Server has active services, please delete them first",
 					});
 				}
+				if (await hasUnresolvedServerMigration(input.serverId)) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Server is referenced by an unresolved service migration. Finalize or resolve the migration first.",
+					});
+				}
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "server",
@@ -575,5 +829,37 @@ export const serverRouter = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	getMonitoringMetrics: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				dataPoints: monitoringDataPoints,
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const target = await getMonitoringTarget(ctx, input.serverId);
+			return await fetchMonitoringMetrics({
+				baseUrl: target.url,
+				token: target.token,
+				dataPoints: input.dataPoints,
+			});
+		}),
+	getContainerMetrics: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				serverId: z.string(),
+				appName: z.string().min(1),
+				dataPoints: monitoringDataPoints,
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const target = await getMonitoringTarget(ctx, input.serverId);
+			return await fetchMonitoringMetrics({
+				baseUrl: target.url,
+				token: target.token,
+				dataPoints: input.dataPoints,
+				appName: input.appName,
+			});
 		}),
 });

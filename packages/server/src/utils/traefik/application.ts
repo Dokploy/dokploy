@@ -54,6 +54,7 @@ export const createTraefikConfig = (appName: string) => {
 export const removeTraefikConfig = async (
 	appName: string,
 	serverId?: string | null,
+	throwOnError = false,
 ) => {
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
@@ -67,6 +68,7 @@ export const removeTraefikConfig = async (
 		}
 	} catch (error) {
 		console.error(`Error removing traefik config for ${appName}:`, error);
+		if (throwOnError) throw error;
 	}
 };
 

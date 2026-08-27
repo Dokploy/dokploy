@@ -14,6 +14,7 @@ import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 
 export type MySql = typeof mysql.$inferSelect;
 
@@ -113,7 +114,7 @@ export const findMySqlByBackupId = async (backupId: string) => {
 		.where(eq(backups.backupId, backupId))
 		.limit(1);
 
-	if (!result || !result[0]) {
+	if (!result?.[0]) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Mysql not found",
@@ -134,7 +135,11 @@ export const removeMySqlById = async (mysqlId: string) => {
 export const deployMySql = async (
 	mysqlId: string,
 	onData?: (data: any) => void,
+	allowMigrationId?: string,
 ) => {
+	if (!allowMigrationId) {
+		await assertNoUnresolvedServiceMigration("mysql", mysqlId);
+	}
 	const mysql = await findMySqlById(mysqlId);
 	try {
 		await updateMySqlById(mysqlId, {

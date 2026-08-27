@@ -1,10 +1,12 @@
 import {
+	assertNoUnresolvedServiceMigration,
 	checkPortInUse,
 	createMount,
 	createPostgres,
 	deployPostgres,
 	execAsync,
 	execAsyncRemote,
+	finalizeDatabaseMove,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findPostgresById,
@@ -12,12 +14,15 @@ import {
 	getAccessibleServerIds,
 	getContainerLogs,
 	getMountPath,
+	getPendingDatabaseMove,
 	getServiceContainer,
 	getWebServerSettings,
 	IS_CLOUD,
+	moveDatabaseToServer,
 	rebuildDatabase,
 	removePostgresById,
 	removeService,
+	rollbackDatabaseMove,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -149,6 +154,7 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("postgres", input.postgresId);
 			const service = await findPostgresById(input.postgresId);
 
 			if (service.serverId) {
@@ -231,6 +237,7 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("postgres", input.postgresId);
 			const postgres = await findPostgresById(input.postgresId);
 			await audit(ctx, {
 				action: "deploy",
@@ -302,6 +309,7 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.postgresId, "delete");
+			await assertNoUnresolvedServiceMigration("postgres", input.postgresId);
 			const postgres = await findPostgresById(input.postgresId);
 
 			if (
@@ -366,6 +374,7 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("postgres", input.postgresId);
 			const postgres = await findPostgresById(input.postgresId);
 			if (postgres.serverId) {
 				await stopServiceRemote(postgres.serverId, postgres.appName);
@@ -505,12 +514,98 @@ export const postgresRouter = createTRPCRouter({
 			});
 			return updatedPostgres;
 		}),
+	moveToServer: protectedProcedure
+		.input(
+			z.object({
+				postgresId: z.string(),
+				targetServerId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.postgresId, {
+				service: ["create"],
+				deployment: ["create"],
+			});
+			const postgres = await findPostgresById(input.postgresId);
+			const result = await moveDatabaseToServer({
+				serviceType: "postgres",
+				id: input.postgresId,
+				targetServerId: input.targetServerId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: postgres.postgresId,
+				resourceName: postgres.appName,
+				metadata: {
+					operation: "move-to-server",
+					sourceServerId: result.sourceServerId || "dokploy",
+					targetServerId: result.targetServerId || "dokploy",
+					sourceCleanupPending: true,
+				},
+			});
+			return result;
+		}),
+	pendingServerMove: protectedProcedure
+		.input(apiFindOnePostgres)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.postgresId, "read");
+			return getPendingDatabaseMove({
+				serviceType: "postgres",
+				id: input.postgresId,
+			});
+		}),
+	rollbackServerMove: protectedProcedure
+		.input(z.object({ postgresId: z.string(), migrationId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.postgresId, {
+				service: ["delete"],
+			});
+			return rollbackDatabaseMove({
+				serviceType: "postgres",
+				id: input.postgresId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+		}),
+	finalizeServerMove: protectedProcedure
+		.input(
+			z.object({
+				postgresId: z.string(),
+				migrationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.postgresId, {
+				service: ["delete"],
+			});
+			const postgres = await findPostgresById(input.postgresId);
+			await finalizeDatabaseMove({
+				serviceType: "postgres",
+				id: input.postgresId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "service",
+				resourceId: postgres.postgresId,
+				resourceName: postgres.appName,
+				metadata: {
+					operation: "finalize-server-move",
+					targetServerId: postgres.serverId || "dokploy",
+				},
+			});
+			return true;
+		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildPostgres)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.postgresId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("postgres", input.postgresId);
 
 			await rebuildDatabase(input.postgresId, "postgres");
 

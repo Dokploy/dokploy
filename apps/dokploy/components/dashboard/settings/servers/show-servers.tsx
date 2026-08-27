@@ -304,26 +304,20 @@ export const ShowServers = () => {
 																					</Tooltip>
 																				)}
 
-																				{isCloud &&
-																					server.sshKeyId &&
-																					!isBuildServer && (
-																						<Tooltip>
-																							<TooltipTrigger asChild>
-																								<div>
-																									<ShowMonitoringModal
-																										url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																										token={
-																											server?.metricsConfig
-																												?.server?.token
-																										}
-																									/>
-																								</div>
-																							</TooltipTrigger>
-																							<TooltipContent>
-																								<p>Monitoring</p>
-																							</TooltipContent>
-																						</Tooltip>
-																					)}
+																				{server.sshKeyId && !isBuildServer && (
+																					<Tooltip>
+																						<TooltipTrigger asChild>
+																							<div>
+																								<ShowMonitoringModal
+																									serverId={server.serverId}
+																								/>
+																							</div>
+																						</TooltipTrigger>
+																						<TooltipContent>
+																							<p>Monitoring</p>
+																						</TooltipContent>
+																					</Tooltip>
+																				)}
 
 																				{permissions?.docker.read &&
 																					permissions?.server.read &&

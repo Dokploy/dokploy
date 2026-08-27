@@ -1,22 +1,27 @@
 import {
+	assertNoUnresolvedServiceMigration,
 	checkPortInUse,
 	createMariadb,
 	createMount,
 	deployMariadb,
 	execAsync,
 	execAsyncRemote,
+	finalizeDatabaseMove,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMariadbById,
 	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
+	getPendingDatabaseMove,
 	getServiceContainer,
 	getWebServerSettings,
 	IS_CLOUD,
+	moveDatabaseToServer,
 	rebuildDatabase,
 	removeMariadbById,
 	removeService,
+	rollbackDatabaseMove,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -141,6 +146,7 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("mariadb", input.mariadbId);
 			const service = await findMariadbById(input.mariadbId);
 			if (service.serverId) {
 				await startServiceRemote(service.serverId, service.appName);
@@ -223,6 +229,7 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("mariadb", input.mariadbId);
 			const mariadb = await findMariadbById(input.mariadbId);
 
 			await audit(ctx, {
@@ -276,6 +283,7 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.mariadbId, "delete");
+			await assertNoUnresolvedServiceMigration("mariadb", input.mariadbId);
 
 			const mongo = await findMariadbById(input.mariadbId);
 			if (
@@ -339,6 +347,7 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("mariadb", input.mariadbId);
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (mariadb.serverId) {
 				await stopServiceRemote(mariadb.serverId, mariadb.appName);
@@ -484,12 +493,98 @@ export const mariadbRouter = createTRPCRouter({
 			});
 			return updatedMariadb;
 		}),
+	moveToServer: protectedProcedure
+		.input(
+			z.object({
+				mariadbId: z.string(),
+				targetServerId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				service: ["create"],
+				deployment: ["create"],
+			});
+			const mariadb = await findMariadbById(input.mariadbId);
+			const result = await moveDatabaseToServer({
+				serviceType: "mariadb",
+				id: input.mariadbId,
+				targetServerId: input.targetServerId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: mariadb.mariadbId,
+				resourceName: mariadb.appName,
+				metadata: {
+					operation: "move-to-server",
+					sourceServerId: result.sourceServerId || "dokploy",
+					targetServerId: result.targetServerId || "dokploy",
+					sourceCleanupPending: true,
+				},
+			});
+			return result;
+		}),
+	pendingServerMove: protectedProcedure
+		.input(apiFindOneMariaDB)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.mariadbId, "read");
+			return getPendingDatabaseMove({
+				serviceType: "mariadb",
+				id: input.mariadbId,
+			});
+		}),
+	rollbackServerMove: protectedProcedure
+		.input(z.object({ mariadbId: z.string(), migrationId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				service: ["delete"],
+			});
+			return rollbackDatabaseMove({
+				serviceType: "mariadb",
+				id: input.mariadbId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+		}),
+	finalizeServerMove: protectedProcedure
+		.input(
+			z.object({
+				mariadbId: z.string(),
+				migrationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
+				service: ["delete"],
+			});
+			const mariadb = await findMariadbById(input.mariadbId);
+			await finalizeDatabaseMove({
+				serviceType: "mariadb",
+				id: input.mariadbId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "service",
+				resourceId: mariadb.mariadbId,
+				resourceName: mariadb.appName,
+				metadata: {
+					operation: "finalize-server-move",
+					targetServerId: mariadb.serverId || "dokploy",
+				},
+			});
+			return true;
+		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMariadb)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("mariadb", input.mariadbId);
 
 			await rebuildDatabase(input.mariadbId, "mariadb");
 			await audit(ctx, {

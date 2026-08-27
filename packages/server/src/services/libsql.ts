@@ -14,6 +14,7 @@ import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 
 export type Libsql = typeof libsql.$inferSelect;
 
@@ -119,7 +120,7 @@ export const findLibsqlByBackupId = async (backupId: string) => {
 		.where(eq(backups.backupId, backupId))
 		.limit(1);
 
-	if (!result || !result[0]) {
+	if (!result?.[0]) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Libsql not found",
@@ -131,7 +132,11 @@ export const findLibsqlByBackupId = async (backupId: string) => {
 export const deployLibsql = async (
 	libsqlId: string,
 	onData?: (data: any) => void,
+	allowMigrationId?: string,
 ) => {
+	if (!allowMigrationId) {
+		await assertNoUnresolvedServiceMigration("libsql", libsqlId);
+	}
 	const libsql = await findLibsqlById(libsqlId);
 	try {
 		await updateLibsqlById(libsqlId, {

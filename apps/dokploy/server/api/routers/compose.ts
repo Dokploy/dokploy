@@ -1,5 +1,6 @@
 import {
 	addDomainToCompose,
+	assertNoUnresolvedServiceMigration,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -10,6 +11,7 @@ import {
 	deleteMount,
 	execAsync,
 	execAsyncRemote,
+	finalizeComposeMove,
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
@@ -18,15 +20,18 @@ import {
 	getAccessibleServerIds,
 	getComposeContainer,
 	getContainerLogs,
+	getPendingComposeMove,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
+	moveComposeToServer,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
 	removeDomainById,
+	rollbackComposeMove,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -234,6 +239,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServiceAccess(ctx, input.composeId, "delete");
+			await assertNoUnresolvedServiceMigration("compose", input.composeId);
 			const composeResult = await findComposeById(input.composeId);
 
 			if (
@@ -290,6 +296,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("compose", input.composeId);
 			const compose = await findComposeById(input.composeId);
 			await clearOldDeployments(compose.appName, compose.serverId);
 			await audit(ctx, {
@@ -416,6 +423,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("compose", input.composeId);
 			const compose = await findComposeById(input.composeId);
 
 			const jobData: DeploymentJob = {
@@ -514,6 +522,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("compose", input.composeId);
 			await stopCompose(input.composeId);
 			const composeForStop = await findComposeById(input.composeId);
 			await audit(ctx, {
@@ -530,6 +539,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			await assertNoUnresolvedServiceMigration("compose", input.composeId);
 			await startCompose(input.composeId);
 			const composeForStart = await findComposeById(input.composeId);
 			await audit(ctx, {
@@ -800,6 +810,85 @@ export const composeRouter = createTRPCRouter({
 				resourceName: updatedCompose.name,
 			});
 			return updatedCompose;
+		}),
+	moveToServer: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string(),
+				targetServerId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["create"],
+				deployment: ["create"],
+			});
+			const compose = await findComposeById(input.composeId);
+			const result = await moveComposeToServer({
+				composeId: input.composeId,
+				targetServerId: input.targetServerId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "compose",
+				resourceId: compose.composeId,
+				resourceName: compose.name,
+				metadata: {
+					operation: "move-to-server",
+					sourceServerId: result.sourceServerId || "dokploy",
+					targetServerId: result.targetServerId || "dokploy",
+					sourceCleanupPending: true,
+				},
+			});
+			return result;
+		}),
+	pendingServerMove: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.composeId, "read");
+			return getPendingComposeMove(input.composeId);
+		}),
+	rollbackServerMove: protectedProcedure
+		.input(z.object({ composeId: z.string(), migrationId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["delete"],
+			});
+			return rollbackComposeMove({
+				composeId: input.composeId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+		}),
+	finalizeServerMove: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string(),
+				migrationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["delete"],
+			});
+			const compose = await findComposeById(input.composeId);
+			await finalizeComposeMove({
+				composeId: input.composeId,
+				migrationId: input.migrationId,
+				session: ctx.session,
+			});
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "compose",
+				resourceId: compose.composeId,
+				resourceName: compose.name,
+				metadata: {
+					operation: "finalize-server-move",
+					targetServerId: compose.serverId || "dokploy",
+				},
+			});
+			return true;
 		}),
 
 	processTemplate: protectedProcedure

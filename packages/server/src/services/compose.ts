@@ -44,6 +44,7 @@ import {
 } from "./deployment";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
+import { assertNoUnresolvedServiceMigration } from "./service-migration-store";
 
 export type Compose = typeof compose.$inferSelect;
 
@@ -220,6 +221,7 @@ export const deployCompose = async ({
 	titleLog: string;
 	descriptionLog: string;
 }) => {
+	await assertNoUnresolvedServiceMigration("compose", composeId);
 	const compose = await findComposeById(composeId);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
@@ -319,7 +321,7 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
@@ -350,6 +352,7 @@ export const rebuildCompose = async ({
 	titleLog: string;
 	descriptionLog: string;
 }) => {
+	await assertNoUnresolvedServiceMigration("compose", composeId);
 	const compose = await findComposeById(composeId);
 
 	const deployment = await createDeploymentCompose({
