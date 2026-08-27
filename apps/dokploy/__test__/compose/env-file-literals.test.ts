@@ -120,7 +120,16 @@ describe("getCreateEnvFileCommand", () => {
 
 		const out = execFileSync(
 			"docker",
-			["compose", "run", "--rm", "-T", "test", "sh", "-c", "printf '%s' \"$ASSET_URL\""],
+			[
+				"compose",
+				"run",
+				"--rm",
+				"-T",
+				"test",
+				"sh",
+				"-c",
+				"printf '%s' \"$ASSET_URL\"",
+			],
 			{ cwd: codePath, encoding: "utf8" },
 		);
 
