@@ -32,6 +32,8 @@ const cases: Record<string, string> = {
 	APOSTROPHE: "it's a test",
 	UNICODE: "héllo wörld 日本語 🚀",
 	MULTILINE_PEM: "-----BEGIN KEY-----\nabc123\n-----END KEY-----",
+	APP_URL: "https://example.com",
+	ASSET_URL: "https://example.com",
 };
 
 // How each value must be typed in the UI so the (unchanged) dotenv input
@@ -46,6 +48,8 @@ const inputEncoding: Record<string, string> = {
 	APOSTROPHE: "it's a test",
 	UNICODE: "héllo wörld 日本語 🚀",
 	MULTILINE_PEM: '"-----BEGIN KEY-----\nabc123\n-----END KEY-----"',
+	APP_URL: "https://example.com",
+	ASSET_URL: '"${APP_URL}"',
 };
 
 describe("getCreateEnvFileCommand", () => {

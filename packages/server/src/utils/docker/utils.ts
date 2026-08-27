@@ -548,7 +548,7 @@ export const prepareEnvironmentVariablesForFile = (
 		const escapedValue = value
 			.replace(/\\/g, "\\\\")
 			.replace(/"/g, '\\"')
-			.replace(/\$/g, "\\$");
+			.replace(/\$(?!\{[A-Za-z_][A-Za-z0-9_]*\})/g, "\\$");
 		return `${key}="${escapedValue}"`;
 	});
 };
