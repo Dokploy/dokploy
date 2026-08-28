@@ -60,7 +60,12 @@ describe("writeAppTraefikConfig", () => {
 		await writeAppTraefikConfig(
 			{
 				http: {
-					routers: { [`${appName}-router-1`]: { rule: "Host(`x`)" } },
+					routers: {
+						[`${appName}-router-1`]: {
+							rule: "Host(`x`)",
+							service: `${appName}-service`,
+						},
+					},
 					services: {},
 				},
 			},
@@ -80,7 +85,7 @@ describe("writeAppTraefikConfig", () => {
 		);
 
 		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
-		const [, command] = mocks.execAsyncRemote.mock.calls[0];
+		const [, command] = mocks.execAsyncRemote.mock.calls[0] ?? [];
 		expect(command).toMatch(/^rm -f /);
 		expect(command).toContain("no-domain-app.yml");
 	});
@@ -91,7 +96,12 @@ describe("writeAppTraefikConfig", () => {
 		await writeAppTraefikConfig(
 			{
 				http: {
-					routers: { "with-domain-app-router-1": { rule: "Host(`x`)" } },
+					routers: {
+						"with-domain-app-router-1": {
+							rule: "Host(`x`)",
+							service: "with-domain-app-service",
+						},
+					},
 					services: {},
 				},
 			},
@@ -100,7 +110,7 @@ describe("writeAppTraefikConfig", () => {
 		);
 
 		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
-		const [, command] = mocks.execAsyncRemote.mock.calls[0];
+		const [, command] = mocks.execAsyncRemote.mock.calls[0] ?? [];
 		expect(command).toMatch(/^echo /);
 	});
 });
