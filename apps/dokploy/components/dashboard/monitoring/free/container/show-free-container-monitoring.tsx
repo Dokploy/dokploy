@@ -1,5 +1,6 @@
 import { formatMb } from "@dokploy/server/monitoring/units";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/utils/api";
@@ -167,6 +168,8 @@ export const ContainerFreeMonitoring = ({
 	}, [data]);
 
 	useEffect(() => {
+		if (!appName) return;
+
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
 		const ws = new WebSocket(wsUrl);
@@ -196,7 +199,9 @@ export const ContainerFreeMonitoring = ({
 		};
 
 		ws.onclose = (e) => {
-			console.log(e.reason);
+			if (e.reason) {
+				toast.error(e.reason);
+			}
 		};
 
 		return () => ws.close();
