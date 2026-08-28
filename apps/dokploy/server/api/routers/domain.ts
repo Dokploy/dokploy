@@ -7,6 +7,7 @@ import {
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
+	getServerIpCandidates,
 	getWebServerSettings,
 	manageDomain,
 	removeDomain,
@@ -248,10 +249,11 @@ export const domainRouter = createTRPCRouter({
 		.input(
 			z.object({
 				domain: z.string(),
-				serverIp: z.string().optional(),
+				serverId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ input }) => {
-			return validateDomain(input.domain, input.serverIp);
+			const expectedIps = await getServerIpCandidates(input.serverId);
+			return validateDomain(input.domain, expectedIps);
 		}),
 });
