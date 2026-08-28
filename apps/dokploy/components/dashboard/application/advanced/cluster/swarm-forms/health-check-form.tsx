@@ -1,3 +1,4 @@
+import { normalizeSwarmHealthCheck } from "@dokploy/server/utils/docker/health-check";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -103,13 +104,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 	const onSubmit = async (formData: z.infer<typeof healthCheckFormSchema>) => {
 		setIsLoading(true);
 		try {
-			// Check if all values are empty, if so, send null to clear the database
-			const hasAnyValue =
-				(formData.Test && formData.Test.length > 0) ||
-				formData.Interval !== undefined ||
-				formData.Timeout !== undefined ||
-				formData.StartPeriod !== undefined ||
-				formData.Retries !== undefined;
+			const normalizedHealthCheck = normalizeSwarmHealthCheck(formData);
 
 			await mutateAsync({
 				applicationId: id || "",
@@ -119,13 +114,15 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				mariadbId: id || "",
 				mongoId: id || "",
 				libsqlId: id || "",
-				healthCheckSwarm: hasAnyValue ? formData : null,
+				healthCheckSwarm: normalizedHealthCheck ?? null,
 			});
 
 			toast.success("Health check updated successfully");
 			refetch();
-		} catch {
-			toast.error("Error updating health check");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Error updating health check",
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -154,8 +151,9 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				<div>
 					<FormLabel>Test Commands</FormLabel>
 					<FormDescription>
-						Command to run for health check (e.g., ["CMD-SHELL", "curl -f
-						http://localhost:3000/health"])
+						Add one array item per field, paste a JSON array into one field, or
+						enter a single shell command. Example: ["CMD-SHELL", "curl -f
+						http://localhost:3000/health"]
 					</FormDescription>
 					<div className="space-y-2 mt-2">
 						{testCommands.map((cmd: string, index: number) => (
