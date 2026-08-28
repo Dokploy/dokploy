@@ -34,6 +34,7 @@ export const SyncNetworks = ({ serverId }: Props) => {
 	const importMutation = api.network.import.useMutation();
 	const removeMutation = api.network.remove.useMutation();
 	const recreateMutation = api.network.recreate.useMutation();
+	const resyncMutation = api.network.resync.useMutation();
 
 	const toggleSelected = (name: string) => {
 		setSelected((prev) => {
@@ -97,6 +98,20 @@ export const SyncNetworks = ({ serverId }: Props) => {
 			await refetch();
 		} catch (error) {
 			toast.error("Error recreating network", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		}
+	};
+
+	const onResync = async (networkId: string, name: string) => {
+		try {
+			await resyncMutation.mutateAsync({ networkId });
+			toast.success(`Network "${name}" updated from Docker`);
+			await utils.network.all.invalidate();
+			await utils.network.networksToSync.invalidate();
+			await refetch();
+		} catch (error) {
+			toast.error("Error updating network", {
 				description: error instanceof Error ? error.message : "Unknown error",
 			});
 		}
@@ -176,6 +191,45 @@ export const SyncNetworks = ({ serverId }: Props) => {
 								</span>
 							)}
 						</div>
+
+						{!!data?.changed.length && (
+							<>
+								<Separator />
+								<div className="flex flex-col gap-2">
+									<span className="text-sm font-medium">
+										Changed ({data.changed.length})
+									</span>
+									<span className="text-xs text-muted-foreground">
+										These networks were deleted and recreated in Docker under
+										the same name — attributes in Dokploy are outdated.
+									</span>
+									{data.changed.map((changed) => (
+										<div
+											key={changed.networkId}
+											className="flex items-center justify-between gap-3 rounded-lg border border-dashed p-3"
+										>
+											<div className="flex items-center gap-3">
+												<span className="text-sm">{changed.name}</span>
+												{changed.driver && (
+													<Badge variant="outline">{changed.driver}</Badge>
+												)}
+											</div>
+											<Button
+												variant="outline"
+												size="xs"
+												isLoading={resyncMutation.isPending}
+												onClick={() =>
+													onResync(changed.networkId, changed.name)
+												}
+											>
+												<RotateCcw className="size-3.5" />
+												Update
+											</Button>
+										</div>
+									))}
+								</div>
+							</>
+						)}
 
 						{!!data?.missing.length && (
 							<>

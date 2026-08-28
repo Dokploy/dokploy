@@ -21,11 +21,11 @@ export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
-	const command = createCommand(compose);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const command = createCommand(compose, projectPath);
 	const envCommand = compose.createEnvFile
 		? getCreateEnvFileCommand(compose)
 		: "";
-	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
@@ -119,7 +119,7 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
-export const createCommand = (compose: ComposeNested) => {
+export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	const { composeType, appName, sourceType } = compose;
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
@@ -130,7 +130,10 @@ export const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${quote([appName])} -f ${quote([path])} up -d --build --remove-orphans`;
+		const projectDirectoryFlag = projectPath
+			? `--project-directory ${quote([projectPath])} `
+			: "";
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}-f ${quote([path])} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}

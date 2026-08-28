@@ -292,6 +292,26 @@ export const writeTraefikConfigRemote = async (
 	}
 };
 
+const isEmptyHttpRoutersAndServices = (traefikConfig: FileConfig) =>
+	Object.keys(traefikConfig.http?.routers || {}).length === 0 &&
+	Object.keys(traefikConfig.http?.services || {}).length === 0;
+
+export const writeAppTraefikConfig = async (
+	traefikConfig: FileConfig,
+	appName: string,
+	serverId?: string | null,
+) => {
+	if (isEmptyHttpRoutersAndServices(traefikConfig)) {
+		await removeTraefikConfig(appName, serverId);
+		return;
+	}
+	if (serverId) {
+		await writeTraefikConfigRemote(traefikConfig, appName, serverId);
+	} else {
+		writeTraefikConfig(traefikConfig, appName);
+	}
+};
+
 export const createServiceConfig = (
 	appName: string,
 	domain: Domain,
