@@ -55,6 +55,7 @@ export const ShowDockerLogsStack = ({
 			},
 			{
 				enabled: !!appName && option === "swarm",
+				refetchInterval: 5000,
 			},
 		);
 
@@ -67,6 +68,7 @@ export const ShowDockerLogsStack = ({
 			},
 			{
 				enabled: !!appName && option === "native",
+				refetchInterval: 5000,
 			},
 		);
 
