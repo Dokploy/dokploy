@@ -66,7 +66,14 @@ describe("writeAppTraefikConfig", () => {
 							service: `${appName}-service-1`,
 						},
 					},
-					services: {},
+					services: {
+						[`${appName}-service-1`]: {
+							loadBalancer: {
+								servers: [{ url: `http://${appName}:3000` }],
+								passHostHeader: true,
+							},
+						},
+					},
 				},
 			},
 			appName,
@@ -102,7 +109,14 @@ describe("writeAppTraefikConfig", () => {
 							service: "with-domain-app-service-1",
 						},
 					},
-					services: {},
+					services: {
+						"with-domain-app-service-1": {
+							loadBalancer: {
+								servers: [{ url: "http://with-domain-app:3000" }],
+								passHostHeader: true,
+							},
+						},
+					},
 				},
 			},
 			"with-domain-app",
