@@ -10,9 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => {
 	const actual =
-		await importOriginal<
-			typeof import("@dokploy/server/utils/process/execAsync")
-		>();
+		await importOriginal<typeof import("@dokploy/server/utils/process/execAsync")>();
 	return {
 		...actual,
 		execAsyncRemote: mocks.execAsyncRemote,
