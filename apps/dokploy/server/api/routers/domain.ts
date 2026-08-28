@@ -252,7 +252,17 @@ export const domainRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
+
 			const expectedIps = await getServerIpCandidates(input.serverId);
 			return validateDomain(input.domain, expectedIps);
 		}),
