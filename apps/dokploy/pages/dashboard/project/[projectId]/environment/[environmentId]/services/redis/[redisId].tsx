@@ -15,6 +15,7 @@ import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowContainerFileSystem } from "@/components/dashboard/docker/file-system/show-container-file-system";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
@@ -203,10 +204,10 @@ const Redis = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-5"
+													? "md:grid-cols-6"
 													: data?.serverId
-														? "md:grid-cols-4"
-														: "md:grid-cols-5",
+														? "md:grid-cols-5"
+														: "md:grid-cols-6",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -217,6 +218,11 @@ const Redis = (
 											)}
 											{permissions?.logs.read && (
 												<TabsTrigger value="logs">Logs</TabsTrigger>
+											)}
+											{permissions?.containerFilesystem.read && (
+												<TabsTrigger value="file-system">
+													Files System
+												</TabsTrigger>
 											)}
 											{permissions?.monitoring.read &&
 												((data?.serverId && isCloud) || !data?.server) && (
@@ -298,6 +304,16 @@ const Redis = (
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
 													serviceId={data?.redisId}
+												/>
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.containerFilesystem.read && (
+										<TabsContent value="file-system">
+											<div className="pt-2.5">
+												<ShowContainerFileSystem
+													serviceType="redis"
+													serviceId={redisId}
 												/>
 											</div>
 										</TabsContent>

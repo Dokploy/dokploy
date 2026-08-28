@@ -191,6 +191,20 @@ describe("legacy boolean overrides for member", () => {
 		await expect(checkPermission(ctx, { docker: ["read"] })).rejects.toThrow();
 	});
 
+	it("member cannot browse container files without an explicit role grant", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { containerFilesystem: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("owner can browse container files in the read-only release", async () => {
+		memberToReturn = mockMemberData("owner");
+		await expect(
+			checkPermission(ctx, { containerFilesystem: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
 	it("member passes gitProviders.create with canAccessToGitProviders=true", async () => {
 		memberToReturn = mockMemberData("member", {
 			canAccessToGitProviders: true,
