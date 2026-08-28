@@ -5,7 +5,7 @@ import { getWebServerSettings } from "@dokploy/server/services/web-server-settin
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
 import type { z } from "zod";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
@@ -146,6 +146,29 @@ export const removeDomainById = async (domainId: string) => {
 	return result[0];
 };
 
+/**
+ * True when another domain record still serves this host with Let's Encrypt.
+ * Removing the shared certificate would break that domain.
+ */
+export const hasOtherLetsencryptDomainForHost = async (
+	host: string,
+	excludeDomainId: string,
+): Promise<boolean> => {
+	const rows = await db
+		.select({ domainId: domains.domainId })
+		.from(domains)
+		.where(
+			and(
+				eq(domains.host, host),
+				eq(domains.certificateType, "letsencrypt"),
+				ne(domains.domainId, excludeDomainId),
+			),
+		)
+		.limit(1);
+
+	return rows.length > 0;
+};
+
 export const getDomainHost = (domain: Domain) => {
 	return `${domain.https ? "https" : "http"}://${domain.host}`;
 };
@@ -209,4 +232,21 @@ export const validateDomain = async (
 				error instanceof Error ? error.message : "Failed to resolve domain",
 		};
 	}
+};
+
+/**
+ * Domains that may still carry a router config written before the TLS
+ * override fix. Only application domains are returned; Compose domains are
+ * configured through Docker labels and are regenerated on deploy.
+ */
+export const findDomainsNeedingTlsReconciliation = async () => {
+	return await db
+		.select()
+		.from(domains)
+		.where(
+			and(
+				ne(domains.certificateType, "letsencrypt"),
+				isNotNull(domains.applicationId),
+			),
+		);
 };
