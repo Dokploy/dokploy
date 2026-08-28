@@ -24,11 +24,15 @@ export const normalizeSwarmHealthCheckTest = (
 			return ["NONE"];
 		}
 
-		if (/^\[\s*(?:"|\])/.test(value)) {
+		if (value.startsWith("[")) {
 			let parsed: unknown;
 			try {
 				parsed = JSON.parse(value);
 			} catch {
+				// POSIX test expressions are valid shell commands, not JSON arrays.
+				if (/^\[\s+[^,\r\n]+\s+\]$/.test(value)) {
+					return ["CMD-SHELL", value];
+				}
 				throw invalidJsonArrayError();
 			}
 

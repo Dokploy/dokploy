@@ -66,6 +66,12 @@ describe("Swarm health check normalization", () => {
 		);
 	});
 
+	it("rejects a pasted JSON array beginning with a non-string value", () => {
+		expect(() => normalizeSwarmHealthCheckTest(["[1]"])).toThrow(
+			"Health check Test must be a JSON array of strings",
+		);
+	});
+
 	it("rejects an unsupported multi-item instruction", () => {
 		expect(() => normalizeSwarmHealthCheckTest(["curl", "-f", "/"])).toThrow(
 			"Health check Test must begin with CMD, CMD-SHELL, or NONE",
