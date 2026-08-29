@@ -66,6 +66,11 @@ import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 import { HandleForwardAuth } from "./handle-forward-auth";
 import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
+import {
+	didServerIpChange,
+	getHostsToAutoValidate,
+	isCurrentValidation,
+} from "./validation";
 
 export type ValidationState = {
 	isLoading: boolean;
@@ -112,6 +117,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const validationRequestIdRef = useRef(0);
 	const hostValidationRequestIdsRef = useRef<Map<string, number>>(new Map());
 	const lastAutoValidatedServerIpRef = useRef<string | undefined>(undefined);
+	const activeValidationScopeRef = useRef(`${type}:${id}`);
+	const lastObservedServerIpRef = useRef<string | undefined>(undefined);
+	const validationScope = `${type}:${id}`;
 	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
 		if (typeof window !== "undefined") {
 			return (
@@ -194,6 +202,22 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 		return ip?.toString() || undefined;
 	}, [application?.server?.ipAddress, application?.serverId, ip]);
+	const resolvedServerIp = resolveServerIp();
+
+	if (activeValidationScopeRef.current !== validationScope) {
+		activeValidationScopeRef.current = validationScope;
+		validationRequestIdRef.current += 1;
+		autoValidatedHostsRef.current = new Set();
+		hostValidationRequestIdsRef.current = new Map();
+		lastAutoValidatedServerIpRef.current = undefined;
+	}
+
+	if (didServerIpChange(lastObservedServerIpRef.current, resolvedServerIp)) {
+		lastObservedServerIpRef.current = resolvedServerIp;
+		validationRequestIdRef.current += 1;
+		hostValidationRequestIdsRef.current = new Map();
+		autoValidatedHostsRef.current = new Set();
+	}
 
 	const handleValidateDomain = useCallback(
 		async (host: string, serverIpOverride?: string) => {
@@ -202,13 +226,15 @@ export const ShowDomains = ({ id, type }: Props) => {
 				(hostValidationRequestIdsRef.current.get(host) ?? 0) + 1;
 			hostValidationRequestIdsRef.current.set(host, hostRequestId);
 
-			const serverIp =
-				serverIpOverride ??
-				(application?.server?.ipAddress?.toString() || ip?.toString() || "");
+			const serverIp = serverIpOverride ?? resolveServerIp() ?? "";
 
 			const isCurrentRequest = () =>
-				validationRequestIdRef.current === serviceRequestId &&
-				hostValidationRequestIdsRef.current.get(host) === hostRequestId;
+				isCurrentValidation({
+					currentScopeRequestId: validationRequestIdRef.current,
+					currentHostRequestId: hostValidationRequestIdsRef.current.get(host),
+					hostRequestId,
+					scopeRequestId: serviceRequestId,
+				});
 
 			if (!isCurrentRequest()) {
 				return;
@@ -256,16 +282,19 @@ export const ShowDomains = ({ id, type }: Props) => {
 				}));
 			}
 		},
-		[validateDomain, application?.server?.ipAddress, ip],
+		[validateDomain, resolveServerIp],
 	);
 
 	useEffect(() => {
-		validationRequestIdRef.current += 1;
-		autoValidatedHostsRef.current = new Set();
-		hostValidationRequestIdsRef.current = new Map();
-		lastAutoValidatedServerIpRef.current = undefined;
 		setValidationStates({});
-	}, [id]);
+
+		return () => {
+			validationRequestIdRef.current += 1;
+			autoValidatedHostsRef.current = new Set();
+			hostValidationRequestIdsRef.current = new Map();
+			lastAutoValidatedServerIpRef.current = undefined;
+		};
+	}, [validationScope]);
 
 	useEffect(() => {
 		if (!data?.length || !isApplicationFetched || !application) {
@@ -280,7 +309,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 			return;
 		}
 
-		const serverIp = resolveServerIp();
+		const serverIp = resolvedServerIp;
 		if (!serverIp) {
 			return;
 		}
@@ -290,16 +319,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 			autoValidatedHostsRef.current = new Set();
 		}
 
-		const hostsToValidate = data
-			.map((item) => item.host)
-			.filter((host) => {
-				if (autoValidatedHostsRef.current.has(host)) {
-					return false;
-				}
-
-				autoValidatedHostsRef.current.add(host);
-				return true;
-			});
+		const hostsToValidate = getHostsToAutoValidate(
+			data,
+			autoValidatedHostsRef.current,
+		);
+		hostsToValidate.forEach((host) => {
+			autoValidatedHostsRef.current.add(host);
+		});
 
 		if (hostsToValidate.length === 0) {
 			return;
@@ -332,7 +358,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 		application,
 		application?.serverId,
 		application?.server?.ipAddress,
-		resolveServerIp,
+		resolvedServerIp,
 		handleValidateDomain,
 	]);
 
