@@ -3,7 +3,9 @@ import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -154,7 +156,7 @@ const resolveDns = promisify(dns.resolve4);
 
 export const validateDomain = async (
 	domain: string,
-	expectedIp?: string,
+	expectedIps?: string[],
 ): Promise<{
 	isValid: boolean;
 	resolvedIp?: string;
@@ -186,13 +188,13 @@ export const validateDomain = async (
 			};
 		}
 
-		// If we have an expected IP, validate against it
-		if (expectedIp) {
+		if (expectedIps && expectedIps.length > 0) {
+			const isValid = resolvedIps.some((ip) => expectedIps.includes(ip));
 			return {
-				isValid: resolvedIps.includes(expectedIp),
+				isValid,
 				resolvedIp: resolvedIps.join(", "),
-				error: !resolvedIps.includes(expectedIp)
-					? `Domain resolves to ${resolvedIps.join(", ")} but should point to ${expectedIp}`
+				error: !isValid
+					? `Domain resolves to ${resolvedIps.join(", ")} but should point to ${expectedIps.join(" or ")}`
 					: undefined,
 			};
 		}
@@ -209,4 +211,48 @@ export const validateDomain = async (
 				error instanceof Error ? error.message : "Failed to resolve domain",
 		};
 	}
+};
+
+export const getServerIpCandidates = async (
+	serverId?: string | null,
+): Promise<string[]> => {
+	const candidates = new Set<string>();
+
+	if (serverId) {
+		const server = await findServerById(serverId);
+		if (server.ipAddress) {
+			candidates.add(server.ipAddress);
+		}
+
+		const publicIp = await withTimeout(
+			execAsyncRemote(
+				serverId,
+				"curl -s -m 5 https://ifconfig.me || curl -s -m 5 https://icanhazip.com",
+			),
+			7000,
+		);
+		const detectedIp = publicIp?.stdout?.trim();
+		if (detectedIp) {
+			candidates.add(detectedIp);
+		}
+	} else {
+		const settings = await getWebServerSettings();
+		if (settings?.serverIp) {
+			candidates.add(settings.serverIp);
+		}
+
+		const publicIp = await withTimeout(getPublicIpWithFallback(), 7000);
+		if (publicIp) {
+			candidates.add(publicIp);
+		}
+	}
+
+	return Array.from(candidates);
+};
+
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> => {
+	return Promise.race([
+		promise,
+		new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+	]).catch(() => null);
 };

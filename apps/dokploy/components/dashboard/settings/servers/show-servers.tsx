@@ -250,29 +250,30 @@ export const ShowServers = () => {
 																			</div>
 
 																			<TooltipProvider>
-																				{server.sshKeyId && (
-																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<div>
-																								<TerminalModal
-																									serverId={server.serverId}
-																									asButton={true}
-																								>
-																									<Button
-																										variant="outline"
-																										size="icon"
-																										className="h-9 w-9"
+																				{server.sshKeyId &&
+																					permissions?.server.terminal && (
+																						<Tooltip>
+																							<TooltipTrigger asChild>
+																								<div>
+																									<TerminalModal
+																										serverId={server.serverId}
+																										asButton={true}
 																									>
-																										<Terminal className="h-4 w-4" />
-																									</Button>
-																								</TerminalModal>
-																							</div>
-																						</TooltipTrigger>
-																						<TooltipContent>
-																							<p>Terminal</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				)}
+																										<Button
+																											variant="outline"
+																											size="icon"
+																											className="h-9 w-9"
+																										>
+																											<Terminal className="h-4 w-4" />
+																										</Button>
+																									</TerminalModal>
+																								</div>
+																							</TooltipTrigger>
+																							<TooltipContent>
+																								<p>Terminal</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
 
 																				<Tooltip>
 																					<TooltipTrigger asChild>
