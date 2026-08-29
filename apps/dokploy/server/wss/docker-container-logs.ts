@@ -4,8 +4,11 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { attachTerminalResize, bindPtyLifecycle } from "./terminal-transport";
 import {
+	getErrorMessage,
 	getShell,
+	getTerminalSize,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
@@ -43,6 +46,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const serverId = url.searchParams.get("serverId");
 		const runType = url.searchParams.get("runType");
 		const serviceId = url.searchParams.get("serviceId");
+		const { cols, rows } = getTerminalSize(url.searchParams);
 		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
@@ -112,25 +116,36 @@ export const setupDockerContainerLogsWebSocketServer = (
 							: baseCommand;
 						// Use pty: true to ensure the remote process receives SIGHUP when SSH connection closes
 						// This is crucial for terminating docker logs processes when the connection is closed
-						client.exec(command, { pty: true }, (err, stream) => {
-							if (err) {
-								console.error("Execution error:", err);
-								ws.close();
-								client.end();
-								return;
-							}
-							stream
-								.on("close", () => {
-									client.end();
+						client.exec(
+							command,
+							{ pty: { term: "xterm-256color", cols, rows } },
+							(err, stream) => {
+								if (err) {
+									console.error("Execution error:", err);
 									ws.close();
-								})
-								.on("data", (data: string) => {
-									ws.send(data.toString());
-								})
-								.stderr.on("data", (data) => {
-									ws.send(data.toString());
+									client.end();
+									return;
+								}
+								stream
+									.on("close", () => {
+										client.end();
+										ws.close();
+									})
+									.on("data", (data: string) => {
+										ws.send(data.toString());
+									})
+									.stderr.on("data", (data) => {
+										ws.send(data.toString());
+									});
+								attachTerminalResize(ws, (size) => {
+									try {
+										stream.setWindow(size.rows, size.cols, 0, 0);
+									} catch {
+										ws.close();
+									}
 								});
-						});
+							},
+						);
 					})
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
@@ -169,38 +184,20 @@ export const setupDockerContainerLogsWebSocketServer = (
 					cwd: process.env.HOME,
 					env: process.env,
 					encoding: "utf8",
-					cols: 80,
-					rows: 30,
+					cols,
+					rows,
 				});
 
 				ptyProcess.onData((data) => {
 					ws.send(data);
 				});
-				ws.on("close", () => {
-					clearInterval(pingInterval);
-					ptyProcess.kill();
-				});
-				ws.on("message", (message) => {
-					try {
-						let command: string | Buffer[] | Buffer | ArrayBuffer;
-						if (Buffer.isBuffer(message)) {
-							command = message.toString("utf8");
-						} else {
-							command = message;
-						}
-						ptyProcess.write(command.toString());
-					} catch (error) {
-						// @ts-ignore
-						const errorMessage = error?.message as unknown as string;
-						ws.send(errorMessage);
-					}
-				});
+				const pty = bindPtyLifecycle(ws, ptyProcess, () =>
+					clearInterval(pingInterval),
+				);
+				attachTerminalResize(ws, pty.resize);
 			}
 		} catch (error) {
-			// @ts-ignore
-			const errorMessage = error?.message as unknown as string;
-
-			ws.send(errorMessage);
+			ws.send(getErrorMessage(error));
 		}
 	});
 };

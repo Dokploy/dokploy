@@ -1,10 +1,101 @@
 import { describe, expect, it } from "vitest";
+import { tryResizeTerminal } from "../../server/wss/terminal-transport";
 import {
+	getTerminalSize,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
 	isValidTail,
+	parseTerminalResize,
 } from "../../server/wss/utils";
+
+describe("terminal dimensions", () => {
+	it("uses valid initial dimensions", () => {
+		expect(getTerminalSize(new URLSearchParams("cols=120&rows=40"))).toEqual({
+			cols: 120,
+			rows: 40,
+		});
+	});
+
+	it("falls back for missing or invalid initial dimensions", () => {
+		expect(getTerminalSize(new URLSearchParams())).toEqual({
+			cols: 80,
+			rows: 24,
+		});
+		expect(getTerminalSize(new URLSearchParams("cols=0&rows=0"))).toEqual({
+			cols: 80,
+			rows: 24,
+		});
+		expect(getTerminalSize(new URLSearchParams("cols=10x&rows=-1"))).toEqual({
+			cols: 80,
+			rows: 24,
+		});
+	});
+
+	it("clamps oversized initial dimensions to the maximum", () => {
+		expect(
+			getTerminalSize(new URLSearchParams("cols=999999&rows=999999")),
+		).toEqual({
+			cols: 500,
+			rows: 200,
+		});
+	});
+
+	it("accepts valid resize control messages", () => {
+		expect(
+			parseTerminalResize('{"type":"resize","cols":160,"rows":50}'),
+		).toEqual({ cols: 160, rows: 50 });
+	});
+
+	it("does not mistake terminal input for resize control messages", () => {
+		expect(parseTerminalResize("ls -la\r")).toBeNull();
+		expect(parseTerminalResize("")).toBeNull();
+	});
+
+	it("handles resize failures without throwing", () => {
+		const successfulTerminal = {
+			resize: (cols: number, rows: number) => {
+				expect({ cols, rows }).toEqual({ cols: 120, rows: 40 });
+			},
+		};
+		const exitedTerminal = {
+			resize: () => {
+				throw new Error("ioctl(2) failed, EBADF");
+			},
+		};
+
+		expect(tryResizeTerminal(successfulTerminal, { cols: 120, rows: 40 })).toBe(
+			true,
+		);
+		expect(tryResizeTerminal(exitedTerminal, { cols: 120, rows: 40 })).toBe(
+			false,
+		);
+	});
+
+	it("rejects malformed resize messages", () => {
+		expect(parseTerminalResize("not-json")).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"input","cols":80,"rows":24}'),
+		).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"resize","cols":0,"rows":24}'),
+		).toBeNull();
+		expect(
+			parseTerminalResize('{"type":"resize","cols":80.5,"rows":24}'),
+		).toBeNull();
+	});
+
+	it("clamps oversized resize messages instead of rejecting them", () => {
+		// Rejecting would demote the message to terminal input and type the
+		// raw JSON into the shell on every resize of an oversized viewport.
+		expect(
+			parseTerminalResize('{"type":"resize","cols":900,"rows":201}'),
+		).toEqual({ cols: 500, rows: 200 });
+		expect(
+			parseTerminalResize('{"type":"resize","cols":900,"rows":50}'),
+		).toEqual({ cols: 500, rows: 50 });
+	});
+});
 
 describe("isValidTail (docker-container-logs)", () => {
 	it("accepts valid numeric tail values", () => {

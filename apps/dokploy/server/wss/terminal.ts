@@ -11,10 +11,12 @@ import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
 import {
-	parseResizeMessage,
-	parseTerminalSize,
-	setupLocalServerSSHKey,
-} from "./utils";
+	attachTerminalInput,
+	bindSshConnectionLifecycle,
+	SSH_READY_TIMEOUT_MS,
+	sshTerminalTarget,
+} from "./terminal-transport";
+import { getTerminalSize, setupLocalServerSSHKey } from "./utils";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
 # ----------------------------------------
@@ -33,20 +35,19 @@ sudo chown -R $USER:$USER /etc/dokploy/ssh
 `;
 
 export const getPublicIpWithFallback = async () => {
-	// @ts-ignore
-	let ip = null;
+	let ip: string | null = null;
 	try {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
 			"Error to obtain public IPv4 address, falling back to IPv6",
-			// @ts-ignore
+			// @ts-expect-error
 			error.message,
 		);
 		try {
 			ip = await publicIpv6();
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			console.error("Error to obtain public IPv6 address", error.message);
 			ip = null;
 		}
@@ -56,7 +57,7 @@ export const getPublicIpWithFallback = async () => {
 
 export const getLocalServerIp = async () => {
 	try {
-		const command = `ip addr show | grep -E "inet (192\.168\.|10\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
+		const command = `ip addr show | grep -E "inet (192.168.|10.|172.1[6-9].|172.2[0-9].|172.3[0-1].)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
 		const { stdout } = await execAsync(command);
 		const ip = stdout.trim();
 		return (
@@ -92,10 +93,7 @@ export const setupTerminalWebSocketServer = (
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const serverId = url.searchParams.get("serverId");
-		const { cols, rows } = parseTerminalSize(
-			url.searchParams.get("cols"),
-			url.searchParams.get("rows"),
-		);
+		const { cols, rows } = getTerminalSize(url.searchParams);
 		const { user, session } = await validateRequest(req);
 		if (!user || !session || !serverId) {
 			ws.close();
@@ -188,62 +186,57 @@ export const setupTerminalWebSocketServer = (
 		}
 
 		const conn = new Client();
-		let _stdout = "";
-		let _stderr = "";
+		const lifecycle = bindSshConnectionLifecycle(ws, conn);
+		if (!lifecycle.isActive()) return;
 
 		ws.send("Connecting...\n");
 
 		conn
 			.once("ready", () => {
+				if (!lifecycle.isActive()) return;
+
 				// Clear terminal content once connected
 				ws.send("\x1bc");
 
-				conn.shell({ cols, rows }, (err, stream) => {
-					if (err) throw err;
+				conn.shell({ term: "xterm-256color", cols, rows }, (err, stream) => {
+					if (err) {
+						if (lifecycle.isActive()) {
+							ws.send(`SSH shell error: ${err.message}`);
+							ws.close();
+						}
+						lifecycle.close();
+						return;
+					}
+					if (!lifecycle.setStream(stream)) return;
 
 					stream
 						.on("close", (code: number, _signal: string) => {
-							ws.send(`\nContainer closed with code: ${code}\n`);
+							if (ws.readyState === ws.OPEN) {
+								ws.send(`\nContainer closed with code: ${code}\n`);
+							}
 							conn.end();
+							if (ws.readyState === ws.OPEN) {
+								ws.close();
+							}
 						})
 						.on("data", (data: string) => {
-							_stdout += data.toString();
-							ws.send(data.toString());
+							if (ws.readyState === ws.OPEN) {
+								ws.send(data.toString());
+							}
 						})
 						.stderr.on("data", (data) => {
-							_stderr += data.toString();
-							ws.send(data.toString());
+							if (ws.readyState === ws.OPEN) {
+								ws.send(data.toString());
+							}
 							console.error("Error: ", data.toString());
 						});
 
-					ws.on("message", (message) => {
-						try {
-							let command: string | Buffer[] | Buffer | ArrayBuffer;
-							if (Buffer.isBuffer(message)) {
-								command = message.toString("utf8");
-							} else {
-								command = message;
-							}
-							const text = command.toString();
-							const resize = parseResizeMessage(text);
-							if (resize) {
-								stream.setWindow(resize.rows, resize.cols, 0, 0);
-								return;
-							}
-							stream.write(text);
-						} catch (error) {
-							// @ts-ignore
-							const errorMessage = error?.message as unknown as string;
-							ws.send(errorMessage);
-						}
-					});
-
-					ws.on("close", () => {
-						stream.end();
-					});
+					attachTerminalInput(ws, sshTerminalTarget(stream));
 				});
 			})
 			.on("error", (err) => {
+				if (!lifecycle.isActive()) return;
+
 				if (err.level === "client-authentication") {
 					if (isLocalServer) {
 						ws.send(
@@ -257,8 +250,12 @@ export const setupTerminalWebSocketServer = (
 				} else {
 					ws.send(`SSH connection error: ${err.message} ❌ `);
 				}
-				conn.end();
+				ws.close();
+				lifecycle.close();
 			})
-			.connect(connectionDetails);
+			.connect({
+				...connectionDetails,
+				readyTimeout: SSH_READY_TIMEOUT_MS,
+			});
 	});
 };
