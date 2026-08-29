@@ -58,9 +58,15 @@ type AddProject = z.infer<typeof AddProjectSchema>;
 
 interface Props {
 	projectId?: string;
+	buttonClassName?: string;
+	buttonLabel?: string;
 }
 
-export const HandleProject = ({ projectId }: Props) => {
+export const HandleProject = ({
+	projectId,
+	buttonClassName,
+	buttonLabel,
+}: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -164,9 +170,9 @@ export const HandleProject = ({ projectId }: Props) => {
 						<span>Update</span>
 					</DropdownMenuItem>
 				) : (
-					<Button>
+					<Button className={buttonClassName}>
 						<PlusIcon className="h-4 w-4" />
-						Create Project
+						{buttonLabel ?? "Create Project"}
 					</Button>
 				)}
 			</DialogTrigger>

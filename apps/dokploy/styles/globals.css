@@ -136,6 +136,16 @@ body[data-scroll-locked] [data-slot="sidebar-inset"] {
 	overflow: hidden !important;
 }
 
+/* The Railway-inspired Projects surface owns its full-width shell. */
+.projects-page > [data-slot="sidebar"] {
+	display: none;
+}
+
+.projects-page > [data-slot="sidebar-inset"] {
+	margin: 0;
+	border-radius: 0;
+}
+
 @utility no-scrollbar {
 	/* Chrome, Safari and Opera */
 	&::-webkit-scrollbar {

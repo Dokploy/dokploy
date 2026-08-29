@@ -254,6 +254,7 @@ export const projectRouter = createTRPCRouter({
 								),
 								columns: {
 									applicationId: true,
+									icon: true,
 									name: true,
 									applicationStatus: true,
 								},

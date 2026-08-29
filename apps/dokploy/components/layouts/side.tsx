@@ -972,6 +972,7 @@ export default function Page({ children }: Props) {
 
 	return (
 		<SidebarProvider
+			className={cn(pathname === "/dashboard/projects" && "projects-page")}
 			defaultOpen={defaultOpen}
 			open={defaultOpen}
 			onOpenChange={(open) => {
