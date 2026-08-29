@@ -4,7 +4,6 @@ import { sleep } from "../process/execAsync";
 const DEFAULT_MONITOR_NS = 30_000_000_000;
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const MIN_UPDATE_TIMEOUT_MS = 2 * 60 * 1_000;
-const MAX_UPDATE_TIMEOUT_MS = 60 * 60 * 1_000;
 const UPDATE_TIMEOUT_BUFFER_MS = 60 * 1_000;
 
 type SwarmUpdateConfig = {
@@ -18,7 +17,9 @@ type SwarmServiceInfo = {
 	UpdateStatus?: {
 		State?: string;
 		Message?: string;
+		StartedAt?: string;
 	};
+	Spec?: { TaskTemplate?: { ForceUpdate?: number } };
 };
 
 type SwarmTask = {
@@ -50,7 +51,7 @@ const failedUpdateStates = new Set([
 const failedTaskStates = new Set(["failed", "rejected", "orphaned"]);
 
 const nanosecondsToMilliseconds = (value: number | undefined) =>
-	(value ?? DEFAULT_MONITOR_NS) / 1_000_000;
+	Math.max(0, value ?? DEFAULT_MONITOR_NS) / 1_000_000;
 
 const getPhaseTimeoutMs = (
 	config: SwarmUpdateConfig | undefined,
@@ -62,7 +63,7 @@ const getPhaseTimeoutMs = (
 			? 1
 			: Math.max(1, Math.ceil(Math.max(1, replicas) / parallelism));
 	const monitorMs = nanosecondsToMilliseconds(config?.Monitor);
-	const delayMs = (config?.Delay ?? 0) / 1_000_000;
+	const delayMs = Math.max(0, config?.Delay ?? 0) / 1_000_000;
 
 	return batches * monitorMs + Math.max(0, batches - 1) * delayMs;
 };
@@ -81,10 +82,7 @@ export const getSwarmServiceUpdateTimeoutMs = ({
 		getPhaseTimeoutMs(rollbackConfig, replicas) +
 		UPDATE_TIMEOUT_BUFFER_MS;
 
-	return Math.min(
-		MAX_UPDATE_TIMEOUT_MS,
-		Math.max(MIN_UPDATE_TIMEOUT_MS, calculatedTimeout),
-	);
+	return Math.max(MIN_UPDATE_TIMEOUT_MS, calculatedTimeout);
 };
 
 const getLatestTaskFailure = async (
@@ -156,6 +154,7 @@ export const waitForSwarmServiceUpdate = async (
 	const nowFn = options.nowFn ?? Date.now;
 	const startedAt = nowFn();
 	let lastState = "pending";
+	let operationStartedAt: string | undefined;
 
 	while (nowFn() - startedAt < options.timeoutMs) {
 		const inspect = (await service.inspect()) as SwarmServiceInfo;
@@ -164,6 +163,34 @@ export const waitForSwarmServiceUpdate = async (
 		if (version > options.previousVersion) {
 			const state = inspect.UpdateStatus?.State;
 			lastState = state ?? "pending";
+			const currentForceUpdate = inspect.Spec?.TaskTemplate?.ForceUpdate;
+			const currentOperationStartedAt = inspect.UpdateStatus?.StartedAt;
+
+			if (!operationStartedAt) {
+				const isExpectedUpdate =
+					currentForceUpdate === options.expectedForceUpdate;
+				const isExpectedRollback =
+					state?.startsWith("rollback_") &&
+					Boolean(
+						await getLatestTaskFailure(
+							docker,
+							service.id,
+							options.expectedForceUpdate,
+						),
+					);
+
+				if (!isExpectedUpdate && !isExpectedRollback) {
+					throw new Error(
+						"Swarm service update was superseded by another operation",
+					);
+				}
+
+				operationStartedAt = currentOperationStartedAt;
+			} else if (currentOperationStartedAt !== operationStartedAt) {
+				throw new Error(
+					"Swarm service update was superseded by another operation",
+				);
+			}
 
 			if (state === "completed") return;
 			if (state && failedUpdateStates.has(state)) {
