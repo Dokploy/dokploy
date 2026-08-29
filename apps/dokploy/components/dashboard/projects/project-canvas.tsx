@@ -1,17 +1,35 @@
+import copy from "copy-to-clipboard";
 import {
 	Archive,
 	Atom,
+	Ban,
+	BarChart3,
+	Boxes,
+	Braces,
+	Copy,
 	Database,
 	Grip,
 	HardDrive,
 	Layers3,
+	Link2,
 	Maximize2,
 	Minus,
+	Network,
+	Play,
 	Plus,
 	Redo2,
+	RotateCcw,
 	Server,
+	Settings,
+	SlidersHorizontal,
+	SquareTerminal,
+	Trash2,
 	Undo2,
+	Unlink,
+	Wrench,
+	Zap,
 } from "lucide-react";
+import { useRouter } from "next/router";
 import {
 	type ComponentType,
 	type PointerEvent,
@@ -22,7 +40,25 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { toast } from "sonner";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuSub,
+	ContextMenuSubContent,
+	ContextMenuSubTrigger,
+	ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type CanvasService = {
 	id: string;
@@ -30,10 +66,23 @@ export type CanvasService = {
 	type: string;
 	status?: string;
 	icon?: string | null;
+	serverIp?: string | null;
+	serverName?: string | null;
+	serverUsername?: string | null;
 };
 
 interface ProjectCanvasProps {
+	canDelete?: boolean;
+	canDeploy?: boolean;
+	environmentId?: string;
+	onDeleteService?: (node: CanvasNode) => void;
+	onDuplicateService?: (node: CanvasNode) => void;
+	onServiceAction?: (
+		node: CanvasNode,
+		action: "start" | "stop" | "deploy",
+	) => void;
 	projectName: string;
+	projectId?: string;
 	environmentName: string;
 	services: CanvasService[];
 }
@@ -47,6 +96,10 @@ type CanvasNode = {
 	volume?: string;
 	type: string;
 	icon?: string | null;
+	serviceId?: string;
+	serverIp?: string | null;
+	serverName?: string | null;
+	serverUsername?: string | null;
 	left: number;
 	top: number;
 };
@@ -64,15 +117,29 @@ type CanvasNodeRect = CanvasPosition & {
 type CanvasEdge = {
 	bidirectional?: boolean;
 	id: string;
+	kind: "network" | "variable";
 	source: string;
 	target: string;
 };
 
 type CanvasDragState = {
 	id: string;
+	startPositions: Record<string, CanvasPosition>;
 	startPosition: CanvasPosition;
 	startX: number;
 	startY: number;
+	startZoom: number;
+};
+
+type CanvasPanState = {
+	originX: number;
+	originY: number;
+	startX: number;
+	startY: number;
+};
+
+type CanvasHistoryEntry = {
+	positions: Record<string, CanvasPosition>;
 };
 
 type IconComponent = ComponentType<{ className?: string }>;
@@ -166,6 +233,7 @@ const buildNodes = (services: CanvasService[]): CanvasNode[] => {
 
 		return {
 			id: `${service.type}-${service.id}`,
+			serviceId: service.id,
 			title: service.name,
 			subtitle: isStorage ? undefined : service.type,
 			metric: isStorage ? "5.2 MB" : undefined,
@@ -177,6 +245,9 @@ const buildNodes = (services: CanvasService[]): CanvasNode[] => {
 			volume: normalizedType === "postgres" ? "postgres-volume" : undefined,
 			type: isStorage ? "bucket" : normalizedType,
 			icon: service.icon,
+			serverIp: service.serverIp,
+			serverName: service.serverName,
+			serverUsername: service.serverUsername,
 			left: position.left,
 			top: position.top,
 		};
@@ -204,6 +275,7 @@ const buildEdges = (nodes: CanvasNode[]): CanvasEdge[] => {
 		source: CanvasNode | undefined,
 		target: CanvasNode | undefined,
 		bidirectional = false,
+		kind: CanvasEdge["kind"] = "network",
 	) => {
 		if (!source || !target || source.id === target.id) return;
 		if (
@@ -216,6 +288,7 @@ const buildEdges = (nodes: CanvasNode[]): CanvasEdge[] => {
 		edges.push({
 			bidirectional,
 			id: `${source.id}-${target.id}`,
+			kind,
 			source: source.id,
 			target: target.id,
 		});
@@ -227,9 +300,9 @@ const buildEdges = (nodes: CanvasNode[]): CanvasEdge[] => {
 	const postgres = nodes.find((node) => node.type === "postgres");
 	const primary = compose ?? application ?? nodes[0];
 
-	addEdge(application, compose, true);
-	addEdge(primary, bucket);
-	addEdge(primary, postgres);
+	addEdge(application, compose, true, "network");
+	addEdge(primary, bucket, false, "variable");
+	addEdge(primary, postgres, false, "variable");
 
 	if (edges.length === 0) {
 		for (let index = 1; index < nodes.length; index += 1) {
@@ -280,21 +353,97 @@ const getOrthogonalPath = (source: CanvasNodeRect, target: CanvasNodeRect) => {
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(Math.max(value, min), Math.max(min, max));
 
+const CANVAS_GRID_SIZE = 36;
+const CANVAS_MIN_ZOOM = 0.7;
+const CANVAS_MAX_ZOOM = 1.25;
+const CANVAS_ZOOM_STEP = 0.1;
+const CANVAS_PAN_SPEED = 0.8;
+const CANVAS_MAX_PAN_SPEED = 2109.01;
+const CANVAS_PINCH_ZOOM_RATE = 6.2935;
+const CANVAS_PINCH_ZOOM_MULTIPLIER = 10;
+const CANVAS_PINCH_ZOOM_SPEED =
+	(Math.log1p(CANVAS_PINCH_ZOOM_RATE) / 1000) * CANVAS_PINCH_ZOOM_MULTIPLIER;
+
+const isCanvasViewport = (
+	value: unknown,
+): value is { x: number; y: number; zoom: number } =>
+	typeof value === "object" &&
+	value !== null &&
+	"x" in value &&
+	"y" in value &&
+	"zoom" in value &&
+	typeof value.x === "number" &&
+	typeof value.y === "number" &&
+	typeof value.zoom === "number" &&
+	Number.isFinite(value.x) &&
+	Number.isFinite(value.y) &&
+	Number.isFinite(value.zoom) &&
+	value.zoom >= CANVAS_MIN_ZOOM &&
+	value.zoom <= CANVAS_MAX_ZOOM;
+
+const snapCanvasPosition = (
+	position: CanvasPosition,
+	layer: HTMLDivElement,
+) => {
+	const width = layer.clientWidth;
+	const height = layer.clientHeight;
+	if (width === 0 || height === 0) return position;
+
+	const snappedLeft =
+		Math.round(((position.left / 100) * width) / CANVAS_GRID_SIZE) *
+		CANVAS_GRID_SIZE;
+	const snappedTop =
+		Math.round(((position.top / 100) * height) / CANVAS_GRID_SIZE) *
+		CANVAS_GRID_SIZE;
+
+	return {
+		left: (snappedLeft / width) * 100,
+		top: (snappedTop / height) * 100,
+	};
+};
+
+const canvasPositionFromPixels = (
+	x: number,
+	y: number,
+	layer: HTMLDivElement,
+) =>
+	snapCanvasPosition(
+		{
+			left: (x / layer.clientWidth) * 100,
+			top: (y / layer.clientHeight) * 100,
+		},
+		layer,
+	);
+
 interface CanvasNodeCardProps {
+	canDelete: boolean;
+	canDeploy: boolean;
 	dragging: boolean;
+	onAction: (action: "start" | "stop" | "deploy") => void;
+	onDuplicate: () => void;
+	onGroupToggle: () => void;
+	onOpenService: (tab?: string) => void;
 	node: CanvasNode;
 	nodeRef: (element: HTMLButtonElement | null) => void;
 	onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
+	onDelete: () => void;
 	position: CanvasPosition;
 	selected: boolean;
 	onSelect: () => void;
 }
 
 const CanvasNodeCard = ({
+	canDelete,
+	canDeploy,
 	dragging,
+	onAction,
+	onDuplicate,
+	onGroupToggle,
+	onOpenService,
 	node,
 	nodeRef,
 	onPointerDown,
+	onDelete,
 	position,
 	selected,
 	onSelect,
@@ -303,71 +452,197 @@ const CanvasNodeCard = ({
 	const iconClass = nodeIconClassMap[node.type] ?? "text-[#d7d2e7]";
 	const nodeIsOnline = isOnline(node.status);
 	const minHeightClass = node.volume ? "min-h-[158px]" : "min-h-[118px]";
+	const contextMenuItemClass =
+		"min-h-9 gap-2.5 rounded-md px-2.5 text-sm font-normal text-[#a7a2b3] focus:bg-white/[0.07] focus:text-white";
 
 	return (
-		<button
-			aria-pressed={selected}
-			aria-label={`Select ${node.title}`}
-			aria-grabbed={dragging}
-			className={`absolute flex ${minHeightClass} w-[clamp(230px,23.2vw,480px)] touch-none select-none flex-col overflow-hidden rounded-2xl border bg-[#1c1a27]/95 text-left shadow-[0_12px_34px_rgba(0,0,0,0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4] ${dragging ? "cursor-grabbing" : "cursor-grab"} lg:min-h-[200px] ${selected ? "border-[#a667e4]/80 shadow-[0_0_0_2px_rgba(166,103,228,0.2),0_12px_34px_rgba(0,0,0,0.22)]" : "border-white/[0.14] hover:border-white/[0.25] hover:bg-[#211f2d]"}`}
-			onClick={onSelect}
-			onPointerDown={onPointerDown}
-			ref={nodeRef}
-			style={{ left: `${position.left}%`, top: `${position.top}%` }}
-			type="button"
-		>
-			<div className="flex items-start gap-4 px-6 pb-0 pt-6 lg:px-8 lg:pb-0 lg:pt-7">
-				<div className={`mt-0.5 shrink-0 ${iconClass}`}>
-					{node.icon ? (
-						<img
-							alt=""
-							className="size-7 object-contain lg:size-8"
-							src={node.icon}
-						/>
-					) : (
-						<Icon className="size-7 lg:size-8" />
-					)}
-				</div>
-				<div className="min-w-0">
-					<div className="truncate text-base font-semibold tracking-[-0.01em] text-white lg:text-xl">
-						{node.title}
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<button
+					aria-pressed={selected}
+					aria-label={`Select ${node.title}`}
+					aria-grabbed={dragging}
+					className={`absolute flex ${minHeightClass} w-[clamp(230px,23.2vw,480px)] touch-none select-none flex-col overflow-hidden rounded-2xl border bg-[#1c1a27]/95 text-left shadow-[0_12px_34px_rgba(0,0,0,0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4] ${dragging ? "cursor-grabbing" : "cursor-grab"} lg:min-h-[200px] ${selected ? "border-[#a667e4]/80 shadow-[0_0_0_2px_rgba(166,103,228,0.2),0_12px_34px_rgba(0,0,0,0.22)]" : "border-white/[0.14] hover:border-white/[0.25] hover:bg-[#211f2d]"}`}
+					onClick={onSelect}
+					onPointerDown={onPointerDown}
+					ref={nodeRef}
+					style={{ left: `${position.left}%`, top: `${position.top}%` }}
+					type="button"
+				>
+					<div className="flex items-start gap-4 px-6 pb-0 pt-6 lg:px-8 lg:pb-0 lg:pt-7">
+						<div className={`mt-0.5 shrink-0 ${iconClass}`}>
+							{node.icon ? (
+								<img
+									alt=""
+									className="size-7 object-contain lg:size-8"
+									src={node.icon}
+								/>
+							) : (
+								<Icon className="size-7 lg:size-8" />
+							)}
+						</div>
+						<div className="min-w-0">
+							<div className="truncate text-base font-semibold tracking-[-0.01em] text-white lg:text-xl">
+								{node.title}
+							</div>
+							{node.subtitle && (
+								<div className="truncate text-sm text-[#9a96a9] lg:text-base">
+									{node.subtitle}
+								</div>
+							)}
+						</div>
 					</div>
-					{node.subtitle && (
-						<div className="truncate text-sm text-[#9a96a9] lg:text-base">
-							{node.subtitle}
+
+					{node.metric && (
+						<div className="mt-auto px-6 pb-7 text-sm text-[#a5a0b0] lg:px-8 lg:text-base">
+							{node.metric}
 						</div>
 					)}
-				</div>
-			</div>
 
-			{node.metric && (
-				<div className="mt-auto px-6 pb-7 text-sm text-[#a5a0b0] lg:px-8 lg:text-base">
-					{node.metric}
-				</div>
-			)}
+					{node.status && (
+						<div className="mt-auto flex items-center gap-3 px-6 pb-5 text-sm lg:px-8 lg:pb-6 lg:text-base">
+							<span
+								className={`flex size-2.5 items-center justify-center rounded-full ${nodeIsOnline ? "bg-[#1e765e]/40" : "bg-[#95623c]/40"}`}
+							>
+								<span
+									className={`size-1.5 rounded-full ${nodeIsOnline ? "bg-[#41bb8d]" : "bg-[#d99a52]"}`}
+								/>
+							</span>
+							<span
+								className={nodeIsOnline ? "text-[#55bd95]" : "text-[#dda15f]"}
+							>
+								{node.status}
+							</span>
+						</div>
+					)}
 
-			{node.status && (
-				<div className="mt-auto flex items-center gap-3 px-6 pb-5 text-sm lg:px-8 lg:pb-6 lg:text-base">
-					<span
-						className={`flex size-2.5 items-center justify-center rounded-full ${nodeIsOnline ? "bg-[#1e765e]/40" : "bg-[#95623c]/40"}`}
+					{node.volume && (
+						<div className="mt-auto flex items-center gap-3 border-t border-white/[0.09] px-6 py-4 text-sm text-[#858091] lg:px-8 lg:py-5 lg:text-base">
+							<HardDrive className="size-4 lg:size-5" />
+							<span className="truncate">{node.volume}</span>
+						</div>
+					)}
+				</button>
+			</ContextMenuTrigger>
+
+			<ContextMenuContent className="w-[260px] rounded-lg border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
+				<ContextMenuSub>
+					<ContextMenuSubTrigger className={contextMenuItemClass}>
+						<Boxes className="size-4" strokeWidth={1.7} />
+						<span>Group</span>
+					</ContextMenuSubTrigger>
+					<ContextMenuSubContent className="w-[220px] rounded-lg border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
+						<ContextMenuItem
+							className={contextMenuItemClass}
+							onSelect={onGroupToggle}
+						>
+							<Boxes className="size-4" strokeWidth={1.7} />
+							<span>{selected ? "Remove from group" : "Select for group"}</span>
+						</ContextMenuItem>
+					</ContextMenuSubContent>
+				</ContextMenuSub>
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					onSelect={() => {
+						const target = node.serverIp || node.serverName || "localhost";
+						const username = node.serverUsername || "root";
+						copy(`ssh ${username}@${target}`);
+						toast.success("SSH command copied");
+					}}
+				>
+					<SquareTerminal className="size-4" strokeWidth={1.7} />
+					<span>Copy SSH Command</span>
+				</ContextMenuItem>
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={() => onOpenService("advanced")}
+				>
+					<HardDrive className="size-4" strokeWidth={1.7} />
+					<span>Attach volume</span>
+				</ContextMenuItem>
+				{canDeploy && (
+					<ContextMenuSub>
+						<ContextMenuSubTrigger className={contextMenuItemClass}>
+							<SlidersHorizontal className="size-4" strokeWidth={1.7} />
+							<span>Config</span>
+						</ContextMenuSubTrigger>
+						<ContextMenuSubContent className="w-[180px] rounded-lg border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]">
+							<ContextMenuItem
+								className={contextMenuItemClass}
+								onSelect={() => onAction("start")}
+							>
+								<Play className="size-4" strokeWidth={1.7} />
+								<span>Start</span>
+							</ContextMenuItem>
+							<ContextMenuItem
+								className={contextMenuItemClass}
+								onSelect={() => onAction("stop")}
+							>
+								<Ban className="size-4" strokeWidth={1.7} />
+								<span>Stop</span>
+							</ContextMenuItem>
+						</ContextMenuSubContent>
+					</ContextMenuSub>
+				)}
+				{canDeploy && <ContextMenuSeparator className="my-1 bg-white/[0.09]" />}
+				{canDeploy && (
+					<ContextMenuItem
+						className={contextMenuItemClass}
+						onSelect={() => onAction("deploy")}
 					>
-						<span
-							className={`size-1.5 rounded-full ${nodeIsOnline ? "bg-[#41bb8d]" : "bg-[#d99a52]"}`}
-						/>
-					</span>
-					<span className={nodeIsOnline ? "text-[#55bd95]" : "text-[#dda15f]"}>
-						{node.status}
-					</span>
-				</div>
-			)}
-
-			{node.volume && (
-				<div className="mt-auto flex items-center gap-3 border-t border-white/[0.09] px-6 py-4 text-sm text-[#858091] lg:px-8 lg:py-5 lg:text-base">
-					<HardDrive className="size-4 lg:size-5" />
-					<span className="truncate">{node.volume}</span>
-				</div>
-			)}
-		</button>
+						<Zap className="size-4" strokeWidth={1.7} />
+						<span>Latest deploy</span>
+					</ContextMenuItem>
+				)}
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={() => onOpenService("environment")}
+				>
+					<Braces className="size-4" strokeWidth={1.7} />
+					<span>View Variables</span>
+				</ContextMenuItem>
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={() => onOpenService("monitoring")}
+				>
+					<BarChart3 className="size-4" strokeWidth={1.7} />
+					<span>View Metrics</span>
+				</ContextMenuItem>
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={() => onOpenService("general")}
+				>
+					<Settings className="size-4" strokeWidth={1.7} />
+					<span>View Settings</span>
+				</ContextMenuItem>
+				<ContextMenuSeparator className="my-1 bg-white/[0.09]" />
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={onDuplicate}
+				>
+					<Copy className="size-4" strokeWidth={1.7} />
+					<span>Duplicate</span>
+				</ContextMenuItem>
+				{canDelete && (
+					<>
+						<ContextMenuSeparator className="my-1 bg-white/[0.09]" />
+						<ContextMenuItem
+							className={`${contextMenuItemClass} text-red-500 focus:bg-red-500/10 focus:text-red-400`}
+							disabled={!node.serviceId}
+							onSelect={onDelete}
+						>
+							<Trash2 className="size-4" strokeWidth={1.7} />
+							<span>Delete Service</span>
+						</ContextMenuItem>
+					</>
+				)}
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 };
 
@@ -398,12 +673,24 @@ const CanvasControl = ({
 );
 
 export const ProjectCanvas = ({
+	canDelete = true,
+	canDeploy = true,
+	environmentId,
+	onDeleteService,
+	onDuplicateService,
+	onServiceAction,
 	projectName,
+	projectId,
 	environmentName,
 	services,
 }: ProjectCanvasProps) => {
+	const router = useRouter();
 	const [zoom, setZoom] = useState(1);
+	const [pan, setPan] = useState({ x: 0, y: 0 });
 	const [showGrid, setShowGrid] = useState(true);
+	const [showConnections, setShowConnections] = useState(true);
+	const [showNetworkTraffic, setShowNetworkTraffic] = useState(true);
+	const [showVariableReferences, setShowVariableReferences] = useState(true);
 	const [selectedNode, setSelectedNode] = useState<string | null>(null);
 	const [isAddOpen, setIsAddOpen] = useState(false);
 	const nodes = useMemo(() => buildNodes(services), [services]);
@@ -424,23 +711,111 @@ export const ProjectCanvas = ({
 		{},
 	);
 	const [canvasSize, setCanvasSize] = useState({ height: 1, width: 1 });
+	const [panState, setPanState] = useState<CanvasPanState | null>(null);
+	const [history, setHistory] = useState<CanvasHistoryEntry[]>([]);
+	const [redoHistory, setRedoHistory] = useState<CanvasHistoryEntry[]>([]);
 	const canvasRef = useRef<HTMLDivElement>(null);
 	const nodeLayerRef = useRef<HTMLDivElement>(null);
 	const nodeRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 	const dragMovedRef = useRef(false);
+	const panTimestampRef = useRef<number | null>(null);
+	const pinchTimestampRef = useRef<number | null>(null);
+
+	const getServiceHref = useCallback(
+		(node: CanvasNode, tab?: string) => {
+			if (!projectId || !environmentId || !node.serviceId) return null;
+			if (
+				node.type !== "application" &&
+				node.type !== "compose" &&
+				node.type !== "libsql" &&
+				node.type !== "mariadb" &&
+				node.type !== "mongo" &&
+				node.type !== "mysql" &&
+				node.type !== "postgres" &&
+				node.type !== "redis"
+			) {
+				return null;
+			}
+			const href = `/dashboard/project/${projectId}/environment/${environmentId}/services/${node.type}/${node.serviceId}`;
+			return tab ? `${href}?tab=${tab}` : href;
+		},
+		[environmentId, projectId],
+	);
+
+	const openService = useCallback(
+		(node: CanvasNode, tab?: string) => {
+			const href = getServiceHref(node, tab);
+			if (href) {
+				void router.push(href);
+				return;
+			}
+			toast.info("This action is available for deployed services only");
+		},
+		[getServiceHref, router],
+	);
+
+	const toggleNodeGroup = useCallback((nodeId: string) => {
+		setSelectedNode((currentNode) => (currentNode === nodeId ? null : nodeId));
+	}, []);
+
+	const toggleAllConnections = useCallback(() => {
+		setShowConnections((currentValue) => {
+			const nextValue = !currentValue;
+			if (nextValue) {
+				setShowNetworkTraffic(true);
+				setShowVariableReferences(true);
+			}
+			return nextValue;
+		});
+	}, []);
+
+	const getSnappedPositions = useCallback(
+		(positions: Record<string, CanvasPosition>) => {
+			const layer = nodeLayerRef.current;
+			if (!layer) return positions;
+
+			let changed = false;
+			const nextPositions = Object.fromEntries(
+				nodes.map((node) => {
+					const currentPosition =
+						positions[node.id] ??
+						({ left: node.left, top: node.top } satisfies CanvasPosition);
+					const nextPosition = snapCanvasPosition(currentPosition, layer);
+					if (
+						nextPosition.left !== currentPosition.left ||
+						nextPosition.top !== currentPosition.top
+					) {
+						changed = true;
+					}
+					return [node.id, nextPosition];
+				}),
+			) as Record<string, CanvasPosition>;
+
+			return changed ? nextPositions : positions;
+		},
+		[nodes],
+	);
 
 	useEffect(() => {
 		let storedPositions: Record<string, CanvasPosition> = {};
+		let storedViewport: { x: number; y: number; zoom: number } | null = null;
 		if (typeof window !== "undefined") {
 			try {
 				const storedValue = window.localStorage.getItem(storageKey);
 				if (storedValue) {
 					const parsed = JSON.parse(storedValue) as Record<string, unknown>;
+					const storedPositionSource =
+						parsed.positions && typeof parsed.positions === "object"
+							? parsed.positions
+							: parsed;
 					storedPositions = Object.fromEntries(
-						Object.entries(parsed).filter(([, value]) =>
+						Object.entries(storedPositionSource).filter(([, value]) =>
 							isCanvasPosition(value),
 						),
 					) as Record<string, CanvasPosition>;
+					storedViewport = isCanvasViewport(parsed.viewport)
+						? parsed.viewport
+						: null;
 				}
 			} catch {
 				storedPositions = {};
@@ -460,6 +835,12 @@ export const ProjectCanvas = ({
 					]),
 				) as Record<string, CanvasPosition>,
 		);
+		if (storedViewport) {
+			setPan({ x: storedViewport.x, y: storedViewport.y });
+			setZoom(storedViewport.zoom);
+		}
+		setHistory([]);
+		setRedoHistory([]);
 		setHydratedStorageKey(storageKey);
 	}, [nodes, storageKey]);
 
@@ -467,8 +848,18 @@ export const ProjectCanvas = ({
 		if (hydratedStorageKey !== storageKey || typeof window === "undefined") {
 			return;
 		}
-		window.localStorage.setItem(storageKey, JSON.stringify(nodePositions));
-	}, [hydratedStorageKey, nodePositions, storageKey]);
+		try {
+			window.localStorage.setItem(
+				storageKey,
+				JSON.stringify({
+					positions: nodePositions,
+					viewport: { ...pan, zoom },
+				}),
+			);
+		} catch {
+			// Local storage can be unavailable in private or restricted contexts.
+		}
+	}, [hydratedStorageKey, nodePositions, pan, storageKey, zoom]);
 
 	const measureLayout = useCallback(() => {
 		const layer = nodeLayerRef.current;
@@ -514,7 +905,10 @@ export const ProjectCanvas = ({
 			}
 			return nextRects;
 		});
-	}, [nodes]);
+		setNodePositions((currentPositions) =>
+			getSnappedPositions(currentPositions),
+		);
+	}, [getSnappedPositions, nodes]);
 
 	useEffect(() => {
 		measureLayout();
@@ -538,23 +932,30 @@ export const ProjectCanvas = ({
 		(event: PointerEvent<HTMLButtonElement>, node: CanvasNode) => {
 			if (event.button !== 0) return;
 			event.preventDefault();
+			event.stopPropagation();
 			try {
 				event.currentTarget.setPointerCapture(event.pointerId);
 			} catch {
 				// Pointer capture is not available in every embedded browser surface.
 			}
 			dragMovedRef.current = false;
+			const layer = nodeLayerRef.current;
+			const fallbackPosition = nodePositions[node.id] ?? {
+				left: node.left,
+				top: node.top,
+			};
 			setDragState({
 				id: node.id,
-				startPosition: nodePositions[node.id] ?? {
-					left: node.left,
-					top: node.top,
-				},
+				startPositions: nodePositions,
+				startPosition: layer
+					? snapCanvasPosition(fallbackPosition, layer)
+					: fallbackPosition,
 				startX: event.clientX,
 				startY: event.clientY,
+				startZoom: zoom,
 			});
 		},
-		[nodePositions],
+		[nodePositions, zoom],
 	);
 
 	useEffect(() => {
@@ -564,39 +965,43 @@ export const ProjectCanvas = ({
 			const layer = nodeLayerRef.current;
 			if (!layer || layer.clientWidth === 0 || layer.clientHeight === 0) return;
 			event.preventDefault();
-			const layerRect = layer.getBoundingClientRect();
 			const deltaLeft =
-				((event.clientX - dragState.startX) / layerRect.width) * 100;
+				((event.clientX - dragState.startX) /
+					dragState.startZoom /
+					layer.clientWidth) *
+				100;
 			const deltaTop =
-				((event.clientY - dragState.startY) / layerRect.height) * 100;
+				((event.clientY - dragState.startY) /
+					dragState.startZoom /
+					layer.clientHeight) *
+				100;
 			if (Math.abs(deltaLeft) > 0.2 || Math.abs(deltaTop) > 0.2) {
 				dragMovedRef.current = true;
 			}
 
-			const element = nodeRefs.current[dragState.id];
-			const widthPercent = element
-				? (element.offsetWidth / layer.clientWidth) * 100
-				: 0;
-			const heightPercent = element
-				? (element.offsetHeight / layer.clientHeight) * 100
-				: 0;
+			const nextPosition = snapCanvasPosition(
+				{
+					left: dragState.startPosition.left + deltaLeft,
+					top: dragState.startPosition.top + deltaTop,
+				},
+				layer,
+			);
 			setNodePositions((currentPositions) => ({
 				...currentPositions,
-				[dragState.id]: {
-					left: clamp(
-						dragState.startPosition.left + deltaLeft,
-						0,
-						100 - widthPercent,
-					),
-					top: clamp(
-						dragState.startPosition.top + deltaTop,
-						0,
-						100 - heightPercent,
-					),
-				},
+				[dragState.id]: nextPosition,
 			}));
 		};
-		const stopDragging = () => setDragState(null);
+		const stopDragging = () => {
+			if (dragMovedRef.current) {
+				setHistory((currentHistory) =>
+					[...currentHistory, { positions: dragState.startPositions }].slice(
+						-50,
+					),
+				);
+				setRedoHistory([]);
+			}
+			setDragState(null);
+		};
 
 		window.addEventListener("pointermove", handlePointerMove, {
 			passive: false,
@@ -610,6 +1015,410 @@ export const ProjectCanvas = ({
 		};
 	}, [dragState]);
 
+	const handleCanvasPointerDown = useCallback(
+		(event: PointerEvent<HTMLDivElement>) => {
+			if (event.button !== 0) return;
+			const target = event.target as HTMLElement;
+			if (target.closest("button")) return;
+
+			event.preventDefault();
+			try {
+				event.currentTarget.setPointerCapture(event.pointerId);
+			} catch {
+				// Pointer capture is not available in every embedded browser surface.
+			}
+			setPanState({
+				originX: pan.x,
+				originY: pan.y,
+				startX: event.clientX,
+				startY: event.clientY,
+			});
+		},
+		[pan.x, pan.y],
+	);
+
+	const handleCanvasPointerMove = useCallback(
+		(event: PointerEvent<HTMLDivElement>) => {
+			if (!panState || event.buttons === 0) return;
+			event.preventDefault();
+			setPan({
+				x: panState.originX + event.clientX - panState.startX,
+				y: panState.originY + event.clientY - panState.startY,
+			});
+		},
+		[panState],
+	);
+
+	const stopCanvasPan = useCallback(
+		(event?: PointerEvent<HTMLDivElement>) => {
+			if (!panState) return;
+			if (event?.currentTarget.hasPointerCapture(event.pointerId)) {
+				event.currentTarget.releasePointerCapture(event.pointerId);
+			}
+			setPanState(null);
+		},
+		[panState],
+	);
+
+	const zoomAtPoint = useCallback(
+		(clientX: number, clientY: number, nextZoom: number) => {
+			const canvas = canvasRef.current;
+			if (!canvas) return;
+			const rect = canvas.getBoundingClientRect();
+			const pointerX = clientX - rect.left;
+			const pointerY = clientY - rect.top;
+			const worldX = (pointerX - pan.x) / zoom;
+			const worldY = (pointerY - pan.y) / zoom;
+
+			setZoom(nextZoom);
+			setPan({
+				x: pointerX - worldX * nextZoom,
+				y: pointerY - worldY * nextZoom,
+			});
+		},
+		[pan.x, pan.y, zoom],
+	);
+
+	const handleCanvasWheel = useCallback(
+		(event: globalThis.WheelEvent) => {
+			const canvas = canvasRef.current;
+			if (!canvas) return;
+			event.preventDefault();
+			const deltaMultiplier =
+				event.deltaMode === 1
+					? 16
+					: event.deltaMode === 2
+						? canvas.clientHeight
+						: 1;
+			const deltaX = event.deltaX * deltaMultiplier * CANVAS_PAN_SPEED;
+			const deltaY = event.deltaY * deltaMultiplier * CANVAS_PAN_SPEED;
+			if (event.ctrlKey || event.metaKey) {
+				panTimestampRef.current = null;
+				const rect = canvas.getBoundingClientRect();
+				const now = performance.now();
+				const previousTimestamp = pinchTimestampRef.current;
+				const elapsedSeconds = previousTimestamp
+					? Math.min(0.05, Math.max(1 / 240, (now - previousTimestamp) / 1000))
+					: 1 / 60;
+				pinchTimestampRef.current = now;
+				const requestedLogDelta = -deltaY * CANVAS_PINCH_ZOOM_SPEED;
+				const maximumLogDelta =
+					Math.log1p(CANVAS_PINCH_ZOOM_RATE * elapsedSeconds) *
+					CANVAS_PINCH_ZOOM_MULTIPLIER;
+				const logDelta =
+					Math.sign(requestedLogDelta) *
+					Math.min(Math.abs(requestedLogDelta), maximumLogDelta);
+				const nextZoom = clamp(
+					zoom * Math.exp(logDelta),
+					CANVAS_MIN_ZOOM,
+					CANVAS_MAX_ZOOM,
+				);
+				if (nextZoom !== zoom) {
+					zoomAtPoint(event.clientX, event.clientY, nextZoom);
+				}
+				return;
+			}
+
+			pinchTimestampRef.current = null;
+			if (deltaX === 0 && deltaY === 0) return;
+			const now = performance.now();
+			const previousTimestamp = panTimestampRef.current;
+			const elapsedSeconds = previousTimestamp
+				? Math.min(0.05, Math.max(1 / 240, (now - previousTimestamp) / 1000))
+				: 1 / 60;
+			panTimestampRef.current = now;
+			const requestedDistance = Math.hypot(deltaX, deltaY);
+			const maximumDistance = CANVAS_MAX_PAN_SPEED * elapsedSeconds;
+			const panScale =
+				requestedDistance > maximumDistance
+					? maximumDistance / requestedDistance
+					: 1;
+			setPan((currentPan) => ({
+				x: currentPan.x - deltaX * panScale,
+				y: currentPan.y - deltaY * panScale,
+			}));
+		},
+		[zoom, zoomAtPoint],
+	);
+
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const wheelOptions: AddEventListenerOptions = {
+			capture: true,
+			passive: false,
+		};
+		canvas.addEventListener("wheel", handleCanvasWheel, wheelOptions);
+		return () => canvas.removeEventListener("wheel", handleCanvasWheel, true);
+	}, [handleCanvasWheel]);
+
+	const zoomAtCenter = useCallback(
+		(direction: "in" | "out") => {
+			const canvas = canvasRef.current;
+			if (!canvas) return;
+			const rect = canvas.getBoundingClientRect();
+			const factor =
+				direction === "in" ? 1 + CANVAS_ZOOM_STEP : 1 - CANVAS_ZOOM_STEP;
+			zoomAtPoint(
+				rect.left + rect.width / 2,
+				rect.top + rect.height / 2,
+				clamp(zoom * factor, CANVAS_MIN_ZOOM, CANVAS_MAX_ZOOM),
+			);
+		},
+		[zoom, zoomAtPoint],
+	);
+
+	const handleUndo = useCallback(() => {
+		const previous = history.at(-1);
+		if (!previous) return;
+		setHistory((currentHistory) => currentHistory.slice(0, -1));
+		setRedoHistory((currentHistory) => [
+			...currentHistory,
+			{ positions: nodePositions },
+		]);
+		setNodePositions(previous.positions);
+	}, [history, nodePositions]);
+
+	const handleRedo = useCallback(() => {
+		const next = redoHistory.at(-1);
+		if (!next) return;
+		setRedoHistory((currentHistory) => currentHistory.slice(0, -1));
+		setHistory((currentHistory) => [
+			...currentHistory,
+			{ positions: nodePositions },
+		]);
+		setNodePositions(next.positions);
+	}, [nodePositions, redoHistory]);
+
+	const rememberCurrentPositions = useCallback(() => {
+		setHistory((currentHistory) =>
+			[...currentHistory, { positions: nodePositions }].slice(-50),
+		);
+		setRedoHistory([]);
+	}, [nodePositions]);
+
+	const handleAutoLayout = useCallback(() => {
+		const layer = nodeLayerRef.current;
+		if (
+			!layer ||
+			layer.clientWidth === 0 ||
+			layer.clientHeight === 0 ||
+			nodes.length === 0
+		) {
+			return;
+		}
+
+		const sizes = new Map(
+			nodes.map((node) => {
+				const element = nodeRefs.current[node.id];
+				return [
+					node.id,
+					{
+						height: element?.offsetHeight ?? 1,
+						width: element?.offsetWidth ?? 1,
+					},
+				] as const;
+			}),
+		);
+		const getNodeSize = (node: CanvasNode) =>
+			sizes.get(node.id) ?? { height: 1, width: 1 };
+		const gap = CANVAS_GRID_SIZE * 2;
+		const snapPixels = (value: number) =>
+			Math.round(value / CANVAS_GRID_SIZE) * CANVAS_GRID_SIZE;
+		const coreNodeIds = new Set(
+			edges
+				.filter((edge) => edge.bidirectional)
+				.flatMap((edge) => [edge.source, edge.target]),
+		);
+		const coreNodes = nodes.filter((node) => coreNodeIds.has(node.id));
+		const primaryNode =
+			coreNodes.find((node) =>
+				edges.some(
+					(edge) => edge.source === node.id && !coreNodeIds.has(edge.target),
+				),
+			) ??
+			coreNodes.at(-1) ??
+			nodes[0];
+		const branchNodes = primaryNode
+			? nodes.filter(
+					(node) =>
+						!coreNodeIds.has(node.id) &&
+						edges.some(
+							(edge) =>
+								(edge.source === primaryNode.id && edge.target === node.id) ||
+								(edge.target === primaryNode.id && edge.source === node.id),
+						),
+				)
+			: [];
+		const branchNodeIds = new Set(branchNodes.map((node) => node.id));
+		const extraNodes = nodes.filter(
+			(node) => !coreNodeIds.has(node.id) && !branchNodeIds.has(node.id),
+		);
+		const coreWidth =
+			coreNodes.reduce((total, node) => total + getNodeSize(node).width, 0) +
+			Math.max(0, coreNodes.length - 1) * gap;
+		const coreHeight = Math.max(
+			1,
+			...coreNodes.map((node) => getNodeSize(node).height),
+		);
+		const branchHeight =
+			branchNodes.reduce((total, node) => total + getNodeSize(node).height, 0) +
+			Math.max(0, branchNodes.length - 1) * gap;
+		const layoutWidth =
+			coreWidth +
+			(branchNodes.length > 0 ? gap : 0) +
+			(branchNodes.length > 0
+				? Math.max(...branchNodes.map((node) => getNodeSize(node).width))
+				: 0);
+		const layoutHeight = Math.max(coreHeight, branchHeight, 1);
+		const startX = snapPixels((layer.clientWidth - layoutWidth) / 2);
+		const startY = snapPixels((layer.clientHeight - layoutHeight) / 2);
+		const nextPositions: Record<string, CanvasPosition> = {};
+
+		let coreX = startX;
+		const coreY = startY + (layoutHeight - coreHeight) / 2;
+		for (const node of coreNodes) {
+			const size = getNodeSize(node);
+			nextPositions[node.id] = canvasPositionFromPixels(coreX, coreY, layer);
+			coreX += size.width + gap;
+		}
+
+		const branchX = startX + coreWidth + (branchNodes.length > 0 ? gap : 0);
+		let branchY = startY + (layoutHeight - branchHeight) / 2;
+		for (const node of branchNodes) {
+			const size = getNodeSize(node);
+			nextPositions[node.id] = canvasPositionFromPixels(
+				branchX,
+				branchY,
+				layer,
+			);
+			branchY += size.height + gap;
+		}
+
+		const extraColumns = Math.max(1, Math.ceil(Math.sqrt(extraNodes.length)));
+		for (const [index, node] of extraNodes.entries()) {
+			const size = getNodeSize(node);
+			const column = index % extraColumns;
+			const row = Math.floor(index / extraColumns);
+			nextPositions[node.id] = canvasPositionFromPixels(
+				startX + column * (size.width + gap),
+				startY + layoutHeight + gap + row * (size.height + gap),
+				layer,
+			);
+		}
+
+		rememberCurrentPositions();
+		setNodePositions(nextPositions);
+		setPan({ x: 0, y: 0 });
+		setZoom(1);
+		setSelectedNode(null);
+	}, [edges, nodes, rememberCurrentPositions]);
+
+	const handleRepairOverlaps = useCallback(() => {
+		const layer = nodeLayerRef.current;
+		if (
+			!layer ||
+			layer.clientWidth === 0 ||
+			layer.clientHeight === 0 ||
+			nodes.length === 0
+		) {
+			return;
+		}
+
+		const gap = CANVAS_GRID_SIZE;
+		const placedRects: Array<{
+			bottom: number;
+			left: number;
+			right: number;
+			top: number;
+		}> = [];
+		const nextPositions: Record<string, CanvasPosition> = {};
+
+		for (const node of nodes) {
+			const element = nodeRefs.current[node.id];
+			const width = element?.offsetWidth ?? 1;
+			const height = element?.offsetHeight ?? 1;
+			const currentPosition = nodePositions[node.id] ?? {
+				left: node.left,
+				top: node.top,
+			};
+			let left = Math.max(
+				0,
+				Math.round(
+					((currentPosition.left / 100) * layer.clientWidth) / CANVAS_GRID_SIZE,
+				) * CANVAS_GRID_SIZE,
+			);
+			let top = Math.max(
+				0,
+				Math.round(
+					((currentPosition.top / 100) * layer.clientHeight) / CANVAS_GRID_SIZE,
+				) * CANVAS_GRID_SIZE,
+			);
+			let attempts = 0;
+
+			while (
+				attempts < 200 &&
+				placedRects.some(
+					(rect) =>
+						left < rect.right + gap &&
+						left + width + gap > rect.left &&
+						top < rect.bottom + gap &&
+						top + height + gap > rect.top,
+				)
+			) {
+				left += CANVAS_GRID_SIZE;
+				if (left + width > layer.clientWidth) {
+					left = 0;
+					top += CANVAS_GRID_SIZE;
+				}
+				if (top + height > layer.clientHeight) {
+					left = 0;
+					top = 0;
+				}
+				attempts += 1;
+			}
+
+			const position = canvasPositionFromPixels(left, top, layer);
+			nextPositions[node.id] = position;
+			const placedLeft = (position.left / 100) * layer.clientWidth;
+			const placedTop = (position.top / 100) * layer.clientHeight;
+			placedRects.push({
+				bottom: placedTop + height,
+				left: placedLeft,
+				right: placedLeft + width,
+				top: placedTop,
+			});
+		}
+
+		rememberCurrentPositions();
+		setNodePositions(nextPositions);
+		setSelectedNode(null);
+	}, [nodePositions, nodes, rememberCurrentPositions]);
+
+	const handleResetCanvas = useCallback(() => {
+		if (typeof window !== "undefined") {
+			try {
+				window.localStorage.removeItem(storageKey);
+			} catch {
+				// Local storage can be unavailable in private or restricted contexts.
+			}
+		}
+		rememberCurrentPositions();
+		setNodePositions(
+			nodeLayerRef.current
+				? getSnappedPositions(initialPositions)
+				: initialPositions,
+		);
+		setPan({ x: 0, y: 0 });
+		setZoom(1);
+		setSelectedNode(null);
+	}, [
+		getSnappedPositions,
+		initialPositions,
+		rememberCurrentPositions,
+		storageKey,
+	]);
+
 	const handleNodeSelect = useCallback((nodeId: string) => {
 		if (dragMovedRef.current) {
 			dragMovedRef.current = false;
@@ -617,6 +1426,42 @@ export const ProjectCanvas = ({
 		}
 		setSelectedNode(nodeId);
 	}, []);
+
+	const handleServiceAction = useCallback(
+		(node: CanvasNode, action: "start" | "stop" | "deploy") => {
+			if (!node.serviceId) return;
+			if (onServiceAction) {
+				onServiceAction(node, action);
+				return;
+			}
+			openService(node, action === "deploy" ? "deployments" : "general");
+		},
+		[onServiceAction, openService],
+	);
+
+	const handleDuplicateService = useCallback(
+		(node: CanvasNode) => {
+			if (!node.serviceId) return;
+			if (onDuplicateService) {
+				onDuplicateService(node);
+				return;
+			}
+			toast.info("Open the service page to duplicate this service");
+		},
+		[onDuplicateService],
+	);
+
+	const handleDeleteService = useCallback(
+		(node: CanvasNode) => {
+			if (!node.serviceId) return;
+			if (onDeleteService) {
+				onDeleteService(node);
+				return;
+			}
+			openService(node);
+		},
+		[onDeleteService, openService],
+	);
 
 	return (
 		<div
@@ -627,17 +1472,25 @@ export const ProjectCanvas = ({
 			<div
 				className="relative h-full min-h-[610px] overflow-hidden rounded-xl border border-[#33323e] bg-[#13111c]"
 				ref={canvasRef}
-				style={
-					showGrid
-						? {
-								backgroundImage:
-									"radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 1px)",
-								backgroundSize: "36px 36px",
-							}
-						: undefined
-				}
+				onPointerDown={handleCanvasPointerDown}
+				onPointerMove={handleCanvasPointerMove}
+				onPointerUp={stopCanvasPan}
+				onPointerCancel={stopCanvasPan}
+				style={{
+					backgroundImage: showGrid
+						? "radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 1px)"
+						: "none",
+					backgroundPosition: `${pan.x - (CANVAS_GRID_SIZE * zoom) / 2}px ${pan.y - (CANVAS_GRID_SIZE * zoom) / 2}px`,
+					backgroundRepeat: "repeat",
+					backgroundSize: `${CANVAS_GRID_SIZE * zoom}px ${CANVAS_GRID_SIZE * zoom}px`,
+					cursor: panState ? "grabbing" : "grab",
+					touchAction: "none",
+				}}
 			>
-				<div className="absolute right-4 top-4 z-30 lg:right-8 lg:top-7">
+				<div
+					className="absolute right-4 top-4 z-30 lg:right-8 lg:top-7"
+					onPointerDown={(event) => event.stopPropagation()}
+				>
 					<button
 						aria-expanded={isAddOpen}
 						aria-haspopup="menu"
@@ -671,7 +1524,11 @@ export const ProjectCanvas = ({
 				<div
 					className="absolute inset-0 origin-center transition-transform duration-200 ease-out"
 					ref={nodeLayerRef}
-					style={{ transform: `scale(${zoom})` }}
+					style={{
+						transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+						transformOrigin: "0 0",
+						transition: dragState || panState ? "none" : undefined,
+					}}
 				>
 					<svg
 						aria-hidden="true"
@@ -699,26 +1556,34 @@ export const ProjectCanvas = ({
 							strokeLinecap="round"
 							strokeWidth="1.25"
 						>
-							{edges.map((edge) => {
-								const source = nodeRects[edge.source];
-								const target = nodeRects[edge.target];
-								if (!source || !target) return null;
-								return (
-									<path
-										key={edge.id}
-										d={getOrthogonalPath(source, target)}
-										markerEnd="url(#canvas-arrow)"
-										markerStart={
-											edge.bidirectional ? "url(#canvas-arrow)" : undefined
-										}
-									/>
-								);
-							})}
+							{showConnections &&
+								edges.map((edge) => {
+									const source = nodeRects[edge.source];
+									const target = nodeRects[edge.target];
+									if (!source || !target) return null;
+									const isVisible =
+										edge.kind === "network"
+											? showNetworkTraffic
+											: showVariableReferences;
+									if (!isVisible) return null;
+									return (
+										<path
+											key={edge.id}
+											d={getOrthogonalPath(source, target)}
+											markerEnd="url(#canvas-arrow)"
+											markerStart={
+												edge.bidirectional ? "url(#canvas-arrow)" : undefined
+											}
+										/>
+									);
+								})}
 						</g>
 					</svg>
 
 					{nodes.map((node) => (
 						<CanvasNodeCard
+							canDelete={canDelete}
+							canDeploy={canDeploy}
 							key={node.id}
 							dragging={dragState?.id === node.id}
 							node={node}
@@ -732,6 +1597,11 @@ export const ProjectCanvas = ({
 									top: node.top,
 								}
 							}
+							onAction={(action) => handleServiceAction(node, action)}
+							onDelete={() => handleDeleteService(node)}
+							onDuplicate={() => handleDuplicateService(node)}
+							onGroupToggle={() => toggleNodeGroup(node.id)}
+							onOpenService={(tab) => openService(node, tab)}
 							onSelect={() => handleNodeSelect(node.id)}
 							selected={selectedNode === node.id}
 						/>
@@ -741,14 +1611,59 @@ export const ProjectCanvas = ({
 				<div
 					aria-label="Canvas options"
 					className="architecture-canvas-controls absolute bottom-4 left-4 z-30 grid gap-2"
+					onPointerDown={(event) => event.stopPropagation()}
 					role="toolbar"
 				>
-					<CanvasControl
-						aria-label="Canvas settings"
-						onClick={() => setShowGrid((value) => !value)}
-					>
-						<Grip className="h-5 w-4" />
-					</CanvasControl>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								aria-label="Canvas actions"
+								className="flex size-9 items-center justify-center rounded-md border border-[#33323e] bg-[#181622]/95 text-[#a7a2b3] transition-colors hover:bg-white/[0.06] hover:text-white"
+								type="button"
+							>
+								<Grip className="h-5 w-4" />
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="start"
+							side="right"
+							sideOffset={10}
+							className="w-[260px] rounded-lg border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
+						>
+							<DropdownMenuItem
+								className="min-h-9 cursor-pointer gap-2.5 rounded-md px-2.5 text-sm leading-none focus:bg-white/[0.07] focus:text-white"
+								onSelect={toggleAllConnections}
+							>
+								{showConnections ? (
+									<Unlink className="size-4" />
+								) : (
+									<Link2 className="size-4" />
+								)}
+								{showConnections ? "Hide Connections" : "Show Connections"}
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								className="min-h-9 cursor-pointer gap-2.5 rounded-md px-2.5 text-sm leading-none focus:bg-white/[0.07] focus:text-white"
+								onSelect={handleAutoLayout}
+							>
+								<Layers3 className="size-4" />
+								Auto Layout
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								className="min-h-9 cursor-pointer gap-2.5 rounded-md px-2.5 text-sm leading-none focus:bg-white/[0.07] focus:text-white"
+								onSelect={handleRepairOverlaps}
+							>
+								<Wrench className="size-4" />
+								Repair Overlaps
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								className="min-h-9 cursor-pointer gap-2.5 rounded-md px-2.5 text-sm leading-none focus:bg-white/[0.07] focus:text-white"
+								onSelect={handleResetCanvas}
+							>
+								<RotateCcw className="size-4" />
+								Reset Canvas
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 
 					<fieldset
 						aria-label="canvas action"
@@ -756,24 +1671,27 @@ export const ProjectCanvas = ({
 					>
 						<CanvasControl
 							aria-label="Zoom in"
-							disabled={zoom >= 1.35}
+							disabled={zoom >= CANVAS_MAX_ZOOM}
 							grouped
-							onClick={() => setZoom((value) => Math.min(1.35, value + 0.1))}
+							onClick={() => zoomAtCenter("in")}
 						>
 							<Plus className="h-5 w-4" />
 						</CanvasControl>
 						<CanvasControl
 							aria-label="Zoom out"
-							disabled={zoom <= 0.7}
+							disabled={zoom <= CANVAS_MIN_ZOOM}
 							grouped
-							onClick={() => setZoom((value) => Math.max(0.7, value - 0.1))}
+							onClick={() => zoomAtCenter("out")}
 						>
 							<Minus className="h-5 w-4" />
 						</CanvasControl>
 						<CanvasControl
 							aria-label="Center canvas"
 							grouped
-							onClick={() => setZoom(1)}
+							onClick={() => {
+								setZoom(1);
+								setPan({ x: 0, y: 0 });
+							}}
 						>
 							<Maximize2 className="h-5 w-4" />
 						</CanvasControl>
@@ -783,20 +1701,70 @@ export const ProjectCanvas = ({
 						aria-label="canvas action"
 						className="overflow-hidden rounded-md border border-[#33323e] bg-[#181622]/95"
 					>
-						<CanvasControl aria-label="Undo" grouped onClick={() => undefined}>
+						<CanvasControl
+							aria-label="Undo"
+							disabled={history.length === 0}
+							grouped
+							onClick={handleUndo}
+						>
 							<Undo2 className="h-5 w-4" />
 						</CanvasControl>
-						<CanvasControl aria-label="Redo" grouped onClick={() => undefined}>
+						<CanvasControl
+							aria-label="Redo"
+							disabled={redoHistory.length === 0}
+							grouped
+							onClick={handleRedo}
+						>
 							<Redo2 className="h-5 w-4" />
 						</CanvasControl>
 					</fieldset>
 
-					<CanvasControl
-						aria-label="Visibility layers"
-						onClick={() => undefined}
-					>
-						<Layers3 className="h-5 w-4" />
-					</CanvasControl>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								aria-label="Connection visibility"
+								className="flex size-9 items-center justify-center rounded-md border border-[#33323e] bg-[#181622]/95 text-[#a7a2b3] transition-colors hover:bg-white/[0.06] hover:text-white"
+								type="button"
+							>
+								<Layers3 className="h-5 w-4" />
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="end"
+							side="right"
+							sideOffset={10}
+							className="w-[320px] rounded-lg border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
+						>
+							<DropdownMenuItem
+								className={`min-h-[62px] cursor-pointer items-start gap-3 rounded-md px-3 py-2.5 focus:bg-white/[0.07] focus:text-white ${showNetworkTraffic ? "bg-white/[0.025]" : "opacity-60"}`}
+								onSelect={() => setShowNetworkTraffic((value) => !value)}
+							>
+								<Network className="mt-1 size-4 shrink-0" />
+								<span className="flex min-w-0 flex-col gap-0.5">
+									<span className="text-sm leading-5 text-[#eeeaf5]">
+										Network Traffic
+									</span>
+									<span className="text-xs leading-4 text-[#858091]">
+										Show traffic between services
+									</span>
+								</span>
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								className={`min-h-[62px] cursor-pointer items-start gap-3 rounded-md px-3 py-2.5 focus:bg-white/[0.07] focus:text-white ${showVariableReferences ? "bg-white/[0.025]" : "opacity-60"}`}
+								onSelect={() => setShowVariableReferences((value) => !value)}
+							>
+								<Link2 className="mt-1 size-4 shrink-0" />
+								<span className="flex min-w-0 flex-col gap-0.5">
+									<span className="text-sm leading-5 text-[#eeeaf5]">
+										Variable References
+									</span>
+									<span className="text-xs leading-4 text-[#858091]">
+										Show variable connections
+									</span>
+								</span>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</div>
 		</div>

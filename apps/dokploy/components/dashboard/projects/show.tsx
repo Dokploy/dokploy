@@ -112,6 +112,17 @@ const SERVICE_COLLECTIONS: ServiceCollection[] = [
 	{ key: "libsql", type: "libsql", idKey: "libsqlId" },
 ];
 
+const SERVICE_ID_KEYS: Record<ServiceKind, string> = {
+	application: "applicationId",
+	compose: "composeId",
+	postgres: "postgresId",
+	mysql: "mysqlId",
+	mariadb: "mariadbId",
+	mongo: "mongoId",
+	redis: "redisId",
+	libsql: "libsqlId",
+};
+
 const SERVICE_ICONS: Record<
 	ServiceKind,
 	ComponentType<{ className?: string }>
@@ -585,6 +596,60 @@ export const ShowProjects = () => {
 	const { data, isPending } = api.project.all.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync: removeProject } = api.project.remove.useMutation();
+	const canvasActions = {
+		application: {
+			start: api.application.start.useMutation(),
+			stop: api.application.stop.useMutation(),
+			deploy: api.application.deploy.useMutation(),
+		},
+		compose: {
+			start: api.compose.start.useMutation(),
+			stop: api.compose.stop.useMutation(),
+			deploy: api.compose.deploy.useMutation(),
+		},
+		postgres: {
+			start: api.postgres.start.useMutation(),
+			stop: api.postgres.stop.useMutation(),
+			deploy: api.postgres.deploy.useMutation(),
+		},
+		mysql: {
+			start: api.mysql.start.useMutation(),
+			stop: api.mysql.stop.useMutation(),
+			deploy: api.mysql.deploy.useMutation(),
+		},
+		mariadb: {
+			start: api.mariadb.start.useMutation(),
+			stop: api.mariadb.stop.useMutation(),
+			deploy: api.mariadb.deploy.useMutation(),
+		},
+		mongo: {
+			start: api.mongo.start.useMutation(),
+			stop: api.mongo.stop.useMutation(),
+			deploy: api.mongo.deploy.useMutation(),
+		},
+		redis: {
+			start: api.redis.start.useMutation(),
+			stop: api.redis.stop.useMutation(),
+			deploy: api.redis.deploy.useMutation(),
+		},
+		libsql: {
+			start: api.libsql.start.useMutation(),
+			stop: api.libsql.stop.useMutation(),
+			deploy: api.libsql.deploy.useMutation(),
+		},
+	};
+	const canvasDeleteActions = {
+		application: api.application.delete.useMutation(),
+		compose: api.compose.delete.useMutation(),
+		postgres: api.postgres.remove.useMutation(),
+		mysql: api.mysql.remove.useMutation(),
+		mariadb: api.mariadb.remove.useMutation(),
+		mongo: api.mongo.remove.useMutation(),
+		redis: api.redis.remove.useMutation(),
+		libsql: api.libsql.remove.useMutation(),
+	};
+	const { mutateAsync: duplicateCanvasService } =
+		api.project.duplicate.useMutation();
 	const { data: availableTags } = api.tag.all.useQuery();
 
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -693,6 +758,111 @@ export const ShowProjects = () => {
 		? getServiceItems(canvasEnvironment)
 		: [];
 
+	const handleCanvasServiceAction = async (
+		service: { serviceId?: string; title: string; type: string },
+		action: "start" | "stop" | "deploy",
+	) => {
+		const serviceId = service.serviceId;
+		const idKey = SERVICE_ID_KEYS[service.type as ServiceKind];
+		const actions = canvasActions[
+			service.type as keyof typeof canvasActions
+		] as unknown as
+			| Record<
+					"start" | "stop" | "deploy",
+					{ mutateAsync: (input: Record<string, string>) => Promise<unknown> }
+			  >
+			| undefined;
+		const mutation = actions?.[action];
+		if (!serviceId || !idKey || !mutation) {
+			toast.error("This service action is not available");
+			return;
+		}
+
+		const labels = {
+			deploy: { error: "deploying", loading: "Deploying", success: "deployed" },
+			start: { error: "starting", loading: "Starting", success: "started" },
+			stop: { error: "stopping", loading: "Stopping", success: "stopped" },
+		};
+
+		void toast.promise(
+			mutation.mutateAsync({ [idKey]: serviceId }).then(async () => {
+				await utils.project.all.invalidate();
+				return `${service.title} ${labels[action].success} successfully`;
+			}),
+			{
+				loading: `${labels[action].loading} ${service.title}...`,
+				error: (error) =>
+					`Error ${labels[action].error} ${service.title}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			},
+		);
+	};
+
+	const handleDuplicateCanvasService = async (service: {
+		serviceId?: string;
+		title: string;
+		type: string;
+	}) => {
+		if (!service.serviceId || !canvasEnvironment?.environmentId) return;
+		const serviceType = service.type as ServiceKind;
+		if (!SERVICE_ID_KEYS[serviceType]) return;
+
+		void toast.promise(
+			duplicateCanvasService({
+				description: "",
+				duplicateInSameProject: true,
+				includeServices: true,
+				name: "",
+				selectedServices: [{ id: service.serviceId, type: serviceType }],
+				sourceEnvironmentId: canvasEnvironment.environmentId,
+			}).then(async () => {
+				await utils.project.all.invalidate();
+			}),
+			{
+				loading: `Duplicating ${service.title}...`,
+				success: `${service.title} duplicated successfully`,
+				error: (error) =>
+					`Error duplicating ${service.title}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			},
+		);
+	};
+
+	const handleDeleteCanvasService = async (service: {
+		serviceId?: string;
+		title: string;
+		type: string;
+	}) => {
+		const serviceId = service.serviceId;
+		const idKey = SERVICE_ID_KEYS[service.type as ServiceKind];
+		const mutation = canvasDeleteActions[
+			service.type as keyof typeof canvasDeleteActions
+		] as unknown as
+			| { mutateAsync: (input: Record<string, unknown>) => Promise<unknown> }
+			| undefined;
+		if (
+			!serviceId ||
+			!idKey ||
+			!mutation ||
+			!window.confirm(`Delete service "${service.title}"?`)
+		) {
+			return;
+		}
+
+		const input: Record<string, unknown> = { [idKey]: serviceId };
+		if (service.type === "compose") input.deleteVolumes = false;
+
+		void toast.promise(
+			mutation.mutateAsync(input).then(async () => {
+				await utils.project.all.invalidate();
+			}),
+			{
+				loading: `Deleting ${service.title}...`,
+				success: `${service.title} deleted successfully`,
+				error: (error) =>
+					`Error deleting ${service.title}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			},
+		);
+	};
+
 	const deleteProject = async (projectId: string) => {
 		await removeProject({ projectId })
 			.then(() => toast.success("Project deleted successfully"))
@@ -719,8 +889,15 @@ export const ShowProjects = () => {
 				>
 					{surfaceMode === "canvas" ? (
 						<ProjectCanvas
+							canDelete={permissions?.service.delete ?? false}
+							canDeploy={permissions?.service.create ?? false}
 							environmentName={canvasEnvironment?.name || "production"}
+							environmentId={canvasEnvironment?.environmentId}
+							onDeleteService={handleDeleteCanvasService}
+							onDuplicateService={handleDuplicateCanvasService}
+							onServiceAction={handleCanvasServiceAction}
 							projectName={canvasProject?.name || "eterniza"}
+							projectId={canvasProject?.projectId}
 							services={canvasServices}
 						/>
 					) : (
