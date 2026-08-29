@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { resolveContainerSelection } from "@/components/dashboard/docker/logs/utils";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -54,6 +55,7 @@ export const ShowDockerLogsStack = ({
 			},
 			{
 				enabled: !!appName && option === "swarm",
+				refetchInterval: 5000,
 			},
 		);
 
@@ -66,22 +68,18 @@ export const ShowDockerLogsStack = ({
 			},
 			{
 				enabled: !!appName && option === "native",
+				refetchInterval: 5000,
 			},
 		);
 
 	const containers = data?.filter((container) => container.containerId);
+	const availableContainers = option === "native" ? containers : services;
 
 	useEffect(() => {
-		if (option === "native") {
-			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
-			}
-		} else {
-			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
-			}
-		}
-	}, [option, services, containers]);
+		setContainerId((currentContainerId) =>
+			resolveContainerSelection(currentContainerId, availableContainers),
+		);
+	}, [availableContainers]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =
@@ -106,6 +104,7 @@ export const ShowDockerLogsStack = ({
 						<Switch
 							checked={option === "native"}
 							onCheckedChange={(checked) => {
+								setContainerId(undefined);
 								setOption(checked ? "native" : "swarm");
 							}}
 						/>

@@ -13,6 +13,28 @@ export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
 
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 
+// Body size limits for the OpenAPI catch-all route (pages/api/[...trpc].ts).
+const parseByteSize = (envVar: string, fallback: number): number => {
+	const raw = process.env[envVar];
+	if (!raw) return fallback;
+	const parsed = Number(raw);
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		console.warn(`Invalid ${envVar}="${raw}", using default ${fallback}`);
+		return fallback;
+	}
+	return parsed;
+};
+
+export const OPENAPI_MAX_JSON_BODY_SIZE = parseByteSize(
+	"OPENAPI_MAX_JSON_BODY_SIZE",
+	10 * 1024 * 1024, // 10mb
+);
+
+export const OPENAPI_MAX_UPLOAD_SIZE = parseByteSize(
+	"OPENAPI_MAX_UPLOAD_SIZE",
+	1024 * 1024 * 1024, // 1gb
+);
+
 type DockerSocketCandidate = {
 	label: string;
 	path: string;
