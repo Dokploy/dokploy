@@ -1,14 +1,50 @@
 import { Buffer } from "node:buffer";
-import { describe, expect, it } from "vitest";
+import { EventEmitter } from "node:events";
+import { describe, expect, it, vi } from "vitest";
 import {
 	attachTerminalOutput,
 	decodeOsc52ClipboardWrite,
 	encodeTerminalBinary,
 	encodeTerminalText,
 } from "../../components/dashboard/terminal/transport";
-import { writeTerminalBinaryFrame } from "../../server/wss/terminal-transport";
+import {
+	bindSshConnectionLifecycle,
+	writeTerminalBinaryFrame,
+} from "../../server/wss/terminal-transport";
+
+class MockWebSocket extends EventEmitter {
+	readonly OPEN = 1;
+	readonly CLOSING = 2;
+	readyState = this.OPEN;
+}
 
 describe("terminal transport", () => {
+	it("destroys a pending SSH connection when its WebSocket closes", () => {
+		const socket = new MockWebSocket();
+		const connection = { destroy: vi.fn() };
+		const lifecycle = bindSshConnectionLifecycle(socket, connection);
+
+		socket.readyState = socket.CLOSING;
+		socket.emit("close");
+		socket.emit("close");
+
+		expect(connection.destroy).toHaveBeenCalledOnce();
+		expect(lifecycle.isActive()).toBe(false);
+	});
+
+	it("ends an SSH stream created after its WebSocket has closed", () => {
+		const socket = new MockWebSocket();
+		const connection = { destroy: vi.fn() };
+		const lifecycle = bindSshConnectionLifecycle(socket, connection);
+		const stream = { end: vi.fn() };
+
+		socket.readyState = socket.CLOSING;
+		socket.emit("close");
+
+		expect(lifecycle.setStream(stream)).toBe(false);
+		expect(stream.end).toHaveBeenCalledOnce();
+	});
+
 	it("stops forwarding WebSocket messages after terminal cleanup", () => {
 		const socket = new EventTarget();
 		const writes: Array<string | Uint8Array> = [];

@@ -3,6 +3,8 @@ import type { RawData, WebSocket } from "ws";
 import type { TerminalSize } from "../../lib/terminal-size";
 import { getErrorMessage, parseTerminalResize } from "./utils";
 
+export const SSH_READY_TIMEOUT_MS = 20_000;
+
 interface BinaryTerminal {
 	write: (data: Buffer) => unknown;
 }
@@ -52,6 +54,76 @@ interface SshTerminalStream {
 	write(data: Buffer | string): unknown;
 	setWindow(rows: number, cols: number, height: number, width: number): void;
 }
+
+interface SshConnectionLifecycleSocket {
+	readonly CLOSING: number;
+	readonly readyState: number;
+	once(event: "close", listener: () => void): unknown;
+}
+
+interface ManagedSshConnection {
+	destroy(): unknown;
+}
+
+interface ManagedSshStream {
+	end(): unknown;
+}
+
+/**
+ * Owns an SSH connection from the moment it is created, including while its
+ * handshake is pending. A stream delivered after the browser disconnects is
+ * ended immediately instead of becoming an orphaned remote shell.
+ */
+export const bindSshConnectionLifecycle = (
+	ws: SshConnectionLifecycleSocket,
+	connection: ManagedSshConnection,
+) => {
+	let active = true;
+	let destroyed = false;
+	let stream: ManagedSshStream | undefined;
+
+	const endStream = (target: ManagedSshStream) => {
+		try {
+			target.end();
+		} catch {
+			// The SSH channel may already be closed.
+		}
+	};
+	const close = () => {
+		active = false;
+		if (stream) {
+			endStream(stream);
+			stream = undefined;
+		}
+		if (!destroyed) {
+			destroyed = true;
+			try {
+				connection.destroy();
+			} catch {
+				// The SSH socket may already be closed.
+			}
+		}
+	};
+
+	ws.once("close", close);
+	if (ws.readyState >= ws.CLOSING) {
+		close();
+	}
+
+	return {
+		close,
+		isActive: () => active && ws.readyState < ws.CLOSING,
+		setStream: (nextStream: ManagedSshStream) => {
+			if (!active || ws.readyState >= ws.CLOSING) {
+				close();
+				endStream(nextStream);
+				return false;
+			}
+			stream = nextStream;
+			return true;
+		},
+	};
+};
 
 export const sshTerminalTarget = (
 	stream: SshTerminalStream,

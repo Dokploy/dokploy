@@ -7,6 +7,8 @@ import { canAccessDockerOverWss } from "./authorize";
 import {
 	attachTerminalInput,
 	bindPtyLifecycle,
+	bindSshConnectionLifecycle,
+	SSH_READY_TIMEOUT_MS,
 	sshTerminalTarget,
 } from "./terminal-transport";
 import {
@@ -89,8 +91,13 @@ export const setupDockerContainerTerminalWebSocketServer = (
 					throw new Error("No SSH key available for this server");
 
 				const conn = new Client();
+				const lifecycle = bindSshConnectionLifecycle(ws, conn);
+				if (!lifecycle.isActive()) return;
+
 				conn
 					.once("ready", () => {
+						if (!lifecycle.isActive()) return;
+
 						// Use array-style arguments to prevent shell injection
 						const dockerCommand = [
 							"docker",
@@ -107,50 +114,54 @@ export const setupDockerContainerTerminalWebSocketServer = (
 							(err, stream) => {
 								if (err) {
 									console.error("SSH exec error:", err);
-									ws.close();
-									conn.end();
+									if (lifecycle.isActive()) {
+										ws.close();
+									}
+									lifecycle.close();
 									return;
 								}
+								if (!lifecycle.setStream(stream)) return;
 
 								stream
 									.on("close", (code: number, _signal: string) => {
-										ws.send(`\nContainer closed with code: ${code}\n`);
+										if (ws.readyState === ws.OPEN) {
+											ws.send(`\nContainer closed with code: ${code}\n`);
+										}
 										conn.end();
 										if (ws.readyState === ws.OPEN) {
 											ws.close();
 										}
 									})
 									.on("data", (data: string) => {
-										ws.send(data.toString());
+										if (ws.readyState === ws.OPEN) {
+											ws.send(data.toString());
+										}
 									})
 									.stderr.on("data", (data) => {
-										ws.send(data.toString());
+										if (ws.readyState === ws.OPEN) {
+											ws.send(data.toString());
+										}
 										console.error("Error: ", data.toString());
 									});
 
 								attachTerminalInput(ws, sshTerminalTarget(stream));
-
-								ws.on("close", () => {
-									stream.end();
-									// Ensure SSH connection is closed when WebSocket closes
-									conn.end();
-								});
 							},
 						);
 					})
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
-						if (ws.readyState === ws.OPEN) {
+						if (lifecycle.isActive()) {
 							ws.send(`SSH error: ${err.message}`);
 							ws.close();
 						}
-						conn.end();
+						lifecycle.close();
 					})
 					.connect({
 						host: server.ipAddress,
 						port: server.port,
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
+						readyTimeout: SSH_READY_TIMEOUT_MS,
 					});
 			} else {
 				if (IS_CLOUD) {

@@ -10,7 +10,12 @@ import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
-import { attachTerminalInput, sshTerminalTarget } from "./terminal-transport";
+import {
+	attachTerminalInput,
+	bindSshConnectionLifecycle,
+	SSH_READY_TIMEOUT_MS,
+	sshTerminalTarget,
+} from "./terminal-transport";
 import { getTerminalSize, setupLocalServerSSHKey } from "./utils";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
@@ -181,40 +186,57 @@ export const setupTerminalWebSocketServer = (
 		}
 
 		const conn = new Client();
+		const lifecycle = bindSshConnectionLifecycle(ws, conn);
+		if (!lifecycle.isActive()) return;
+
 		ws.send("Connecting...\n");
 
 		conn
 			.once("ready", () => {
+				if (!lifecycle.isActive()) return;
+
 				// Clear terminal content once connected
 				ws.send("\x1bc");
 
 				conn.shell({ term: "xterm-256color", cols, rows }, (err, stream) => {
-					if (err) throw err;
+					if (err) {
+						if (lifecycle.isActive()) {
+							ws.send(`SSH shell error: ${err.message}`);
+							ws.close();
+						}
+						lifecycle.close();
+						return;
+					}
+					if (!lifecycle.setStream(stream)) return;
 
 					stream
 						.on("close", (code: number, _signal: string) => {
-							ws.send(`\nContainer closed with code: ${code}\n`);
+							if (ws.readyState === ws.OPEN) {
+								ws.send(`\nContainer closed with code: ${code}\n`);
+							}
 							conn.end();
 							if (ws.readyState === ws.OPEN) {
 								ws.close();
 							}
 						})
 						.on("data", (data: string) => {
-							ws.send(data.toString());
+							if (ws.readyState === ws.OPEN) {
+								ws.send(data.toString());
+							}
 						})
 						.stderr.on("data", (data) => {
-							ws.send(data.toString());
+							if (ws.readyState === ws.OPEN) {
+								ws.send(data.toString());
+							}
 							console.error("Error: ", data.toString());
 						});
 
 					attachTerminalInput(ws, sshTerminalTarget(stream));
-
-					ws.on("close", () => {
-						stream.end();
-					});
 				});
 			})
 			.on("error", (err) => {
+				if (!lifecycle.isActive()) return;
+
 				if (err.level === "client-authentication") {
 					if (isLocalServer) {
 						ws.send(
@@ -228,8 +250,12 @@ export const setupTerminalWebSocketServer = (
 				} else {
 					ws.send(`SSH connection error: ${err.message} ❌ `);
 				}
-				conn.end();
+				ws.close();
+				lifecycle.close();
 			})
-			.connect(connectionDetails);
+			.connect({
+				...connectionDetails,
+				readyTimeout: SSH_READY_TIMEOUT_MS,
+			});
 	});
 };
