@@ -220,13 +220,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 	}
 
 	const handleValidateDomain = useCallback(
-		async (host: string, serverIpOverride?: string) => {
+		async (host: string) => {
 			const serviceRequestId = validationRequestIdRef.current;
 			const hostRequestId =
 				(hostValidationRequestIdsRef.current.get(host) ?? 0) + 1;
 			hostValidationRequestIdsRef.current.set(host, hostRequestId);
-
-			const serverIp = serverIpOverride ?? resolveServerIp() ?? "";
 
 			const isCurrentRequest = () =>
 				isCurrentValidation({
@@ -248,7 +246,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 			try {
 				const result = await validateDomain({
 					domain: host,
-					serverIp,
+					serverId: application?.serverId ?? undefined,
 				});
 
 				if (!isCurrentRequest()) {
@@ -282,7 +280,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 				}));
 			}
 		},
-		[validateDomain, resolveServerIp],
+		[validateDomain, application?.serverId],
 	);
 
 	useEffect(() => {
@@ -341,7 +339,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 				if (!host) {
 					continue;
 				}
-				await handleValidateDomain(host, serverIp);
+				await handleValidateDomain(host);
 			}
 		};
 
