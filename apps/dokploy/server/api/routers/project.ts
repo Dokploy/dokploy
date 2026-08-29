@@ -677,11 +677,10 @@ export const projectRouter = createTRPCRouter({
 				ctx.user.role === "owner" || ctx.user.role === "admin";
 
 			if (!isPrivileged) {
-				const { accessedProjects, accessedServices } =
-					await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
+				const { accessedProjects, accessedServices } = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
 
 				if (!accessedProjects.includes(input.projectId)) {
 					throw new TRPCError({
