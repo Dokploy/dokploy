@@ -66,14 +66,16 @@ export const restoreVolume = async (
 			docker volume rm ${volumeName} --force
 			${baseRestoreCommand}
 		else
-			RUNNING_CONTAINERS=$(echo "$CONTAINERS_USING_VOLUME" | awk -F'|' '$3 == "running"')
-			STOPPED_CONTAINERS=$(echo "$CONTAINERS_USING_VOLUME" | awk -F'|' '$3 != "running"')
+			# Only "exited", "created" and "dead" are safe to remove. Anything else
+			# (running, restarting, paused, removing) is treated as still in use.
+			RUNNING_CONTAINERS=$(echo "$CONTAINERS_USING_VOLUME" | awk -F'|' '$3 != "exited" && $3 != "created" && $3 != "dead"')
+			STOPPED_CONTAINERS=$(echo "$CONTAINERS_USING_VOLUME" | awk -F'|' '$3 == "exited" || $3 == "created" || $3 == "dead"')
 
 			if [ -n "$RUNNING_CONTAINERS" ]; then
 				echo ""
 				echo "⚠️  WARNING: Cannot restore volume as it is currently in use!"
 				echo ""
-				echo "📋 The following running containers are using volume '${volumeName}':"
+				echo "📋 The following containers are using volume '${volumeName}':"
 				echo ""
 
 				echo "$RUNNING_CONTAINERS" | while IFS='|' read container_id container_name container_state labels; do
@@ -104,17 +106,49 @@ export const restoreVolume = async (
 				exit 1
 			fi
 
+			# Re-check each container's live state right before removing it: it may have
+			# started running again since the "docker ps -a" snapshot above.
+			ACTIVE_AGAIN=""
+			while IFS='|' read -r container_id container_name container_state labels; do
+				CURRENT_STATE=$(docker inspect -f '{{.State.Status}}' "$container_id" 2>/dev/null || echo "gone")
+				case "$CURRENT_STATE" in
+					running|restarting|paused|removing)
+						ACTIVE_AGAIN="$ACTIVE_AGAIN $container_name"
+						;;
+				esac
+			done < <(printf '%s\\n' "$STOPPED_CONTAINERS")
+
+			if [ -n "$ACTIVE_AGAIN" ]; then
+				echo ""
+				echo "⚠️  WARNING: Container(s)$ACTIVE_AGAIN became active again, aborting restore"
+				echo "❌ Volume restore aborted - volume is in use"
+				exit 1
+			fi
+
 			echo "Volume exists but is only referenced by stopped containers, removing them..."
 			echo ""
 
-			echo "$STOPPED_CONTAINERS" | while IFS='|' read container_id container_name container_state labels; do
+			REMOVE_FAILED=""
+			while IFS='|' read -r container_id container_name container_state labels; do
 				echo "   🗑  Removing stopped container: $container_name ($container_id) [status: $container_state]"
-				docker rm -f "$container_id" >/dev/null 2>&1 || true
-			done
+				if ! docker rm -f "$container_id" >/dev/null 2>&1; then
+					REMOVE_FAILED="$REMOVE_FAILED $container_name"
+				fi
+			done < <(printf '%s\\n' "$STOPPED_CONTAINERS")
+
+			if [ -n "$REMOVE_FAILED" ]; then
+				echo ""
+				echo "❌ Failed to remove container(s):$REMOVE_FAILED"
+				echo "❌ Volume restore aborted - could not free the volume"
+				exit 1
+			fi
 
 			echo ""
 			echo "Removing existing volume and proceeding with restore"
-			docker volume rm ${volumeName} --force
+			if ! docker volume rm ${volumeName} --force; then
+				echo "❌ Volume restore aborted - failed to remove existing volume"
+				exit 1
+			fi
 			${baseRestoreCommand}
 		fi
 	fi
