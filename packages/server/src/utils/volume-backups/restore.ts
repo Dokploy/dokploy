@@ -106,6 +106,11 @@ export const restoreVolume = async (
 				exit 1
 			fi
 
+			# Use a temp file instead of process substitution ("< <(...)") so this
+			# still works under a plain POSIX /bin/sh, not just bash.
+			STOPPED_CONTAINERS_FILE=$(mktemp)
+			printf '%s\\n' "$STOPPED_CONTAINERS" > "$STOPPED_CONTAINERS_FILE"
+
 			# Re-check each container's live state right before removing it: it may have
 			# started running again since the "docker ps -a" snapshot above.
 			ACTIVE_AGAIN=""
@@ -116,9 +121,10 @@ export const restoreVolume = async (
 						ACTIVE_AGAIN="$ACTIVE_AGAIN $container_name"
 						;;
 				esac
-			done < <(printf '%s\\n' "$STOPPED_CONTAINERS")
+			done < "$STOPPED_CONTAINERS_FILE"
 
 			if [ -n "$ACTIVE_AGAIN" ]; then
+				rm -f "$STOPPED_CONTAINERS_FILE"
 				echo ""
 				echo "⚠️  WARNING: Container(s)$ACTIVE_AGAIN became active again, aborting restore"
 				echo "❌ Volume restore aborted - volume is in use"
@@ -134,7 +140,9 @@ export const restoreVolume = async (
 				if ! docker rm -f "$container_id" >/dev/null 2>&1; then
 					REMOVE_FAILED="$REMOVE_FAILED $container_name"
 				fi
-			done < <(printf '%s\\n' "$STOPPED_CONTAINERS")
+			done < "$STOPPED_CONTAINERS_FILE"
+
+			rm -f "$STOPPED_CONTAINERS_FILE"
 
 			if [ -n "$REMOVE_FAILED" ]; then
 				echo ""
