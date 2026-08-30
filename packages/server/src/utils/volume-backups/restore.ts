@@ -66,38 +66,56 @@ export const restoreVolume = async (
 			docker volume rm ${volumeName} --force
 			${baseRestoreCommand}
 		else
-			echo ""
-			echo "⚠️  WARNING: Cannot restore volume as it is currently in use!"
-			echo ""
-			echo "📋 The following containers are using volume '${volumeName}':"
-			echo ""
-			
-			echo "$CONTAINERS_USING_VOLUME" | while IFS='|' read container_id container_name container_state labels; do
-				echo "   🐳 Container: $container_name ($container_id)"
-				echo "      Status: $container_state"
-				
-				# Determine container type
-				if echo "$labels" | grep -q "com.docker.swarm.service.name="; then
-					SERVICE_NAME=$(echo "$labels" | grep -o "com.docker.swarm.service.name=[^,]*" | cut -d'=' -f2)
-					echo "      Type: Docker Swarm Service ($SERVICE_NAME)"
-				elif echo "$labels" | grep -q "com.docker.compose.project="; then
-					PROJECT_NAME=$(echo "$labels" | grep -o "com.docker.compose.project=[^,]*" | cut -d'=' -f2)
-					echo "      Type: Docker Compose ($PROJECT_NAME)"
-				else
-					echo "      Type: Regular Container"
-				fi
+			RUNNING_CONTAINERS=$(echo "$CONTAINERS_USING_VOLUME" | awk -F'|' '$3 == "running"')
+			STOPPED_CONTAINERS=$(echo "$CONTAINERS_USING_VOLUME" | awk -F'|' '$3 != "running"')
+
+			if [ -n "$RUNNING_CONTAINERS" ]; then
 				echo ""
+				echo "⚠️  WARNING: Cannot restore volume as it is currently in use!"
+				echo ""
+				echo "📋 The following running containers are using volume '${volumeName}':"
+				echo ""
+
+				echo "$RUNNING_CONTAINERS" | while IFS='|' read container_id container_name container_state labels; do
+					echo "   🐳 Container: $container_name ($container_id)"
+					echo "      Status: $container_state"
+
+					# Determine container type
+					if echo "$labels" | grep -q "com.docker.swarm.service.name="; then
+						SERVICE_NAME=$(echo "$labels" | grep -o "com.docker.swarm.service.name=[^,]*" | cut -d'=' -f2)
+						echo "      Type: Docker Swarm Service ($SERVICE_NAME)"
+					elif echo "$labels" | grep -q "com.docker.compose.project="; then
+						PROJECT_NAME=$(echo "$labels" | grep -o "com.docker.compose.project=[^,]*" | cut -d'=' -f2)
+						echo "      Type: Docker Compose ($PROJECT_NAME)"
+					else
+						echo "      Type: Regular Container"
+					fi
+					echo ""
+				done
+
+				echo ""
+				echo "🔧 To restore this volume, please:"
+				echo "   1. Stop all containers/services using this volume"
+				echo "   2. Remove the existing volume: docker volume rm ${volumeName}"
+				echo "   3. Run the restore operation again"
+				echo ""
+				echo "❌ Volume restore aborted - volume is in use"
+
+				exit 1
+			fi
+
+			echo "Volume exists but is only referenced by stopped containers, removing them..."
+			echo ""
+
+			echo "$STOPPED_CONTAINERS" | while IFS='|' read container_id container_name container_state labels; do
+				echo "   🗑  Removing stopped container: $container_name ($container_id) [status: $container_state]"
+				docker rm -f "$container_id" >/dev/null 2>&1 || true
 			done
-			
+
 			echo ""
-			echo "🔧 To restore this volume, please:"
-			echo "   1. Stop all containers/services using this volume"
-			echo "   2. Remove the existing volume: docker volume rm ${volumeName}"
-			echo "   3. Run the restore operation again"
-			echo ""
-			echo "❌ Volume restore aborted - volume is in use"
-			
-			exit 1
+			echo "Removing existing volume and proceeding with restore"
+			docker volume rm ${volumeName} --force
+			${baseRestoreCommand}
 		fi
 	fi
 	`;
