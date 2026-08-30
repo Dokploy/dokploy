@@ -314,6 +314,7 @@ export const projectRouter = createTRPCRouter({
 								where: buildServiceFilter(compose.composeId, accessedServices),
 								columns: {
 									composeId: true,
+									icon: true,
 									name: true,
 									composeStatus: true,
 								},
@@ -342,6 +343,7 @@ export const projectRouter = createTRPCRouter({
 						applications: {
 							columns: {
 								applicationId: true,
+								icon: true,
 								name: true,
 								applicationStatus: true,
 							},
@@ -374,6 +376,7 @@ export const projectRouter = createTRPCRouter({
 						compose: {
 							columns: {
 								composeId: true,
+								icon: true,
 								name: true,
 								composeStatus: true,
 							},

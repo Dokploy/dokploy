@@ -59,6 +59,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	type PanelTab,
+	RailwayServicePanel,
+} from "../project/railway-service-panel";
+import type { RailwayService } from "../project/railway-service-types";
 
 export type CanvasService = {
 	id: string;
@@ -174,6 +179,20 @@ const isOnline = (status?: string) =>
 	status === "done" ||
 	status === "running" ||
 	status === "healthy";
+
+const getPanelServiceStatus = (status?: string): RailwayService["status"] => {
+	const normalizedStatus = status?.toLowerCase();
+	if (normalizedStatus === "running" || normalizedStatus === "online") {
+		return "running";
+	}
+	if (normalizedStatus === "done" || normalizedStatus === "healthy") {
+		return "done";
+	}
+	if (normalizedStatus === "error" || normalizedStatus === "offline") {
+		return "error";
+	}
+	return "idle";
+};
 
 const fallbackNodes: CanvasNode[] = [
 	{
@@ -353,16 +372,47 @@ const getOrthogonalPath = (source: CanvasNodeRect, target: CanvasNodeRect) => {
 const clamp = (value: number, min: number, max: number) =>
 	Math.min(Math.max(value, min), Math.max(min, max));
 
-const CANVAS_GRID_SIZE = 36;
+const CANVAS_GRID_SIZE = 24;
+// Railway anchors the node wrapper on a grid dot; the visible card begins after
+// its 1px border. Keep the same offset so the dot sits on the card corner.
+const CANVAS_NODE_GRID_OFFSET = 1;
 const CANVAS_MIN_ZOOM = 0.7;
 const CANVAS_MAX_ZOOM = 1.25;
 const CANVAS_ZOOM_STEP = 0.1;
-const CANVAS_PAN_SPEED = 0.8;
+// React Flow/Railway's default scroll-pan multiplier.
+const CANVAS_PAN_SPEED = 0.5;
 const CANVAS_MAX_PAN_SPEED = 2109.01;
 const CANVAS_PINCH_ZOOM_RATE = 6.2935;
-const CANVAS_PINCH_ZOOM_MULTIPLIER = 10;
+const CANVAS_PINCH_ZOOM_MULTIPLIER = 15;
 const CANVAS_PINCH_ZOOM_SPEED =
 	(Math.log1p(CANVAS_PINCH_ZOOM_RATE) / 1000) * CANVAS_PINCH_ZOOM_MULTIPLIER;
+
+const PANEL_SERVICE_TYPES = [
+	"application",
+	"compose",
+	"postgres",
+	"mysql",
+	"mariadb",
+	"mongo",
+	"redis",
+	"libsql",
+] as const;
+
+const isPanelServiceType = (
+	type: string,
+): type is (typeof PANEL_SERVICE_TYPES)[number] =>
+	PANEL_SERVICE_TYPES.includes(type as (typeof PANEL_SERVICE_TYPES)[number]);
+
+const PANEL_TAB_VALUES: PanelTab[] = [
+	"deployments",
+	"variables",
+	"metrics",
+	"console",
+	"settings",
+];
+
+const isPanelTab = (value: string): value is PanelTab =>
+	PANEL_TAB_VALUES.includes(value as PanelTab);
 
 const isCanvasViewport = (
 	value: unknown,
@@ -389,12 +439,12 @@ const snapCanvasPosition = (
 	const height = layer.clientHeight;
 	if (width === 0 || height === 0) return position;
 
-	const snappedLeft =
-		Math.round(((position.left / 100) * width) / CANVAS_GRID_SIZE) *
-		CANVAS_GRID_SIZE;
-	const snappedTop =
-		Math.round(((position.top / 100) * height) / CANVAS_GRID_SIZE) *
-		CANVAS_GRID_SIZE;
+	const snapToNodeGrid = (value: number) =>
+		Math.round((value - CANVAS_NODE_GRID_OFFSET) / CANVAS_GRID_SIZE) *
+			CANVAS_GRID_SIZE +
+		CANVAS_NODE_GRID_OFFSET;
+	const snappedLeft = snapToNodeGrid((position.left / 100) * width);
+	const snappedTop = snapToNodeGrid((position.top / 100) * height);
 
 	return {
 		left: (snappedLeft / width) * 100,
@@ -419,6 +469,7 @@ interface CanvasNodeCardProps {
 	canDelete: boolean;
 	canDeploy: boolean;
 	dragging: boolean;
+	grouped: boolean;
 	onAction: (action: "start" | "stop" | "deploy") => void;
 	onDuplicate: () => void;
 	onGroupToggle: () => void;
@@ -436,6 +487,7 @@ const CanvasNodeCard = ({
 	canDelete,
 	canDeploy,
 	dragging,
+	grouped,
 	onAction,
 	onDuplicate,
 	onGroupToggle,
@@ -451,7 +503,7 @@ const CanvasNodeCard = ({
 	const Icon = nodeIconMap[node.type] ?? Server;
 	const iconClass = nodeIconClassMap[node.type] ?? "text-[#d7d2e7]";
 	const nodeIsOnline = isOnline(node.status);
-	const minHeightClass = node.volume ? "min-h-[158px]" : "min-h-[118px]";
+	const minHeightClass = node.volume ? "min-h-[192px]" : "min-h-[144px]";
 	const contextMenuItemClass =
 		"min-h-9 gap-2.5 rounded-md px-2.5 text-sm font-normal text-[#a7a2b3] focus:bg-white/[0.07] focus:text-white";
 
@@ -462,7 +514,7 @@ const CanvasNodeCard = ({
 					aria-pressed={selected}
 					aria-label={`Select ${node.title}`}
 					aria-grabbed={dragging}
-					className={`absolute flex ${minHeightClass} w-[clamp(230px,23.2vw,480px)] touch-none select-none flex-col overflow-hidden rounded-2xl border bg-[#1c1a27]/95 text-left shadow-[0_12px_34px_rgba(0,0,0,0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4] ${dragging ? "cursor-grabbing" : "cursor-grab"} lg:min-h-[200px] ${selected ? "border-[#a667e4]/80 shadow-[0_0_0_2px_rgba(166,103,228,0.2),0_12px_34px_rgba(0,0,0,0.22)]" : "border-white/[0.14] hover:border-white/[0.25] hover:bg-[#211f2d]"}`}
+					className={`absolute flex ${minHeightClass} w-[288px] touch-none select-none flex-col overflow-hidden rounded-2xl border bg-[#1c1a27]/95 text-left shadow-[0_12px_34px_rgba(0,0,0,0.16)] transition-[border-color,box-shadow,background-color] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4] ${dragging ? "cursor-grabbing" : "cursor-pointer"} ${selected ? "border-[#a667e4]/80 shadow-[0_0_0_2px_rgba(166,103,228,0.2),0_12px_34px_rgba(0,0,0,0.22)]" : "border-white/[0.14] hover:border-white/[0.25] hover:bg-[#211f2d] hover:shadow-[0_12px_34px_rgba(0,0,0,0.22)]"}`}
 					onClick={onSelect}
 					onPointerDown={onPointerDown}
 					ref={nodeRef}
@@ -472,21 +524,17 @@ const CanvasNodeCard = ({
 					<div className="flex items-start gap-4 px-6 pb-0 pt-6 lg:px-8 lg:pb-0 lg:pt-7">
 						<div className={`mt-0.5 shrink-0 ${iconClass}`}>
 							{node.icon ? (
-								<img
-									alt=""
-									className="size-7 object-contain lg:size-8"
-									src={node.icon}
-								/>
+								<img alt="" className="size-6 object-contain" src={node.icon} />
 							) : (
-								<Icon className="size-7 lg:size-8" />
+								<Icon className="size-6" />
 							)}
 						</div>
 						<div className="min-w-0">
-							<div className="truncate text-base font-semibold tracking-[-0.01em] text-white lg:text-xl">
+							<div className="truncate text-base font-semibold tracking-[-0.01em] text-white">
 								{node.title}
 							</div>
 							{node.subtitle && (
-								<div className="truncate text-sm text-[#9a96a9] lg:text-base">
+								<div className="truncate text-sm text-[#9a96a9]">
 									{node.subtitle}
 								</div>
 							)}
@@ -537,7 +585,7 @@ const CanvasNodeCard = ({
 							onSelect={onGroupToggle}
 						>
 							<Boxes className="size-4" strokeWidth={1.7} />
-							<span>{selected ? "Remove from group" : "Select for group"}</span>
+							<span>{grouped ? "Remove from group" : "Select for group"}</span>
 						</ContextMenuItem>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
@@ -692,9 +740,101 @@ export const ProjectCanvas = ({
 	const [showNetworkTraffic, setShowNetworkTraffic] = useState(true);
 	const [showVariableReferences, setShowVariableReferences] = useState(true);
 	const [selectedNode, setSelectedNode] = useState<string | null>(null);
+	const [activePanelServiceId, setActivePanelServiceId] = useState<
+		string | null
+	>(null);
+	const [activePanelTab, setActivePanelTab] = useState<PanelTab>("deployments");
 	const [isAddOpen, setIsAddOpen] = useState(false);
 	const nodes = useMemo(() => buildNodes(services), [services]);
 	const edges = useMemo(() => buildEdges(nodes), [nodes]);
+	const activePanelNode = useMemo(
+		() =>
+			nodes.find(
+				(node) =>
+					(node.serviceId ?? node.id) === activePanelServiceId &&
+					isPanelServiceType(node.type),
+			) ?? null,
+		[activePanelServiceId, nodes],
+	);
+	const activePanelService = useMemo<RailwayService | null>(() => {
+		if (!activePanelNode) return null;
+
+		return {
+			createdAt: new Date().toISOString(),
+			description: activePanelNode.subtitle,
+			icon: activePanelNode.icon,
+			id: activePanelNode.serviceId ?? activePanelNode.id,
+			name: activePanelNode.title,
+			serverIp: activePanelNode.serverIp,
+			serverName: activePanelNode.serverName,
+			serverUsername: activePanelNode.serverUsername,
+			status: getPanelServiceStatus(activePanelNode.status),
+			type: activePanelNode.type as RailwayService["type"],
+		};
+	}, [activePanelNode]);
+
+	useEffect(() => {
+		if (!router.isReady) return;
+
+		const serviceId =
+			typeof router.query.serviceId === "string"
+				? router.query.serviceId
+				: null;
+		const queryTab =
+			typeof router.query.tab === "string" && isPanelTab(router.query.tab)
+				? router.query.tab
+				: "deployments";
+
+		setActivePanelServiceId(serviceId);
+		setActivePanelTab(queryTab);
+	}, [router.isReady, router.query.serviceId, router.query.tab]);
+
+	const openServicePanel = useCallback(
+		(serviceId: string, tab: PanelTab = "deployments") => {
+			setActivePanelServiceId(serviceId);
+			setActivePanelTab(tab);
+			if (!router.isReady) return;
+
+			void router.replace(
+				{
+					pathname: router.pathname,
+					query: { ...router.query, serviceId, tab },
+				},
+				undefined,
+				{ shallow: true },
+			);
+		},
+		[router],
+	);
+
+	const closeServicePanel = useCallback(() => {
+		setActivePanelServiceId(null);
+		if (!router.isReady) return;
+
+		const query = { ...router.query };
+		delete query.serviceId;
+		delete query.tab;
+		void router.replace({ pathname: router.pathname, query }, undefined, {
+			shallow: true,
+		});
+	}, [router]);
+
+	const handlePanelTabChange = useCallback(
+		(tab: PanelTab) => {
+			setActivePanelTab(tab);
+			if (!activePanelServiceId || !router.isReady) return;
+
+			void router.replace(
+				{
+					pathname: router.pathname,
+					query: { ...router.query, serviceId: activePanelServiceId, tab },
+				},
+				undefined,
+				{ shallow: true },
+			);
+		},
+		[activePanelServiceId, router],
+	);
 	const storageKey = useMemo(
 		() =>
 			`dokploy-project-canvas:v4:${encodeURIComponent(projectName)}:${encodeURIComponent(environmentName)}`,
@@ -1307,10 +1447,51 @@ export const ProjectCanvas = ({
 			);
 		}
 
+		const layoutBounds = nodes.reduce(
+			(bounds, node) => {
+				const position = nextPositions[node.id] ?? {
+					left: node.left,
+					top: node.top,
+				};
+				const size = getNodeSize(node);
+				const left = (position.left / 100) * layer.clientWidth;
+				const top = (position.top / 100) * layer.clientHeight;
+				return {
+					bottom: Math.max(bounds.bottom, top + size.height),
+					left: Math.min(bounds.left, left),
+					right: Math.max(bounds.right, left + size.width),
+					top: Math.min(bounds.top, top),
+				};
+			},
+			{
+				bottom: Number.NEGATIVE_INFINITY,
+				left: Number.POSITIVE_INFINITY,
+				right: Number.NEGATIVE_INFINITY,
+				top: Number.POSITIVE_INFINITY,
+			},
+		);
+		const fitPadding = CANVAS_GRID_SIZE * 2;
+		const contentWidth = Math.max(layoutBounds.right - layoutBounds.left, 1);
+		const contentHeight = Math.max(layoutBounds.bottom - layoutBounds.top, 1);
+		const fitZoom = clamp(
+			Math.min(
+				(layer.clientWidth - fitPadding * 2) / contentWidth,
+				(layer.clientHeight - fitPadding * 2) / contentHeight,
+			),
+			CANVAS_MIN_ZOOM,
+			CANVAS_MAX_ZOOM,
+		);
+		const contentCenterX = (layoutBounds.left + layoutBounds.right) / 2;
+		const contentCenterY = (layoutBounds.top + layoutBounds.bottom) / 2;
+		const fitPan = {
+			x: layer.clientWidth / 2 - contentCenterX * fitZoom,
+			y: layer.clientHeight / 2 - contentCenterY * fitZoom,
+		};
+
 		rememberCurrentPositions();
 		setNodePositions(nextPositions);
-		setPan({ x: 0, y: 0 });
-		setZoom(1);
+		setPan(fitPan);
+		setZoom(fitZoom);
 		setSelectedNode(null);
 	}, [edges, nodes, rememberCurrentPositions]);
 
@@ -1419,13 +1600,21 @@ export const ProjectCanvas = ({
 		storageKey,
 	]);
 
-	const handleNodeSelect = useCallback((nodeId: string) => {
-		if (dragMovedRef.current) {
-			dragMovedRef.current = false;
-			return;
-		}
-		setSelectedNode(nodeId);
-	}, []);
+	const handleNodeSelect = useCallback(
+		(nodeId: string) => {
+			if (dragMovedRef.current) {
+				dragMovedRef.current = false;
+				return;
+			}
+
+			setSelectedNode(nodeId);
+			const node = nodes.find((candidate) => candidate.id === nodeId);
+			if (node && isPanelServiceType(node.type)) {
+				openServicePanel(node.serviceId ?? node.id);
+			}
+		},
+		[nodes, openServicePanel],
+	);
 
 	const handleServiceAction = useCallback(
 		(node: CanvasNode, action: "start" | "stop" | "deploy") => {
@@ -1477,12 +1666,6 @@ export const ProjectCanvas = ({
 				onPointerUp={stopCanvasPan}
 				onPointerCancel={stopCanvasPan}
 				style={{
-					backgroundImage: showGrid
-						? "radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 1px)"
-						: "none",
-					backgroundPosition: `${pan.x - (CANVAS_GRID_SIZE * zoom) / 2}px ${pan.y - (CANVAS_GRID_SIZE * zoom) / 2}px`,
-					backgroundRepeat: "repeat",
-					backgroundSize: `${CANVAS_GRID_SIZE * zoom}px ${CANVAS_GRID_SIZE * zoom}px`,
 					cursor: panState ? "grabbing" : "grab",
 					touchAction: "none",
 				}}
@@ -1494,7 +1677,7 @@ export const ProjectCanvas = ({
 					<button
 						aria-expanded={isAddOpen}
 						aria-haspopup="menu"
-						className="flex h-[34px] items-center gap-2 rounded-lg border border-white/[0.12] bg-[#242130]/90 px-3 text-sm font-medium text-[#eeeaf5] shadow-[0_6px_18px_rgba(0,0,0,0.16)] transition-colors hover:border-white/[0.25] hover:bg-[#2a2638] lg:h-[58px] lg:gap-3 lg:px-6 lg:text-base"
+						className="flex h-[34px] items-center gap-2 rounded-lg border border-white/[0.12] bg-[#242130]/90 px-3 text-sm font-medium text-[#eeeaf5] shadow-[0_6px_18px_rgba(0,0,0,0.16)] transition-colors hover:border-white/[0.25] hover:bg-[#2a2638]"
 						onClick={() => setIsAddOpen((value) => !value)}
 						type="button"
 					>
@@ -1530,6 +1713,23 @@ export const ProjectCanvas = ({
 						transition: dragState || panState ? "none" : undefined,
 					}}
 				>
+					{showGrid && (
+						<div
+							aria-hidden="true"
+							className="pointer-events-none absolute"
+							style={{
+								backgroundImage:
+									"radial-gradient(circle, rgba(255,255,255,0.16) 0.8px, transparent 0.9px)",
+								backgroundPosition: "0 0",
+								backgroundRepeat: "repeat",
+								backgroundSize: `${CANVAS_GRID_SIZE}px ${CANVAS_GRID_SIZE}px`,
+								height: "48000px",
+								left: "-24000px",
+								top: "-24000px",
+								width: "48000px",
+							}}
+						/>
+					)}
 					<svg
 						aria-hidden="true"
 						className="pointer-events-none absolute inset-0 h-full w-full"
@@ -1586,6 +1786,7 @@ export const ProjectCanvas = ({
 							canDeploy={canDeploy}
 							key={node.id}
 							dragging={dragState?.id === node.id}
+							grouped={selectedNode === node.id}
 							node={node}
 							nodeRef={(element) => {
 								nodeRefs.current[node.id] = element;
@@ -1603,10 +1804,31 @@ export const ProjectCanvas = ({
 							onGroupToggle={() => toggleNodeGroup(node.id)}
 							onOpenService={(tab) => openService(node, tab)}
 							onSelect={() => handleNodeSelect(node.id)}
-							selected={selectedNode === node.id}
+							selected={activePanelNode?.id === node.id}
 						/>
 					))}
 				</div>
+
+				{activePanelService && (
+					<div
+						className="absolute inset-0 z-40 cursor-default bg-black/20 transition-opacity duration-200"
+						onClick={(event) => {
+							if (event.target === event.currentTarget) {
+								closeServicePanel();
+							}
+						}}
+					>
+						<RailwayServicePanel
+							activeTab={activePanelTab}
+							environmentId={environmentId || ""}
+							initialTab={activePanelTab}
+							onClose={closeServicePanel}
+							onTabChange={handlePanelTabChange}
+							projectId={projectId || ""}
+							service={activePanelService}
+						/>
+					</div>
+				)}
 
 				<div
 					aria-label="Canvas options"

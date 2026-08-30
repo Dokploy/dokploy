@@ -14,6 +14,7 @@ import {
 	Loader2,
 	MessageSquare,
 	MoreHorizontal,
+	Network,
 	Radio,
 	Search,
 	Settings2,
@@ -174,9 +175,6 @@ const getServiceItems = (
 	});
 };
 
-const getProjectServices = (project: Project) =>
-	project.environments.flatMap((environment) => getServiceItems(environment));
-
 const getProjectServiceCount = (project: Project) =>
 	project.environments.reduce(
 		(total, environment) => total + getServiceItems(environment).length,
@@ -186,13 +184,14 @@ const getProjectServiceCount = (project: Project) =>
 const isServiceOnline = (status?: string) =>
 	status === "done" || status === "running" || status === "healthy";
 
-const getProjectHref = (project: Project) => {
+const getProjectCanvasHref = (project: Project) => {
 	const environment =
 		project.environments.find((item) => item.isDefault) ||
 		project.environments[0];
-	return environment
-		? `/dashboard/project/${project.projectId}/environment/${environment.environmentId}`
-		: "#";
+
+	if (!environment) return "/dashboard/projects";
+
+	return `/dashboard/projects?projectId=${encodeURIComponent(project.projectId)}&environmentId=${encodeURIComponent(environment.environmentId)}`;
 };
 
 const stopCardNavigation = (event: MouseEvent<HTMLElement>) => {
@@ -204,7 +203,7 @@ const railLinkClass =
 	"flex h-9 w-10 items-center justify-center rounded-lg text-[#6c6b7b] transition-colors hover:bg-white/[0.03] hover:text-white";
 
 const ProjectsRail = () => (
-	<aside className="fixed inset-y-0 left-0 z-30 flex w-14 flex-col bg-[#13111c] text-white">
+	<aside className="fixed inset-y-0 left-0 z-30 hidden w-14 flex-col bg-[#13111c] text-white md:flex">
 		<div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden pb-3 pt-4">
 			<div className="h-[78px] px-2">
 				<Link
@@ -308,6 +307,55 @@ const ProjectsRail = () => (
 	</aside>
 );
 
+interface ProjectsBottomNavProps {
+	canvasHref: string;
+	surfaceMode: "canvas" | "list";
+}
+
+const ProjectsBottomNav = ({
+	canvasHref,
+	surfaceMode,
+}: ProjectsBottomNavProps) => (
+	<nav
+		aria-label="Project navigation"
+		className="fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-center gap-1 border-t border-white/[0.08] bg-[#13111c] px-4 py-2 md:hidden"
+	>
+		<div className="flex items-center gap-1">
+			<Link
+				aria-current={surfaceMode === "canvas" ? "page" : undefined}
+				aria-label="Project canvas"
+				className={`flex size-10 items-center justify-center rounded-lg transition-colors ${surfaceMode === "canvas" ? "bg-white/[0.1] text-white" : "text-[#6c6b7b] hover:bg-white/[0.03] hover:text-white"}`}
+				href={canvasHref}
+			>
+				<Network className="size-5" />
+			</Link>
+			<Link
+				aria-label="Usage"
+				className="flex size-10 items-center justify-center rounded-lg text-[#6c6b7b] transition-colors hover:bg-white/[0.03] hover:text-white"
+				href="/dashboard/overview"
+			>
+				<BarChart3 className="size-5" />
+			</Link>
+			<Link
+				aria-label="Documentation"
+				className="flex size-10 items-center justify-center rounded-lg text-[#6c6b7b] transition-colors hover:bg-white/[0.03] hover:text-white"
+				href="https://docs.dokploy.com"
+				rel="noreferrer"
+				target="_blank"
+			>
+				<FileText className="size-5" />
+			</Link>
+			<Link
+				aria-label="Workspace settings"
+				className="flex size-10 items-center justify-center rounded-lg text-[#6c6b7b] transition-colors hover:bg-white/[0.03] hover:text-white"
+				href="/dashboard/settings/profile"
+			>
+				<Settings2 className="size-5" />
+			</Link>
+		</div>
+	</nav>
+);
+
 interface ProjectsTopbarProps {
 	environmentName: string;
 	onSurfaceModeChange: (mode: "canvas" | "list") => void;
@@ -321,57 +369,66 @@ const ProjectsTopbar = ({
 	projectName,
 	surfaceMode,
 }: ProjectsTopbarProps) => (
-	<header className="flex h-14 items-center justify-between pl-4 pr-2 text-[#6c6b7b]">
-		<div className="flex min-w-0 items-center gap-2 text-sm">
-			<button
-				aria-label="Select project"
-				className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
-				type="button"
-			>
-				<span className="size-3 shrink-0 rounded-full bg-gradient-to-br from-[#60599c] via-[#403769] to-[#171329]" />
-				<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
-					{projectName}
-				</span>
-				<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
-			</button>
-			<span className="text-[#4f4b5e]">/</span>
-			<button
-				aria-label="Select environment"
-				className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
-				type="button"
-			>
-				<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
-					{environmentName}
-				</span>
-				<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
-			</button>
-		</div>
+	<header className="flex h-14 items-center justify-between border-b border-white/[0.1] pl-4 pr-4 text-[#6c6b7b]">
+		{surfaceMode === "canvas" ? (
+			<div className="flex min-w-0 items-center gap-3 text-sm">
+				<Link
+					aria-label="Dokploy"
+					className="flex size-8 shrink-0 items-center justify-center md:hidden"
+					href="/dashboard/home"
+				>
+					<Logo className="size-8" />
+				</Link>
+				<span
+					aria-hidden="true"
+					className="h-5 w-px shrink-0 bg-white/[0.1] md:hidden"
+				/>
+				<button
+					aria-label="Select project"
+					className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
+					type="button"
+				>
+					<span className="size-3 shrink-0 rounded-full bg-gradient-to-br from-[#60599c] via-[#403769] to-[#171329]" />
+					<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
+						{projectName}
+					</span>
+					<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
+				</button>
+				<span className="text-[#4f4b5e]">/</span>
+				<button
+					aria-label="Select environment"
+					className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
+					type="button"
+				>
+					<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
+						{environmentName}
+					</span>
+					<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
+				</button>
+			</div>
+		) : (
+			<div aria-hidden="true" />
+		)}
 		<div className="flex items-center gap-1">
-			<button
-				aria-label="Activity"
-				className="flex size-[30px] items-center justify-center rounded-md transition-colors hover:bg-white/[0.04] hover:text-white"
-				type="button"
-			>
-				<Activity className="size-4" />
-			</button>
-			<button
-				aria-label={
-					surfaceMode === "canvas"
-						? "Show project list"
-						: "Show architecture canvas"
-				}
-				className="flex size-[30px] items-center justify-center rounded-md transition-colors hover:bg-white/[0.04] hover:text-white"
-				onClick={() =>
-					onSurfaceModeChange(surfaceMode === "canvas" ? "list" : "canvas")
-				}
-				type="button"
-			>
-				{surfaceMode === "canvas" ? (
-					<List className="size-4" />
-				) : (
-					<Grid2X2 className="size-4" />
-				)}
-			</button>
+			{surfaceMode === "canvas" && (
+				<>
+					<button
+						aria-label="Activity"
+						className="hidden size-[30px] items-center justify-center rounded-md transition-colors hover:bg-white/[0.04] hover:text-white md:flex"
+						type="button"
+					>
+						<Activity className="size-4" />
+					</button>
+					<button
+						aria-label="Show project list"
+						className="hidden size-[30px] items-center justify-center rounded-md transition-colors hover:bg-white/[0.04] hover:text-white md:flex"
+						onClick={() => onSurfaceModeChange("list")}
+						type="button"
+					>
+						<List className="size-4" />
+					</button>
+				</>
+			)}
 			<button
 				aria-label="Notifications"
 				className="flex size-[30px] items-center justify-center rounded-md transition-colors hover:bg-white/[0.04] hover:text-white"
@@ -379,6 +436,23 @@ const ProjectsTopbar = ({
 			>
 				<Bell className="size-3.5" />
 			</button>
+			{surfaceMode === "canvas" && (
+				<>
+					<span
+						aria-hidden="true"
+						className="block h-5 w-px bg-white/[0.1] md:hidden"
+					/>
+					<button
+						aria-label="Account"
+						className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-white/[0.04] md:hidden"
+						type="button"
+					>
+						<span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-[#6b65a7] via-[#453d77] to-[#171329] text-[10px] font-semibold text-white">
+							W
+						</span>
+					</button>
+				</>
+			)}
 		</div>
 	</header>
 );
@@ -394,7 +468,12 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 	const environment =
 		project.environments.find((item) => item.isDefault) ||
 		project.environments[0];
-	const services = getProjectServices(project);
+	const services = getServiceItems(environment);
+	const previewServices = services.slice(0, 4);
+	const hiddenServiceCount = Math.max(
+		0,
+		services.length - previewServices.length,
+	);
 	const totalServices = services.length;
 	const onlineServices = services.filter((service) =>
 		isServiceOnline(service.status),
@@ -424,7 +503,7 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 			<Link
 				aria-label={`View project ${project.name}`}
 				className="absolute inset-0 z-0"
-				href={getProjectHref(project)}
+				href={getProjectCanvasHref(project)}
 			>
 				<span className="sr-only">View Project</span>
 			</Link>
@@ -534,40 +613,43 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 						}}
 					>
 						{services.length > 0 && (
-							<div className="-translate-y-2">
-								<div
-									className="grid w-fit gap-[10px]"
-									style={{
-										gridTemplateColumns: `repeat(${Math.min(4, Math.max(1, Math.ceil(Math.sqrt(services.length))))}, 40px)`,
-									}}
-								>
-									{services.map((service) => {
-										const Icon = SERVICE_ICONS[service.type];
-										const serviceHref = environment
-											? `/dashboard/project/${project.projectId}/environment/${environment.environmentId}/services/${service.type}/${service.id}`
-											: "#";
-										return (
-											<Link
-												aria-label={service.name}
-												className="pointer-events-auto group/icon rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4]"
-												href={serviceHref}
-												key={`${service.type}-${service.id}`}
-											>
-												<div className="flex size-10 items-center justify-center rounded-lg border border-white/10 bg-[#1c1a28] transition-colors group-hover/icon:bg-[#2b283b]">
-													{service.icon ? (
-														<img
-															alt=""
-															className="size-6 object-contain"
-															src={service.icon}
-														/>
-													) : (
-														<Icon className="size-6" />
-													)}
-												</div>
-											</Link>
-										);
-									})}
-								</div>
+							<div className="-translate-y-2 flex max-w-full flex-wrap justify-center gap-[10px]">
+								{previewServices.map((service) => {
+									const Icon = SERVICE_ICONS[service.type];
+									const serviceHref = environment
+										? `/dashboard/project/${project.projectId}/environment/${environment.environmentId}/services/${service.type}/${service.id}`
+										: "#";
+									return (
+										<Link
+											aria-label={service.name}
+											className="pointer-events-auto group/icon rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4]"
+											href={serviceHref}
+											key={`${service.type}-${service.id}`}
+											title={service.name}
+										>
+											<div className="flex size-10 items-center justify-center rounded-lg border border-white/10 bg-[#1c1a28] transition-colors group-hover/icon:bg-[#2b283b]">
+												{service.icon ? (
+													<img
+														alt={service.name}
+														className="size-6 object-contain"
+														src={service.icon}
+													/>
+												) : (
+													<Icon aria-hidden="true" className="size-6" />
+												)}
+											</div>
+										</Link>
+									);
+								})}
+								{hiddenServiceCount > 0 && (
+									<div
+										aria-label={`${hiddenServiceCount} more services`}
+										className="flex size-10 items-center justify-center rounded-lg border border-white/10 bg-[#1c1a28] text-xs font-medium text-[#a1a0ab]"
+										title={`${hiddenServiceCount} more services`}
+									>
+										+{hiddenServiceCount}
+									</div>
+								)}
 							</div>
 						)}
 
@@ -654,7 +736,7 @@ export const ShowProjects = () => {
 
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
-	const [surfaceMode, setSurfaceMode] = useState<"canvas" | "list">("canvas");
+	const [surfaceMode, setSurfaceMode] = useState<"canvas" | "list">("list");
 	const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 	const [searchQuery, setSearchQuery] = useState(
 		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
@@ -717,6 +799,14 @@ export const ShowProjects = () => {
 		});
 	}, [debouncedSearchQuery, router]);
 
+	useEffect(() => {
+		if (!router.isReady) return;
+
+		setSurfaceMode(
+			typeof router.query.projectId === "string" ? "canvas" : "list",
+		);
+	}, [router.isReady, router.query.projectId]);
+
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
@@ -750,13 +840,43 @@ export const ShowProjects = () => {
 		});
 	}, [data, debouncedSearchQuery, selectedTagIds, sortBy]);
 
-	const canvasProject = data?.[0];
+	const selectedProjectId =
+		typeof router.query.projectId === "string" ? router.query.projectId : "";
+	const selectedEnvironmentId =
+		typeof router.query.environmentId === "string"
+			? router.query.environmentId
+			: "";
+	const canvasProject = data?.find(
+		(project) => project.projectId === selectedProjectId,
+	);
 	const canvasEnvironment =
+		canvasProject?.environments.find(
+			(item) => item.environmentId === selectedEnvironmentId,
+		) ||
 		canvasProject?.environments.find((item) => item.isDefault) ||
 		canvasProject?.environments[0];
 	const canvasServices = canvasEnvironment
 		? getServiceItems(canvasEnvironment)
 		: [];
+
+	const handleSurfaceModeChange = (mode: "canvas" | "list") => {
+		if (mode === "canvas" && !canvasProject) return;
+
+		setSurfaceMode(mode);
+		if (mode !== "list" || !router.isReady) return;
+
+		const newQuery = { ...router.query };
+		delete newQuery.projectId;
+		delete newQuery.environmentId;
+
+		void router.replace(
+			{ pathname: router.pathname, query: newQuery },
+			undefined,
+			{
+				shallow: true,
+			},
+		);
+	};
 
 	const handleCanvasServiceAction = async (
 		service: { serviceId?: string; title: string; type: string },
@@ -871,20 +991,20 @@ export const ShowProjects = () => {
 	};
 
 	return (
-		<div className="-mx-4 -mb-4 min-h-screen bg-[#13111c] pr-2 text-white">
+		<div className="-mx-4 -mb-4 min-h-screen bg-[#13111c] pr-0 text-white md:pr-2">
 			<ProjectsRail />
-			<div className="ml-14 min-h-screen min-w-0">
+			<div className="ml-0 min-h-screen min-w-0 md:ml-14">
 				<ProjectsTopbar
-					environmentName={canvasEnvironment?.name || "production"}
-					onSurfaceModeChange={setSurfaceMode}
-					projectName={canvasProject?.name || "eterniza"}
+					environmentName={canvasEnvironment?.name || "Select environment"}
+					onSurfaceModeChange={handleSurfaceModeChange}
+					projectName={canvasProject?.name || "Projects"}
 					surfaceMode={surfaceMode}
 				/>
 				<main
 					className={
 						surfaceMode === "canvas"
-							? "h-[calc(100vh-64px)] overflow-hidden bg-[#13111c]"
-							: "h-[calc(100vh-56px)] overflow-y-auto rounded-lg border border-white/[0.12] bg-[#13111c]"
+							? "mx-2 mb-0 h-[calc(100vh-112px)] overflow-hidden bg-[#13111c] md:mx-0 md:mb-2 md:h-[calc(100vh-64px)]"
+							: "mb-0 h-[calc(100vh-112px)] overflow-y-auto rounded-[8px] border border-white/[0.12] bg-[#13111c] md:mb-2 md:h-[calc(100vh-64px)]"
 					}
 				>
 					{surfaceMode === "canvas" ? (
@@ -903,7 +1023,7 @@ export const ShowProjects = () => {
 					) : (
 						<div className="mx-auto w-full max-w-[1120px] space-y-8 px-5 pb-24 pt-12 sm:px-12 md:px-16">
 							<div className="flex flex-wrap items-center gap-3">
-								<h1 className="flex-1 text-2xl font-normal leading-[33px]">
+								<h1 className="flex-1 text-[28px] font-normal leading-[38.5px]">
 									Projects
 								</h1>
 								{isSearchOpen ? (
@@ -933,9 +1053,14 @@ export const ShowProjects = () => {
 									>
 										<Search className="size-3.5 shrink-0" />
 										<span className="flex-1 text-left">Search projects...</span>
-										<kbd className="rounded border border-white/10 px-1 text-[10px] text-[#6c6b7b]">
-											⌘ K
-										</kbd>
+										<span className="hidden shrink-0 items-center gap-0.5 sm:flex">
+											<kbd className="rounded border border-white/10 bg-white/5 px-1 font-sans text-xs leading-[18px] text-[#6c6b7b]">
+												⌘
+											</kbd>
+											<kbd className="rounded border border-white/10 bg-white/5 px-1 font-sans text-xs leading-[18px] text-[#6c6b7b]">
+												K
+											</kbd>
+										</span>
 									</button>
 								)}
 								{permissions?.project.create && (
@@ -1053,6 +1178,14 @@ export const ShowProjects = () => {
 						</div>
 					)}
 				</main>
+				<ProjectsBottomNav
+					canvasHref={
+						canvasProject
+							? getProjectCanvasHref(canvasProject)
+							: "/dashboard/projects"
+					}
+					surfaceMode={surfaceMode}
+				/>
 			</div>
 		</div>
 	);
