@@ -182,6 +182,10 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				ptyProcess.onData((data) => {
 					ws.send(data);
 				});
+				ptyProcess.onExit(({ exitCode }) => {
+					ws.send(`\nContainer closed with code: ${exitCode}\n`);
+					ws.close();
+				});
 				ws.on("close", () => {
 					ptyProcess.kill();
 				});
