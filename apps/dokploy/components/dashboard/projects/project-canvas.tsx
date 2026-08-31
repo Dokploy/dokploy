@@ -21,6 +21,7 @@ import {
 	Server,
 	Settings,
 	SlidersHorizontal,
+	Sparkles,
 	SquareTerminal,
 	Trash2,
 	Undo2,
@@ -48,7 +49,6 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { Button } from "@/components/ui/button";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -831,6 +831,17 @@ export const ProjectCanvas = ({
 		setActivePanelTab(queryTab);
 	}, [router.isReady, router.query.serviceId, router.query.tab]);
 
+	useEffect(() => {
+		if (!environmentId) {
+			setIsAddOpen(false);
+			return;
+		}
+
+		// Keep the empty environment focused on the creation launcher. Once a
+		// service exists, the regular top-right Add action takes over.
+		setIsAddOpen(nodes.length === 0);
+	}, [environmentId, nodes.length]);
+
 	const openServicePanel = useCallback(
 		(serviceId: string, tab: PanelTab = "deployments") => {
 			setActivePanelServiceId(serviceId);
@@ -1200,8 +1211,19 @@ export const ProjectCanvas = ({
 	const handleCanvasPointerDown = useCallback(
 		(event: PointerEvent<HTMLDivElement>) => {
 			if (event.button !== 0) return;
-			const target = event.target as HTMLElement;
-			if (target.closest("button")) return;
+			const target = event.target;
+			if (
+				target instanceof Element &&
+				target.closest(
+					"button, [role='menu'], [role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio'], [data-radix-popper-content-wrapper]",
+				)
+			) {
+				// Radix menus render in a portal, so their pointer events still
+				// bubble through this React tree even though they are not DOM
+				// descendants of the canvas. Do not turn menu clicks into a pan or
+				// prevent the click that Radix uses to fire onSelect.
+				return;
+			}
 
 			event.preventDefault();
 			try {
@@ -1722,7 +1744,7 @@ export const ProjectCanvas = ({
 					touchAction: "none",
 				}}
 			>
-				{environmentId && (
+				{environmentId && nodes.length > 0 && (
 					<div
 						className="absolute right-4 top-4 z-30 lg:right-8 lg:top-7"
 						onPointerDown={(event) => event.stopPropagation()}
@@ -1875,63 +1897,53 @@ export const ProjectCanvas = ({
 					))}
 				</div>
 
-				{nodes.length === 0 && (
-					<div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none z-20">
-						<div className="pointer-events-auto flex max-w-sm flex-col items-center rounded-2xl border border-white/[0.08] bg-[#1c1a28]/90 p-8 shadow-2xl backdrop-blur-sm">
-							<div className="flex size-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-[#a667e4] shadow-inner mb-4">
-								<Boxes className="size-7" />
-							</div>
-							<h3 className="text-base font-semibold text-white">
-								No services deployed
-							</h3>
-							<p className="mt-1.5 text-xs text-[#8f8a9d] leading-relaxed">
-								This environment currently has no services. Add an application,
-								compose stack, or database to get started.
-							</p>
-							{environmentId && (
-								<div className="mt-5">
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												className="h-9 gap-1.5 rounded-lg border border-violet-500/40 bg-violet-600/25 px-4 text-xs font-medium text-violet-200 hover:bg-violet-600/35 hover:text-white"
-												size="sm"
-											>
-												<Plus className="size-3.5" />
-												<span>Add Service</span>
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent
-											align="center"
-											className="w-[200px] space-y-1.5 border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
-										>
-											<DropdownMenuLabel className="text-xs font-normal text-[#8e8a9c]">
-												Create Service
-											</DropdownMenuLabel>
-											<AddApplication
-												projectName={projectName}
-												environmentId={environmentId}
-											/>
-											<AddDatabase
-												projectName={projectName}
-												environmentId={environmentId}
-											/>
-											<AddCompose
-												projectName={projectName}
-												environmentId={environmentId}
-											/>
-											<AddTemplate environmentId={environmentId} />
-											<AddAiAssistant
-												projectName={projectName}
-												environmentId={environmentId}
-											/>
-											<AddImport
-												projectName={projectName}
-												environmentId={environmentId}
-											/>
-										</DropdownMenuContent>
-									</DropdownMenu>
-								</div>
-							)}
+				{nodes.length === 0 && environmentId && (
+					<div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-4 sm:p-6">
+						<div className="pointer-events-auto w-full max-w-[600px]">
+							<DropdownMenu open={isAddOpen} onOpenChange={setIsAddOpen}>
+								<DropdownMenuTrigger asChild>
+									<button
+										aria-label="Describe your project or paste a repository link"
+										className="flex h-[66px] w-full items-center gap-3 rounded-xl border border-[#3d3a52] bg-[#1c1a2b] px-4 text-left text-base text-[#8f8ba0] shadow-[0_18px_50px_rgba(0,0,0,0.32)] transition-colors hover:border-[#57516f] hover:text-[#bdb8ca] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a667e4]"
+										type="button"
+									>
+										<Sparkles className="size-5 shrink-0 text-[#8e899f]" />
+										<span className="truncate">
+											Describe your project or paste a repo link
+										</span>
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="center"
+									sideOffset={8}
+									className="w-[min(600px,calc(100vw-2rem))] space-y-1.5 rounded-xl border border-[#3d3a52] bg-[#1c1a2b]/[.98] p-2 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
+								>
+									<DropdownMenuLabel className="px-2 py-1 text-xs font-normal text-[#8e8a9c]">
+										Create Service
+									</DropdownMenuLabel>
+									<AddApplication
+										projectName={projectName}
+										environmentId={environmentId}
+									/>
+									<AddDatabase
+										projectName={projectName}
+										environmentId={environmentId}
+									/>
+									<AddCompose
+										projectName={projectName}
+										environmentId={environmentId}
+									/>
+									<AddTemplate environmentId={environmentId} />
+									<AddAiAssistant
+										projectName={projectName}
+										environmentId={environmentId}
+									/>
+									<AddImport
+										projectName={projectName}
+										environmentId={environmentId}
+									/>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 					</div>
 				)}
