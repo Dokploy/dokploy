@@ -542,6 +542,118 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	transferOwnership: withPermission("member", "update")
+		.input(
+			z.object({
+				memberId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, orgId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, orgId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			const isOwner =
+				org.ownerId === ctx.user.id || userMember?.role === "owner";
+
+			if (!isOwner) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the organization owner can transfer ownership",
+				});
+			}
+
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+				with: { user: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Member not found",
+				});
+			}
+
+			if (target.organizationId !== orgId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to transfer ownership to this member",
+				});
+			}
+
+			if (target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot transfer ownership to yourself",
+				});
+			}
+
+			if (target.role === "owner") {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "This member is already the organization owner",
+				});
+			}
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, target.id));
+
+				const previousOwner =
+					userMember ??
+					(await tx.query.member.findFirst({
+						where: and(
+							eq(member.organizationId, orgId),
+							eq(member.role, "owner"),
+						),
+					}));
+
+				if (previousOwner) {
+					await tx
+						.update(member)
+						.set({ role: "admin" })
+						.where(eq(member.id, previousOwner.id));
+				}
+
+				await tx
+					.update(organization)
+					.set({ ownerId: target.userId })
+					.where(eq(organization.id, orgId));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: orgId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					from: ctx.user.id,
+					to: target.userId,
+					toEmail: target.user.email,
+				},
+			});
+			return true;
+		}),
 	setDefault: protectedProcedure
 		.input(
 			z.object({

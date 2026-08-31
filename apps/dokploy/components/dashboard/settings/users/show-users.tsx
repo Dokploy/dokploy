@@ -36,6 +36,8 @@ export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending, refetch } = api.user.all.useQuery();
 	const { mutateAsync, isPending: isRemoving } = api.user.remove.useMutation();
+	const { mutateAsync: transferOwnership, isPending: isTransferring } =
+		api.organization.transferOwnership.useMutation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: hasValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
@@ -131,6 +133,11 @@ export const ShowUsers = () => {
 															(currentUserRole === "admin" &&
 																member.role !== "admin"));
 
+													const canTransferOwnership =
+														currentUserRole === "owner" &&
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id;
+
 													const canDeleteMember =
 														permissions?.member.delete ?? false;
 
@@ -150,6 +157,7 @@ export const ShowUsers = () => {
 													const hasAnyAction =
 														canEditPermissions ||
 														canChangeRole ||
+														canTransferOwnership ||
 														canDelete ||
 														canUnlink;
 
@@ -223,6 +231,40 @@ export const ShowUsers = () => {
 																					currentRole={member.role}
 																					userEmail={member.user.email}
 																				/>
+																			)}
+
+																			{canTransferOwnership && (
+																				<DialogAction
+																					title="Transfer Ownership"
+																					description={`Transfer organization ownership to ${member.user.email}? You will become an admin. This cannot be undone.`}
+																					type="destructive"
+																					disabled={isTransferring}
+																					onClick={async () => {
+																						await transferOwnership({
+																							memberId: member.id,
+																						})
+																							.then(() => {
+																								toast.success(
+																									"Ownership transferred successfully",
+																								);
+																								refetch();
+																								utils.user.session.invalidate();
+																							})
+																							.catch((err) => {
+																								toast.error(
+																									err?.message ||
+																										"Error transferring ownership",
+																								);
+																							});
+																					}}
+																				>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer"
+																						onSelect={(e) => e.preventDefault()}
+																					>
+																						Transfer Ownership
+																					</DropdownMenuItem>
+																				</DialogAction>
 																			)}
 
 																			{canEditPermissions && (
