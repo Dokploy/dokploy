@@ -1,5 +1,11 @@
 import type { findEnvironmentsByProjectId } from "@dokploy/server";
-import { ChevronDownIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
+import {
+	ChevronDownIcon,
+	CopyIcon,
+	PencilIcon,
+	PlusIcon,
+	TrashIcon,
+} from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -32,13 +38,26 @@ type Environment = Awaited<
 interface AdvancedEnvironmentSelectorProps {
 	projectId: string;
 	currentEnvironmentId?: string;
+	/**
+	 * Where selecting an environment navigates to. The canvas keeps the
+	 * environment in the query string, the service pages use a route segment.
+	 */
+	getEnvironmentHref?: (environmentId: string) => string;
+	/** Replaces the default breadcrumb-style trigger button. */
+	trigger?: React.ReactNode;
 }
 
 export const AdvancedEnvironmentSelector = ({
 	projectId,
 	currentEnvironmentId,
+	getEnvironmentHref,
+	trigger,
 }: AdvancedEnvironmentSelectorProps) => {
 	const router = useRouter();
+	const environmentHref = (environmentId: string) =>
+		getEnvironmentHref
+			? getEnvironmentHref(environmentId)
+			: `/dashboard/project/${projectId}/environment/${environmentId}`;
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -171,9 +190,7 @@ export const AdvancedEnvironmentSelector = ({
 			utils.project.one.invalidate({ projectId });
 
 			// Navigate to the new duplicated environment
-			router.push(
-				`/dashboard/project/${projectId}/environment/${result.environmentId}`,
-			);
+			router.push(environmentHref(result.environmentId));
 		} catch (error) {
 			toast.error("Failed to duplicate environment");
 		}
@@ -199,13 +216,15 @@ export const AdvancedEnvironmentSelector = ({
 		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" className="h-auto p-2 font-normal">
-						<div className="flex items-center gap-1">
-							<span className="text-muted-foreground">/</span>
-							<span>{currentEnv?.name || "Select Environment"}</span>
-							<ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
-						</div>
-					</Button>
+					{trigger ?? (
+						<Button variant="ghost" className="h-auto p-2 font-normal">
+							<div className="flex items-center gap-1">
+								<span className="text-muted-foreground">/</span>
+								<span>{currentEnv?.name || "Select Environment"}</span>
+								<ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+							</div>
+						</Button>
+					)}
 				</DropdownMenuTrigger>
 				<DropdownMenuContent className="w-[300px]" align="start">
 					<DropdownMenuLabel>Environments</DropdownMenuLabel>
@@ -228,9 +247,7 @@ export const AdvancedEnvironmentSelector = ({
 								<DropdownMenuItem
 									className="flex-1 cursor-pointer"
 									onClick={() => {
-										router.push(
-											`/dashboard/project/${projectId}/environment/${environment.environmentId}`,
-										);
+										router.push(environmentHref(environment.environmentId));
 									}}
 								>
 									<div className="flex items-center justify-between w-full">
@@ -243,6 +260,20 @@ export const AdvancedEnvironmentSelector = ({
 									</div>
 								</DropdownMenuItem>
 								<div className="flex items-center gap-1 px-2">
+									{canCreateEnvironments && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-6 w-6 p-0"
+											title="Duplicate environment"
+											onClick={(e) => {
+												e.stopPropagation();
+												void handleDuplicateEnvironment(environment);
+											}}
+										>
+											<CopyIcon className="h-3 w-3" />
+										</Button>
+									)}
 									{!environment.isDefault && (
 										<Button
 											variant="ghost"

@@ -61,15 +61,19 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api, type RouterOutputs } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
+import { AdvancedEnvironmentSelector } from "../project/advanced-environment-selector";
+import { EnvironmentVariables } from "../project/environment-variables";
 import { HandleProject } from "./handle-project";
 import { ProjectCanvas } from "./project-canvas";
 import { ProjectEnvironment as ProjectEnvironmentActions } from "./project-environment";
 
 type Project = RouterOutputs["project"]["all"][number];
+type CanvasServiceAction = "start" | "stop" | "deploy" | "restart";
 type ServiceKind =
 	| "application"
 	| "compose"
@@ -214,6 +218,22 @@ const getProjectServiceCount = (project: Project) =>
 
 const isServiceOnline = (status?: string) =>
 	status === "done" || status === "running" || status === "healthy";
+
+type RuntimeStatus = "online" | "offline" | "unknown";
+
+const getEffectiveServiceStatus = (
+	status: string | undefined,
+	runtimeStatus: RuntimeStatus | undefined,
+) => {
+	if (runtimeStatus === "online") return "online";
+	if (
+		runtimeStatus === "offline" &&
+		(status === "done" || status === "healthy" || status === "online")
+	) {
+		return "offline";
+	}
+	return status;
+};
 
 // Deleting a project does not clean up docker resources, so it is only safe
 // while every service is still idle (never deployed, nothing to orphan)
@@ -393,16 +413,22 @@ const ProjectsBottomNav = ({
 );
 
 interface ProjectsTopbarProps {
+	environmentId?: string;
 	environmentName: string;
 	onSurfaceModeChange: (mode: "canvas" | "list") => void;
+	projectId?: string;
 	projectName: string;
+	projects: Project[];
 	surfaceMode: "canvas" | "list";
 }
 
 const ProjectsTopbar = ({
+	environmentId,
 	environmentName,
 	onSurfaceModeChange,
+	projectId,
 	projectName,
+	projects,
 	surfaceMode,
 }: ProjectsTopbarProps) => (
 	<header className="flex h-14 items-center justify-between border-b border-white/[0.1] pl-4 pr-4 text-[#6c6b7b]">
@@ -419,28 +445,81 @@ const ProjectsTopbar = ({
 					aria-hidden="true"
 					className="h-5 w-px shrink-0 bg-white/[0.1] md:hidden"
 				/>
-				<button
-					aria-label="Select project"
-					className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
-					type="button"
-				>
-					<span className="size-3 shrink-0 rounded-full bg-gradient-to-br from-[#60599c] via-[#403769] to-[#171329]" />
-					<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
-						{projectName}
-					</span>
-					<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
-				</button>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button
+							aria-label="Select project"
+							className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
+							type="button"
+						>
+							<span className="size-3 shrink-0 rounded-full bg-gradient-to-br from-[#60599c] via-[#403769] to-[#171329]" />
+							<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
+								{projectName}
+							</span>
+							<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-[280px]">
+						<DropdownMenuLabel>Projects</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						{projects.map((project) => (
+							<DropdownMenuItem asChild key={project.projectId}>
+								<Link
+									className="flex cursor-pointer items-center justify-between gap-2"
+									href={getProjectCanvasHref(project)}
+								>
+									<span className="truncate">{project.name}</span>
+									<span className="shrink-0 text-xs text-muted-foreground">
+										{getProjectServiceCount(project)}
+									</span>
+								</Link>
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem asChild>
+							<Link className="cursor-pointer" href="/dashboard/projects">
+								All projects
+							</Link>
+						</DropdownMenuItem>
+						{projectId && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel>This project</DropdownMenuLabel>
+								<HandleProject projectId={projectId} />
+								<ProjectEnvironmentActions projectId={projectId} />
+								{environmentId && (
+									<EnvironmentVariables environmentId={environmentId} />
+								)}
+							</>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
 				<span className="text-[#4f4b5e]">/</span>
-				<button
-					aria-label="Select environment"
-					className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
-					type="button"
-				>
+				{projectId ? (
+					<AdvancedEnvironmentSelector
+						currentEnvironmentId={environmentId}
+						getEnvironmentHref={(nextEnvironmentId) =>
+							`/dashboard/projects?projectId=${encodeURIComponent(projectId)}&environmentId=${encodeURIComponent(nextEnvironmentId)}`
+						}
+						projectId={projectId}
+						trigger={
+							<button
+								aria-label="Select environment"
+								className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-white/[0.04] hover:text-white"
+								type="button"
+							>
+								<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
+									{environmentName}
+								</span>
+								<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
+							</button>
+						}
+					/>
+				) : (
 					<span className="max-w-[160px] truncate font-medium text-[#e5e1ed]">
 						{environmentName}
 					</span>
-					<ChevronDown className="size-3.5 shrink-0 text-[#686475]" />
-				</button>
+				)}
 			</div>
 		) : (
 			<div aria-hidden="true" />
@@ -497,14 +576,26 @@ interface ProjectCardProps {
 	project: Project;
 	permissions?: RouterOutputs["user"]["getPermissions"];
 	onDelete: (projectId: string) => Promise<void>;
+	runtimeStatusByServiceId: ReadonlyMap<string, RuntimeStatus>;
 }
 
-const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
+const ProjectCard = ({
+	project,
+	permissions,
+	onDelete,
+	runtimeStatusByServiceId,
+}: ProjectCardProps) => {
 	const [isFavorite, setIsFavorite] = useState(false);
 	const environment =
 		project.environments.find((item) => item.isDefault) ||
 		project.environments[0];
-	const services = getServiceItems(environment);
+	const services = getServiceItems(environment).map((service) => ({
+		...service,
+		status: getEffectiveServiceStatus(
+			service.status,
+			runtimeStatusByServiceId.get(service.id),
+		),
+	}));
 	const previewServices = services.slice(0, 4);
 	const hiddenServiceCount = Math.max(
 		0,
@@ -730,6 +821,40 @@ export const ShowProjects = () => {
 		refetchOnMount: "always",
 		refetchOnWindowFocus: "always",
 	});
+	const selectedProjectId =
+		typeof router.query.projectId === "string" ? router.query.projectId : "";
+	const requestedEnvironmentId =
+		typeof router.query.environmentId === "string"
+			? router.query.environmentId
+			: undefined;
+	const canvasProject = data?.find(
+		(project) => project.projectId === selectedProjectId,
+	);
+	const canvasEnvironment =
+		canvasProject?.environments.find(
+			(item) => item.environmentId === requestedEnvironmentId,
+		) ||
+		canvasProject?.environments.find((item) => item.isDefault) ||
+		canvasProject?.environments[0];
+	const runtimeEnvironmentIds = Array.from(
+		new Set([
+			...(data ?? []).flatMap((project) => {
+				const environment =
+					project.environments.find((item) => item.isDefault) ||
+					project.environments[0];
+				return environment ? [environment.environmentId] : [];
+			}),
+			...(canvasEnvironment ? [canvasEnvironment.environmentId] : []),
+		]),
+	);
+	const { data: runtimeStatuses } = api.project.runtimeStatus.useQuery(
+		{ environmentIds: runtimeEnvironmentIds },
+		{
+			enabled: runtimeEnvironmentIds.length > 0,
+			refetchInterval: 5000,
+			refetchIntervalInBackground: true,
+		},
+	);
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync: removeProject } = api.project.remove.useMutation();
 	const canvasActions = {
@@ -737,41 +862,49 @@ export const ShowProjects = () => {
 			start: api.application.start.useMutation(),
 			stop: api.application.stop.useMutation(),
 			deploy: api.application.deploy.useMutation(),
+			restart: api.application.reload.useMutation(),
 		},
 		compose: {
 			start: api.compose.start.useMutation(),
 			stop: api.compose.stop.useMutation(),
 			deploy: api.compose.deploy.useMutation(),
+			restart: api.compose.redeploy.useMutation(),
 		},
 		postgres: {
 			start: api.postgres.start.useMutation(),
 			stop: api.postgres.stop.useMutation(),
 			deploy: api.postgres.deploy.useMutation(),
+			restart: api.postgres.reload.useMutation(),
 		},
 		mysql: {
 			start: api.mysql.start.useMutation(),
 			stop: api.mysql.stop.useMutation(),
 			deploy: api.mysql.deploy.useMutation(),
+			restart: api.mysql.reload.useMutation(),
 		},
 		mariadb: {
 			start: api.mariadb.start.useMutation(),
 			stop: api.mariadb.stop.useMutation(),
 			deploy: api.mariadb.deploy.useMutation(),
+			restart: api.mariadb.reload.useMutation(),
 		},
 		mongo: {
 			start: api.mongo.start.useMutation(),
 			stop: api.mongo.stop.useMutation(),
 			deploy: api.mongo.deploy.useMutation(),
+			restart: api.mongo.reload.useMutation(),
 		},
 		redis: {
 			start: api.redis.start.useMutation(),
 			stop: api.redis.stop.useMutation(),
 			deploy: api.redis.deploy.useMutation(),
+			restart: api.redis.reload.useMutation(),
 		},
 		libsql: {
 			start: api.libsql.start.useMutation(),
 			stop: api.libsql.stop.useMutation(),
 			deploy: api.libsql.deploy.useMutation(),
+			restart: api.libsql.reload.useMutation(),
 		},
 	};
 	const canvasDeleteActions = {
@@ -897,23 +1030,17 @@ export const ShowProjects = () => {
 		});
 	}, [data, debouncedSearchQuery, selectedTagIds, sortBy]);
 
-	const selectedProjectId =
-		typeof router.query.projectId === "string" ? router.query.projectId : "";
-	const selectedEnvironmentId =
-		typeof router.query.environmentId === "string"
-			? router.query.environmentId
-			: "";
-	const canvasProject = data?.find(
-		(project) => project.projectId === selectedProjectId,
+	const runtimeStatusByServiceId = new Map(
+		(runtimeStatuses ?? []).map((item) => [item.serviceId, item.runtimeStatus]),
 	);
-	const canvasEnvironment =
-		canvasProject?.environments.find(
-			(item) => item.environmentId === selectedEnvironmentId,
-		) ||
-		canvasProject?.environments.find((item) => item.isDefault) ||
-		canvasProject?.environments[0];
 	const canvasServices = canvasEnvironment
-		? getServiceItems(canvasEnvironment)
+		? getServiceItems(canvasEnvironment).map((service) => ({
+				...service,
+				status: getEffectiveServiceStatus(
+					service.status,
+					runtimeStatusByServiceId.get(service.id),
+				),
+			}))
 		: [];
 
 	const handleSurfaceModeChange = (mode: "canvas" | "list") => {
@@ -936,8 +1063,13 @@ export const ShowProjects = () => {
 	};
 
 	const handleCanvasServiceAction = async (
-		service: { serviceId?: string; title: string; type: string },
-		action: "start" | "stop" | "deploy",
+		service: {
+			appName?: string | null;
+			serviceId?: string;
+			title: string;
+			type: string;
+		},
+		action: CanvasServiceAction,
 	) => {
 		const serviceId = service.serviceId;
 		const idKey = SERVICE_ID_KEYS[service.type as ServiceKind];
@@ -945,7 +1077,7 @@ export const ShowProjects = () => {
 			service.type as keyof typeof canvasActions
 		] as unknown as
 			| Record<
-					"start" | "stop" | "deploy",
+					CanvasServiceAction,
 					{ mutateAsync: (input: Record<string, string>) => Promise<unknown> }
 			  >
 			| undefined;
@@ -957,13 +1089,28 @@ export const ShowProjects = () => {
 
 		const labels = {
 			deploy: { error: "deploying", loading: "Deploying", success: "deployed" },
+			restart: {
+				error: "restarting",
+				loading: "Restarting",
+				success: "restarted",
+			},
 			start: { error: "starting", loading: "Starting", success: "started" },
 			stop: { error: "stopping", loading: "Stopping", success: "stopped" },
 		};
 
+		// The reload endpoints behind "restart" also need the container app name;
+		// compose restarts through redeploy, which only takes the id.
+		const input: Record<string, string> = { [idKey]: serviceId };
+		if (action === "restart" && service.type !== "compose") {
+			input.appName = service.appName ?? "";
+		}
+
 		void toast.promise(
-			mutation.mutateAsync({ [idKey]: serviceId }).then(async () => {
-				await utils.project.all.invalidate();
+			mutation.mutateAsync(input).then(async () => {
+				await Promise.all([
+					utils.project.all.invalidate(),
+					utils.project.runtimeStatus.invalidate(),
+				]);
 				return `${service.title} ${labels[action].success} successfully`;
 			}),
 			{
@@ -1084,9 +1231,12 @@ export const ShowProjects = () => {
 			<ProjectsRail />
 			<div className="ml-0 min-h-screen min-w-0 md:ml-14">
 				<ProjectsTopbar
+					environmentId={canvasEnvironment?.environmentId}
 					environmentName={canvasEnvironment?.name || "Select environment"}
 					onSurfaceModeChange={handleSurfaceModeChange}
+					projectId={canvasProject?.projectId}
 					projectName={canvasProject?.name || "Projects"}
+					projects={data ?? []}
 					surfaceMode={surfaceMode}
 				/>
 				<main
@@ -1259,6 +1409,7 @@ export const ShowProjects = () => {
 												onDelete={deleteProject}
 												permissions={permissions}
 												project={project}
+												runtimeStatusByServiceId={runtimeStatusByServiceId}
 											/>
 										))}
 									</div>

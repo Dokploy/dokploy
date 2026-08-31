@@ -50,6 +50,15 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import {
+	CommandDialog,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+	CommandSeparator,
+} from "@/components/ui/command";
+import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
@@ -59,6 +68,13 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -77,6 +93,8 @@ import {
 	RailwayServicePanel,
 } from "../project/railway-service-panel";
 import type { RailwayService } from "../project/railway-service-types";
+
+export type CanvasServiceAction = "start" | "stop" | "deploy" | "restart";
 
 export type CanvasService = {
 	id: string;
@@ -99,10 +117,7 @@ interface ProjectCanvasProps {
 	environmentId?: string;
 	onDeleteService?: (node: CanvasNode) => void;
 	onDuplicateService?: (node: CanvasNode) => void;
-	onServiceAction?: (
-		node: CanvasNode,
-		action: "start" | "stop" | "deploy",
-	) => void;
+	onServiceAction?: (node: CanvasNode, action: CanvasServiceAction) => void;
 	projectName: string;
 	projectId?: string;
 	environmentName: string;
@@ -149,8 +164,18 @@ type CanvasEdge = {
 	target: string;
 };
 
+const PANEL_TABS_FOR_COMMAND: Array<{ id: PanelTab; label: string }> = [
+	{ id: "deployments", label: "Go to Deployments" },
+	{ id: "variables", label: "Go to Variables" },
+	{ id: "metrics", label: "Go to Metrics" },
+	{ id: "console", label: "Go to Console" },
+	{ id: "settings", label: "Go to Settings" },
+];
+
 type CanvasDragState = {
 	id: string;
+	/** Every node dragged in this gesture (the whole selection, when selected). */
+	movingIds: string[];
 	startPositions: Record<string, CanvasPosition>;
 	startPosition: CanvasPosition;
 	startX: number;
@@ -520,9 +545,12 @@ interface CanvasNodeCardProps {
 	canDeploy: boolean;
 	dragging: boolean;
 	grouped: boolean;
-	onAction: (action: "start" | "stop" | "deploy") => void;
+	onAction: (action: CanvasServiceAction) => void;
 	onDuplicate: () => void;
 	onGroupToggle: () => void;
+	/** Opens the service side panel on a tab, staying on the canvas. */
+	onOpenPanel: (tab: PanelTab) => void;
+	/** Leaves the canvas for the full service page. */
 	onOpenService: (tab?: string) => void;
 	node: CanvasNode;
 	nodeRef: (element: HTMLButtonElement | null) => void;
@@ -541,6 +569,7 @@ const CanvasNodeCard = ({
 	onAction,
 	onDuplicate,
 	onGroupToggle,
+	onOpenPanel,
 	onOpenService,
 	node,
 	nodeRef,
@@ -644,7 +673,7 @@ const CanvasNodeCard = ({
 				<ContextMenuItem
 					className={contextMenuItemClass}
 					disabled={!node.serviceId}
-					onSelect={() => onOpenService("advanced")}
+					onSelect={() => onOpenPanel("settings")}
 				>
 					<HardDrive className="size-4" strokeWidth={1.7} />
 					<span>Attach volume</span>
@@ -662,6 +691,13 @@ const CanvasNodeCard = ({
 							>
 								<Play className="size-4" strokeWidth={1.7} />
 								<span>Start</span>
+							</ContextMenuItem>
+							<ContextMenuItem
+								className={contextMenuItemClass}
+								onSelect={() => onAction("restart")}
+							>
+								<RotateCcw className="size-4" strokeWidth={1.7} />
+								<span>Restart</span>
 							</ContextMenuItem>
 							<ContextMenuItem
 								className={contextMenuItemClass}
@@ -686,7 +722,15 @@ const CanvasNodeCard = ({
 				<ContextMenuItem
 					className={contextMenuItemClass}
 					disabled={!node.serviceId}
-					onSelect={() => onOpenService("environment")}
+					onSelect={() => onOpenPanel("deployments")}
+				>
+					<SquareTerminal className="size-4" strokeWidth={1.7} />
+					<span>View Logs</span>
+				</ContextMenuItem>
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={() => onOpenPanel("variables")}
 				>
 					<Braces className="size-4" strokeWidth={1.7} />
 					<span>View Variables</span>
@@ -694,7 +738,7 @@ const CanvasNodeCard = ({
 				<ContextMenuItem
 					className={contextMenuItemClass}
 					disabled={!node.serviceId}
-					onSelect={() => onOpenService("monitoring")}
+					onSelect={() => onOpenPanel("metrics")}
 				>
 					<BarChart3 className="size-4" strokeWidth={1.7} />
 					<span>View Metrics</span>
@@ -702,10 +746,18 @@ const CanvasNodeCard = ({
 				<ContextMenuItem
 					className={contextMenuItemClass}
 					disabled={!node.serviceId}
-					onSelect={() => onOpenService("general")}
+					onSelect={() => onOpenPanel("settings")}
 				>
 					<Settings className="size-4" strokeWidth={1.7} />
 					<span>View Settings</span>
+				</ContextMenuItem>
+				<ContextMenuItem
+					className={contextMenuItemClass}
+					disabled={!node.serviceId}
+					onSelect={() => onOpenService()}
+				>
+					<Server className="size-4" strokeWidth={1.7} />
+					<span>Open Full Page</span>
 				</ContextMenuItem>
 				<ContextMenuSeparator className="my-1 bg-white/[0.09]" />
 				<ContextMenuItem
@@ -733,6 +785,53 @@ const CanvasNodeCard = ({
 		</ContextMenu>
 	);
 };
+
+const CANVAS_SHORTCUTS: Array<{ keys: string; label: string }> = [
+	{ keys: "⌘/Ctrl + K", label: "Open the command palette" },
+	{ keys: ".", label: "Create a new service" },
+	{ keys: "?", label: "Show keyboard shortcuts" },
+	{ keys: "⌘/Ctrl + Z", label: "Undo canvas change" },
+	{ keys: "⌘/Ctrl + Shift + Z", label: "Redo canvas change" },
+	{ keys: "Shift + click", label: "Add a service to the selection" },
+	{ keys: "Drag selection", label: "Move every selected service" },
+	{ keys: "G then D", label: "Go to Deployments" },
+	{ keys: "G then V", label: "Go to Variables" },
+	{ keys: "G then M", label: "Go to Metrics" },
+	{ keys: "G then S", label: "Go to Settings" },
+	{ keys: "Esc", label: "Close the service panel or clear the selection" },
+];
+
+const CanvasShortcutsDialog = ({
+	open,
+	onOpenChange,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}) => (
+	<Dialog open={open} onOpenChange={onOpenChange}>
+		<DialogContent className="max-w-md">
+			<DialogHeader>
+				<DialogTitle>Keyboard shortcuts</DialogTitle>
+				<DialogDescription>
+					Shortcuts available on the project canvas.
+				</DialogDescription>
+			</DialogHeader>
+			<ul className="flex flex-col gap-2 text-sm">
+				{CANVAS_SHORTCUTS.map((shortcut) => (
+					<li
+						className="flex items-center justify-between gap-4"
+						key={shortcut.keys}
+					>
+						<span className="text-muted-foreground">{shortcut.label}</span>
+						<kbd className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs">
+							{shortcut.keys}
+						</kbd>
+					</li>
+				))}
+			</ul>
+		</DialogContent>
+	</Dialog>
+);
 
 interface CanvasControlProps {
 	"aria-label": string;
@@ -779,12 +878,17 @@ export const ProjectCanvas = ({
 	const [showConnections, setShowConnections] = useState(true);
 	const [showNetworkTraffic, setShowNetworkTraffic] = useState(true);
 	const [showVariableReferences, setShowVariableReferences] = useState(true);
-	const [selectedNode, setSelectedNode] = useState<string | null>(null);
+	// Railway lets several services be selected and moved together, so the
+	// selection is a set rather than a single node.
+	const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+	const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 	const [activePanelServiceId, setActivePanelServiceId] = useState<
 		string | null
 	>(null);
 	const [activePanelTab, setActivePanelTab] = useState<PanelTab>("deployments");
 	const [isAddOpen, setIsAddOpen] = useState(false);
+	const [isCommandOpen, setIsCommandOpen] = useState(false);
+	const pendingGoShortcutRef = useRef(false);
 	const nodes = useMemo(() => buildNodes(services), [services]);
 	const edges = useMemo(() => buildEdges(nodes), [nodes]);
 	const activePanelNode = useMemo(
@@ -948,8 +1052,14 @@ export const ProjectCanvas = ({
 	);
 
 	const toggleNodeGroup = useCallback((nodeId: string) => {
-		setSelectedNode((currentNode) => (currentNode === nodeId ? null : nodeId));
+		setSelectedNodeIds((currentIds) =>
+			currentIds.includes(nodeId)
+				? currentIds.filter((id) => id !== nodeId)
+				: [...currentIds, nodeId],
+		);
 	}, []);
+
+	const clearNodeSelection = useCallback(() => setSelectedNodeIds([]), []);
 
 	const toggleAllConnections = useCallback(() => {
 		setShowConnections((currentValue) => {
@@ -1132,13 +1242,26 @@ export const ProjectCanvas = ({
 				// Pointer capture is not available in every embedded browser surface.
 			}
 			dragMovedRef.current = false;
+
+			// Shift-click extends the selection instead of starting a drag, which
+			// matches Railway's canvas behaviour.
+			if (event.shiftKey) {
+				toggleNodeGroup(node.id);
+				return;
+			}
+
 			const layer = nodeLayerRef.current;
 			const fallbackPosition = nodePositions[node.id] ?? {
 				left: node.left,
 				top: node.top,
 			};
+			// Dragging a selected node moves the whole selection with it.
+			const movingIds = selectedNodeIds.includes(node.id)
+				? selectedNodeIds
+				: [node.id];
 			setDragState({
 				id: node.id,
+				movingIds,
 				startPositions: nodePositions,
 				startPosition: layer
 					? snapCanvasPosition(fallbackPosition, layer)
@@ -1148,7 +1271,7 @@ export const ProjectCanvas = ({
 				startZoom: zoom,
 			});
 		},
-		[nodePositions, zoom],
+		[nodePositions, selectedNodeIds, toggleNodeGroup, zoom],
 	);
 
 	useEffect(() => {
@@ -1172,17 +1295,24 @@ export const ProjectCanvas = ({
 				dragMovedRef.current = true;
 			}
 
-			const nextPosition = snapCanvasPosition(
-				{
-					left: dragState.startPosition.left + deltaLeft,
-					top: dragState.startPosition.top + deltaTop,
-				},
-				layer,
-			);
-			setNodePositions((currentPositions) => ({
-				...currentPositions,
-				[dragState.id]: nextPosition,
-			}));
+			setNodePositions((currentPositions) => {
+				const nextPositions = { ...currentPositions };
+				for (const movingId of dragState.movingIds) {
+					const origin =
+						movingId === dragState.id
+							? dragState.startPosition
+							: dragState.startPositions[movingId];
+					if (!origin) continue;
+					nextPositions[movingId] = snapCanvasPosition(
+						{
+							left: origin.left + deltaLeft,
+							top: origin.top + deltaTop,
+						},
+						layer,
+					);
+				}
+				return nextPositions;
+			});
 		};
 		const stopDragging = () => {
 			if (dragMovedRef.current) {
@@ -1566,7 +1696,7 @@ export const ProjectCanvas = ({
 		setNodePositions(nextPositions);
 		setPan(fitPan);
 		setZoom(fitZoom);
-		setSelectedNode(null);
+		clearNodeSelection();
 	}, [edges, nodes, rememberCurrentPositions]);
 
 	const handleRepairOverlaps = useCallback(() => {
@@ -1647,7 +1777,7 @@ export const ProjectCanvas = ({
 
 		rememberCurrentPositions();
 		setNodePositions(nextPositions);
-		setSelectedNode(null);
+		clearNodeSelection();
 	}, [nodePositions, nodes, rememberCurrentPositions]);
 
 	const handleResetCanvas = useCallback(() => {
@@ -1666,7 +1796,7 @@ export const ProjectCanvas = ({
 		);
 		setPan({ x: 0, y: 0 });
 		setZoom(1);
-		setSelectedNode(null);
+		clearNodeSelection();
 	}, [
 		getSnappedPositions,
 		initialPositions,
@@ -1681,7 +1811,7 @@ export const ProjectCanvas = ({
 				return;
 			}
 
-			setSelectedNode(nodeId);
+			setSelectedNodeIds([nodeId]);
 			const node = nodes.find((candidate) => candidate.id === nodeId);
 			if (node && isPanelServiceType(node.type)) {
 				openServicePanel(node.serviceId ?? node.id);
@@ -1691,7 +1821,7 @@ export const ProjectCanvas = ({
 	);
 
 	const handleServiceAction = useCallback(
-		(node: CanvasNode, action: "start" | "stop" | "deploy") => {
+		(node: CanvasNode, action: CanvasServiceAction) => {
 			if (!node.serviceId) return;
 			if (onServiceAction) {
 				onServiceAction(node, action);
@@ -1726,12 +1856,260 @@ export const ProjectCanvas = ({
 		[onDeleteService, openService],
 	);
 
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			const target = event.target;
+			const isEditing =
+				target instanceof HTMLElement &&
+				(target.isContentEditable ||
+					target.tagName === "INPUT" ||
+					target.tagName === "TEXTAREA" ||
+					target.tagName === "SELECT");
+
+			if ((event.metaKey || event.ctrlKey) && event.code === "KeyK") {
+				event.preventDefault();
+				setIsCommandOpen((open) => !open);
+				return;
+			}
+			if (isEditing || isCommandOpen) return;
+
+			if ((event.metaKey || event.ctrlKey) && event.code === "KeyZ") {
+				event.preventDefault();
+				if (event.shiftKey) handleRedo();
+				else handleUndo();
+				return;
+			}
+			if (event.key === "?") {
+				event.preventDefault();
+				setIsShortcutsOpen((open) => !open);
+				return;
+			}
+			if (event.key === "." && !activePanelServiceId) {
+				event.preventDefault();
+				setIsAddOpen(true);
+				return;
+			}
+			if (event.key === "Escape" && !activePanelServiceId) {
+				clearNodeSelection();
+				return;
+			}
+			if (event.key.toLowerCase() === "g" && activePanelServiceId) {
+				pendingGoShortcutRef.current = true;
+				window.setTimeout(() => {
+					pendingGoShortcutRef.current = false;
+				}, 1000);
+				return;
+			}
+			if (pendingGoShortcutRef.current && activePanelServiceId) {
+				const tabByKey: Partial<Record<string, PanelTab>> = {
+					d: "deployments",
+					m: "metrics",
+					s: "settings",
+					v: "variables",
+				};
+				const tab = tabByKey[event.key.toLowerCase()];
+				pendingGoShortcutRef.current = false;
+				if (tab) {
+					event.preventDefault();
+					handlePanelTabChange(tab);
+				}
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [
+		activePanelServiceId,
+		clearNodeSelection,
+		handlePanelTabChange,
+		handleRedo,
+		handleUndo,
+		isCommandOpen,
+	]);
+
 	return (
 		<div
 			aria-label={`${projectName} / ${environmentName} architecture canvas`}
 			className="h-full w-full"
 			role="application"
 		>
+			<CanvasShortcutsDialog
+				open={isShortcutsOpen}
+				onOpenChange={setIsShortcutsOpen}
+			/>
+			<CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
+				<CommandInput placeholder="Search services or run a command" />
+				<CommandList>
+					<CommandEmpty>No matching service or command.</CommandEmpty>
+					<CommandGroup heading="Canvas">
+						<CommandItem
+							onSelect={() => {
+								setIsCommandOpen(false);
+								setIsAddOpen(true);
+							}}
+						>
+							<Plus className="size-4" />
+							New service
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								handleAutoLayout();
+								setIsCommandOpen(false);
+							}}
+						>
+							<Sparkles className="size-4" />
+							Auto layout
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								handleRepairOverlaps();
+								setIsCommandOpen(false);
+							}}
+						>
+							<Wrench className="size-4" />
+							Repair overlaps
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								toggleAllConnections();
+								setIsCommandOpen(false);
+							}}
+						>
+							{showConnections ? (
+								<Unlink className="size-4" />
+							) : (
+								<Link2 className="size-4" />
+							)}
+							{showConnections ? "Hide connections" : "Show connections"}
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								setZoom(1);
+								setPan({ x: 0, y: 0 });
+								setIsCommandOpen(false);
+							}}
+						>
+							<Maximize2 className="size-4" />
+							Center canvas
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								handleResetCanvas();
+								setIsCommandOpen(false);
+							}}
+						>
+							<RotateCcw className="size-4" />
+							Reset canvas
+						</CommandItem>
+						<CommandItem
+							onSelect={() => {
+								setIsCommandOpen(false);
+								setIsShortcutsOpen(true);
+							}}
+						>
+							<CircuitBoard className="size-4" />
+							Keyboard shortcuts
+						</CommandItem>
+					</CommandGroup>
+					<CommandSeparator />
+					<CommandGroup heading="Services">
+						{nodes.map((node) => (
+							<CommandItem
+								key={node.id}
+								value={`${node.title} ${node.type}`}
+								onSelect={() => {
+									openServicePanel(node.serviceId ?? node.id);
+									setIsCommandOpen(false);
+								}}
+							>
+								<Server className="size-4" />
+								<span className="flex-1">{node.title}</span>
+								<span className="text-xs text-muted-foreground">
+									{node.type}
+								</span>
+							</CommandItem>
+						))}
+					</CommandGroup>
+					{activePanelNode && (
+						<>
+							<CommandSeparator />
+							<CommandGroup heading={activePanelNode.title}>
+								{PANEL_TABS_FOR_COMMAND.map((tab) => (
+									<CommandItem
+										key={tab.id}
+										onSelect={() => {
+											handlePanelTabChange(tab.id);
+											setIsCommandOpen(false);
+										}}
+									>
+										{tab.label}
+									</CommandItem>
+								))}
+								{canDeploy && (
+									<>
+										<CommandItem
+											onSelect={() => {
+												handleServiceAction(activePanelNode, "deploy");
+												setIsCommandOpen(false);
+											}}
+										>
+											<Zap className="size-4" />
+											Deploy latest
+										</CommandItem>
+										<CommandItem
+											onSelect={() => {
+												handleServiceAction(activePanelNode, "start");
+												setIsCommandOpen(false);
+											}}
+										>
+											<Play className="size-4" />
+											Start
+										</CommandItem>
+										<CommandItem
+											onSelect={() => {
+												handleServiceAction(activePanelNode, "stop");
+												setIsCommandOpen(false);
+											}}
+										>
+											<Ban className="size-4" />
+											Stop
+										</CommandItem>
+									</>
+								)}
+								<CommandItem
+									onSelect={() => {
+										handleDuplicateService(activePanelNode);
+										setIsCommandOpen(false);
+									}}
+								>
+									<Copy className="size-4" />
+									Duplicate service
+								</CommandItem>
+								<CommandItem
+									onSelect={() => {
+										openService(activePanelNode);
+										setIsCommandOpen(false);
+									}}
+								>
+									<Server className="size-4" />
+									Open full page
+								</CommandItem>
+								{canDelete && (
+									<CommandItem
+										onSelect={() => {
+											setIsCommandOpen(false);
+											handleDeleteService(activePanelNode);
+										}}
+									>
+										<Trash2 className="size-4" />
+										Delete service
+									</CommandItem>
+								)}
+							</CommandGroup>
+						</>
+					)}
+				</CommandList>
+			</CommandDialog>
 			<div
 				className="relative h-full min-h-[610px] overflow-hidden rounded-xl border border-[#33323e] bg-[#13111c]"
 				ref={canvasRef}
@@ -1874,7 +2252,7 @@ export const ProjectCanvas = ({
 							canDeploy={canDeploy}
 							key={node.id}
 							dragging={dragState?.id === node.id}
-							grouped={selectedNode === node.id}
+							grouped={selectedNodeIds.includes(node.id)}
 							node={node}
 							nodeRef={(element) => {
 								nodeRefs.current[node.id] = element;
@@ -1890,6 +2268,9 @@ export const ProjectCanvas = ({
 							onDelete={() => handleDeleteService(node)}
 							onDuplicate={() => handleDuplicateService(node)}
 							onGroupToggle={() => toggleNodeGroup(node.id)}
+							onOpenPanel={(tab) =>
+								openServicePanel(node.serviceId ?? node.id, tab)
+							}
 							onOpenService={(tab) => openService(node, tab)}
 							onSelect={() => handleNodeSelect(node.id)}
 							selected={activePanelNode?.id === node.id}
@@ -1963,6 +2344,14 @@ export const ProjectCanvas = ({
 							environmentId={environmentId || ""}
 							initialTab={activePanelTab}
 							onClose={closeServicePanel}
+							onRemove={
+								canDelete && activePanelNode
+									? () => {
+											closeServicePanel();
+											handleDeleteService(activePanelNode);
+										}
+									: undefined
+							}
 							onTabChange={handlePanelTabChange}
 							projectId={projectId || ""}
 							service={activePanelService}

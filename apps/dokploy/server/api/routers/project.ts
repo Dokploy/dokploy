@@ -27,6 +27,8 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	getRemoteDocker,
+	getServiceContainersByAppName,
 	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
@@ -40,7 +42,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { serviceColumns } from "@dokploy/server/services/project";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import {
@@ -481,6 +483,144 @@ export const projectRouter = createTRPCRouter({
 			orderBy: desc(projects.createdAt),
 		});
 	}),
+
+	runtimeStatus: protectedProcedure
+		.input(
+			z.object({
+				environmentIds: z.array(z.string().min(1)).max(100),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (input.environmentIds.length === 0) return [];
+
+			const requestedEnvironments = await db.query.environments.findMany({
+				where: inArray(environments.environmentId, input.environmentIds),
+				columns: { environmentId: true, projectId: true },
+				with: {
+					project: { columns: { organizationId: true } },
+					applications: {
+						columns: { applicationId: true, appName: true, serverId: true },
+					},
+					libsql: {
+						columns: { libsqlId: true, appName: true, serverId: true },
+					},
+					mariadb: {
+						columns: { mariadbId: true, appName: true, serverId: true },
+					},
+					mongo: {
+						columns: { mongoId: true, appName: true, serverId: true },
+					},
+					mysql: {
+						columns: { mysqlId: true, appName: true, serverId: true },
+					},
+					postgres: {
+						columns: { postgresId: true, appName: true, serverId: true },
+					},
+					redis: {
+						columns: { redisId: true, appName: true, serverId: true },
+					},
+				},
+			});
+
+			let allowedServiceIds: string[] | undefined;
+			let allowedProjectIds: string[] | undefined;
+			let allowedEnvironmentIds: string[] | undefined;
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				const { accessedProjects, accessedEnvironments, accessedServices } =
+					await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+
+				allowedProjectIds = accessedProjects;
+				allowedEnvironmentIds = accessedEnvironments;
+				allowedServiceIds = accessedServices;
+			}
+
+			const authorizedEnvironments = requestedEnvironments.filter(
+				(environment) =>
+					environment.project.organizationId ===
+						ctx.session.activeOrganizationId &&
+					(!allowedProjectIds ||
+						(allowedProjectIds.includes(environment.projectId) &&
+							allowedEnvironmentIds?.includes(environment.environmentId))),
+			);
+
+			const services = authorizedEnvironments.flatMap((environment) => [
+				...environment.applications.map((service) => ({
+					id: service.applicationId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+				...environment.libsql.map((service) => ({
+					id: service.libsqlId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+				...environment.mariadb.map((service) => ({
+					id: service.mariadbId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+				...environment.mongo.map((service) => ({
+					id: service.mongoId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+				...environment.mysql.map((service) => ({
+					id: service.mysqlId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+				...environment.postgres.map((service) => ({
+					id: service.postgresId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+				...environment.redis.map((service) => ({
+					id: service.redisId,
+					appName: service.appName,
+					serverId: service.serverId,
+				})),
+			]);
+
+			const visibleServices = services.filter(
+				(service) =>
+					service.appName &&
+					(!allowedServiceIds || allowedServiceIds.includes(service.id)),
+			);
+
+			return await Promise.all(
+				visibleServices.map(async (service) => {
+					try {
+						const docker = await getRemoteDocker(service.serverId);
+						await docker.getService(service.appName).inspect();
+					} catch {
+						return {
+							serviceId: service.id,
+							runtimeStatus: "unknown" as const,
+						};
+					}
+
+					const containers = await getServiceContainersByAppName(
+						service.appName,
+						service.serverId ?? undefined,
+					);
+					const isOnline = containers.some(
+						(container) =>
+							container.state === "running" &&
+							container.currentState.toLowerCase().startsWith("running"),
+					);
+
+					return {
+						serviceId: service.id,
+						runtimeStatus: isOnline
+							? ("online" as const)
+							: ("offline" as const),
+					};
+				}),
+			);
+		}),
 
 	allForPermissions: withPermission("member", "update").query(
 		async ({ ctx }) => {

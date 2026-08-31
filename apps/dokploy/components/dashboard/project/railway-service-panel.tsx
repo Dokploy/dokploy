@@ -36,10 +36,28 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
+import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
+import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
+import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
+import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
+import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
+import { ShowBuildServer } from "@/components/dashboard/application/advanced/show-build-server";
+import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
+import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
+import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
+import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
+import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowRollbackSettings } from "@/components/dashboard/application/rollbacks/show-rollback-settings";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
+import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
+import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
+import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
@@ -70,6 +88,8 @@ import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/gener
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
+import { AssignComposeNetworks } from "@/components/dashboard/networks/assign-compose-networks";
+import { AssignNetworks } from "@/components/dashboard/networks/assign-networks";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
@@ -92,6 +112,13 @@ import { CodeEditor } from "@/components/shared/code-editor";
 import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -138,6 +165,7 @@ type Props = {
 	activeTab?: PanelTab;
 	onTabChange?: (tab: PanelTab) => void;
 	onClose: () => void;
+	onRemove?: () => void;
 };
 
 const PANEL_TABS: Array<{ id: PanelTab; label: string }> = [
@@ -194,10 +222,18 @@ const RailwayDeploymentsTab = ({
 	service,
 	projectId,
 	environmentId,
+	isActionLoading,
+	onRemove,
+	onRestart,
+	onRedeploy,
 }: {
 	service: RailwayService;
 	projectId: string;
 	environmentId: string;
+	isActionLoading: boolean;
+	onRemove?: () => void;
+	onRestart: () => Promise<void>;
+	onRedeploy: () => Promise<void>;
 }) => {
 	const isDeployable =
 		service.type === "application" || service.type === "compose";
@@ -206,6 +242,16 @@ const RailwayDeploymentsTab = ({
 		{ applicationId: service.id },
 		{ enabled: service.type === "application" && !!service.id },
 	);
+	const { data: composeData } = api.compose.one.useQuery(
+		{ composeId: service.id },
+		{ enabled: service.type === "compose" && !!service.id },
+	);
+	// Without a refresh token ShowDeployments hides the deploy webhook URL, which
+	// is Railway's equivalent of a deploy trigger.
+	const refreshToken =
+		(service.type === "application"
+			? appData?.refreshToken
+			: composeData?.refreshToken) ?? service.refreshToken;
 	const { data: deployments, isPending } = api.deployment.allByType.useQuery(
 		{
 			id: service.id,
@@ -217,7 +263,6 @@ const RailwayDeploymentsTab = ({
 		},
 	);
 	const activeDeployment = deployments?.[0];
-	const history = activeDeployment ? deployments?.slice(1) : deployments;
 	const serviceLabel =
 		service.domain || service.description || service.appName || service.name;
 	const formatAge = (value: Date | string) => {
@@ -326,7 +371,45 @@ const RailwayDeploymentsTab = ({
 								>
 									View logs
 								</button>
-								<EllipsisVertical className="size-5 text-[#aaa5b2]" />
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<button
+											type="button"
+											aria-label="Deployment actions"
+											className="rounded-md p-1 text-[#aaa5b2] hover:bg-white/[0.06] hover:text-white"
+										>
+											<EllipsisVertical className="size-5" />
+										</button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end" className="w-44">
+										<DropdownMenuItem onSelect={() => setShowLogs(true)}>
+											View logs
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={isActionLoading}
+											onSelect={() => void onRestart()}
+										>
+											Restart
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											disabled={isActionLoading}
+											onSelect={() => void onRedeploy()}
+										>
+											Redeploy
+										</DropdownMenuItem>
+										{onRemove && (
+											<>
+												<DropdownMenuSeparator />
+												<DropdownMenuItem
+													className="text-red-400 focus:text-red-300"
+													onSelect={onRemove}
+												>
+													Remove
+												</DropdownMenuItem>
+											</>
+										)}
+									</DropdownMenuContent>
+								</DropdownMenu>
 							</div>
 							<div className="flex items-center gap-3 border-t border-emerald-500/15 px-5 py-3 text-sm text-emerald-400">
 								<Check className="size-4" />
@@ -342,32 +425,13 @@ const RailwayDeploymentsTab = ({
 						<span className="text-[#777383]">Latest deployments</span>
 					</div>
 
-					<div className="space-y-2">
-						{history && history.length > 0 ? (
-							history.map((deployment) => (
-								<div
-									key={deployment.deploymentId}
-									className="flex items-center gap-4 rounded-xl border border-[#34313f] bg-[#1c1a28] px-5 py-4"
-								>
-									<span className="rounded-md bg-white/[0.06] px-2.5 py-1 text-xs text-[#9994a3]">
-										{(deployment.status || "unknown").toUpperCase()}
-									</span>
-									<div className="min-w-0 flex-1">
-										<p className="truncate text-sm text-[#eeebf2]">
-											{deployment.title?.trim() || "Manual deployment"}
-										</p>
-										<p className="mt-1 text-sm text-[#827d8c]">
-											{formatAge(deployment.createdAt)} via Dokploy
-										</p>
-									</div>
-									<EllipsisVertical className="size-5 text-[#aaa5b2]" />
-								</div>
-							))
-						) : (
-							<div className="flex min-h-24 items-center justify-center rounded-xl border border-[#34313f] bg-[#1c1a28]/70 px-5 text-sm text-[#817c8b]">
-								No deployment history yet
-							</div>
-						)}
+					<div className="railway-deployment-history overflow-hidden rounded-xl border border-[#34313f] bg-[#1c1a28] p-3">
+						<ShowDeployments
+							id={service.id}
+							refreshToken={refreshToken || ""}
+							serverId={service.serverId || undefined}
+							type={service.type === "application" ? "application" : "compose"}
+						/>
 					</div>
 				</>
 			)}
@@ -1763,6 +1827,24 @@ const RailwayConsoleTab = ({ service }: { service: RailwayService }) => {
 /*                             5. SETTINGS TAB                                */
 /* -------------------------------------------------------------------------- */
 
+const SettingsSection = ({
+	title,
+	description,
+	children,
+}: {
+	title: string;
+	description?: string;
+	children: React.ReactNode;
+}) => (
+	<div className="space-y-4">
+		<div>
+			<h3 className="text-base font-semibold text-white">{title}</h3>
+			{description && <p className="text-xs text-[#8f8a9a]">{description}</p>}
+		</div>
+		{children}
+	</div>
+);
+
 const RailwaySettingsTab = ({
 	service,
 	projectId: _projectId,
@@ -1774,27 +1856,93 @@ const RailwaySettingsTab = ({
 }) => {
 	const isApplication = service.type === "application";
 	const isCompose = service.type === "compose";
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	// Advanced infrastructure settings follow the same gate as the full service
+	// page, where they are only rendered for members who can create services.
+	const canManageAdvanced = permissions?.service.create ?? false;
 
 	return (
 		<div className="space-y-8">
 			{isApplication ? (
 				<>
-					{/* General */}
+					{/* Source & Build */}
 					<ShowGeneralApplication applicationId={service.id} />
 
-					{/* Domains */}
-					<div className="space-y-4">
-						<h3 className="text-base font-semibold text-white">Domains</h3>
+					{/* Service icon */}
+					<ShowIconSettings
+						serviceId={service.id}
+						serviceType="application"
+						icon={service.icon}
+					/>
+
+					{/* Networking */}
+					<SettingsSection
+						title="Networking"
+						description="Domains, exposed ports, redirects and security rules."
+					>
 						<ShowDomains id={service.id} type="application" />
-					</div>
+						{canManageAdvanced && (
+							<>
+								<ShowPorts applicationId={service.id} />
+								<ShowRedirects applicationId={service.id} />
+								<ShowSecurity applicationId={service.id} />
+								<ShowTraefikConfig applicationId={service.id} />
+							</>
+						)}
+					</SettingsSection>
+
+					{/* Deploy */}
+					{canManageAdvanced && (
+						<SettingsSection
+							title="Deploy"
+							description="Start command, replicas, resources, storage and networks."
+						>
+							<AddCommand applicationId={service.id} />
+							<ShowClusterSettings id={service.id} type="application" />
+							<ShowBuildServer applicationId={service.id} />
+							<ShowResources id={service.id} type="application" />
+							<ShowVolumes id={service.id} type="application" />
+							<AssignNetworks id={service.id} type="application" />
+						</SettingsSection>
+					)}
+
+					{/* Preview deployments */}
+					<SettingsSection
+						title="Preview Deployments"
+						description="Deploy a temporary environment for every pull request."
+					>
+						<ShowPreviewDeployments applicationId={service.id} />
+					</SettingsSection>
+
+					{/* Rollbacks */}
+					<SettingsSection
+						title="Rollbacks"
+						description="Keep previous images so a deployment can be rolled back."
+					>
+						<ShowRollbackSettings applicationId={service.id} />
+					</SettingsSection>
 
 					{/* Scheduled Jobs */}
-					<div className="space-y-4">
-						<h3 className="text-base font-semibold text-white">
-							Scheduled Jobs
-						</h3>
+					<SettingsSection title="Scheduled Jobs">
 						<ShowSchedules id={service.id} scheduleType="application" />
-					</div>
+					</SettingsSection>
+
+					{/* Volume backups */}
+					<SettingsSection title="Volume Backups">
+						<ShowVolumeBackups
+							id={service.id}
+							type="application"
+							serverId={service.serverId || undefined}
+						/>
+					</SettingsSection>
+
+					{/* Patches */}
+					<SettingsSection
+						title="Patches"
+						description="Files applied to the source before every build."
+					>
+						<ShowPatches id={service.id} type="application" />
+					</SettingsSection>
 
 					{/* Danger Zone */}
 					<div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-rose-500/20 bg-rose-950/10 p-5">
@@ -1810,22 +1958,64 @@ const RailwaySettingsTab = ({
 				</>
 			) : isCompose ? (
 				<>
-					{/* General */}
+					{/* Source & Compose file */}
 					<ShowGeneralCompose composeId={service.id} />
 
-					{/* Domains */}
-					<div className="space-y-4">
-						<h3 className="text-base font-semibold text-white">Domains</h3>
+					{/* Service icon */}
+					<ShowIconSettings
+						serviceId={service.id}
+						serviceType="compose"
+						icon={service.icon}
+					/>
+
+					{/* Networking */}
+					<SettingsSection title="Networking">
 						<ShowDomains id={service.id} type="compose" />
-					</div>
+						{canManageAdvanced && (
+							<AssignComposeNetworks composeId={service.id} />
+						)}
+					</SettingsSection>
+
+					{/* Deploy */}
+					{canManageAdvanced && (
+						<SettingsSection
+							title="Deploy"
+							description="Compose command, storage, imports and isolation."
+						>
+							<AddCommandCompose composeId={service.id} />
+							<ShowVolumes id={service.id} type="compose" />
+							<ShowImport composeId={service.id} />
+							<IsolatedDeploymentTab composeId={service.id} />
+						</SettingsSection>
+					)}
+
+					{/* Backups */}
+					<SettingsSection title="Backups">
+						<ShowBackups id={service.id} backupType="compose" />
+						<ShowDestinations />
+					</SettingsSection>
 
 					{/* Scheduled Jobs */}
-					<div className="space-y-4">
-						<h3 className="text-base font-semibold text-white">
-							Scheduled Jobs
-						</h3>
+					<SettingsSection title="Scheduled Jobs">
 						<ShowSchedules id={service.id} scheduleType="compose" />
-					</div>
+					</SettingsSection>
+
+					{/* Volume backups */}
+					<SettingsSection title="Volume Backups">
+						<ShowVolumeBackups
+							id={service.id}
+							type="compose"
+							serverId={service.serverId || undefined}
+						/>
+					</SettingsSection>
+
+					{/* Patches */}
+					<SettingsSection
+						title="Patches"
+						description="Files applied to the source before every deployment."
+					>
+						<ShowPatches id={service.id} type="compose" />
+					</SettingsSection>
 
 					{/* Danger Zone */}
 					<div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-rose-500/20 bg-rose-950/10 p-5">
@@ -2006,6 +2196,7 @@ export const RailwayServicePanel = ({
 	activeTab: controlledActiveTab,
 	onTabChange,
 	onClose,
+	onRemove,
 }: Props) => {
 	const isApplication = service.type === "application";
 	const isCompose = service.type === "compose";
@@ -2074,6 +2265,8 @@ export const RailwayServicePanel = ({
 		api.application.reload.useMutation();
 	const { mutateAsync: appDeploy, isPending: isDeployingApp } =
 		api.application.deploy.useMutation();
+	const { mutateAsync: appRedeploy, isPending: isRedeployingApp } =
+		api.application.redeploy.useMutation();
 
 	const { mutateAsync: composeStart, isPending: isStartingCompose } =
 		api.compose.start.useMutation();
@@ -2131,6 +2324,7 @@ export const RailwayServicePanel = ({
 		isStoppingApp ||
 		isReloadingApp ||
 		isDeployingApp ||
+		isRedeployingApp ||
 		isStartingCompose ||
 		isStoppingCompose ||
 		isDeployingCompose ||
@@ -2202,10 +2396,36 @@ export const RailwayServicePanel = ({
 				});
 				toast.success("LibSQL restarted");
 			}
-			utils.project.one.invalidate();
+			await Promise.all([
+				utils.project.one.invalidate(),
+				utils.project.all.invalidate(),
+				utils.project.runtimeStatus.invalidate(),
+			]);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Failed to restart service",
+			);
+		}
+	};
+
+	const handleQuickRedeploy = async () => {
+		try {
+			if (isApplication) {
+				await appRedeploy({ applicationId: service.id });
+				toast.success("Application redeployment triggered");
+			} else if (isCompose) {
+				await composeRedeploy({ composeId: service.id });
+				toast.success("Compose redeployment triggered");
+			}
+			handleSelectTab("deployments");
+			await Promise.all([
+				utils.project.one.invalidate(),
+				utils.project.all.invalidate(),
+				utils.project.runtimeStatus.invalidate(),
+			]);
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to redeploy service",
 			);
 		}
 	};
@@ -2221,7 +2441,11 @@ export const RailwayServicePanel = ({
 				toast.success("Compose deployment triggered");
 				handleSelectTab("deployments");
 			}
-			utils.project.one.invalidate();
+			await Promise.all([
+				utils.project.one.invalidate(),
+				utils.project.all.invalidate(),
+				utils.project.runtimeStatus.invalidate(),
+			]);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Failed to deploy service",
@@ -2256,7 +2480,11 @@ export const RailwayServicePanel = ({
 				await libsqlStart({ libsqlId: service.id });
 				toast.success("LibSQL started");
 			}
-			utils.project.one.invalidate();
+			await Promise.all([
+				utils.project.one.invalidate(),
+				utils.project.all.invalidate(),
+				utils.project.runtimeStatus.invalidate(),
+			]);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Failed to start service",
@@ -2291,7 +2519,11 @@ export const RailwayServicePanel = ({
 				await libsqlStop({ libsqlId: service.id });
 				toast.success("LibSQL stopped");
 			}
-			utils.project.one.invalidate();
+			await Promise.all([
+				utils.project.one.invalidate(),
+				utils.project.all.invalidate(),
+				utils.project.runtimeStatus.invalidate(),
+			]);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Failed to stop service",
@@ -2319,7 +2551,7 @@ export const RailwayServicePanel = ({
 						</div>
 
 						<div className="min-w-0">
-							<div className="flex items-center gap-2 [&>*:not(h2)]:hidden">
+							<div className="flex items-center gap-2">
 								<h2 className="truncate text-xl font-semibold tracking-tight text-white">
 									{service.name}
 								</h2>
@@ -2349,7 +2581,7 @@ export const RailwayServicePanel = ({
 								)}
 							</div>
 
-							<div className="hidden">
+							<div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
 								{/* Live status badge with pulsing dot */}
 								<div
 									className={cn(
@@ -2386,7 +2618,7 @@ export const RailwayServicePanel = ({
 					</div>
 
 					{/* Right Toolbar */}
-					<div className="ml-auto flex items-center gap-2 [&>*:not(:last-child)]:hidden">
+					<div className="ml-auto flex items-center gap-2">
 						{canDeploy && (
 							<>
 								{/* "Deploy" button (violet gradient button #8b5cf6 with Rocket icon) */}
@@ -2530,6 +2762,10 @@ export const RailwayServicePanel = ({
 							service={service}
 							projectId={projectId}
 							environmentId={environmentId}
+							isActionLoading={isActionLoading}
+							onRemove={onRemove}
+							onRestart={handleQuickRestart}
+							onRedeploy={handleQuickRedeploy}
 						/>
 					)}
 
