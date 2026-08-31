@@ -133,7 +133,14 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 		const projectDirectoryFlag = projectPath
 			? `--project-directory ${quote([projectPath])} `
 			: "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}-f ${quote([path])} up -d --build --remove-orphans`;
+		// The generated .env lives next to the compose file (see
+		// getCreateEnvFileCommand), while --project-directory makes compose look
+		// it up in the project directory — pass it explicitly so interpolation
+		// works for nested compose paths.
+		const envFileFlag = compose.createEnvFile
+			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+			: "";
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}

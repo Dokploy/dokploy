@@ -56,3 +56,58 @@ describe("compose createCommand --project-directory", () => {
 		expect(cmd).toContain("-f docker-compose.yml");
 	});
 });
+
+describe("compose createCommand --env-file", () => {
+	it("points --env-file at the generated .env next to a nested compose file", () => {
+		const cmd = createCommand(
+			{
+				...base,
+				composePath: "./deploy/docker-compose.yml",
+				createEnvFile: true,
+			} as any,
+			"/etc/dokploy/compose/compose-app/code",
+		);
+
+		expect(cmd).toContain("--env-file deploy/.env");
+		expect(cmd).toContain(
+			"--project-directory /etc/dokploy/compose/compose-app/code",
+		);
+	});
+
+	it("omits --env-file when createEnvFile is disabled", () => {
+		const cmd = createCommand(
+			{ ...base, composePath: "./deploy/docker-compose.yml" } as any,
+			"/etc/dokploy/compose/compose-app/code",
+		);
+
+		expect(cmd).not.toContain("--env-file");
+	});
+
+	it("uses the code-root .env for raw sourceType", () => {
+		const cmd = createCommand(
+			{
+				...base,
+				sourceType: "raw",
+				composePath: "docker-compose.yml",
+				createEnvFile: true,
+			} as any,
+			"/etc/dokploy/compose/compose-app/code",
+		);
+
+		expect(cmd).toContain("--env-file .env");
+	});
+
+	it("does not add --env-file to stack deploy (unsupported flag)", () => {
+		const cmd = createCommand(
+			{
+				...base,
+				composeType: "stack",
+				composePath: "./deploy/docker-compose.yml",
+				createEnvFile: true,
+			} as any,
+			"/etc/dokploy/compose/compose-app/code",
+		);
+
+		expect(cmd).not.toContain("--env-file");
+	});
+});
