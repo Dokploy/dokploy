@@ -88,6 +88,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	z.object({
 		buildType: z.literal(BuildType.nixpacks),
 		publishDirectory: z.string().optional(),
+		isStaticSpa: z.boolean().default(false),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
@@ -138,6 +139,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 			return {
 				buildType: BuildType.nixpacks,
 				publishDirectory: data.publishDirectory || undefined,
+				isStaticSpa: data.isStaticSpa ?? false,
 			};
 		case BuildType.paketo_buildpacks:
 			return {
@@ -179,6 +181,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 
 	const buildType = form.watch("buildType");
 	const railpackVersion = form.watch("railpackVersion");
+	const publishDirectory = form.watch("publishDirectory");
 	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
 	useEffect(() => {
@@ -224,7 +227,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					? data.herokuVersion
 					: null,
 			isStaticSpa:
-				data.buildType === BuildType.static ? data.isStaticSpa : null,
+				data.buildType === BuildType.static ||
+				data.buildType === BuildType.nixpacks
+					? data.isStaticSpa
+					: null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
 					? data.railpackVersion || "0.15.4"
@@ -413,6 +419,30 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												{...field}
 												value={field.value ?? ""}
 											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.nixpacks && publishDirectory && (
+							<FormField
+								control={form.control}
+								name="isStaticSpa"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<div className="flex items-center gap-x-2 p-2">
+												<Checkbox
+													id="checkboxIsStaticSpaNixpacks"
+													value={String(field.value)}
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+												<FormLabel htmlFor="checkboxIsStaticSpaNixpacks">
+													Single Page Application (SPA)
+												</FormLabel>
+											</div>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

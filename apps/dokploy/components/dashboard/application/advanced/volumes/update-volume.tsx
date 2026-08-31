@@ -253,7 +253,7 @@ export const UpdateVolume = ({
 										control={form.control}
 										name="content"
 										render={({ field }) => (
-											<FormItem className="w-full max-w-[45rem]">
+											<FormItem className="w-full max-w-180">
 												<FormLabel>Content</FormLabel>
 												<FormControl>
 													<FormControl>

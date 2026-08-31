@@ -3,7 +3,6 @@ import {
 	checkGPUStatus,
 	checkPortInUse,
 	checkPostgresHealth,
-	checkRedisHealth,
 	checkTraefikHealth,
 	cleanupAll,
 	cleanupAllBackground,
@@ -13,7 +12,6 @@ import {
 	cleanupSystem,
 	cleanupVolumes,
 	DEFAULT_UPDATE_DATA,
-	execAsync,
 	findServerById,
 	getDockerDiskUsage,
 	getDokployImageTag,
@@ -67,6 +65,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateWebServerBuildsConcurrency,
 	projects,
 	server,
 } from "@/server/db/schema";
@@ -77,6 +76,7 @@ import { appRouter } from "../root";
 import {
 	adminProcedure,
 	createTRPCRouter,
+	enterpriseProcedure,
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
@@ -98,41 +98,6 @@ export const settingsRouter = createTRPCRouter({
 			action: "reload",
 			resourceType: "settings",
 			resourceName: "dokploy",
-		});
-		return true;
-	}),
-	cleanRedis: adminProcedure.mutation(async ({ ctx }) => {
-		if (IS_CLOUD) {
-			return true;
-		}
-
-		const { stdout: containerId } = await execAsync(
-			`docker ps --filter "name=dokploy-redis" --filter "status=running" -q | head -n 1`,
-		);
-
-		if (!containerId) {
-			throw new Error("Redis container not found");
-		}
-
-		const redisContainerId = containerId.trim();
-
-		await execAsync(`docker exec -i ${redisContainerId} redis-cli flushall`);
-		await audit(ctx, {
-			action: "update",
-			resourceType: "settings",
-			resourceName: "clean-redis",
-		});
-		return true;
-	}),
-	reloadRedis: adminProcedure.mutation(async ({ ctx }) => {
-		if (IS_CLOUD) {
-			return true;
-		}
-		await reloadDockerResource("dokploy-redis");
-		await audit(ctx, {
-			action: "reload",
-			resourceType: "settings",
-			resourceName: "dokploy-redis",
 		});
 		return true;
 	}),
@@ -441,6 +406,72 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "docker-cleanup",
+			});
+			return true;
+		}),
+
+	updateRemoteServersOnly: enterpriseProcedure
+		.input(z.object({ remoteServersOnly: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				remoteServersOnly: input.remoteServersOnly,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "remote-servers-only",
+			});
+			return true;
+		}),
+
+	updateBuildsConcurrency: adminProcedure
+		.input(apiUpdateWebServerBuildsConcurrency)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				buildsConcurrency: input.buildsConcurrency,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "builds-concurrency",
+			});
+			return true;
+		}),
+
+	updateEnforceSSO: enterpriseProcedure
+		.input(z.object({ enforceSSO: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				enforceSSO: input.enforceSSO,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "enforce-sso",
 			});
 			return true;
 		}),
@@ -891,18 +922,16 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return {
 				postgres: { status: "healthy" as const },
-				redis: { status: "healthy" as const },
 				traefik: { status: "healthy" as const },
 			};
 		}
 
-		const [postgres, redis, traefik] = await Promise.all([
+		const [postgres, traefik] = await Promise.all([
 			checkPostgresHealth(),
-			checkRedisHealth(),
 			checkTraefikHealth(),
 		]);
 
-		return { postgres, redis, traefik };
+		return { postgres, traefik };
 	}),
 	setupGPU: adminProcedure
 		.input(

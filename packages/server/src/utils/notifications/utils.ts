@@ -19,6 +19,7 @@ export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
 	subject: string,
 	htmlContent: string,
+	attachments?: { filename: string; content: Buffer }[],
 ) => {
 	try {
 		const {
@@ -41,6 +42,7 @@ export const sendEmailNotification = async (
 			subject,
 			html: htmlContent,
 			textEncoding: "base64",
+			attachments,
 		});
 	} catch (err) {
 		console.log(err);

@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipPortal,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -71,16 +70,14 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 			<TooltipProvider delayDuration={0} disableHoverableContent>
 				<Tooltip>
 					<TooltipTrigger asChild>{square}</TooltipTrigger>
-					<TooltipPortal>
-						<TooltipContent
-							sideOffset={5}
-							className="bg-popover border-border z-[99999]"
-						>
-							<p className="text text-xs text-muted-foreground break-all max-w-md">
-								<pre>{timestamp}</pre>
-							</p>
-						</TooltipContent>
-					</TooltipPortal>
+					<TooltipContent
+						sideOffset={5}
+						className="bg-popover border-border z-99999"
+					>
+						<p className="text text-xs text-muted-foreground break-all max-w-md">
+							<pre>{timestamp}</pre>
+						</p>
+					</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 		) : (

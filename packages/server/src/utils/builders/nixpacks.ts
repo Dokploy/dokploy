@@ -1,6 +1,7 @@
 import path from "node:path";
 import { getStaticCommand } from "@dokploy/server/utils/builders/static";
 import { nanoid } from "nanoid";
+import { quote } from "shell-quote";
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
@@ -52,10 +53,10 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 
 		bashCommand += `
 	docker create --name ${buildContainerId} ${appName}
-	mkdir -p ${localPath}
-	docker cp ${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""} ${path.join(buildAppDirectory, publishDirectory)} || {
+	mkdir -p ${quote([localPath])}
+	docker cp ${quote([`${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""}`])} ${quote([localPath])} || {
 		docker rm ${buildContainerId}
-		echo "❌ Copying ${publishDirectory} to ${path.join(buildAppDirectory, publishDirectory)} failed" ;
+		echo ${quote([`❌ Copying ${publishDirectory} to ${localPath} failed`])} ;
 		exit 1;
 	}
 	docker rm ${buildContainerId}

@@ -1,15 +1,21 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import copy from "copy-to-clipboard";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ShowContainerConfig } from "../config/show-container-config";
+import { FilesExplorerModal } from "../files/files-explorer-modal";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
+import { ShowContainerMounts } from "../mounts/show-container-mounts";
+import { ShowContainerNetworks } from "../networks/show-container-networks";
 import { RemoveContainerDialog } from "../remove/remove-container";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
 import { UploadFileModal } from "../upload/upload-file-modal";
@@ -35,6 +41,7 @@ export const columns: ColumnDef<Container>[] = [
 	},
 	{
 		accessorKey: "state",
+		filterFn: "equals",
 		header: ({ column }) => {
 			return (
 				<Button
@@ -54,7 +61,7 @@ export const columns: ColumnDef<Container>[] = [
 						variant={
 							value === "running"
 								? "default"
-								: value === "failed"
+								: value === "exited" || value === "dead"
 									? "destructive"
 									: "secondary"
 						}
@@ -98,6 +105,28 @@ export const columns: ColumnDef<Container>[] = [
 		cell: ({ row }) => <div className="lowercase">{row.getValue("image")}</div>,
 	},
 	{
+		accessorKey: "ports",
+		header: ({ column }) => {
+			return (
+				<Button
+					variant="ghost"
+					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+				>
+					Ports
+					<ArrowUpDown className="ml-2 h-4 w-4" />
+				</Button>
+			);
+		},
+		cell: ({ row }) => {
+			const value = row.getValue("ports") as string;
+			return (
+				<div className="max-w-[16rem] truncate lowercase" title={value}>
+					{value}
+				</div>
+			);
+		},
+	},
+	{
 		id: "actions",
 		enableHiding: false,
 		cell: ({ row }) => {
@@ -113,6 +142,14 @@ export const columns: ColumnDef<Container>[] = [
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuLabel>Actions</DropdownMenuLabel>
+						<DropdownMenuItem
+							onClick={() => {
+								copy(container.containerId);
+								toast.success("Container ID copied to clipboard");
+							}}
+						>
+							Copy Container ID
+						</DropdownMenuItem>
 						<ShowDockerModalLogs
 							containerId={container.containerId}
 							serverId={container.serverId}
@@ -123,12 +160,26 @@ export const columns: ColumnDef<Container>[] = [
 							containerId={container.containerId}
 							serverId={container.serverId || ""}
 						/>
+						<ShowContainerMounts
+							containerId={container.containerId}
+							serverId={container.serverId || ""}
+						/>
+						<ShowContainerNetworks
+							containerId={container.containerId}
+							serverId={container.serverId || ""}
+						/>
 						<DockerTerminalModal
 							containerId={container.containerId}
 							serverId={container.serverId || ""}
 						>
 							Terminal
 						</DockerTerminalModal>
+						<FilesExplorerModal
+							containerId={container.containerId}
+							serverId={container.serverId || undefined}
+						>
+							Browse Files
+						</FilesExplorerModal>
 						<UploadFileModal
 							containerId={container.containerId}
 							serverId={container.serverId || undefined}

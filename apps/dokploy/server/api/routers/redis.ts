@@ -8,7 +8,10 @@ import {
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
-	getServiceContainerCommand,
+	getAccessibleServerIds,
+	getContainerLogs,
+	getServiceContainer,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeRedisById,
@@ -18,7 +21,6 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateRedisById,
-	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -58,7 +60,11 @@ export const redisRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Redis",
@@ -412,15 +418,15 @@ export const redisRouter = createTRPCRouter({
 			const rd = await findRedisById(redisId);
 			const { appName, serverId, databasePassword } = rd;
 
-			const containerCmd = getServiceContainerCommand(appName);
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
-			`;
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
+			const command = `docker exec ${container.Id} redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -586,5 +592,40 @@ export const redisRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneRedis.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.redisId, "read");
+			const redis = await findRedisById(input.redisId);
+			if (
+				redis.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Redis",
+				});
+			}
+			return await getContainerLogs(
+				redis.appName,
+				input.tail,
+				input.since,
+				input.search,
+				redis.serverId,
+			);
 		}),
 });

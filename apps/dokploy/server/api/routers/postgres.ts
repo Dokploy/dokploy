@@ -9,8 +9,11 @@ import {
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
+	getAccessibleServerIds,
+	getContainerLogs,
 	getMountPath,
-	getServiceContainerCommand,
+	getServiceContainer,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -20,7 +23,6 @@ import {
 	stopService,
 	stopServiceRemote,
 	updatePostgresById,
-	getAccessibleServerIds,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -62,7 +64,11 @@ export const postgresRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Postgres",
@@ -431,15 +437,15 @@ export const postgresRouter = createTRPCRouter({
 			const pg = await findPostgresById(postgresId);
 			const { appName, serverId, databaseUser } = pg;
 
-			const containerCmd = getServiceContainerCommand(appName);
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
-			`;
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
+			const command = `docker exec ${container.Id} psql -U ${databaseUser} -d postgres -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -613,5 +619,40 @@ export const postgresRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOnePostgres.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.postgresId, "read");
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Postgres",
+				});
+			}
+			return await getContainerLogs(
+				postgres.appName,
+				input.tail,
+				input.since,
+				input.search,
+				postgres.serverId,
+			);
 		}),
 });
