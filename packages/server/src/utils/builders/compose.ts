@@ -7,20 +7,25 @@ import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
+	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForFile,
 } from "../docker/utils";
+import { withResolvedVaultRefs } from "../vault";
 
 export type ComposeNested = InferResultType<
 	"compose",
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
 
-export const getBuildComposeCommand = async (compose: ComposeNested) => {
+export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
-	const command = createCommand(compose);
-	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const command = createCommand(compose, projectPath);
+	const envCommand = compose.createEnvFile
+		? getCreateEnvFileCommand(compose)
+		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
@@ -114,7 +119,7 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
-export const createCommand = (compose: ComposeNested) => {
+export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	const { composeType, appName, sourceType } = compose;
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
@@ -125,7 +130,10 @@ export const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${quote([appName])} -f ${quote([path])} up -d --build --remove-orphans`;
+		const projectDirectoryFlag = projectPath
+			? `--project-directory ${quote([projectPath])} `
+			: "";
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}-f ${quote([path])} up -d --build --remove-orphans`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
@@ -153,10 +161,18 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
 	}
 
-	const envFileContent = prepareEnvironmentVariablesForFile(
-		envContent,
-		compose.environment.project.env,
-		compose.environment.env,
+	const envFileContent = (
+		compose.composeType === "stack"
+			? prepareEnvironmentVariables(
+					envContent,
+					compose.environment.project.env,
+					compose.environment.env,
+				)
+			: prepareEnvironmentVariablesForFile(
+					envContent,
+					compose.environment.project.env,
+					compose.environment.env,
+				)
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);

@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import {
 	addDomainToCompose,
 	clearOldDeployments,
@@ -32,6 +33,7 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
@@ -212,6 +214,7 @@ export const composeRouter = createTRPCRouter({
 			});
 			const updated = await updateCompose(input.composeId, {
 				env: input.env,
+				createEnvFile: input.createEnvFile,
 			});
 
 			if (!updated) {
@@ -546,7 +549,9 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			const compose = await findComposeById(input.composeId);
-			const command = createCommand(compose);
+			const { COMPOSE_PATH } = paths(!!compose.serverId);
+			const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+			const command = createCommand(compose, projectPath);
 			return `docker ${command}`;
 		}),
 	refreshToken: protectedProcedure

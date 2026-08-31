@@ -2,9 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@plugin 'tailwindcss-animate';
-@plugin '@tailwindcss/typography';
-@plugin 'fancy-ansi/plugin';
+@plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
+@plugin "fancy-ansi/plugin";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -21,8 +21,8 @@
 
 @theme {
 	--font-sans:
-		var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+		var(--font-inter), ui-sans-serif, system-ui, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
 	--breakpoint-3xl: 1920px;
 
@@ -130,6 +130,10 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+}
+
+body[data-scroll-locked] [data-slot="sidebar-inset"] {
+	overflow: hidden !important;
 }
 
 @utility no-scrollbar {
