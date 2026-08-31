@@ -202,6 +202,10 @@ const RailwayDeploymentsTab = ({
 	const isDeployable =
 		service.type === "application" || service.type === "compose";
 	const [showLogs, setShowLogs] = useState(false);
+	const { data: appData } = api.application.one.useQuery(
+		{ applicationId: service.id },
+		{ enabled: service.type === "application" && !!service.id },
+	);
 	const { data: deployments, isPending } = api.deployment.allByType.useQuery(
 		{
 			id: service.id,
@@ -264,7 +268,12 @@ const RailwayDeploymentsTab = ({
 						{service.type}
 					</span>
 					{service.serverName && <span>{service.serverName}</span>}
-					<span>1 Replica</span>
+					{appData?.replicas !== undefined && (
+						<span>
+							{appData.replicas}{" "}
+							{appData.replicas === 1 ? "Replica" : "Replicas"}
+						</span>
+					)}
 				</div>
 			</div>
 

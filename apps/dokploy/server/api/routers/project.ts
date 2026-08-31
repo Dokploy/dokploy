@@ -253,42 +253,62 @@ export const projectRouter = createTRPCRouter({
 									accessedServices,
 								),
 								columns: {
+									...serviceColumns,
 									applicationId: true,
 									icon: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							libsql: {
 								where: buildServiceFilter(libsql.libsqlId, accessedServices),
 								columns: {
+									...serviceColumns,
 									libsqlId: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
 								columns: {
+									...serviceColumns,
 									mariadbId: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							mongo: {
 								where: buildServiceFilter(mongo.mongoId, accessedServices),
 								columns: {
+									...serviceColumns,
 									mongoId: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							mysql: {
 								where: buildServiceFilter(mysql.mysqlId, accessedServices),
 								columns: {
+									...serviceColumns,
 									mysqlId: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							postgres: {
@@ -297,26 +317,39 @@ export const projectRouter = createTRPCRouter({
 									accessedServices,
 								),
 								columns: {
+									...serviceColumns,
 									postgresId: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
 								columns: {
+									...serviceColumns,
 									redisId: true,
-									name: true,
-									applicationStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
 								columns: {
+									...serviceColumns,
 									composeId: true,
 									icon: true,
-									name: true,
 									composeStatus: true,
+								},
+								with: {
+									server: {
+										columns: { name: true, ipAddress: true, username: true },
+									},
 								},
 							},
 						},
@@ -342,48 +375,93 @@ export const projectRouter = createTRPCRouter({
 					with: {
 						applications: {
 							columns: {
+								...serviceColumns,
 								applicationId: true,
 								icon: true,
-								name: true,
-								applicationStatus: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						mariadb: {
 							columns: {
+								...serviceColumns,
 								mariadbId: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						mongo: {
 							columns: {
+								...serviceColumns,
 								mongoId: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						mysql: {
 							columns: {
+								...serviceColumns,
 								mysqlId: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						postgres: {
 							columns: {
+								...serviceColumns,
 								postgresId: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						redis: {
 							columns: {
+								...serviceColumns,
 								redisId: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						compose: {
 							columns: {
+								...serviceColumns,
 								composeId: true,
 								icon: true,
-								name: true,
 								composeStatus: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 						libsql: {
 							columns: {
+								...serviceColumns,
 								libsqlId: true,
+							},
+							with: {
+								server: {
+									columns: { name: true, ipAddress: true, username: true },
+								},
 							},
 						},
 					},

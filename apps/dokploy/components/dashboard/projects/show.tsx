@@ -86,6 +86,13 @@ type ServiceItem = {
 	type: ServiceKind;
 	status?: string;
 	icon?: string | null;
+	appName?: string | null;
+	description?: string | null;
+	serverId?: string | null;
+	serverName?: string | null;
+	serverIp?: string | null;
+	serverUsername?: string | null;
+	createdAt?: string | null;
 };
 
 type ServiceCollection = {
@@ -162,6 +169,9 @@ const getServiceItems = (
 			if (typeof id !== "string") return [];
 
 			const status = service.applicationStatus ?? service.composeStatus;
+			const server = service.server as
+				| { name?: string; ipAddress?: string; username?: string }
+				| undefined;
 			return [
 				{
 					id,
@@ -169,6 +179,16 @@ const getServiceItems = (
 					type,
 					status: typeof status === "string" ? status : undefined,
 					icon: typeof service.icon === "string" ? service.icon : null,
+					appName: typeof service.appName === "string" ? service.appName : null,
+					description:
+						typeof service.description === "string" ? service.description : null,
+					serverId:
+						typeof service.serverId === "string" ? service.serverId : null,
+					serverName: server?.name ?? null,
+					serverIp: server?.ipAddress ?? null,
+					serverUsername: server?.username ?? null,
+					createdAt:
+						typeof service.createdAt === "string" ? service.createdAt : null,
 				},
 			];
 		});
@@ -1016,7 +1036,7 @@ export const ShowProjects = () => {
 							onDeleteService={handleDeleteCanvasService}
 							onDuplicateService={handleDuplicateCanvasService}
 							onServiceAction={handleCanvasServiceAction}
-							projectName={canvasProject?.name || "eterniza"}
+							projectName={canvasProject?.name || "Project"}
 							projectId={canvasProject?.projectId}
 							services={canvasServices}
 						/>

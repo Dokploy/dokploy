@@ -6,6 +6,7 @@ import {
 	BarChart3,
 	Boxes,
 	Braces,
+	CircuitBoard,
 	Copy,
 	Database,
 	Grip,
@@ -41,7 +42,21 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
-import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
+import {
+	LibsqlIcon,
+	MariadbIcon,
+	MongodbIcon,
+	MysqlIcon,
+	PostgresqlIcon,
+	RedisIcon,
+} from "@/components/icons/data-tools-icons";
+import { AddAiAssistant } from "../project/add-ai-assistant";
+import { AddApplication } from "../project/add-application";
+import { AddCompose } from "../project/add-compose";
+import { AddDatabase } from "../project/add-database";
+import { AddImport } from "../project/add-import";
+import { AddTemplate } from "../project/add-template";
+import { Button } from "@/components/ui/button";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -57,6 +72,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -71,9 +87,13 @@ export type CanvasService = {
 	type: string;
 	status?: string;
 	icon?: string | null;
+	appName?: string | null;
+	description?: string | null;
+	serverId?: string | null;
 	serverIp?: string | null;
 	serverName?: string | null;
 	serverUsername?: string | null;
+	createdAt?: string | null;
 };
 
 interface ProjectCanvasProps {
@@ -102,9 +122,13 @@ type CanvasNode = {
 	type: string;
 	icon?: string | null;
 	serviceId?: string;
+	appName?: string | null;
+	description?: string | null;
+	serverId?: string | null;
 	serverIp?: string | null;
 	serverName?: string | null;
 	serverUsername?: string | null;
+	createdAt?: string | null;
 	left: number;
 	top: number;
 };
@@ -150,14 +174,14 @@ type CanvasHistoryEntry = {
 type IconComponent = ComponentType<{ className?: string }>;
 
 const nodeIconMap: Record<string, IconComponent> = {
-	application: Atom,
-	compose: Server,
+	application: Boxes,
+	compose: CircuitBoard,
 	postgres: PostgresqlIcon,
-	mysql: Database,
-	mariadb: Database,
-	mongo: Database,
-	redis: Database,
-	libsql: Database,
+	mysql: MysqlIcon,
+	mariadb: MariadbIcon,
+	mongo: MongodbIcon,
+	redis: RedisIcon,
+	libsql: LibsqlIcon,
 	bucket: Archive,
 };
 
@@ -194,79 +218,57 @@ const getPanelServiceStatus = (status?: string): RailwayService["status"] => {
 	return "idle";
 };
 
-const fallbackNodes: CanvasNode[] = [
-	{
-		id: "frontend",
-		title: "Frontend",
-		subtitle: "eterniza.opuslab.dev",
-		type: "application",
-		status: "Online",
-		left: 4.5,
-		top: 41.62,
-	},
-	{
-		id: "backend",
-		title: "Backend",
-		subtitle: "backend-production-3cdaf.u...",
-		type: "compose",
-		status: "Online",
-		left: 37.6,
-		top: 41.62,
-	},
-	{
-		id: "bucket",
-		title: "bucket",
-		metric: "5.2 MB",
-		type: "bucket",
-		left: 68.6,
-		top: 13.93,
-	},
-	{
-		id: "postgres",
-		title: "Postgres",
-		type: "postgres",
-		status: "Online",
-		volume: "postgres-volume",
-		left: 70.6,
-		top: 63.79,
-	},
+const defaultNodeSlots: CanvasPosition[] = [
+	{ left: 8, top: 38 },
+	{ left: 38, top: 38 },
+	{ left: 68, top: 20 },
+	{ left: 68, top: 58 },
+	{ left: 38, top: 12 },
+	{ left: 8, top: 12 },
+	{ left: 38, top: 68 },
+	{ left: 8, top: 68 },
 ];
 
-const actualNodePositions = [
-	{ left: 4.5, top: 41.62 },
-	{ left: 37.6, top: 41.62 },
-	{ left: 68.6, top: 13.93 },
-	{ left: 70.6, top: 63.79 },
-	{ left: 40, top: 18 },
-	{ left: 8, top: 18 },
-];
+const getNodeInitialPosition = (
+	index: number,
+	total: number,
+): CanvasPosition => {
+	if (index < defaultNodeSlots.length && total <= defaultNodeSlots.length) {
+		return defaultNodeSlots[index]!;
+	}
+
+	const cols = Math.max(3, Math.ceil(Math.sqrt(total * 1.5)));
+	const col = index % cols;
+	const row = Math.floor(index / cols);
+
+	return {
+		left: 6 + col * 30,
+		top: 12 + row * 28,
+	};
+};
 
 const buildNodes = (services: CanvasService[]): CanvasNode[] => {
-	if (services.length === 0) return fallbackNodes;
+	if (!services || services.length === 0) return [];
 
-	return services.slice(0, actualNodePositions.length).map((service, index) => {
-		const position = actualNodePositions[index] ?? { left: 4.5, top: 48 };
+	return services.map((service, index) => {
+		const position = getNodeInitialPosition(index, services.length);
 		const normalizedType = service.type.toLowerCase();
-		const isStorage =
-			normalizedType === "bucket" || normalizedType === "storage";
 
 		return {
 			id: `${service.type}-${service.id}`,
 			serviceId: service.id,
 			title: service.name,
-			subtitle: isStorage ? undefined : service.type,
-			metric: isStorage ? "5.2 MB" : undefined,
-			status: isStorage
-				? undefined
-				: isOnline(service.status)
-					? "Online"
-					: "Offline",
-			volume: normalizedType === "postgres" ? "postgres-volume" : undefined,
-			type: isStorage ? "bucket" : normalizedType,
+			subtitle: service.description || service.appName || service.type,
+			status: isOnline(service.status) ? "Online" : "Offline",
+			type: normalizedType,
 			icon: service.icon,
+			appName: service.appName,
+			description: service.description,
+			serverId: service.serverId,
 			serverIp: service.serverIp,
 			serverName: service.serverName,
 			serverUsername: service.serverUsername,
+			createdAt: service.createdAt,
 			left: position.left,
 			top: position.top,
 		};
@@ -299,7 +301,9 @@ const buildEdges = (nodes: CanvasNode[]): CanvasEdge[] => {
 		if (!source || !target || source.id === target.id) return;
 		if (
 			edges.some(
-				(edge) => edge.source === source.id && edge.target === target.id,
+				(edge) =>
+					(edge.source === source.id && edge.target === target.id) ||
+					(edge.source === target.id && edge.target === source.id),
 			)
 		) {
 			return;
@@ -313,19 +317,24 @@ const buildEdges = (nodes: CanvasNode[]): CanvasEdge[] => {
 		});
 	};
 
-	const application = nodes.find((node) => node.type === "application");
-	const compose = nodes.find((node) => node.type === "compose");
-	const bucket = nodes.find((node) => node.type === "bucket");
-	const postgres = nodes.find((node) => node.type === "postgres");
-	const primary = compose ?? application ?? nodes[0];
+	const apps = nodes.filter(
+		(node) => node.type === "application" || node.type === "compose",
+	);
+	const databases = nodes.filter((node) =>
+		["postgres", "mysql", "mariadb", "mongo", "redis", "libsql"].includes(
+			node.type,
+		),
+	);
 
-	addEdge(application, compose, true, "network");
-	addEdge(primary, bucket, false, "variable");
-	addEdge(primary, postgres, false, "variable");
-
-	if (edges.length === 0) {
-		for (let index = 1; index < nodes.length; index += 1) {
-			addEdge(nodes[index - 1], nodes[index]);
+	if (apps.length > 0 && databases.length > 0) {
+		for (const app of apps) {
+			for (const db of databases) {
+				addEdge(app, db, false, "variable");
+			}
+		}
+	} else if (apps.length > 1 && databases.length === 0) {
+		for (let i = 1; i < apps.length; i++) {
+			addEdge(apps[0], apps[i], true, "network");
 		}
 	}
 
@@ -503,7 +512,7 @@ const CanvasNodeCard = ({
 	const Icon = nodeIconMap[node.type] ?? Server;
 	const iconClass = nodeIconClassMap[node.type] ?? "text-[#d7d2e7]";
 	const nodeIsOnline = isOnline(node.status);
-	const minHeightClass = node.volume ? "min-h-[192px]" : "min-h-[144px]";
+	const minHeightClass = "min-h-[144px]";
 	const contextMenuItemClass =
 		"min-h-9 gap-2.5 rounded-md px-2.5 text-sm font-normal text-[#a7a2b3] focus:bg-white/[0.07] focus:text-white";
 
@@ -541,9 +550,9 @@ const CanvasNodeCard = ({
 						</div>
 					</div>
 
-					{node.metric && (
-						<div className="mt-auto px-6 pb-7 text-sm text-[#a5a0b0] lg:px-8 lg:text-base">
-							{node.metric}
+					{node.serverName && (
+						<div className="px-6 pt-2 text-xs text-[#7e7a8d] lg:px-8">
+							{node.serverName}
 						</div>
 					)}
 
@@ -561,13 +570,6 @@ const CanvasNodeCard = ({
 							>
 								{node.status}
 							</span>
-						</div>
-					)}
-
-					{node.volume && (
-						<div className="mt-auto flex items-center gap-3 border-t border-white/[0.09] px-6 py-4 text-sm text-[#858091] lg:px-8 lg:py-5 lg:text-base">
-							<HardDrive className="size-4 lg:size-5" />
-							<span className="truncate">{node.volume}</span>
 						</div>
 					)}
 				</button>
@@ -760,11 +762,13 @@ export const ProjectCanvas = ({
 		if (!activePanelNode) return null;
 
 		return {
-			createdAt: new Date().toISOString(),
-			description: activePanelNode.subtitle,
+			createdAt: activePanelNode.createdAt || new Date().toISOString(),
+			description: activePanelNode.description || activePanelNode.subtitle,
 			icon: activePanelNode.icon,
 			id: activePanelNode.serviceId ?? activePanelNode.id,
 			name: activePanelNode.title,
+			appName: activePanelNode.appName,
+			serverId: activePanelNode.serverId,
 			serverIp: activePanelNode.serverIp,
 			serverName: activePanelNode.serverName,
 			serverUsername: activePanelNode.serverUsername,
@@ -1670,39 +1674,53 @@ export const ProjectCanvas = ({
 					touchAction: "none",
 				}}
 			>
-				<div
-					className="absolute right-4 top-4 z-30 lg:right-8 lg:top-7"
-					onPointerDown={(event) => event.stopPropagation()}
-				>
-					<button
-						aria-expanded={isAddOpen}
-						aria-haspopup="menu"
-						className="flex h-[34px] items-center gap-2 rounded-lg border border-white/[0.12] bg-[#242130]/90 px-3 text-sm font-medium text-[#eeeaf5] shadow-[0_6px_18px_rgba(0,0,0,0.16)] transition-colors hover:border-white/[0.25] hover:bg-[#2a2638]"
-						onClick={() => setIsAddOpen((value) => !value)}
-						type="button"
+				{environmentId && (
+					<div
+						className="absolute right-4 top-4 z-30 lg:right-8 lg:top-7"
+						onPointerDown={(event) => event.stopPropagation()}
 					>
-						<Plus className="h-4 w-4 text-[#a8a2b5] lg:h-5 lg:w-5" />
-						<span>Add</span>
-					</button>
-					{isAddOpen && (
-						<div
-							aria-label="Add service"
-							className="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-white/[0.12] bg-[#211f2e] p-1.5 text-sm shadow-[0_14px_36px_rgba(0,0,0,0.35)]"
-							role="menu"
-						>
-							{["Application", "Compose", "Database", "Bucket"].map((label) => (
+						<DropdownMenu open={isAddOpen} onOpenChange={setIsAddOpen}>
+							<DropdownMenuTrigger asChild>
 								<button
-									className="flex w-full items-center rounded-md px-3 py-2 text-left text-[#bcb7c8] transition-colors hover:bg-white/[0.06] hover:text-white"
-									key={label}
-									onClick={() => setIsAddOpen(false)}
+									className="flex h-[34px] items-center gap-2 rounded-lg border border-white/[0.12] bg-[#242130]/90 px-3 text-sm font-medium text-[#eeeaf5] shadow-[0_6px_18px_rgba(0,0,0,0.16)] transition-colors hover:border-white/[0.25] hover:bg-[#2a2638]"
 									type="button"
 								>
-									{label}
+									<Plus className="h-4 w-4 text-[#a8a2b5] lg:h-5 lg:w-5" />
+									<span>Add</span>
 								</button>
-							))}
-						</div>
-					)}
-				</div>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className="w-[200px] space-y-1.5 border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
+							>
+								<DropdownMenuLabel className="text-xs font-normal text-[#8e8a9c]">
+									Create Service
+								</DropdownMenuLabel>
+								<AddApplication
+									projectName={projectName}
+									environmentId={environmentId}
+								/>
+								<AddDatabase
+									projectName={projectName}
+									environmentId={environmentId}
+								/>
+								<AddCompose
+									projectName={projectName}
+									environmentId={environmentId}
+								/>
+								<AddTemplate environmentId={environmentId} />
+								<AddAiAssistant
+									projectName={projectName}
+									environmentId={environmentId}
+								/>
+								<AddImport
+									projectName={projectName}
+									environmentId={environmentId}
+								/>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</div>
+				)}
 
 				<div
 					className="absolute inset-0 origin-center transition-transform duration-200 ease-out"
@@ -1808,6 +1826,67 @@ export const ProjectCanvas = ({
 						/>
 					))}
 				</div>
+
+				{nodes.length === 0 && (
+					<div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center pointer-events-none z-20">
+						<div className="pointer-events-auto flex max-w-sm flex-col items-center rounded-2xl border border-white/[0.08] bg-[#1c1a28]/90 p-8 shadow-2xl backdrop-blur-sm">
+							<div className="flex size-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-[#a667e4] shadow-inner mb-4">
+								<Boxes className="size-7" />
+							</div>
+							<h3 className="text-base font-semibold text-white">
+								No services deployed
+							</h3>
+							<p className="mt-1.5 text-xs text-[#8f8a9d] leading-relaxed">
+								This environment currently has no services. Add an application,
+								compose stack, or database to get started.
+							</p>
+							{environmentId && (
+								<div className="mt-5">
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												className="h-9 gap-1.5 rounded-lg border border-violet-500/40 bg-violet-600/25 px-4 text-xs font-medium text-violet-200 hover:bg-violet-600/35 hover:text-white"
+												size="sm"
+											>
+												<Plus className="size-3.5" />
+												<span>Add Service</span>
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											align="center"
+											className="w-[200px] space-y-1.5 border border-[#33323e] bg-[#181622]/95 p-1.5 text-[#a7a2b3] shadow-[0_18px_50px_rgba(0,0,0,0.55)]"
+										>
+											<DropdownMenuLabel className="text-xs font-normal text-[#8e8a9c]">
+												Create Service
+											</DropdownMenuLabel>
+											<AddApplication
+												projectName={projectName}
+												environmentId={environmentId}
+											/>
+											<AddDatabase
+												projectName={projectName}
+												environmentId={environmentId}
+											/>
+											<AddCompose
+												projectName={projectName}
+												environmentId={environmentId}
+											/>
+											<AddTemplate environmentId={environmentId} />
+											<AddAiAssistant
+												projectName={projectName}
+												environmentId={environmentId}
+											/>
+											<AddImport
+												projectName={projectName}
+												environmentId={environmentId}
+											/>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
 
 				{activePanelService && (
 					<div
