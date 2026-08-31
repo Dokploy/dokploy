@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 
 (async () => {
 	try {
-		const email = process.argv[2];
+		const email = process.argv[2]?.trim().toLowerCase();
 
 		const randomPassword = await generateRandomPassword();
 
