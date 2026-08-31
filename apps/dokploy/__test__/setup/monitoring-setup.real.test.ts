@@ -64,6 +64,21 @@ const serviceExists = async (name: string) => {
 	}
 };
 
+// Swarm keeps converging a service for a bit after it's created (scheduling
+// tasks, resolving endpoints), which bumps Version.Index on its own. Calling
+// setupMonitoring again before that settles races that internal bump, so wait
+// for two consecutive reads to agree before treating the service as stable.
+const waitForServiceConvergence = async (name: string, timeoutMs = 5000) => {
+	const deadline = Date.now() + timeoutMs;
+	let lastIndex: string | null = null;
+	while (Date.now() < deadline) {
+		const inspect = await docker.getService(name).inspect();
+		if (inspect.Version.Index === lastIndex) return;
+		lastIndex = inspect.Version.Index;
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+};
+
 const swarmTaskNames = async () => {
 	const list = await docker.listContainers({ all: true });
 	return list
@@ -193,6 +208,7 @@ describe.skipIf(hasRealMonitoring())(
 				expect(await containerExists(SERVICE_NAME)).toBe(false);
 
 				await expect(setupMonitoring("test-server")).resolves.not.toThrow();
+				await waitForServiceConvergence(SERVICE_NAME);
 				await expect(setupMonitoring("test-server")).resolves.not.toThrow();
 
 				expect(await serviceExists(SERVICE_NAME)).toBe(true);
