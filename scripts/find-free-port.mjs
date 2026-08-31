@@ -18,6 +18,9 @@ async function findFreePort(start) {
 	return port;
 }
 
-const start = Number.parseInt(process.argv[2] || process.env.PORT || "3000", 10);
+const start = Number.parseInt(
+	process.argv[2] || process.env.PORT || "3000",
+	10,
+);
 const port = await findFreePort(start);
 process.stdout.write(String(port));

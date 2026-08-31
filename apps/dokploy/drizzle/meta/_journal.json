@@ -1303,6 +1303,20 @@
       "when": 1786526512677,
       "tag": "0185_needy_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 186,
+      "version": "7",
+      "when": 1787813846067,
+      "tag": "0186_tearful_dragon_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 187,
+      "version": "7",
+      "when": 1787937580323,
+      "tag": "0187_grant_terminal_permission_to_read_roles",
+      "breakpoints": true
     }
   ]
 }
