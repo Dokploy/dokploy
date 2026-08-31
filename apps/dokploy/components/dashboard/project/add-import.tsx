@@ -151,6 +151,8 @@ export const AddImport = ({ environmentId, projectName }: Props) => {
 			});
 			toast.success("Compose imported successfully");
 			await utils.environment.one.invalidate({ environmentId });
+			// Invalidate the project query to refresh the project data for the canvas
+			await utils.project.all.invalidate();
 			resetAll();
 			setVisible(false);
 		} catch (error) {

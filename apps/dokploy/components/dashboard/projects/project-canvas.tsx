@@ -1,14 +1,12 @@
 import copy from "copy-to-clipboard";
 import {
 	Archive,
-	Atom,
 	Ban,
 	BarChart3,
 	Boxes,
 	Braces,
 	CircuitBoard,
 	Copy,
-	Database,
 	Grip,
 	HardDrive,
 	Layers3,
@@ -50,12 +48,6 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { AddAiAssistant } from "../project/add-ai-assistant";
-import { AddApplication } from "../project/add-application";
-import { AddCompose } from "../project/add-compose";
-import { AddDatabase } from "../project/add-database";
-import { AddImport } from "../project/add-import";
-import { AddTemplate } from "../project/add-template";
 import { Button } from "@/components/ui/button";
 import {
 	ContextMenu,
@@ -67,7 +59,6 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -75,6 +66,12 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AddAiAssistant } from "../project/add-ai-assistant";
+import { AddApplication } from "../project/add-application";
+import { AddCompose } from "../project/add-compose";
+import { AddDatabase } from "../project/add-database";
+import { AddImport } from "../project/add-import";
+import { AddTemplate } from "../project/add-template";
 import {
 	type PanelTab,
 	RailwayServicePanel,
@@ -118,6 +115,7 @@ type CanvasNode = {
 	subtitle?: string;
 	metric?: string;
 	status?: string;
+	rawStatus?: string;
 	volume?: string;
 	type: string;
 	icon?: string | null;
@@ -197,12 +195,54 @@ const nodeIconClassMap: Record<string, string> = {
 	bucket: "text-[#d7d2e7]",
 };
 
-const isOnline = (status?: string) =>
-	!status ||
-	status.toLowerCase() === "online" ||
-	status === "done" ||
-	status === "running" ||
-	status === "healthy";
+type NodeStatusTone = "online" | "deploying" | "error" | "idle";
+
+const nodeStatusToneClassMap: Record<
+	NodeStatusTone,
+	{ halo: string; dot: string; text: string }
+> = {
+	online: {
+		halo: "bg-[#1e765e]/40",
+		dot: "bg-[#41bb8d]",
+		text: "text-[#55bd95]",
+	},
+	deploying: {
+		halo: "bg-[#95623c]/40",
+		dot: "bg-[#d99a52]",
+		text: "text-[#dda15f]",
+	},
+	error: {
+		halo: "bg-[#7f3535]/40",
+		dot: "bg-[#e06363]",
+		text: "text-[#e88686]",
+	},
+	idle: {
+		halo: "bg-[#4a4857]/40",
+		dot: "bg-[#8b8799]",
+		text: "text-[#9a96a9]",
+	},
+};
+
+const getNodeStatus = (
+	status?: string,
+): { label: string; tone: NodeStatusTone } => {
+	const normalizedStatus = status?.toLowerCase();
+
+	if (
+		normalizedStatus === "done" ||
+		normalizedStatus === "healthy" ||
+		normalizedStatus === "online"
+	) {
+		return { label: "Online", tone: "online" };
+	}
+	if (normalizedStatus === "running") {
+		return { label: "Deploying", tone: "deploying" };
+	}
+	if (normalizedStatus === "error" || normalizedStatus === "offline") {
+		return { label: "Error", tone: "error" };
+	}
+	return { label: "Not deployed", tone: "idle" };
+};
 
 const getPanelServiceStatus = (status?: string): RailwayService["status"] => {
 	const normalizedStatus = status?.toLowerCase();
@@ -259,7 +299,8 @@ const buildNodes = (services: CanvasService[]): CanvasNode[] => {
 			serviceId: service.id,
 			title: service.name,
 			subtitle: service.description || service.appName || service.type,
-			status: isOnline(service.status) ? "Online" : "Offline",
+			status: getNodeStatus(service.status).label,
+			rawStatus: service.status,
 			type: normalizedType,
 			icon: service.icon,
 			appName: service.appName,
@@ -511,7 +552,8 @@ const CanvasNodeCard = ({
 }: CanvasNodeCardProps) => {
 	const Icon = nodeIconMap[node.type] ?? Server;
 	const iconClass = nodeIconClassMap[node.type] ?? "text-[#d7d2e7]";
-	const nodeIsOnline = isOnline(node.status);
+	const nodeStatusTone =
+		nodeStatusToneClassMap[getNodeStatus(node.rawStatus).tone];
 	const minHeightClass = "min-h-[144px]";
 	const contextMenuItemClass =
 		"min-h-9 gap-2.5 rounded-md px-2.5 text-sm font-normal text-[#a7a2b3] focus:bg-white/[0.07] focus:text-white";
@@ -559,17 +601,13 @@ const CanvasNodeCard = ({
 					{node.status && (
 						<div className="mt-auto flex items-center gap-3 px-6 pb-5 text-sm lg:px-8 lg:pb-6 lg:text-base">
 							<span
-								className={`flex size-2.5 items-center justify-center rounded-full ${nodeIsOnline ? "bg-[#1e765e]/40" : "bg-[#95623c]/40"}`}
+								className={`flex size-2.5 items-center justify-center rounded-full ${nodeStatusTone.halo}`}
 							>
 								<span
-									className={`size-1.5 rounded-full ${nodeIsOnline ? "bg-[#41bb8d]" : "bg-[#d99a52]"}`}
+									className={`size-1.5 rounded-full ${nodeStatusTone.dot}`}
 								/>
 							</span>
-							<span
-								className={nodeIsOnline ? "text-[#55bd95]" : "text-[#dda15f]"}
-							>
-								{node.status}
-							</span>
+							<span className={nodeStatusTone.text}>{node.status}</span>
 						</div>
 					)}
 				</button>
@@ -772,7 +810,7 @@ export const ProjectCanvas = ({
 			serverIp: activePanelNode.serverIp,
 			serverName: activePanelNode.serverName,
 			serverUsername: activePanelNode.serverUsername,
-			status: getPanelServiceStatus(activePanelNode.status),
+			status: getPanelServiceStatus(activePanelNode.rawStatus),
 			type: activePanelNode.type as RailwayService["type"],
 		};
 	}, [activePanelNode]);
@@ -1227,6 +1265,16 @@ export const ProjectCanvas = ({
 		(event: globalThis.WheelEvent) => {
 			const canvas = canvasRef.current;
 			if (!canvas) return;
+			// This listener runs in the capture phase, so it would swallow the wheel
+			// event before overlays such as the service panel ever see it. Those
+			// overlays scroll themselves, so leave their events untouched.
+			const target = event.target;
+			if (
+				target instanceof Element &&
+				target.closest("[data-canvas-wheel-ignore]")
+			) {
+				return;
+			}
 			event.preventDefault();
 			const deltaMultiplier =
 				event.deltaMode === 1
@@ -1890,6 +1938,7 @@ export const ProjectCanvas = ({
 
 				{activePanelService && (
 					<div
+						data-canvas-wheel-ignore
 						className="absolute inset-0 z-40 cursor-default bg-black/20 transition-opacity duration-200"
 						onClick={(event) => {
 							if (event.target === event.currentTarget) {

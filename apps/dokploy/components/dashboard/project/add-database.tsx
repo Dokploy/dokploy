@@ -354,6 +354,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 					await utils.environment.one.invalidate({
 						environmentId,
 					});
+					// Invalidate the project query to refresh the project data for the canvas
+					await utils.project.all.invalidate();
 				})
 				.catch(() => {
 					toast.error("Error creating a database");

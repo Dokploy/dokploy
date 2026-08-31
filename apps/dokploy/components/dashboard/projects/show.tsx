@@ -95,6 +95,12 @@ type ServiceItem = {
 	createdAt?: string | null;
 };
 
+type PendingServiceDeletion = {
+	serviceId?: string;
+	title: string;
+	type: string;
+};
+
 type ServiceCollection = {
 	key: keyof Project["environments"][number];
 	type: ServiceKind;
@@ -130,6 +136,9 @@ const SERVICE_ID_KEYS: Record<ServiceKind, string> = {
 	redis: "redisId",
 	libsql: "libsqlId",
 };
+
+const isServiceKind = (type: string): type is ServiceKind =>
+	type in SERVICE_ID_KEYS;
 
 const SERVICE_ICONS: Record<
 	ServiceKind,
@@ -181,7 +190,9 @@ const getServiceItems = (
 					icon: typeof service.icon === "string" ? service.icon : null,
 					appName: typeof service.appName === "string" ? service.appName : null,
 					description:
-						typeof service.description === "string" ? service.description : null,
+						typeof service.description === "string"
+							? service.description
+							: null,
 					serverId:
 						typeof service.serverId === "string" ? service.serverId : null,
 					serverName: server?.name ?? null,
@@ -203,6 +214,11 @@ const getProjectServiceCount = (project: Project) =>
 
 const isServiceOnline = (status?: string) =>
 	status === "done" || status === "running" || status === "healthy";
+
+// Deleting a project does not clean up docker resources, so it is only safe
+// while every service is still idle (never deployed, nothing to orphan)
+const isServiceDeployed = (status?: string) =>
+	status === "running" || status === "done" || status === "error";
 
 const getProjectCanvasHref = (project: Project) => {
 	const environment =
@@ -498,7 +514,10 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 	const onlineServices = services.filter((service) =>
 		isServiceOnline(service.status),
 	).length;
-	const hasActiveServices = totalServices > 0;
+	const deployedServiceCount = services.filter((service) =>
+		isServiceDeployed(service.status),
+	).length;
+	const hasDeployedServices = deployedServiceCount > 0;
 	const statusDotClass =
 		totalServices === 0
 			? "bg-[#6c6b7b]"
@@ -591,11 +610,17 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 												<AlertDialogTitle>
 													Are you sure to delete this project?
 												</AlertDialogTitle>
-												{hasActiveServices ? (
+												{hasDeployedServices ? (
 													<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
 														<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 														<span className="text-sm text-yellow-600 dark:text-yellow-400">
-															You have active services, please delete them first
+															This project has {deployedServiceCount} deployed{" "}
+															{deployedServiceCount === 1
+																? "service"
+																: "services"}
+															. Delete{" "}
+															{deployedServiceCount === 1 ? "it" : "them"} first
+															so no containers are left orphaned.
 														</span>
 													</div>
 												) : (
@@ -607,7 +632,7 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 											<AlertDialogFooter>
 												<AlertDialogCancel>Cancel</AlertDialogCancel>
 												<AlertDialogAction
-													disabled={hasActiveServices}
+													disabled={hasDeployedServices}
 													onClick={() => onDelete(project.projectId)}
 												>
 													Delete
@@ -695,7 +720,16 @@ const ProjectCard = ({ project, permissions, onDelete }: ProjectCardProps) => {
 export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const router = useRouter();
-	const { data, isPending } = api.project.all.useQuery();
+	// Poll so newly created services and deploy status changes show up on the
+	// canvas without a manual refresh
+	const { data, isPending } = api.project.all.useQuery(undefined, {
+		// Services can be created from another surface. Keep the canvas in sync
+		// when the user returns to it instead of leaving an empty-state stale.
+		refetchInterval: 2000,
+		refetchIntervalInBackground: true,
+		refetchOnMount: "always",
+		refetchOnWindowFocus: "always",
+	});
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync: removeProject } = api.project.remove.useMutation();
 	const canvasActions = {
@@ -755,6 +789,9 @@ export const ShowProjects = () => {
 	const { data: availableTags } = api.tag.all.useQuery();
 
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [pendingServiceDeletion, setPendingServiceDeletion] =
+		useState<PendingServiceDeletion | null>(null);
+	const [isDeletingService, setIsDeletingService] = useState(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const [surfaceMode, setSurfaceMode] = useState<"canvas" | "list">("list");
 	const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -966,41 +1003,73 @@ export const ShowProjects = () => {
 		);
 	};
 
-	const handleDeleteCanvasService = async (service: {
-		serviceId?: string;
-		title: string;
-		type: string;
-	}) => {
+	// Browsers can silently suppress window.confirm(), which left the canvas
+	// context menu delete doing nothing at all, so confirmation is a dialog
+	const handleDeleteCanvasService = (service: PendingServiceDeletion) => {
+		// ContextMenuItem dispatches its select event while it is still closing.
+		// Wait until that pointer interaction has fully finished before opening the
+		// confirmation UI, so it cannot be interpreted as a confirmation click.
+		window.setTimeout(() => setPendingServiceDeletion(service), 150);
+	};
+
+	const confirmDeleteCanvasService = async () => {
+		const service = pendingServiceDeletion;
+		if (!service) return;
+
 		const serviceId = service.serviceId;
-		const idKey = SERVICE_ID_KEYS[service.type as ServiceKind];
-		const mutation = canvasDeleteActions[
-			service.type as keyof typeof canvasDeleteActions
-		] as unknown as
-			| { mutateAsync: (input: Record<string, unknown>) => Promise<unknown> }
-			| undefined;
-		if (
-			!serviceId ||
-			!idKey ||
-			!mutation ||
-			!window.confirm(`Delete service "${service.title}"?`)
-		) {
+		if (!serviceId || !isServiceKind(service.type)) {
+			toast.error("This service action is not available");
 			return;
 		}
 
-		const input: Record<string, unknown> = { [idKey]: serviceId };
-		if (service.type === "compose") input.deleteVolumes = false;
+		setIsDeletingService(true);
+		try {
+			switch (service.type) {
+				case "application":
+					await canvasDeleteActions.application.mutateAsync({
+						applicationId: serviceId,
+					});
+					break;
+				case "compose":
+					await canvasDeleteActions.compose.mutateAsync({
+						composeId: serviceId,
+						deleteVolumes: false,
+					});
+					break;
+				case "postgres":
+					await canvasDeleteActions.postgres.mutateAsync({
+						postgresId: serviceId,
+					});
+					break;
+				case "mysql":
+					await canvasDeleteActions.mysql.mutateAsync({ mysqlId: serviceId });
+					break;
+				case "mariadb":
+					await canvasDeleteActions.mariadb.mutateAsync({
+						mariadbId: serviceId,
+					});
+					break;
+				case "mongo":
+					await canvasDeleteActions.mongo.mutateAsync({ mongoId: serviceId });
+					break;
+				case "redis":
+					await canvasDeleteActions.redis.mutateAsync({ redisId: serviceId });
+					break;
+				case "libsql":
+					await canvasDeleteActions.libsql.mutateAsync({ libsqlId: serviceId });
+					break;
+			}
 
-		void toast.promise(
-			mutation.mutateAsync(input).then(async () => {
-				await utils.project.all.invalidate();
-			}),
-			{
-				loading: `Deleting ${service.title}...`,
-				success: `${service.title} deleted successfully`,
-				error: (error) =>
-					`Error deleting ${service.title}: ${error instanceof Error ? error.message : "Unknown error"}`,
-			},
-		);
+			await utils.project.all.invalidate();
+			setPendingServiceDeletion(null);
+			toast.success(`${service.title} deleted successfully`);
+		} catch (error) {
+			toast.error(
+				`Error deleting ${service.title}: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		} finally {
+			setIsDeletingService(false);
+		}
 	};
 
 	const deleteProject = async (projectId: string) => {
@@ -1198,6 +1267,53 @@ export const ShowProjects = () => {
 						</div>
 					)}
 				</main>
+				{pendingServiceDeletion && (
+					<div
+						aria-labelledby="canvas-delete-service-title"
+						aria-modal="true"
+						className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+						onPointerDown={(event) => event.stopPropagation()}
+						role="alertdialog"
+					>
+						<form
+							className="w-full max-w-md rounded-xl border border-white/[0.14] bg-[#211f2e] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.55)]"
+							onSubmit={(event) => {
+								event.preventDefault();
+								event.stopPropagation();
+								void confirmDeleteCanvasService();
+							}}
+						>
+							<h2
+								className="text-lg font-semibold text-white"
+								id="canvas-delete-service-title"
+							>
+								Delete {pendingServiceDeletion.title}?
+							</h2>
+							<p className="mt-2 text-sm text-[#aaa5b6]">
+								This permanently deletes the service and its resources. This
+								action cannot be undone.
+							</p>
+							<div className="mt-6 flex justify-end gap-3">
+								<button
+									className="rounded-lg border border-white/[0.14] px-4 py-2 text-sm font-medium text-[#d8d3e2] transition-colors hover:bg-white/[0.06]"
+									disabled={isDeletingService}
+									onClick={() => setPendingServiceDeletion(null)}
+									type="button"
+								>
+									Cancel
+								</button>
+								<button
+									className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+									disabled={isDeletingService}
+									type="submit"
+								>
+									{isDeletingService ? "Deleting…" : "Delete service"}
+								</button>
+							</div>
+						</form>
+					</div>
+				)}
+
 				<ProjectsBottomNav
 					canvasHref={
 						canvasProject

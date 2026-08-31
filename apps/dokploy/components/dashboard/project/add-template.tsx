@@ -618,6 +618,8 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																		utils.environment.one.invalidate({
 																			environmentId,
 																		});
+																		// Invalidate the project query to refresh the project data for the canvas
+																		utils.project.all.invalidate();
 																		setOpen(false);
 																		return `${template.name} template created successfully`;
 																	},

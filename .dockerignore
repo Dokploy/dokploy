@@ -3,3 +3,6 @@ node_modules
 .gitignore
 *.md
 dist
+.next
+apps/dokploy/.next
+apps/dokploy/.docker
