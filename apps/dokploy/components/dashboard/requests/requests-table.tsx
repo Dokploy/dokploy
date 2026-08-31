@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,7 +102,12 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 		pageSize: 10,
 	});
 
-	const { data: statsLogs, isLoading } = api.settings.readStatsLogs.useQuery(
+	const {
+		data: statsLogs,
+		isLoading,
+		isError,
+		error,
+	} = api.settings.readStatsLogs.useQuery(
 		{
 			sort: sorting[0],
 			page: pagination,
@@ -278,6 +284,12 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 													<div className="w-full flex gap-4 items-center justify-center h-[55vh] text-muted-foreground">
 														<Loader2 className="size-4 animate-spin" />
 														<span>Loading requests...</span>
+													</div>
+												) : isError ? (
+													<div className="w-full flex items-center justify-center h-[55vh]">
+														<AlertBlock type="error" className="w-full">
+															{error?.message}
+														</AlertBlock>
 													</div>
 												) : (
 													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
