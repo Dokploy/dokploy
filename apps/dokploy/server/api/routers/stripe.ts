@@ -115,17 +115,12 @@ export const stripeRouter = createTRPCRouter({
 				| undefined;
 			isAnnualCurrent = firstPrice?.recurring?.interval === "year";
 
-			const totalCents = subscriptions.data.reduce(
-				(subTotal, sub) =>
-					subTotal +
-					sub.items.data.reduce((sum, item) => {
-						const price = item.price as Stripe.Price;
-						const amount = price.unit_amount ?? 0;
-						const qty = item.quantity ?? 1;
-						return sum + amount * qty;
-					}, 0),
-				0,
-			);
+			const totalCents = (activeSub?.items.data ?? []).reduce((sum, item) => {
+				const price = item.price as Stripe.Price;
+				const amount = price.unit_amount ?? 0;
+				const qty = item.quantity ?? 1;
+				return sum + amount * qty;
+			}, 0);
 			currentPriceAmount = totalCents / 100;
 		}
 
