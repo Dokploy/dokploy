@@ -563,6 +563,7 @@ export const createGotifyNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "gotify",
 				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -594,6 +595,7 @@ export const updateGotifyNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -657,6 +659,7 @@ export const createNtfyNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "ntfy",
 				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -688,6 +691,7 @@ export const updateNtfyNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
