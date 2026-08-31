@@ -32,13 +32,17 @@ import { and, eq } from "drizzle-orm";
 			.set({
 				password: randomPassword.hashedPassword,
 			})
-			.where(and(eq(account.userId, userId), eq(account.providerId, "credential")));
+			.where(
+				and(eq(account.userId, userId), eq(account.providerId, "credential")),
+			);
 
 		if (update.count > 0) {
 			console.log("Password reset successful");
 			console.log("New password: ", randomPassword.randomPassword);
 		} else {
-			console.log("Password reset failed: no credential account found for this user");
+			console.log(
+				"Password reset failed: no credential account found for this user",
+			);
 			process.exit(1);
 		}
 
