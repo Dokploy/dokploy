@@ -30,7 +30,7 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { encodeBase64 } from "../utils/docker/utils";
+import { encodeBase64, waitForSwarmServiceStable } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -232,6 +232,16 @@ export const deployApplication = async ({
 		}
 
 		await mechanizeDockerContainer(application);
+
+		const stability = await waitForSwarmServiceStable(application.appName, {
+			serverId,
+		});
+		if (!stability.stable) {
+			throw new Error(
+				`Container did not stay running after deployment: ${stability.reason}`,
+			);
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
@@ -323,6 +333,16 @@ export const rebuildApplication = async ({
 			await execAsync(commandWithLog);
 		}
 		await mechanizeDockerContainer(application);
+
+		const stability = await waitForSwarmServiceStable(application.appName, {
+			serverId,
+		});
+		if (!stability.stable) {
+			throw new Error(
+				`Container did not stay running after rebuild: ${stability.reason}`,
+			);
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
