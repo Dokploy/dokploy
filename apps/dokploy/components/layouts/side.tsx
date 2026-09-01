@@ -29,7 +29,6 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
-
 	Server,
 	ShieldCheck,
 	Smartphone,
@@ -755,7 +754,6 @@ function SidebarLogo() {
 																		: "Set as default"
 																}
 															>
-
 																{isDefault ? (
 																	<Star
 																		fill="#eab308"
