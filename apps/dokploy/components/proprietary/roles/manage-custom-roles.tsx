@@ -328,6 +328,10 @@ const ACTION_META: Record<
 			label: "Delete",
 			description: "Remove servers from the organization",
 		},
+		terminal: {
+			label: "Terminal",
+			description: "Open an SSH root shell on remote servers",
+		},
 	},
 	registry: {
 		read: { label: "Read", description: "View configured Docker registries" },
@@ -569,7 +573,7 @@ const ROLE_PRESETS: {
 			envVars: ["read", "write"],
 			projectEnvVars: ["read", "write"],
 			environmentEnvVars: ["read", "write"],
-			server: ["read", "create", "delete"],
+			server: ["read", "create", "delete", "terminal"],
 			registry: ["read", "create", "delete"],
 			certificate: ["read", "create", "delete"],
 			backup: ["read", "create", "delete", "restore"],
