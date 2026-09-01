@@ -12,6 +12,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { azureDevops } from "./azure-devops";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
@@ -65,6 +66,7 @@ export const sourceType = pgEnum("sourceType", [
 	"bitbucket",
 	"gitea",
 	"drop",
+	"azureDevops",
 ]);
 
 export const buildType = pgEnum("buildType", [
@@ -150,6 +152,14 @@ export const applications = pgTable("application", {
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
+	// Azure DevOps
+	azureDevopsRepositoryId: text("azureDevopsRepositoryId"),
+	azureDevopsRepository: text("azureDevopsRepository"),
+	azureDevopsProjectId: text("azureDevopsProjectId"),
+	azureDevopsProject: text("azureDevopsProject"),
+	azureDevopsRemoteUrl: text("azureDevopsRemoteUrl"),
+	azureDevopsBranch: text("azureDevopsBranch"),
+	azureDevopsBuildPath: text("azureDevopsBuildPath").default("/"),
 	// Docker
 	username: text("username"),
 	password: text("password"),
@@ -221,6 +231,10 @@ export const applications = pgTable("application", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	azureDevopsId: text("azureDevopsId").references(
+		() => azureDevops.azureDevopsId,
+		{ onDelete: "set null" },
+	),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -276,6 +290,10 @@ export const applicationsRelations = relations(
 		bitbucket: one(bitbucket, {
 			fields: [applications.bitbucketId],
 			references: [bitbucket.bitbucketId],
+		}),
+		azureDevops: one(azureDevops, {
+			fields: [applications.azureDevopsId],
+			references: [azureDevops.azureDevopsId],
 		}),
 		server: one(server, {
 			fields: [applications.serverId],
@@ -340,7 +358,16 @@ const createSchema = createInsertSchema(applications, {
 	buildPath: z.string().optional(),
 	environmentId: z.string(),
 	sourceType: z
-		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
+		.enum([
+			"github",
+			"docker",
+			"git",
+			"gitlab",
+			"bitbucket",
+			"gitea",
+			"drop",
+			"azureDevops",
+		])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
@@ -503,6 +530,21 @@ export const apiSaveGiteaProvider = createSchema
 	})
 	.required()
 	.extend({ giteaBranch: branchField })
+	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
+
+export const apiSaveAzureDevopsProvider = createSchema
+	.pick({
+		applicationId: true,
+		azureDevopsId: true,
+		azureDevopsRepositoryId: true,
+		azureDevopsRepository: true,
+		azureDevopsProjectId: true,
+		azureDevopsProject: true,
+		azureDevopsRemoteUrl: true,
+		azureDevopsBuildPath: true,
+	})
+	.required()
+	.extend({ azureDevopsBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveDockerProvider = createSchema

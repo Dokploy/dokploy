@@ -17,6 +17,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { cloneAzureDevopsRepository } from "@dokploy/server/utils/providers/azure-devops";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import { buildRemoteDocker } from "@dokploy/server/utils/providers/docker";
 import {
@@ -113,6 +114,7 @@ export const findApplicationById = async (applicationId: string) => {
 				},
 			},
 			bitbucket: { columns: { appPassword: false, apiToken: false } },
+			azureDevops: { columns: { personalAccessToken: false } },
 			gitea: {
 				columns: {
 					clientSecret: false,
@@ -208,6 +210,8 @@ export const deployApplication = async ({
 			command += await cloneGiteaRepository(applicationEntity);
 		} else if (application.sourceType === "bitbucket") {
 			command += await cloneBitbucketRepository(applicationEntity);
+		} else if (application.sourceType === "azureDevops") {
+			command += await cloneAzureDevopsRepository(applicationEntity);
 		} else if (application.sourceType === "git") {
 			command += await cloneGitRepository(applicationEntity);
 		} else if (application.sourceType === "docker") {

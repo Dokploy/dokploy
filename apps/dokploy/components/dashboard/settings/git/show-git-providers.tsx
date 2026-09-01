@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import {
+	AzureDevopsIcon,
 	BitbucketIcon,
 	GiteaIcon,
 	GithubIcon,
@@ -35,6 +36,8 @@ import {
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 import { useUrl } from "@/utils/hooks/use-url";
+import { AddAzureDevopsProvider } from "./azure-devops/add-azure-devops-provider";
+import { EditAzureDevopsProvider } from "./azure-devops/edit-azure-devops-provider";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { AddGiteaProvider } from "./gitea/add-gitea-provider";
@@ -102,6 +105,7 @@ export const ShowGitProviders = () => {
 														<AddGitlabProvider />
 														<AddBitbucketProvider />
 														<AddGiteaProvider />
+														<AddAzureDevopsProvider />
 													</div>
 												</div>
 											</div>
@@ -120,6 +124,7 @@ export const ShowGitProviders = () => {
 														<AddGitlabProvider />
 														<AddBitbucketProvider />
 														<AddGiteaProvider />
+														<AddAzureDevopsProvider />
 													</div>
 												</div>
 											)}
@@ -132,6 +137,8 @@ export const ShowGitProviders = () => {
 												const isBitbucket =
 													gitProvider.providerType === "bitbucket";
 												const isGitea = gitProvider.providerType === "gitea";
+												const isAzureDevops =
+													gitProvider.providerType === "azureDevops";
 												const canManage = gitProvider.isOwner || isOrgAdmin;
 
 												const haveGithubRequirements =
@@ -158,6 +165,9 @@ export const ShowGitProviders = () => {
 																		<BitbucketIcon className="size-5" />
 																	)}
 																	{isGitea && <GiteaIcon className="size-5" />}
+																	{isAzureDevops && (
+																		<AzureDevopsIcon className="size-5 text-[#0078d4]" />
+																	)}
 																	<div className="flex flex-col gap-1">
 																		<span className="text-sm font-medium">
 																			{gitProvider.name}
@@ -327,6 +337,16 @@ export const ShowGitProviders = () => {
 																				giteaId={gitProvider.gitea.giteaId}
 																			/>
 																		)}
+																		{isAzureDevops &&
+																			gitProvider.azureDevops
+																				?.azureDevopsId && (
+																				<EditAzureDevopsProvider
+																					azureDevopsId={
+																						gitProvider.azureDevops
+																							.azureDevopsId
+																					}
+																				/>
+																			)}
 
 																		<DialogAction
 																			title="Delete Git Provider"

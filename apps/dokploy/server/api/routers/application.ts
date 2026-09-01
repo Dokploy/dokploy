@@ -57,6 +57,7 @@ import {
 	apiFindOneApplication,
 	apiRedeployApplication,
 	apiReloadApplication,
+	apiSaveAzureDevopsProvider,
 	apiSaveBitbucketProvider,
 	apiSaveBuildType,
 	apiSaveDockerProvider,
@@ -166,6 +167,8 @@ export const applicationRouter = createTRPCRouter({
 						return application.bitbucket?.gitProviderId;
 					case "gitea":
 						return application.gitea?.gitProviderId;
+					case "azureDevops":
+						return application.azureDevops?.gitProviderId;
 					default:
 						return null;
 				}
@@ -527,6 +530,35 @@ export const applicationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	saveAzureDevopsProvider: protectedProcedure
+		.input(apiSaveAzureDevopsProvider)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["create"],
+			});
+			await updateApplication(input.applicationId, {
+				azureDevopsId: input.azureDevopsId,
+				azureDevopsRepositoryId: input.azureDevopsRepositoryId,
+				azureDevopsRepository: input.azureDevopsRepository,
+				azureDevopsProjectId: input.azureDevopsProjectId,
+				azureDevopsProject: input.azureDevopsProject,
+				azureDevopsRemoteUrl: input.azureDevopsRemoteUrl,
+				azureDevopsBranch: input.azureDevopsBranch,
+				azureDevopsBuildPath: input.azureDevopsBuildPath,
+				sourceType: "azureDevops",
+				applicationStatus: "idle",
+				watchPaths: input.watchPaths,
+				enableSubmodules: input.enableSubmodules,
+			});
+			const application = await findApplicationById(input.applicationId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "application",
+				resourceId: application.applicationId,
+				resourceName: application.appName,
+			});
+			return true;
+		}),
 	saveDockerProvider: protectedProcedure
 		.input(apiSaveDockerProvider)
 		.mutation(async ({ input, ctx }) => {
@@ -607,6 +639,15 @@ export const applicationRouter = createTRPCRouter({
 				giteaOwner: null,
 				giteaBranch: null,
 				giteaBuildPath: null,
+
+				azureDevopsRepositoryId: null,
+				azureDevopsRepository: null,
+				azureDevopsProjectId: null,
+				azureDevopsProject: null,
+				azureDevopsRemoteUrl: null,
+				azureDevopsBranch: null,
+				azureDevopsBuildPath: null,
+				azureDevopsId: null,
 				giteaId: null,
 
 				customGitBranch: null,

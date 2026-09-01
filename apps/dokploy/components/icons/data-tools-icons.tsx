@@ -6,6 +6,15 @@ interface Props {
 	className?: string;
 }
 
+export const AzureDevopsIcon = ({ className }: Props) => (
+	<svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+		<path
+			fill="currentColor"
+			d="M0 8.877 2.247 5.91l8.405-3.416v3.142L3.87 7.63v8.74l6.782 1.994v3.142L2.247 18.09 0 15.123Zm24-4.44v15.126l-6 4.437-7.348-2.494v-3.142L18 20.27V3.73l-7.348 1.906V2.494L18 0Zm-6 2.028-4.793 2.74-2.555-3.57v12.73l2.555-3.57L18 17.535Z"
+		/>
+	</svg>
+);
+
 export const PostgresqlIcon = ({ className }: Props) => {
 	return (
 		<svg

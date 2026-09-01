@@ -7,6 +7,7 @@ import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
+	extractAzureDevopsCommittedPaths,
 	extractBranchName,
 	extractCommitMessage,
 	extractCommittedPaths,
@@ -34,6 +35,7 @@ export default async function handler(
 					},
 				},
 				bitbucket: true,
+				azureDevops: true,
 			},
 		});
 
@@ -178,6 +180,22 @@ export default async function handler(
 
 			if (!branchName || branchName !== composeResult.giteaBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+		} else if (sourceType === "azureDevops") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== composeResult.azureDevopsBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+			const committedPaths = await extractAzureDevopsCommittedPaths(
+				req.body,
+				composeResult.azureDevops,
+				composeResult.azureDevopsProjectId ?? "",
+				composeResult.azureDevopsRepositoryId ?? "",
+			);
+			if (!shouldDeploy(composeResult.watchPaths, committedPaths)) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
 				return;
 			}
 		}

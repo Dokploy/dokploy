@@ -29,6 +29,14 @@ if (typeof window === "undefined") {
 }
 
 const baseApp: ApplicationNested = {
+	azureDevopsId: null,
+	azureDevopsRepositoryId: null,
+	azureDevopsRepository: null,
+	azureDevopsProjectId: null,
+	azureDevopsProject: null,
+	azureDevopsRemoteUrl: null,
+	azureDevopsBranch: null,
+	azureDevopsBuildPath: null,
 	railpackVersion: "0.15.4",
 	applicationId: "",
 	previewLabels: [],

@@ -10,6 +10,7 @@ import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
+import { cloneAzureDevopsRepository } from "../providers/azure-devops";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
@@ -36,6 +37,8 @@ export const cloneCompose = async (compose: Compose) => {
 		command += await cloneGitlabRepository(entity);
 	} else if (compose.sourceType === "bitbucket") {
 		command += await cloneBitbucketRepository(entity);
+	} else if (compose.sourceType === "azureDevops") {
+		command += await cloneAzureDevopsRepository(entity);
 	} else if (compose.sourceType === "git") {
 		command += await cloneGitRepository(entity);
 	} else if (compose.sourceType === "gitea") {

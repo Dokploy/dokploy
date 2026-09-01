@@ -7,6 +7,7 @@ import { SaveGitProvider } from "@/components/dashboard/application/general/gene
 import { SaveGiteaProvider } from "@/components/dashboard/application/general/generic/save-gitea-provider";
 import { SaveGithubProvider } from "@/components/dashboard/application/general/generic/save-github-provider";
 import {
+	AzureDevopsIcon,
 	BitbucketIcon,
 	DockerIcon,
 	GiteaIcon,
@@ -17,6 +18,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
+import { SaveAzureDevopsProvider } from "./save-azure-devops-provider";
 import { SaveBitbucketProvider } from "./save-bitbucket-provider";
 import { SaveDragNDrop } from "./save-drag-n-drop";
 import { SaveGitlabProvider } from "./save-gitlab-provider";
@@ -29,7 +31,8 @@ type TabState =
 	| "drop"
 	| "gitlab"
 	| "bitbucket"
-	| "gitea";
+	| "gitea"
+	| "azureDevops";
 
 interface Props {
 	applicationId: string;
@@ -44,6 +47,8 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 		api.bitbucket.bitbucketProviders.useQuery();
 	const { data: giteaProviders, isPending: isLoadingGitea } =
 		api.gitea.giteaProviders.useQuery();
+	const { data: azureDevopsProviders, isPending: isLoadingAzureDevops } =
+		api.azureDevops.providers.useQuery();
 
 	const { data: application, refetch } = api.application.one.useQuery({
 		applicationId,
@@ -54,7 +59,11 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 	const [tab, setSab] = useState<TabState>(application?.sourceType || "github");
 
 	const isLoading =
-		isLoadingGithub || isLoadingGitlab || isLoadingBitbucket || isLoadingGitea;
+		isLoadingGithub ||
+		isLoadingGitlab ||
+		isLoadingBitbucket ||
+		isLoadingGitea ||
+		isLoadingAzureDevops;
 
 	const handleDisconnect = async () => {
 		try {
@@ -187,6 +196,12 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 								Gitea
 							</TabsTrigger>
 							<TabsTrigger
+								value="azureDevops"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+							>
+								<AzureDevopsIcon className="size-4 text-current" /> Azure DevOps
+							</TabsTrigger>
+							<TabsTrigger
 								value="docker"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
@@ -286,6 +301,25 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 										Settings
 									</Link>{" "}
 									to do so.
+								</span>
+							</div>
+						)}
+					</TabsContent>
+					<TabsContent value="azureDevops" className="w-full p-2">
+						{azureDevopsProviders?.length ? (
+							<SaveAzureDevopsProvider applicationId={applicationId} />
+						) : (
+							<div className="flex min-h-[25vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+								<AzureDevopsIcon className="size-8" />
+								<span>
+									Configure an Azure DevOps account in{" "}
+									<Link
+										href="/dashboard/settings/git-providers"
+										className="text-foreground"
+									>
+										Settings
+									</Link>{" "}
+									first.
 								</span>
 							</div>
 						)}

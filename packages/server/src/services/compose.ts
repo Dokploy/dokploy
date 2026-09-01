@@ -22,6 +22,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { cloneAzureDevopsRepository } from "@dokploy/server/utils/providers/azure-devops";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import {
 	cloneGitRepository,
@@ -136,6 +137,7 @@ export const findComposeById = async (composeId: string) => {
 				columns: { secret: false, accessToken: false, refreshToken: false },
 			},
 			bitbucket: { columns: { appPassword: false, apiToken: false } },
+			azureDevops: { columns: { personalAccessToken: false } },
 			gitea: {
 				columns: {
 					clientSecret: false,
@@ -257,6 +259,8 @@ export const deployCompose = async ({
 			command += await cloneGitlabRepository(entity);
 		} else if (compose.sourceType === "bitbucket") {
 			command += await cloneBitbucketRepository(entity);
+		} else if (compose.sourceType === "azureDevops") {
+			command += await cloneAzureDevopsRepository(entity);
 		} else if (compose.sourceType === "git") {
 			command += await cloneGitRepository(entity);
 		} else if (compose.sourceType === "gitea") {

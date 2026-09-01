@@ -2,6 +2,7 @@ import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
+import { azureDevopsRouter } from "./routers/azure-devops";
 import { backupRouter } from "./routers/backup";
 import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
@@ -66,6 +67,7 @@ export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	application: applicationRouter,
 	backup: backupRouter,
+	azureDevops: azureDevopsRouter,
 	bitbucket: bitbucketRouter,
 	network: networkRouter,
 	certificates: certificateRouter,

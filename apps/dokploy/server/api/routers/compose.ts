@@ -166,6 +166,8 @@ export const composeRouter = createTRPCRouter({
 						return compose.bitbucket?.gitProviderId;
 					case "gitea":
 						return compose.gitea?.gitProviderId;
+					case "azureDevops":
+						return compose.azureDevops?.gitProviderId;
 					default:
 						return null;
 				}
@@ -751,6 +753,14 @@ export const composeRouter = createTRPCRouter({
 				giteaOwner: null,
 				giteaBranch: null,
 				giteaId: null,
+
+				azureDevopsRepositoryId: null,
+				azureDevopsRepository: null,
+				azureDevopsProjectId: null,
+				azureDevopsProject: null,
+				azureDevopsRemoteUrl: null,
+				azureDevopsBranch: null,
+				azureDevopsId: null,
 
 				customGitBranch: null,
 				customGitUrl: null,

@@ -3,6 +3,14 @@ import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	azureDevopsId: null,
+	azureDevopsRepositoryId: null,
+	azureDevopsRepository: null,
+	azureDevopsProjectId: null,
+	azureDevopsProject: null,
+	azureDevopsRemoteUrl: null,
+	azureDevopsBranch: null,
+	azureDevopsBuildPath: null,
 	railpackVersion: "0.15.4",
 	rollbackActive: false,
 	applicationId: "",

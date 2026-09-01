@@ -1,5 +1,7 @@
 import {
+	type AzureDevops,
 	type Bitbucket,
+	getAzureDevopsHeaders,
 	getBitbucketHeaders,
 	IS_CLOUD,
 	shouldDeploy,
@@ -51,6 +53,7 @@ export default async function handler(
 					},
 				},
 				bitbucket: true,
+				azureDevops: true,
 			},
 		});
 
@@ -257,6 +260,22 @@ export default async function handler(
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
+		} else if (sourceType === "azureDevops") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== application.azureDevopsBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+			const committedPaths = await extractAzureDevopsCommittedPaths(
+				req.body,
+				application.azureDevops,
+				application.azureDevopsProjectId ?? "",
+				application.azureDevopsRepositoryId ?? "",
+			);
+			if (!shouldDeploy(application.watchPaths, committedPaths)) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
 		}
 
 		try {
@@ -440,6 +459,9 @@ export const extractImageTagFromRequest = (
 };
 
 export const extractCommitMessage = (headers: any, body: any) => {
+	if (body?.eventType === "git.push") {
+		return body.resource?.commits?.[0]?.comment ?? "NEW COMMIT";
+	}
 	// GitHub Packages: registry_package events (container tags)
 	const githubEvent = headers["x-github-event"];
 	if (githubEvent === "registry_package") {
@@ -495,6 +517,9 @@ export const extractCommitMessage = (headers: any, body: any) => {
 };
 
 export const extractHash = (headers: any, body: any) => {
+	if (body?.eventType === "git.push") {
+		return body.resource?.refUpdates?.[0]?.newObjectId ?? "";
+	}
 	// GitHub
 	if (headers["x-github-event"]) {
 		return body.head_commit ? body.head_commit.id : "";
@@ -531,6 +556,11 @@ export const extractHash = (headers: any, body: any) => {
 };
 
 export const extractBranchName = (headers: any, body: any) => {
+	if (body?.eventType === "git.push") {
+		return (
+			body.resource?.refUpdates?.[0]?.name?.replace("refs/heads/", "") ?? null
+		);
+	}
 	if (headers["x-github-event"] || headers["x-gitea-event"]) {
 		return body?.ref?.replace("refs/heads/", "");
 	}
@@ -571,6 +601,39 @@ export const getProviderByHeader = (headers: any) => {
 	}
 
 	return null;
+};
+
+export const extractAzureDevopsCommittedPaths = async (
+	body: any,
+	provider: AzureDevops | null,
+	projectId: string,
+	repositoryId: string,
+) => {
+	if (!provider || !projectId || !repositoryId) return [];
+	const commitIds = (body.resource?.commits ?? [])
+		.map((commit: any) => commit.commitId)
+		.filter(Boolean);
+	const paths: string[] = [];
+	for (const commitId of commitIds) {
+		const url = `https://dev.azure.com/${encodeURIComponent(provider.organizationName)}/${encodeURIComponent(projectId)}/_apis/git/repositories/${encodeURIComponent(repositoryId)}/commits/${encodeURIComponent(commitId)}/changes?api-version=7.1`;
+		try {
+			const response = await fetch(url, {
+				headers: getAzureDevopsHeaders(provider),
+			});
+			if (!response.ok) return [];
+			const data = await response.json();
+			for (const change of data.changes ?? []) {
+				if (change.item?.path) paths.push(change.item.path.replace(/^\//, ""));
+			}
+		} catch (error) {
+			console.error(
+				"Error fetching Azure DevOps commit changes:",
+				error instanceof Error ? error.message : "Unknown error",
+			);
+			return [];
+		}
+	}
+	return paths;
 };
 
 export const extractCommittedPaths = async (

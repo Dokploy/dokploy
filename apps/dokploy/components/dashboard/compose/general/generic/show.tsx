@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { UnauthorizedGitProvider } from "@/components/dashboard/application/general/generic/unauthorized-git-provider";
 import {
+	AzureDevopsIcon,
 	BitbucketIcon,
 	GiteaIcon,
 	GithubIcon,
@@ -15,13 +16,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import { ComposeFileEditor } from "../compose-file-editor";
 import { ShowConvertedCompose } from "../show-converted-compose";
+import { SaveAzureDevopsProviderCompose } from "./save-azure-devops-provider-compose";
 import { SaveBitbucketProviderCompose } from "./save-bitbucket-provider-compose";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
 import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 import { SaveGitlabProviderCompose } from "./save-gitlab-provider-compose";
 
-type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket" | "gitea";
+type TabState =
+	| "github"
+	| "git"
+	| "raw"
+	| "gitlab"
+	| "bitbucket"
+	| "gitea"
+	| "azureDevops";
 interface Props {
 	composeId: string;
 }
@@ -35,6 +44,8 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 		api.bitbucket.bitbucketProviders.useQuery();
 	const { data: giteaProviders, isPending: isLoadingGitea } =
 		api.gitea.giteaProviders.useQuery();
+	const { data: azureDevopsProviders, isPending: isLoadingAzureDevops } =
+		api.azureDevops.providers.useQuery();
 
 	const { mutateAsync: disconnectGitProvider } =
 		api.compose.disconnectGitProvider.useMutation();
@@ -43,7 +54,11 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	const [tab, setSab] = useState<TabState>(compose?.sourceType || "github");
 
 	const isLoading =
-		isLoadingGithub || isLoadingGitlab || isLoadingBitbucket || isLoadingGitea;
+		isLoadingGithub ||
+		isLoadingGitlab ||
+		isLoadingBitbucket ||
+		isLoadingGitea ||
+		isLoadingAzureDevops;
 
 	const handleDisconnect = async () => {
 		try {
@@ -175,6 +190,12 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 								<GiteaIcon className="size-4 text-current fill-current" /> Gitea
 							</TabsTrigger>
 							<TabsTrigger
+								value="azureDevops"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+							>
+								<AzureDevopsIcon className="size-4 text-current" /> Azure DevOps
+							</TabsTrigger>
+							<TabsTrigger
 								value="git"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
@@ -267,6 +288,25 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 										Settings
 									</Link>{" "}
 									to do so.
+								</span>
+							</div>
+						)}
+					</TabsContent>
+					<TabsContent value="azureDevops" className="w-full p-2">
+						{azureDevopsProviders?.length ? (
+							<SaveAzureDevopsProviderCompose composeId={composeId} />
+						) : (
+							<div className="flex min-h-[25vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+								<AzureDevopsIcon className="size-8" />
+								<span>
+									Configure an Azure DevOps account in{" "}
+									<Link
+										href="/dashboard/settings/git-providers"
+										className="text-foreground"
+									>
+										Settings
+									</Link>{" "}
+									first.
 								</span>
 							</div>
 						)}

@@ -10,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { azureDevops } from "./azure-devops";
 import { backups } from "./backups";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
@@ -37,6 +38,7 @@ export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"bitbucket",
 	"gitea",
 	"raw",
+	"azureDevops",
 ]);
 
 export const composeType = pgEnum("composeType", ["docker-compose", "stack"]);
@@ -72,6 +74,13 @@ export const compose = pgTable("compose", {
 	bitbucketRepositorySlug: text("bitbucketRepositorySlug"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
+	// Azure DevOps
+	azureDevopsRepositoryId: text("azureDevopsRepositoryId"),
+	azureDevopsRepository: text("azureDevopsRepository"),
+	azureDevopsProjectId: text("azureDevopsProjectId"),
+	azureDevopsProject: text("azureDevopsProject"),
+	azureDevopsRemoteUrl: text("azureDevopsRemoteUrl"),
+	azureDevopsBranch: text("azureDevopsBranch"),
 	// Gitea
 	giteaRepository: text("giteaRepository"),
 	giteaOwner: text("giteaOwner"),
@@ -116,6 +125,10 @@ export const compose = pgTable("compose", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	azureDevopsId: text("azureDevopsId").references(
+		() => azureDevops.azureDevopsId,
+		{ onDelete: "set null" },
+	),
 	giteaId: text("giteaId").references(() => gitea.giteaId, {
 		onDelete: "set null",
 	}),
@@ -157,6 +170,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
 	}),
+	azureDevops: one(azureDevops, {
+		fields: [compose.azureDevopsId],
+		references: [azureDevops.azureDevopsId],
+	}),
 	gitea: one(gitea, {
 		fields: [compose.giteaId],
 		references: [gitea.giteaId],
@@ -189,7 +206,15 @@ const createSchema = createInsertSchema(compose, {
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
 	sourceType: z
-		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
+		.enum([
+			"git",
+			"github",
+			"gitlab",
+			"bitbucket",
+			"gitea",
+			"raw",
+			"azureDevops",
+		])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
