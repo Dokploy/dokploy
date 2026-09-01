@@ -7,8 +7,10 @@ import {
 	findUserById,
 	getAccessibleServerIds,
 	getPublicIpWithFallback,
+	getServicesByServerId,
 	haveActiveServices,
 	IS_CLOUD,
+	redactServerSshKey,
 	removeDeploymentsByServerId,
 	serverAudit,
 	serverSetup,
@@ -17,6 +19,7 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -105,7 +108,7 @@ export const serverRouter = createTRPCRouter({
 				});
 			}
 
-			return server;
+			return redactServerSshKey(server);
 		}),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
@@ -113,6 +116,41 @@ export const serverRouter = createTRPCRouter({
 			const server = await findServerById(input.serverId);
 			const isBuildServer = server.serverType === "build";
 			return defaultCommand(isBuildServer);
+		}),
+	getServices: withPermission("server", "read")
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			const currentServer = await findServerById(input.serverId);
+			if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+
+			const services = await getServicesByServerId(input.serverId);
+
+			const isPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+			if (isPrivileged) {
+				return services;
+			}
+
+			const { accessedServices } = await findMemberByUserId(
+				ctx.user.id,
+				ctx.session.activeOrganizationId,
+			);
+			return services.filter((service) =>
+				accessedServices.includes(service.id),
+			);
 		}),
 	all: withPermission("server", "read").query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
@@ -412,6 +450,14 @@ export const serverRouter = createTRPCRouter({
 		.input(apiRemoveServer)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				const currentServer = await findServerById(input.serverId);
+				if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to delete this server",
+					});
+				}
+
 				const activeServers = await haveActiveServices(input.serverId);
 
 				if (activeServers) {
@@ -420,7 +466,6 @@ export const serverRouter = createTRPCRouter({
 						message: "Server has active services, please delete them first",
 					});
 				}
-				const currentServer = await findServerById(input.serverId);
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "server",
@@ -436,7 +481,7 @@ export const serverRouter = createTRPCRouter({
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
-				return currentServer;
+				return redactServerSshKey(currentServer);
 			} catch (error) {
 				throw error;
 			}

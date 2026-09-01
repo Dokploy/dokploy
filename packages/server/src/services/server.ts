@@ -53,6 +53,27 @@ export const findServerById = async (serverId: string) => {
 	return currentServer;
 };
 
+/**
+ * Removes the SSH private key material from a server record before it is sent
+ * to a client. `findServerById` eagerly loads the `sshKey` relation (needed for
+ * server-side SSH operations), but the private key must never leave the server:
+ * no client feature consumes it, and returning it exposed it to any member with
+ * only `server:read`. Server-side callers keep using `findServerById` directly.
+ */
+export const redactServerSshKey = <
+	T extends { sshKey?: { privateKey: string } | null },
+>(
+	serverRecord: T,
+): T => {
+	if (!serverRecord.sshKey) {
+		return serverRecord;
+	}
+	return {
+		...serverRecord,
+		sshKey: { ...serverRecord.sshKey, privateKey: "" },
+	};
+};
+
 export const findServersByUserId = async (userId: string) => {
 	const orgs = await db.query.organization.findMany({
 		where: eq(organization.ownerId, userId),
@@ -79,15 +100,16 @@ export const deleteServer = async (serverId: string) => {
 export const haveActiveServices = async (serverId: string) => {
 	const currentServer = await db.query.server.findFirst({
 		where: eq(server.serverId, serverId),
+		columns: { serverId: true },
 		with: {
-			applications: true,
-			compose: true,
-			libsql: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
+			applications: { columns: { applicationId: true } },
+			compose: { columns: { composeId: true } },
+			libsql: { columns: { libsqlId: true } },
+			mariadb: { columns: { mariadbId: true } },
+			mongo: { columns: { mongoId: true } },
+			mysql: { columns: { mysqlId: true } },
+			postgres: { columns: { postgresId: true } },
+			redis: { columns: { redisId: true } },
 		},
 	});
 
@@ -110,6 +132,97 @@ export const haveActiveServices = async (serverId: string) => {
 	}
 
 	return true;
+};
+
+export const SERVICE_TYPES_BY_SERVER = [
+	{ type: "application", relation: "applications", idColumn: "applicationId" },
+	{ type: "compose", relation: "compose", idColumn: "composeId" },
+	{ type: "postgres", relation: "postgres", idColumn: "postgresId" },
+	{ type: "mysql", relation: "mysql", idColumn: "mysqlId" },
+	{ type: "mariadb", relation: "mariadb", idColumn: "mariadbId" },
+	{ type: "mongo", relation: "mongo", idColumn: "mongoId" },
+	{ type: "redis", relation: "redis", idColumn: "redisId" },
+	{ type: "libsql", relation: "libsql", idColumn: "libsqlId" },
+] as const;
+
+export interface ServerService {
+	id: string;
+	type: (typeof SERVICE_TYPES_BY_SERVER)[number]["type"];
+	name: string;
+	projectId: string;
+	environmentId: string;
+	url: string;
+}
+
+export const getServicesByServerId = async (
+	serverId: string,
+): Promise<ServerService[]> => {
+	const currentServer = await db.query.server.findFirst({
+		where: eq(server.serverId, serverId),
+		columns: { serverId: true },
+		with: {
+			applications: {
+				columns: { applicationId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			compose: {
+				columns: { composeId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			postgres: {
+				columns: { postgresId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			mysql: {
+				columns: { mysqlId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			mariadb: {
+				columns: { mariadbId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			mongo: {
+				columns: { mongoId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			redis: {
+				columns: { redisId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			libsql: {
+				columns: { libsqlId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+		},
+	});
+
+	if (!currentServer) {
+		return [];
+	}
+
+	const services: ServerService[] = [];
+
+	for (const { type, relation, idColumn } of SERVICE_TYPES_BY_SERVER) {
+		const rows = currentServer[relation as keyof typeof currentServer] as Array<
+			Record<string, any>
+		>;
+
+		for (const row of rows) {
+			const projectId = row.environment.project.projectId as string;
+			const environmentId = row.environment.environmentId as string;
+
+			services.push({
+				id: row[idColumn],
+				type,
+				name: row.name,
+				projectId,
+				environmentId,
+				url: `/dashboard/project/${projectId}/environment/${environmentId}/services/${type}/${row[idColumn]}`,
+			});
+		}
+	}
+
+	return services;
 };
 
 export const updateServerById = async (

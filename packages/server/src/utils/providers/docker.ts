@@ -1,4 +1,5 @@
 import { safeDockerLoginCommand } from "@dokploy/server/services/registry";
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 
 export const buildRemoteDocker = async (application: ApplicationNested) => {
@@ -9,7 +10,7 @@ export const buildRemoteDocker = async (application: ApplicationNested) => {
 			throw new Error("Docker image not found");
 		}
 		let command = `
-echo "Pulling ${dockerImage}";		
+echo ${quote([`Pulling ${dockerImage}`])};
 		`;
 
 		if (username && password) {
@@ -22,7 +23,7 @@ fi
 		}
 
 		command += `
-docker pull ${dockerImage} 2>&1 || { 
+docker pull ${quote([dockerImage])} 2>&1 || {
   echo "❌ Pulling image failed";
   exit 1;
 }

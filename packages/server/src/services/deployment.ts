@@ -83,8 +83,17 @@ export const findDeploymentById = async (deploymentId: string) => {
 	const deployment = await db.query.deployments.findFirst({
 		where: eq(deployments.deploymentId, deploymentId),
 		with: {
-			application: true,
-			compose: true,
+			application: {
+				columns: {
+					applicationId: true,
+					appName: true,
+					name: true,
+					serverId: true,
+				},
+			},
+			compose: {
+				columns: { composeId: true, appName: true, name: true, serverId: true },
+			},
 			schedule: true,
 		},
 	});
@@ -444,6 +453,19 @@ export const createDeploymentSchedule = async (
 		schedule.compose?.serverId ||
 		schedule.server?.serverId;
 	await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
+	await db
+		.update(deployments)
+		.set({
+			status: "error",
+			errorMessage: "Superseded by a new run of this schedule.",
+			finishedAt: new Date().toISOString(),
+		})
+		.where(
+			and(
+				eq(deployments.scheduleId, deployment.scheduleId),
+				eq(deployments.status, "running"),
+			),
+		);
 	try {
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -793,7 +815,7 @@ export const findAllDeploymentsByComposeId = async (composeId: string) => {
 
 const centralizedDeploymentsWith = {
 	application: {
-		columns: { applicationId: true, name: true, appName: true },
+		columns: { applicationId: true, name: true, appName: true, icon: true },
 		with: {
 			environment: {
 				columns: { environmentId: true, name: true },
@@ -812,7 +834,7 @@ const centralizedDeploymentsWith = {
 		},
 	},
 	compose: {
-		columns: { composeId: true, name: true, appName: true },
+		columns: { composeId: true, name: true, appName: true, icon: true },
 		with: {
 			environment: {
 				columns: { environmentId: true, name: true },

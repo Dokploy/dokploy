@@ -168,6 +168,7 @@ export const findEnvironmentById = async (environmentId: string) => {
 					composeStatus: true,
 					description: true,
 					serverId: true,
+					icon: true,
 				},
 			},
 			libsql: {
@@ -201,18 +202,56 @@ export const findEnvironmentById = async (environmentId: string) => {
 };
 
 export const findEnvironmentsByProjectId = async (projectId: string) => {
+	const serviceColumns = {
+		name: true,
+		description: true,
+		appName: true,
+		createdAt: true,
+		serverId: true,
+		applicationStatus: true,
+	} as const;
+
 	const projectEnvironments = await db.query.environments.findMany({
 		where: eq(environments.projectId, projectId),
 		orderBy: asc(environments.createdAt),
 		with: {
-			applications: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
-			compose: true,
-			libsql: true,
+			applications: {
+				columns: { ...serviceColumns, applicationId: true, icon: true },
+				with: { server: { columns: { name: true } } },
+			},
+			mariadb: {
+				columns: { ...serviceColumns, mariadbId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			mongo: {
+				columns: { ...serviceColumns, mongoId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			mysql: {
+				columns: { ...serviceColumns, mysqlId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			postgres: {
+				columns: { ...serviceColumns, postgresId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			redis: {
+				columns: { ...serviceColumns, redisId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			compose: {
+				columns: {
+					...serviceColumns,
+					composeId: true,
+					composeStatus: true,
+					icon: true,
+				},
+				with: { server: { columns: { name: true } } },
+			},
+			libsql: {
+				columns: { ...serviceColumns, libsqlId: true },
+				with: { server: { columns: { name: true } } },
+			},
 			project: true,
 		},
 		columns: {

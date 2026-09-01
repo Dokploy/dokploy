@@ -446,6 +446,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -681,6 +682,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				decoration: data.decoration,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
 			});
@@ -698,6 +700,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
 			});
@@ -1828,7 +1831,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											<div className="">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
-													Trigger the action when a app is deployed.
+													Trigger the action when an app is deployed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1890,7 +1893,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Dokploy Backup</FormLabel>
 												<FormDescription>
-													Trigger the action when a dokploy backup is created.
+													Trigger the action when a Dokploy backup is created.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1932,8 +1935,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
-													Trigger the action when the docker cleanup is
-													performed.
+													Trigger the action when Docker cleanup is performed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1955,7 +1957,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when dokploy is restarted.
+														Trigger the action when Dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>

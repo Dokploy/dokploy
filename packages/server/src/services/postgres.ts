@@ -7,10 +7,14 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
-import { pullImage } from "@dokploy/server/utils/docker/utils";
+import {
+	pullImage,
+	waitForSwarmServiceConvergence,
+} from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
@@ -155,7 +159,7 @@ export const deployPostgres = async (
 		if (postgres.serverId) {
 			await execAsyncRemote(
 				postgres.serverId,
-				`docker pull ${postgres.dockerImage}`,
+				`docker pull ${quote([postgres.dockerImage])}`,
 				onData,
 			);
 		} else {
@@ -163,6 +167,8 @@ export const deployPostgres = async (
 		}
 
 		await buildPostgres(postgres);
+
+		await waitForSwarmServiceConvergence(postgres.appName, postgres.serverId);
 
 		await updatePostgresById(postgresId, {
 			applicationStatus: "done",

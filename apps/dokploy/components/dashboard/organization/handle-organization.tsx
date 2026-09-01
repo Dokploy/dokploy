@@ -15,7 +15,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Dropzone } from "@/components/ui/dropzone";
 import {
 	Form,
@@ -108,6 +107,7 @@ export function AddOrganization({
 		},
 		{
 			enabled: !!organizationId,
+			refetchOnWindowFocus: false,
 		},
 	);
 	const { mutateAsync, isPending } = organizationId
@@ -216,30 +216,31 @@ export function AddOrganization({
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			{!isControlled && (
-				<DialogTrigger asChild>
-					{organizationId ? (
-						<DropdownMenuItem
-							className="group cursor-pointer hover:bg-blue-500/10"
-							onSelect={(e) => e.preventDefault()}
-						>
-							<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
-						</DropdownMenuItem>
-					) : (
-						<DropdownMenuItem
-							className="gap-2 p-2"
-							onSelect={(e) => e.preventDefault()}
-						>
-							<div className="flex size-6 items-center justify-center rounded-md border bg-background">
-								<Plus className="size-4" />
-							</div>
-							<div className="font-medium text-muted-foreground">
-								Add organization
-							</div>
-						</DropdownMenuItem>
-					)}
-				</DialogTrigger>
-			)}
+			<DialogTrigger asChild>
+				{organizationId ? (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10"
+						title="Edit organization"
+					>
+						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<button
+						type="button"
+						className="flex w-full items-center gap-2 rounded-md p-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+					>
+						<div className="flex size-6 items-center justify-center rounded-md border bg-background">
+							<Plus className="size-4" />
+						</div>
+						<div className="font-medium text-muted-foreground">
+							Add organization
+						</div>
+					</button>
+				)}
+			</DialogTrigger>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>

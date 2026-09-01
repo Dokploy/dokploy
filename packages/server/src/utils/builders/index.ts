@@ -1,3 +1,4 @@
+import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
@@ -11,6 +12,7 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
@@ -37,7 +39,8 @@ export type ApplicationNested = InferResultType<
 	}
 >;
 
-export const getBuildCommand = async (application: ApplicationNested) => {
+export const getBuildCommand = async (rawApplication: ApplicationNested) => {
+	const application = await withResolvedVaultRefs(rawApplication);
 	let command = "";
 
 	if (application.sourceType !== "docker") {
@@ -76,8 +79,9 @@ export const getBuildCommand = async (application: ApplicationNested) => {
 };
 
 export const mechanizeDockerContainer = async (
-	application: ApplicationNested,
+	rawApplication: ApplicationNested,
 ) => {
+	const application = await withResolvedVaultRefs(rawApplication);
 	const {
 		appName,
 		env,
@@ -100,6 +104,8 @@ export const mechanizeDockerContainer = async (
 
 	const volumesMount = generateVolumeMounts(mounts);
 
+	const resolvedNetworks = await resolveServiceNetworks(application);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -108,7 +114,6 @@ export const mechanizeDockerContainer = async (
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -147,7 +152,7 @@ export const mechanizeDockerContainer = async (
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
