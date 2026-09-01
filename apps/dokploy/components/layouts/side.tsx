@@ -907,23 +907,6 @@ function SidebarLogo() {
 					</SidebarMenuItem>
 				</SidebarMenu>
 			)}
-			{editOrganizationId && (
-				<AddOrganization
-					organizationId={editOrganizationId}
-					open={true}
-					onOpenChange={(open) => {
-						if (!open) setEditOrganizationId(null);
-					}}
-				/>
-			)}
-			{isAddOrganizationOpen && (
-				<AddOrganization
-					open={true}
-					onOpenChange={(open) => {
-						if (!open) setIsAddOrganizationOpen(false);
-					}}
-				/>
-			)}
 		</>
 	);
 }
