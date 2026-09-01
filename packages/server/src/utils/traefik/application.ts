@@ -5,7 +5,11 @@ import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { execAsync, execAsyncRemote, writeFileRemote } from "../process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+	writeFileRemote,
+} from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
 export const createTraefikConfig = (appName: string) => {
