@@ -17,9 +17,6 @@ import {
 /** Invalidate the SSR branding caches in _document.tsx so the next request picks up fresh settings. */
 function clearBrandingSSRCache() {
 	globalThis.__SETTINGS_CACHE = null;
-	if (globalThis.__FAVICON_CACHE) {
-		globalThis.__FAVICON_CACHE.clear();
-	}
 }
 
 export const whitelabelingRouter = createTRPCRouter({
