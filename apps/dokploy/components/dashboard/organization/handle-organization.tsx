@@ -1,7 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import DOMPurify from "dompurify";
 import { GlobeIcon, PenBoxIcon, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -49,7 +49,12 @@ const sanitizeSvg = (svgContent: string): string | null => {
 		ADD_TAGS: ["use"],
 	});
 	if (!clean) return null;
-	return `data:image/svg+xml;base64,${btoa(clean)}`;
+	const bytes = new TextEncoder().encode(clean);
+	let binString = "";
+	for (let i = 0; i < bytes.length; i++) {
+		binString += String.fromCharCode(bytes[i]!);
+	}
+	return `data:image/svg+xml;base64,${btoa(binString)}`;
 };
 
 const resizeImage = (file: File, maxSize: number): Promise<string> => {
@@ -97,6 +102,8 @@ export function AddOrganization({
 }: Props) {
 	const [internalOpen, setInternalOpen] = useState(false);
 	const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+	const [isUploading, setIsUploading] = useState(false);
+	const uploadCounter = useRef(0);
 	const isControlled = controlledOpen !== undefined;
 	const open = isControlled ? controlledOpen : internalOpen;
 	const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
@@ -124,6 +131,8 @@ export function AddOrganization({
 
 	useEffect(() => {
 		if (organization) {
+			uploadCounter.current++;
+			setIsUploading(false);
 			form.reset({
 				name: organization.name,
 				logo: organization.logo || "",
@@ -133,6 +142,7 @@ export function AddOrganization({
 	}, [organization, form]);
 
 	const onSubmit = async (values: OrganizationFormValues) => {
+		if (isUploading) return;
 		await mutateAsync({
 			name: values.name,
 			logo: values.logo,
@@ -165,6 +175,9 @@ export function AddOrganization({
 		const file = files[0];
 		if (!file) return;
 
+		const currentUploadId = ++uploadCounter.current;
+		setIsUploading(true);
+
 		const allowedTypes = [
 			"image/jpeg",
 			"image/jpg",
@@ -180,42 +193,68 @@ export function AddOrganization({
 			!allowedExtensions.includes(fileExtension || "")
 		) {
 			toast.error("Only JPG, JPEG, PNG, WEBP, and SVG files are allowed");
+			setIsUploading(false);
 			return;
 		}
 
 		if (file.size > 2 * 1024 * 1024) {
 			toast.error("Image size must be less than 2MB");
+			setIsUploading(false);
 			return;
 		}
 
 		const isSvg = file.type === "image/svg+xml" || fileExtension === "svg";
 
 		if (isSvg) {
-			const text = await file.text();
-			const sanitizedDataUrl = sanitizeSvg(text);
-			if (!sanitizedDataUrl) {
-				toast.error("Invalid SVG file");
-				return;
+			try {
+				const text = await file.text();
+				const sanitizedDataUrl = sanitizeSvg(text);
+				if (currentUploadId !== uploadCounter.current) return;
+				if (!sanitizedDataUrl) {
+					toast.error("Invalid SVG file");
+					return;
+				}
+				form.setValue("logo", sanitizedDataUrl);
+				form.trigger("logo");
+				setUploadedFileName(file.name);
+			} catch (error) {
+				if (currentUploadId === uploadCounter.current) {
+					toast.error("Error processing SVG");
+				}
+			} finally {
+				if (currentUploadId === uploadCounter.current) {
+					setIsUploading(false);
+				}
 			}
-			form.setValue("logo", sanitizedDataUrl);
-			form.trigger("logo");
-			setUploadedFileName(file.name);
 			return;
 		}
 
 		// Resize raster images to max 256x256 and convert to WebP to save space
 		try {
 			const resizedDataUrl = await resizeImage(file, 256);
+			if (currentUploadId !== uploadCounter.current) return;
 			form.setValue("logo", resizedDataUrl);
 			form.trigger("logo");
 			setUploadedFileName(file.name);
 		} catch (error) {
-			toast.error("Error processing image");
+			if (currentUploadId === uploadCounter.current) {
+				toast.error("Error processing image");
+			}
+		} finally {
+			if (currentUploadId === uploadCounter.current) {
+				setIsUploading(false);
+			}
 		}
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog open={open} onOpenChange={(val) => {
+			if (!val) {
+				uploadCounter.current++;
+				setIsUploading(false);
+			}
+			setOpen(val);
+		}}>
 			<DialogTrigger asChild>
 				{organizationId ? (
 					<Button
@@ -310,6 +349,8 @@ export function AddOrganization({
 															value={displayValue}
 															readOnly={isDataUrl}
 															onChange={(e) => {
+																uploadCounter.current++;
+																setIsUploading(false);
 																field.onChange(e);
 																if (isDataUrl) setUploadedFileName(null);
 															}}
@@ -319,6 +360,8 @@ export function AddOrganization({
 															<button
 																type="button"
 																onClick={() => {
+																	uploadCounter.current++;
+																	setIsUploading(false);
 																	form.setValue("logo", "");
 																	setUploadedFileName(null);
 																}}
@@ -344,7 +387,7 @@ export function AddOrganization({
 							}}
 						/>
 						<DialogFooter>
-							<Button type="submit" isLoading={isPending}>
+							<Button type="submit" isLoading={isPending || isUploading}>
 								{organizationId ? "Update organization" : "Create organization"}
 							</Button>
 						</DialogFooter>
