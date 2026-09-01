@@ -141,6 +141,7 @@ export const scheduleRouter = createTRPCRouter({
 						cronSchedule: updatedSchedule.cronExpression,
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
+						timezone: updatedSchedule.timezone,
 					});
 				}
 			} else {
@@ -185,6 +186,7 @@ export const scheduleRouter = createTRPCRouter({
 					cronSchedule: scheduleItem.cronExpression,
 					scheduleId: scheduleItem.scheduleId,
 					type: "schedule",
+					timezone: scheduleItem.timezone,
 				});
 			} else {
 				removeScheduleJob(scheduleItem.scheduleId);

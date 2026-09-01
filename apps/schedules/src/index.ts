@@ -60,6 +60,7 @@ app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
 				scheduleId: data.scheduleId,
 				type: "schedule",
 				cronSchedule: job.pattern || "",
+				timezone: job.tz || data.timezone,
 			});
 		} else if (data.type === "volume-backup") {
 			result = await removeJob({
