@@ -16,12 +16,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
+const optionalNumber = z
+	.union([z.string(), z.number()])
+	.transform((val) => (val === "" ? undefined : Number(val)))
+	.optional();
+
 export const healthCheckFormSchema = z.object({
 	Test: z.array(z.string()).optional(),
-	Interval: z.coerce.number().optional(),
-	Timeout: z.coerce.number().optional(),
-	StartPeriod: z.coerce.number().optional(),
-	Retries: z.coerce.number().optional(),
+	Interval: optionalNumber,
+	Timeout: optionalNumber,
+	StartPeriod: optionalNumber,
+	Retries: optionalNumber,
 });
 
 interface HealthCheckFormProps {
@@ -195,7 +200,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Time between health checks (e.g., 10000000000 for 10 seconds)
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -212,7 +222,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Maximum time to wait for health check response
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -229,7 +244,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Initial grace period before health checks begin
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -247,7 +267,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								unhealthy
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="3" {...field} />
+								<Input
+									type="number"
+									placeholder="3"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>

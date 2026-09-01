@@ -1,12 +1,21 @@
+import {
+	findRegistryByIdWithCredentials,
+	safeDockerLoginCommand,
+} from "@dokploy/server/services/registry";
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 
 export const buildRemoteDocker = async (application: ApplicationNested) => {
 	const { registry, dockerImage, username, password, registryUrl } =
 		application;
 
-	const loginUsername = registry?.username || username;
-	const loginPassword = registry?.password || password;
-	const loginRegistryUrl = registry?.registryUrl || registryUrl;
+	const storedRegistry = registry
+		? await findRegistryByIdWithCredentials(registry.registryId)
+		: null;
+
+	const loginUsername = storedRegistry?.username || username;
+	const loginPassword = storedRegistry?.password || password;
+	const loginRegistryUrl = storedRegistry?.registryUrl || registryUrl;
 
 	try {
 		if (!dockerImage) {
@@ -14,12 +23,12 @@ export const buildRemoteDocker = async (application: ApplicationNested) => {
 		}
 
 		let command = `
-echo "Pulling ${dockerImage}";
+echo ${quote([`Pulling ${dockerImage}`])};
 		`;
 
 		if (loginUsername && loginPassword) {
 			command += `
-if ! echo "${loginPassword}" | docker login --username "${loginUsername}" --password-stdin "${loginRegistryUrl || ""}" 2>&1; then
+if ! ${safeDockerLoginCommand(loginRegistryUrl || "", loginUsername, loginPassword)} 2>&1; then
 	echo "❌ Login failed";
 	exit 1;
 fi
@@ -27,7 +36,7 @@ fi
 		}
 
 		command += `
-docker pull ${dockerImage} 2>&1 || {
+docker pull ${quote([dockerImage])} 2>&1 || {
   echo "❌ Pulling image failed";
   exit 1;
 }

@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import { VolumeBackupEmail } from "@dokploy/server/emails/emails/volume-backup";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
@@ -88,7 +88,7 @@ export const sendVolumeBackupNotifications = async ({
 		try {
 			if (email || resend) {
 				const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
-				const htmlContent = await renderAsync(
+				const htmlContent = await render(
 					VolumeBackupEmail({
 						projectName,
 						applicationName,

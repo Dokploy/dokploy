@@ -10,7 +10,9 @@ import {
 	findMongoById,
 	findProjectById,
 	getAccessibleServerIds,
-	getServiceContainerCommand,
+	getContainerLogs,
+	getServiceContainer,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMongoById,
@@ -60,7 +62,11 @@ export const mongoRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a mongo",
@@ -425,15 +431,15 @@ export const mongoRouter = createTRPCRouter({
 			const mongo = await findMongoById(mongoId);
 			const { appName, serverId, databaseUser, databasePassword } = mongo;
 
-			const containerCmd = getServiceContainerCommand(appName);
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"
-			`;
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
+			const command = `docker exec ${container.Id} mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"`;
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -600,5 +606,40 @@ export const mongoRouter = createTRPCRouter({
 					.where(where),
 			]);
 			return { items, total: countResult[0]?.count ?? 0 };
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			apiFindOneMongo.extend({
+				tail: z.number().int().min(1).max(10000).default(100),
+				since: z
+					.string()
+					.regex(/^(all|\d+[smhd])$/, "Invalid since format")
+					.default("all"),
+				search: z
+					.string()
+					.regex(/^[a-zA-Z0-9 ._-]{0,500}$/)
+					.optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkServiceAccess(ctx, input.mongoId, "read");
+			const mongo = await findMongoById(input.mongoId);
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this MongoDB",
+				});
+			}
+			return await getContainerLogs(
+				mongo.appName,
+				input.tail,
+				input.since,
+				input.search,
+				mongo.serverId,
+			);
 		}),
 });

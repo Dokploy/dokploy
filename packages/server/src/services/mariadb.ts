@@ -7,10 +7,14 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildMariadb } from "@dokploy/server/utils/databases/mariadb";
-import { pullImage } from "@dokploy/server/utils/docker/utils";
+import {
+	pullImage,
+	waitForSwarmServiceConvergence,
+} from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
@@ -68,7 +72,12 @@ export const findMariadbById = async (mariadbId: string) => {
 			server: true,
 			backups: {
 				with: {
-					destination: true,
+					destination: {
+						columns: {
+							accessKey: false,
+							secretAccessKey: false,
+						},
+					},
 					deployments: true,
 				},
 			},
@@ -140,7 +149,7 @@ export const deployMariadb = async (
 		if (mariadb.serverId) {
 			await execAsyncRemote(
 				mariadb.serverId,
-				`docker pull ${mariadb.dockerImage}`,
+				`docker pull ${quote([mariadb.dockerImage])}`,
 				onData,
 			);
 		} else {
@@ -148,6 +157,7 @@ export const deployMariadb = async (
 		}
 
 		await buildMariadb(mariadb);
+		await waitForSwarmServiceConvergence(mariadb.appName, mariadb.serverId);
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "done",
 		});

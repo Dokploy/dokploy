@@ -115,7 +115,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 								if (active && payload && payload.length) {
 									const data = payload?.[0]?.payload;
 									return (
-										<div className="rounded-lg border bg-background p-2 shadow-sm">
+										<div className="rounded-lg border bg-background p-2 shadow-xs">
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
@@ -154,6 +154,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							name="Write"
 							dataKey="write"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillWrite)"
 							stroke="hsl(142, 71%, 45%)"
 							strokeWidth={2}
@@ -163,6 +164,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							name="Read"
 							dataKey="read"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillRead)"
 							stroke="hsl(217, 91%, 60%)"
 							strokeWidth={2}

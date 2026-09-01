@@ -156,7 +156,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 
 				<div className="flex gap-4 h-[60vh] py-4">
 					{/* Left Column - Menu */}
-					<div className="w-64 flex-shrink-0 border-r pr-4 overflow-y-auto">
+					<div className="w-64 shrink-0 border-r pr-4 overflow-y-auto">
 						<nav className="space-y-1">
 							<TooltipProvider>
 								{menuItems.map((item) => (

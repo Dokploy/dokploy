@@ -35,7 +35,7 @@ import { ChangeRole } from "./change-role";
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending, refetch } = api.user.all.useQuery();
-	const { mutateAsync } = api.user.remove.useMutation();
+	const { mutateAsync, isPending: isRemoving } = api.user.remove.useMutation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: hasValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
@@ -97,6 +97,7 @@ export const ShowUsers = () => {
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
 													<TableHead className="text-center">Role</TableHead>
+													<TableHead className="text-center">Status</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
 
 													<TableHead className="text-center">
@@ -174,6 +175,19 @@ export const ShowUsers = () => {
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
+																<Badge
+																	variant={
+																		member.user.banned
+																			? "destructive"
+																			: "outline"
+																	}
+																>
+																	{member.user.banned
+																		? "Deactivated"
+																		: "Active"}
+																</Badge>
+															</TableCell>
+															<TableCell className="text-center">
 																{member.user.twoFactorEnabled
 																	? "Enabled"
 																	: "Disabled"}
@@ -223,6 +237,7 @@ export const ShowUsers = () => {
 																					title="Delete User"
 																					description="Are you sure you want to delete this user?"
 																					type="destructive"
+																					disabled={isRemoving}
 																					onClick={async () => {
 																						await mutateAsync({
 																							userId: member.user.id,
@@ -242,7 +257,7 @@ export const ShowUsers = () => {
 																					}}
 																				>
 																					<DropdownMenuItem
-																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						className="w-full cursor-pointer text-red-500 hover:text-red-600!"
 																						onSelect={(e) => e.preventDefault()}
 																					>
 																						Delete User
@@ -255,6 +270,7 @@ export const ShowUsers = () => {
 																					title="Unlink User"
 																					description="Are you sure you want to unlink this user?"
 																					type="destructive"
+																					disabled={isRemoving}
 																					onClick={async () => {
 																						if (!isCloud) {
 																							const orgCount =
@@ -303,7 +319,7 @@ export const ShowUsers = () => {
 																					}}
 																				>
 																					<DropdownMenuItem
-																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						className="w-full cursor-pointer text-red-500 hover:text-red-600!"
 																						onSelect={(e) => e.preventDefault()}
 																					>
 																						Unlink User

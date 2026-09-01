@@ -5,12 +5,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 interface Props {
-	statusCode: number;
-	error?: Error;
+	statusCode?: number;
 }
 
-export default function Custom404({ statusCode, error }: Props) {
-	const displayStatusCode = statusCode || 400;
+export default function ErrorPage({ statusCode }: Props) {
+	const displayStatusCode = statusCode || 500;
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const appName = whitelabeling?.appName || "Dokploy";
 	const logoUrl = whitelabeling?.logoUrl || undefined;
@@ -19,7 +18,7 @@ export default function Custom404({ statusCode, error }: Props) {
 
 	return (
 		<div className="h-screen">
-			<div className="max-w-[50rem] flex flex-col mx-auto size-full">
+			<div className="max-w-200 flex flex-col mx-auto size-full">
 				<header className="mb-auto flex justify-center z-50 w-full py-4">
 					<nav className="px-4 sm:px-6 lg:px-8" aria-label="Global">
 						<Link href="/" className="flex flex-row items-center gap-2">
@@ -45,22 +44,16 @@ export default function Custom404({ statusCode, error }: Props) {
 								{errorDescription}
 							</p>
 						)}
-						{error && (
-							<div className="mt-3 text-red-500">
-								<p>{error.message}</p>
-							</div>
-						)}
-
 						<div className="mt-5 flex flex-col justify-center items-center gap-2 sm:flex-row sm:gap-3">
 							<Link
-								href="/dashboard/projects"
+								href="/dashboard/home"
 								className={buttonVariants({
 									variant: "secondary",
 									className: "flex flex-row gap-2",
 								})}
 							>
 								<svg
-									className="flex-shrink-0 size-4"
+									className="shrink-0 size-4"
 									xmlns="http://www.w3.org/2000/svg"
 									width="24"
 									height="24"
@@ -80,7 +73,7 @@ export default function Custom404({ statusCode, error }: Props) {
 				</main>
 
 				<footer className="mt-auto text-center py-5">
-					<div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
 						<p className="text-sm text-gray-500">
 							{whitelabeling?.footerText ? (
 								whitelabeling.footerText
@@ -101,8 +94,7 @@ export default function Custom404({ statusCode, error }: Props) {
 	);
 }
 
-// @ts-ignore
-Error.getInitialProps = ({ res, err }: NextPageContext) => {
-	const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
-	return { statusCode, error: err };
+ErrorPage.getInitialProps = ({ res, err }: NextPageContext) => {
+	const statusCode = res ? res.statusCode : err ? (err.statusCode ?? 500) : 404;
+	return { statusCode };
 };

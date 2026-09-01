@@ -7,6 +7,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
+import { getCurrentPlan as getCurrentPlanForOrganization } from "@/server/utils/billing";
 import {
 	type BillingTier,
 	getStripeItems,
@@ -31,44 +32,7 @@ import {
 export const stripeRouter = createTRPCRouter({
 	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
 	getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
-		if (!IS_CLOUD) return null;
-		const owner = await findUserById(ctx.user.ownerId);
-		if (!owner?.stripeCustomerId) return null;
-
-		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-			apiVersion: "2024-09-30.acacia",
-		});
-		const subscriptions = await stripe.subscriptions.list({
-			customer: owner.stripeCustomerId,
-			status: "active",
-			expand: ["data.items.data.price"],
-		});
-		const activeSub = subscriptions.data[0];
-		if (!activeSub) return null;
-
-		const priceIds = activeSub.items.data.map(
-			(item) => (item.price as Stripe.Price).id,
-		);
-		if (
-			priceIds.some(
-				(id) =>
-					id === STARTUP_BASE_PRICE_MONTHLY_ID ||
-					id === STARTUP_BASE_PRICE_ANNUAL_ID,
-			)
-		) {
-			return "startup" as const;
-		}
-		if (
-			priceIds.some(
-				(id) => id === HOBBY_PRICE_MONTHLY_ID || id === HOBBY_PRICE_ANNUAL_ID,
-			)
-		) {
-			return "hobby" as const;
-		}
-		if (priceIds.some((id) => LEGACY_PRICE_IDS.includes(id))) {
-			return "legacy" as const;
-		}
-		return null;
+		return getCurrentPlanForOrganization(ctx.session.activeOrganizationId);
 	}),
 
 	getProducts: adminProcedure.query(async ({ ctx }) => {
@@ -116,33 +80,42 @@ export const stripeRouter = createTRPCRouter({
 		let currentPlan: CurrentPlan = "legacy";
 		let isAnnualCurrent = false;
 		let currentPriceAmount: number | null = null;
-		const activeSub = subscriptions.data[0];
-		if (activeSub) {
-			const priceIds = activeSub.items.data.map(
-				(item) => (item.price as Stripe.Price).id,
+		if (subscriptions.data.length > 0) {
+			const matchedSub = subscriptions.data.find((sub) =>
+				sub.items.data.some(
+					(item) =>
+						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_MONTHLY_ID ||
+						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_ANNUAL_ID,
+				),
 			);
-			if (
-				priceIds.some(
-					(id) =>
-						id === STARTUP_BASE_PRICE_MONTHLY_ID ||
-						id === STARTUP_BASE_PRICE_ANNUAL_ID,
-				)
-			) {
+			const hobbySub = subscriptions.data.find((sub) =>
+				sub.items.data.some(
+					(item) =>
+						(item.price as Stripe.Price).id === HOBBY_PRICE_MONTHLY_ID ||
+						(item.price as Stripe.Price).id === HOBBY_PRICE_ANNUAL_ID,
+				),
+			);
+			const legacySub = subscriptions.data.find((sub) =>
+				sub.items.data.some((item) =>
+					LEGACY_PRICE_IDS.includes((item.price as Stripe.Price).id),
+				),
+			);
+
+			const activeSub = matchedSub ?? hobbySub ?? legacySub;
+			if (matchedSub) {
 				currentPlan = "startup";
-			} else if (
-				priceIds.some(
-					(id) => id === HOBBY_PRICE_MONTHLY_ID || id === HOBBY_PRICE_ANNUAL_ID,
-				)
-			) {
+			} else if (hobbySub) {
 				currentPlan = "hobby";
-			} else if (priceIds.some((id) => LEGACY_PRICE_IDS.includes(id))) {
+			} else if (legacySub) {
 				currentPlan = "legacy";
 			}
-			const firstPrice = activeSub.items.data[0]?.price as
+
+			const firstPrice = activeSub?.items.data[0]?.price as
 				| Stripe.Price
 				| undefined;
 			isAnnualCurrent = firstPrice?.recurring?.interval === "year";
-			const totalCents = activeSub.items.data.reduce((sum, item) => {
+
+			const totalCents = (activeSub?.items.data ?? []).reduce((sum, item) => {
 				const price = item.price as Stripe.Price;
 				const amount = price.unit_amount ?? 0;
 				const qty = item.quantity ?? 1;
@@ -205,11 +178,16 @@ export const stripeRouter = createTRPCRouter({
 				mode: "subscription",
 				line_items: items,
 				...(stripeCustomerId
-					? { customer: stripeCustomerId }
+					? {
+							customer: stripeCustomerId,
+							customer_update: { name: "auto", address: "auto" },
+						}
 					: { customer_email: owner.email }),
 				metadata: {
 					adminId: owner.id,
 				},
+				billing_address_collection: "required",
+				tax_id_collection: { enabled: true },
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
@@ -331,6 +309,22 @@ export const stripeRouter = createTRPCRouter({
 			return servers.length < user.serversQuantity;
 		},
 	),
+
+	updateInvoiceNotifications: adminProcedure
+		.input(z.object({ enabled: z.boolean() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
+			}
+			const owner = await findUserById(ctx.user.ownerId);
+			await updateUser(owner.id, {
+				sendInvoiceNotifications: input.enabled,
+			});
+			return { ok: true };
+		}),
 
 	getInvoices: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);

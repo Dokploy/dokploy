@@ -446,6 +446,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -681,6 +682,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				decoration: data.decoration,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
 			});
@@ -698,6 +700,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
 			});
@@ -890,7 +893,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															/>
 															<Label
 																htmlFor={key}
-																className="h-24 flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="h-24 flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																{value.icon}
 																{value.label}
@@ -1051,7 +1054,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="decoration"
 											defaultValue={true}
 											render={({ field }) => (
-												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Decoration</FormLabel>
 														<FormDescription>
@@ -1383,7 +1386,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="decoration"
 											defaultValue={true}
 											render={({ field }) => (
-												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Decoration</FormLabel>
 														<FormDescription>
@@ -1591,7 +1594,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															control={form.control}
 															name={`headers.${index}.value` as never}
 															render={({ field }) => (
-																<FormItem className="flex-[2]">
+																<FormItem className="flex-2">
 																	<FormControl>
 																		<Input placeholder="Value" {...field} />
 																	</FormControl>
@@ -1824,11 +1827,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
-													Trigger the action when a app is deployed.
+													Trigger the action when an app is deployed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1844,7 +1847,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appBuildError"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>App Build Error</FormLabel>
 												<FormDescription>
@@ -1865,7 +1868,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="databaseBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
@@ -1886,11 +1889,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dokployBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Dokploy Backup</FormLabel>
 												<FormDescription>
-													Trigger the action when a dokploy backup is created.
+													Trigger the action when a Dokploy backup is created.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1907,7 +1910,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="volumeBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Volume Backup</FormLabel>
 												<FormDescription>
@@ -1928,12 +1931,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dockerCleanup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
-													Trigger the action when the docker cleanup is
-													performed.
+													Trigger the action when Docker cleanup is performed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1951,11 +1953,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="dokployRestart"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when dokploy is restarted.
+														Trigger the action when Dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -1974,7 +1976,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="serverThreshold"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Server Threshold</FormLabel>
 													<FormDescription>
@@ -1996,7 +1998,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 						</div>
 					</form>
 
-					<DialogFooter className="flex flex-row gap-2 !justify-between w-full">
+					<DialogFooter className="flex flex-row gap-2 justify-between! w-full">
 						<Button
 							isLoading={
 								isLoadingSlack ||

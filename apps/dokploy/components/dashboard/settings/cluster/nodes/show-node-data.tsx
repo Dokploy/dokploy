@@ -31,9 +31,9 @@ export const ShowNodeData = ({ data }: Props) => {
 						See in detail the metadata of this node
 					</DialogDescription>
 				</DialogHeader>
-				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card">
+				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-236 bg-card">
 					<code>
-						<pre className="whitespace-pre-wrap break-words">
+						<pre className="whitespace-pre-wrap wrap-break-word">
 							<CodeEditor
 								language="json"
 								lineWrapping

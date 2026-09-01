@@ -47,7 +47,7 @@ interface Details {
 	envVariables: EnvVariable[];
 	shortDescription: string;
 	domains: Domain[];
-	configFiles?: Mount[];
+	configFiles?: Mount[] | null;
 }
 
 interface Mount {
@@ -184,7 +184,7 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 							>
 								{stepper.all.map((step, index, array) => (
 									<React.Fragment key={step.id}>
-										<li className="flex items-center gap-4 flex-shrink-0">
+										<li className="flex items-center gap-4 shrink-0">
 											<Button
 												type="button"
 												role="tab"
@@ -298,7 +298,19 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 					<div className="flex items-center justify-between w-full">
 						<div className="flex items-center gap-2 w-full justify-end">
 							<Button
-								onClick={stepper.prev}
+								onClick={() => {
+									if (
+										stepper.current.id === "variant" &&
+										templateInfo.details
+									) {
+										setTemplateInfo((prev) => ({
+											...prev,
+											details: null,
+										}));
+										return;
+									}
+									stepper.prev();
+								}}
 								disabled={stepper.isFirst}
 								variant="secondary"
 							>
