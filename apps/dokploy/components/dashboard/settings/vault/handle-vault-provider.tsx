@@ -1129,7 +1129,29 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 						)}
 
 						<div className="flex flex-col gap-2 rounded-lg border p-3">
-							<FormLabel>Access</FormLabel>
+							<div className="flex flex-row items-center justify-between">
+								<FormLabel>Access</FormLabel>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={() =>
+										setAssignments(
+											assignments.length === orgProjects?.length
+												? []
+												: (orgProjects ?? []).map((project) => ({
+														projectId: project.projectId,
+														environmentIds: [],
+													})),
+										)
+									}
+								>
+									{assignments.length === orgProjects?.length
+										? "Clear all"
+										: "Access all"}
+								</Button>
+							</div>
 							<FormDescription>
 								This provider can only be referenced from the selected projects.
 								Pick environments to narrow it further — none selected means all
