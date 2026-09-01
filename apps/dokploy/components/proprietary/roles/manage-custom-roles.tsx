@@ -173,7 +173,7 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 	vaultProvider: {
 		label: "Secrets Providers",
 		description:
-			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway) and where their secrets can be referenced",
+			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway, Phase) and where their secrets can be referenced",
 	},
 	dnsProvider: {
 		label: "DNS Providers",
@@ -327,6 +327,10 @@ const ACTION_META: Record<
 		delete: {
 			label: "Delete",
 			description: "Remove servers from the organization",
+		},
+		terminal: {
+			label: "Terminal",
+			description: "Open an SSH root shell on remote servers",
 		},
 	},
 	registry: {
@@ -569,7 +573,7 @@ const ROLE_PRESETS: {
 			envVars: ["read", "write"],
 			projectEnvVars: ["read", "write"],
 			environmentEnvVars: ["read", "write"],
-			server: ["read", "create", "delete"],
+			server: ["read", "create", "delete", "terminal"],
 			registry: ["read", "create", "delete"],
 			certificate: ["read", "create", "delete"],
 			backup: ["read", "create", "delete", "restore"],

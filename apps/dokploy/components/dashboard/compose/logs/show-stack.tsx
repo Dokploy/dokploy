@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { resolveContainerSelection } from "@/components/dashboard/docker/logs/utils";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -54,6 +55,7 @@ export const ShowDockerLogsStack = ({
 			},
 			{
 				enabled: !!appName && option === "swarm",
+				refetchInterval: 5000,
 			},
 		);
 
@@ -66,26 +68,18 @@ export const ShowDockerLogsStack = ({
 			},
 			{
 				enabled: !!appName && option === "native",
+				refetchInterval: 5000,
 			},
 		);
 
 	const containers = data?.filter((container) => container.containerId);
+	const availableContainers = option === "native" ? containers : services;
 
 	useEffect(() => {
-		const currentContainers = option === "native" ? containers : services;
-
-		if (currentContainers) {
-			const nextContainerId = currentContainers.some(
-				(container) => container.containerId === containerId,
-			)
-				? containerId
-				: currentContainers[0]?.containerId;
-
-			if (nextContainerId !== containerId) {
-				setContainerId(nextContainerId);
-			}
-		}
-	}, [option, services, containers, containerId]);
+		setContainerId((currentContainerId) =>
+			resolveContainerSelection(currentContainerId, availableContainers),
+		);
+	}, [availableContainers]);
 
 	const isLoading = option === "native" ? containersLoading : servicesLoading;
 	const containersLength =

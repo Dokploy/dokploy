@@ -48,6 +48,7 @@ export function AddOrganization({ organizationId }: Props) {
 		},
 		{
 			enabled: !!organizationId,
+			refetchOnWindowFocus: false,
 		},
 	);
 	const { mutateAsync, isPending } = organizationId
