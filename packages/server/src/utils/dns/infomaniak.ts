@@ -8,6 +8,9 @@ interface InfomaniakResponse<T> {
 	result: "success" | "error";
 	data?: T;
 	error?: { code?: string; description?: string };
+	page?: number;
+	pages?: number;
+	total?: number;
 }
 
 interface InfomaniakRecord {
@@ -28,11 +31,11 @@ const INFOMANIAK_API = "https://api.infomaniak.com";
 // Infomaniak requires a TTL on every record, within a 60..86400 range.
 const DEFAULT_TTL = 300;
 
-const ikFetch = async <T>(
+const ikRequest = async <T>(
 	config: InfomaniakConfig,
 	path: string,
 	init: RequestInit = {},
-): Promise<T> => {
+): Promise<InfomaniakResponse<T>> => {
 	const response = await dnsFetch(`${INFOMANIAK_API}${path}`, {
 		...init,
 		headers: {
@@ -51,8 +54,14 @@ const ikFetch = async <T>(
 			}`,
 		);
 	}
-	return body.data as T;
+	return body;
 };
+
+const ikFetch = async <T>(
+	config: InfomaniakConfig,
+	path: string,
+	init: RequestInit = {},
+): Promise<T> => (await ikRequest<T>(config, path, init)).data as T;
 
 // Infomaniak's "source" holds the subdomain only, relative to the zone. The apex
 // is a bare root dot; "" and "@" are accepted too so a hand-written record still
@@ -113,9 +122,25 @@ const recordPayload = (
 	ttl: record.ttl ?? DEFAULT_TTL,
 });
 
-// The API returns the created record, but older responses only carry its id.
-const createdId = (data: InfomaniakRecord | string | number) =>
-	typeof data === "object" && data !== null ? String(data.id) : String(data);
+const PRODUCTS_PER_PAGE = 100;
+
+// The products endpoint paginates — 15 per page by default — so an account with
+// more domains than fit on one page would otherwise silently lose zones.
+const listDomainProducts = async (config: InfomaniakConfig) => {
+	const domains: InfomaniakDomain[] = [];
+	let page = 1;
+	while (true) {
+		const body = await ikRequest<InfomaniakDomain[]>(
+			config,
+			`/1/products?service_name=domain&page=${page}&per_page=${PRODUCTS_PER_PAGE}`,
+		);
+		domains.push(...(body.data ?? []));
+		if (page >= (body.pages ?? 1)) {
+			return domains;
+		}
+		page += 1;
+	}
+};
 
 const listZoneRecords = async (config: InfomaniakConfig, zoneId: string) =>
 	await ikFetch<InfomaniakRecord[]>(
@@ -125,10 +150,7 @@ const listZoneRecords = async (config: InfomaniakConfig, zoneId: string) =>
 
 export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 	async listZones(config) {
-		const domains = await ikFetch<InfomaniakDomain[]>(
-			config,
-			"/1/product?service_name=domain",
-		);
+		const domains = await listDomainProducts(config);
 		// The v2 record endpoints are keyed by zone name, not by product id.
 		return domains.map((domain) => ({
 			id: domain.customer_name,
@@ -172,7 +194,13 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 			`/2/zones/${zone}/records`,
 			{ method: "POST", body },
 		);
-		return { id: createdId(created) };
+		// The API returns the created record, but older responses only carry its id.
+		return {
+			id:
+				typeof created === "object" && created !== null
+					? String(created.id)
+					: String(created),
+		};
 	},
 
 	async updateRecord(config, zoneId, recordId, record) {
@@ -193,6 +221,6 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 	},
 
 	async testConnection(config) {
-		await ikFetch(config, "/1/product?service_name=domain");
+		await ikFetch(config, "/1/products?service_name=domain&per_page=1");
 	},
 };

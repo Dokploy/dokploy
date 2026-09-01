@@ -14,6 +14,9 @@ const jsonResponse = (body: unknown, ok = true, status = 200) =>
 
 const ikSuccess = (data: unknown) => jsonResponse({ result: "success", data });
 
+const ikPage = (data: unknown, page: number, pages: number) =>
+	jsonResponse({ result: "success", data, page, pages });
+
 const ikError = (description: string, status = 400) =>
 	jsonResponse(
 		{ result: "error", error: { code: "not_authorized", description } },
@@ -38,10 +41,14 @@ beforeEach(() => {
 describe("infomaniakClient.listZones", () => {
 	it("exposes each domain product as a zone keyed by its name", async () => {
 		mockFetch.mockResolvedValue(
-			ikSuccess([
-				{ id: 1, customer_name: "example.com" },
-				{ id: 2, customer_name: "example.ch" },
-			]),
+			ikPage(
+				[
+					{ id: 1, customer_name: "example.com" },
+					{ id: 2, customer_name: "example.ch" },
+				],
+				1,
+				1,
+			),
 		);
 
 		const zones = await infomaniakClient.listZones(config);
@@ -51,12 +58,35 @@ describe("infomaniakClient.listZones", () => {
 			{ id: "example.ch", name: "example.ch" },
 		]);
 		const [url, init] = lastCall();
-		expect(url).toBe(
-			"https://api.infomaniak.com/1/product?service_name=domain",
-		);
+		// The documented endpoint is the plural one; the singular is legacy and
+		// returns no pagination metadata at all.
+		expect(url).toContain("/1/products?service_name=domain");
+		expect(url).toContain("page=1");
 		expect(init.headers).toMatchObject({
 			Authorization: "Bearer ik_test_token",
 		});
+	});
+
+	it("walks every page so accounts with many domains keep all their zones", async () => {
+		mockFetch
+			.mockResolvedValueOnce(ikPage([{ id: 1, customer_name: "a.com" }], 1, 3))
+			.mockResolvedValueOnce(ikPage([{ id: 2, customer_name: "b.com" }], 2, 3))
+			.mockResolvedValueOnce(ikPage([{ id: 3, customer_name: "c.com" }], 3, 3));
+
+		const zones = await infomaniakClient.listZones(config);
+
+		expect(zones.map((zone) => zone.name)).toEqual(["a.com", "b.com", "c.com"]);
+		expect(mockFetch).toHaveBeenCalledTimes(3);
+		expect((mockFetch.mock.calls[2] as [string])[0]).toContain("page=3");
+	});
+
+	it("stops after a single page when the response has no pagination", async () => {
+		mockFetch.mockResolvedValue(ikSuccess([{ id: 1, customer_name: "a.com" }]));
+
+		const zones = await infomaniakClient.listZones(config);
+
+		expect(zones).toEqual([{ id: "a.com", name: "a.com" }]);
+		expect(mockFetch).toHaveBeenCalledTimes(1);
 	});
 
 	it("propagates the API error description", async () => {
@@ -376,7 +406,7 @@ describe("infomaniakClient.testConnection", () => {
 		mockFetch.mockResolvedValue(ikError("Authorization required", 401));
 
 		await expect(infomaniakClient.testConnection(config)).rejects.toThrow(
-			"Infomaniak: request to /1/product?service_name=domain failed: Authorization required",
+			"Infomaniak: request to /1/products?service_name=domain&per_page=1 failed: Authorization required",
 		);
 	});
 });
