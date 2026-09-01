@@ -44,6 +44,17 @@ const providerLabels = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
 	porkbun: "Porkbun",
+	ovh: "OVHcloud",
+} as const;
+
+const ovhEndpointLabels = {
+	"ovh-eu": "OVHcloud Europe",
+	"ovh-ca": "OVHcloud Canada",
+	"ovh-us": "OVHcloud US",
+	"kimsufi-eu": "Kimsufi Europe",
+	"kimsufi-ca": "Kimsufi Canada",
+	"soyoustart-eu": "So you Start Europe",
+	"soyoustart-ca": "So you Start Canada",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -55,12 +66,21 @@ const DnsProviderSchema = z.object({
 		.regex(/^[a-zA-Z0-9_-]+$/, {
 			message: "Only letters, numbers, dashes and underscores",
 		}),
-	providerType: z.enum(["cloudflare", "route53", "porkbun"]),
+	providerType: z.enum(["cloudflare", "route53", "porkbun", "ovh"]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
 	apiKey: z.string(),
 	secretApiKey: z.string(),
+	endpoint: z.enum(
+		Object.keys(ovhEndpointLabels) as [
+			keyof typeof ovhEndpointLabels,
+			...(keyof typeof ovhEndpointLabels)[],
+		],
+	),
+	applicationKey: z.string(),
+	applicationSecret: z.string(),
+	consumerKey: z.string(),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -73,6 +93,10 @@ const defaultValues: DnsProviderForm = {
 	secretAccessKey: "",
 	apiKey: "",
 	secretApiKey: "",
+	endpoint: "ovh-eu",
+	applicationKey: "",
+	applicationSecret: "",
+	consumerKey: "",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -93,6 +117,14 @@ const buildConfig = (data: DnsProviderForm) => {
 				providerType: "porkbun" as const,
 				apiKey: data.apiKey,
 				secretApiKey: data.secretApiKey,
+			};
+		case "ovh":
+			return {
+				providerType: "ovh" as const,
+				endpoint: data.endpoint,
+				applicationKey: data.applicationKey,
+				applicationSecret: data.applicationSecret,
+				consumerKey: data.consumerKey,
 			};
 	}
 };
@@ -154,6 +186,12 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 				...(provider.config.providerType === "porkbun" && {
 					apiKey: provider.config.apiKey,
 					secretApiKey: provider.config.secretApiKey,
+				}),
+				...(provider.config.providerType === "ovh" && {
+					endpoint: provider.config.endpoint,
+					applicationKey: provider.config.applicationKey,
+					applicationSecret: provider.config.applicationSecret,
+					consumerKey: provider.config.consumerKey,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -375,6 +413,85 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												Create API keys at porkbun.com/account/api and make sure
 												API access is enabled for the domains you want Dokploy
 												to manage.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "ovh" && (
+							<>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Endpoint</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select an endpoint" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{Object.entries(ovhEndpointLabels).map(
+														([value, label]) => (
+															<SelectItem key={value} value={value}>
+																{label}
+															</SelectItem>
+														),
+													)}
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="applicationKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Application Key</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="applicationSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Application Secret</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="consumerKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Consumer Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Create the three keys at once on api.ovh.com/createToken
+												with the <code>GET</code>, <code>POST</code>,{" "}
+												<code>PUT</code> and <code>DELETE</code> rights on{" "}
+												<code>/domain/zone/*</code>.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
