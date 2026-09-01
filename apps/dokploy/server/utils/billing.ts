@@ -27,11 +27,10 @@ export const getCurrentPlanForUser = async (
 		status: "active",
 		expand: ["data.items.data.price"],
 	});
-	const activeSub = subscriptions.data[0];
-	if (!activeSub) return null;
+	if (subscriptions.data.length === 0) return null;
 
-	const priceIds = activeSub.items.data.map(
-		(item) => (item.price as Stripe.Price).id,
+	const priceIds = subscriptions.data.flatMap((sub) =>
+		sub.items.data.map((item) => (item.price as Stripe.Price).id),
 	);
 
 	if (

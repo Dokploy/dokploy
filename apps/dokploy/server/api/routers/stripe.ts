@@ -80,33 +80,42 @@ export const stripeRouter = createTRPCRouter({
 		let currentPlan: CurrentPlan = "legacy";
 		let isAnnualCurrent = false;
 		let currentPriceAmount: number | null = null;
-		const activeSub = subscriptions.data[0];
-		if (activeSub) {
-			const priceIds = activeSub.items.data.map(
-				(item) => (item.price as Stripe.Price).id,
+		if (subscriptions.data.length > 0) {
+			const matchedSub = subscriptions.data.find((sub) =>
+				sub.items.data.some(
+					(item) =>
+						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_MONTHLY_ID ||
+						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_ANNUAL_ID,
+				),
 			);
-			if (
-				priceIds.some(
-					(id) =>
-						id === STARTUP_BASE_PRICE_MONTHLY_ID ||
-						id === STARTUP_BASE_PRICE_ANNUAL_ID,
-				)
-			) {
+			const hobbySub = subscriptions.data.find((sub) =>
+				sub.items.data.some(
+					(item) =>
+						(item.price as Stripe.Price).id === HOBBY_PRICE_MONTHLY_ID ||
+						(item.price as Stripe.Price).id === HOBBY_PRICE_ANNUAL_ID,
+				),
+			);
+			const legacySub = subscriptions.data.find((sub) =>
+				sub.items.data.some((item) =>
+					LEGACY_PRICE_IDS.includes((item.price as Stripe.Price).id),
+				),
+			);
+
+			const activeSub = matchedSub ?? hobbySub ?? legacySub;
+			if (matchedSub) {
 				currentPlan = "startup";
-			} else if (
-				priceIds.some(
-					(id) => id === HOBBY_PRICE_MONTHLY_ID || id === HOBBY_PRICE_ANNUAL_ID,
-				)
-			) {
+			} else if (hobbySub) {
 				currentPlan = "hobby";
-			} else if (priceIds.some((id) => LEGACY_PRICE_IDS.includes(id))) {
+			} else if (legacySub) {
 				currentPlan = "legacy";
 			}
-			const firstPrice = activeSub.items.data[0]?.price as
+
+			const firstPrice = activeSub?.items.data[0]?.price as
 				| Stripe.Price
 				| undefined;
 			isAnnualCurrent = firstPrice?.recurring?.interval === "year";
-			const totalCents = activeSub.items.data.reduce((sum, item) => {
+
+			const totalCents = (activeSub?.items.data ?? []).reduce((sum, item) => {
 				const price = item.price as Stripe.Price;
 				const amount = price.unit_amount ?? 0;
 				const qty = item.quantity ?? 1;

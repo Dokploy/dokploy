@@ -43,6 +43,7 @@ const providerLabels = {
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
+	phase: "Phase",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -63,6 +64,7 @@ const VaultProviderSchema = z
 			"doppler",
 			"azure",
 			"scaleway",
+			"phase",
 		]),
 		url: z.string(),
 		token: z.string(),
@@ -89,6 +91,11 @@ const VaultProviderSchema = z
 		scalewayProjectId: z.string(),
 		scalewaySecretKey: z.string(),
 		scalewayApiUrl: z.string(),
+		phaseToken: z.string(),
+		phaseAppId: z.string(),
+		phaseEnv: z.string(),
+		phasePath: z.string(),
+		phaseApiUrl: z.string(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -161,6 +168,17 @@ const VaultProviderSchema = z
 				path: ["siteUrl"],
 			});
 		}
+		if (
+			data.providerType === "phase" &&
+			data.phaseApiUrl &&
+			!isValidUrl(data.phaseApiUrl)
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Enter a valid URL (e.g. https://api.phase.dev)",
+				path: ["phaseApiUrl"],
+			});
+		}
 
 		const required: Partial<
 			Record<ProviderType, [keyof typeof data, string][]>
@@ -193,6 +211,11 @@ const VaultProviderSchema = z
 				["scalewayRegion", "Region is required"],
 				["scalewayProjectId", "Project ID is required"],
 				["scalewaySecretKey", "Secret Key is required"],
+			],
+			phase: [
+				["phaseToken", "Service Account REST API token is required"],
+				["phaseAppId", "App ID is required"],
+				["phaseEnv", "Environment is required"],
 			],
 		};
 
@@ -254,6 +277,11 @@ const defaultValues: VaultProviderForm = {
 	scalewayProjectId: "",
 	scalewaySecretKey: "",
 	scalewayApiUrl: "https://api.scaleway.com",
+	phaseToken: "",
+	phaseAppId: "",
+	phaseEnv: "",
+	phasePath: "/",
+	phaseApiUrl: "https://api.phase.dev",
 	assignments: [],
 };
 
@@ -307,6 +335,15 @@ const buildConfig = (data: VaultProviderForm) => {
 				projectId: data.scalewayProjectId,
 				secretKey: data.scalewaySecretKey,
 				apiUrl: data.scalewayApiUrl || "https://api.scaleway.com",
+			};
+		case "phase":
+			return {
+				providerType: "phase" as const,
+				token: data.phaseToken,
+				appId: data.phaseAppId,
+				env: data.phaseEnv,
+				path: data.phasePath || "/",
+				apiUrl: data.phaseApiUrl || "https://api.phase.dev",
 			};
 	}
 };
@@ -428,6 +465,13 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					scalewayProjectId: provider.config.projectId,
 					scalewaySecretKey: provider.config.secretKey,
 					scalewayApiUrl: provider.config.apiUrl,
+				}),
+				...(provider.config.providerType === "phase" && {
+					phaseToken: provider.config.token,
+					phaseAppId: provider.config.appId,
+					phaseEnv: provider.config.env,
+					phasePath: provider.config.path,
+					phaseApiUrl: provider.config.apiUrl,
 				}),
 			});
 		} else if (!vaultProviderId) {
@@ -996,8 +1040,118 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 							</>
 						)}
 
+						{providerType === "phase" && (
+							<>
+								<FormField
+									control={form.control}
+									name="phaseToken"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Service Account REST API Token</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Use the REST API token from a Service Account — not the
+												CLI/SDK <code>pss_*</code> token. The Phase App must
+												have Server-side Encryption (SSE) enabled.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<div className="grid grid-cols-2 gap-4">
+									<FormField
+										control={form.control}
+										name="phaseAppId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>App ID</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="00000000-0000-0000-0000-000000000000"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="phaseEnv"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Environment</FormLabel>
+												<FormControl>
+													<Input placeholder="Production" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<FormField
+									control={form.control}
+									name="phasePath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret Path</FormLabel>
+											<FormControl>
+												<Input placeholder="/" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="phaseApiUrl"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API URL</FormLabel>
+											<FormControl>
+												<Input placeholder="https://api.phase.dev" {...field} />
+											</FormControl>
+											<FormDescription>
+												Self-hosted Phase defaults to{" "}
+												<code>{"${HTTP_PROTOCOL}${HOST}/service/public"}</code>
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormDescription>
+									Reference format:{" "}
+									<code>{"${{vault.<name>.SECRET_KEY}}"}</code>
+								</FormDescription>
+							</>
+						)}
+
 						<div className="flex flex-col gap-2 rounded-lg border p-3">
-							<FormLabel>Access</FormLabel>
+							<div className="flex flex-row items-center justify-between">
+								<FormLabel>Access</FormLabel>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={() =>
+										setAssignments(
+											assignments.length === orgProjects?.length
+												? []
+												: (orgProjects ?? []).map((project) => ({
+														projectId: project.projectId,
+														environmentIds: [],
+													})),
+										)
+									}
+								>
+									{assignments.length === orgProjects?.length
+										? "Clear all"
+										: "Access all"}
+								</Button>
+							</div>
 							<FormDescription>
 								This provider can only be referenced from the selected projects.
 								Pick environments to narrow it further — none selected means all
