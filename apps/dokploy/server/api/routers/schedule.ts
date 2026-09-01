@@ -25,7 +25,7 @@ import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
-import { removeJob, schedule } from "@/server/utils/backup";
+import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const scheduleRouter = createTRPCRouter({
@@ -130,7 +130,7 @@ export const scheduleRouter = createTRPCRouter({
 
 			if (IS_CLOUD) {
 				if (updatedSchedule?.enabled) {
-					schedule({
+					await updateJob({
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: updatedSchedule.cronExpression,
