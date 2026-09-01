@@ -531,3 +531,98 @@ body[data-scroll-locked] [data-slot="sidebar-inset"] {
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
 }
+
+:root {
+	--duration-quick: 150ms;
+	--duration-fast: 250ms;
+	--duration-medium: 350ms;
+	--duration-slow: 400ms;
+	--ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+	--distance-base: 8px;
+	--blur-medium: 3px;
+	--panel-open-dur: 400ms;
+	--panel-close-dur: 350ms;
+	--panel-translate-x: 32px;
+	--panel-blur: 2px;
+	--panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer components {
+	.t-panel-slide-x {
+		transform: translateX(var(--panel-translate-x));
+		opacity: 0;
+		filter: blur(var(--panel-blur));
+		pointer-events: none;
+		transition:
+			transform var(--panel-close-dur) var(--panel-ease),
+			opacity var(--panel-close-dur) var(--panel-ease),
+			filter var(--panel-close-dur) var(--panel-ease);
+		will-change: transform, opacity, filter;
+	}
+
+	.t-panel-slide-x[data-open="true"] {
+		transform: translateX(0);
+		opacity: 1;
+		filter: blur(0);
+		pointer-events: auto;
+		transition:
+			transform var(--panel-open-dur) var(--panel-ease),
+			opacity var(--panel-open-dur) var(--panel-ease),
+			filter var(--panel-open-dur) var(--panel-ease);
+	}
+
+	.t-panel-track {
+		transition:
+			grid-template-columns var(--panel-open-dur) var(--panel-ease),
+			grid-template-rows var(--panel-open-dur) var(--panel-ease);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.t-panel-slide-x,
+		.t-panel-track {
+			transition: none !important;
+		}
+	}
+}
+
+@layer components {
+	.t-page-enter {
+		animation: t-page-enter var(--duration-fast) var(--ease-smooth-out) both;
+	}
+
+	.t-page-enter[data-direction="back"] {
+		animation-name: t-page-enter-back;
+	}
+
+	@keyframes t-page-enter {
+		from {
+			opacity: 0;
+			transform: translateX(var(--distance-base));
+			filter: blur(var(--blur-medium));
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+			filter: blur(0);
+		}
+	}
+
+	@keyframes t-page-enter-back {
+		from {
+			opacity: 0;
+			transform: translateX(calc(var(--distance-base) * -1));
+			filter: blur(var(--blur-medium));
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0);
+			filter: blur(0);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.t-page-enter {
+			animation: none;
+		}
+	}
+}

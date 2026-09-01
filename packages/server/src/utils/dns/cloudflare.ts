@@ -1,4 +1,7 @@
-import type { cloudflareDnsConfigSchema } from "@dokploy/server/db/schema";
+import {
+	type cloudflareDnsConfigSchema,
+	proxiableDnsRecordTypes,
+} from "@dokploy/server/db/schema";
 import type { z } from "zod";
 import { type DnsClient, dnsFetch } from "./types";
 
@@ -12,6 +15,68 @@ type CloudflareResponse<T> = {
 };
 
 const CLOUDFLARE_API = "https://api.cloudflare.com/client/v4";
+
+const inlinePriority = (record: {
+	type: string;
+	content: string;
+	priority?: number;
+}) =>
+	record.type === "MX" && typeof record.priority === "number"
+		? `${record.priority} ${record.content}`
+		: record.content;
+
+const proxySettings = (record: { type: string; proxied?: boolean }) =>
+	record.proxied !== undefined &&
+	(proxiableDnsRecordTypes as readonly string[]).includes(record.type)
+		? { proxied: record.proxied }
+		: {};
+
+const buildValue = (record: { type: string; content: string }) => {
+	const value = record.content.trim();
+
+	if (record.type === "MX") {
+		const match = /^(\d+)\s+(\S.*)$/.exec(value);
+		return match
+			? { content: match[2] as string, priority: Number(match[1]) }
+			: { content: value, priority: 10 };
+	}
+
+	if (record.type === "SRV") {
+		const parts = value.split(/\s+/);
+		const [priority, weight, port, target] = parts;
+		if (parts.length !== 4 || !target) {
+			throw new Error(
+				`Cloudflare: an SRV value must be "priority weight port target", got "${value}"`,
+			);
+		}
+		return {
+			data: {
+				priority: Number(priority),
+				weight: Number(weight),
+				port: Number(port),
+				target,
+			},
+		};
+	}
+
+	if (record.type === "CAA") {
+		const match = /^(\d+)\s+(\S+)\s+"?([^"]+)"?$/.exec(value);
+		if (!match) {
+			throw new Error(
+				`Cloudflare: a CAA value must be \`flags tag "value"\`, got "${value}"`,
+			);
+		}
+		return {
+			data: {
+				flags: Number(match[1]),
+				tag: match[2] as string,
+				value: match[3] as string,
+			},
+		};
+	}
+
+	return { content: value };
+};
 
 const cfFetch = async <T>(
 	config: CloudflareConfig,
@@ -72,9 +137,20 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 					name: string;
 					content: string;
 					ttl: number;
+					priority?: number;
+					proxied?: boolean;
 				}[]
 			>(config, `/zones/${zoneId}/dns_records?per_page=50&page=${page}`);
-			records.push(...result);
+			records.push(
+				...result.map((record) => ({
+					id: record.id,
+					type: record.type,
+					name: record.name,
+					content: inlinePriority(record),
+					ttl: record.ttl,
+					proxied: record.proxied,
+				})),
+			);
 			if (result.length < 50) {
 				break;
 			}
@@ -84,17 +160,18 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 	},
 
 	async upsertRecord(config, record) {
+		const payload = {
+			type: record.type,
+			name: record.name,
+			...buildValue(record),
+			...proxySettings(record),
+			ttl: record.ttl ?? 1,
+		};
+
 		const existing = await cfFetch<{ id: string }[]>(
 			config,
 			`/zones/${record.zoneId}/dns_records?type=${record.type}&name=${encodeURIComponent(record.name)}`,
 		);
-
-		const payload = {
-			type: record.type,
-			name: record.name,
-			content: record.content,
-			ttl: record.ttl ?? 1,
-		};
 
 		const existingRecord = existing[0];
 		if (existingRecord) {
@@ -123,7 +200,8 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 				body: JSON.stringify({
 					type: record.type,
 					name: record.name,
-					content: record.content,
+					...buildValue(record),
+					...proxySettings(record),
 					ttl: record.ttl ?? 1,
 				}),
 			},

@@ -3,12 +3,17 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowDnsProviders } from "@/components/dashboard/settings/dns/show-dns-providers";
+import { ShowDnsRecords } from "@/components/dashboard/settings/dns/show-dns-records";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
-const Page = () => {
-	return <ShowDnsProviders />;
+interface Props {
+	dnsProviderId: string;
+	zoneId: string;
+}
+
+const Page = ({ dnsProviderId, zoneId }: Props) => {
+	return <ShowDnsRecords dnsProviderId={dnsProviderId} zoneId={zoneId} />;
 };
 
 export default Page;
@@ -16,10 +21,18 @@ export default Page;
 Page.getLayout = (page: ReactElement) => {
 	return <DashboardLayout metaName="DNS Providers">{page}</DashboardLayout>;
 };
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-	const { req, res } = ctx;
+
+export async function getServerSideProps(
+	ctx: GetServerSidePropsContext<{ dnsProviderId: string; zoneId: string }>,
+) {
+	const { req, res, params } = ctx;
 	const { user, session } = await validateRequest(req);
-	if (!user || user.role === "member") {
+	if (
+		!user ||
+		user.role === "member" ||
+		!params?.dnsProviderId ||
+		!params?.zoneId
+	) {
 		return {
 			redirect: {
 				permanent: false,
@@ -44,6 +57,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			dnsProviderId: params.dnsProviderId,
+			zoneId: params.zoneId,
 		},
 	};
 }

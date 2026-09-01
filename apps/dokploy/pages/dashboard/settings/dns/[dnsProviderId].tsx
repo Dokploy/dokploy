@@ -3,12 +3,16 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowDnsProviders } from "@/components/dashboard/settings/dns/show-dns-providers";
+import { ShowDnsZones } from "@/components/dashboard/settings/dns/show-dns-zones";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
-const Page = () => {
-	return <ShowDnsProviders />;
+interface Props {
+	dnsProviderId: string;
+}
+
+const Page = ({ dnsProviderId }: Props) => {
+	return <ShowDnsZones dnsProviderId={dnsProviderId} />;
 };
 
 export default Page;
@@ -16,10 +20,13 @@ export default Page;
 Page.getLayout = (page: ReactElement) => {
 	return <DashboardLayout metaName="DNS Providers">{page}</DashboardLayout>;
 };
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-	const { req, res } = ctx;
+
+export async function getServerSideProps(
+	ctx: GetServerSidePropsContext<{ dnsProviderId: string }>,
+) {
+	const { req, res, params } = ctx;
 	const { user, session } = await validateRequest(req);
-	if (!user || user.role === "member") {
+	if (!user || user.role === "member" || !params?.dnsProviderId) {
 		return {
 			redirect: {
 				permanent: false,
@@ -44,6 +51,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			dnsProviderId: params.dnsProviderId,
 		},
 	};
 }
