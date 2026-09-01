@@ -582,6 +582,28 @@ export const ScalewayIcon = ({ className }: Props) => (
 	</svg>
 );
 
+export const PhaseIcon = ({ className }: Props) => (
+	<svg
+		viewBox="0 0 24 24"
+		fill="none"
+		xmlns="http://www.w3.org/2000/svg"
+		className={className}
+	>
+		<path
+			d="M12 2L3.5 6.5v11L12 22l8.5-4.5v-11L12 2z"
+			stroke="currentColor"
+			strokeWidth="1.75"
+			strokeLinejoin="round"
+		/>
+		<path
+			d="M12 2v20M3.5 6.5L12 11l8.5-4.5M3.5 17.5L12 13l8.5 4.5"
+			stroke="currentColor"
+			strokeWidth="1.75"
+			strokeLinejoin="round"
+		/>
+	</svg>
+);
+
 export const vaultProviderIcons = {
 	hashicorp: HashicorpVaultIcon,
 	infisical: InfisicalIcon,
@@ -589,4 +611,5 @@ export const vaultProviderIcons = {
 	doppler: DopplerIcon,
 	azure: AzureIcon,
 	scaleway: ScalewayIcon,
+	phase: PhaseIcon,
 } as const;

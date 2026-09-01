@@ -21,11 +21,31 @@ const getMonitoringImage = () => {
 	return imageName;
 };
 
+// Swarm tasks are dokploy-monitoring.<slot>.<id>, so this only matches the
+// pre-v0.30.0 standalone container. A cleanup failure must not block the deploy.
+const removeLegacyContainer = async (
+	docker: Awaited<ReturnType<typeof getRemoteDocker>>,
+	serviceName: string,
+) => {
+	try {
+		await docker.getContainer(serviceName).remove({ force: true });
+		console.log("Removed legacy monitoring container ✅");
+	} catch (error: any) {
+		if (error?.statusCode !== 404) {
+			console.warn(
+				`Could not remove legacy monitoring container: ${error?.message ?? error}`,
+			);
+		}
+	}
+};
+
 const deployMonitoringService = async (
 	docker: Awaited<ReturnType<typeof getRemoteDocker>>,
 	serviceName: string,
 	settings: CreateServiceOptions,
 ) => {
+	await removeLegacyContainer(docker, serviceName);
+
 	try {
 		const service = docker.getService(serviceName);
 		const inspect = await service.inspect();
