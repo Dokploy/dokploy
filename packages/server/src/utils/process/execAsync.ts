@@ -75,7 +75,6 @@ export const execAsyncStream = (
 						command,
 						stdout: stdoutComplete,
 						stderr: stderrComplete,
-						// @ts-expect-error
 						exitCode: error.code,
 						originalError: error,
 					}),

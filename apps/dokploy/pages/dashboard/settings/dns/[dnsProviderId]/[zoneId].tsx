@@ -3,7 +3,6 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { DnsPageTransition } from "@/components/dashboard/settings/dns/dns-page-transition";
 import { ShowDnsRecords } from "@/components/dashboard/settings/dns/show-dns-records";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
@@ -14,11 +13,7 @@ interface Props {
 }
 
 const Page = ({ dnsProviderId, zoneId }: Props) => {
-	return (
-		<DnsPageTransition>
-			<ShowDnsRecords dnsProviderId={dnsProviderId} zoneId={zoneId} />
-		</DnsPageTransition>
-	);
+	return <ShowDnsRecords dnsProviderId={dnsProviderId} zoneId={zoneId} />;
 };
 
 export default Page;

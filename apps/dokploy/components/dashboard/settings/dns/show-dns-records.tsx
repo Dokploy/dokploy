@@ -14,6 +14,7 @@ import {
 	Cloud,
 	CloudOff,
 	ListTree,
+	Loader2,
 	PenBoxIcon,
 	PlusIcon,
 	Search,
@@ -40,7 +41,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Table,
 	TableBody,
@@ -319,7 +319,7 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 	});
 
 	return (
-		<div className="w-full">
+		<div className="w-full ">
 			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
 					<div className="flex flex-wrap items-center justify-between gap-4 p-6">
@@ -358,7 +358,10 @@ export const ShowDnsRecords = ({ dnsProviderId, zoneId }: Props) => {
 						<div className="flex flex-col-reverse gap-4 lg:flex-row lg:items-start">
 							<div className="flex min-w-0 flex-1 flex-col gap-4">
 								{isPending ? (
-									<Skeleton className="h-[420px] w-full rounded-lg" />
+									<div className="flex min-h-[45vh] flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
+										<span>Loading...</span>
+										<Loader2 className="animate-spin size-4" />
+									</div>
 								) : data?.length === 0 ? (
 									<div className="flex min-h-[45vh] w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-8">
 										<div className="rounded-full bg-muted p-4">

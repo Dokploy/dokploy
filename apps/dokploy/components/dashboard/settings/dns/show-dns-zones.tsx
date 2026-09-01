@@ -1,4 +1,4 @@
-import { ArrowLeft, Globe } from "lucide-react";
+import { ArrowLeft, Globe, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/utils/api";
 
 interface Props {
@@ -29,7 +28,7 @@ const RecordCount = ({
 	});
 
 	if (isPending) {
-		return <Skeleton className="h-4 w-20 rounded-full" />;
+		return <Loader2 className="animate-spin size-4 text-muted-foreground" />;
 	}
 
 	if (isError) {
@@ -53,7 +52,7 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 		api.dnsProvider.listZones.useQuery({ dnsProviderId });
 
 	return (
-		<div className="w-full">
+		<div className="w-full max-w-5xl mx-auto">
 			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
 					<div className="flex flex-wrap items-center justify-between gap-4 p-6">
@@ -79,10 +78,9 @@ export const ShowDnsZones = ({ dnsProviderId }: Props) => {
 					<CardContent className="flex min-h-[60vh] flex-col gap-4 border-t py-8">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isPending ? (
-							<div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-								{[0, 1, 2, 3, 4, 5].map((card) => (
-									<Skeleton key={card} className="h-[124px] rounded-xl" />
-								))}
+							<div className="flex flex-1 flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
+								<span>Loading...</span>
+								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : data?.length === 0 ? (
 							<div className="flex min-h-[45vh] w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-8">

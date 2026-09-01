@@ -1,4 +1,4 @@
-import { EyeIcon, Globe, Trash2 } from "lucide-react";
+import { EyeIcon, Globe, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,7 +12,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Tooltip,
 	TooltipContent,
@@ -33,7 +32,7 @@ export const ShowDnsProviders = () => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	return (
-		<div className="w-full">
+		<div className="w-full max-w-5xl mx-auto">
 			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
 					<div className="flex flex-wrap items-center justify-between gap-4 p-6">
@@ -52,10 +51,9 @@ export const ShowDnsProviders = () => {
 
 					<CardContent className="flex min-h-[60vh] flex-col gap-4 border-t py-8">
 						{isPending ? (
-							<div className="flex flex-col gap-2">
-								{[0, 1, 2].map((row) => (
-									<Skeleton key={row} className="h-[68px] w-full rounded-lg" />
-								))}
+							<div className="flex flex-1 flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
+								<span>Loading...</span>
+								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : data?.length === 0 ? (
 							<div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
