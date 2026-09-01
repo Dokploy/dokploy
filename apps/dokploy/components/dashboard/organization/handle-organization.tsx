@@ -248,13 +248,16 @@ export function AddOrganization({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={(val) => {
-			if (!val) {
-				uploadCounter.current++;
-				setIsUploading(false);
-			}
-			setOpen(val);
-		}}>
+		<Dialog
+			open={open}
+			onOpenChange={(val) => {
+				if (!val) {
+					uploadCounter.current++;
+					setIsUploading(false);
+				}
+				setOpen(val);
+			}}
+		>
 			<DialogTrigger asChild>
 				{organizationId ? (
 					<Button
