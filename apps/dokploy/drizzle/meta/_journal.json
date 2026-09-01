@@ -1331,6 +1331,13 @@
       "when": 1788251861403,
       "tag": "0189_wooden_nextwave",
       "breakpoints": true
+    },
+    {
+      "idx": 190,
+      "version": "7",
+      "when": 1788269053738,
+      "tag": "0190_perpetual_red_skull",
+      "breakpoints": true
     }
   ]
 }
