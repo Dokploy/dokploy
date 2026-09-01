@@ -1,4 +1,6 @@
+import { toast } from "sonner";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
+import { UpdateDatabasePassword } from "@/components/shared/update-database-password";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +11,9 @@ interface Props {
 }
 export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 	const { data } = api.postgres.one.useQuery({ postgresId });
+	const utils = api.useUtils();
+	const { mutateAsync: changePassword } =
+		api.postgres.changePassword.useMutation();
 	return (
 		<>
 			<div className="flex w-full flex-col gap-5 ">
@@ -20,18 +25,28 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
-								<Input disabled value={data?.databaseUser} />
+								<Input enableCopyButton disabled value={data?.databaseUser} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Database Name</Label>
-								<Input disabled value={data?.databaseName} />
+								<Input enableCopyButton disabled value={data?.databaseName} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Password</Label>
-								<div className="flex flex-row gap-4">
+								<div className="flex flex-row gap-2 items-center">
 									<ToggleVisibilityInput
 										value={data?.databasePassword}
 										disabled
+									/>
+									<UpdateDatabasePassword
+										onUpdatePassword={async (newPassword) => {
+											await changePassword({
+												postgresId,
+												password: newPassword,
+											});
+											toast.success("Password updated successfully");
+											utils.postgres.one.invalidate({ postgresId });
+										}}
 									/>
 								</div>
 							</div>
@@ -42,7 +57,7 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 
 							<div className="flex flex-col gap-2">
 								<Label>Internal Host</Label>
-								<Input disabled value={data?.appName} />
+								<Input enableCopyButton disabled value={data?.appName} />
 							</div>
 
 							<div className="flex flex-col gap-2">

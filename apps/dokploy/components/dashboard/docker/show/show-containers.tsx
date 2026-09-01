@@ -9,7 +9,7 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
-import { ChevronDown, Container } from "lucide-react";
+import { ChevronDown, Container, RefreshCw } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -35,7 +42,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api, type RouterOutputs } from "@/utils/api";
-import { columns } from "./colums";
+import { columns } from "./columns";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -44,10 +51,26 @@ interface Props {
 	serverId?: string;
 }
 
+const CONTAINER_STATES = [
+	"running",
+	"exited",
+	"paused",
+	"restarting",
+	"created",
+	"removing",
+	"dead",
+];
+
 export const ShowContainers = ({ serverId }: Props) => {
-	const { data, isPending } = api.docker.getContainers.useQuery({
-		serverId,
-	});
+	const { data, isPending, refetch, isRefetching } =
+		api.docker.getContainers.useQuery(
+			{
+				serverId,
+			},
+			{
+				refetchInterval: 10_000,
+			},
+		);
 
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -106,12 +129,48 @@ export const ShowContainers = ({ serverId }: Props) => {
 										}
 										className="md:max-w-sm"
 									/>
+									<Select
+										value={
+											(table.getColumn("state")?.getFilterValue() as string) ??
+											"all"
+										}
+										onValueChange={(value) =>
+											table
+												.getColumn("state")
+												?.setFilterValue(value === "all" ? undefined : value)
+										}
+									>
+										<SelectTrigger className="w-40 max-sm:w-full capitalize">
+											<SelectValue placeholder="Filter by state" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="all">All states</SelectItem>
+											{CONTAINER_STATES.map((state) => (
+												<SelectItem
+													key={state}
+													value={state}
+													className="capitalize"
+												>
+													{state}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<Button
+										variant="outline"
+										size="icon"
+										className="shrink-0 sm:ml-auto"
+										onClick={() => refetch()}
+										disabled={isRefetching}
+									>
+										<RefreshCw
+											className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
+										/>
+										<span className="sr-only">Refresh</span>
+									</Button>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
-											<Button
-												variant="outline"
-												className="sm:ml-auto max-sm:w-full"
-											>
+											<Button variant="outline" className="max-sm:w-full">
 												Columns <ChevronDown className="ml-2 h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>

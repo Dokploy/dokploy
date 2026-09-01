@@ -37,13 +37,13 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const AddRedirectchema = z.object({
+const AddRedirectSchema = z.object({
 	regex: z.string().min(1, "Regex required"),
 	permanent: z.boolean().default(false),
 	replacement: z.string().min(1, "Replacement required"),
 });
 
-type AddRedirect = z.infer<typeof AddRedirectchema>;
+type AddRedirect = z.infer<typeof AddRedirectSchema>;
 
 // Default presets
 const redirectPresets = [
@@ -110,7 +110,7 @@ export const HandleRedirect = ({
 			regex: "",
 			replacement: "",
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(AddRedirectSchema),
 	});
 
 	useEffect(() => {
@@ -149,7 +149,7 @@ export const HandleRedirect = ({
 
 	const onDialogToggle = (open: boolean) => {
 		setIsOpen(open);
-		// commented for the moment because not reseting the form if accidentally closed the dialog can be considered as a feature instead of a bug
+		// commented for the moment because not resetting the form if accidentally closed the dialog can be considered as a feature instead of a bug
 		// setPresetSelected("");
 		// form.reset();
 	};
@@ -234,7 +234,7 @@ export const HandleRedirect = ({
 									<FormItem>
 										<FormLabel>Replacement</FormLabel>
 										<FormControl>
-											<Input placeholder="http://mydomain/$${1}" {...field} />
+											<Input placeholder="http://mydomain/$1" {...field} />
 										</FormControl>
 
 										<FormMessage />
@@ -246,7 +246,7 @@ export const HandleRedirect = ({
 								control={form.control}
 								name="permanent"
 								render={({ field }) => (
-									<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+									<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 										<div className="space-y-0.5">
 											<FormLabel>Permanent</FormLabel>
 											<FormDescription>

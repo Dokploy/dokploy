@@ -1,6 +1,9 @@
 import {
+	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	createGitlab,
 	findGitlabById,
+	getAccessibleGitProviderIds,
 	getGitlabBranches,
 	getGitlabRepositories,
 	haveGitlabRequirements,
@@ -50,10 +53,26 @@ export const gitlabRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOneGitlab).query(async ({ input }) => {
-		return await findGitlabById(input.gitlabId);
-	}),
+	one: protectedProcedure
+		.input(apiFindOneGitlab)
+		.query(async ({ input, ctx }) => {
+			const gitlab = await findGitlabById(input.gitlabId);
+			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+
+			if (!(await canViewGitProviderSecrets(ctx.session, gitlab.gitProvider))) {
+				return {
+					...gitlab,
+					secret: null,
+					accessToken: null,
+					refreshToken: null,
+				};
+			}
+
+			return gitlab;
+		}),
 	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
 		let result = await db.query.gitlab.findMany({
 			with: {
 				gitProvider: true,
@@ -64,7 +83,7 @@ export const gitlabRouter = createTRPCRouter({
 			return (
 				provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
+				accessibleIds.has(provider.gitProvider.gitProviderId)
 			);
 		});
 		const filtered = result
@@ -83,19 +102,27 @@ export const gitlabRouter = createTRPCRouter({
 	}),
 	getGitlabRepositories: protectedProcedure
 		.input(apiFindOneGitlab)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const gitlab = await findGitlabById(input.gitlabId);
+			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
 			return await getGitlabRepositories(input.gitlabId);
 		}),
 
 	getGitlabBranches: protectedProcedure
 		.input(apiFindGitlabBranches)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.gitlabId) {
+				const gitlab = await findGitlabById(input.gitlabId);
+				await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+			}
 			return await getGitlabBranches(input);
 		}),
 	testConnection: protectedProcedure
 		.input(apiGitlabTestConnection)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const gitlab = await findGitlabById(input.gitlabId);
+				await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
 				const result = await testGitlabConnection(input);
 
 				return `Found ${result} repositories`;

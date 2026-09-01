@@ -63,7 +63,7 @@ const createApplication = (
 			env: null,
 		},
 		replicas: 1,
-		stopGracePeriodSwarm: 0n,
+		stopGracePeriodSwarm: 0,
 		shmSize: null,
 		ulimitsSwarm: null,
 		serverId: "server-id",
@@ -83,8 +83,8 @@ describe("mechanizeDockerContainer", () => {
 		});
 	});
 
-	it("converts bigint stopGracePeriodSwarm to a number and keeps zero values", async () => {
-		const application = createApplication({ stopGracePeriodSwarm: 0n });
+	it("passes stopGracePeriodSwarm as a number and keeps zero values", async () => {
+		const application = createApplication({ stopGracePeriodSwarm: 0 });
 
 		await mechanizeDockerContainer(application);
 
@@ -202,4 +202,55 @@ describe("mechanizeDockerContainer", () => {
 		);
 		expect(shmMount).toBeUndefined();
 	});
+
+	it("keeps a user-configured /dev/shm mount instead of adding a duplicate", async () => {
+		const application = createApplication({
+			shmSize: "6442450944",
+			mounts: [
+				{
+					mountId: "mount-id",
+					type: "volume",
+					hostPath: null,
+					volumeName: "shared-memory",
+					filePath: null,
+					content: null,
+					mountPath: "/dev/shm",
+					serviceType: "application",
+					applicationId: "application-id",
+					composeId: null,
+					libsqlId: null,
+					mariadbId: null,
+					mongoId: null,
+					mysqlId: null,
+					postgresId: null,
+					redisId: null,
+				},
+			],
+		});
+
+		await mechanizeDockerContainer(application);
+
+		const [settings] = createServiceMock.mock.calls[0] ?? [];
+		const shmMounts = settings?.TaskTemplate?.ContainerSpec?.Mounts?.filter(
+			(m) => m.Target === "/dev/shm",
+		);
+		expect(shmMounts).toHaveLength(1);
+		expect(shmMounts?.[0]).toMatchObject({
+			Type: "volume",
+			Source: "shared-memory",
+		});
+	});
+
+	it.each(["invalid", "0", "-1", "1.5", "12bytes"])(
+		"does not add a /dev/shm mount for invalid shmSize %s",
+		async (shmSize) => {
+			await mechanizeDockerContainer(createApplication({ shmSize }));
+
+			const [settings] = createServiceMock.mock.calls[0] ?? [];
+			const shmMount = settings?.TaskTemplate?.ContainerSpec?.Mounts?.find(
+				(m) => m.Target === "/dev/shm",
+			);
+			expect(shmMount).toBeUndefined();
+		},
+	);
 });

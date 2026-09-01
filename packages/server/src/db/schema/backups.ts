@@ -15,6 +15,7 @@ import { generateAppName } from ".";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -26,6 +27,7 @@ export const databaseType = pgEnum("databaseType", [
 	"mysql",
 	"mongo",
 	"web-server",
+	"libsql",
 ]);
 
 export const backupType = pgEnum("backupType", ["database", "compose"]);
@@ -48,6 +50,7 @@ export const backups = pgTable("backup", {
 		.notNull()
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),
 	keepLatestCount: integer("keepLatestCount"),
+	includeEncryptionKey: boolean("includeEncryptionKey").notNull().default(true),
 	backupType: backupType("backupType").notNull().default("database"),
 	databaseType: databaseType("databaseType").notNull(),
 	composeId: text("composeId").references(
@@ -72,6 +75,9 @@ export const backups = pgTable("backup", {
 		onDelete: "cascade",
 	}),
 	mongoId: text("mongoId").references((): AnyPgColumn => mongo.mongoId, {
+		onDelete: "cascade",
+	}),
+	libsqlId: text("libsqlId").references((): AnyPgColumn => libsql.libsqlId, {
 		onDelete: "cascade",
 	}),
 	userId: text("userId").references(() => user.id),
@@ -118,6 +124,10 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 		fields: [backups.mongoId],
 		references: [mongo.mongoId],
 	}),
+	libsql: one(libsql, {
+		fields: [backups.libsqlId],
+		references: [libsql.libsqlId],
+	}),
 	user: one(user, {
 		fields: [backups.userId],
 		references: [user.id],
@@ -137,12 +147,21 @@ const createSchema = createInsertSchema(backups, {
 	database: z.string().min(1),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
-	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"]),
+	databaseType: z.enum([
+		"postgres",
+		"mariadb",
+		"mysql",
+		"mongo",
+		"web-server",
+		"libsql",
+	]),
 	postgresId: z.string().optional(),
 	mariadbId: z.string().optional(),
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
+	libsqlId: z.string().optional(),
 	userId: z.string().optional(),
+	includeEncryptionKey: z.boolean().optional(),
 	metadata: z.any().optional(),
 });
 
@@ -157,11 +176,13 @@ export const apiCreateBackup = createSchema.pick({
 	mysqlId: true,
 	postgresId: true,
 	mongoId: true,
+	libsqlId: true,
 	databaseType: true,
 	userId: true,
 	backupType: true,
 	composeId: true,
 	serviceName: true,
+	includeEncryptionKey: true,
 	metadata: true,
 });
 
@@ -188,11 +209,21 @@ export const apiUpdateBackup = createSchema
 		metadata: true,
 		databaseType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		includeEncryptionKey: z.boolean().optional(),
+	});
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),
-	databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server"]),
+	databaseType: z.enum([
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"web-server",
+		"libsql",
+	]),
 	backupType: z.enum(["database", "compose"]),
 	databaseName: z.string().min(1),
 	backupFile: z.string().min(1),

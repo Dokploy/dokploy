@@ -1,9 +1,9 @@
 "use client";
 
-import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // import { ScrollArea } from "@acme/components/ui/scroll-area";
 // import { cn } from "@acme/components/lib/utils";
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import { Accordion as AccordionPrimitive } from "radix-ui";
 import React from "react";
 import useResizeObserver from "use-resize-observer";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ interface TreeDataItem {
 
 type TreeProps = React.HTMLAttributes<HTMLDivElement> & {
 	data: TreeDataItem[] | TreeDataItem;
-	initialSlelectedItemId?: string;
+	initialSelectedItemId?: string;
 	onSelectChange?: (item: TreeDataItem | undefined) => void;
 	expandAll?: boolean;
 	folderIcon?: LucideIcon;
@@ -30,7 +30,7 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 	(
 		{
 			data,
-			initialSlelectedItemId,
+			initialSelectedItemId,
 			onSelectChange,
 			expandAll,
 			folderIcon,
@@ -42,7 +42,7 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 	) => {
 		const [selectedItemId, setSelectedItemId] = React.useState<
 			string | undefined
-		>(initialSlelectedItemId);
+		>(initialSelectedItemId);
 
 		const handleSelectChange = React.useCallback(
 			(item: TreeDataItem | undefined) => {
@@ -55,7 +55,7 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 		);
 
 		const expandedItemIds = React.useMemo(() => {
-			if (!initialSlelectedItemId) {
+			if (!initialSelectedItemId) {
 				return [] as string[];
 			}
 
@@ -81,9 +81,9 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 				}
 			}
 
-			walkTreeItems(data, initialSlelectedItemId);
+			walkTreeItems(data, initialSelectedItemId);
 			return ids;
-		}, [data, initialSlelectedItemId]);
+		}, [data, initialSelectedItemId]);
 
 		const { ref: refRoot } = useResizeObserver();
 
@@ -146,7 +146,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
 										<AccordionPrimitive.Item value={item.id}>
 											<AccordionTrigger
 												className={cn(
-													"px-2 hover:before:opacity-100  before:absolute before:left-0 before:w-full before:opacity-0 before:bg-muted/80 before:h-[1.75rem] before:-z-10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+													"px-2 hover:before:opacity-100  before:absolute before:left-0 before:w-full before:opacity-0 before:bg-muted/80 before:h-7 before:-z-10 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring",
 													selectedItemId === item.id &&
 														"before:opacity-100 before:bg-accent text-accent-foreground before:border-l-2 before:border-l-accent-foreground/50 dark:before:border-0",
 												)}
@@ -227,7 +227,7 @@ const Leaf = React.forwardRef<
 			type="button"
 			className={cn(
 				"flex items-center py-2 px-2 cursor-pointer \
-			hover:before:opacity-100 before:absolute before:left-0 before:right-1 before:w-full transition-colors before:opacity-0 before:bg-muted/80 before:h-[1.75rem] before:-z-10 rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 relative focus-visible:z-10 w-full",
+			hover:before:opacity-100 before:absolute before:left-0 before:right-1 before:w-full transition-colors before:opacity-0 before:bg-muted/80 before:h-7 before:-z-10 rounded-lg focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 relative focus-visible:z-10 w-full",
 				className,
 				isSelected &&
 					"before:opacity-100 before:bg-accent bg-border rounded-lg   text-accent-foreground before:border-l-2 before:border-l-accent-foreground/50 dark:before:border-0",
@@ -263,7 +263,7 @@ const AccordionTrigger = React.forwardRef<
 		<AccordionPrimitive.Trigger
 			ref={ref}
 			className={cn(
-				"flex flex-1 w-full items-center py-2 transition-all last:[&[data-state=open]>svg]:rotate-90",
+				"flex flex-1 w-full items-center py-2 transition-all [&[data-state=open]>svg]:last:rotate-90",
 				className,
 			)}
 			{...props}

@@ -1,20 +1,24 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type RedisNested = InferResultType<
 	"redis",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
-export const buildRedis = async (redis: RedisNested) => {
+export const buildRedis = async (rawRedis: RedisNested) => {
+	const redis = await withResolvedVaultRefs(rawRedis);
 	const {
 		appName,
 		env,
@@ -35,6 +39,8 @@ export const buildRedis = async (redis: RedisNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(redis);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -43,7 +49,6 @@ export const buildRedis = async (redis: RedisNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -76,19 +81,11 @@ export const buildRedis = async (redis: RedisNested) => {
 					...volumesMount,
 					...bindsMount,
 					...filesMount,
-					...(shmSize
-						? [
-								{
-									Target: "/dev/shm",
-									Source: "",
-									Type: "tmpfs" as const,
-									TmpfsOptions: {
-										SizeBytes: Number.parseInt(shmSize),
-										Mode: 0o1777,
-									},
-								},
-							]
-						: []),
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
 				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
@@ -109,7 +106,7 @@ export const buildRedis = async (redis: RedisNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -133,7 +130,11 @@ export const buildRedis = async (redis: RedisNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: redis.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 
 	try {

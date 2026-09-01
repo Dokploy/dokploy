@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { relations } from "drizzle-orm";
 import {
 	bigint,
@@ -50,7 +51,13 @@ import {
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import { sshKeys } from "./ssh-key";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	encryptedText,
+	generateAppName,
+	optionalShmSizeSchema,
+} from "./utils";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -81,11 +88,11 @@ export const applications = pgTable("application", {
 		.$defaultFn(() => generateAppName("app"))
 		.unique(),
 	description: text("description"),
-	env: text("env"),
-	previewEnv: text("previewEnv"),
+	env: encryptedText("env"),
+	previewEnv: encryptedText("previewEnv"),
 	watchPaths: text("watchPaths").array(),
-	previewBuildArgs: text("previewBuildArgs"),
-	previewBuildSecrets: text("previewBuildSecrets"),
+	previewBuildArgs: encryptedText("previewBuildArgs"),
+	previewBuildSecrets: encryptedText("previewBuildSecrets"),
 	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
@@ -104,8 +111,8 @@ export const applications = pgTable("application", {
 		"previewRequireCollaboratorPermissions",
 	).default(true),
 	rollbackActive: boolean("rollbackActive").default(false),
-	buildArgs: text("buildArgs"),
-	buildSecrets: text("buildSecrets"),
+	buildArgs: encryptedText("buildArgs"),
+	buildSecrets: encryptedText("buildSecrets"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -116,6 +123,7 @@ export const applications = pgTable("application", {
 	subtitle: text("subtitle"),
 	command: text("command"),
 	args: text("args").array(),
+	icon: text("icon"),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
 	cleanCache: boolean("cleanCache").default(false),
@@ -174,7 +182,7 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	//
@@ -227,6 +235,10 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	networkIds: text("networkIds").array().default([]),
+	detachDokployNetwork: boolean("detachDokployNetwork")
+		.notNull()
+		.default(false),
 });
 
 export const applicationsRelations = relations(
@@ -311,7 +323,7 @@ const createSchema = createInsertSchema(applications, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	shmSize: z.string().optional(),
+	shmSize: optionalShmSizeSchema,
 	title: z.string().optional(),
 	enabled: z.boolean().optional(),
 	subtitle: z.string().optional(),
@@ -369,11 +381,18 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
+	networkIds: z.array(z.string()).optional(),
+	detachDokployNetwork: z.boolean().optional(),
 	cleanCache: z.boolean().optional(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 	enableSubmodules: z.boolean().optional(),
+	icon: z
+		.string()
+		.max(2 * 1024 * 1024, "Icon must be less than 2MB")
+		.nullable()
+		.optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -382,6 +401,7 @@ export const apiCreateApplication = createSchema.pick({
 	description: true,
 	environmentId: true,
 	serverId: true,
+	sourceType: true,
 });
 
 export const apiFindOneApplication = z.object({
@@ -428,17 +448,22 @@ export const apiSaveBuildType = createSchema
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
+const branchField = z
+	.string()
+	.min(1)
+	.regex(VALID_BRANCH_REGEX, "Invalid branch name");
+
 export const apiSaveGithubProvider = createSchema
 	.pick({
 		applicationId: true,
 		repository: true,
-		branch: true,
 		owner: true,
 		buildPath: true,
 		githubId: true,
 	})
 	.required()
 	.extend({
+		branch: branchField,
 		triggerType: z.enum(["push", "tag"]).default("push"),
 	})
 	.required()
@@ -447,7 +472,6 @@ export const apiSaveGithubProvider = createSchema
 export const apiSaveGitlabProvider = createSchema
 	.pick({
 		applicationId: true,
-		gitlabBranch: true,
 		gitlabBuildPath: true,
 		gitlabOwner: true,
 		gitlabRepository: true,
@@ -456,11 +480,11 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabPathNamespace: true,
 	})
 	.required()
+	.extend({ gitlabBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveBitbucketProvider = createSchema
 	.pick({
-		bitbucketBranch: true,
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
@@ -469,18 +493,19 @@ export const apiSaveBitbucketProvider = createSchema
 		applicationId: true,
 	})
 	.required()
+	.extend({ bitbucketBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveGiteaProvider = createSchema
 	.pick({
 		applicationId: true,
-		giteaBranch: true,
 		giteaBuildPath: true,
 		giteaOwner: true,
 		giteaRepository: true,
 		giteaId: true,
 	})
 	.required()
+	.extend({ giteaBranch: branchField })
 	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
 
 export const apiSaveDockerProvider = createSchema
@@ -495,7 +520,6 @@ export const apiSaveDockerProvider = createSchema
 
 export const apiSaveGitProvider = createSchema
 	.pick({
-		customGitBranch: true,
 		applicationId: true,
 		customGitBuildPath: true,
 		customGitUrl: true,
@@ -503,6 +527,7 @@ export const apiSaveGitProvider = createSchema
 		enableSubmodules: true,
 	})
 	.required()
+	.extend({ customGitBranch: branchField })
 	.merge(
 		createSchema.pick({
 			customGitSSHKeyId: true,

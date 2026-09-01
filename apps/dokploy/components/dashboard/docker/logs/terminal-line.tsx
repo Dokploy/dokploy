@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipPortal,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -65,22 +64,22 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 
 	const tooltip = (color: string, timestamp: string | null) => {
 		const square = (
-			<div className={cn("w-2 h-full flex-shrink-0 rounded-[3px]", color)} />
+			<div
+				className={cn("w-2 min-h-4 h-full flex-shrink-0 rounded-[3px]", color)}
+			/>
 		);
 		return timestamp ? (
 			<TooltipProvider delayDuration={0} disableHoverableContent>
 				<Tooltip>
 					<TooltipTrigger asChild>{square}</TooltipTrigger>
-					<TooltipPortal>
-						<TooltipContent
-							sideOffset={5}
-							className="bg-popover border-border z-[99999]"
-						>
-							<p className="text text-xs text-muted-foreground break-all max-w-md">
-								<pre>{timestamp}</pre>
-							</p>
-						</TooltipContent>
-					</TooltipPortal>
+					<TooltipContent
+						sideOffset={5}
+						className="bg-popover border-border z-99999"
+					>
+						<p className="text text-xs text-muted-foreground break-all max-w-md">
+							<pre>{timestamp}</pre>
+						</p>
+					</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 		) : (
@@ -91,7 +90,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	return (
 		<div
 			className={cn(
-				"font-mono text-xs flex flex-row gap-3 py-2 sm:py-0.5 group",
+				"font-mono text-xs flex flex-col sm:flex-row gap-1 sm:gap-3 py-2 sm:py-0.5 group",
 				type === "error"
 					? "bg-red-500/10 hover:bg-red-500/15"
 					: type === "warning"
@@ -103,11 +102,11 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		>
 			{" "}
 			<div className="flex items-start gap-x-2">
-				{/* Icon to expand the log item maybe implement a colapsible later */}
+				{/* Icon to expand the log item maybe implement a collapsible later */}
 				{/* <Square className="size-4 text-muted-foreground opacity-0 group-hover/logitem:opacity-100 transition-opacity" /> */}
 				{tooltip(color, rawTimestamp)}
 				{!noTimestamp && (
-					<span className="select-none pl-2 text-muted-foreground w-full sm:w-40 flex-shrink-0">
+					<span className="select-none pl-2 text-muted-foreground w-auto sm:w-40 flex-shrink-0">
 						{formattedTime}
 					</span>
 				)}

@@ -2,8 +2,10 @@ import {
 	createEnvironment,
 	deleteEnvironment,
 	duplicateEnvironment,
+	filterEnvironmentServices,
 	findEnvironmentById,
 	findEnvironmentsByProjectId,
+	IS_CLOUD,
 	updateEnvironmentById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -20,6 +22,7 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertEnvironmentLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateEnvironment,
 	apiDuplicateEnvironment,
@@ -30,40 +33,18 @@ import {
 	projects,
 } from "@/server/db/schema";
 
-const filterEnvironmentServices = (
-	environment: any,
-	accessedServices: string[],
-) => ({
-	...environment,
-	applications: environment.applications.filter((app: any) =>
-		accessedServices.includes(app.applicationId),
-	),
-	mariadb: environment.mariadb.filter((db: any) =>
-		accessedServices.includes(db.mariadbId),
-	),
-	mongo: environment.mongo.filter((db: any) =>
-		accessedServices.includes(db.mongoId),
-	),
-	mysql: environment.mysql.filter((db: any) =>
-		accessedServices.includes(db.mysqlId),
-	),
-	postgres: environment.postgres.filter((db: any) =>
-		accessedServices.includes(db.postgresId),
-	),
-	redis: environment.redis.filter((db: any) =>
-		accessedServices.includes(db.redisId),
-	),
-	compose: environment.compose.filter((comp: any) =>
-		accessedServices.includes(comp.composeId),
-	),
-});
-
 export const environmentRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				await checkEnvironmentCreationPermission(ctx, input.projectId);
+				if (IS_CLOUD) {
+					await assertEnvironmentLimit(
+						ctx.session.activeOrganizationId,
+						input.projectId,
+					);
+				}
 
 				if (input.name === "production") {
 					throw new TRPCError({
@@ -172,6 +153,7 @@ export const environmentRouter = createTRPCRouter({
 
 				return environments;
 			} catch (error) {
+				console.log(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error fetching environments: ${error instanceof Error ? error.message : error}`,

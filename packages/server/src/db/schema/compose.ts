@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -17,7 +24,12 @@ import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	encryptedText,
+	generateAppName,
+} from "./utils";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
@@ -39,7 +51,7 @@ export const compose = pgTable("compose", {
 		.notNull()
 		.$defaultFn(() => generateAppName("compose")),
 	description: text("description"),
-	env: text("env"),
+	env: encryptedText("env"),
 	composeFile: text("composeFile").notNull().default(""),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceTypeCompose("sourceType").notNull().default("github"),
@@ -75,6 +87,7 @@ export const compose = pgTable("compose", {
 	),
 	command: text("command").notNull().default(""),
 	//
+	createEnvFile: boolean("createEnvFile").notNull().default(true),
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
@@ -86,6 +99,7 @@ export const compose = pgTable("compose", {
 		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
+	icon: text("icon"),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -108,6 +122,15 @@ export const compose = pgTable("compose", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	serviceNetworks: jsonb("serviceNetworks")
+		.$type<
+			Array<{
+				serviceName: string;
+				networkIds: string[];
+				detachDokployNetwork: boolean;
+			}>
+		>()
+		.default([]),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -161,6 +184,7 @@ const createSchema = createInsertSchema(compose, {
 	environmentId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
+	createEnvFile: z.boolean().optional(),
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
@@ -169,6 +193,20 @@ const createSchema = createInsertSchema(compose, {
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
+	icon: z
+		.string()
+		.max(2 * 1024 * 1024, "Icon must be less than 2MB")
+		.nullable()
+		.optional(),
+	serviceNetworks: z
+		.array(
+			z.object({
+				serviceName: z.string(),
+				networkIds: z.array(z.string()),
+				detachDokployNetwork: z.boolean(),
+			}),
+		)
+		.optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({
@@ -179,6 +217,7 @@ export const apiCreateCompose = createSchema.pick({
 	appName: true,
 	serverId: true,
 	composeFile: true,
+	sourceType: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema
@@ -224,6 +263,16 @@ export const apiUpdateCompose = createSchema
 		command: z.string().optional(),
 	})
 	.omit({ serverId: true });
+
+export const apiSaveEnvironmentVariablesCompose = createSchema
+	.pick({
+		composeId: true,
+		env: true,
+	})
+	.required()
+	.extend({
+		createEnvFile: z.boolean().optional(),
+	});
 
 export const apiRandomizeCompose = createSchema
 	.pick({

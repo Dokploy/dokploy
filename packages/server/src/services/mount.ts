@@ -18,6 +18,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 
 export type Mount = typeof mounts.$inferSelect;
@@ -32,8 +33,11 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 				...(input.serviceType === "application" && {
 					applicationId: serviceId,
 				}),
-				...(input.serviceType === "postgres" && {
-					postgresId: serviceId,
+				...(input.serviceType === "compose" && {
+					composeId: serviceId,
+				}),
+				...(input.serviceType === "libsql" && {
+					libsqlId: serviceId,
 				}),
 				...(input.serviceType === "mariadb" && {
 					mariadbId: serviceId,
@@ -44,11 +48,11 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 				...(input.serviceType === "mysql" && {
 					mysqlId: serviceId,
 				}),
+				...(input.serviceType === "postgres" && {
+					postgresId: serviceId,
+				}),
 				...(input.serviceType === "redis" && {
 					redisId: serviceId,
-				}),
-				...(input.serviceType === "compose" && {
-					composeId: serviceId,
 				}),
 			})
 			.returning()
@@ -103,72 +107,29 @@ export const createFileMount = async (mountId: string) => {
 };
 
 export const findMountById = async (mountId: string) => {
+	const serviceWith = {
+		columns: { serverId: true, appName: true },
+		with: {
+			environment: {
+				columns: {},
+				with: {
+					project: { columns: { organizationId: true } },
+				},
+			},
+		},
+	} as const;
+
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			postgres: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mariadb: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mongo: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mysql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			redis: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			compose: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
+			application: serviceWith,
+			compose: serviceWith,
+			libsql: serviceWith,
+			mariadb: serviceWith,
+			mongo: serviceWith,
+			mysql: serviceWith,
+			postgres: serviceWith,
+			redis: serviceWith,
 		},
 	});
 	if (!mount) {
@@ -186,8 +147,11 @@ export const findMountOrganizationId = async (mountId: string) => {
 	if (mount.application) {
 		return mount.application.environment.project.organizationId;
 	}
-	if (mount.postgres) {
-		return mount.postgres.environment.project.organizationId;
+	if (mount.compose) {
+		return mount.compose.environment.project.organizationId;
+	}
+	if (mount.libsql) {
+		return mount.libsql.environment.project.organizationId;
 	}
 	if (mount.mariadb) {
 		return mount.mariadb.environment.project.organizationId;
@@ -198,13 +162,13 @@ export const findMountOrganizationId = async (mountId: string) => {
 	if (mount.mysql) {
 		return mount.mysql.environment.project.organizationId;
 	}
+	if (mount.postgres) {
+		return mount.postgres.environment.project.organizationId;
+	}
 	if (mount.redis) {
 		return mount.redis.environment.project.organizationId;
 	}
 
-	if (mount.compose) {
-		return mount.compose.environment.project.organizationId;
-	}
 	return null;
 };
 
@@ -248,8 +212,8 @@ export const findMountsByApplicationId = async (
 		case "application":
 			sqlChunks.push(eq(mounts.applicationId, serviceId));
 			break;
-		case "postgres":
-			sqlChunks.push(eq(mounts.postgresId, serviceId));
+		case "libsql":
+			sqlChunks.push(eq(mounts.libsqlId, serviceId));
 			break;
 		case "mariadb":
 			sqlChunks.push(eq(mounts.mariadbId, serviceId));
@@ -259,6 +223,9 @@ export const findMountsByApplicationId = async (
 			break;
 		case "mysql":
 			sqlChunks.push(eq(mounts.mysqlId, serviceId));
+			break;
+		case "postgres":
+			sqlChunks.push(eq(mounts.postgresId, serviceId));
 			break;
 		case "redis":
 			sqlChunks.push(eq(mounts.redisId, serviceId));
@@ -295,18 +262,28 @@ export const updateFileMount = async (mountId: string) => {
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
 	const fullPath = path.join(basePath, mount.filePath);
+	const directory = path.dirname(fullPath);
 
 	try {
 		const serverId = await getServerId(mount);
 		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
+		const command = `
+			mkdir -p ${quote([directory])};
+			if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
+			echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
+		`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
-	} catch {
-		console.log("Error updating file mount");
+	} catch (error) {
+		console.log(`Error updating the file mount: ${error}`);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Error updating the mount ${error instanceof Error ? error.message : error}`,
+			cause: error,
+		});
 	}
 };
 
@@ -319,7 +296,7 @@ export const deleteFileMount = async (mountId: string) => {
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${fullPath}`;
+			const command = `rm -rf ${quote([fullPath])}`;
 			await execAsyncRemote(serverId, command);
 		} else {
 			await removeFileOrDirectory(fullPath);
@@ -362,6 +339,10 @@ export const getBaseFilesPath = async (mountId: string) => {
 		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
 		appName = mount.compose.appName;
 		absoluteBasePath = path.resolve(COMPOSE_PATH);
+	} else if (mount.serviceType === "libsql" && mount.libsql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.libsql.appName;
 	}
 	directoryPath = path.join(absoluteBasePath, appName, "files");
 
@@ -390,6 +371,9 @@ export const getServerId = async (mount: MountNested) => {
 	}
 	if (mount.serviceType === "compose" && mount?.compose?.serverId) {
 		return mount.compose.serverId;
+	}
+	if (mount.serviceType === "libsql" && mount?.libsql?.serverId) {
+		return mount.libsql.serverId;
 	}
 
 	return null;

@@ -74,6 +74,7 @@ interface Props {
 	databaseType?: DatabaseType;
 	serverId?: string | null;
 	backupType?: "database" | "compose";
+	trigger?: React.ReactNode;
 }
 
 const RestoreBackupSchema = z
@@ -88,7 +89,7 @@ const RestoreBackupSchema = z
 			message: "Database name is required",
 		}),
 		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server", "libsql"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]).default("database"),
 		metadata: z
@@ -200,6 +201,7 @@ export const RestoreBackup = ({
 	databaseType,
 	serverId,
 	backupType = "database",
+	trigger,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -211,7 +213,12 @@ export const RestoreBackup = ({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
-			databaseName: databaseType === "web-server" ? "dokploy" : "",
+			databaseName:
+				databaseType === "web-server"
+					? "dokploy"
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			databaseType:
 				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
 			backupType: backupType,
@@ -220,7 +227,7 @@ export const RestoreBackup = ({
 		resolver: zodResolver(RestoreBackupSchema),
 	});
 
-	const destionationId = form.watch("destinationId");
+	const destinationId = form.watch("destinationId");
 	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
 
@@ -235,12 +242,12 @@ export const RestoreBackup = ({
 
 	const { data: files = [], isPending } = api.backup.listBackupFiles.useQuery(
 		{
-			destinationId: destionationId,
+			destinationId: destinationId,
 			search: debouncedSearchTerm,
 			serverId: serverId ?? "",
 		},
 		{
-			enabled: isOpen && !!destionationId,
+			enabled: isOpen && !!destinationId,
 		},
 	);
 
@@ -283,7 +290,6 @@ export const RestoreBackup = ({
 			toast.error("Please select a database type");
 			return;
 		}
-		console.log({ data });
 		setIsDeploying(true);
 	};
 
@@ -307,12 +313,14 @@ export const RestoreBackup = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">
-					<RotateCcw className="mr-2 size-4" />
-					Restore Backup
-				</Button>
+				{trigger ?? (
+					<Button variant="outline">
+						<RotateCcw className="mr-2 size-4" />
+						Restore Backup
+					</Button>
+				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
@@ -341,7 +349,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -423,7 +431,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -523,7 +531,10 @@ export const RestoreBackup = ({
 										<Input
 											placeholder="Enter database name"
 											{...field}
-											disabled={databaseType === "web-server"}
+											disabled={
+												databaseType === "web-server" ||
+												databaseType === "libsql"
+											}
 										/>
 									</FormControl>
 									<FormMessage />
@@ -615,7 +626,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Fetch: Will clone the repository and load the
@@ -645,7 +656,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Cache: If you previously deployed this compose,

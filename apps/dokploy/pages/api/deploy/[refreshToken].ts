@@ -13,6 +13,15 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 
 /**
+ * Log a webhook handler error server-side without leaking its shape to the HTTP
+ * response. Drizzle errors carry the raw SQL query, column list and parameters,
+ * so we never forward the error object to the client.
+ */
+export const logWebhookError = (context: string, error: unknown) => {
+	console.error(context, error);
+};
+
+/**
  * Helper function to get package_version from registry_package events
  */
 const getPackageVersion = (headers: any, body: any) => {
@@ -110,9 +119,11 @@ export default async function handler(
 			}
 			// If webhook doesn't provide image info, we'll use the configured image (old behavior)
 		} else if (sourceType === "github") {
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -141,21 +152,29 @@ export default async function handler(
 			let normalizedCommits: string[] = [];
 
 			if (provider === "github") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "gitlab") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "gitea") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "soft-serve") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			}
 
 			const shouldDeployPaths = shouldDeploy(
@@ -170,9 +189,11 @@ export default async function handler(
 		} else if (sourceType === "gitlab") {
 			const branchName = extractBranchName(req.headers, req.body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -196,7 +217,7 @@ export default async function handler(
 				return;
 			}
 
-			const commitedPaths = await extractCommitedPaths(
+			const committedPaths = await extractCommittedPaths(
 				req.body,
 				application.bitbucket,
 				application.bitbucketRepositorySlug ||
@@ -206,7 +227,7 @@ export default async function handler(
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
-				commitedPaths,
+				committedPaths,
 			);
 
 			if (!shouldDeployPaths) {
@@ -216,9 +237,11 @@ export default async function handler(
 		} else if (sourceType === "gitea") {
 			const branchName = extractBranchName(req.headers, req.body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -262,14 +285,15 @@ export default async function handler(
 				);
 			}
 		} catch (error) {
-			res.status(400).json({ message: "Error deploying Application", error });
+			logWebhookError("Error deploying Application:", error);
+			res.status(400).json({ message: "Error deploying Application" });
 			return;
 		}
 
 		res.status(200).json({ message: "Application deployed successfully" });
 	} catch (error) {
-		console.log(error);
-		res.status(400).json({ message: "Error deploying Application", error });
+		logWebhookError("Error deploying Application:", error);
+		res.status(400).json({ message: "Error deploying Application" });
 	}
 }
 
@@ -319,8 +343,19 @@ export function extractImageTag(dockerImage: string | null) {
 		return null;
 	}
 
-	const tag = dockerImage.split(":").pop();
-	return tag === dockerImage ? "latest" : tag;
+	const lastColonIndex = dockerImage.lastIndexOf(":");
+	if (lastColonIndex === -1) {
+		return "latest";
+	}
+
+	const afterColon = dockerImage.substring(lastColonIndex + 1);
+	const isPortWithPath = /^\d{1,5}\//.test(afterColon);
+
+	if (isPortWithPath) {
+		return "latest";
+	}
+
+	return afterColon;
 }
 
 /**
@@ -538,7 +573,7 @@ export const getProviderByHeader = (headers: any) => {
 	return null;
 };
 
-export const extractCommitedPaths = async (
+export const extractCommittedPaths = async (
 	body: any,
 	bitbucket: Bitbucket | null,
 	repository: string,
@@ -548,7 +583,7 @@ export const extractCommitedPaths = async (
 	const commitHashes = changes
 		.map((change: any) => change.new?.target?.hash)
 		.filter(Boolean);
-	const commitedPaths: string[] = [];
+	const committedPaths: string[] = [];
 	const username =
 		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
 	for (const commit of commitHashes) {
@@ -559,7 +594,7 @@ export const extractCommitedPaths = async (
 			});
 			const data = await response.json();
 			for (const value of data.values) {
-				if (value?.new?.path) commitedPaths.push(value.new.path);
+				if (value?.new?.path) committedPaths.push(value.new.path);
 			}
 		} catch (error) {
 			console.error(
@@ -571,5 +606,5 @@ export const extractCommitedPaths = async (
 		}
 	}
 
-	return commitedPaths;
+	return committedPaths;
 };

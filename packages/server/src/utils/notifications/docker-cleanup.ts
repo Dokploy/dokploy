@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -37,6 +38,7 @@ export const sendDockerCleanupNotifications = async (
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
@@ -53,6 +55,7 @@ export const sendDockerCleanupNotifications = async (
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
@@ -60,7 +63,7 @@ export const sendDockerCleanupNotifications = async (
 		} = notification;
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					DockerCleanupEmail({ message, date: date.toLocaleString() }),
 				).catch();
 
@@ -165,6 +168,14 @@ export const sendDockerCleanupNotifications = async (
 							],
 						},
 					],
+				});
+			}
+
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
 				});
 			}
 

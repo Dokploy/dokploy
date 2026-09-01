@@ -8,6 +8,8 @@ import {
 	requestToHeaders,
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
+import { invalidateTrustedOriginsCache } from "@dokploy/server/services/admin";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -43,12 +45,16 @@ export const ssoRouter = createTRPCRouter({
 			owner.user.enableEnterpriseFeatures && owner.user.isValidEnterpriseLicense
 		);
 	}),
+	enforceSSO: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return false;
+		}
+		const settings = await getWebServerSettings();
+		return settings?.enforceSSO ?? false;
+	}),
 	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
-			where: and(
-				eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-				eq(ssoProvider.userId, ctx.session.userId),
-			),
+			where: eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
 			columns: {
 				id: true,
 				providerId: true,
@@ -80,7 +86,6 @@ export const ssoRouter = createTRPCRouter({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
 					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-					eq(ssoProvider.userId, ctx.session.userId),
 				),
 				columns: {
 					id: true,
@@ -108,12 +113,12 @@ export const ssoRouter = createTRPCRouter({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
 					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-					eq(ssoProvider.userId, ctx.session.userId),
 				),
 				columns: {
 					id: true,
 					issuer: true,
 					domain: true,
+					userId: true,
 				},
 			});
 
@@ -123,6 +128,13 @@ export const ssoRouter = createTRPCRouter({
 					message:
 						"SSO provider not found or you do not have permission to update it",
 				});
+			}
+
+			if (existing.userId !== ctx.session.userId) {
+				await db
+					.update(ssoProvider)
+					.set({ userId: ctx.session.userId })
+					.where(eq(ssoProvider.id, existing.id));
 			}
 
 			const providers = await db.query.ssoProvider.findMany({
@@ -210,7 +222,6 @@ export const ssoRouter = createTRPCRouter({
 				where: and(
 					eq(ssoProvider.providerId, input.providerId),
 					eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-					eq(ssoProvider.userId, ctx.session.userId),
 				),
 				columns: {
 					id: true,
@@ -233,7 +244,6 @@ export const ssoRouter = createTRPCRouter({
 					and(
 						eq(ssoProvider.providerId, input.providerId),
 						eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-						eq(ssoProvider.userId, ctx.session.userId),
 					),
 				)
 				.returning({ id: ssoProvider.id });
@@ -310,6 +320,7 @@ export const ssoRouter = createTRPCRouter({
 				.update(user)
 				.set({ trustedOrigins: next })
 				.where(eq(user.id, ownerId));
+			invalidateTrustedOriginsCache();
 			return { success: true };
 		}),
 	removeTrustedOrigin: enterpriseProcedure
@@ -337,6 +348,7 @@ export const ssoRouter = createTRPCRouter({
 				.update(user)
 				.set({ trustedOrigins: next })
 				.where(eq(user.id, ownerId));
+			invalidateTrustedOriginsCache();
 			return { success: true };
 		}),
 	updateTrustedOrigin: enterpriseProcedure
@@ -370,6 +382,7 @@ export const ssoRouter = createTRPCRouter({
 				.update(user)
 				.set({ trustedOrigins: next })
 				.where(eq(user.id, ownerId));
+			invalidateTrustedOriginsCache();
 			return { success: true };
 		}),
 });

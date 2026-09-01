@@ -138,6 +138,9 @@ jobs:
     needs: [combine-manifests]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      npm_version: ${{ steps.get_version.outputs.npm_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -149,14 +152,113 @@ jobs:
         run: |
           VERSION=$(node -p "require('./apps/dokploy/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "npm_version=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Fetch install.sh
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/Dokploy/website/main/apps/website/public/install.sh -o install.sh
+          head -1 install.sh | grep -q '^#!' || { echo "Downloaded install.sh is not a shell script"; exit 1; }
+          grep -q 'DOKPLOY_VERSION' install.sh || { echo "install.sh no longer supports DOKPLOY_VERSION pinning"; exit 1; }
+          { head -1 install.sh; echo "DOKPLOY_VERSION=\"\${DOKPLOY_VERSION:-${{ steps.get_version.outputs.version }}}\""; tail -n +2 install.sh; } > install-pinned.sh
+          mv install-pinned.sh install.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.version }}
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.get_version.outputs.version }}
           generate_release_notes: true
           draft: false
           prerelease: false
+          files: install.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sync-version:
+    needs: [generate-release]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+
+      - name: Generate OpenAPI specification
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm generate:openapi
+
+      - name: Sync version to MCP repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git /tmp/mcp-repo
+          cd /tmp/mcp-repo
+
+          jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+          cp ${{ github.workspace }}/openapi.json src/generated/openapi.json
+          pnpm install
+          pnpm run generate
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          git add -A
+          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.npm_version }}" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            --allow-empty
+          git push
+
+          echo "✅ MCP repo synced to version ${{ needs.generate-release.outputs.npm_version }}"
+
+      - name: Sync version to CLI repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git /tmp/cli-repo
+          cd /tmp/cli-repo
+
+          jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+          cp ${{ github.workspace }}/openapi.json ./openapi.json
+          pnpm install
+          pnpm run generate
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          git add -A
+          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.npm_version }}" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            --allow-empty
+          git push
+
+          echo "✅ CLI repo synced to version ${{ needs.generate-release.outputs.npm_version }}"
+
+      - name: Sync version to SDK repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/sdk.git /tmp/sdk-repo
+          cd /tmp/sdk-repo
+
+          jq --arg v "${{ needs.generate-release.outputs.npm_version }}" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+          cp ${{ github.workspace }}/openapi.json ./openapi.json
+          pnpm install
+          pnpm run generate
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          git add -A
+          git commit -m "chore: bump version to ${{ needs.generate-release.outputs.npm_version }}" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            --allow-empty
+          git push
+
+          echo "✅ SDK repo synced to version ${{ needs.generate-release.outputs.npm_version }}"

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
+import { VaultImportDialog } from "@/components/shared/vault-import-dialog";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -55,6 +57,11 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 		},
 	);
 
+	const completionSource = useEnvCompletionSource({
+		includeShared: false,
+		projectId: data?.projectId,
+		environmentId,
+	});
 	const form = useForm<UpdateEnvironment>({
 		defaultValues: {
 			env: data?.env ?? "",
@@ -88,7 +95,12 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isPending && isOpen) {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.code === "KeyS" &&
+				!isPending &&
+				isOpen
+			) {
 				e.preventDefault();
 				form.handleSubmit(onSubmit)();
 			}
@@ -129,7 +141,9 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 				<AlertBlock type="info">
 					Use this syntax to reference environment-level variables in your
 					service environments:{" "}
-					<code>API_URL=${"{{environment.API_URL}}"}</code>
+					<code>API_URL=${"{{environment.API_URL}}"}</code>. You can also
+					reference secrets from a configured vault provider:{" "}
+					<code>DB_URL=${"{{vault.<provider>.<secret>}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">
@@ -143,13 +157,24 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Environment variables</FormLabel>
+											<div className="flex items-center justify-between">
+												<FormLabel>Environment variables</FormLabel>
+												<VaultImportDialog
+													projectId={data?.projectId}
+													environmentId={environmentId}
+													currentEnv={field.value ?? ""}
+													onImport={(next) =>
+														form.setValue("env", next, { shouldDirty: true })
+													}
+												/>
+											</div>
 											<FormControl>
 												<CodeEditor
+													completionSource={completionSource}
 													lineWrapping
 													language="properties"
 													readOnly={!canWrite}
-													wrapperClassName="h-[35rem] font-mono"
+													wrapperClassName="h-140 font-mono"
 													placeholder={`NODE_ENV=development
 DATABASE_URL=postgresql://localhost:5432/mydb
 API_KEY=your-api-key-here

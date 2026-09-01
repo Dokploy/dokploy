@@ -1,20 +1,24 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type PostgresNested = InferResultType<
 	"postgres",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
-export const buildPostgres = async (postgres: PostgresNested) => {
+export const buildPostgres = async (rawPostgres: PostgresNested) => {
+	const postgres = await withResolvedVaultRefs(rawPostgres);
 	const {
 		appName,
 		env,
@@ -37,6 +41,8 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(postgres);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -45,7 +51,6 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -78,22 +83,13 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 					...volumesMount,
 					...bindsMount,
 					...filesMount,
-					...(shmSize
-						? [
-								{
-									Target: "/dev/shm",
-									Source: "",
-									Type: "tmpfs" as const,
-									TmpfsOptions: {
-										SizeBytes: Number.parseInt(shmSize),
-										Mode: 0o1777,
-									},
-								},
-							]
-						: []),
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
 				],
-				...(StopGracePeriod !== null &&
-					StopGracePeriod !== undefined && { StopGracePeriod }),
+				StopGracePeriod: StopGracePeriod ?? 30_000_000_000,
 				...(command && {
 					Command: command.split(" "),
 				}),
@@ -104,7 +100,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -128,7 +124,11 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: postgres.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

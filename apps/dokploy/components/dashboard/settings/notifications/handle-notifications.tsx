@@ -14,6 +14,7 @@ import {
 	DiscordIcon,
 	GotifyIcon,
 	LarkIcon,
+	MattermostIcon,
 	NtfyIcon,
 	PushoverIcon,
 	ResendIcon,
@@ -53,6 +54,7 @@ const notificationBaseSchema = z.object({
 	appDeploy: z.boolean().default(false),
 	appBuildError: z.boolean().default(false),
 	databaseBackup: z.boolean().default(false),
+	dokployBackup: z.boolean().default(false),
 	volumeBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
@@ -136,6 +138,14 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("mattermost"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			channel: z.string().optional(),
+			username: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("pushover"),
 			userKey: z.string().min(1, { message: "User Key is required" }),
 			apiToken: z.string().min(1, { message: "API Token is required" }),
@@ -210,6 +220,10 @@ export const notificationsMap = {
 		icon: <NtfyIcon />,
 		label: "ntfy",
 	},
+	mattermost: {
+		icon: <MattermostIcon />,
+		label: "Mattermost",
+	},
 	pushover: {
 		icon: <PushoverIcon />,
 		label: "Pushover",
@@ -253,14 +267,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isPending: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+	const {
+		mutateAsync: testMattermostConnection,
+		isPending: isLoadingMattermost,
+	} = api.notification.testMattermostConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isPending: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
 	const { mutateAsync: testTeamsConnection, isPending: isLoadingTeams } =
 		api.notification.testTeamsConnection.useMutation();
-
 	const { mutateAsync: testCustomConnection, isPending: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
-
 	const { mutateAsync: testPushoverConnection, isPending: isLoadingPushover } =
 		api.notification.testPushoverConnection.useMutation();
 
@@ -288,6 +304,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+	const mattermostMutation = notificationId
+		? api.notification.updateMattermost.useMutation()
+		: api.notification.createMattermost.useMutation();
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
@@ -337,6 +356,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
 					webhookUrl: notification.slack?.webhookUrl,
@@ -351,6 +371,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					botToken: notification.telegram?.botToken,
 					messageThreadId: notification.telegram?.messageThreadId || "",
@@ -366,6 +387,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.discord?.webhookUrl,
@@ -380,6 +402,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					smtpServer: notification.email?.smtpServer,
@@ -398,6 +421,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					apiKey: notification.resend?.apiKey,
@@ -413,6 +437,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					appToken: notification.gotify?.appToken,
@@ -421,6 +446,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -428,6 +454,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					accessToken: notification.ntfy?.accessToken || "",
@@ -438,12 +465,29 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "mattermost") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.mattermost?.webhookUrl,
+					channel: notification.mattermost?.channel || "",
+					username: notification.mattermost?.username || "",
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			} else if (notification.notificationType === "lark") {
 				form.reset({
 					appBuildError: notification.appBuildError,
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.lark?.webhookUrl,
 					name: notification.name,
@@ -457,6 +501,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.teams?.webhookUrl,
@@ -470,6 +515,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					type: notification.notificationType,
 					endpoint: notification.custom?.endpoint || "",
 					headers: notification.custom?.headers
@@ -491,6 +537,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					dokployBackup: notification.dokployBackup,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					userKey: notification.pushover?.userKey,
@@ -516,6 +563,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		resend: resendMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		mattermost: mattermostMutation,
 		lark: larkMutation,
 		teams: teamsMutation,
 		custom: customMutation,
@@ -528,6 +576,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			appDeploy,
 			dokployRestart,
 			databaseBackup,
+			dokployBackup,
 			volumeBackup,
 			dockerCleanup,
 			serverThreshold,
@@ -539,6 +588,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				channel: data.channel,
@@ -554,6 +604,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				botToken: data.botToken,
 				messageThreadId: data.messageThreadId || "",
@@ -570,6 +621,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				decoration: data.decoration,
@@ -585,6 +637,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				smtpServer: data.smtpServer,
 				smtpPort: data.smtpPort,
@@ -604,6 +657,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				apiKey: data.apiKey,
 				fromAddress: data.fromAddress,
@@ -620,6 +674,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
 				appToken: data.appToken,
@@ -627,6 +682,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				decoration: data.decoration,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
 			});
@@ -636,6 +692,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
 				accessToken: data.accessToken || "",
@@ -643,8 +700,26 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+			});
+		} else if (data.type === "mattermost") {
+			promise = mattermostMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
+				volumeBackup: volumeBackup,
+				webhookUrl: data.webhookUrl,
+				channel: data.channel || undefined,
+				username: data.username || undefined,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				mattermostId: notification?.mattermostId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "lark") {
 			promise = larkMutation.mutateAsync({
@@ -652,6 +727,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				name: data.name,
@@ -666,6 +742,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				name: data.name,
@@ -692,6 +769,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				endpoint: data.endpoint,
 				headers: headersRecord,
@@ -711,6 +789,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				dokployBackup: dokployBackup,
 				volumeBackup: volumeBackup,
 				userKey: data.userKey,
 				apiToken: data.apiToken,
@@ -814,7 +893,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															/>
 															<Label
 																htmlFor={key}
-																className="h-24 flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="h-24 flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
 															>
 																{value.icon}
 																{value.label}
@@ -975,7 +1054,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="decoration"
 											defaultValue={true}
 											render={({ field }) => (
-												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Decoration</FormLabel>
 														<FormDescription>
@@ -1307,7 +1386,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="decoration"
 											defaultValue={true}
 											render={({ field }) => (
-												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Decoration</FormLabel>
 														<FormDescription>
@@ -1406,6 +1485,62 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
+								{type === "mattermost" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://your-mattermost.com/hooks/xxx-generatedkey-xxx"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="channel"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Channel</FormLabel>
+													<FormControl>
+														<Input placeholder="deployments" {...field} />
+													</FormControl>
+													<FormDescription>
+														Optional. Channel to post to (without #).
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="username"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Username</FormLabel>
+													<FormControl>
+														<Input placeholder="Dokploy" {...field} />
+													</FormControl>
+													<FormDescription>
+														Optional. Display name for the webhook.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
 								{type === "custom" && (
 									<div className="space-y-4">
 										<FormField
@@ -1459,7 +1594,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															control={form.control}
 															name={`headers.${index}.value` as never}
 															render={({ field }) => (
-																<FormItem className="flex-[2]">
+																<FormItem className="flex-2">
 																	<FormControl>
 																		<Input placeholder="Value" {...field} />
 																	</FormControl>
@@ -1492,6 +1627,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										</div>
 									</div>
 								)}
+
 								{type === "lark" && (
 									<>
 										<FormField
@@ -1691,11 +1827,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
-													Trigger the action when a app is deployed.
+													Trigger the action when an app is deployed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1711,7 +1847,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appBuildError"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>App Build Error</FormLabel>
 												<FormDescription>
@@ -1732,7 +1868,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="databaseBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
@@ -1751,9 +1887,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 								<FormField
 									control={form.control}
+									name="dokployBackup"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Dokploy Backup</FormLabel>
+												<FormDescription>
+													Trigger the action when a Dokploy backup is created.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
 									name="volumeBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Volume Backup</FormLabel>
 												<FormDescription>
@@ -1774,12 +1931,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dockerCleanup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
-													Trigger the action when the docker cleanup is
-													performed.
+													Trigger the action when Docker cleanup is performed.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1797,11 +1953,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="dokployRestart"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
-														Trigger the action when dokploy is restarted.
+														Trigger the action when Dokploy is restarted.
 													</FormDescription>
 												</div>
 												<FormControl>
@@ -1820,7 +1976,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="serverThreshold"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Server Threshold</FormLabel>
 													<FormDescription>
@@ -1842,7 +1998,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 						</div>
 					</form>
 
-					<DialogFooter className="flex flex-row gap-2 !justify-between w-full">
+					<DialogFooter className="flex flex-row gap-2 justify-between! w-full">
 						<Button
 							isLoading={
 								isLoadingSlack ||
@@ -1852,6 +2008,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingResend ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
+								isLoadingMattermost ||
 								isLoadingLark ||
 								isLoadingTeams ||
 								isLoadingCustom ||
@@ -1910,6 +2067,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											topic: data.topic,
 											accessToken: data.accessToken || "",
 											priority: data.priority ?? 0,
+										});
+									} else if (data.type === "mattermost") {
+										await testMattermostConnection({
+											webhookUrl: data.webhookUrl,
+											channel: data.channel || undefined,
+											username: data.username || undefined,
 										});
 									} else if (data.type === "lark") {
 										await testLarkConnection({

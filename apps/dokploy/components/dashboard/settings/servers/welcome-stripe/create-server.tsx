@@ -195,9 +195,7 @@ export const CreateServer = ({ stepper }: Props) => {
 														{sshKey.name}
 													</SelectItem>
 												))}
-												<SelectLabel>
-													Registries ({sshKeys?.length})
-												</SelectLabel>
+												<SelectLabel>SSH Keys ({sshKeys?.length})</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>

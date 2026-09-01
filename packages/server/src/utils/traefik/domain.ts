@@ -10,10 +10,24 @@ import {
 	writeTraefikConfigRemote,
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
+import {
+	createForwardAuthMiddleware,
+	forwardAuthMiddlewareName,
+	removeForwardAuthMiddleware,
+} from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
+
+	// A disabled domain keeps its configuration in the database but must never
+	// expose a traefik router. Guarding here covers every caller (create, update,
+	// forward-auth, toggle) so a disabled domain can't be revived from any path.
+	if (!domain.enabled) {
+		await removeDomain(app, domain.uniqueConfigKey);
+		return;
+	}
+
 	let config: FileConfig;
 
 	if (app.serverId) {
@@ -32,10 +46,10 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	config.http.routers[routerName] = await createRouterConfig(
 		app,
 		domain,
-		"web",
+		domain.customEntrypoint || "web",
 	);
 
-	if (domain.https) {
+	if (!domain.customEntrypoint && domain.https) {
 		config.http.routers[routerNameSecure] = await createRouterConfig(
 			app,
 			domain,
@@ -48,6 +62,10 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
 
 	await createPathMiddlewares(app, domain);
+	// SSO forward-auth: writes the per-app forwardAuth + errors middlewares (the
+	// /oauth2/* router lives on the central auth domain, not here). No-op unless
+	// the domain links a provider and the org has an auth domain configured.
+	await createForwardAuthMiddleware(app, domain);
 
 	if (app.serverId) {
 		await writeTraefikConfigRemote(config, appName, app.serverId);
@@ -84,6 +102,7 @@ export const removeDomain = async (
 	}
 
 	await removePathMiddlewares(application, uniqueKey);
+	await removeForwardAuthMiddleware(application, uniqueKey);
 
 	// verify if is the last router if so we delete the router
 	if (
@@ -121,13 +140,20 @@ const toPunycode = (host: string): string => {
 export const createRouterConfig = async (
 	app: ApplicationNested,
 	domain: Domain,
-	entryPoint: "web" | "websecure",
+	entryPoint: string,
 ) => {
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
-		domain;
+	const {
+		host,
+		path,
+		https,
+		uniqueConfigKey,
+		internalPath,
+		stripPath,
+		customEntrypoint,
+	} = domain;
 	const punycodeHost = toPunycode(host);
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
@@ -136,22 +162,26 @@ export const createRouterConfig = async (
 		entryPoints: [entryPoint],
 	};
 
-	// Add path rewriting middleware if needed
-	if (internalPath && internalPath !== "/" && internalPath !== path) {
-		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(pathMiddleware);
-	}
+	const isRedirectRouter = entryPoint === "web" && https && !customEntrypoint;
 
-	if (stripPath && path && path !== "/") {
-		const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
-		routerConfig.middlewares?.push(stripMiddleware);
-	}
+	// Web router with HTTPS only needs redirect — all other middlewares
+	// run on the websecure router where the request actually lands.
+	if (isRedirectRouter) {
+		routerConfig.middlewares?.push("redirect-to-https");
+	} else {
+		// Add path rewriting middleware if needed
+		// stripPrefix must come before addPrefix so Traefik strips the
+		// public path first, then prepends the internal path.
+		if (stripPath && path && path !== "/") {
+			const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(stripMiddleware);
+		}
 
-	if (entryPoint === "web" && https) {
-		routerConfig.middlewares = ["redirect-to-https"];
-	}
+		if (internalPath && internalPath !== "/" && internalPath !== path) {
+			const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+			routerConfig.middlewares?.push(pathMiddleware);
+		}
 
-	if ((entryPoint === "websecure" && https) || !https) {
 		// redirects - skip for preview deployments as wildcard subdomains
 		// should not inherit parent redirect rules (e.g., www-redirect)
 		if (domain.domainType !== "preview") {
@@ -172,9 +202,24 @@ export const createRouterConfig = async (
 			}
 			routerConfig.middlewares?.push(middlewareName);
 		}
+
+		// Enterprise SSO forward-auth gate. Placed before custom middlewares so
+		// authentication runs first. No-op unless the domain links a provider.
+		// The -errors middleware must come first so a 401 from the auth check is
+		// rewritten to a 302 redirect to the login page.
+		if (domain.forwardAuthEnabled) {
+			const name = forwardAuthMiddlewareName(appName, uniqueConfigKey);
+			routerConfig.middlewares?.push(`${name}-errors`);
+			routerConfig.middlewares?.push(name);
+		}
+
+		// custom middlewares from domain
+		if (domain.middlewares && domain.middlewares.length > 0) {
+			routerConfig.middlewares?.push(...domain.middlewares);
+		}
 	}
 
-	if (entryPoint === "websecure") {
+	if (entryPoint === "websecure" || (customEntrypoint && https)) {
 		if (certificateType === "letsencrypt") {
 			routerConfig.tls = { certResolver: "letsencrypt" };
 		} else if (certificateType === "custom" && domain.customCertResolver) {

@@ -1,5 +1,10 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
 	"files": {
 		"ignoreUnknown": true,
 		"includes": [
@@ -10,8 +15,11 @@
 			"!**/drizzle/**",
 			"!node_modules/**",
 			"!packages/server/package.json"
-		]
+		],
+		"maxSize": 2097152,
+		"experimentalScannerIgnores": [".next", "node_modules", ".docker", "dist"]
 	},
+	"css": { "parser": { "tailwindDirectives": true } },
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"rules": {

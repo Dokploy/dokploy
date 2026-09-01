@@ -16,14 +16,21 @@ import { api } from "@/utils/api";
 
 const hasStopGracePeriodSwarm = (
 	value: unknown,
-): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
+): value is { stopGracePeriodSwarm: number | string | null } =>
 	typeof value === "object" &&
 	value !== null &&
 	"stopGracePeriodSwarm" in value;
 
 interface StopGracePeriodFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
@@ -39,6 +46,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -51,6 +59,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 	};
 
 	const { mutateAsync } = mutationMap[type]
@@ -59,7 +68,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 
 	const form = useForm<any>({
 		defaultValues: {
-			value: null as bigint | null,
+			value: null as number | null,
 		},
 	});
 
@@ -67,11 +76,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 		if (hasStopGracePeriodSwarm(data)) {
 			const value = data.stopGracePeriodSwarm;
 			const normalizedValue =
-				value === null || value === undefined
-					? null
-					: typeof value === "bigint"
-						? value
-						: BigInt(value);
+				value === null || value === undefined ? null : Number(value);
 			form.reset({
 				value: normalizedValue,
 			});
@@ -88,6 +93,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
+				libsqlId: id || "",
 				stopGracePeriodSwarm: formData.value,
 			});
 
@@ -126,7 +132,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 									}
 									onChange={(e) =>
 										field.onChange(
-											e.target.value ? BigInt(e.target.value) : null,
+											e.target.value ? Number(e.target.value) : null,
 										)
 									}
 								/>

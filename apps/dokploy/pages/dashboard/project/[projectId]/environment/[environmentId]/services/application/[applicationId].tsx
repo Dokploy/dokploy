@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -25,6 +25,7 @@ import { ShowDeployments } from "@/components/dashboard/application/deployments/
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
+import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
@@ -34,6 +35,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { AssignNetworks } from "@/components/dashboard/networks/assign-networks";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -66,7 +68,8 @@ type TabState =
 	| "domains"
 	| "monitoring"
 	| "preview-deployments"
-	| "volume-backups";
+	| "volume-backups"
+	| "icon";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -91,6 +94,7 @@ const Service = (
 	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 
@@ -120,13 +124,16 @@ const Service = (
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
 							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
-									<div className="relative flex flex-row gap-4">
-										<div className="absolute -right-1 -top-2">
+								<CardTitle className="text-xl flex flex-row gap-2 items-center">
+									<div className="relative flex flex-row gap-4 items-center">
+										<ShowIconSettings
+											serviceId={applicationId}
+											serviceType="application"
+											icon={data?.icon}
+										/>
+										<div className="absolute -right-1 -top-2 z-10">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
-
-										<GlobeIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
 									{data?.name}
 								</CardTitle>
@@ -143,8 +150,9 @@ const Service = (
 									<Badge
 										className="cursor-pointer"
 										onClick={() => {
-											if (data?.server?.ipAddress) {
-												copy(data.server.ipAddress);
+											const ip = data?.server?.ipAddress || serverIp;
+											if (ip) {
+												copy(ip);
 												toast.success("IP Address Copied!");
 											}
 										}}
@@ -167,7 +175,7 @@ const Service = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>
@@ -341,6 +349,7 @@ const Service = (
 												<ShowDockerLogs
 													appName={data?.appName || ""}
 													serverId={data?.serverId || ""}
+													serviceId={data?.applicationId}
 												/>
 											</div>
 										</TabsContent>
@@ -357,7 +366,7 @@ const Service = (
 									)}
 									{permissions?.deployment.read && (
 										<TabsContent value="deployments" className="w-full pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg">
+											<div className="flex flex-col gap-4 ">
 												<ShowDeployments
 													id={applicationId}
 													type="application"
@@ -372,7 +381,7 @@ const Service = (
 											value="volume-backups"
 											className="w-full pt-2.5"
 										>
-											<div className="flex flex-col gap-4 border rounded-lg">
+											<div className="flex flex-col gap-4 ">
 												<ShowVolumeBackups
 													id={applicationId}
 													type="application"
@@ -411,6 +420,7 @@ const Service = (
 												<ShowBuildServer applicationId={applicationId} />
 												<ShowResources id={applicationId} type="application" />
 												<ShowVolumes id={applicationId} type="application" />
+												<AssignNetworks id={applicationId} type="application" />
 												<ShowRedirects applicationId={applicationId} />
 												<ShowSecurity applicationId={applicationId} />
 												<ShowPorts applicationId={applicationId} />
@@ -447,7 +457,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -486,7 +496,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/projects",
+					destination: "/dashboard/home",
 				},
 			};
 		}

@@ -4,6 +4,7 @@ import type {
 	email,
 	gotify,
 	lark,
+	mattermost,
 	ntfy,
 	pushover,
 	resend,
@@ -18,6 +19,7 @@ export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
 	subject: string,
 	htmlContent: string,
+	attachments?: { filename: string; content: Buffer }[],
 ) => {
 	try {
 		const {
@@ -40,6 +42,7 @@ export const sendEmailNotification = async (
 			subject,
 			html: htmlContent,
 			textEncoding: "base64",
+			attachments,
 		});
 	} catch (err) {
 		console.log(err);
@@ -203,6 +206,33 @@ export const sendNtfyNotification = async (
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendMattermostNotification = async (
+	connection: typeof mattermost.$inferInsert,
+	message: any,
+) => {
+	const payload = {
+		...message,
+		// Only include username if it's provided and not empty
+		...(message.username?.trim() && { username: message.username }),
+		// Only include channel if it's provided and not empty
+		...(message.channel?.trim() && {
+			channel: `#${message.channel.replace("#", "")}`,
+		}),
+	};
+
+	const response = await fetch(connection.webhookUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(payload),
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Mattermost notification: ${response.statusText}`,
+		);
 	}
 };
 

@@ -2,12 +2,15 @@ import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
+import { quote } from "shell-quote";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
+import { runLibsqlBackup } from "./libsql";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
@@ -19,6 +22,7 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		mysql,
 		mongo,
 		mariadb,
+		libsql,
 		compose,
 	} = backup;
 	scheduleJob(backupId, schedule, async () => {
@@ -35,6 +39,9 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 			} else if (databaseType === "mariadb" && mariadb) {
 				await runMariadbBackup(mariadb, backup);
 				await keepLatestNBackups(backup, mariadb.serverId);
+			} else if (databaseType === "libsql" && libsql) {
+				await runLibsqlBackup(libsql, backup);
+				await keepLatestNBackups(backup, libsql.serverId);
 			} else if (databaseType === "web-server") {
 				await runWebServerBackup(backup);
 				await keepLatestNBackups(backup);
@@ -51,6 +58,9 @@ export const removeScheduleBackup = (backupId: string) => {
 	currentJob?.cancel();
 };
 
+export const getBackupTimestamp = () =>
+	new Date().toISOString().replace(/[:.]/g, "-");
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
@@ -62,26 +72,35 @@ export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id="${accessKey}"`,
-		`--s3-secret-access-key="${secretAccessKey}"`,
-		`--s3-region="${region}"`,
-		`--s3-endpoint="${endpoint}"`,
+		`--s3-access-key-id=${quote([accessKey])}`,
+		`--s3-secret-access-key=${quote([secretAccessKey])}`,
+		`--s3-region=${quote([region])}`,
+		`--s3-endpoint=${quote([endpoint])}`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
 
 	if (provider) {
-		rcloneFlags.unshift(`--s3-provider="${provider}"`);
+		rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
+	}
+
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
 	}
 
 	return rcloneFlags;
 };
 
+// User-controlled values (database name, user, password) are passed to the
+// container as environment variables via `docker exec -e VAR=<escaped>` and
+// referenced as "$VAR" inside the inner shell, so they never appear in the
+// inner command text. The -e value is escaped for the outer shell with
+// shell-quote; the inner script is single-quoted and reads the env vars.
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
+	return `docker exec -e DB_NAME=${quote([database])} -e DB_USER=${quote([databaseUser])} -i $CONTAINER_ID bash -c 'set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U "$DB_USER" --no-password "$DB_NAME" | gzip'`;
 };
 
 export const getMariadbBackupCommand = (
@@ -89,14 +108,14 @@ export const getMariadbBackupCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --single-transaction --quick --databases ${database} | gzip"`;
+	return `docker exec -e DB_NAME=${quote([database])} -e DB_USER=${quote([databaseUser])} -e DB_PASS=${quote([databasePassword])} -i $CONTAINER_ID bash -c 'set -o pipefail; mariadb-dump --user="$DB_USER" --password="$DB_PASS" --single-transaction --quick --databases "$DB_NAME" | gzip'`;
 };
 
 export const getMysqlBackupCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databasePassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
+	return `docker exec -e DB_NAME=${quote([database])} -e DB_PASS=${quote([databasePassword])} -i $CONTAINER_ID bash -c 'set -o pipefail; mysqldump --default-character-set=utf8mb4 -u root --password="$DB_PASS" --single-transaction --no-tablespaces --quick "$DB_NAME" | gzip'`;
 };
 
 export const getMongoBackupCommand = (
@@ -104,7 +123,11 @@ export const getMongoBackupCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase admin --gzip"`;
+	return `docker exec -e DB_NAME=${quote([database])} -e DB_USER=${quote([databaseUser])} -e DB_PASS=${quote([databasePassword])} -i $CONTAINER_ID bash -c 'set -o pipefail; mongodump -d "$DB_NAME" -u "$DB_USER" -p "$DB_PASS" --archive --authenticationDatabase admin --gzip'`;
+};
+
+export const getLibsqlBackupCommand = (database: string) => {
+	return `docker exec -e DB_NAME=${quote([database])} -i $CONTAINER_ID sh -c 'tar cf - -C /var/lib/sqld "$DB_NAME" | gzip'`;
 };
 
 export const getServiceContainerCommand = (appName: string) => {
@@ -123,12 +146,24 @@ export const getComposeContainerCommand = (
 };
 
 const getContainerSearchCommand = (backup: BackupSchedule) => {
-	const { backupType, postgres, mysql, mariadb, mongo, compose, serviceName } =
-		backup;
+	const {
+		backupType,
+		postgres,
+		mysql,
+		mariadb,
+		mongo,
+		libsql,
+		compose,
+		serviceName,
+	} = backup;
 
 	if (backupType === "database") {
 		const appName =
-			postgres?.appName || mysql?.appName || mariadb?.appName || mongo?.appName;
+			postgres?.appName ||
+			mysql?.appName ||
+			mariadb?.appName ||
+			mongo?.appName ||
+			libsql?.appName;
 		return getServiceContainerCommand(appName || "");
 	}
 	if (backupType === "compose") {
@@ -209,6 +244,12 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 			}
 			break;
 		}
+		case "libsql": {
+			if (backupType === "database") {
+				return getLibsqlBackupCommand(backup.database);
+			}
+			break;
+		}
 		default:
 			throw new Error(`Database type not supported: ${databaseType}`);
 	}
@@ -218,17 +259,20 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 
 export const getBackupCommand = (
 	backup: BackupSchedule,
-	rcloneCommand: string,
+	rcloneFlags: string[],
+	rcloneDestination: string,
 	logPath: string,
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
 	logger.info(
 		{
 			containerSearch,
 			backupCommand,
-			rcloneCommand,
+			rcloneCommand: redactRcloneCredentials(rcloneCommand),
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
@@ -238,33 +282,24 @@ export const getBackupCommand = (
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
 	echo "[$(date)] Executing backup command..." >> ${logPath};
-	CONTAINER_ID=$(${containerSearch})
+	CONTAINER_ID=$(${containerSearch});
 
 	if [ -z "$CONTAINER_ID" ]; then
 		echo "[$(date)] ❌ Error: Container not found" >> ${logPath};
 		exit 1;
-	fi
+	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
+	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
 
-	# Run the backup command and capture the exit status
-	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
+	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
-		exit 1;
-	}
-
-	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
-
-	# Run the upload command and capture the exit status
-	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
+		${rcloneDeleteCommand} >/dev/null 2>&1 || true;
 		exit 1;
-	}
+	};
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };

@@ -9,7 +9,7 @@ export const FocusShortcutInput = (props: Props) => {
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
 			const isMod = e.metaKey || e.ctrlKey;
-			if (!isMod || e.key.toLowerCase() !== "k") return;
+			if (!isMod || e.code !== "KeyK") return;
 
 			const target = e.target as HTMLElement | null;
 			if (target) {

@@ -1,3 +1,4 @@
+import copy from "copy-to-clipboard";
 import {
 	ChevronDown,
 	ChevronUp,
@@ -11,7 +12,6 @@ import {
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import copy from "copy-to-clipboard";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -63,6 +63,9 @@ export const ShowDeployments = ({
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
+	const [removingDeploymentIds, setRemovingDeploymentIds] = useState<
+		Set<string>
+	>(new Set());
 	const { data: deployments, isPending: isLoadingDeployments } =
 		api.deployment.allByType.useQuery(
 			{
@@ -81,7 +84,7 @@ export const ShowDeployments = ({
 		api.rollback.rollback.useMutation();
 	const { mutateAsync: killProcess, isPending: isKillingProcess } =
 		api.deployment.killProcess.useMutation();
-	const { mutateAsync: removeDeployment, isPending: isRemovingDeployment } =
+	const { mutateAsync: removeDeployment } =
 		api.deployment.removeDeployment.useMutation();
 
 	// Cancel deployment mutations
@@ -147,7 +150,7 @@ export const ShowDeployments = ({
 	}, []);
 
 	return (
-		<Card className="bg-background border-none">
+		<Card className="bg-background border-0">
 			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
@@ -233,7 +236,6 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<Badge
-									role="button"
 									tabIndex={0}
 									aria-label="Copy webhook URL to clipboard"
 									className="p-2 rounded-md ml-1 mr-1 hover:border-primary hover:text-primary-foreground hover:bg-primary hover:cursor-pointer whitespace-normal break-all"
@@ -301,7 +303,7 @@ export const ShowDeployments = ({
 										</span>
 
 										<div className="flex flex-col gap-1">
-											<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
+											<span className="wrap-break-word text-sm text-muted-foreground whitespace-pre-wrap">
 												{isExpanded || !needsTruncation
 													? titleText
 													: truncateDescription(titleText)}
@@ -340,7 +342,7 @@ export const ShowDeployments = ({
 											)}
 											{/* Hash (from description) - shown in compact form */}
 											{deployment.description?.trim() && (
-												<span className="text-xs text-muted-foreground font-mono">
+												<span className="wrap-anywhere text-xs text-muted-foreground font-mono">
 													{deployment.description}
 												</span>
 											)}
@@ -409,6 +411,11 @@ export const ShowDeployments = ({
 													description="Are you sure you want to delete this deployment? This action cannot be undone."
 													type="default"
 													onClick={async () => {
+														setRemovingDeploymentIds((deploymentIds) => {
+															const nextDeploymentIds = new Set(deploymentIds);
+															nextDeploymentIds.add(deployment.deploymentId);
+															return nextDeploymentIds;
+														});
 														try {
 															await removeDeployment({
 																deploymentId: deployment.deploymentId,
@@ -416,13 +423,25 @@ export const ShowDeployments = ({
 															toast.success("Deployment deleted successfully");
 														} catch (error) {
 															toast.error("Error deleting deployment");
+														} finally {
+															setRemovingDeploymentIds((deploymentIds) => {
+																const nextDeploymentIds = new Set(
+																	deploymentIds,
+																);
+																nextDeploymentIds.delete(
+																	deployment.deploymentId,
+																);
+																return nextDeploymentIds;
+															});
 														}
 													}}
 												>
 													<Button
 														variant="destructive"
 														size="sm"
-														isLoading={isRemovingDeployment}
+														isLoading={removingDeploymentIds.has(
+															deployment.deploymentId,
+														)}
 													>
 														Delete
 														<Trash2 className="size-4" />

@@ -1,21 +1,30 @@
 import { db } from "@dokploy/server/db";
 import {
+	libsql,
 	mariadb,
 	mongo,
 	mysql,
 	postgres,
 	redis,
 } from "@dokploy/server/db/schema";
+import { deployLibsql } from "@dokploy/server/services/libsql";
 import { deployMariadb } from "@dokploy/server/services/mariadb";
 import { deployMongo } from "@dokploy/server/services/mongo";
 import { deployMySql } from "@dokploy/server/services/mysql";
 import { deployPostgres } from "@dokploy/server/services/postgres";
 import { deployRedis } from "@dokploy/server/services/redis";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { removeService } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
-type DatabaseType = "postgres" | "mysql" | "mariadb" | "mongo" | "redis";
+type DatabaseType =
+	| "libsql"
+	| "mariadb"
+	| "mongo"
+	| "mysql"
+	| "postgres"
+	| "redis";
 
 export const rebuildDatabase = async (
 	databaseId: string,
@@ -32,7 +41,7 @@ export const rebuildDatabase = async (
 
 	for (const mount of database.mounts) {
 		if (mount.type === "volume") {
-			const command = `docker volume rm ${mount?.volumeName} --force`;
+			const command = `docker volume rm ${quote([mount?.volumeName ?? ""])} --force`;
 			if (database.serverId) {
 				await execAsyncRemote(database.serverId, command);
 			} else {
@@ -41,31 +50,25 @@ export const rebuildDatabase = async (
 		}
 	}
 
-	if (type === "postgres") {
-		await deployPostgres(databaseId);
-	} else if (type === "mysql") {
-		await deployMySql(databaseId);
+	if (type === "libsql") {
+		await deployLibsql(databaseId);
 	} else if (type === "mariadb") {
 		await deployMariadb(databaseId);
 	} else if (type === "mongo") {
 		await deployMongo(databaseId);
+	} else if (type === "mysql") {
+		await deployMySql(databaseId);
+	} else if (type === "postgres") {
+		await deployPostgres(databaseId);
 	} else if (type === "redis") {
 		await deployRedis(databaseId);
 	}
 };
 
 const findDatabaseById = async (databaseId: string, type: DatabaseType) => {
-	if (type === "postgres") {
-		return await db.query.postgres.findFirst({
-			where: eq(postgres.postgresId, databaseId),
-			with: {
-				mounts: true,
-			},
-		});
-	}
-	if (type === "mysql") {
-		return await db.query.mysql.findFirst({
-			where: eq(mysql.mysqlId, databaseId),
+	if (type === "libsql") {
+		return await db.query.libsql.findFirst({
+			where: eq(libsql.libsqlId, databaseId),
 			with: {
 				mounts: true,
 			},
@@ -82,6 +85,22 @@ const findDatabaseById = async (databaseId: string, type: DatabaseType) => {
 	if (type === "mongo") {
 		return await db.query.mongo.findFirst({
 			where: eq(mongo.mongoId, databaseId),
+			with: {
+				mounts: true,
+			},
+		});
+	}
+	if (type === "mysql") {
+		return await db.query.mysql.findFirst({
+			where: eq(mysql.mysqlId, databaseId),
+			with: {
+				mounts: true,
+			},
+		});
+	}
+	if (type === "postgres") {
+		return await db.query.postgres.findFirst({
+			where: eq(postgres.postgresId, databaseId),
 			with: {
 				mounts: true,
 			},

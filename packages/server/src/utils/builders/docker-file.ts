@@ -1,5 +1,5 @@
 import {
-	getEnviromentVariablesObject,
+	getEnvironmentVariablesObject,
 	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
 import { quote } from "shell-quote";
@@ -52,7 +52,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--build-arg", arg);
 		}
 
-		const secrets = getEnviromentVariablesObject(
+		const secrets = getEnvironmentVariablesObject(
 			buildSecrets,
 			application.environment.project.env,
 			application.environment.env,
@@ -85,13 +85,13 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		}
 
 		command += `
-echo "Building ${appName}" ;
-cd ${dockerContextPath} || { 
-  echo "❌ The path ${dockerContextPath} does not exist" ;
+echo ${quote([`Building ${appName}`])} ;
+cd ${quote([dockerContextPath])} || {
+  echo ${quote([`❌ The path ${dockerContextPath} does not exist`])} ;
   exit 1;
 }
 
-${joinedSecrets} docker ${commandArgs.join(" ")} || { 
+${joinedSecrets} docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }

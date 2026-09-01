@@ -56,9 +56,9 @@ export const Dropzone = React.forwardRef<HTMLDivElement, DropzoneProps>(
 					onDrop={handleDrop}
 					onClick={handleButtonClick}
 				>
-					<div className="flex items-center justify-center text-muted-foreground">
-						<span className="font-medium text-xl flex items-center gap-2">
-							<FolderIcon className="size-6 text-muted-foreground" />
+					<div className="flex flex-col items-center justify-center text-muted-foreground">
+						<FolderIcon className="size-6 text-muted-foreground" />
+						<span className="font-medium text-xl text-center">
 							{dropMessage}
 						</span>
 						<Input

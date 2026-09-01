@@ -16,6 +16,7 @@ export const github = pgTable("github", {
 	githubInstallationId: text("githubInstallationId"),
 	githubPrivateKey: text("githubPrivateKey"),
 	githubWebhookSecret: text("githubWebhookSecret"),
+	githubUrl: text("githubUrl").default("https://github.com").notNull(),
 	gitProviderId: text("gitProviderId")
 		.notNull()
 		.references(() => gitProvider.gitProviderId, { onDelete: "cascade" }),
@@ -36,6 +37,10 @@ export const apiCreateGithub = z.object({
 	githubInstallationId: z.string().optional(),
 	githubPrivateKey: z.string().optional(),
 	githubWebhookSecret: z.string().nullable(),
+	githubUrl: z
+		.url()
+		.startsWith("https://", "Only https is supported for GitHub instances")
+		.optional(),
 	gitProviderId: z.string().optional(),
 	name: z.string().min(1),
 });

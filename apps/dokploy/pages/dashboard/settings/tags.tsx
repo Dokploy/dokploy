@@ -47,7 +47,7 @@ export async function getServerSideProps(
 		if (!userPermissions?.tag.read) {
 			return {
 				redirect: {
-					permanent: true,
+					permanent: false,
 					destination: "/",
 				},
 			};

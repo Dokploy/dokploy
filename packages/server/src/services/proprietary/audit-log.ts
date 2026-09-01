@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
-import { auditLog } from "@dokploy/server/db/schema";
 import type { AuditAction, AuditResourceType } from "@dokploy/server/db/schema";
+import { auditLog } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { and, desc, eq, gte, ilike, lte } from "drizzle-orm";
 

@@ -163,6 +163,29 @@ export const ValidateServer = ({ serverId }: Props) => {
 													: "Not Created"
 											}
 										/>
+										<StatusRow
+											label="Privilege Mode"
+											isEnabled={
+												data?.privilegeMode === "root" ||
+												data?.privilegeMode === "sudo"
+											}
+											description={
+												data?.privilegeMode === "root"
+													? "Running as root"
+													: data?.privilegeMode === "sudo"
+														? "Running with sudo"
+														: "No sudo access (required for non-root)"
+											}
+										/>
+										<StatusRow
+											label="Docker Group"
+											isEnabled={data?.dockerGroupMember}
+											description={
+												data?.dockerGroupMember
+													? "User is in docker group"
+													: "User is not in docker group"
+											}
+										/>
 									</div>
 								</div>
 							</div>

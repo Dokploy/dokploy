@@ -7,13 +7,18 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { serviceType } from "./mount";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
-import { generateAppName } from "./utils";
+import {
+	generateAppName,
+	VOLUME_NAME_MESSAGE,
+	VOLUME_NAME_REGEX,
+} from "./utils";
 
 export const volumeBackups = pgTable("volume_backup", {
 	volumeBackupId: text("volumeBackupId")
@@ -51,6 +56,9 @@ export const volumeBackups = pgTable("volume_backup", {
 		onDelete: "cascade",
 	}),
 	redisId: text("redisId").references(() => redis.redisId, {
+		onDelete: "cascade",
+	}),
+	libsqlId: text("libsqlId").references(() => libsql.libsqlId, {
 		onDelete: "cascade",
 	}),
 	composeId: text("composeId").references(() => compose.composeId, {
@@ -93,6 +101,10 @@ export const volumeBackupsRelations = relations(
 			fields: [volumeBackups.redisId],
 			references: [redis.redisId],
 		}),
+		libsql: one(libsql, {
+			fields: [volumeBackups.libsqlId],
+			references: [libsql.libsqlId],
+		}),
 		compose: one(compose, {
 			fields: [volumeBackups.composeId],
 			references: [compose.composeId],
@@ -105,7 +117,9 @@ export const volumeBackupsRelations = relations(
 	}),
 );
 
-export const createVolumeBackupSchema = createInsertSchema(volumeBackups).omit({
+export const createVolumeBackupSchema = createInsertSchema(volumeBackups, {
+	volumeName: z.string().regex(VOLUME_NAME_REGEX, VOLUME_NAME_MESSAGE),
+}).omit({
 	volumeBackupId: true,
 });
 

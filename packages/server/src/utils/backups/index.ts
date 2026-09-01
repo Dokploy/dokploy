@@ -1,6 +1,7 @@
 import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import { findDestinationById } from "@dokploy/server/services/destination";
 import { getAllServers } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { eq } from "drizzle-orm";
@@ -10,6 +11,7 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 
 export const initCronJobs = async () => {
@@ -75,6 +77,7 @@ export const initCronJobs = async () => {
 			mariadb: true,
 			mysql: true,
 			mongo: true,
+			libsql: true,
 			user: true,
 			compose: true,
 		},
@@ -116,7 +119,8 @@ const getServiceAppName = (backup: BackupSchedule): string => {
 		backup.postgres?.appName ||
 		backup.mysql?.appName ||
 		backup.mariadb?.appName ||
-		backup.mongo?.appName;
+		backup.mongo?.appName ||
+		backup.libsql?.appName;
 	return serviceAppName || backup.appName;
 };
 
@@ -129,12 +133,13 @@ export const keepLatestNBackups = async (
 	if (!backup.keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(backup.destination);
+		const destination = await findDestinationById(backup.destinationId);
+		const rcloneFlags = getS3Credentials(destination);
 		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${backup.destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
 
-		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
+		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files
@@ -149,6 +154,6 @@ export const keepLatestNBackups = async (
 			await execAsync(rcloneCommand);
 		}
 	} catch (error) {
-		console.error(error);
+		console.error(redactRcloneCredentials(String(error)));
 	}
 };

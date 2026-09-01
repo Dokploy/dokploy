@@ -1,20 +1,24 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type MariadbNested = InferResultType<
 	"mariadb",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
-export const buildMariadb = async (mariadb: MariadbNested) => {
+export const buildMariadb = async (rawMariadb: MariadbNested) => {
+	const mariadb = await withResolvedVaultRefs(rawMariadb);
 	const {
 		appName,
 		env,
@@ -38,6 +42,8 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(mariadb);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -46,7 +52,6 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -79,19 +84,11 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 					...volumesMount,
 					...bindsMount,
 					...filesMount,
-					...(shmSize
-						? [
-								{
-									Target: "/dev/shm",
-									Source: "",
-									Type: "tmpfs" as const,
-									TmpfsOptions: {
-										SizeBytes: Number.parseInt(shmSize),
-										Mode: 0o1777,
-									},
-								},
-							]
-						: []),
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
 				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
@@ -105,7 +102,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -129,7 +126,11 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mariadb.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

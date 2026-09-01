@@ -29,23 +29,25 @@ export const ShowVolumes = ({ id, type }: Props) => {
 	if (!canRead) return null;
 
 	const queryMap = {
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		compose: () =>
+			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		application: () =>
-			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-		compose: () =>
-			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 	const { mutateAsync: deleteVolume, isPending: isRemoving } =
 		api.mounts.remove.useMutation();
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
@@ -109,7 +111,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
 													<span className="font-medium">Content</span>
-													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
+													<span className="text-sm text-muted-foreground line-clamp-10 whitespace-break-spaces">
 														{mount.content}
 													</span>
 												</div>

@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
@@ -10,6 +10,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -50,6 +51,7 @@ export const sendBuildErrorNotifications = async ({
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
@@ -66,6 +68,7 @@ export const sendBuildErrorNotifications = async ({
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
@@ -73,7 +76,7 @@ export const sendBuildErrorNotifications = async ({
 		} = notification;
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					BuildFailedEmail({
 						projectName,
 						applicationName,
@@ -237,16 +240,35 @@ export const sendBuildErrorNotifications = async ({
 									value: `\`\`\`${errorMessage}\`\`\``,
 									short: false,
 								},
-							],
-							actions: [
 								{
-									type: "button",
-									text: "View Build Details",
-									url: buildLink,
+									title: "Details",
+									value: `<${buildLink}|View Build Details>`,
+									short: false,
 								},
 							],
+							mrkdwn_in: ["fields"],
 						},
 					],
+				});
+			}
+
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `:warning: **Build Failed**
+
+**Project:** ${projectName}
+**Application:** ${applicationName}
+**Type:** ${applicationType}
+**Time:** ${date.toLocaleString()}
+
+**Error:**
+\`\`\`
+${errorMessage}
+\`\`\`
+
+[View Build Details](${buildLink})`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy Bot",
 				});
 			}
 

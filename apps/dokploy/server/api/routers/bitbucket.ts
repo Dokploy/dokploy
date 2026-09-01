@@ -1,6 +1,9 @@
 import {
+	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	createBitbucket,
 	findBitbucketById,
+	getAccessibleGitProviderIds,
 	getBitbucketBranches,
 	getBitbucketRepositories,
 	testBitbucketConnection,
@@ -50,10 +53,25 @@ export const bitbucketRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneBitbucket)
-		.query(async ({ input }) => {
-			return await findBitbucketById(input.bitbucketId);
+		.query(async ({ input, ctx }) => {
+			const bitbucket = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+
+			if (
+				!(await canViewGitProviderSecrets(ctx.session, bitbucket.gitProvider))
+			) {
+				return {
+					...bitbucket,
+					appPassword: null,
+					apiToken: null,
+				};
+			}
+
+			return bitbucket;
 		}),
 	bitbucketProviders: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
+
 		let result = await db.query.bitbucket.findMany({
 			with: {
 				gitProvider: true,
@@ -67,7 +85,7 @@ export const bitbucketRouter = createTRPCRouter({
 			return (
 				provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
+				accessibleIds.has(provider.gitProvider.gitProviderId)
 			);
 		});
 		return result;
@@ -75,18 +93,26 @@ export const bitbucketRouter = createTRPCRouter({
 
 	getBitbucketRepositories: protectedProcedure
 		.input(apiFindOneBitbucket)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const bitbucket = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
 			return await getBitbucketRepositories(input.bitbucketId);
 		}),
 	getBitbucketBranches: protectedProcedure
 		.input(apiFindBitbucketBranches)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.bitbucketId) {
+				const bitbucket = await findBitbucketById(input.bitbucketId);
+				await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+			}
 			return await getBitbucketBranches(input);
 		}),
 	testConnection: protectedProcedure
 		.input(apiBitbucketTestConnection)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const bitbucket = await findBitbucketById(input.bitbucketId);
+				await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
 				const result = await testBitbucketConnection(input);
 
 				return `Found ${result} repositories`;

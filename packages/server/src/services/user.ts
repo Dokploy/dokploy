@@ -1,7 +1,15 @@
 import { db } from "@dokploy/server/db";
-import { apikey, member, user } from "@dokploy/server/db/schema";
+import {
+	account,
+	apikey,
+	invitation,
+	member,
+	passkey,
+	user,
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import * as bcrypt from "bcrypt";
+import { and, desc, eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
 export type User = typeof user.$inferSelect;
@@ -89,7 +97,7 @@ export const canPerformAccessService = async (
 	return false;
 };
 
-export const canPeformDeleteService = async (
+export const canPerformDeleteService = async (
 	userId: string,
 	serviceId: string,
 	organizationId: string,
@@ -215,7 +223,7 @@ export const checkServiceAccess = async (
 			);
 			break;
 		case "delete":
-			hasPermission = await canPeformDeleteService(
+			hasPermission = await canPerformDeleteService(
 				userId,
 				serviceId,
 				organizationId,
@@ -387,6 +395,108 @@ export const findMemberById = async (
 		});
 	}
 	return result;
+};
+
+export const findPasskeysByUserId = async (userId: string) => {
+	return db.query.passkey.findMany({
+		where: eq(passkey.userId, userId),
+		columns: {
+			id: true,
+			name: true,
+			deviceType: true,
+			backedUp: true,
+			createdAt: true,
+			aaguid: true,
+		},
+		orderBy: [desc(passkey.createdAt)],
+	});
+};
+
+export const createOrganizationUserWithCredentials = async ({
+	organizationId,
+	email,
+	password,
+	role,
+}: {
+	organizationId: string;
+	email: string;
+	password: string;
+	role: string;
+}) => {
+	const normalizedEmail = email.trim().toLowerCase();
+	const now = new Date();
+
+	return await db.transaction(async (tx) => {
+		const existingUser = await tx.query.user.findFirst({
+			where: eq(user.email, normalizedEmail),
+			columns: {
+				id: true,
+			},
+		});
+
+		if (existingUser) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"This email already has an account. Use the invitation link flow for existing users.",
+			});
+		}
+
+		const createdUser = await tx
+			.insert(user)
+			.values({
+				email: normalizedEmail,
+				emailVerified: true,
+				updatedAt: now,
+			})
+			.returning({
+				id: user.id,
+				email: user.email,
+			})
+			.then((res) => res[0]);
+
+		if (!createdUser) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to create user",
+			});
+		}
+
+		await tx.insert(account).values({
+			userId: createdUser.id,
+			providerId: "credential",
+			password: bcrypt.hashSync(password, 10),
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		await tx.insert(member).values({
+			organizationId,
+			userId: createdUser.id,
+			role,
+			createdAt: now,
+			isDefault: true,
+		});
+
+		await tx
+			.update(invitation)
+			.set({
+				status: "canceled",
+			})
+			.where(
+				and(
+					eq(invitation.organizationId, organizationId),
+					eq(invitation.email, normalizedEmail),
+					eq(invitation.status, "pending"),
+				),
+			);
+
+		return {
+			userId: createdUser.id,
+			email: createdUser.email,
+			role,
+		};
+	});
 };
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {

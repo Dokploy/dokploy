@@ -1,0 +1,1 @@
+ALTER TABLE "mongo" ALTER COLUMN "dockerImage" SET DEFAULT 'mongo:8';

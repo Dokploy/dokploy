@@ -5,11 +5,13 @@ import {
 	findRegistryById,
 	IS_CLOUD,
 	removeRegistry,
+	safeDockerLoginCommand,
 	updateRegistry,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateRegistry,
 	apiFindOneRegistry,
@@ -19,7 +21,6 @@ import {
 	apiUpdateRegistry,
 	registry,
 } from "@/server/db/schema";
-import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, withPermission } from "../trpc";
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")
@@ -122,7 +123,11 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
+						safeDockerLoginCommand(
+							input.registryUrl,
+							input.username,
+							input.password,
+						),
 					);
 				} else {
 					await execFileAsync("docker", args, {
@@ -182,7 +187,11 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${registryData.password} | docker ${args.join(" ")}`,
+						safeDockerLoginCommand(
+							registryData.registryUrl,
+							registryData.username,
+							registryData.password,
+						),
 					);
 				} else {
 					await execFileAsync("docker", args, {

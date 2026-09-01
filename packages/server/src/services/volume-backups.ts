@@ -13,6 +13,11 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 		where: eq(volumeBackups.volumeBackupId, volumeBackupId),
 		with: {
 			application: {
+				columns: {
+					applicationId: true,
+					appName: true,
+					serverId: true,
+				},
 				with: {
 					environment: {
 						with: {
@@ -75,7 +80,21 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 					},
 				},
 			},
-			destination: true,
+			libsql: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			destination: {
+				columns: {
+					accessKey: false,
+					secretAccessKey: false,
+				},
+			},
 		},
 	});
 

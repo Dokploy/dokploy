@@ -35,7 +35,15 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	DATABASE_PASSWORD_MESSAGE,
+	DATABASE_PASSWORD_REGEX,
+	encryptedText,
+	generateAppName,
+	optionalShmSizeSchema,
+} from "./utils";
 
 export const mongo = pgTable("mongo", {
 	mongoId: text("mongoId")
@@ -50,10 +58,10 @@ export const mongo = pgTable("mongo", {
 	description: text("description"),
 	databaseUser: text("databaseUser").notNull(),
 	databasePassword: text("databasePassword").notNull(),
-	dockerImage: text("dockerImage").notNull(),
+	dockerImage: text("dockerImage").notNull().default("mongo:8"),
 	command: text("command"),
 	args: text("args").array(),
-	env: text("env"),
+	env: encryptedText("env"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -71,7 +79,7 @@ export const mongo = pgTable("mongo", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
-	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
@@ -86,6 +94,10 @@ export const mongo = pgTable("mongo", {
 		onDelete: "cascade",
 	}),
 	replicaSets: boolean("replicaSets").default(false),
+	networkIds: text("networkIds").array().default([]),
+	detachDokployNetwork: boolean("detachDokployNetwork")
+		.notNull()
+		.default(false),
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
@@ -111,12 +123,9 @@ const createSchema = createInsertSchema(mongo, {
 	createdAt: z.string(),
 	mongoId: z.string(),
 	name: z.string().min(1),
-	databasePassword: z
-		.string()
-		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-			message:
-				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-		}),
+	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
+		message: DATABASE_PASSWORD_MESSAGE,
+	}),
 	databaseUser: z.string().min(1),
 	dockerImage: z.string().default("mongo:15"),
 	command: z.string().optional(),
@@ -126,7 +135,7 @@ const createSchema = createInsertSchema(mongo, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	shmSize: z.string().optional(),
+	shmSize: optionalShmSizeSchema,
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
@@ -141,9 +150,11 @@ const createSchema = createInsertSchema(mongo, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
-	stopGracePeriodSwarm: z.bigint().nullable(),
+	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
+	detachDokployNetwork: z.boolean().optional(),
 });
 
 export const apiCreateMongo = createSchema.pick({
@@ -194,6 +205,7 @@ export const apiUpdateMongo = createSchema
 	.extend({
 		mongoId: z.string().min(1),
 		dockerImage: z.string().optional(),
+		replicaSets: z.boolean().optional(),
 	})
 	.omit({ serverId: true });
 

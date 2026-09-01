@@ -71,6 +71,7 @@ const formSchema = z
 			"mongo",
 			"mysql",
 			"redis",
+			"libsql",
 		]),
 		serviceName: z.string(),
 		destinationId: z.string().min(1, "Destination required"),
@@ -348,10 +349,7 @@ export const HandleVolumeBackups = ({
 							<>
 								<div className="flex flex-col w-full gap-4">
 									{errorServices && (
-										<AlertBlock
-											type="warning"
-											className="[overflow-wrap:anywhere]"
-										>
+										<AlertBlock type="warning" className="wrap-anywhere">
 											{errorServices?.message}
 										</AlertBlock>
 									)}
@@ -407,7 +405,7 @@ export const HandleVolumeBackups = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Fetch: Will clone the repository and load the
@@ -437,7 +435,7 @@ export const HandleVolumeBackups = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Cache: If you previously deployed this
@@ -482,7 +480,7 @@ export const HandleVolumeBackups = ({
 													</SelectContent>
 												</Select>
 												<FormDescription>
-													Choose the volume to backup, if you dont see the
+													Choose the volume to backup. If you do not see the
 													volume here, you can type the volume name manually
 												</FormDescription>
 												<FormMessage />
@@ -509,15 +507,24 @@ export const HandleVolumeBackups = ({
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												{mounts?.map((mount) => (
-													<SelectItem key={mount.Name} value={mount.Name || ""}>
-														{mount.Name}
+												{mounts && mounts.length > 0 ? (
+													mounts.map((mount) => (
+														<SelectItem
+															key={mount.Name}
+															value={mount.Name || ""}
+														>
+															{mount.Name}
+														</SelectItem>
+													))
+												) : (
+													<SelectItem value="none" disabled>
+														No volumes found
 													</SelectItem>
-												))}
+												)}
 											</SelectContent>
 										</Select>
 										<FormDescription>
-											Choose the volume to backup, if you dont see the volume
+											Choose the volume to backup. If you do not see the volume
 											here, you can type the volume name manually
 										</FormDescription>
 										<FormMessage />

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
 import { SignInWithGoogle } from "@/components/proprietary/auth/sign-in-with-google";
+import { SignupShowcase } from "@/components/proprietary/auth/signup-showcase";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
@@ -116,6 +118,7 @@ const Register = ({ isCloud }: Props) => {
 			if (!isCloud) {
 				router.push("/");
 			} else {
+				pushToDataLayer("sign_up", { method: "email" });
 				setData(data);
 			}
 		}
@@ -160,7 +163,7 @@ const Register = ({ isCloud }: Props) => {
 						)}
 						<CardContent className="p-0">
 							{isCloud && (
-								<div className="flex flex-col">
+								<div className="flex flex-col gap-2">
 									<SignInWithGithub />
 									<SignInWithGoogle />
 								</div>
@@ -172,6 +175,7 @@ const Register = ({ isCloud }: Props) => {
 							)}
 							<Form {...form}>
 								<form
+									method="post"
 									onSubmit={form.handleSubmit(onSubmit)}
 									className="grid gap-4"
 								>
@@ -293,7 +297,12 @@ const Register = ({ isCloud }: Props) => {
 export default Register;
 
 Register.getLayout = (page: ReactElement) => {
-	return <OnboardingLayout>{page}</OnboardingLayout>;
+	const isCloud = (page.props as Props).isCloud;
+	return (
+		<OnboardingLayout leftPanel={isCloud ? <SignupShowcase /> : undefined}>
+			{page}
+		</OnboardingLayout>
+	);
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (IS_CLOUD) {
@@ -302,8 +311,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		if (user) {
 			return {
 				redirect: {
-					permanent: true,
-					destination: "/dashboard/projects",
+					permanent: false,
+					destination: "/dashboard/home",
 				},
 			};
 		}

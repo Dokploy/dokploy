@@ -99,7 +99,14 @@ pnpm run dokploy:build
 
 ## Docker
 
-To build the docker image
+To build the docker image first run commands to copy .env files
+
+```bash
+cp apps/dokploy/.env.production.example .env.production
+cp apps/dokploy/.env.production.example apps/dokploy/.env.production
+```
+
+then run build command
 
 ```bash
 pnpm run docker:build
@@ -113,11 +120,19 @@ pnpm run docker:push
 
 ## Password Reset
 
-In the case you lost your password, you can reset it using the following command
+In the case you lost your password, you can reset the owner's password using the following command
 
 ```bash
 pnpm run reset-password
 ```
+
+To reset the password of a specific user instead, pass their email as an argument
+
+```bash
+pnpm run reset-password -- user@example.com
+```
+
+Both commands print the new randomly generated password to the console.
 
 If you want to test the webhooks on development mode using localtunnel, make sure to install [`localtunnel`](https://localtunnel.app/)
 

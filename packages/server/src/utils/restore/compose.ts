@@ -1,6 +1,7 @@
 import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -26,13 +27,13 @@ export const restoreComposeBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
 		if (backupInput.metadata?.mongo) {
-			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
+			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} ${quote([backupPath])}`;
 		}
 
-		let credentials: DatabaseCredentials;
+		let credentials: DatabaseCredentials = {};
 
 		switch (backupInput.databaseType) {
 			case "postgres":
@@ -62,7 +63,11 @@ export const restoreComposeBackup = async (
 		const restoreCommand = getRestoreCommand({
 			appName: appName,
 			serviceName: backupInput.metadata?.serviceName,
-			type: backupInput.databaseType,
+			type: backupInput.databaseType as
+				| "postgres"
+				| "mariadb"
+				| "mysql"
+				| "mongo",
 			credentials: {
 				database: backupInput.databaseName,
 				...credentials,
@@ -73,9 +78,9 @@ export const restoreComposeBackup = async (
 		});
 
 		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
-
-		emit(`Executing command: ${restoreCommand}`);
+		emit(
+			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
+		);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, restoreCommand);

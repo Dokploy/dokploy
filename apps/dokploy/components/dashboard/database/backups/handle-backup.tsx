@@ -65,7 +65,13 @@ import { ScheduleFormField } from "../../application/schedules/handle-schedules"
 
 type CacheType = "cache" | "fetch";
 
-type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
+type DatabaseType =
+	| "postgres"
+	| "mariadb"
+	| "mysql"
+	| "mongo"
+	| "web-server"
+	| "libsql";
 
 const Schema = z
 	.object({
@@ -73,11 +79,12 @@ const Schema = z
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
 		enabled: z.boolean(),
+		includeEncryptionKey: z.boolean(),
 		database: z.string().min(1, "Database required"),
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
 		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server", "libsql"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]),
 		metadata: z
@@ -209,9 +216,15 @@ export const HandleBackup = ({
 
 	const form = useForm({
 		defaultValues: {
-			database: databaseType === "web-server" ? "dokploy" : "",
+			database:
+				databaseType === "web-server"
+					? "dokploy"
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			destinationId: "",
 			enabled: true,
+			includeEncryptionKey: true,
 			prefix: "/",
 			schedule: "",
 			keepLatestCount: undefined,
@@ -246,9 +259,12 @@ export const HandleBackup = ({
 				? backup?.database
 				: databaseType === "web-server"
 					? "dokploy"
-					: "",
+					: databaseType === "libsql"
+						? "iku.db"
+						: "",
 			destinationId: backup?.destinationId ?? "",
 			enabled: backup?.enabled ?? true,
+			includeEncryptionKey: backup?.includeEncryptionKey ?? true,
 			prefix: backup?.prefix ?? "/",
 			schedule: backup?.schedule ?? "",
 			keepLatestCount: backup?.keepLatestCount ?? undefined,
@@ -281,17 +297,22 @@ export const HandleBackup = ({
 								? {
 										mongoId: id,
 									}
-								: databaseType === "web-server"
+								: databaseType === "libsql"
 									? {
-											userId: id,
+											libsqlId: id,
 										}
-									: undefined;
+									: databaseType === "web-server"
+										? {
+												userId: id,
+											}
+										: undefined;
 
 		await createBackup({
 			destinationId: data.destinationId,
 			prefix: data.prefix,
 			schedule: data.schedule,
 			enabled: data.enabled,
+			includeEncryptionKey: data.includeEncryptionKey,
 			database: data.database,
 			keepLatestCount: data.keepLatestCount ?? null,
 			databaseType: data.databaseType || databaseType,
@@ -347,7 +368,7 @@ export const HandleBackup = ({
 					>
 						<div className="grid grid-cols-1 gap-4">
 							{errorServices && (
-								<AlertBlock type="warning" className="[overflow-wrap:anywhere]">
+								<AlertBlock type="warning" className="wrap-anywhere">
 									{errorServices?.message}
 								</AlertBlock>
 							)}
@@ -392,7 +413,7 @@ export const HandleBackup = ({
 													<Button
 														variant="outline"
 														className={cn(
-															"w-full justify-between !bg-input",
+															"w-full justify-between",
 															!field.value && "text-muted-foreground",
 														)}
 													>
@@ -511,7 +532,7 @@ export const HandleBackup = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Fetch: Will clone the repository and load the
@@ -541,7 +562,7 @@ export const HandleBackup = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Cache: If you previously deployed this
@@ -568,7 +589,10 @@ export const HandleBackup = ({
 											<FormLabel>Database</FormLabel>
 											<FormControl>
 												<Input
-													disabled={databaseType === "web-server"}
+													disabled={
+														databaseType === "web-server" ||
+														databaseType === "libsql"
+													}
 													placeholder={"dokploy"}
 													{...field}
 												/>
@@ -645,6 +669,31 @@ export const HandleBackup = ({
 									</FormItem>
 								)}
 							/>
+							{databaseType === "web-server" && (
+								<FormField
+									control={form.control}
+									name="includeEncryptionKey"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
+											<div className="space-y-0.5">
+												<FormLabel>Include encryption key</FormLabel>
+												<FormDescription>
+													Stores the encryption key inside the backup so
+													environment variables can be restored on a new server.
+													Anyone with access to the backup file can decrypt
+													them.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							)}
 							{backupType === "compose" && (
 								<>
 									{form.watch("databaseType") === "postgres" && (

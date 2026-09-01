@@ -4,12 +4,14 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { projects } from "./project";
 import { redis } from "./redis";
+import { encryptedText } from "./utils";
 
 export const environments = pgTable("environment", {
 	environmentId: text("environmentId")
@@ -21,7 +23,7 @@ export const environments = pgTable("environment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	env: text("env").notNull().default(""),
+	env: encryptedText("env").notNull().default(""),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
@@ -36,12 +38,13 @@ export const environmentRelations = relations(
 			references: [projects.projectId],
 		}),
 		applications: many(applications),
-		mariadb: many(mariadb),
-		postgres: many(postgres),
-		mysql: many(mysql),
-		redis: many(redis),
-		mongo: many(mongo),
 		compose: many(compose),
+		libsql: many(libsql),
+		mariadb: many(mariadb),
+		mongo: many(mongo),
+		mysql: many(mysql),
+		postgres: many(postgres),
+		redis: many(redis),
 	}),
 );
 

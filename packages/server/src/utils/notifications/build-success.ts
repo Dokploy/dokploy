@@ -2,7 +2,7 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildSuccessEmail from "@dokploy/server/emails/emails/build-success";
 import type { Domain } from "@dokploy/server/services/domain";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
@@ -11,6 +11,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendPushoverNotification,
 	sendResendNotification,
@@ -53,6 +54,7 @@ export const sendBuildSuccessNotifications = async ({
 			resend: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			custom: true,
 			lark: true,
 			pushover: true,
@@ -69,6 +71,7 @@ export const sendBuildSuccessNotifications = async ({
 			slack,
 			gotify,
 			ntfy,
+			mattermost,
 			custom,
 			lark,
 			pushover,
@@ -76,7 +79,7 @@ export const sendBuildSuccessNotifications = async ({
 		} = notification;
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					BuildSuccessEmail({
 						projectName,
 						applicationName,
@@ -253,16 +256,23 @@ export const sendBuildSuccessNotifications = async ({
 									value: date.toLocaleString(),
 									short: true,
 								},
-							],
-							actions: [
 								{
-									type: "button",
-									text: "View Build Details",
-									url: buildLink,
+									title: "Details",
+									value: `<${buildLink}|View Build Details>`,
+									short: false,
 								},
 							],
+							mrkdwn_in: ["fields"],
 						},
 					],
+				});
+			}
+
+			if (mattermost) {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Build Success**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${applicationType}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}\n\n[View Build Details](${buildLink})`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
 				});
 			}
 

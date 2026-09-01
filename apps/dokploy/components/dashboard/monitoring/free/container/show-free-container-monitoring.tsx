@@ -1,10 +1,13 @@
+import { formatMb } from "@dokploy/server/monitoring/units";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/utils/api";
 import { DockerBlockChart } from "./docker-block-chart";
 import { DockerCpuChart } from "./docker-cpu-chart";
 import { DockerDiskChart } from "./docker-disk-chart";
+import { DockerDiskUsageChart } from "./docker-disk-usage-chart";
 import { DockerMemoryChart } from "./docker-memory-chart";
 import { DockerNetworkChart } from "./docker-network-chart";
 
@@ -124,7 +127,7 @@ export const ContainerFreeMonitoring = ({
 			refetchOnWindowFocus: false,
 		},
 	);
-	const [acummulativeData, setAcummulativeData] = useState<DockerStatsJSON>({
+	const [accumulativeData, setAccumulativeData] = useState<DockerStatsJSON>({
 		cpu: [],
 		memory: [],
 		block: [],
@@ -136,7 +139,7 @@ export const ContainerFreeMonitoring = ({
 	useEffect(() => {
 		setCurrentData(defaultData);
 
-		setAcummulativeData({
+		setAccumulativeData({
 			cpu: [],
 			memory: [],
 			block: [],
@@ -155,7 +158,7 @@ export const ContainerFreeMonitoring = ({
 			network: data.network[data.network.length - 1] ?? currentData.network,
 			disk: data.disk[data.disk.length - 1] ?? currentData.disk,
 		});
-		setAcummulativeData({
+		setAccumulativeData({
 			block: data?.block || [],
 			cpu: data?.cpu || [],
 			disk: data?.disk || [],
@@ -165,6 +168,8 @@ export const ContainerFreeMonitoring = ({
 	}, [data]);
 
 	useEffect(() => {
+		if (!appName) return;
+
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
 		const ws = new WebSocket(wsUrl);
@@ -184,7 +189,7 @@ export const ContainerFreeMonitoring = ({
 			setCurrentData(data);
 
 			const MAX_DATA_POINTS = 300;
-			setAcummulativeData((prevData) => ({
+			setAccumulativeData((prevData) => ({
 				cpu: [...prevData.cpu, data.cpu].slice(-MAX_DATA_POINTS),
 				memory: [...prevData.memory, data.memory].slice(-MAX_DATA_POINTS),
 				block: [...prevData.block, data.block].slice(-MAX_DATA_POINTS),
@@ -194,7 +199,9 @@ export const ContainerFreeMonitoring = ({
 		};
 
 		ws.onclose = (e) => {
-			console.log(e.reason);
+			if (e.reason) {
+				toast.error(e.reason);
+			}
 		};
 
 		return () => ws.close();
@@ -219,16 +226,16 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								Used: {currentData.cpu.value}
+								Used: {String(currentData.cpu.value ?? "0%")}
 							</span>
 							<Progress
 								value={Number.parseInt(
-									currentData.cpu.value.replace("%", ""),
+									String(currentData.cpu.value ?? "0%").replace("%", ""),
 									10,
 								)}
-								className="w-[100%]"
+								className="w-full"
 							/>
-							<DockerCpuChart acummulativeData={acummulativeData.cpu} />
+							<DockerCpuChart accumulativeData={accumulativeData.cpu} />
 						</div>
 					</CardContent>
 				</Card>
@@ -249,10 +256,10 @@ export const ContainerFreeMonitoring = ({
 										convertMemoryToBytes(currentData.memory.value.total)) *
 									100
 								}
-								className="w-[100%]"
+								className="w-full"
 							/>
 							<DockerMemoryChart
-								acummulativeData={acummulativeData.memory}
+								accumulativeData={accumulativeData.memory}
 								memoryLimitGB={
 									// @ts-ignore
 									convertMemoryToBytes(currentData.memory.value.total) /
@@ -274,13 +281,25 @@ export const ContainerFreeMonitoring = ({
 								</span>
 								<Progress
 									value={currentData.disk.value.diskUsedPercentage}
-									className="w-[100%]"
+									className="w-full"
 								/>
 								<DockerDiskChart
-									acummulativeData={acummulativeData.disk}
+									accumulativeData={accumulativeData.disk}
 									diskTotal={currentData.disk.value.diskTotal}
 								/>
 							</div>
+						</CardContent>
+					</Card>
+				)}
+				{appName === "dokploy" && (
+					<Card className="bg-background">
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Docker Disk Usage
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<DockerDiskUsageChart />
 						</CardContent>
 					</Card>
 				)}
@@ -292,9 +311,9 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`Read:  ${currentData.block.value.readMb}  / Write: ${currentData.block.value.writeMb} `}
+								{`Read: ${formatMb(currentData.block.value.readMb)} / Write: ${formatMb(currentData.block.value.writeMb)}`}
 							</span>
-							<DockerBlockChart acummulativeData={acummulativeData.block} />
+							<DockerBlockChart accumulativeData={accumulativeData.block} />
 						</div>
 					</CardContent>
 				</Card>
@@ -305,9 +324,9 @@ export const ContainerFreeMonitoring = ({
 					<CardContent>
 						<div className="flex flex-col gap-2 w-full">
 							<span className="text-sm text-muted-foreground">
-								{`In MB: ${currentData.network.value.inputMb}  / Out MB: ${currentData.network.value.outputMb} `}
+								{`In: ${formatMb(currentData.network.value.inputMb)} / Out: ${formatMb(currentData.network.value.outputMb)}`}
 							</span>
-							<DockerNetworkChart acummulativeData={acummulativeData.network} />
+							<DockerNetworkChart accumulativeData={accumulativeData.network} />
 						</div>
 					</CardContent>
 				</Card>

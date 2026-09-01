@@ -1,8 +1,11 @@
 import {
 	createBackup,
 	findBackupById,
+	findBackupsByDbId,
 	findComposeByBackupId,
 	findComposeById,
+	findLibsqlByBackupId,
+	findLibsqlById,
 	findMariadbByBackupId,
 	findMariadbById,
 	findMongoByBackupId,
@@ -16,6 +19,7 @@ import {
 	keepLatestNBackups,
 	removeBackupById,
 	removeScheduleBackup,
+	runLibsqlBackup,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
@@ -25,6 +29,7 @@ import {
 	updateBackupById,
 } from "@dokploy/server";
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
 	getS3Credentials,
@@ -36,6 +41,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import {
 	restoreComposeBackup,
+	restoreLibsqlBackup,
 	restoreMariadbBackup,
 	restoreMongoBackup,
 	restoreMySqlBackup,
@@ -43,14 +49,15 @@ import {
 	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { audit } from "@/server/api/utils/audit";
+import { assertDatabaseBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateBackup,
 	apiFindOneBackup,
@@ -82,11 +89,28 @@ export const backupRouter = createTRPCRouter({
 					input.mysqlId ||
 					input.mariadbId ||
 					input.mongoId ||
+					input.libsqlId ||
 					input.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["create"],
 					});
+				}
+
+				if (IS_CLOUD) {
+					const dbType = (
+						["postgres", "mysql", "mariadb", "mongo", "libsql"] as const
+					).find((type) => input[`${type}Id`]);
+					if (dbType) {
+						const existingBackups = await findBackupsByDbId(
+							input[`${dbType}Id`]!,
+							dbType,
+						);
+						await assertDatabaseBackupLimit(
+							ctx.session.activeOrganizationId,
+							existingBackups.length,
+						);
+					}
 				}
 
 				const newBackup = await createBackup(input);
@@ -103,6 +127,8 @@ export const backupRouter = createTRPCRouter({
 						serverId = backup.mongo.serverId;
 					} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
 						serverId = backup.mariadb.serverId;
+					} else if (databaseType === "libsql" && backup.libsql?.serverId) {
+						serverId = backup.libsql.serverId;
 					} else if (
 						backup.backupType === "compose" &&
 						backup.compose?.serverId
@@ -154,6 +180,7 @@ export const backupRouter = createTRPCRouter({
 				backup.mysqlId ||
 				backup.mariadbId ||
 				backup.mongoId ||
+				backup.libsqlId ||
 				backup.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -173,6 +200,7 @@ export const backupRouter = createTRPCRouter({
 					existing.mysqlId ||
 					existing.mariadbId ||
 					existing.mongoId ||
+					existing.libsqlId ||
 					existing.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -229,6 +257,7 @@ export const backupRouter = createTRPCRouter({
 					backup.mysqlId ||
 					backup.mariadbId ||
 					backup.mongoId ||
+					backup.libsqlId ||
 					backup.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -400,6 +429,33 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	manualBackupLibsql: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const backup = await findBackupById(input.backupId);
+				if (backup.libsqlId) {
+					await checkServicePermissionAndAccess(ctx, backup.libsqlId, {
+						backup: ["create"],
+					});
+				}
+				const libsql = await findLibsqlByBackupId(backup.backupId);
+				await runLibsqlBackup(libsql, backup);
+				await keepLatestNBackups(backup, libsql?.serverId);
+				await audit(ctx, {
+					action: "run",
+					resourceType: "backup",
+					resourceId: backup.backupId,
+				});
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error running manual Libsql backup ",
+					cause: error,
+				});
+			}
+		}),
 	manualBackupWebServer: withPermission("backup", "create")
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
@@ -421,9 +477,26 @@ export const backupRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				const destination = await findDestinationById(input.destinationId);
+				if (destination.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this destination.",
+					});
+				}
+				if (input.serverId) {
+					const targetServer = await findServerById(input.serverId);
+					if (
+						targetServer.organizationId !== ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this server.",
+						});
+					}
+				}
 				const rcloneFlags = getS3Credentials(destination);
 				const bucketPath = `:s3:${destination.bucket}`;
 
@@ -438,7 +511,7 @@ export const backupRouter = createTRPCRouter({
 						: input.search;
 
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
-				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} "${searchPath}" --no-mimetype --no-modtime 2>/dev/null`;
+				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} ${quote([searchPath])} --no-mimetype --no-modtime 2>/dev/null`;
 
 				let stdout = "";
 
@@ -508,46 +581,42 @@ export const backupRouter = createTRPCRouter({
 			}
 			const destination = await findDestinationById(input.destinationId);
 			const queue: string[] = [];
-			const done = false;
-			if (input.backupType === "database") {
-				if (input.databaseType === "postgres") {
-					const postgres = await findPostgresById(input.databaseId);
-
-					restorePostgresBackup(postgres, destination, input, (log) => {
-						queue.push(log);
-					});
+			let done = false;
+			const onLog = (log: string) => queue.push(log);
+			const runRestore = async () => {
+				if (input.backupType === "database") {
+					if (input.databaseType === "postgres") {
+						const postgres = await findPostgresById(input.databaseId);
+						await restorePostgresBackup(postgres, destination, input, onLog);
+					} else if (input.databaseType === "mysql") {
+						const mysql = await findMySqlById(input.databaseId);
+						await restoreMySqlBackup(mysql, destination, input, onLog);
+					} else if (input.databaseType === "mariadb") {
+						const mariadb = await findMariadbById(input.databaseId);
+						await restoreMariadbBackup(mariadb, destination, input, onLog);
+					} else if (input.databaseType === "mongo") {
+						const mongo = await findMongoById(input.databaseId);
+						await restoreMongoBackup(mongo, destination, input, onLog);
+					} else if (input.databaseType === "libsql") {
+						const libsql = await findLibsqlById(input.databaseId);
+						await restoreLibsqlBackup(libsql, destination, input, onLog);
+					} else if (input.databaseType === "web-server") {
+						await restoreWebServerBackup(destination, input.backupFile, onLog);
+					}
+				} else if (input.backupType === "compose") {
+					const compose = await findComposeById(input.databaseId);
+					await restoreComposeBackup(compose, destination, input, onLog);
 				}
-
-				if (input.databaseType === "mysql") {
-					const mysql = await findMySqlById(input.databaseId);
-					restoreMySqlBackup(mysql, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "mariadb") {
-					const mariadb = await findMariadbById(input.databaseId);
-					restoreMariadbBackup(mariadb, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "mongo") {
-					const mongo = await findMongoById(input.databaseId);
-					restoreMongoBackup(mongo, destination, input, (log) => {
-						queue.push(log);
-					});
-				}
-				if (input.databaseType === "web-server") {
-					restoreWebServerBackup(destination, input.backupFile, (log) => {
-						queue.push(log);
-					});
-				}
-			}
-			if (input.backupType === "compose") {
-				const compose = await findComposeById(input.databaseId);
-				restoreComposeBackup(compose, destination, input, (log) => {
-					queue.push(log);
+			};
+			runRestore()
+				.catch((error) => {
+					onLog(
+						`Error: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				})
+				.finally(() => {
+					done = true;
 				});
-			}
 			while (!done || queue.length > 0) {
 				if (queue.length > 0) {
 					yield queue.shift()!;

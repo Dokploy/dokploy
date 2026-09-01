@@ -3,6 +3,7 @@ import {
 	deleteMount,
 	findApplicationById,
 	findComposeById,
+	findLibsqlById,
 	findMariadbById,
 	findMongoById,
 	findMountById,
@@ -13,13 +14,14 @@ import {
 	getServiceContainer,
 	updateMount,
 } from "@dokploy/server";
+import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 } from "@dokploy/server/services/permission";
-import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateMount,
 	apiFindMountByApplicationId,
@@ -28,7 +30,6 @@ import {
 	apiUpdateMount,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { audit } from "@/server/api/utils/audit";
 
 async function getServiceOrganizationId(
 	serviceId: string,
@@ -63,6 +64,10 @@ async function getServiceOrganizationId(
 			const compose = await findComposeById(serviceId);
 			return compose?.environment?.project?.organizationId ?? null;
 		}
+		case "libsql": {
+			const libsql = await findLibsqlById(serviceId);
+			return libsql?.environment?.project?.organizationId ?? null;
+		}
 		default:
 			return null;
 	}
@@ -95,6 +100,7 @@ export const mountRouter = createTRPCRouter({
 				mount.mongoId ||
 				mount.mysqlId ||
 				mount.redisId ||
+				mount.libsqlId ||
 				mount.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -120,6 +126,7 @@ export const mountRouter = createTRPCRouter({
 				mount.mongoId ||
 				mount.mysqlId ||
 				mount.redisId ||
+				mount.libsqlId ||
 				mount.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -139,6 +146,7 @@ export const mountRouter = createTRPCRouter({
 				mount.mongoId ||
 				mount.mysqlId ||
 				mount.redisId ||
+				mount.libsqlId ||
 				mount.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -169,7 +177,6 @@ export const mountRouter = createTRPCRouter({
 	listByServiceId: protectedProcedure
 		.input(apiFindMountByApplicationId)
 		.query(async ({ input, ctx }) => {
-			console.log("input", input);
 			await checkServiceAccess(ctx, input.serviceId, "read");
 			const organizationId = await getServiceOrganizationId(
 				input.serviceId,

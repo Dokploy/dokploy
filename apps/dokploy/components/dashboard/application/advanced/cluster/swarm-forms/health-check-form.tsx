@@ -16,17 +16,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
+const optionalNumber = z
+	.union([z.string(), z.number()])
+	.transform((val) => (val === "" ? undefined : Number(val)))
+	.optional();
+
 export const healthCheckFormSchema = z.object({
 	Test: z.array(z.string()).optional(),
-	Interval: z.coerce.number().optional(),
-	Timeout: z.coerce.number().optional(),
-	StartPeriod: z.coerce.number().optional(),
-	Retries: z.coerce.number().optional(),
+	Interval: optionalNumber,
+	Timeout: optionalNumber,
+	StartPeriod: optionalNumber,
+	Retries: optionalNumber,
 });
 
 interface HealthCheckFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
@@ -42,6 +54,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -54,6 +67,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 	};
 
 	const { mutateAsync } = mutationMap[type]
@@ -104,6 +118,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
+				libsqlId: id || "",
 				healthCheckSwarm: hasAnyValue ? formData : null,
 			});
 
@@ -185,7 +200,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Time between health checks (e.g., 10000000000 for 10 seconds)
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -202,7 +222,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Maximum time to wait for health check response
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -219,7 +244,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								Initial grace period before health checks begin
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="10000000000" {...field} />
+								<Input
+									type="number"
+									placeholder="10000000000"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>
@@ -237,7 +267,12 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 								unhealthy
 							</FormDescription>
 							<FormControl>
-								<Input type="number" placeholder="3" {...field} />
+								<Input
+									type="number"
+									placeholder="3"
+									{...field}
+									value={field.value ?? ""}
+								/>
 							</FormControl>
 							<FormMessage />
 						</FormItem>

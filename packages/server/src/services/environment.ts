@@ -59,6 +59,7 @@ export const findEnvironmentById = async (environmentId: string) => {
 					applicationStatus: true,
 					description: true,
 					serverId: true,
+					icon: true,
 				},
 			},
 			mariadb: {
@@ -167,6 +168,25 @@ export const findEnvironmentById = async (environmentId: string) => {
 					composeStatus: true,
 					description: true,
 					serverId: true,
+					icon: true,
+				},
+			},
+			libsql: {
+				with: {
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					libsqlId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
 				},
 			},
 			project: true,
@@ -182,17 +202,56 @@ export const findEnvironmentById = async (environmentId: string) => {
 };
 
 export const findEnvironmentsByProjectId = async (projectId: string) => {
+	const serviceColumns = {
+		name: true,
+		description: true,
+		appName: true,
+		createdAt: true,
+		serverId: true,
+		applicationStatus: true,
+	} as const;
+
 	const projectEnvironments = await db.query.environments.findMany({
 		where: eq(environments.projectId, projectId),
 		orderBy: asc(environments.createdAt),
 		with: {
-			applications: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
-			compose: true,
+			applications: {
+				columns: { ...serviceColumns, applicationId: true, icon: true },
+				with: { server: { columns: { name: true } } },
+			},
+			mariadb: {
+				columns: { ...serviceColumns, mariadbId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			mongo: {
+				columns: { ...serviceColumns, mongoId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			mysql: {
+				columns: { ...serviceColumns, mysqlId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			postgres: {
+				columns: { ...serviceColumns, postgresId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			redis: {
+				columns: { ...serviceColumns, redisId: true },
+				with: { server: { columns: { name: true } } },
+			},
+			compose: {
+				columns: {
+					...serviceColumns,
+					composeId: true,
+					composeStatus: true,
+					icon: true,
+				},
+				with: { server: { columns: { name: true } } },
+			},
+			libsql: {
+				columns: { ...serviceColumns, libsqlId: true },
+				with: { server: { columns: { name: true } } },
+			},
 			project: true,
 		},
 		columns: {
@@ -211,6 +270,7 @@ const environmentHasServices = (
 	return (
 		(env.applications?.length ?? 0) > 0 ||
 		(env.compose?.length ?? 0) > 0 ||
+		(env.libsql?.length ?? 0) > 0 ||
 		(env.mariadb?.length ?? 0) > 0 ||
 		(env.mongo?.length ?? 0) > 0 ||
 		(env.mysql?.length ?? 0) > 0 ||
@@ -286,6 +346,48 @@ export const duplicateEnvironment = async (
 
 	return newEnvironment;
 };
+
+interface EnvironmentWithServices {
+	applications: { applicationId: string }[];
+	compose: { composeId: string }[];
+	libsql: { libsqlId: string }[];
+	mariadb: { mariadbId: string }[];
+	mongo: { mongoId: string }[];
+	mysql: { mysqlId: string }[];
+	postgres: { postgresId: string }[];
+	redis: { redisId: string }[];
+}
+
+export const filterEnvironmentServices = <T extends EnvironmentWithServices>(
+	environment: T,
+	accessedServices: string[],
+): T => ({
+	...environment,
+	applications: environment.applications.filter((app) =>
+		accessedServices.includes(app.applicationId),
+	),
+	compose: environment.compose.filter((comp) =>
+		accessedServices.includes(comp.composeId),
+	),
+	libsql: environment.libsql.filter((db) =>
+		accessedServices.includes(db.libsqlId),
+	),
+	mariadb: environment.mariadb.filter((db) =>
+		accessedServices.includes(db.mariadbId),
+	),
+	mongo: environment.mongo.filter((db) =>
+		accessedServices.includes(db.mongoId),
+	),
+	mysql: environment.mysql.filter((db) =>
+		accessedServices.includes(db.mysqlId),
+	),
+	postgres: environment.postgres.filter((db) =>
+		accessedServices.includes(db.postgresId),
+	),
+	redis: environment.redis.filter((db) =>
+		accessedServices.includes(db.redisId),
+	),
+});
 
 export const createProductionEnvironment = async (projectId: string) => {
 	const newEnvironment = await db

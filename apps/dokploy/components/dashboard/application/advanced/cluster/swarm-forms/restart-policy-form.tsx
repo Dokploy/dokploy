@@ -32,7 +32,14 @@ export const restartPolicyFormSchema = z.object({
 
 interface RestartPolicyFormProps {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "postgres"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "redis"
+		| "application"
+		| "libsql";
 }
 
 export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
@@ -48,6 +55,7 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -60,6 +68,7 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 		mariadb: () => api.mariadb.update.useMutation(),
 		application: () => api.application.update.useMutation(),
 		mongo: () => api.mongo.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
 	};
 
 	const { mutateAsync } = mutationMap[type]
@@ -104,6 +113,7 @@ export const RestartPolicyForm = ({ id, type }: RestartPolicyFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
+				libsqlId: id || "",
 				restartPolicySwarm: hasAnyValue ? formData : null,
 			});
 

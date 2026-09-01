@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/router";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
 import {
+	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -44,10 +45,12 @@ type ServiceItem = {
 	id: string;
 	name: string;
 	type: ServiceType;
+	icon: string | null;
 };
 
 type NamedService = {
 	name: string;
+	icon?: string | null;
 };
 
 type EnvironmentServiceCollections = {
@@ -58,6 +61,7 @@ type EnvironmentServiceCollections = {
 	mariadb: (NamedService & { mariadbId: string })[];
 	redis: (NamedService & { redisId: string })[];
 	mongo: (NamedService & { mongoId: string })[];
+	libsql: (NamedService & { libsqlId: string })[];
 };
 
 type ServiceCollections = Pick<
@@ -69,6 +73,7 @@ type ServiceCollections = Pick<
 	| "mariadb"
 	| "redis"
 	| "mongo"
+	| "libsql"
 >;
 
 const SERVICE_COLLECTION_KEYS = [
@@ -79,6 +84,7 @@ const SERVICE_COLLECTION_KEYS = [
 	"mariadb",
 	"redis",
 	"mongo",
+	"libsql",
 ] as const satisfies ReadonlyArray<keyof ServiceCollections>;
 
 const SERVICE_QUERY_KEYS = [
@@ -89,6 +95,7 @@ const SERVICE_QUERY_KEYS = [
 	"mariadbId",
 	"redisId",
 	"mongoId",
+	"libsqlId",
 ] as const;
 
 const SERVICE_ICONS: Record<
@@ -102,6 +109,7 @@ const SERVICE_ICONS: Record<
 	mariadb: MariadbIcon,
 	redis: RedisIcon,
 	mongo: MongodbIcon,
+	libsql: LibsqlIcon,
 };
 
 const getStringQueryParam = (value: string | string[] | undefined) =>
@@ -110,8 +118,20 @@ const getStringQueryParam = (value: string | string[] | undefined) =>
 const includesSearch = (value: string | null | undefined, search: string) =>
 	value?.toLowerCase().includes(search.toLowerCase()) ?? false;
 
-const getServiceIcon = (type: ServiceType, className = "size-4") => {
-	const Icon = SERVICE_ICONS[type];
+const getServiceIcon = (
+	service: Pick<ServiceItem, "type" | "icon">,
+	className = "size-4",
+) => {
+	if (service.icon) {
+		return (
+			<img
+				src={service.icon}
+				alt=""
+				className={`${className} object-contain shrink-0`}
+			/>
+		);
+	}
+	const Icon = SERVICE_ICONS[service.type];
 	return <Icon className={className} />;
 };
 
@@ -121,7 +141,7 @@ const countEnvironmentServices = (environment: ServiceCollections): number =>
 		0,
 	);
 
-const mapServices = <T extends { name: string }>(
+const mapServices = <T extends NamedService>(
 	items: readonly T[],
 	getId: (item: T) => string,
 	type: ServiceType,
@@ -130,6 +150,7 @@ const mapServices = <T extends { name: string }>(
 		id: getId(item),
 		name: item.name,
 		type,
+		icon: item.icon ?? null,
 	}));
 
 const extractServicesFromEnvironment = (
@@ -156,6 +177,7 @@ const extractServicesFromEnvironment = (
 		...mapServices(servicesByType.mariadb, (item) => item.mariadbId, "mariadb"),
 		...mapServices(servicesByType.redis, (item) => item.redisId, "redis"),
 		...mapServices(servicesByType.mongo, (item) => item.mongoId, "mongo"),
+		...mapServices(servicesByType.libsql, (item) => item.libsqlId, "libsql"),
 	];
 };
 
@@ -306,7 +328,7 @@ export const AdvanceBreadcrumb = () => {
 	// If we're just on the projects page, show simple breadcrumb
 	if (!projectId) {
 		return (
-			<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+			<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 				<div className="flex items-center gap-2">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />
@@ -320,7 +342,7 @@ export const AdvanceBreadcrumb = () => {
 	}
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 			<div className="flex items-center gap-2">
 				<SidebarTrigger className="-ml-1" />
 				<Separator orientation="vertical" className="mr-2 h-4" />
@@ -335,7 +357,7 @@ export const AdvanceBreadcrumb = () => {
 								className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 							>
 								<FolderInput className="size-4 text-muted-foreground" />
-								<span className="font-medium max-w-[150px] truncate">
+								<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 									{currentProject?.name || "Select Project"}
 								</span>
 								<ChevronDown className="size-4 text-muted-foreground" />
@@ -471,7 +493,7 @@ export const AdvanceBreadcrumb = () => {
 									aria-expanded={environmentOpen}
 									className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 								>
-									<span className="font-medium max-w-[150px] truncate">
+									<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 										{currentEnvironment?.name || "production"}
 									</span>
 									<ChevronDown className="size-4 text-muted-foreground" />
@@ -526,7 +548,7 @@ export const AdvanceBreadcrumb = () => {
 					)}
 
 					{projectEnvironments && projectEnvironments.length === 1 && (
-						<p className="text-sm font-normal ml-1">
+						<p className="text-sm font-normal ml-1 max-w-[50px] md:max-w-[150px] truncate">
 							{currentEnvironment?.name || "production"}
 						</p>
 					)}
@@ -543,8 +565,8 @@ export const AdvanceBreadcrumb = () => {
 										aria-expanded={serviceOpen}
 										className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 									>
-										{getServiceIcon(currentService.type)}
-										<span className="font-medium max-w-[150px] truncate">
+										{getServiceIcon(currentService)}
+										<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
 											{currentService.name}
 										</span>
 										<ChevronDown className="size-4 text-muted-foreground" />
@@ -582,7 +604,7 @@ export const AdvanceBreadcrumb = () => {
 															>
 																<div className="flex items-center gap-3">
 																	<div className="flex items-center justify-center size-8 rounded-md bg-muted">
-																		{getServiceIcon(service.type)}
+																		{getServiceIcon(service)}
 																	</div>
 																	<div className="flex flex-col">
 																		<span className="font-medium">
@@ -610,7 +632,7 @@ export const AdvanceBreadcrumb = () => {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 ml-1"
+								className="size-7 ml-1 hidden md:flex"
 								onClick={() => {
 									router.push(
 										`/dashboard/project/${projectId}/environment/${environmentId}`,
