@@ -12,9 +12,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { toast } from "sonner";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +30,7 @@ import {
 import { api } from "@/utils/api";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
+import { DeleteServerModal } from "./delete-server-modal";
 import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
 import { ShowHealthModal } from "./show-health-modal";
@@ -43,7 +41,6 @@ export const ShowServers = () => {
 	const router = useRouter();
 	const query = router.query;
 	const { data, refetch, isPending } = api.server.all.useQuery();
-	const { mutateAsync } = api.server.remove.useMutation();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: canCreateMoreServers } =
@@ -111,7 +108,6 @@ export const ShowServers = () => {
 											<div className="flex flex-col gap-4 min-h-[25vh]">
 												<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 													{data?.map((server) => {
-														const canDelete = server.totalSum === 0;
 														const isActive = server.serverStatus === "active";
 														const isBuildServer = server.serverType === "build";
 														return (
@@ -350,64 +346,22 @@ export const ShowServers = () => {
 																					<Tooltip>
 																						<TooltipTrigger asChild>
 																							<div>
-																								<DialogAction
-																									disabled={!canDelete}
-																									title={
-																										canDelete
-																											? "Delete Server"
-																											: "Server has active services"
-																									}
-																									description={
-																										canDelete ? (
-																											"This will delete the server and all associated data"
-																										) : (
-																											<div className="flex flex-col gap-2">
-																												You can not delete this
-																												server because it has
-																												active services.
-																												<AlertBlock type="warning">
-																													You have active
-																													services associated
-																													with this server,
-																													please delete them
-																													first.
-																												</AlertBlock>
-																											</div>
-																										)
-																									}
-																									onClick={async () => {
-																										await mutateAsync({
-																											serverId: server.serverId,
-																										})
-																											.then(() => {
-																												refetch();
-																												toast.success(
-																													`Server ${server.name} deleted successfully`,
-																												);
-																											})
-																											.catch((err) => {
-																												toast.error(
-																													err.message,
-																												);
-																											});
-																									}}
+																								<DeleteServerModal
+																									serverId={server.serverId}
+																									serverName={server.name}
 																								>
 																									<Button
 																										variant="ghost"
 																										size="icon"
-																										className={`h-9 w-9 ${canDelete ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:bg-muted"}`}
+																										className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
 																									>
 																										<Trash2 className="h-4 w-4" />
 																									</Button>
-																								</DialogAction>
+																								</DeleteServerModal>
 																							</div>
 																						</TooltipTrigger>
 																						<TooltipContent>
-																							<p>
-																								{canDelete
-																									? "Delete Server"
-																									: "Cannot delete - has active services"}
-																							</p>
+																							<p>Delete Server</p>
 																						</TooltipContent>
 																					</Tooltip>
 																				)}
