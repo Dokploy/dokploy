@@ -20,6 +20,7 @@ import {
 import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
+import { phaseClient } from "@dokploy/server/utils/vault/phase";
 import { scalewayClient } from "@dokploy/server/utils/vault/scaleway";
 
 const mockFetch = vi.fn();
@@ -610,6 +611,132 @@ describe("scaleway client", () => {
 
 		const result = await resolveVaultReferences(
 			"DB_PASSWORD=${{vault.scw-prod.prod/db-password}}",
+			scope,
+		);
+
+		expect(result).toBe("DB_PASSWORD=s3cret");
+	});
+});
+
+describe("phase client", () => {
+	const config = {
+		providerType: "phase" as const,
+		token: "phase-rest-token",
+		appId: "app-123",
+		env: "Production",
+		path: "/",
+		apiUrl: "https://api.phase.dev",
+	};
+
+	it("fetches secrets by key and sends ServiceAccount auth", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse([
+				{ key: "DB_URL", value: "postgres://real", path: "/" },
+				{ key: "API_KEY", value: "key-123", path: "/" },
+			]),
+		);
+
+		const result = await phaseClient.getSecrets(config, ["DB_URL", "API_KEY"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://real", API_KEY: "key-123" });
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe(
+			"https://api.phase.dev/v1/secrets/?app_id=app-123&env=Production&path=%2F",
+		);
+		expect((init.headers as Record<string, string>).Authorization).toBe(
+			"Bearer ServiceAccount phase-rest-token",
+		);
+	});
+
+	it("throws when a requested secret is missing", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse([{ key: "DB_URL", value: "postgres://real", path: "/" }]),
+		);
+
+		await expect(phaseClient.getSecrets(config, ["MISSING"])).rejects.toThrow(
+			'secret "MISSING" not found in environment "Production"',
+		);
+	});
+
+	it("reports authentication failures with the status code", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse({ error: "unauthorized" }, false, 401),
+		);
+
+		await expect(phaseClient.getSecrets(config, ["DB_URL"])).rejects.toThrow(
+			"authentication failed (status 401: unauthorized)",
+		);
+	});
+
+	it("rejects apps without SSE enabled during testConnection", async () => {
+		mockFetch.mockResolvedValueOnce(
+			jsonResponse({
+				id: "app-123",
+				name: "My App",
+				sseEnabled: false,
+			}),
+		);
+
+		await expect(phaseClient.testConnection(config)).rejects.toThrow(
+			"enable Server-side Encryption (SSE)",
+		);
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		expect(mockFetch.mock.calls[0]?.[0]).toBe(
+			"https://api.phase.dev/v1/apps/app-123/",
+		);
+	});
+
+	it("tests connection against the app then secrets listing", async () => {
+		mockFetch
+			.mockResolvedValueOnce(
+				jsonResponse({
+					id: "app-123",
+					name: "My App",
+					sseEnabled: true,
+				}),
+			)
+			.mockResolvedValueOnce(jsonResponse([]));
+
+		await phaseClient.testConnection(config);
+
+		expect(mockFetch).toHaveBeenCalledTimes(2);
+		expect(mockFetch.mock.calls[0]?.[0]).toBe(
+			"https://api.phase.dev/v1/apps/app-123/",
+		);
+		expect(mockFetch.mock.calls[1]?.[0]).toBe(
+			"https://api.phase.dev/v1/secrets/?app_id=app-123&env=Production&path=%2F",
+		);
+	});
+
+	it("lists secret names from the configured path", async () => {
+		mockFetch.mockResolvedValue(
+			jsonResponse([
+				{ key: "DB_URL", value: "x", path: "/" },
+				{ key: "API_KEY", value: "y", path: "/" },
+			]),
+		);
+
+		const names = await phaseClient.listSecretNames?.(config);
+
+		expect(names).toEqual(["DB_URL", "API_KEY"]);
+	});
+
+	it("resolves env refs end to end through a phase provider", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "phase-prod",
+				providerType: "phase",
+				config,
+				assignments: assignedEverywhere,
+			},
+		]);
+		mockFetch.mockResolvedValue(
+			jsonResponse([{ key: "DB_PASSWORD", value: "s3cret", path: "/" }]),
+		);
+
+		const result = await resolveVaultReferences(
+			"DB_PASSWORD=${{vault.phase-prod.DB_PASSWORD}}",
 			scope,
 		);
 
