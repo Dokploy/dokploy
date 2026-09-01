@@ -151,6 +151,8 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 						}
 						placeholder={["NODE_ENV=production", "PORT=3000"].join("\n")}
 						completionSource={completionSource}
+						projectId={data?.environment?.projectId}
+						environmentId={data?.environment?.environmentId}
 					/>
 					{data?.buildType === "dockerfile" && (
 						<Secrets
