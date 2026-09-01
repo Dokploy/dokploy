@@ -209,9 +209,29 @@ const recordBody = (
 	...(record.ttl === undefined ? {} : { ttl: record.ttl }),
 });
 
+// OVH grants access per exact path: a `/domain/zone/*` rule covers the subtree
+// but not the bare `/domain/zone` listing, which needs its own rule. That is an
+// easy one to leave out of a token, so say so plainly rather than surfacing a
+// bare "This call has not been granted".
+const listZoneNames = async (config: OvhConfig) => {
+	try {
+		return await ovhFetch<string[]>(config, "/domain/zone");
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			error.message.includes("has not been granted")
+		) {
+			throw new Error(
+				"OVH: the credentials are missing the `GET /domain/zone` right, which lists your zones. A `GET /domain/zone/*` rule does not cover it — add the rule without the wildcard as well.",
+			);
+		}
+		throw error;
+	}
+};
+
 export const ovhClient: DnsClient<OvhConfig> = {
 	async listZones(config) {
-		const zones = await ovhFetch<string[]>(config, "/domain/zone");
+		const zones = await listZoneNames(config);
 		return zones.map((zone) => ({ id: zone, name: zone }));
 	},
 
@@ -318,6 +338,6 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	},
 
 	async testConnection(config) {
-		await ovhFetch(config, "/domain/zone");
+		await listZoneNames(config);
 	},
 };

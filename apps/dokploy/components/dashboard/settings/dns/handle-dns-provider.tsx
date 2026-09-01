@@ -488,10 +488,22 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<Input type="password" {...field} />
 											</FormControl>
 											<FormDescription>
-												Create the three keys at once on api.ovh.com/createToken
-												with the <code>GET</code>, <code>POST</code>,{" "}
-												<code>PUT</code> and <code>DELETE</code> rights on{" "}
-												<code>/domain/zone/*</code>.
+												Create the three keys at once on
+												api.ovh.com/createToken, with exactly these five rights:
+												<br />
+												<code>GET /domain/zone</code>
+												<br />
+												<code>GET /domain/zone/*</code>
+												<br />
+												<code>POST /domain/zone/*</code>
+												<br />
+												<code>PUT /domain/zone/*</code>
+												<br />
+												<code>DELETE /domain/zone/*</code>
+												<br />
+												The first one lists your zones and has to be granted on
+												its own: OVH matches rights per exact path, so{" "}
+												<code>/domain/zone/*</code> does not cover it.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

@@ -149,13 +149,22 @@ describe("ovhClient.listZones", () => {
 		]);
 	});
 
-	it("propagates the API error message", async () => {
+	it("names the missing root right when OVH refuses the zone listing", async () => {
 		const cfg = freshConfig();
 		mockApi(ovhError("This call has not been granted", 403));
 
+		// A `GET /domain/zone/*` rule does not cover the bare `GET /domain/zone`,
+		// so the raw OVH message would send users looking in the wrong place.
 		await expect(ovhClient.listZones(cfg)).rejects.toThrow(
-			"This call has not been granted",
+			/missing the `GET \/domain\/zone` right/,
 		);
+	});
+
+	it("propagates the API error message", async () => {
+		const cfg = freshConfig();
+		mockApi(ovhError("Invalid signature", 403));
+
+		await expect(ovhClient.listZones(cfg)).rejects.toThrow("Invalid signature");
 	});
 });
 
