@@ -35,6 +35,7 @@ import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
+import { ShowHealthModal } from "./show-health-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
@@ -249,29 +250,30 @@ export const ShowServers = () => {
 																			</div>
 
 																			<TooltipProvider>
-																				{server.sshKeyId && (
-																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<div>
-																								<TerminalModal
-																									serverId={server.serverId}
-																									asButton={true}
-																								>
-																									<Button
-																										variant="outline"
-																										size="icon"
-																										className="h-9 w-9"
+																				{server.sshKeyId &&
+																					permissions?.server.terminal && (
+																						<Tooltip>
+																							<TooltipTrigger asChild>
+																								<div>
+																									<TerminalModal
+																										serverId={server.serverId}
+																										asButton={true}
 																									>
-																										<Terminal className="h-4 w-4" />
-																									</Button>
-																								</TerminalModal>
-																							</div>
-																						</TooltipTrigger>
-																						<TooltipContent>
-																							<p>Terminal</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				)}
+																										<Button
+																											variant="outline"
+																											size="icon"
+																											className="h-9 w-9"
+																										>
+																											<Terminal className="h-4 w-4" />
+																										</Button>
+																									</TerminalModal>
+																								</div>
+																							</TooltipTrigger>
+																							<TooltipContent>
+																								<p>Terminal</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
 
 																				<Tooltip>
 																					<TooltipTrigger asChild>
@@ -320,6 +322,24 @@ export const ShowServers = () => {
 																							</TooltipTrigger>
 																							<TooltipContent>
 																								<p>Monitoring</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
+
+																				{permissions?.docker.read &&
+																					permissions?.server.read &&
+																					server.sshKeyId &&
+																					!isBuildServer && (
+																						<Tooltip>
+																							<TooltipTrigger asChild>
+																								<div>
+																									<ShowHealthModal
+																										serverId={server.serverId}
+																									/>
+																								</div>
+																							</TooltipTrigger>
+																							<TooltipContent>
+																								<p>Health</p>
 																							</TooltipContent>
 																						</Tooltip>
 																					)}

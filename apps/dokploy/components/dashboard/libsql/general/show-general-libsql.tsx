@@ -229,6 +229,7 @@ export const ShowGeneralLibsql = ({ libsqlId }: Props) => {
 						)}
 						<DockerTerminalModal
 							appName={data?.appName || ""}
+							serviceId={data?.libsqlId}
 							serverId={data?.serverId || ""}
 						>
 							<Button

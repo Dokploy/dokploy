@@ -51,7 +51,12 @@ import {
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import { sshKeys } from "./ssh-key";
-import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
+import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
+	encryptedText,
+	generateAppName,
+} from "./utils";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -82,11 +87,11 @@ export const applications = pgTable("application", {
 		.$defaultFn(() => generateAppName("app"))
 		.unique(),
 	description: text("description"),
-	env: text("env"),
-	previewEnv: text("previewEnv"),
+	env: encryptedText("env"),
+	previewEnv: encryptedText("previewEnv"),
 	watchPaths: text("watchPaths").array(),
-	previewBuildArgs: text("previewBuildArgs"),
-	previewBuildSecrets: text("previewBuildSecrets"),
+	previewBuildArgs: encryptedText("previewBuildArgs"),
+	previewBuildSecrets: encryptedText("previewBuildSecrets"),
 	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
@@ -105,8 +110,8 @@ export const applications = pgTable("application", {
 		"previewRequireCollaboratorPermissions",
 	).default(true),
 	rollbackActive: boolean("rollbackActive").default(false),
-	buildArgs: text("buildArgs"),
-	buildSecrets: text("buildSecrets"),
+	buildArgs: encryptedText("buildArgs"),
+	buildSecrets: encryptedText("buildSecrets"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -228,6 +233,10 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	networkIds: text("networkIds").array().default([]),
+	detachDokployNetwork: boolean("detachDokployNetwork")
+		.notNull()
+		.default(false),
 });
 
 export const applicationsRelations = relations(
@@ -369,6 +378,8 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional().optional(),
 	previewLabels: z.array(z.string()).optional(),
+	networkIds: z.array(z.string()).optional(),
+	detachDokployNetwork: z.boolean().optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
@@ -387,6 +398,7 @@ export const apiCreateApplication = createSchema.pick({
 	description: true,
 	environmentId: true,
 	serverId: true,
+	sourceType: true,
 });
 
 export const apiFindOneApplication = z.object({

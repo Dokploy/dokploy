@@ -272,7 +272,10 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search repository..."
@@ -310,8 +313,10 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																		form.setValue("branch", "");
 																	}}
 																>
-																	<span className="flex items-center gap-2">
-																		<span>{repo.name}</span>
+																	<span className="flex min-w-0 items-center gap-2">
+																		<span className="truncate">
+																			{repo.name}
+																		</span>
 																		<span className="text-muted-foreground text-xs">
 																			{repo.owner.username}
 																		</span>
@@ -368,7 +373,10 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search branch..."
@@ -396,7 +404,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																	form.setValue("branch", branch.name);
 																}}
 															>
-																{branch.name}
+																<span className="truncate">{branch.name}</span>
 																<CheckIcon
 																	className={cn(
 																		"ml-auto h-4 w-4",
@@ -459,14 +467,18 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1"
 											>
 												{path}
-												<X
-													className="size-3 cursor-pointer hover:text-destructive"
+												<button
+													type="button"
+													aria-label="Remove watch path"
+													className="inline-flex items-center focus-visible:ring-2"
 													onClick={() => {
 														const newPaths = [...(field.value || [])];
 														newPaths.splice(index, 1);
 														field.onChange(newPaths);
 													}}
-												/>
+												>
+													<X className="size-3 cursor-pointer hover:text-destructive" />
+												</button>
 											</Badge>
 										))}
 									</div>
@@ -513,14 +525,14 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="enableSubmodules"
 							render={({ field }) => (
-								<FormItem className="flex items-center space-x-2">
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
 									<FormControl>
 										<Switch
 											checked={field.value}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="mt-0!">Enable Submodules</FormLabel>
+									<FormLabel>Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

@@ -43,7 +43,8 @@ const addServerDomain = z
 			.string()
 			.trim()
 			.toLowerCase()
-			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
+			// empty clears the server domain and reverts to IP-only access
+			.refine((val) => val === "" || VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
 		letsEncryptEmail: z.string(),
@@ -51,7 +52,7 @@ const addServerDomain = z
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
 	})
 	.superRefine((data, ctx) => {
-		if (data.https && !data.certificateType) {
+		if (data.domain && data.https && !data.certificateType) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["certificateType"],
@@ -59,6 +60,7 @@ const addServerDomain = z
 			});
 		}
 		if (
+			data.domain &&
 			data.https &&
 			data.certificateType === "letsencrypt" &&
 			!data.letsEncryptEmail
