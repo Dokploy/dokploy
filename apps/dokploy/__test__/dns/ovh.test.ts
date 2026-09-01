@@ -365,6 +365,72 @@ describe("ovhClient.updateRecord", () => {
 		expect(JSON.parse(calls[2]?.[1].body as string).fieldType).toBe("CNAME");
 		expect(calls[3]?.[0]).toContain("/refresh");
 	});
+
+	it("restores the original record when the replacement fails", async () => {
+		const cfg = freshConfig();
+		const original = {
+			id: 4,
+			zone: "example.com",
+			fieldType: "A",
+			subDomain: "app",
+			target: "1.1.1.1",
+			ttl: 60,
+		};
+		mockApi(
+			ovhSuccess(original),
+			ovhSuccess(null),
+			ovhError("Invalid target", 400),
+			ovhSuccess({ id: 12 }),
+			ovhSuccess(null),
+		);
+
+		await expect(
+			ovhClient.updateRecord(cfg, "example.com", "4", {
+				type: "CNAME",
+				name: "app.example.com",
+				content: "not a valid target",
+			}),
+		).rejects.toThrow("Invalid target");
+
+		const calls = apiCalls();
+		expect(calls[1]?.[1].method).toBe("DELETE");
+		expect(calls[2]?.[1].method).toBe("POST");
+		// The original record is put back with its own type, target and ttl.
+		expect(JSON.parse(calls[3]?.[1].body as string)).toEqual({
+			fieldType: "A",
+			subDomain: "app",
+			target: "1.1.1.1",
+			ttl: 60,
+		});
+		expect(calls[4]?.[0]).toContain("/refresh");
+	});
+
+	it("reports the lost record when the restore also fails", async () => {
+		const cfg = freshConfig();
+		mockApi(
+			ovhSuccess({
+				id: 4,
+				zone: "example.com",
+				fieldType: "A",
+				subDomain: "app",
+				target: "1.1.1.1",
+				ttl: 60,
+			}),
+			ovhSuccess(null),
+			ovhError("Invalid target", 400),
+			ovhError("Service unavailable", 503),
+		);
+
+		await expect(
+			ovhClient.updateRecord(cfg, "example.com", "4", {
+				type: "CNAME",
+				name: "app.example.com",
+				content: "not a valid target",
+			}),
+		).rejects.toThrow(
+			/Recreate it manually: A app\.example\.com -> 1\.1\.1\.1/,
+		);
+	});
 });
 
 describe("ovhClient.deleteRecord", () => {

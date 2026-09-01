@@ -171,6 +171,34 @@ const refreshZone = async (config: OvhConfig, zone: string) => {
 	});
 };
 
+// Used to undo the delete half of a type change when the replacement fails.
+const restoreRecord = async (
+	config: OvhConfig,
+	zone: string,
+	record: OvhRecord,
+	cause: unknown,
+) => {
+	try {
+		await ovhFetch(config, `/domain/zone/${encodeURIComponent(zone)}/record`, {
+			method: "POST",
+			body: {
+				fieldType: record.fieldType,
+				subDomain: record.subDomain ?? "",
+				target: record.target,
+				...(record.ttl === null ? {} : { ttl: record.ttl }),
+			},
+		});
+		await refreshZone(config, zone);
+	} catch {
+		const name = toFqdn(record.subDomain, zone);
+		throw new Error(
+			`OVH: could not replace the record and could not restore the original one, which has been deleted. Recreate it manually: ${record.fieldType} ${name} -> ${record.target}. Original failure: ${
+				cause instanceof Error ? cause.message : String(cause)
+			}`,
+		);
+	}
+};
+
 const recordBody = (
 	record: { name: string; content: string; ttl?: number },
 	zone: string,
@@ -244,19 +272,30 @@ export const ovhClient: DnsClient<OvhConfig> = {
 		);
 
 		// The update payload carries no fieldType, so switching a record's type
-		// means replacing it.
+		// means replacing it. The delete has to come first: OVH rejects a CNAME
+		// that would sit alongside other data on the same name. If the creation
+		// then fails, put the original record back rather than leaving the name
+		// with nothing.
 		if (existing.fieldType !== record.type) {
 			await ovhFetch(config, `/domain/zone/${zone}/record/${recordId}`, {
 				method: "DELETE",
 			});
-			const created = await ovhFetch<OvhRecord>(
-				config,
-				`/domain/zone/${zone}/record`,
-				{
-					method: "POST",
-					body: { fieldType: record.type, ...recordBody(record, zoneId) },
-				},
-			);
+
+			let created: OvhRecord;
+			try {
+				created = await ovhFetch<OvhRecord>(
+					config,
+					`/domain/zone/${zone}/record`,
+					{
+						method: "POST",
+						body: { fieldType: record.type, ...recordBody(record, zoneId) },
+					},
+				);
+			} catch (error) {
+				await restoreRecord(config, zoneId, existing, error);
+				throw error;
+			}
+
 			await refreshZone(config, zoneId);
 			return { id: String(created.id) };
 		}
