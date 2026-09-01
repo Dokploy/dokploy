@@ -100,11 +100,9 @@ describe("infomaniakClient.listRecords", () => {
 		);
 	});
 
-	it("treats an @ source as the apex", async () => {
+	it.each([".", "", "@"])("treats a %s source as the apex", async (source) => {
 		mockFetch.mockResolvedValue(
-			ikSuccess([
-				{ id: 12, type: "A", source: "@", target: "1.2.3.4", ttl: 300 },
-			]),
+			ikSuccess([{ id: 12, type: "A", source, target: "1.2.3.4", ttl: 300 }]),
 		);
 
 		const records = await infomaniakClient.listRecords(config, "example.com");
@@ -200,7 +198,7 @@ describe("infomaniakClient.upsertRecord", () => {
 		expect(lastBody().ttl).toBe(300);
 	});
 
-	it("writes an empty source for an apex record and strips the trailing dot", async () => {
+	it("writes a root dot as the source for an apex record and strips the trailing dot", async () => {
 		mockFetch
 			.mockResolvedValueOnce(ikSuccess([]))
 			.mockResolvedValueOnce(ikSuccess({ id: 43 }));
@@ -212,7 +210,38 @@ describe("infomaniakClient.upsertRecord", () => {
 			content: "1.2.3.4",
 		});
 
-		expect(lastBody().source).toBe("");
+		expect(lastBody().source).toBe(".");
+	});
+
+	it("matches the existing apex record instead of creating a duplicate", async () => {
+		mockFetch
+			.mockResolvedValueOnce(
+				ikSuccess([
+					{
+						id: 8,
+						type: "TXT",
+						source: ".",
+						target: '"v=spf1 -all"',
+						ttl: 3600,
+					},
+				]),
+			)
+			.mockResolvedValueOnce(ikSuccess({ id: 8 }));
+
+		const result = await infomaniakClient.upsertRecord(config, {
+			zoneId: "example.com",
+			type: "TXT",
+			name: "example.com",
+			content: "v=spf1 -all",
+		});
+
+		expect(result).toEqual({ id: "8" });
+		const [url, init] = lastCall();
+		expect(init.method).toBe("PUT");
+		expect(url).toBe(
+			"https://api.infomaniak.com/2/zones/example.com/records/8",
+		);
+		expect(lastBody().target).toBe('"v=spf1 -all"');
 	});
 
 	it("quotes a TXT target on write", async () => {

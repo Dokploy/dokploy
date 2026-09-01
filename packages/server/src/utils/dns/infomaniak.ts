@@ -54,19 +54,22 @@ const ikFetch = async <T>(
 	return body.data as T;
 };
 
-// Infomaniak's "source" holds the subdomain only, relative to the zone, and is
-// empty for the apex.
+// Infomaniak's "source" holds the subdomain only, relative to the zone. The apex
+// is a bare root dot; "" and "@" are accepted too so a hand-written record still
+// round-trips.
+const APEX_SOURCES = new Set(["", ".", "@"]);
+
 const toSource = (name: string, zone: string) => {
 	const fqdn = name.replace(/\.$/, "");
 	if (fqdn === zone) {
-		return "";
+		return ".";
 	}
 	const suffix = `.${zone}`;
 	return fqdn.endsWith(suffix) ? fqdn.slice(0, -suffix.length) : fqdn;
 };
 
 const toFqdn = (source: string, zone: string) =>
-	source === "" || source === "@" ? zone : `${source}.${zone}`;
+	APEX_SOURCES.has(source) ? zone : `${source}.${zone}`;
 
 // TXT targets are stored quoted; keep Dokploy's view of them unquoted so that
 // editing a record does not stack a new pair of quotes on every save.
