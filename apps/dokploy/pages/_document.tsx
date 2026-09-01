@@ -14,8 +14,6 @@ interface WhitelabelingDocumentProps {
 	customCss: string | null;
 }
 
-
-
 export default function Document({
 	metaTitle,
 	faviconHref,
@@ -83,7 +81,9 @@ Document.getInitialProps = async (
 		if (config) {
 			metaTitle = config.metaTitle;
 			// Remove any </style> tags to prevent XSS breakout
-			customCss = config.customCss ? config.customCss.replace(/<\/style>/gi, "") : null;
+			customCss = config.customCss
+				? config.customCss.replace(/<\/style>/gi, "")
+				: null;
 			faviconHref = config.faviconUrl || null;
 		}
 	} catch {
