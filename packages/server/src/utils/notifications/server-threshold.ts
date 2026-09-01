@@ -369,22 +369,28 @@ export const sendServerThresholdNotifications = async (
 					`Server: ${payload.ServerName}\nType: ${payload.Type}\nCurrent: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%\nMessage: ${payload.Message}\nTime: ${date.toLocaleString()}`,
 				);
 			}
+
+			if (teams) {
+				await sendTeamsNotification(teams, {
+					title: `⚠️ Server ${payload.Type} Alert`,
+					facts: [
+						{ name: "Server Name", value: payload.ServerName },
+						{ name: "Type", value: payload.Type },
+						{
+							name: "Current Value",
+							value: `${payload.Value.toFixed(2)}%`,
+						},
+						{
+							name: "Threshold",
+							value: `${payload.Threshold.toFixed(2)}%`,
+						},
+						{ name: "Time", value: date.toLocaleString() },
+						{ name: "Message", value: payload.Message },
+					],
+				});
+			}
 		} catch (error) {
 			console.log(error);
-		}
-
-		if (teams) {
-			await sendTeamsNotification(teams, {
-				title: `⚠️ Server ${payload.Type} Alert`,
-				facts: [
-					{ name: "Server Name", value: payload.ServerName },
-					{ name: "Type", value: payload.Type },
-					{ name: "Current Value", value: `${payload.Value.toFixed(2)}%` },
-					{ name: "Threshold", value: `${payload.Threshold.toFixed(2)}%` },
-					{ name: "Time", value: date.toLocaleString() },
-					{ name: "Message", value: payload.Message },
-				],
-			});
 		}
 	}
 };
