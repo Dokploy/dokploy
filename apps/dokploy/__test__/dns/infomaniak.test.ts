@@ -213,6 +213,29 @@ describe("infomaniakClient.upsertRecord", () => {
 		expect(lastBody().source).toBe(".");
 	});
 
+	it.each([".", "", "@"])(
+		"matches an existing apex record stored with a %s source",
+		async (source) => {
+			mockFetch
+				.mockResolvedValueOnce(
+					ikSuccess([
+						{ id: 8, type: "A", source, target: "1.1.1.1", ttl: 3600 },
+					]),
+				)
+				.mockResolvedValueOnce(ikSuccess({ id: 8 }));
+
+			const result = await infomaniakClient.upsertRecord(config, {
+				zoneId: "example.com",
+				type: "A",
+				name: "example.com",
+				content: "1.2.3.4",
+			});
+
+			expect(result).toEqual({ id: "8" });
+			expect(lastCall()[1].method).toBe("PUT");
+		},
+	);
+
 	it("matches the existing apex record instead of creating a duplicate", async () => {
 		mockFetch
 			.mockResolvedValueOnce(

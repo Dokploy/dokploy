@@ -71,6 +71,12 @@ const toSource = (name: string, zone: string) => {
 const toFqdn = (source: string, zone: string) =>
 	APEX_SOURCES.has(source) ? zone : `${source}.${zone}`;
 
+// toSource always writes the apex as ".", so an existing record stored under one
+// of the other apex spellings has to normalize to the same thing before it can
+// be matched.
+const normalizeSource = (source: string) =>
+	APEX_SOURCES.has(source) ? "." : source;
+
 // TXT targets are stored quoted; keep Dokploy's view of them unquoted so that
 // editing a record does not stack a new pair of quotes on every save.
 const unquoteTarget = (target: string) => {
@@ -146,7 +152,8 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 		const existing = await listZoneRecords(config, record.zoneId);
 		const match = existing.find(
 			(candidate) =>
-				candidate.type === record.type && candidate.source === source,
+				candidate.type === record.type &&
+				normalizeSource(candidate.source) === source,
 		);
 
 		const body = JSON.stringify(recordPayload(record, record.zoneId));
