@@ -125,10 +125,24 @@ export const findComposeById = async (composeId: string) => {
 			deployments: true,
 			mounts: true,
 			domains: true,
-			github: true,
-			gitlab: true,
-			bitbucket: true,
-			gitea: true,
+			github: {
+				columns: {
+					githubClientSecret: false,
+					githubPrivateKey: false,
+					githubWebhookSecret: false,
+				},
+			},
+			gitlab: {
+				columns: { secret: false, accessToken: false, refreshToken: false },
+			},
+			bitbucket: { columns: { appPassword: false, apiToken: false } },
+			gitea: {
+				columns: {
+					clientSecret: false,
+					accessToken: false,
+					refreshToken: false,
+				},
+			},
 			server: true,
 			backups: {
 				with: {
