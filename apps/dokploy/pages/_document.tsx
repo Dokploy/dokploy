@@ -82,7 +82,7 @@ Document.getInitialProps = async (
 			metaTitle = config.metaTitle;
 			// Remove any </style> tags to prevent XSS breakout
 			customCss = config.customCss
-				? config.customCss.replace(/<\/style>/gi, "")
+				? config.customCss.replace(/<\/\s*style\s*>/gi, "")
 				: null;
 			faviconHref = config.faviconUrl || null;
 		}
