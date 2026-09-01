@@ -1,1 +1,0 @@
-ALTER TYPE "public"."VaultProviderType" ADD VALUE 'phase';
