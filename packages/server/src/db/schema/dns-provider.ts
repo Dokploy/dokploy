@@ -7,6 +7,7 @@ import { organization } from "./account";
 export const dnsProviderType = pgEnum("DnsProviderType", [
 	"cloudflare",
 	"route53",
+	"porkbun",
 ]);
 
 export const cloudflareDnsConfigSchema = z.object({
@@ -20,9 +21,16 @@ export const route53DnsConfigSchema = z.object({
 	secretAccessKey: z.string().trim().min(1),
 });
 
+export const porkbunDnsConfigSchema = z.object({
+	providerType: z.literal("porkbun"),
+	apiKey: z.string().trim().min(1),
+	secretApiKey: z.string().trim().min(1),
+});
+
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
 	cloudflareDnsConfigSchema,
 	route53DnsConfigSchema,
+	porkbunDnsConfigSchema,
 ]);
 
 export type DnsProviderConfig = z.infer<typeof dnsProviderConfigSchema>;

@@ -1324,6 +1324,13 @@
       "when": 1788249519837,
       "tag": "0188_volatile_piledriver",
       "breakpoints": true
+    },
+    {
+      "idx": 189,
+      "version": "7",
+      "when": 1788251861403,
+      "tag": "0189_wooden_nextwave",
+      "breakpoints": true
     }
   ]
 }

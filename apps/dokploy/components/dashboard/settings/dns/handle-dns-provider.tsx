@@ -43,6 +43,7 @@ import { api } from "@/utils/api";
 const providerLabels = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
+	porkbun: "Porkbun",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -54,10 +55,12 @@ const DnsProviderSchema = z.object({
 		.regex(/^[a-zA-Z0-9_-]+$/, {
 			message: "Only letters, numbers, dashes and underscores",
 		}),
-	providerType: z.enum(["cloudflare", "route53"]),
+	providerType: z.enum(["cloudflare", "route53", "porkbun"]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
+	apiKey: z.string(),
+	secretApiKey: z.string(),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -68,6 +71,8 @@ const defaultValues: DnsProviderForm = {
 	apiToken: "",
 	accessKeyId: "",
 	secretAccessKey: "",
+	apiKey: "",
+	secretApiKey: "",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -82,6 +87,12 @@ const buildConfig = (data: DnsProviderForm) => {
 				providerType: "route53" as const,
 				accessKeyId: data.accessKeyId,
 				secretAccessKey: data.secretAccessKey,
+			};
+		case "porkbun":
+			return {
+				providerType: "porkbun" as const,
+				apiKey: data.apiKey,
+				secretApiKey: data.secretApiKey,
 			};
 	}
 };
@@ -139,6 +150,10 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 				...(provider.config.providerType === "route53" && {
 					accessKeyId: provider.config.accessKeyId,
 					secretAccessKey: provider.config.secretAccessKey,
+				}),
+				...(provider.config.providerType === "porkbun" && {
+					apiKey: provider.config.apiKey,
+					secretApiKey: provider.config.secretApiKey,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -324,6 +339,42 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<code>route53:ListResourceRecordSets</code> and{" "}
 												<code>route53:ChangeResourceRecordSets</code> — avoid
 												root account credentials.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "porkbun" && (
+							<>
+								<FormField
+									control={form.control}
+									name="apiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Key</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="secretApiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret API Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Create API keys at porkbun.com/account/api and make sure
+												API access is enabled for the domains you want Dokploy
+												to manage.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
