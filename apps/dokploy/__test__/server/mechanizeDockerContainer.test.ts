@@ -242,15 +242,12 @@ describe("mechanizeDockerContainer", () => {
 	});
 
 	it.each(["invalid", "0", "-1", "1.5", "12bytes"])(
-		"does not add a /dev/shm mount for invalid shmSize %s",
+		"rejects invalid shmSize %s before calling Docker",
 		async (shmSize) => {
-			await mechanizeDockerContainer(createApplication({ shmSize }));
-
-			const [settings] = createServiceMock.mock.calls[0] ?? [];
-			const shmMount = settings?.TaskTemplate?.ContainerSpec?.Mounts?.find(
-				(m) => m.Target === "/dev/shm",
-			);
-			expect(shmMount).toBeUndefined();
+			await expect(
+				mechanizeDockerContainer(createApplication({ shmSize })),
+			).rejects.toThrow("SHM size must be a positive safe integer in bytes");
+			expect(createServiceMock).not.toHaveBeenCalled();
 		},
 	);
 });

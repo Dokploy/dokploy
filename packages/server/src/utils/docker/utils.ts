@@ -601,15 +601,18 @@ export const generateShmMount = (
 	shmSize: string | null | undefined,
 	existingMounts: ReadonlyArray<{ Target?: string }>,
 ) => {
-	if (!shmSize || !/^[1-9]\d*$/.test(shmSize)) {
+	if (!shmSize) {
 		return [];
+	}
+	if (!/^[1-9]\d*$/.test(shmSize)) {
+		throw new Error("SHM size must be a positive safe integer in bytes");
 	}
 
 	const sizeBytes = Number(shmSize);
-	if (
-		!Number.isSafeInteger(sizeBytes) ||
-		existingMounts.some((mount) => mount.Target === "/dev/shm")
-	) {
+	if (!Number.isSafeInteger(sizeBytes)) {
+		throw new Error("SHM size must be a positive safe integer in bytes");
+	}
+	if (existingMounts.some((mount) => mount.Target === "/dev/shm")) {
 		return [];
 	}
 
