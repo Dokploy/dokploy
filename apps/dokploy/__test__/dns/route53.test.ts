@@ -142,13 +142,15 @@ describe("route53Client.listRecords", () => {
 
 		const records = await route53Client.listRecords(config, "Z123");
 
-		expect(records[0]?.content).toBe("ns1.example.com, ns2.example.com");
+		expect(records[0]?.content).toBe("ns1.example.com\nns2.example.com");
 	});
 });
 
 describe("route53Client.upsertRecord", () => {
-	it("sends a single UPSERT change", async () => {
-		send.mockResolvedValueOnce({});
+	it("sends a single UPSERT change when nothing exists yet", async () => {
+		send
+			.mockResolvedValueOnce({ ResourceRecordSets: [] })
+			.mockResolvedValueOnce({});
 
 		const result = await route53Client.upsertRecord(config, {
 			zoneId: "Z123",
@@ -158,7 +160,7 @@ describe("route53Client.upsertRecord", () => {
 		});
 
 		expect(result).toEqual({ id: "A:app.example.com" });
-		const command = send.mock.calls[0]?.[0] as HasInput;
+		const command = send.mock.calls[1]?.[0] as HasInput;
 		expect(command.input.HostedZoneId).toBe("Z123");
 		expect(command.input.ChangeBatch.Changes).toEqual([
 			{
@@ -171,6 +173,82 @@ describe("route53Client.upsertRecord", () => {
 				},
 			},
 		]);
+	});
+
+	it("keeps the values already in the record set", async () => {
+		send
+			.mockResolvedValueOnce({
+				ResourceRecordSets: [
+					{
+						Name: "app.example.com.",
+						Type: "A",
+						TTL: 300,
+						ResourceRecords: [{ Value: "1.1.1.1" }, { Value: "2.2.2.2" }],
+					},
+				],
+			})
+			.mockResolvedValueOnce({});
+
+		await route53Client.upsertRecord(config, {
+			zoneId: "Z123",
+			type: "A",
+			name: "app.example.com",
+			content: "3.3.3.3",
+		});
+
+		const command = send.mock.calls[1]?.[0] as HasInput;
+		expect(
+			command.input.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords,
+		).toEqual([
+			{ Value: "1.1.1.1" },
+			{ Value: "2.2.2.2" },
+			{ Value: "3.3.3.3" },
+		]);
+	});
+
+	it("does not duplicate a value that is already in the record set", async () => {
+		send
+			.mockResolvedValueOnce({
+				ResourceRecordSets: [
+					{
+						Name: "app.example.com.",
+						Type: "A",
+						TTL: 300,
+						ResourceRecords: [{ Value: "1.1.1.1" }],
+					},
+				],
+			})
+			.mockResolvedValueOnce({});
+
+		await route53Client.upsertRecord(config, {
+			zoneId: "Z123",
+			type: "A",
+			name: "app.example.com",
+			content: "1.1.1.1",
+		});
+
+		const command = send.mock.calls[1]?.[0] as HasInput;
+		expect(
+			command.input.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords,
+		).toEqual([{ Value: "1.1.1.1" }]);
+	});
+
+	it("wraps unquoted TXT values in double quotes", async () => {
+		send
+			.mockResolvedValueOnce({ ResourceRecordSets: [] })
+			.mockResolvedValueOnce({});
+
+		await route53Client.upsertRecord(config, {
+			zoneId: "Z123",
+			type: "TXT",
+			name: "example.com",
+			content: 'v=spf1 ~all\n"already quoted"',
+		});
+
+		const command = send.mock.calls[1]?.[0] as HasInput;
+		expect(
+			command.input.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords,
+		).toEqual([{ Value: '"v=spf1 ~all"' }, { Value: '"already quoted"' }]);
 	});
 });
 
@@ -219,6 +297,25 @@ describe("route53Client.updateRecord", () => {
 					ResourceRecords: [{ Value: "1.1.1.1" }],
 				},
 			},
+		]);
+	});
+
+	it("keeps every line of a multi-value record set", async () => {
+		send.mockResolvedValueOnce({});
+
+		await route53Client.updateRecord(config, "Z123", "NS:example.com", {
+			type: "NS",
+			name: "example.com",
+			content: "ns1.example.com\nns2.example.com\n\n  ns3.example.com  ",
+		});
+
+		const command = send.mock.calls[0]?.[0] as HasInput;
+		expect(
+			command.input.ChangeBatch.Changes[0].ResourceRecordSet.ResourceRecords,
+		).toEqual([
+			{ Value: "ns1.example.com" },
+			{ Value: "ns2.example.com" },
+			{ Value: "ns3.example.com" },
 		]);
 	});
 

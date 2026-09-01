@@ -162,6 +162,7 @@ export const dnsProviderRouter = createTRPCRouter({
 				name: input.name,
 				content: input.content,
 				ttl: input.ttl,
+				proxied: input.proxied,
 			});
 			await audit(ctx, {
 				action: "create",
@@ -188,6 +189,7 @@ export const dnsProviderRouter = createTRPCRouter({
 					name: input.name,
 					content: input.content,
 					ttl: input.ttl,
+					proxied: input.proxied,
 				},
 			);
 			await audit(ctx, {
