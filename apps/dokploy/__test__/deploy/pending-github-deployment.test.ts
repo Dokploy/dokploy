@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
 	eq: vi.fn((field: string, value: unknown) => ({ field, value })),
 	deleteWhere: vi.fn(),
 	insertValues: vi.fn(),
+	onConflictDoUpdate: vi.fn(),
 	returning: vi.fn(),
 	findMany: vi.fn(),
 }));
@@ -37,6 +38,7 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+import { db } from "@dokploy/server/db";
 import {
 	createPendingGithubDeployment,
 	findPendingGithubDeploymentsBySha,
@@ -47,11 +49,14 @@ describe("pending GitHub deployments", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mocks.deleteWhere.mockReturnValue({ returning: mocks.returning });
-		mocks.insertValues.mockReturnValue({ returning: mocks.returning });
+		mocks.insertValues.mockReturnValue({
+			onConflictDoUpdate: mocks.onConflictDoUpdate,
+		});
+		mocks.onConflictDoUpdate.mockReturnValue({ returning: mocks.returning });
 		mocks.returning.mockResolvedValue([{ pendingGithubDeploymentId: "row" }]);
 	});
 
-	it("replaces the previous pending deployment of the same application", async () => {
+	it("upserts on the application id so a newer push replaces the parked row", async () => {
 		const created = await createPendingGithubDeployment({
 			applicationId: "application-id",
 			headSha: "abc123",
@@ -59,23 +64,26 @@ describe("pending GitHub deployments", () => {
 			descriptionLog: "Hash: abc123",
 		});
 
-		expect(mocks.deleteWhere).toHaveBeenCalledWith({
-			field: "pending.applicationId",
-			value: "application-id",
-		});
 		expect(mocks.insertValues).toHaveBeenCalledWith({
 			applicationId: "application-id",
 			headSha: "abc123",
 			titleLog: "fix: something",
 			descriptionLog: "Hash: abc123",
 		});
-		expect(mocks.deleteWhere.mock.invocationCallOrder[0]).toBeLessThan(
-			mocks.insertValues.mock.invocationCallOrder[0] as number,
-		);
+		expect(mocks.onConflictDoUpdate).toHaveBeenCalledWith({
+			target: "pending.applicationId",
+			set: expect.objectContaining({
+				headSha: "abc123",
+				titleLog: "fix: something",
+				descriptionLog: "Hash: abc123",
+				createdAt: expect.any(String),
+			}),
+		});
+		expect(db.delete).not.toHaveBeenCalled();
 		expect(created).toEqual({ pendingGithubDeploymentId: "row" });
 	});
 
-	it("scopes the replacement to the compose service when given a composeId", async () => {
+	it("upserts on the compose id when given a composeId", async () => {
 		await createPendingGithubDeployment({
 			composeId: "compose-id",
 			headSha: "abc123",
@@ -83,13 +91,12 @@ describe("pending GitHub deployments", () => {
 			descriptionLog: "Hash: abc123",
 		});
 
-		expect(mocks.deleteWhere).toHaveBeenCalledWith({
-			field: "pending.composeId",
-			value: "compose-id",
-		});
+		expect(mocks.onConflictDoUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({ target: "pending.composeId" }),
+		);
 	});
 
-	it("finds pending deployments by commit sha", async () => {
+	it("finds pending deployments by commit sha with the service repository", async () => {
 		mocks.findMany.mockResolvedValue([]);
 
 		await findPendingGithubDeploymentsBySha("abc123");
@@ -97,6 +104,20 @@ describe("pending GitHub deployments", () => {
 		expect(mocks.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: { field: "pending.headSha", value: "abc123" },
+				with: expect.objectContaining({
+					application: {
+						columns: expect.objectContaining({
+							owner: true,
+							repository: true,
+						}),
+					},
+					compose: {
+						columns: expect.objectContaining({
+							owner: true,
+							repository: true,
+						}),
+					},
+				}),
 			}),
 		);
 	});
@@ -115,5 +136,23 @@ describe("pending GitHub deployments", () => {
 		mocks.returning.mockResolvedValue([]);
 
 		expect(await removePendingGithubDeployment("row")).toBeUndefined();
+	});
+
+	it("deletes through the given transaction instead of the shared db", async () => {
+		const txWhere = vi.fn(() => ({
+			returning: vi
+				.fn()
+				.mockResolvedValue([{ pendingGithubDeploymentId: "row" }]),
+		}));
+		const tx = { delete: vi.fn(() => ({ where: txWhere })) };
+
+		const removed = await removePendingGithubDeployment(
+			"row",
+			tx as unknown as Parameters<typeof removePendingGithubDeployment>[1],
+		);
+
+		expect(tx.delete).toHaveBeenCalled();
+		expect(db.delete).not.toHaveBeenCalled();
+		expect(removed).toEqual({ pendingGithubDeploymentId: "row" });
 	});
 });

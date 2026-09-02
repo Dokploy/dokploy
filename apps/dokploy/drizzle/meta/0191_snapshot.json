@@ -1,5 +1,5 @@
 {
-  "id": "5bc1fe60-7964-4324-9aa1-b58adad6a921",
+  "id": "f7002005-ccb4-4586-baa6-b37ecfa07ad6",
   "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
   "version": "7",
   "dialect": "postgresql",
@@ -6394,7 +6394,38 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "pending_github_deployments_applicationId_idx": {
+          "name": "pending_github_deployments_applicationId_idx",
+          "columns": [
+            {
+              "expression": "applicationId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pending_github_deployments_composeId_idx": {
+          "name": "pending_github_deployments_composeId_idx",
+          "columns": [
+            {
+              "expression": "composeId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "pending_github_deployments_applicationId_application_applicationId_fk": {
           "name": "pending_github_deployments_applicationId_application_applicationId_fk",

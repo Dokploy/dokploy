@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
 	findPendingGithubDeploymentsBySha: vi.fn(),
 	removePendingGithubDeployment: vi.fn(),
 	haveAllChecksPassed: vi.fn(),
+	tx: { marker: "transaction" },
+	dbTransaction: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -52,6 +54,7 @@ vi.mock("@/server/db/schema", () => ({
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
+		transaction: mocks.dbTransaction,
 		query: {
 			github: {
 				findFirst: mocks.githubFindFirst,
@@ -533,6 +536,8 @@ describe("GitHub app webhook wait for checks", () => {
 			applicationId: "application-id",
 			githubId: "github-provider-id",
 			serverId: null,
+			owner: "agentHits",
+			repository: "dokploy",
 		},
 		compose: null,
 	};
@@ -549,6 +554,9 @@ describe("GitHub app webhook wait for checks", () => {
 		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([]);
 		mocks.removePendingGithubDeployment.mockResolvedValue(parkedApplication);
 		mocks.haveAllChecksPassed.mockResolvedValue(true);
+		mocks.dbTransaction.mockImplementation(
+			async (callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx),
+		);
 	});
 
 	it("parks the push instead of deploying when the application waits for checks", async () => {
@@ -645,6 +653,7 @@ describe("GitHub app webhook wait for checks", () => {
 		);
 		expect(mocks.removePendingGithubDeployment).toHaveBeenCalledWith(
 			"pending-id",
+			mocks.tx,
 		);
 		expect(mocks.queueAdd).toHaveBeenCalledWith(
 			"deployments",
@@ -677,6 +686,8 @@ describe("GitHub app webhook wait for checks", () => {
 				composeId: "compose-id",
 				githubId: "github-provider-id",
 				serverId: null,
+				owner: "agentHits",
+				repository: "dokploy",
 			},
 		};
 		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([parkedCompose]);
@@ -749,6 +760,75 @@ describe("GitHub app webhook wait for checks", () => {
 		expect(res.json).toHaveBeenCalledWith({
 			message: "Ignored check_suite action requested",
 		});
+	});
+
+	it("ignores parked deployments of a service that deploys another repository", async () => {
+		// Forks and mirrors share commit shas with the original repository.
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			{
+				...parkedApplication,
+				application: {
+					...parkedApplication.application,
+					owner: "someone-else",
+					repository: "dokploy",
+				},
+			},
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.haveAllChecksPassed).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "No pending deployments for this commit",
+		});
+	});
+
+	it("matches the repository case-insensitively", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			{
+				...parkedApplication,
+				application: {
+					...parkedApplication.application,
+					owner: "AgentHits",
+					repository: "Dokploy",
+				},
+			},
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("consumes the row and queues the job inside one transaction", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			parkedApplication,
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.dbTransaction).toHaveBeenCalledTimes(1);
+		expect(mocks.removePendingGithubDeployment).toHaveBeenCalledWith(
+			"pending-id",
+			mocks.tx,
+		);
+	});
+
+	it("fails the request when the queue rejects the job so the row is rolled back", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			parkedApplication,
+		]);
+		mocks.queueAdd.mockRejectedValue(new Error("redis down"));
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.dbTransaction).toHaveBeenCalledTimes(1);
+		expect(res.status).toHaveBeenCalledWith(400);
 	});
 
 	it("does not deploy twice when another suite already consumed the row", async () => {

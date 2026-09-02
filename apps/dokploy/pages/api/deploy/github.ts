@@ -34,6 +34,17 @@ type PendingGithubDeploymentRow = Awaited<
 	ReturnType<typeof findPendingGithubDeploymentsBySha>
 >[number];
 
+const isSameRepository = (
+	service: { owner: string | null; repository: string | null } | null,
+	owner: string | undefined,
+	repository: string | undefined,
+) =>
+	!!service &&
+	!!owner &&
+	!!repository &&
+	service.owner?.toLowerCase() === owner.toLowerCase() &&
+	service.repository?.toLowerCase() === repository.toLowerCase();
+
 const toDeploymentJob = (
 	row: PendingGithubDeploymentRow,
 ): DeploymentJob | undefined => {
@@ -149,9 +160,18 @@ export default async function handler(
 
 		try {
 			const headSha = githubBody?.check_suite?.head_sha;
+			const owner = getGithubRepositoryOwner(githubBody);
+			const repository = githubBody?.repository?.name;
+			// Forks and mirrors share commit shas, so a green suite on one
+			// repository must not release a service that deploys another one.
 			const pending = (await findPendingGithubDeploymentsBySha(headSha)).filter(
-				(row) =>
-					(row.application ?? row.compose)?.githubId === githubResult.githubId,
+				(row) => {
+					const service = row.application ?? row.compose;
+					return (
+						service?.githubId === githubResult.githubId &&
+						isSameRepository(service, owner, repository)
+					);
+				},
 			);
 
 			if (pending.length === 0) {
@@ -161,8 +181,6 @@ export default async function handler(
 				return;
 			}
 
-			const owner = getGithubRepositoryOwner(githubBody);
-			const repository = githubBody?.repository?.name;
 			const checksPassed = await haveAllChecksPassed(
 				githubResult,
 				owner,
@@ -182,33 +200,38 @@ export default async function handler(
 					continue;
 				}
 
-				// Every suite on the commit sends its own completed event, so two of
-				// them can land here together. Whoever deletes the row deploys.
-				const consumed = await removePendingGithubDeployment(
-					row.pendingGithubDeploymentId,
-				);
-				if (!consumed) {
-					continue;
-				}
-
 				const serverId = row.application?.serverId ?? row.compose?.serverId;
-				if (IS_CLOUD && serverId) {
-					jobData.serverId = serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
-					});
+				// Every suite on the commit sends its own completed event, so two of
+				// them can land here together. Whoever deletes the row deploys, and
+				// the delete only sticks once the job is in the queue.
+				const consumed = await db.transaction(async (tx) => {
+					const removed = await removePendingGithubDeployment(
+						row.pendingGithubDeploymentId,
+						tx,
+					);
+					if (!removed) {
+						return false;
+					}
+					if (IS_CLOUD && serverId) {
+						jobData.serverId = serverId;
+						deploy(jobData).catch((error) => {
+							console.error("Background deployment failed:", error);
+						});
+						return true;
+					}
+					await myQueue.add(
+						"deployments",
+						{ ...jobData },
+						{
+							removeOnComplete: true,
+							removeOnFail: true,
+						},
+					);
+					return true;
+				});
+				if (consumed) {
 					deployed++;
-					continue;
 				}
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
-				deployed++;
 			}
 
 			res.status(200).json({

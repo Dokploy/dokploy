@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 export type PendingGithubDeployment =
 	typeof pendingGithubDeployments.$inferSelect;
 
+type Executor = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 type CreatePendingGithubDeployment = {
 	headSha: string;
 	titleLog: string;
@@ -14,18 +16,26 @@ type CreatePendingGithubDeployment = {
 export const createPendingGithubDeployment = async (
 	input: CreatePendingGithubDeployment,
 ) => {
-	const sameService =
+	// Only the latest push of a service is worth deploying. The unique index
+	// on the service id turns a second push into an update of the parked row,
+	// so two overlapping webhooks cannot leave two deployable rows behind.
+	const target =
 		"applicationId" in input
-			? eq(pendingGithubDeployments.applicationId, input.applicationId)
-			: eq(pendingGithubDeployments.composeId, input.composeId);
-
-	// Only the latest push of a service is worth deploying, so an older
-	// parked deploy is dropped rather than left to fire on stale checks.
-	await db.delete(pendingGithubDeployments).where(sameService);
+			? pendingGithubDeployments.applicationId
+			: pendingGithubDeployments.composeId;
 
 	const [created] = await db
 		.insert(pendingGithubDeployments)
 		.values(input)
+		.onConflictDoUpdate({
+			target,
+			set: {
+				headSha: input.headSha,
+				titleLog: input.titleLog,
+				descriptionLog: input.descriptionLog,
+				createdAt: new Date().toISOString(),
+			},
+		})
 		.returning();
 
 	return created;
@@ -36,18 +46,31 @@ export const findPendingGithubDeploymentsBySha = (headSha: string) =>
 		where: eq(pendingGithubDeployments.headSha, headSha),
 		with: {
 			application: {
-				columns: { applicationId: true, githubId: true, serverId: true },
+				columns: {
+					applicationId: true,
+					githubId: true,
+					serverId: true,
+					owner: true,
+					repository: true,
+				},
 			},
 			compose: {
-				columns: { composeId: true, githubId: true, serverId: true },
+				columns: {
+					composeId: true,
+					githubId: true,
+					serverId: true,
+					owner: true,
+					repository: true,
+				},
 			},
 		},
 	});
 
 export const removePendingGithubDeployment = async (
 	pendingGithubDeploymentId: string,
+	executor: Executor = db,
 ) => {
-	const [removed] = await db
+	const [removed] = await executor
 		.delete(pendingGithubDeployments)
 		.where(
 			eq(
