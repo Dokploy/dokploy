@@ -27,7 +27,9 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	getResourceUsage,
 	IS_CLOUD,
+	type ServiceDescriptor,
 	updateProjectById,
 	updateUser,
 } from "@dokploy/server";
@@ -684,6 +686,218 @@ export const projectRouter = createTRPCRouter({
 		await updateUser(ctx.user.id, { onboardingCompletedAt: new Date() });
 		return { ok: true };
 	}),
+
+	resourceUsage: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			if (IS_CLOUD) {
+				return [];
+			}
+
+			const isPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+
+			let accessedProjects: string[] = [];
+			let accessedEnvironments: string[] = [];
+			let accessedServices: string[] = [];
+
+			if (!isPrivileged) {
+				const member = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				accessedProjects = member.accessedProjects;
+				accessedEnvironments = member.accessedEnvironments;
+				accessedServices = member.accessedServices;
+
+				if (accessedProjects.length === 0) {
+					return [];
+				}
+			}
+
+			const projectIdFilter = isPrivileged
+				? eq(projects.organizationId, ctx.session.activeOrganizationId)
+				: and(
+						sql`${projects.projectId} IN (${sql.join(
+							accessedProjects.map((id) => sql`${id}`),
+							sql`, `,
+						)})`,
+						eq(projects.organizationId, ctx.session.activeOrganizationId),
+					);
+
+			const environmentFilter = isPrivileged
+				? undefined
+				: accessedEnvironments.length === 0
+					? sql`false`
+					: sql`${environments.environmentId} IN (${sql.join(
+							accessedEnvironments.map((envId) => sql`${envId}`),
+							sql`, `,
+						)})`;
+
+			const applyFilter = (col: AnyPgColumn) =>
+				isPrivileged ? undefined : buildServiceFilter(col, accessedServices);
+
+			const rows = await db.query.projects.findMany({
+				where: projectIdFilter,
+				columns: { projectId: true, name: true },
+				with: {
+					environments: {
+						where: environmentFilter,
+						columns: { environmentId: true, name: true },
+						with: {
+							applications: {
+								where: applyFilter(applications.applicationId),
+								columns: { ...serviceColumns, applicationId: true },
+							},
+							compose: {
+								where: applyFilter(compose.composeId),
+								columns: {
+									...serviceColumns,
+									composeId: true,
+									composeStatus: true,
+									composeType: true,
+								},
+							},
+							libsql: {
+								where: applyFilter(libsql.libsqlId),
+								columns: { ...serviceColumns, libsqlId: true },
+							},
+							mariadb: {
+								where: applyFilter(mariadb.mariadbId),
+								columns: { ...serviceColumns, mariadbId: true },
+							},
+							mongo: {
+								where: applyFilter(mongo.mongoId),
+								columns: { ...serviceColumns, mongoId: true },
+							},
+							mysql: {
+								where: applyFilter(mysql.mysqlId),
+								columns: { ...serviceColumns, mysqlId: true },
+							},
+							postgres: {
+								where: applyFilter(postgres.postgresId),
+								columns: { ...serviceColumns, postgresId: true },
+							},
+							redis: {
+								where: applyFilter(redis.redisId),
+								columns: { ...serviceColumns, redisId: true },
+							},
+						},
+					},
+				},
+			});
+
+			const services: ServiceDescriptor[] = [];
+			const matchesServer = (serverId: string | null) =>
+				(serverId ?? undefined) === input.serverId;
+
+			for (const project of rows) {
+				for (const env of project.environments) {
+					const base = {
+						projectId: project.projectId,
+						projectName: project.name,
+						environmentId: env.environmentId,
+						environmentName: env.name,
+					};
+
+					for (const a of env.applications) {
+						if (!matchesServer(a.serverId)) continue;
+						services.push({
+							...base,
+							id: a.applicationId,
+							name: a.name,
+							appName: a.appName,
+							type: "application",
+							status: a.applicationStatus,
+						});
+					}
+					for (const c of env.compose) {
+						if (!matchesServer(c.serverId)) continue;
+						services.push({
+							...base,
+							id: c.composeId,
+							name: c.name,
+							appName: c.appName,
+							type: "compose",
+							composeType: c.composeType,
+							status: c.composeStatus,
+						});
+					}
+					for (const s of env.libsql) {
+						if (!matchesServer(s.serverId)) continue;
+						services.push({
+							...base,
+							id: s.libsqlId,
+							name: s.name,
+							appName: s.appName,
+							type: "libsql",
+							status: s.applicationStatus,
+						});
+					}
+					for (const s of env.mariadb) {
+						if (!matchesServer(s.serverId)) continue;
+						services.push({
+							...base,
+							id: s.mariadbId,
+							name: s.name,
+							appName: s.appName,
+							type: "mariadb",
+							status: s.applicationStatus,
+						});
+					}
+					for (const s of env.mongo) {
+						if (!matchesServer(s.serverId)) continue;
+						services.push({
+							...base,
+							id: s.mongoId,
+							name: s.name,
+							appName: s.appName,
+							type: "mongo",
+							status: s.applicationStatus,
+						});
+					}
+					for (const s of env.mysql) {
+						if (!matchesServer(s.serverId)) continue;
+						services.push({
+							...base,
+							id: s.mysqlId,
+							name: s.name,
+							appName: s.appName,
+							type: "mysql",
+							status: s.applicationStatus,
+						});
+					}
+					for (const s of env.postgres) {
+						if (!matchesServer(s.serverId)) continue;
+						services.push({
+							...base,
+							id: s.postgresId,
+							name: s.name,
+							appName: s.appName,
+							type: "postgres",
+							status: s.applicationStatus,
+						});
+					}
+					for (const s of env.redis) {
+						if (!matchesServer(s.serverId)) continue;
+						services.push({
+							...base,
+							id: s.redisId,
+							name: s.name,
+							appName: s.appName,
+							type: "redis",
+							status: s.applicationStatus,
+						});
+					}
+				}
+			}
+
+			return await getResourceUsage(services, input.serverId);
+		}),
 
 	search: protectedProcedure
 		.input(
