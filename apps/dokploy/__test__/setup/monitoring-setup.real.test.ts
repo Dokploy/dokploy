@@ -154,7 +154,16 @@ const hasRealMonitoring = () => {
 	);
 };
 
-describe.skipIf(hasRealMonitoring())(
+const hasDocker = () => {
+	try {
+		execSync("docker info", { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+describe.skipIf(!hasDocker() || hasRealMonitoring() || !process.env.CI)(
 	"setupMonitoring - legacy container cleanup (real docker)",
 	() => {
 		beforeEach(async () => {

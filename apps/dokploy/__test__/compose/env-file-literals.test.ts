@@ -54,7 +54,16 @@ const inputEncoding: Record<string, string> = {
 	DB_HOST: '"${UNDEFINED_HOST:-localhost}"',
 };
 
-describe("getCreateEnvFileCommand", () => {
+const hasDocker = () => {
+	try {
+		execFileSync("docker", ["info"], { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+describe.skipIf(!hasDocker())("getCreateEnvFileCommand", () => {
 	it("writes special environment values that Docker Compose reads back literally", () => {
 		mkdirSync(codePath, { recursive: true });
 
