@@ -1,5 +1,10 @@
 import type http from "node:http";
-import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import {
+	findServerById,
+	IS_CLOUD,
+	IS_DEMO,
+	validateRequest,
+} from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -74,6 +79,13 @@ export const setupDockerContainerTerminalWebSocketServer = (
 			ws.close(4003, "Not authorized");
 			return;
 		}
+
+		if (IS_DEMO) {
+			ws.send("Terminal access is disabled on this read-only demo instance.");
+			ws.close();
+			return;
+		}
+
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);

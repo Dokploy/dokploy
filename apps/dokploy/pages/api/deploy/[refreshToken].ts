@@ -2,6 +2,7 @@ import {
 	type Bitbucket,
 	getBitbucketHeaders,
 	IS_CLOUD,
+	IS_DEMO,
 	shouldDeploy,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -38,6 +39,10 @@ export default async function handler(
 ) {
 	const { refreshToken } = req.query;
 	try {
+		if (IS_DEMO) {
+			res.status(403).json({ message: "This is a read-only demo instance." });
+			return;
+		}
 		if (req.headers["x-github-event"] === "ping") {
 			res.status(200).json({ message: "Ping received, webhook is active" });
 			return;

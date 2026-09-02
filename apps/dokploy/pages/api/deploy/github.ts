@@ -6,6 +6,7 @@ import {
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
 	IS_CLOUD,
+	IS_DEMO,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
@@ -30,6 +31,11 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
+	if (IS_DEMO) {
+		res.status(403).json({ message: "This is a read-only demo instance." });
+		return;
+	}
+
 	const signature = req.headers["x-hub-signature-256"];
 	if (!signature) {
 		res.status(401).json({ message: "Missing signature header" });

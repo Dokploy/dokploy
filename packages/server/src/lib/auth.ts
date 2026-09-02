@@ -9,7 +9,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
+import { IS_CLOUD, IS_DEMO } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -31,6 +31,20 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
+
+// Default-deny allowlist for demo mode: block every better-auth endpoint
+// except the ones a shared read-only login needs (sign-in, session check,
+// sign-out). This is deliberately an allowlist, not a blocklist of the
+// mutating paths (sign-up, change-password, invite-member, api-key, sso,
+// scim, ...) — better-auth plugins add new endpoints over time, and a
+// blocklist silently stops covering them.
+const DEMO_ALLOWED_AUTH_PATHS = new Set([
+	"/sign-in/email",
+	"/get-session",
+	"/sign-out",
+	"/ok",
+	"/error",
+]);
 
 const resolveTrustedOrigins = async () => {
 	try {
@@ -125,6 +139,12 @@ const createBetterAuth = () =>
 					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
 					...(await resolveTrustedOrigins()),
 				].filter(Boolean);
+
+				if (IS_DEMO && !DEMO_ALLOWED_AUTH_PATHS.has(ctx.path)) {
+					throw new APIError("FORBIDDEN", {
+						message: "This is a read-only demo instance.",
+					});
+				}
 			}),
 		},
 		emailVerification: {

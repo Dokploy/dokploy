@@ -9,7 +9,7 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/index";
+import { hasValidLicense, IS_DEMO } from "@dokploy/server/index";
 import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { checkPermission } from "@dokploy/server/services/permission";
@@ -142,13 +142,30 @@ const t = initTRPC
 export const createTRPCRouter = t.router;
 
 /**
+ * Every procedure below is built on this instead of `t.procedure` directly, so
+ * demo-mode blocking applies everywhere in one place. It checks `type !==
+ * "query"` rather than `type === "mutation"` because some real deploy/restore
+ * actions (e.g. deployWithLogs, restoreBackupWithLogs) are implemented as
+ * `.subscription()` generators, not `.mutation()`.
+ */
+const baseProcedure = t.procedure.use(({ type, next }) => {
+	if (IS_DEMO && type !== "query") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "This is a read-only demo instance.",
+		});
+	}
+	return next();
+});
+
+/**
  * Public (unauthenticated) procedure
  *
  * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure;
+export const publicProcedure = baseProcedure;
 
 /**
  * Protected (authenticated) procedure
@@ -158,7 +175,7 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = baseProcedure.use(({ ctx, next }) => {
 	if (!ctx.session || !ctx.user) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
@@ -172,7 +189,7 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
-export const cliProcedure = t.procedure.use(({ ctx, next }) => {
+export const cliProcedure = baseProcedure.use(({ ctx, next }) => {
 	if (
 		!ctx.session ||
 		!ctx.user ||
@@ -190,7 +207,7 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 	});
 });
 
-export const adminProcedure = t.procedure.use(({ ctx, next }) => {
+export const adminProcedure = baseProcedure.use(({ ctx, next }) => {
 	if (
 		!ctx.session ||
 		!ctx.user ||
@@ -213,7 +230,7 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
  * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
  * is used in the UI gate and when activating/validating keys.
  */
-export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
+export const enterpriseProcedure = baseProcedure.use(async ({ ctx, next }) => {
 	if (
 		!ctx.session ||
 		!ctx.user ||

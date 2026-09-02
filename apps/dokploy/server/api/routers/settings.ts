@@ -543,7 +543,7 @@ export const settingsRouter = createTRPCRouter({
 			});
 			return true;
 		}),
-	getUpdateData: protectedProcedure.mutation(async () => {
+	getUpdateData: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return DEFAULT_UPDATE_DATA;
 		}

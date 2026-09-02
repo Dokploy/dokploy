@@ -3,6 +3,7 @@ import {
 	execAsync,
 	findServerById,
 	IS_CLOUD,
+	IS_DEMO,
 	validateRequest,
 } from "@dokploy/server";
 import { publicIpv4, publicIpv6 } from "public-ip";
@@ -104,6 +105,12 @@ export const setupTerminalWebSocketServer = (
 
 		if (!(await canAccessTerminalOverWss(user, session, serverId))) {
 			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		if (IS_DEMO) {
+			ws.send("Terminal access is disabled on this read-only demo instance.");
+			ws.close();
 			return;
 		}
 

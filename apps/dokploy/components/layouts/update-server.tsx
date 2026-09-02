@@ -19,8 +19,7 @@ export const UpdateServerButton = () => {
 		updateAvailable: false,
 	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { mutateAsync: getUpdateData } =
-		api.settings.getUpdateData.useMutation();
+	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
 	const checkUpdatesIntervalRef = useRef<null | NodeJS.Timeout>(null);
@@ -48,7 +47,7 @@ export const UpdateServerButton = () => {
 					return;
 				}
 
-				const fetchedUpdateData = await getUpdateData();
+				const fetchedUpdateData = await utils.settings.getUpdateData.fetch();
 
 				if (fetchedUpdateData?.updateAvailable) {
 					// Stop interval when update is available

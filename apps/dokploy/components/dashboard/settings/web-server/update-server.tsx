@@ -45,8 +45,8 @@ export const UpdateServer = ({
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
 		!!updateData?.updateAvailable,
 	);
-	const { mutateAsync: getUpdateData, isPending } =
-		api.settings.getUpdateData.useMutation();
+	const utils = api.useUtils();
+	const [isPending, setIsPending] = useState(false);
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: releaseTag } = api.settings.getReleaseTag.useQuery();
 	const [latestVersion, setLatestVersion] = useState(
@@ -55,8 +55,9 @@ export const UpdateServer = ({
 	const [isOpenInternal, setIsOpenInternal] = useState(false);
 
 	const handleCheckUpdates = async () => {
+		setIsPending(true);
 		try {
-			const updateData = await getUpdateData();
+			const updateData = await utils.settings.getUpdateData.fetch();
 			const versionToUpdate = updateData.latestVersion || "";
 			setHasCheckedUpdate(true);
 			setIsUpdateAvailable(updateData.updateAvailable);
@@ -76,6 +77,8 @@ export const UpdateServer = ({
 			toast.error(
 				"An error occurred while checking for updates, please try again.",
 			);
+		} finally {
+			setIsPending(false);
 		}
 	};
 

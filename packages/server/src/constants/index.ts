@@ -4,6 +4,11 @@ import Docker from "dockerode";
 
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
 
+// Public read-only demo instance: every non-query tRPC procedure, the
+// terminal/exec websockets, and the deploy webhooks are blocked so visitors
+// can browse seeded data without being able to change anything.
+export const IS_DEMO = process.env.IS_DEMO === "true";
+
 export const DOKPLOY_DOCKER_API_VERSION =
 	process.env.DOKPLOY_DOCKER_API_VERSION;
 export const DOKPLOY_DOCKER_HOST = process.env.DOKPLOY_DOCKER_HOST;
