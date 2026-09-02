@@ -7,7 +7,13 @@ import {
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { getCurrentPlan as getCurrentPlanForOrganization } from "@/server/utils/billing";
+import {
+	getBillingStatus,
+	getCurrentPlan as getCurrentPlanForOrganization,
+	getStripeClient,
+	TRIAL_DURATION_DAYS,
+	TRIAL_SERVER_LIMIT,
+} from "@/server/utils/billing";
 import {
 	type BillingTier,
 	getStripeItems,
@@ -33,6 +39,77 @@ export const stripeRouter = createTRPCRouter({
 	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
 	getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
 		return getCurrentPlanForOrganization(ctx.session.activeOrganizationId);
+	}),
+
+	getBillingStatus: protectedProcedure.query(async ({ ctx }) => {
+		return getBillingStatus(ctx.user.ownerId);
+	}),
+
+	startFreeTrial: adminProcedure.mutation(async ({ ctx }) => {
+		if (!IS_CLOUD) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "This feature is only available in Dokploy Cloud",
+			});
+		}
+
+		if (!HOBBY_PRICE_MONTHLY_ID) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Trials are not configured",
+			});
+		}
+
+		const owner = await findUserById(ctx.user.ownerId);
+		const billingStatus = await getBillingStatus(owner.id);
+
+		if (billingStatus.hasActiveAccess) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "You already have an active plan or trial",
+			});
+		}
+
+		if (billingStatus.hasUsedTrial) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "You have already used your free trial",
+			});
+		}
+
+		const stripe = getStripeClient();
+
+		let stripeCustomerId = owner.stripeCustomerId;
+		if (stripeCustomerId) {
+			const customer = await stripe.customers.retrieve(stripeCustomerId);
+			if (customer.deleted) {
+				stripeCustomerId = null;
+			}
+		}
+		if (!stripeCustomerId) {
+			const customer = await stripe.customers.create({ email: owner.email });
+			stripeCustomerId = customer.id;
+		}
+
+		const subscription = await stripe.subscriptions.create({
+			customer: stripeCustomerId,
+			items: [{ price: HOBBY_PRICE_MONTHLY_ID, quantity: 1 }],
+			trial_period_days: TRIAL_DURATION_DAYS,
+			trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+			metadata: { source: "onboarding_trial", adminId: owner.id },
+		});
+
+		await updateUser(owner.id, {
+			stripeCustomerId,
+			stripeSubscriptionId: subscription.id,
+			serversQuantity: TRIAL_SERVER_LIMIT,
+		});
+
+		return {
+			trialEndsAt: subscription.trial_end
+				? new Date(subscription.trial_end * 1000)
+				: null,
+		};
 	}),
 
 	getProducts: adminProcedure.query(async ({ ctx }) => {
@@ -256,7 +333,7 @@ export const stripeRouter = createTRPCRouter({
 				{ expand: ["items.data.price"] },
 			);
 
-			if (subscription.status !== "active") {
+			if (subscription.status !== "active" && subscription.status !== "trialing") {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Subscription is not active",
