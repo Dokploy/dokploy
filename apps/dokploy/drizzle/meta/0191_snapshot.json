@@ -1,6 +1,6 @@
 {
-  "id": "d3186290-04e7-4f38-9216-d55a766b1dae",
-  "prevId": "64935c8d-d487-4e34-9c2b-9d98ff0b0896",
+  "id": "487034a7-66d0-4e98-b86d-b2dd235f73d0",
+  "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -8953,7 +8953,8 @@
       "values": [
         "cloudflare",
         "route53",
-        "porkbun"
+        "porkbun",
+        "ovh"
       ]
     },
     "public.domainType": {
