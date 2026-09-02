@@ -5,7 +5,7 @@ import {
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { createServerSideHelpers } from "@trpc/react-query/server";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
@@ -14,7 +14,6 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import superjson from "superjson";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
@@ -495,17 +494,7 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-	const helpers = createServerSideHelpers({
-		router: appRouter,
-		ctx: {
-			req: context.req as any,
-			res: context.res as any,
-			db: null as any,
-			session: null as any,
-			user: null as any,
-		},
-		transformer: superjson,
-	});
+	const helpers = generateServerSideHelper(appRouter, context);
 	// Prefetch the public branding so the login/onboarding logo and app name
 	// render correctly on the server (no flash of default branding).
 	await helpers.whitelabeling.getPublic.prefetch();
