@@ -66,7 +66,7 @@
     "drizzle-zod": "0.5.1",
     "lodash": "4.17.21",
     "micromatch": "4.0.8",
-    "nanoid": "3.3.11",
+    "nanoid": "3.3.18",
     "node-os-utils": "2.0.1",
     "node-pty": "1.1.0",
     "node-schedule": "2.1.1",
