@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.30.4",
+	"version": "v0.30.5",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -37,7 +37,8 @@
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
 		"test": "vitest --config __test__/vitest.config.ts",
-		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
+		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts",
+		"reset-onboarding": "tsx -r dotenv/config scripts/reset-onboarding.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.44",

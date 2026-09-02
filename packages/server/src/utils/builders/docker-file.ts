@@ -26,11 +26,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 	try {
 		const image = `${appName}`;
 
-		const defaultContextPath =
-			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
-
-		const dockerContextPath =
-			getDockerContextPath(application) || defaultContextPath;
+		const dockerContextPath = getDockerContextPath(application);
 
 		const commandArgs = ["build", "-t", image, "-f", dockerFilePath, "."];
 
