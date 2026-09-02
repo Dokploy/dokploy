@@ -1,6 +1,6 @@
 {
-  "id": "d3186290-04e7-4f38-9216-d55a766b1dae",
-  "prevId": "64935c8d-d487-4e34-9c2b-9d98ff0b0896",
+  "id": "4475627b-469e-41b9-9f28-1476e991faa9",
+  "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1253,6 +1253,12 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4403,6 +4409,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "shmSize": {
+          "name": "shmSize",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -4651,6 +4663,12 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -5138,6 +5156,12 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6499,6 +6523,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "shmSize": {
+          "name": "shmSize",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
@@ -6996,6 +7026,12 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shmSize": {
+          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
