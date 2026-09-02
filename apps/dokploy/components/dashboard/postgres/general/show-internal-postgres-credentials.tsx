@@ -1,10 +1,10 @@
+import { toast } from "sonner";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { UpdateDatabasePassword } from "@/components/shared/update-database-password";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
-import { toast } from "sonner";
 
 interface Props {
 	postgresId: string;
@@ -25,11 +25,11 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4 md:gap-8">
 							<div className="flex flex-col gap-2">
 								<Label>User</Label>
-								<Input disabled value={data?.databaseUser} />
+								<Input enableCopyButton disabled value={data?.databaseUser} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Database Name</Label>
-								<Input disabled value={data?.databaseName} />
+								<Input enableCopyButton disabled value={data?.databaseName} />
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Password</Label>
@@ -57,7 +57,7 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 
 							<div className="flex flex-col gap-2">
 								<Label>Internal Host</Label>
-								<Input disabled value={data?.appName} />
+								<Input enableCopyButton disabled value={data?.appName} />
 							</div>
 
 							<div className="flex flex-col gap-2">

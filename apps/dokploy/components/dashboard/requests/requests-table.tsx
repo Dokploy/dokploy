@@ -17,11 +17,13 @@ import {
 	Download,
 	Globe,
 	InfoIcon,
+	Loader2,
 	Server,
 	TrendingUpIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,7 +102,12 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 		pageSize: 10,
 	});
 
-	const { data: statsLogs } = api.settings.readStatsLogs.useQuery(
+	const {
+		data: statsLogs,
+		isLoading,
+		isError,
+		error,
+	} = api.settings.readStatsLogs.useQuery(
 		{
 			sort: sorting[0],
 			page: pagination,
@@ -185,7 +192,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 					<div className="flex flex-col gap-4  w-full overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
-								placeholder="Filter by name..."
+								placeholder="Filter by hostname..."
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 								className="md:max-w-sm"
@@ -273,7 +280,18 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												colSpan={columns.length}
 												className="h-24 text-center"
 											>
-												{statsLogs?.data.length === 0 && (
+												{isLoading ? (
+													<div className="w-full flex gap-4 items-center justify-center h-[55vh] text-muted-foreground">
+														<Loader2 className="size-4 animate-spin" />
+														<span>Loading requests...</span>
+													</div>
+												) : isError ? (
+													<div className="w-full flex items-center justify-center h-[55vh]">
+														<AlertBlock type="error" className="w-full">
+															{error?.message}
+														</AlertBlock>
+													</div>
+												) : (
 													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 														<span className="text-muted-foreground text-lg font-medium">
 															No results.
@@ -328,21 +346,21 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 				open={!!selectedRow}
 				onOpenChange={(_open) => setSelectedRow(undefined)}
 			>
-				<SheetContent className="sm:max-w-[740px]  flex flex-col">
+				<SheetContent className="w-full sm:max-w-[740px]! flex flex-col">
 					<SheetHeader>
 						<SheetTitle>Request log</SheetTitle>
 						<SheetDescription>
 							Details of the request log entry.
 						</SheetDescription>
 					</SheetHeader>
-					<ScrollArea className="flex-grow mt-4 pr-4">
+					<ScrollArea className="grow mt-4 pr-4">
 						<div className="border rounded-md">
 							<Table>
 								<TableBody>
 									{Object.entries(selectedRow || {}).map(([key, value]) => (
 										<TableRow key={key}>
 											<TableCell className="font-medium">{key}</TableCell>
-											<TableCell className="truncate break-words break-before-all whitespace-pre-wrap">
+											<TableCell className="truncate wrap-break-word break-before-all whitespace-pre-wrap">
 												{key === "RequestAddr" ? (
 													<div className="flex items-center gap-2 bg-muted p-1 rounded">
 														<span>{value}</span>

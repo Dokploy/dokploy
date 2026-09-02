@@ -1,5 +1,14 @@
 "use client";
-import { Bot, Loader2, RotateCcw, Settings, X } from "lucide-react";
+import copy from "copy-to-clipboard";
+import {
+	Bot,
+	Check,
+	Copy,
+	Loader2,
+	RotateCcw,
+	Settings,
+	X,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -30,6 +39,7 @@ const MAX_LOG_LINES = 200;
 export function AnalyzeLogs({ logs, context }: Props) {
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
+	const [copied, setCopied] = useState(false);
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
@@ -52,6 +62,15 @@ export function AnalyzeLogs({ logs, context }: Props) {
 		mutate({ aiId, logs: logsText, context });
 	};
 
+	const handleCopy = () => {
+		if (!data?.analysis) return;
+		const success = copy(data.analysis);
+		if (success) {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		}
+	};
+
 	return (
 		<Popover
 			open={open}
@@ -71,7 +90,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					disabled={logs.length === 0}
 					title="Analyze logs with AI"
 				>
-					<Bot className="mr-2 h-4 w-4" />
+					<Bot className="mr-2 size-4" />
 					AI
 				</Button>
 			</PopoverTrigger>
@@ -146,7 +165,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					) : (
 						<>
 							<div className="max-h-[400px] overflow-y-auto">
-								<div className="prose prose-sm dark:prose-invert max-w-none text-sm break-words">
+								<div className="prose prose-sm dark:prose-invert max-w-none text-sm wrap-break-word">
 									<ReactMarkdown>{data.analysis}</ReactMarkdown>
 								</div>
 							</div>
@@ -167,6 +186,18 @@ export function AnalyzeLogs({ logs, context }: Props) {
 										<RotateCcw className="mr-2 h-3.5 w-3.5" />
 									)}
 									Re-analyze
+								</Button>
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={handleCopy}
+									title="Copy analysis to clipboard"
+								>
+									{copied ? (
+										<Check className="h-3.5 w-3.5" />
+									) : (
+										<Copy className="h-3.5 w-3.5" />
+									)}
 								</Button>
 								<Button
 									size="sm"

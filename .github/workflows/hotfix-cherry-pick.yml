@@ -1,0 +1,49 @@
+name: Hotfix Cherry-Pick
+
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+concurrency:
+  group: hotfix-to-main
+  cancel-in-progress: false
+
+jobs:
+  cherry-pick:
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'hotfix')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.HOTFIX_PUSH_TOKEN }}
+
+      - name: Cherry-pick fix to main
+        run: |
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          if [ "$(git rev-list --parents -n1 "$SHA" | wc -w)" -gt 2 ]; then
+            git cherry-pick -x -m 1 "$SHA"
+          else
+            git cherry-pick -x "$SHA"
+          fi
+          git commit --amend -m "$(git log -1 --format=%B)" -m "[skip ci]"
+          git push origin main
+
+      - name: Sync cherry-pick back into canary
+        run: |
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          git fetch origin canary main
+          git checkout -B canary origin/canary
+          if ! git merge origin/main -m "chore: sync hotfix from main into canary [skip ci]"; then
+            git merge --abort
+            echo "::error::Could not auto-sync the hotfix into canary (real conflict, not just history divergence). Merge main into canary manually to avoid a conflict on the next release PR."
+            exit 1
+          fi
+          git push origin canary

@@ -1,4 +1,6 @@
 import {
+	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	createGitea,
 	findGiteaById,
 	getAccessibleGitProviderIds,
@@ -53,9 +55,23 @@ export const giteaRouter = createTRPCRouter({
 			}
 		}),
 
-	one: protectedProcedure.input(apiFindOneGitea).query(async ({ input }) => {
-		return await findGiteaById(input.giteaId);
-	}),
+	one: protectedProcedure
+		.input(apiFindOneGitea)
+		.query(async ({ input, ctx }) => {
+			const gitea = await findGiteaById(input.giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
+
+			if (!(await canViewGitProviderSecrets(ctx.session, gitea.gitProvider))) {
+				return {
+					...gitea,
+					clientSecret: null,
+					accessToken: null,
+					refreshToken: null,
+				};
+			}
+
+			return gitea;
+		}),
 
 	giteaProviders: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);
@@ -89,7 +105,7 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaRepositories: protectedProcedure
 		.input(apiFindOneGitea)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			const { giteaId } = input;
 
 			if (!giteaId) {
@@ -98,6 +114,9 @@ export const giteaRouter = createTRPCRouter({
 					message: "Gitea provider ID is required.",
 				});
 			}
+
+			const gitea = await findGiteaById(giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
 
 			try {
 				const repositories = await getGiteaRepositories(giteaId);
@@ -113,7 +132,7 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaBranches: protectedProcedure
 		.input(apiFindGiteaBranches)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			const { giteaId, owner, repositoryName } = input;
 
 			if (!giteaId || !owner || !repositoryName) {
@@ -123,6 +142,9 @@ export const giteaRouter = createTRPCRouter({
 						"Gitea provider ID, owner, and repository name are required.",
 				});
 			}
+
+			const gitea = await findGiteaById(giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
 
 			try {
 				return await getGiteaBranches({
@@ -141,8 +163,11 @@ export const giteaRouter = createTRPCRouter({
 
 	testConnection: protectedProcedure
 		.input(apiGiteaTestConnection)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			const giteaId = input.giteaId ?? "";
+
+			const gitea = await findGiteaById(giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
 
 			try {
 				const result = await testGiteaConnection({
