@@ -33,7 +33,6 @@ import { ShowServerActions } from "./actions/show-server-actions";
 import { DeleteServerModal } from "./delete-server-modal";
 import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
-import { ShowHealthModal } from "./show-health-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
@@ -318,24 +317,6 @@ export const ShowServers = () => {
 																							</TooltipTrigger>
 																							<TooltipContent>
 																								<p>Monitoring</p>
-																							</TooltipContent>
-																						</Tooltip>
-																					)}
-
-																				{permissions?.docker.read &&
-																					permissions?.server.read &&
-																					server.sshKeyId &&
-																					!isBuildServer && (
-																						<Tooltip>
-																							<TooltipTrigger asChild>
-																								<div>
-																									<ShowHealthModal
-																										serverId={server.serverId}
-																									/>
-																								</div>
-																							</TooltipTrigger>
-																							<TooltipContent>
-																								<p>Health</p>
 																							</TooltipContent>
 																						</Tooltip>
 																					)}
