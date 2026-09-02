@@ -48,7 +48,9 @@ beforeEach(() => {
 	getVariables.mockReset();
 	createClient.mockReset();
 	createClient.mockResolvedValue({
-		environments: { getVariables: (...args: unknown[]) => getVariables(...args) },
+		environments: {
+			getVariables: (...args: unknown[]) => getVariables(...args),
+		},
 	});
 });
 
@@ -922,9 +924,7 @@ describe("onepassword client", () => {
 			variablesResponse([{ name: "DB_PASSWORD", value: "op-secret" }]),
 		);
 
-		const result = await onePasswordClient.getSecrets(config, [
-			"DB_PASSWORD",
-		]);
+		const result = await onePasswordClient.getSecrets(config, ["DB_PASSWORD"]);
 
 		expect(result).toEqual({ DB_PASSWORD: "op-secret" });
 		expect(createClient).toHaveBeenCalledWith(
