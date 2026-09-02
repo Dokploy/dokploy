@@ -20,7 +20,8 @@ import { api } from "@/utils/api";
 import {
 	isSavedApplicationEnvironment,
 	mergeSavedApplicationEnvironment,
-	type SavedApplicationEnvironment,
+	shouldIgnoreApplicationEnvironment,
+	type SavedApplicationEnvironmentState,
 } from "./cache";
 
 const addEnvironmentSchema = z.object({
@@ -40,7 +41,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canWrite = permissions?.envVars.write ?? false;
 	const utils = api.useUtils();
-	const savedEnvironment = useRef<SavedApplicationEnvironment>();
+	const savedEnvironment = useRef<SavedApplicationEnvironmentState>();
 	const { mutateAsync, isPending } =
 		api.application.saveEnvironment.useMutation();
 
@@ -93,8 +94,11 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			};
 
 			if (
-				savedEnvironment.current &&
-				!isSavedApplicationEnvironment(data, savedEnvironment.current)
+				shouldIgnoreApplicationEnvironment(
+					applicationId,
+					data,
+					savedEnvironment.current,
+				)
 			) {
 				return;
 			}
@@ -122,7 +126,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				...nextEnvironment,
 				applicationId,
 			});
-			savedEnvironment.current = nextEnvironment;
+			savedEnvironment.current = { ...nextEnvironment, applicationId };
 			utils.application.one.setData({ applicationId }, (application) =>
 				mergeSavedApplicationEnvironment(application, nextEnvironment),
 			);

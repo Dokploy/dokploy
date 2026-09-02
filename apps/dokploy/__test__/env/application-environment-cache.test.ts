@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	isSavedApplicationEnvironment,
 	mergeSavedApplicationEnvironment,
+	shouldIgnoreApplicationEnvironment,
 } from "../../components/dashboard/application/environment/cache";
 
 describe("mergeSavedApplicationEnvironment", () => {
@@ -58,6 +59,31 @@ describe("isSavedApplicationEnvironment", () => {
 					buildSecrets: "",
 					createEnvFile: true,
 				},
+			),
+		).toBe(false);
+	});
+});
+
+describe("shouldIgnoreApplicationEnvironment", () => {
+	it("does not carry saved state from application A into application B", () => {
+		const savedForApplicationA = {
+			applicationId: "application-a",
+			env: "A_VALUE=1",
+			buildArgs: "",
+			buildSecrets: "",
+			createEnvFile: true,
+		};
+
+		expect(
+			shouldIgnoreApplicationEnvironment(
+				"application-b",
+				{
+					env: "B_VALUE=1",
+					buildArgs: "",
+					buildSecrets: "",
+					createEnvFile: true,
+				},
+				savedForApplicationA,
 			),
 		).toBe(false);
 	});

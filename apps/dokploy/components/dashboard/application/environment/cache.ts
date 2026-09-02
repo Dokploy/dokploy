@@ -5,6 +5,10 @@ export type SavedApplicationEnvironment = {
 	createEnvFile: boolean;
 };
 
+export type SavedApplicationEnvironmentState = SavedApplicationEnvironment & {
+	applicationId: string;
+};
+
 export const mergeSavedApplicationEnvironment = <T extends object>(
 	application: T | undefined,
 	environment: SavedApplicationEnvironment,
@@ -29,3 +33,13 @@ export const isSavedApplicationEnvironment = (
 	application.buildArgs === environment.buildArgs &&
 	application.buildSecrets === environment.buildSecrets &&
 	application.createEnvFile === environment.createEnvFile;
+
+export const shouldIgnoreApplicationEnvironment = (
+	applicationId: string,
+	application: Partial<
+		Record<keyof SavedApplicationEnvironment, string | boolean | null>
+	>,
+	savedEnvironment: SavedApplicationEnvironmentState | undefined,
+) =>
+	savedEnvironment?.applicationId === applicationId &&
+	!isSavedApplicationEnvironment(application, savedEnvironment);
