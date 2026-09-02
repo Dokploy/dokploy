@@ -44,7 +44,7 @@
     "@better-auth/scim": "1.6.23",
     "@better-auth/sso": "1.6.23",
     "@better-auth/utils": "0.4.2",
-    "@faker-js/faker": "^8.4.1",
+    "@faker-js/faker": "^10.5.0",
     "@octokit/auth-app": "^6.1.3",
     "@octokit/rest": "^20.1.2",
     "@oslojs/crypto": "1.0.1",
