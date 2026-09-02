@@ -203,7 +203,9 @@ export default async function handler(
 				const serverId = row.application?.serverId ?? row.compose?.serverId;
 				// Every suite on the commit sends its own completed event, so two of
 				// them can land here together. Whoever deletes the row deploys, and
-				// the delete only sticks once the job is in the queue.
+				// the delete only sticks once the job is queued or dispatched, so a
+				// failed dispatch leaves the row for the next event instead of
+				// losing the deployment.
 				const consumed = await db.transaction(async (tx) => {
 					const removed = await removePendingGithubDeployment(
 						row.pendingGithubDeploymentId,
@@ -214,9 +216,7 @@ export default async function handler(
 					}
 					if (IS_CLOUD && serverId) {
 						jobData.serverId = serverId;
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
-						});
+						await deploy(jobData);
 						return true;
 					}
 					await myQueue.add(

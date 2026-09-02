@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
 	haveAllChecksPassed: vi.fn(),
 	tx: { marker: "transaction" },
 	dbTransaction: vi.fn(),
+	deploy: vi.fn(),
+	isCloud: false,
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -70,7 +72,9 @@ vi.mock("@dokploy/server/db", () => ({
 }));
 
 vi.mock("@dokploy/server", () => ({
-	IS_CLOUD: false,
+	get IS_CLOUD() {
+		return mocks.isCloud;
+	},
 	shouldDeploy: mocks.shouldDeploy,
 	checkUserRepositoryPermissions: vi.fn(),
 	createPreviewDeployment: mocks.createPreviewDeployment,
@@ -102,7 +106,7 @@ vi.mock("@/server/queues/queueSetup", () => ({
 }));
 
 vi.mock("@/server/utils/deploy", () => ({
-	deploy: vi.fn(),
+	deploy: mocks.deploy,
 }));
 
 import handler from "@/pages/api/deploy/github";
@@ -557,6 +561,8 @@ describe("GitHub app webhook wait for checks", () => {
 		mocks.dbTransaction.mockImplementation(
 			async (callback: (tx: unknown) => Promise<unknown>) => callback(mocks.tx),
 		);
+		mocks.isCloud = false;
+		mocks.deploy.mockResolvedValue({});
 	});
 
 	it("parks the push instead of deploying when the application waits for checks", async () => {
@@ -823,6 +829,54 @@ describe("GitHub app webhook wait for checks", () => {
 			parkedApplication,
 		]);
 		mocks.queueAdd.mockRejectedValue(new Error("redis down"));
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.dbTransaction).toHaveBeenCalledTimes(1);
+		expect(res.status).toHaveBeenCalledWith(400);
+	});
+
+	it("dispatches to the cloud deployment service inside the transaction", async () => {
+		mocks.isCloud = true;
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			{
+				...parkedApplication,
+				application: {
+					...parkedApplication.application,
+					serverId: "server-id",
+				},
+			},
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.dbTransaction).toHaveBeenCalledTimes(1);
+		expect(mocks.deploy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				applicationId: "application-id",
+				serverId: "server-id",
+			}),
+		);
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps after checks passed",
+		});
+	});
+
+	it("fails the request when the cloud dispatch rejects so the row is rolled back", async () => {
+		mocks.isCloud = true;
+		mocks.deploy.mockRejectedValue(new Error("Server is inactive"));
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			{
+				...parkedApplication,
+				application: {
+					...parkedApplication.application,
+					serverId: "server-id",
+				},
+			},
+		]);
 		const res = createResponse();
 
 		await handler(createCheckSuiteRequest("completed"), res);
