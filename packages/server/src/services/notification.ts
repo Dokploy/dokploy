@@ -338,6 +338,7 @@ export const createEmailNotification = async (
 			.values({
 				smtpServer: input.smtpServer,
 				smtpPort: input.smtpPort,
+				tlsServerName: input.tlsServerName,
 				username: input.username,
 				password: input.password,
 				fromAddress: input.fromAddress,
@@ -417,6 +418,7 @@ export const updateEmailNotification = async (
 			.set({
 				smtpServer: input.smtpServer,
 				smtpPort: input.smtpPort,
+				tlsServerName: input.tlsServerName,
 				username: input.username,
 				password: input.password,
 				fromAddress: input.fromAddress,

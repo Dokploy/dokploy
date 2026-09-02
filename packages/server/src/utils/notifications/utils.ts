@@ -25,6 +25,7 @@ export const sendEmailNotification = async (
 		const {
 			smtpServer,
 			smtpPort,
+			tlsServerName,
 			username,
 			password,
 			fromAddress,
@@ -34,6 +35,7 @@ export const sendEmailNotification = async (
 			host: smtpServer,
 			port: smtpPort,
 			auth: { user: username, pass: password },
+			...(tlsServerName ? { tls: { servername: tlsServerName } } : {}),
 		});
 
 		await transporter.sendMail({

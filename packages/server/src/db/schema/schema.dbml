@@ -444,6 +444,7 @@ table email {
   emailId text [pk, not null]
   smtpServer text [not null]
   smtpPort integer [not null]
+  tlsServerName text
   username text [not null]
   password text [not null]
   fromAddress text [not null]
