@@ -4,6 +4,7 @@ import {
 	AlertTriangle,
 	Bell,
 	CheckIcon,
+	Clock,
 	CreditCard,
 	FileText,
 	Loader2,
@@ -93,6 +94,7 @@ export const ShowBilling = () => {
 	const router = useRouter();
 	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
+	const { data: billingStatus } = api.stripe.getBillingStatus.useQuery();
 	const { data, isPending } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
@@ -103,7 +105,25 @@ export const ShowBilling = () => {
 		api.stripe.upgradeSubscription.useMutation();
 	const { mutateAsync: updateInvoiceNotifications } =
 		api.stripe.updateInvoiceNotifications.useMutation();
+	const { mutateAsync: startFreeTrial, isPending: isStartingTrial } =
+		api.stripe.startFreeTrial.useMutation();
 	const utils = api.useUtils();
+
+	const handleStartTrial = async () => {
+		try {
+			await startFreeTrial();
+			await Promise.all([
+				utils.stripe.getBillingStatus.invalidate(),
+				utils.stripe.getProducts.invalidate(),
+				utils.user.get.invalidate(),
+			]);
+			toast.success("Your 14-day trial has started");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Error starting trial",
+			);
+		}
+	};
 
 	const [hobbyServerQuantity, setHobbyServerQuantity] = useState(1);
 	const [startupServerQuantity, setStartupServerQuantity] = useState(
@@ -249,6 +269,94 @@ export const ShowBilling = () => {
 						</nav>
 
 						<div className="flex flex-col gap-4 w-full mt-6">
+							{!isEnterpriseCloud &&
+								billingStatus &&
+								(billingStatus.plan || billingStatus.isOnTrial) && (
+									<div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4 max-w-2xl">
+										<div className="flex items-center gap-3">
+											{billingStatus.isOnTrial ? (
+												<Clock className="h-5 w-5 text-primary shrink-0" />
+											) : (
+												<CreditCard className="h-5 w-5 text-primary shrink-0" />
+											)}
+											<div className="flex flex-col">
+												<div className="flex items-center gap-2">
+													<span className="text-sm font-medium">
+														{billingStatus.isOnTrial
+															? "Free trial"
+															: "Current plan"}
+													</span>
+													<Badge className="capitalize" variant="secondary">
+														{billingStatus.plan ?? "Trial"}
+													</Badge>
+												</div>
+												<span className="text-sm text-muted-foreground">
+													{billingStatus.isOnTrial
+														? `${billingStatus.trialDaysRemaining} day${billingStatus.trialDaysRemaining === 1 ? "" : "s"} left${
+																billingStatus.trialEndsAt
+																	? ` · ends ${new Date(billingStatus.trialEndsAt).toLocaleDateString()}`
+																	: ""
+															}`
+														: "You're subscribed and billed automatically."}
+												</span>
+											</div>
+										</div>
+										{billingStatus.isOnTrial &&
+											admin?.user.stripeCustomerId && (
+												<Button
+													size="sm"
+													variant="outline"
+													onClick={async () => {
+														const session = await createCustomerPortalSession();
+														window.open(session.url);
+													}}
+												>
+													Add payment method
+												</Button>
+											)}
+									</div>
+								)}
+							{!isEnterpriseCloud &&
+								billingStatus &&
+								!billingStatus.plan &&
+								!billingStatus.isOnTrial &&
+								!billingStatus.hasUsedTrial && (
+									<div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4 max-w-2xl">
+										<div className="flex items-center gap-3">
+											<Clock className="h-5 w-5 text-primary shrink-0" />
+											<div className="flex flex-col gap-1.5">
+												<span className="text-sm font-medium">
+													14-day free trial
+												</span>
+												<span className="text-sm text-muted-foreground">
+													No credit card required — cancel anytime.
+												</span>
+												<ul className="flex flex-col gap-1 mt-1">
+													{[
+														"1 server included",
+														"Unlimited apps & databases",
+														"Community support",
+													].map((feature) => (
+														<li
+															key={feature}
+															className="flex items-center gap-2 text-sm text-muted-foreground"
+														>
+															<CheckIcon className="size-3.5 shrink-0" />
+															{feature}
+														</li>
+													))}
+												</ul>
+											</div>
+										</div>
+										<Button
+											size="sm"
+											isLoading={isStartingTrial}
+											onClick={handleStartTrial}
+										>
+											Start trial
+										</Button>
+									</div>
+								)}
 							{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
 								<div className="space-y-2 flex flex-col">
 									<h3 className="text-lg font-medium">Servers Plan</h3>
