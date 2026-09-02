@@ -1,7 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import DOMPurify from "dompurify";
+
 import { GlobeIcon, PenBoxIcon, Plus, X } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { sanitizeSvg } from "@/utils/sanitize-svg";
 
 const organizationSchema = z.object({
 	name: z.string().min(1, {
@@ -42,20 +43,6 @@ interface Props {
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
 }
-
-const sanitizeSvg = (svgContent: string): string | null => {
-	const clean = DOMPurify.sanitize(svgContent, {
-		USE_PROFILES: { svg: true, svgFilters: true },
-		ADD_TAGS: ["use"],
-	});
-	if (!clean) return null;
-	const bytes = new TextEncoder().encode(clean);
-	let binString = "";
-	for (let i = 0; i < bytes.length; i++) {
-		binString += String.fromCharCode(bytes[i]!);
-	}
-	return `data:image/svg+xml;base64,${btoa(binString)}`;
-};
 
 const resizeImage = (file: File, maxSize: number): Promise<string> => {
 	return new Promise((resolve, reject) => {
@@ -106,7 +93,9 @@ export function AddOrganization({
 	const uploadCounter = useRef(0);
 	const isControlled = controlledOpen !== undefined;
 	const open = isControlled ? controlledOpen : internalOpen;
-	const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
+	const setOpen = isControlled
+		? controlledOnOpenChange || (() => {})
+		: setInternalOpen;
 	const utils = api.useUtils();
 	const { data: organization } = api.organization.one.useQuery(
 		{
