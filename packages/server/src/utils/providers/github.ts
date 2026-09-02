@@ -147,6 +147,46 @@ export const checkUserRepositoryPermissions = async (
 	}
 };
 
+const PASSING_CONCLUSIONS = ["success", "neutral", "skipped"];
+
+type CheckSuiteSummary = {
+	status: string | null;
+	conclusion: string | null;
+	latest_check_runs_count: number;
+};
+
+export const areCheckSuitesPassing = (suites: CheckSuiteSummary[]) => {
+	// GitHub opens a suite for every installed app allowed to report checks,
+	// even when the app never reports anything, and those stay queued forever.
+	const reporting = suites.filter((suite) => suite.latest_check_runs_count > 0);
+
+	return (
+		reporting.length > 0 &&
+		reporting.every(
+			(suite) =>
+				suite.status === "completed" &&
+				PASSING_CONCLUSIONS.includes(suite.conclusion ?? ""),
+		)
+	);
+};
+
+export const haveAllChecksPassed = async (
+	githubProvider: Github,
+	owner: string,
+	repo: string,
+	ref: string,
+) => {
+	const octokit = authGithub(githubProvider);
+	const suites = await octokit.paginate(octokit.rest.checks.listSuitesForRef, {
+		owner,
+		repo,
+		ref,
+		per_page: 100,
+	});
+
+	return areCheckSuitesPassing(suites);
+};
+
 export const haveGithubRequirements = (githubProvider: Github) => {
 	return !!(
 		githubProvider?.githubAppId &&

@@ -36,6 +36,7 @@ export * from "./services/notification";
 export * from "./services/overview";
 export * from "./services/patch";
 export * from "./services/patch-repo";
+export * from "./services/pending-github-deployment";
 export * from "./services/port";
 export * from "./services/postgres";
 export * from "./services/preview-deployment";

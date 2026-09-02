@@ -14,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 	shouldDeploy: vi.fn(),
 	createPreviewDeployment: vi.fn(),
 	findPreviewDeploymentByApplicationId: vi.fn(),
+	createPendingGithubDeployment: vi.fn(),
+	findPendingGithubDeploymentsBySha: vi.fn(),
+	removePendingGithubDeployment: vi.fn(),
+	haveAllChecksPassed: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -74,6 +78,10 @@ vi.mock("@dokploy/server", () => ({
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	getBitbucketHeaders: vi.fn(() => ({})),
 	removePreviewDeployment: vi.fn(),
+	createPendingGithubDeployment: mocks.createPendingGithubDeployment,
+	findPendingGithubDeploymentsBySha: mocks.findPendingGithubDeploymentsBySha,
+	removePendingGithubDeployment: mocks.removePendingGithubDeployment,
+	haveAllChecksPassed: mocks.haveAllChecksPassed,
 }));
 
 vi.mock("@octokit/webhooks", () => ({
@@ -132,6 +140,7 @@ const createPushRequest = (
 			ref: `refs/heads/${branch}`,
 			after: "abc123",
 			head_commit: {
+				id: "abc123",
 				message: "fix: trigger deployment",
 			},
 			commits: [
@@ -476,5 +485,284 @@ describe("GitHub app webhook preview deployments", () => {
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
+	});
+});
+
+describe("GitHub app webhook wait for checks", () => {
+	const githubProvider = {
+		githubId: "github-provider-id",
+		githubInstallationId: 12345,
+		githubWebhookSecret: "webhook-secret",
+	};
+
+	const createCheckSuiteRequest = (action: string) =>
+		({
+			headers: {
+				"x-hub-signature-256": "sha256=test-signature",
+				"x-github-event": "check_suite",
+			},
+			body: {
+				installation: {
+					id: 12345,
+				},
+				action,
+				check_suite: {
+					head_sha: "abc123",
+					head_branch: "main",
+					status: action === "completed" ? "completed" : "queued",
+					conclusion: action === "completed" ? "success" : null,
+					latest_check_runs_count: 1,
+				},
+				repository: {
+					name: "dokploy",
+					owner: {
+						login: "agentHits",
+					},
+				},
+			},
+		}) as unknown as NextApiRequest;
+
+	const parkedApplication = {
+		pendingGithubDeploymentId: "pending-id",
+		headSha: "abc123",
+		titleLog: "fix: trigger deployment",
+		descriptionLog: "Hash: abc123",
+		applicationId: "application-id",
+		composeId: null,
+		application: {
+			applicationId: "application-id",
+			githubId: "github-provider-id",
+			serverId: null,
+		},
+		compose: null,
+	};
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.githubFindFirst.mockResolvedValue(githubProvider);
+		mocks.verify.mockResolvedValue(true);
+		mocks.shouldDeploy.mockReturnValue(true);
+		mocks.applicationsFindMany.mockResolvedValue([]);
+		mocks.composeFindMany.mockResolvedValue([]);
+		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.createPendingGithubDeployment.mockResolvedValue({});
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([]);
+		mocks.removePendingGithubDeployment.mockResolvedValue(parkedApplication);
+		mocks.haveAllChecksPassed.mockResolvedValue(true);
+	});
+
+	it("parks the push instead of deploying when the application waits for checks", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ applicationId: "application-id", serverId: null, waitForChecks: true },
+		]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.createPendingGithubDeployment).toHaveBeenCalledWith({
+			applicationId: "application-id",
+			headSha: "abc123",
+			titleLog: "fix: trigger deployment",
+			descriptionLog: "Hash: abc123",
+		});
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 0 apps, 1 waiting for checks",
+		});
+	});
+
+	it("still honours watch paths before parking a push", async () => {
+		mocks.shouldDeploy.mockReturnValue(false);
+		mocks.applicationsFindMany.mockResolvedValue([
+			{
+				applicationId: "application-id",
+				serverId: null,
+				watchPaths: ["src/**"],
+				waitForChecks: true,
+			},
+		]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.createPendingGithubDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+	});
+
+	it("parks compose services the same way", async () => {
+		mocks.composeFindMany.mockResolvedValue([
+			{ composeId: "compose-id", serverId: null, waitForChecks: true },
+		]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.createPendingGithubDeployment).toHaveBeenCalledWith({
+			composeId: "compose-id",
+			headSha: "abc123",
+			titleLog: "fix: trigger deployment",
+			descriptionLog: "Hash: abc123",
+		});
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+	});
+
+	it("parks tag pushes when the application waits for checks", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ applicationId: "application-id", serverId: null, waitForChecks: true },
+		]);
+		const res = createResponse();
+
+		await handler(createTagRequest("v1.0.0"), res);
+
+		expect(mocks.createPendingGithubDeployment).toHaveBeenCalledWith({
+			applicationId: "application-id",
+			headSha: "abc123",
+			titleLog: "Tag created: v1.0.0",
+			descriptionLog: "Hash: abc123",
+		});
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 0 apps based on tag v1.0.0, 1 waiting for checks",
+		});
+	});
+
+	it("deploys the parked application once every check on the commit passed", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			parkedApplication,
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.findPendingGithubDeploymentsBySha).toHaveBeenCalledWith(
+			"abc123",
+		);
+		expect(mocks.haveAllChecksPassed).toHaveBeenCalledWith(
+			githubProvider,
+			"agentHits",
+			"dokploy",
+			"abc123",
+		);
+		expect(mocks.removePendingGithubDeployment).toHaveBeenCalledWith(
+			"pending-id",
+		);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			{
+				applicationId: "application-id",
+				titleLog: "fix: trigger deployment",
+				descriptionLog: "Hash: abc123",
+				type: "deploy",
+				applicationType: "application",
+				server: false,
+			},
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps after checks passed",
+		});
+	});
+
+	it("deploys a parked compose service", async () => {
+		const parkedCompose = {
+			...parkedApplication,
+			applicationId: null,
+			application: null,
+			composeId: "compose-id",
+			compose: {
+				composeId: "compose-id",
+				githubId: "github-provider-id",
+				serverId: null,
+			},
+		};
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([parkedCompose]);
+		mocks.removePendingGithubDeployment.mockResolvedValue(parkedCompose);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				composeId: "compose-id",
+				applicationType: "compose",
+				type: "deploy",
+			}),
+			expect.anything(),
+		);
+	});
+
+	it("keeps the deployment parked while checks are running or failed", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			parkedApplication,
+		]);
+		mocks.haveAllChecksPassed.mockResolvedValue(false);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.removePendingGithubDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Checks have not all passed yet",
+		});
+	});
+
+	it("does not call the GitHub API when nothing is parked for the commit", async () => {
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.haveAllChecksPassed).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "No pending deployments for this commit",
+		});
+	});
+
+	it("ignores parked deployments that belong to another GitHub provider", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			{
+				...parkedApplication,
+				application: { ...parkedApplication.application, githubId: "other" },
+			},
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.haveAllChecksPassed).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+	});
+
+	it("ignores check_suite actions other than completed", async () => {
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("requested"), res);
+
+		expect(mocks.findPendingGithubDeploymentsBySha).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Ignored check_suite action requested",
+		});
+	});
+
+	it("does not deploy twice when another suite already consumed the row", async () => {
+		mocks.findPendingGithubDeploymentsBySha.mockResolvedValue([
+			parkedApplication,
+		]);
+		mocks.removePendingGithubDeployment.mockResolvedValue(undefined);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 0 apps after checks passed",
+		});
 	});
 });

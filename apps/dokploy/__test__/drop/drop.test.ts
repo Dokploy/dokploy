@@ -55,6 +55,7 @@ const baseApp: ApplicationNested = {
 	enableSubmodules: false,
 	applicationStatus: "done",
 	triggerType: "push",
+	waitForChecks: false,
 	appName: "",
 	autoDeploy: true,
 	endpointSpecSwarm: null,

@@ -65,6 +65,7 @@ const GithubProviderSchema = z.object({
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
+	waitForChecks: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -91,6 +92,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			branch: "",
 			triggerType: "push",
 			enableSubmodules: false,
+			waitForChecks: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -142,6 +144,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
+				waitForChecks: data.waitForChecks ?? false,
 			});
 		}
 	}, [form.reset, data?.applicationId, form]);
@@ -157,6 +160,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			watchPaths: data.watchPaths || [],
 			triggerType: data.triggerType,
 			enableSubmodules: data.enableSubmodules,
+			waitForChecks: data.waitForChecks,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -565,6 +569,40 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel>Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="waitForChecks"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center space-x-2 space-y-0">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel>
+										Wait for checks to pass before deploying
+									</FormLabel>
+									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+											</TooltipTrigger>
+											<TooltipContent className="max-w-sm">
+												<p>
+													Holds the deployment until every check reported on the
+													commit has passed. Nothing deploys if the repository
+													has no checks. The GitHub App needs the Checks read
+													permission and the check_suite event, both must be
+													added by hand to apps created before this option
+													existed.
+												</p>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 								</FormItem>
 							)}
 						/>

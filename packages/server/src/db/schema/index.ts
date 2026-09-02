@@ -24,6 +24,7 @@ export * from "./mysql";
 export * from "./network";
 export * from "./notification";
 export * from "./patch";
+export * from "./pending-github-deployments";
 export * from "./port";
 export * from "./postgres";
 export * from "./preview-deployments";
