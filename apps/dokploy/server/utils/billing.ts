@@ -130,7 +130,9 @@ export const getBillingStatus = async (
 	);
 	const plan = planFromPriceIds(priceIds);
 
-	const trialingSub = subscriptions.data.find((sub) => sub.status === "trialing");
+	const trialingSub = subscriptions.data.find(
+		(sub) => sub.status === "trialing",
+	);
 	const trialEndsAt = trialingSub?.trial_end
 		? new Date(trialingSub.trial_end * 1000)
 		: null;

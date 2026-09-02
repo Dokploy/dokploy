@@ -26,7 +26,8 @@ export const PlanStep = ({ onNext }: Props) => {
 	const { data } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
-	const { mutateAsync: startFreeTrial } = api.stripe.startFreeTrial.useMutation();
+	const { mutateAsync: startFreeTrial } =
+		api.stripe.startFreeTrial.useMutation();
 	const utils = api.useUtils();
 
 	const handleCheckout = async (tier: "hobby" | "startup") => {
@@ -95,17 +96,19 @@ export const PlanStep = ({ onNext }: Props) => {
 							No card required — cancel anytime.
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
-							{["1 server included", "Unlimited apps & databases", "Community support"].map(
-								(f) => (
-									<li
-										key={f}
-										className="flex items-center gap-2 text-sm text-zinc-300 dark:text-zinc-700"
-									>
-										<CheckIcon className="size-3.5 text-zinc-500 shrink-0" />
-										{f}
-									</li>
-								),
-							)}
+							{[
+								"1 server included",
+								"Unlimited apps & databases",
+								"Community support",
+							].map((f) => (
+								<li
+									key={f}
+									className="flex items-center gap-2 text-sm text-zinc-300 dark:text-zinc-700"
+								>
+									<CheckIcon className="size-3.5 text-zinc-500 shrink-0" />
+									{f}
+								</li>
+							))}
 						</ul>
 					</div>
 					<Button
@@ -169,7 +172,10 @@ export const PlanStep = ({ onNext }: Props) => {
 							For small to mid-size teams
 						</p>
 						<p className="text-3xl font-semibold mt-4 tabular-nums">
-							${calculatePriceStartup(STARTUP_SERVERS_INCLUDED, false).toFixed(2)}
+							$
+							{calculatePriceStartup(STARTUP_SERVERS_INCLUDED, false).toFixed(
+								2,
+							)}
 							<span className="text-sm font-normal text-muted-foreground">
 								{" "}
 								/mo

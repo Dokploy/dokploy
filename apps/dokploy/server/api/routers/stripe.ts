@@ -333,7 +333,10 @@ export const stripeRouter = createTRPCRouter({
 				{ expand: ["items.data.price"] },
 			);
 
-			if (subscription.status !== "active" && subscription.status !== "trialing") {
+			if (
+				subscription.status !== "active" &&
+				subscription.status !== "trialing"
+			) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Subscription is not active",

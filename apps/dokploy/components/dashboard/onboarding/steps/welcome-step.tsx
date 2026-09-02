@@ -10,12 +10,14 @@ const points = [
 	{
 		icon: GitBranchIcon,
 		title: "Deploy from Git or Docker",
-		description: "Push a repo, a compose file, or a container image and go live.",
+		description:
+			"Push a repo, a compose file, or a container image and go live.",
 	},
 	{
 		icon: PuzzleIcon,
 		title: "One-click templates",
-		description: "WordPress, databases, and dozens of open source apps, pre-wired.",
+		description:
+			"WordPress, databases, and dozens of open source apps, pre-wired.",
 	},
 	{
 		icon: ServerIcon,
