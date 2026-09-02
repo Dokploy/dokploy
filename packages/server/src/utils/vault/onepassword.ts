@@ -1,8 +1,8 @@
 import { createClient } from "@1password/sdk";
 import type { onePasswordVaultConfigSchema } from "@dokploy/server/db/schema";
 import type { z } from "zod";
-import { vaultFetchWithTimeout } from "./types";
 import type { VaultClient } from "./types";
+import { vaultFetchWithTimeout } from "./types";
 
 type OnePasswordConfig = z.infer<typeof onePasswordVaultConfigSchema>;
 
