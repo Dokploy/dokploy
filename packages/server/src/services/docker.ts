@@ -774,8 +774,7 @@ export const getAllContainersWithLabels = async (
 ): Promise<ContainerWithLabels[]> => {
 	try {
 		let stdout = "";
-		const command =
-			'docker ps -a -s --format \'{"ID":"{{.ID}}","Name":"{{.Names}}","Image":"{{.Image}}","State":"{{.State}}","Labels":"{{.Labels}}","Size":"{{.Size}}"}\'';
+		const command = "docker ps -a -s --format '{{json .}}'";
 
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
@@ -792,18 +791,28 @@ export const getAllContainersWithLabels = async (
 		return stdout
 			.trim()
 			.split("\n")
-			.map((line) => {
-				const raw = JSON.parse(line);
-				const { sizeMb, virtualSizeMb } = parseSize(raw.Size ?? "");
-				return {
-					containerId: raw.ID as string,
-					name: raw.Name as string,
-					image: raw.Image as string,
-					state: raw.State as string,
-					labels: parseRelevantLabels(raw.Labels ?? ""),
-					sizeMb,
-					virtualSizeMb,
-				};
+			.flatMap((line) => {
+				try {
+					const raw = JSON.parse(line);
+					const { sizeMb, virtualSizeMb } = parseSize(raw.Size ?? "");
+					return [
+						{
+							containerId: raw.ID as string,
+							name: raw.Names as string,
+							image: raw.Image as string,
+							state: raw.State as string,
+							labels: parseRelevantLabels(raw.Labels ?? ""),
+							sizeMb,
+							virtualSizeMb,
+						},
+					];
+				} catch (error) {
+					console.error(
+						"getAllContainersWithLabels: failed to parse container line:",
+						error,
+					);
+					return [];
+				}
 			});
 	} catch (error) {
 		console.error("getAllContainersWithLabels error:", error);
