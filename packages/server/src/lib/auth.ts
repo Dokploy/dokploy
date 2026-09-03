@@ -125,6 +125,19 @@ const createBetterAuth = () =>
 					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
 					...(await resolveTrustedOrigins()),
 				].filter(Boolean);
+
+				if (
+					!IS_CLOUD &&
+					(ctx.path.startsWith("/sign-in/email") ||
+						ctx.path.startsWith("/sign-in/social"))
+				) {
+					const settings = await getWebServerSettings();
+					if (settings?.enforceSSO) {
+						throw new APIError("FORBIDDEN", {
+							message: "SSO is enforced. Direct password and social sign-in are disabled.",
+						});
+					}
+				}
 			}),
 		},
 		emailVerification: {
