@@ -6,6 +6,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -31,6 +32,7 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = redis;
 
 	const defaultRedisEnv = `REDIS_PASSWORD="${databasePassword}"${
@@ -75,7 +77,16 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command || args

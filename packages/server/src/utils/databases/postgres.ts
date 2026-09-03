@@ -6,6 +6,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -33,6 +34,7 @@ export const buildPostgres = async (rawPostgres: PostgresNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = postgres;
 
 	const defaultPostgresEnv = `POSTGRES_DB="${databaseName}"\nPOSTGRES_USER="${databaseUser}"\nPOSTGRES_PASSWORD="${databasePassword}"${
@@ -77,7 +79,16 @@ export const buildPostgres = async (rawPostgres: PostgresNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
+				],
 				StopGracePeriod: StopGracePeriod ?? 30_000_000_000,
 				...(command && {
 					Command: command.split(" "),

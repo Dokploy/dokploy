@@ -7,6 +7,12 @@ type MockCreateServiceOptions = {
 		ContainerSpec?: {
 			StopGracePeriod?: number;
 			Ulimits?: Array<{ Name: string; Soft: number; Hard: number }>;
+			Mounts?: Array<{
+				Target: string;
+				Source?: string;
+				Type: string;
+				TmpfsOptions?: { SizeBytes: number; Mode: number };
+			}>;
 		};
 	};
 	[key: string]: unknown;
@@ -58,6 +64,7 @@ const createApplication = (
 		},
 		replicas: 1,
 		stopGracePeriodSwarm: 0,
+		shmSize: null,
 		ulimitsSwarm: null,
 		serverId: "server-id",
 		...overrides,
@@ -158,4 +165,89 @@ describe("mechanizeDockerContainer", () => {
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
 	});
+
+	it("adds a tmpfs mount at /dev/shm when shmSize is set", async () => {
+		const application = createApplication({ shmSize: "6442450944" });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		const shmMount = settings.TaskTemplate?.ContainerSpec?.Mounts?.find(
+			(m) => m.Target === "/dev/shm",
+		);
+		expect(shmMount).toBeDefined();
+		expect(shmMount?.Type).toBe("tmpfs");
+		expect(shmMount?.TmpfsOptions?.SizeBytes).toBe(6442450944);
+		expect(shmMount?.TmpfsOptions?.Mode).toBe(0o1777);
+	});
+
+	it("does not add a /dev/shm mount when shmSize is null", async () => {
+		const application = createApplication({ shmSize: null });
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		const shmMount = settings.TaskTemplate?.ContainerSpec?.Mounts?.find(
+			(m) => m.Target === "/dev/shm",
+		);
+		expect(shmMount).toBeUndefined();
+	});
+
+	it("keeps a user-configured /dev/shm mount instead of adding a duplicate", async () => {
+		const application = createApplication({
+			shmSize: "6442450944",
+			mounts: [
+				{
+					mountId: "mount-id",
+					type: "volume",
+					hostPath: null,
+					volumeName: "shared-memory",
+					filePath: null,
+					content: null,
+					mountPath: "/dev/shm",
+					serviceType: "application",
+					applicationId: "application-id",
+					composeId: null,
+					libsqlId: null,
+					mariadbId: null,
+					mongoId: null,
+					mysqlId: null,
+					postgresId: null,
+					redisId: null,
+				},
+			],
+		});
+
+		await mechanizeDockerContainer(application);
+
+		const [settings] = createServiceMock.mock.calls[0] ?? [];
+		const shmMounts = settings?.TaskTemplate?.ContainerSpec?.Mounts?.filter(
+			(m) => m.Target === "/dev/shm",
+		);
+		expect(shmMounts).toHaveLength(1);
+		expect(shmMounts?.[0]).toMatchObject({
+			Type: "volume",
+			Source: "shared-memory",
+		});
+	});
+
+	it.each(["invalid", "0", "-1", "1.5", "12bytes"])(
+		"rejects invalid shmSize %s before calling Docker",
+		async (shmSize) => {
+			await expect(
+				mechanizeDockerContainer(createApplication({ shmSize })),
+			).rejects.toThrow("SHM size must be a positive safe integer in bytes");
+			expect(createServiceMock).not.toHaveBeenCalled();
+		},
+	);
 });

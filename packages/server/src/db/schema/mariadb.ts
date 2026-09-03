@@ -42,6 +42,7 @@ import {
 	DATABASE_PASSWORD_REGEX,
 	encryptedText,
 	generateAppName,
+	optionalShmSizeSchema,
 } from "./utils";
 
 export const mariadb = pgTable("mariadb", {
@@ -68,6 +69,7 @@ export const mariadb = pgTable("mariadb", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	shmSize: text("shmSize"),
 	//
 	externalPort: integer("externalPort"),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -143,6 +145,7 @@ const createSchema = createInsertSchema(mariadb, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	shmSize: optionalShmSizeSchema,
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

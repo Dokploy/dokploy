@@ -597,6 +597,38 @@ export const generateVolumeMounts = (mounts: ApplicationNested["mounts"]) => {
 		}));
 };
 
+export const generateShmMount = (
+	shmSize: string | null | undefined,
+	existingMounts: ReadonlyArray<{ Target?: string }>,
+) => {
+	if (!shmSize) {
+		return [];
+	}
+	if (!/^[1-9]\d*$/.test(shmSize)) {
+		throw new Error("SHM size must be a positive safe integer in bytes");
+	}
+
+	const sizeBytes = Number(shmSize);
+	if (!Number.isSafeInteger(sizeBytes)) {
+		throw new Error("SHM size must be a positive safe integer in bytes");
+	}
+	if (existingMounts.some((mount) => mount.Target === "/dev/shm")) {
+		return [];
+	}
+
+	return [
+		{
+			Target: "/dev/shm",
+			Source: "",
+			Type: "tmpfs" as const,
+			TmpfsOptions: {
+				SizeBytes: sizeBytes,
+				Mode: 0o1777,
+			},
+		},
+	];
+};
+
 type Resources = {
 	memoryLimit: string | null;
 	memoryReservation: string | null;

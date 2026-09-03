@@ -39,6 +39,7 @@ import {
 	APP_NAME_REGEX,
 	encryptedText,
 	generateAppName,
+	optionalShmSizeSchema,
 } from "./utils";
 
 export const redis = pgTable("redis", {
@@ -61,6 +62,7 @@ export const redis = pgTable("redis", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	shmSize: text("shmSize"),
 	externalPort: integer("externalPort"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -124,6 +126,7 @@ const createSchema = createInsertSchema(redis, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	shmSize: optionalShmSizeSchema,
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

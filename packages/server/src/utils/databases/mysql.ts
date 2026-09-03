@@ -6,6 +6,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -35,6 +36,7 @@ export const buildMysql = async (rawMysql: MysqlNested) => {
 		command,
 		args,
 		mounts,
+		shmSize,
 	} = mysql;
 
 	const defaultMysqlEnv =
@@ -84,7 +86,16 @@ export const buildMysql = async (rawMysql: MysqlNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {

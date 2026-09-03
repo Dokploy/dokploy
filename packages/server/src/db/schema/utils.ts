@@ -3,6 +3,7 @@ import { generatePassword } from "@dokploy/server/templates";
 import { faker } from "@faker-js/faker";
 import { customType } from "drizzle-orm/pg-core";
 import { customAlphabet } from "nanoid";
+import { z } from "zod";
 
 /**
  * Text column encrypted at rest (AES-256-GCM, key derived from
@@ -53,6 +54,15 @@ export const DATABASE_PASSWORD_REGEX =
 
 export const DATABASE_PASSWORD_MESSAGE =
 	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility";
+
+export const optionalShmSizeSchema = z
+	.string()
+	.regex(/^[1-9]\d*$/, "SHM size must be a positive integer in bytes")
+	.refine(
+		(value) => Number.isSafeInteger(Number(value)),
+		"SHM size must be a safe integer in bytes",
+	)
+	.optional();
 
 export const generateAppName = (type: string) => {
 	const verb = faker.hacker.verb().replace(/ /g, "-");
