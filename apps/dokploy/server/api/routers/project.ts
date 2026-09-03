@@ -26,6 +26,7 @@ import {
 	findPostgresById,
 	findProjectById,
 	findRedisById,
+	findServerById,
 	findUserById,
 	getResourceUsage,
 	IS_CLOUD,
@@ -687,7 +688,7 @@ export const projectRouter = createTRPCRouter({
 		return { ok: true };
 	}),
 
-	resourceUsage: protectedProcedure
+	resourceUsage: withPermission("monitoring", "read")
 		.input(
 			z.object({
 				serverId: z.string().optional(),
@@ -696,6 +697,13 @@ export const projectRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			if (IS_CLOUD) {
 				return [];
+			}
+
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
 			}
 
 			const isPrivileged =
