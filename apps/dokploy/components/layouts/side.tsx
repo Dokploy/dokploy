@@ -660,7 +660,9 @@ function SidebarLogo() {
 													{activeOrganization?.name ?? "Select Organization"}
 												</p>
 												{haveValidLicense && (
-													<Badge variant="blue" className="shrink-0">Enterprise</Badge>
+													<Badge variant="blue" className="shrink-0">
+														Enterprise
+													</Badge>
 												)}
 											</div>
 										</div>
