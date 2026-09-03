@@ -156,6 +156,30 @@ export const RedisIcon = ({ className }: Props) => {
 	);
 };
 
+// Mark extracted from https://github.com/valkey-io/assets Valkey Branding/logo svgs (cropped to the gem mark, wordmark dropped)
+export const ValkeyIcon = ({ className }: Props) => {
+	return (
+		<svg
+			width="40"
+			height="40"
+			viewBox="235 -12 305 350"
+			xmlns="http://www.w3.org/2000/svg"
+			className={className}
+		>
+			<path
+				fillRule="evenodd"
+				clipRule="evenodd"
+				fill="#6981FD"
+				d="M306.8,273.9l-58.3-36.4V81.7L391,0
+	l139,81.8v163.9l-141.2,79.5l-49-30.7v-65.7v-9l-26.6-16.6v-84.5l77-44.1l75.2,44.3v88.5L405.8,241v-35.7
+	c17.9-6.9,30.7-24.5,30.7-45.4c0-26.9-21.3-48.5-47.2-48.5c-25.9,0-47.2,21.6-47.2,48.5c0,20.9,12.8,38.5,30.7,45.4v67.5l17,10.7
+	l104.4-58.8V102.3L390.8,41.5l-106.4,61v115.1l22.4,14L306.8,273.9z M389.3,137.7c11.7,0,21,10.1,21,22.3s-9.3,22.3-21,22.3
+	c-11.7,0-21-10.1-21-22.3S377.6,137.7,389.3,137.7z"
+			/>
+		</svg>
+	);
+};
+
 export const LibsqlIcon = ({ className }: Props) => {
 	return (
 		<svg
