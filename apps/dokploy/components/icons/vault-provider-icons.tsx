@@ -608,6 +608,7 @@ export const vaultProviderIcons = {
 	hashicorp: HashicorpVaultIcon,
 	infisical: InfisicalIcon,
 	aws: AwsIcon,
+	"aws-parameter-store": AwsIcon,
 	doppler: DopplerIcon,
 	azure: AzureIcon,
 	scaleway: ScalewayIcon,
