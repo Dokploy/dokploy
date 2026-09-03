@@ -132,7 +132,7 @@
 		"resend": "^6.0.2",
 		"semver": "7.7.3",
 		"shadcn": "^4.11.0",
-		"shell-quote": "^1.8.1",
+		"shell-quote": "^1.8.4",
 		"slugify": "^1.6.6",
 		"sonner": "^1.7.4",
 		"ssh2": "~1.16.0",
@@ -179,7 +179,7 @@
 		"tsx": "^4.22.4",
 		"typescript": "^7.0.2",
 		"vite-tsconfig-paths": "4.3.2",
-		"vitest": "^4.0.18"
+		"vitest": "^4.1.0"
 	},
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
