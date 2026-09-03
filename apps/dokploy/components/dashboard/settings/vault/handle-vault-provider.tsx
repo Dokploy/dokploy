@@ -40,6 +40,7 @@ const providerLabels = {
 	hashicorp: "HashiCorp Vault / OpenBao",
 	infisical: "Infisical",
 	aws: "AWS Secrets Manager",
+	"aws-parameter-store": "AWS Parameter Store",
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
@@ -61,6 +62,7 @@ const VaultProviderSchema = z
 			"hashicorp",
 			"infisical",
 			"aws",
+			"aws-parameter-store",
 			"doppler",
 			"azure",
 			"scaleway",
@@ -79,6 +81,7 @@ const VaultProviderSchema = z
 		region: z.string(),
 		accessKeyId: z.string(),
 		secretAccessKey: z.string(),
+		parameterPath: z.string(),
 		serviceToken: z.string(),
 		awsEndpoint: z.string(),
 		vaultUri: z.string(),
@@ -136,7 +139,8 @@ const VaultProviderSchema = z
 			});
 		}
 		if (
-			data.providerType === "aws" &&
+			(data.providerType === "aws" ||
+				data.providerType === "aws-parameter-store") &&
 			data.awsEndpoint &&
 			!isValidUrl(data.awsEndpoint)
 		) {
@@ -144,6 +148,17 @@ const VaultProviderSchema = z
 				code: z.ZodIssueCode.custom,
 				message: "Enter a valid URL",
 				path: ["awsEndpoint"],
+			});
+		}
+		if (
+			data.providerType === "aws-parameter-store" &&
+			data.parameterPath &&
+			!data.parameterPath.trim().startsWith("/")
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Parameter discovery path must start with /",
+				path: ["parameterPath"],
 			});
 		}
 		if (
@@ -196,6 +211,11 @@ const VaultProviderSchema = z
 				["environmentSlug", "Environment is required"],
 			],
 			aws: [
+				["region", "Region is required"],
+				["accessKeyId", "Access Key ID is required"],
+				["secretAccessKey", "Secret Access Key is required"],
+			],
+			"aws-parameter-store": [
 				["region", "Region is required"],
 				["accessKeyId", "Access Key ID is required"],
 				["secretAccessKey", "Secret Access Key is required"],
@@ -265,6 +285,7 @@ const defaultValues: VaultProviderForm = {
 	region: "",
 	accessKeyId: "",
 	secretAccessKey: "",
+	parameterPath: "",
 	serviceToken: "",
 	awsEndpoint: "",
 	vaultUri: "",
@@ -312,6 +333,15 @@ const buildConfig = (data: VaultProviderForm) => {
 				accessKeyId: data.accessKeyId,
 				secretAccessKey: data.secretAccessKey,
 				endpoint: data.awsEndpoint || undefined,
+			};
+		case "aws-parameter-store":
+			return {
+				providerType: "aws-parameter-store" as const,
+				region: data.region,
+				accessKeyId: data.accessKeyId,
+				secretAccessKey: data.secretAccessKey,
+				endpoint: data.awsEndpoint || undefined,
+				parameterPath: data.parameterPath.trim() || undefined,
 			};
 		case "doppler":
 			return {
@@ -443,11 +473,15 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					environmentSlug: provider.config.environmentSlug,
 					secretPath: provider.config.secretPath,
 				}),
-				...(provider.config.providerType === "aws" && {
+				...((provider.config.providerType === "aws" ||
+					provider.config.providerType === "aws-parameter-store") && {
 					region: provider.config.region,
 					accessKeyId: provider.config.accessKeyId,
 					secretAccessKey: provider.config.secretAccessKey,
 					awsEndpoint: provider.config.endpoint ?? "",
+				}),
+				...(provider.config.providerType === "aws-parameter-store" && {
+					parameterPath: provider.config.parameterPath ?? "",
 				}),
 				...(provider.config.providerType === "doppler" && {
 					serviceToken: provider.config.serviceToken,
@@ -757,7 +791,8 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 							</>
 						)}
 
-						{providerType === "aws" && (
+						{(providerType === "aws" ||
+							providerType === "aws-parameter-store") && (
 							<>
 								<FormField
 									control={form.control}
@@ -815,12 +850,44 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<FormDescription>
-									Reference format:{" "}
-									<code>{"${{vault.<name>.secret-name}}"}</code> or{" "}
-									<code>{"${{vault.<name>.secret-name:field}}"}</code> for JSON
-									secrets
-								</FormDescription>
+								{providerType === "aws-parameter-store" && (
+									<FormField
+										control={form.control}
+										name="parameterPath"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Discovery path (optional)</FormLabel>
+												<FormControl>
+													<Input placeholder="/production/my-app" {...field} />
+												</FormControl>
+												<FormDescription>
+													Limits parameter browsing and autocomplete to this
+													hierarchy. IAM permissions remain the security
+													boundary.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+								{providerType === "aws" ? (
+									<FormDescription>
+										Reference format:{" "}
+										<code>{"${{vault.<name>.secret-name}}"}</code> or{" "}
+										<code>{"${{vault.<name>.secret-name:field}}"}</code> for
+										JSON secrets
+									</FormDescription>
+								) : (
+									<FormDescription>
+										Reference format:{" "}
+										<code>{"${{vault.<name>./path/to/parameter}}"}</code>.
+										SecureString parameters are decrypted automatically.
+										Resolution requires <code>ssm:GetParameters</code>.
+										Discovery requires <code>ssm:DescribeParameters</code>.
+										Customer-managed KMS keys also require{" "}
+										<code>kms:Decrypt</code>.
+									</FormDescription>
+								)}
 							</>
 						)}
 
