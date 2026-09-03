@@ -616,7 +616,7 @@ function SidebarLogo() {
 					)}
 				>
 					{/* Organization Logo and Selector */}
-					<SidebarMenuItem className={"w-full"}>
+					<SidebarMenuItem className={"w-full min-w-0"}>
 						<Popover
 							open={organizationSelectorOpen}
 							onOpenChange={setOrganizationSelectorOpen}
@@ -632,14 +632,13 @@ function SidebarLogo() {
 								>
 									<div
 										className={cn(
-											"flex items-center gap-2",
+											"flex min-w-0 flex-1 items-center gap-2",
 											isCollapsed && "justify-center",
 										)}
 									>
 										<div
 											className={cn(
-												"flex items-center justify-center rounded-sm border",
-												"size-6",
+												"flex size-6 shrink-0 items-center justify-center rounded-sm border",
 											)}
 										>
 											<Logo
@@ -652,22 +651,22 @@ function SidebarLogo() {
 										</div>
 										<div
 											className={cn(
-												"flex flex-col items-start",
+												"flex flex-col items-start min-w-0 flex-1",
 												isCollapsed && "hidden",
 											)}
 										>
-											<div className="flex items-center gap-1.5">
-												<p className="text-sm font-medium leading-none">
+											<div className="flex items-center gap-1.5 min-w-0 w-full">
+												<p className="text-sm font-medium truncate">
 													{activeOrganization?.name ?? "Select Organization"}
 												</p>
 												{haveValidLicense && (
-													<Badge variant="blue">Enterprise</Badge>
+													<Badge variant="blue" className="shrink-0">Enterprise</Badge>
 												)}
 											</div>
 										</div>
 									</div>
 									<ChevronsUpDown
-										className={cn("ml-auto", isCollapsed && "hidden")}
+										className={cn("ml-auto shrink-0", isCollapsed && "hidden")}
 									/>
 								</SidebarMenuButton>
 							</PopoverTrigger>
