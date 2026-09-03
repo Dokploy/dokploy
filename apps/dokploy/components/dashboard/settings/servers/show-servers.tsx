@@ -118,7 +118,10 @@ export const ShowServers = () => {
 																	<div className="flex items-start justify-between gap-2 min-w-0">
 																		<div className="flex min-w-0 items-center gap-2">
 																			<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
-																			<CardTitle className="text-lg truncate min-w-0" title={server.name}>
+																			<CardTitle
+																				className="text-lg truncate min-w-0"
+																				title={server.name}
+																			>
 																				{server.name}
 																			</CardTitle>
 																		</div>
