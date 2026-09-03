@@ -126,16 +126,20 @@ const createBetterAuth = () =>
 					...(await resolveTrustedOrigins()),
 				].filter(Boolean);
 
-				if (
-					!IS_CLOUD &&
-					(ctx.path.startsWith("/sign-in/email") ||
-						ctx.path.startsWith("/sign-in/social"))
-				) {
+				const isBlockedAuthPath =
+					ctx.path.startsWith("/sign-in/email") ||
+					ctx.path.startsWith("/sign-in/social") ||
+					ctx.path.startsWith("/sign-in/passkey") ||
+					ctx.path.startsWith("/sign-up/email") ||
+					ctx.path.startsWith("/passkey/verify-authentication") ||
+					ctx.path.startsWith("/passkey/generate-authenticate-options");
+
+				if (!IS_CLOUD && isBlockedAuthPath) {
 					const settings = await getWebServerSettings();
 					if (settings?.enforceSSO) {
 						throw new APIError("FORBIDDEN", {
 							message:
-								"SSO is enforced. Direct password and social sign-in are disabled.",
+								"SSO is enforced. Direct password, social, and passkey sign-in are disabled.",
 						});
 					}
 				}
