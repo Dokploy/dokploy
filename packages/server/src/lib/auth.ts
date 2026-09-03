@@ -134,7 +134,8 @@ const createBetterAuth = () =>
 					const settings = await getWebServerSettings();
 					if (settings?.enforceSSO) {
 						throw new APIError("FORBIDDEN", {
-							message: "SSO is enforced. Direct password and social sign-in are disabled.",
+							message:
+								"SSO is enforced. Direct password and social sign-in are disabled.",
 						});
 					}
 				}
