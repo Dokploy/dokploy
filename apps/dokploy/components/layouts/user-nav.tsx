@@ -11,14 +11,20 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { getFallbackAvatarInitials } from "@/lib/utils";
+import { cn, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { Button } from "../ui/button";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
 const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
-export const UserNav = () => {
+interface UserNavProps {
+	/** Renders the trigger as a bare avatar button, for use in a top bar. */
+	compact?: boolean;
+}
+
+export const UserNav = ({ compact = false }: UserNavProps) => {
 	const router = useRouter();
 	const { data } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
@@ -26,34 +32,52 @@ export const UserNav = () => {
 
 	// const { mutateAsync } = api.auth.logout.useMutation();
 
+	const avatar = (
+		<Avatar className={cn("rounded-lg", compact ? "size-7" : "size-8")}>
+			<AvatarImage
+				className="object-cover"
+				src={data?.user?.image || ""}
+				alt={data?.user?.image || ""}
+			/>
+			<AvatarFallback className="rounded-lg text-xs">
+				{getFallbackAvatarInitials(
+					`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
+				)}
+			</AvatarFallback>
+		</Avatar>
+	);
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<SidebarMenuButton
-					size="lg"
-					className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-				>
-					<Avatar className="h-8 w-8 rounded-lg">
-						<AvatarImage
-							className="object-cover"
-							src={data?.user?.image || ""}
-							alt={data?.user?.image || ""}
-						/>
-						<AvatarFallback className="rounded-lg">
-							{getFallbackAvatarInitials(
-								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
-							)}
-						</AvatarFallback>
-					</Avatar>
-					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">Account</span>
-						<span className="truncate text-xs">{data?.user?.email}</span>
-					</div>
-					<ChevronsUpDown className="ml-auto size-4" />
-				</SidebarMenuButton>
+				{compact ? (
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						aria-label="Account"
+						className="shrink-0 p-0 data-[state=open]:bg-accent"
+					>
+						{avatar}
+					</Button>
+				) : (
+					<SidebarMenuButton
+						size="lg"
+						className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+					>
+						{avatar}
+						<div className="grid flex-1 text-left text-sm leading-tight">
+							<span className="truncate font-semibold">Account</span>
+							<span className="truncate text-xs">{data?.user?.email}</span>
+						</div>
+						<ChevronsUpDown className="ml-auto size-4" />
+					</SidebarMenuButton>
+				)}
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+				className={cn(
+					"min-w-56 rounded-lg",
+					!compact && "w-(--radix-dropdown-menu-trigger-width)",
+				)}
 				side="bottom"
 				align="end"
 				sideOffset={4}

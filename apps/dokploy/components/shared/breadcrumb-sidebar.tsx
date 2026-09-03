@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
+import { UserNav } from "../layouts/user-nav";
 
 interface BreadcrumbEntry {
 	name: string;
@@ -37,7 +38,7 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+		<header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-sm transition-[width,height] ease-linear">
 			<div className="flex items-center justify-between w-full px-4">
 				<div className="flex items-center gap-2">
 					<SidebarTrigger className="-ml-1" />
@@ -79,7 +80,10 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 						</BreadcrumbList>
 					</Breadcrumb>
 				</div>
-				{!isCloud && <TimeBadge />}
+				<div className="flex shrink-0 items-center gap-2">
+					{!isCloud && <TimeBadge />}
+					<UserNav compact />
+				</div>
 			</div>
 		</header>
 	);

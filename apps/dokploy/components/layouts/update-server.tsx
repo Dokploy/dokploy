@@ -74,46 +74,44 @@ export const UpdateServerButton = () => {
 	}, []);
 
 	return !isCloud && updateData.updateAvailable ? (
-		<div className="border-t pt-4">
-			<UpdateServer
-				updateData={updateData}
-				isOpen={isOpen}
-				onOpenChange={setIsOpen}
-			>
-				<TooltipProvider delayDuration={0}>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant={updateData ? "outline" : "secondary"}
-								className="w-full"
-								onClick={() => setIsOpen(true)}
-							>
-								<Download className="h-4 w-4 shrink-0" />
-								{updateData ? (
-									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Update Available
-									</span>
-								) : (
-									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Check for updates
-									</span>
-								)}
-								{updateData && (
-									<span className="absolute right-2 flex h-2 w-2 group-data-[collapsible=icon]:hidden">
-										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-										<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-									</span>
-								)}
-							</Button>
-						</TooltipTrigger>
-						{updateData && (
-							<TooltipContent side="right" sideOffset={10}>
-								<p>Update Available</p>
-							</TooltipContent>
-						)}
-					</Tooltip>
-				</TooltipProvider>
-			</UpdateServer>
-		</div>
+		<UpdateServer
+			updateData={updateData}
+			isOpen={isOpen}
+			onOpenChange={setIsOpen}
+		>
+			<TooltipProvider delayDuration={0}>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant={updateData ? "outline" : "secondary"}
+							className="w-full"
+							onClick={() => setIsOpen(true)}
+						>
+							<Download className="h-4 w-4 shrink-0" />
+							{updateData ? (
+								<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
+									Update Available
+								</span>
+							) : (
+								<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
+									Check for updates
+								</span>
+							)}
+							{updateData && (
+								<span className="absolute right-2 flex h-2 w-2 group-data-[collapsible=icon]:hidden">
+									<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+									<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+								</span>
+							)}
+						</Button>
+					</TooltipTrigger>
+					{updateData && (
+						<TooltipContent side="right" sideOffset={10}>
+							<p>Update Available</p>
+						</TooltipContent>
+					)}
+				</Tooltip>
+			</TooltipProvider>
+		</UpdateServer>
 	) : null;
 };
