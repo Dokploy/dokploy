@@ -597,43 +597,62 @@ function useIsIconMode() {
 	return state === "collapsed" && !isMobile;
 }
 
-/** A single destination row, or an expandable group of destinations. */
-function NavEntry({
+/** A single destination row. */
+function NavLink({
+	item,
+	pathname,
+}: {
+	item: SingleNavItem;
+	pathname: string;
+}) {
+	const isActive = isActiveRoute({ itemUrl: item.url, pathname });
+
+	return (
+		<SidebarMenuItem>
+			<SidebarMenuButton
+				asChild
+				isActive={isActive}
+				tooltip={item.title}
+				className={NAV_ROW}
+			>
+				<Link href={item.url}>
+					{item.icon && (
+						<item.icon className={cn(NAV_ICON, isActive && "text-primary")} />
+					)}
+					<span className={cn(isActive && "font-medium")}>{item.title}</span>
+				</Link>
+			</SidebarMenuButton>
+		</SidebarMenuItem>
+	);
+}
+
+/** An expandable group of destinations. */
+function NavGroup({
 	item,
 	pathname,
 	forceOpen,
 }: {
-	item: NavItem;
+	item: Extract<NavItem, { isSingle: false }>;
 	pathname: string;
 	forceOpen?: boolean;
 }) {
 	const isIconMode = useIsIconMode();
-
-	if (item.isSingle !== false) {
-		const isActive = isActiveRoute({ itemUrl: item.url, pathname });
-
-		return (
-			<SidebarMenuItem>
-				<SidebarMenuButton
-					asChild
-					isActive={isActive}
-					tooltip={item.title}
-					className={NAV_ROW}
-				>
-					<Link href={item.url}>
-						{item.icon && (
-							<item.icon className={cn(NAV_ICON, isActive && "text-primary")} />
-						)}
-						<span className={cn(isActive && "font-medium")}>{item.title}</span>
-					</Link>
-				</SidebarMenuButton>
-			</SidebarMenuItem>
-		);
-	}
-
 	const isActive = item.items.some((subItem) =>
 		isActiveRoute({ itemUrl: subItem.url, pathname }),
 	);
+
+	// Icon mode swaps the Collapsible out for a dropdown, which unmounts it. The
+	// open state is held here, where the component survives that swap, so the
+	// user's choice is not reset on the way back.
+	const [isOpen, setIsOpen] = useState(isActive);
+
+	// Landing inside a collapsed group, via the filter or the icon-mode
+	// dropdown, should reveal where you ended up.
+	useEffect(() => {
+		if (isActive) {
+			setIsOpen(true);
+		}
+	}, [isActive]);
 
 	// `SidebarMenuSub` is hidden in icon mode, so the children need somewhere
 	// else to go or the group becomes a dead end.
@@ -679,8 +698,8 @@ function NavEntry({
 	return (
 		<Collapsible
 			asChild
-			defaultOpen={isActive}
-			open={forceOpen || undefined}
+			open={forceOpen || isOpen}
+			onOpenChange={setIsOpen}
 			className="group/collapsible"
 		>
 			<SidebarMenuItem>
@@ -727,6 +746,23 @@ function NavEntry({
 				</CollapsibleContent>
 			</SidebarMenuItem>
 		</Collapsible>
+	);
+}
+
+/** A single destination row, or an expandable group of destinations. */
+function NavEntry({
+	item,
+	pathname,
+	forceOpen,
+}: {
+	item: NavItem;
+	pathname: string;
+	forceOpen?: boolean;
+}) {
+	return item.isSingle !== false ? (
+		<NavLink item={item} pathname={pathname} />
+	) : (
+		<NavGroup item={item} pathname={pathname} forceOpen={forceOpen} />
 	);
 }
 
