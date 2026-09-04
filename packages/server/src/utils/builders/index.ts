@@ -227,6 +227,14 @@ export const getAuthConfig = async (application: ApplicationNested) => {
 	} = application;
 
 	if (sourceType === "docker") {
+		if (registry) {
+			const r = await findRegistryByIdWithCredentials(registry.registryId);
+			return {
+				password: r.password,
+				username: r.username,
+				serveraddress: r.registryUrl,
+			};
+		}
 		if (username && password) {
 			return { password, username, serveraddress: registryUrl || "" };
 		}

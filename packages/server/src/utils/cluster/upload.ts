@@ -109,9 +109,10 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const targetPrefix = (imagePrefix || username).toLowerCase();
 	const finalRegistry = registryUrl || "";
 
-	return finalRegistry
+	const tag = finalRegistry
 		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
 		: `${targetPrefix}/${repositoryName}`;
+	return tag.toLowerCase();
 };
 
 const getRegistryCommands = (
@@ -131,7 +132,7 @@ ${loginCmd} || {
 	exit 1;
 }
 echo "✅ Registry Login Success" ;
-docker tag ${quote([imageName])} ${quote([registryTag])} || {
+docker tag ${quote([imageName.toLowerCase()])} ${quote([registryTag])} || {
 	echo "❌ Error tagging image" ;
 	exit 1;
 }
