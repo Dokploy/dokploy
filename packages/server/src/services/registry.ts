@@ -198,6 +198,19 @@ export const findRegistryByIdWithCredentials = async (registryId: string) => {
 	return registryResponse;
 };
 
+export const assertRegistryBelongsToOrganization = async (
+	registryId: string,
+	organizationId: string,
+) => {
+	const registryResult = await findRegistryById(registryId);
+	if (registryResult.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to use this registry",
+		});
+	}
+};
+
 export const findAllRegistryByOrganizationId = async (
 	organizationId: string,
 ) => {
