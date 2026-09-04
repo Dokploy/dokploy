@@ -7,7 +7,7 @@ const DEFAULT_MAX_EVENTS = 500;
 const MAX_EVENTS = DEFAULT_MAX_EVENTS;
 
 /** Event shape from GET /v1/events (https://api.inngest.com/v1/events) */
-type InngestEventRow = {
+export type InngestEventRow = {
 	internal_id?: string;
 	accountID?: string;
 	environmentID?: string;
@@ -29,7 +29,7 @@ type InngestEventRow = {
 };
 
 /** Run shape from GET /v1/events/{eventId}/runs – the actual job execution */
-type InngestRun = {
+export type InngestRun = {
 	run_id: string;
 	event_id: string;
 	status: string; // "Running" | "Completed" | "Failed" | "Cancelled" | "Queued"?
@@ -138,8 +138,39 @@ export type DeploymentJobRow = {
 	state: string;
 };
 
+/**
+ * Extract the failure reason surfaced in the queue's "Error" column for a
+ * failed Inngest run.
+ *
+ * The Inngest SDK serializes errors thrown inside `step.run` via
+ * `serialize-error-cjs`, which keeps the message under `message` and never
+ * emits a top-level `error` key — even when the thrown error has an own
+ * `.error` property. So we read `message` first. The `error` branch is kept as
+ * a harmless fallback for any caller that stores `{ error }`, and a plain
+ * string `output` covers legacy/dev-CLI shapes. Self-hosted mirrors this via
+ * `job.failedReason = error.message` in the in-memory queue.
+ */
+export function extractFailedReason(
+	state: string,
+	output: unknown,
+): string | undefined {
+	if (state !== "failed" || !output) {
+		return undefined;
+	}
+	if (typeof output === "string") {
+		return output;
+	}
+	if (typeof output === "object" && "message" in output) {
+		return String((output as { message?: unknown }).message);
+	}
+	if (typeof output === "object" && "error" in output) {
+		return String((output as { error?: unknown }).error);
+	}
+	return undefined;
+}
+
 /** Build queue rows from events + their runs (one row per run, or pending if no run yet) */
-function buildDeploymentRowsFromRuns(
+export function buildDeploymentRowsFromRuns(
 	events: InngestEventRow[],
 	runsByEventId: Map<string, InngestRun[]>,
 	serverId: string,
@@ -178,13 +209,7 @@ function buildDeploymentRowsFromRuns(
 			const endedMs = run.ended_at
 				? new Date(run.ended_at).getTime()
 				: undefined;
-			const failedReason =
-				state === "failed" &&
-				run.output &&
-				typeof run.output === "object" &&
-				"error" in run.output
-					? String((run.output as { error?: unknown }).error)
-					: undefined;
+			const failedReason = extractFailedReason(state, run.output);
 
 			rows.push({
 				id: run.run_id,
