@@ -10,7 +10,7 @@ mkdir -p .plan-auditor
 cat > .plan-auditor/full-suite-check.sh <<'CHECK'
 #!/usr/bin/env bash
 set +e
-pnpm test -- --run > /tmp/issue416-full-test.log 2>&1
+pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts --run > /tmp/issue416-full-test.log 2>&1
 rc=$?
 cat /tmp/issue416-full-test.log
 if [ "$rc" -eq 0 ]; then
@@ -42,8 +42,8 @@ chmod +x .plan-auditor/full-suite-check.sh
 
 cat > .plan-auditor/plan.json <<'JSON'
 {
-  "task": "Issue #416 / PR #5349 final root-cause, security, regression and acceptance audit",
-  "created": "2026-09-05T01:55:00+03:00",
+  "task": "Issue #416 / PR #5349 definitive root-cause, security, regression and acceptance audit",
+  "created": "2026-09-05T02:00:00+03:00",
   "steps": [
     {
       "id": 1,
@@ -80,7 +80,7 @@ cat > .plan-auditor/plan.json <<'JSON'
         },
         {
           "type": "run",
-          "cmd": "python -c \"from pathlib import Path; base=Path('packages/server/src/utils/backups'); files=['postgres.ts','mysql.ts','mariadb.ts','mongo.ts','libsql.ts','compose.ts','web-server.ts']; [(_ for _ in ()).throw(AssertionError(f)) if 'getSafeRcloneErrorMessage(error)' not in (base/f).read_text() else None for f in files]; v=Path('packages/server/src/utils/volume-backups/utils.ts').read_text(); assert 'getSafeRcloneErrorMessage(error)' in v; assert 'errorMessage: safeErrorMessage' in v; assert 'Volume backup retention error' in v; assert 'errorMessage: error instanceof Error ? error.message' not in v; print('all backup notification/log credential sinks use safe rclone error messages')\"",
+          "cmd": "python -c \"from pathlib import Path; base=Path('packages/server/src/utils/backups'); files=['postgres.ts','mysql.ts','mariadb.ts','mongo.ts','libsql.ts','compose.ts','web-server.ts']; [(_ for _ in ()).throw(AssertionError(f)) if 'getSafeRcloneErrorMessage(error)' not in (base/f).read_text() else None for f in files]; v=Path('packages/server/src/utils/volume-backups/utils.ts').read_text(); assert 'getSafeRcloneErrorMessage(error)' in v; assert 'errorMessage: safeErrorMessage' in v; assert 'Volume backup retention error' in v; assert 'errorMessage: error instanceof Error ? error.message' not in v; r=Path('packages/server/src/utils/restore/web-server.ts').read_text(); assert 'getSafeRcloneErrorMessage(error)' in r; assert 'console.error(error)' not in r; u=Path('packages/server/src/utils/backups/utils.ts').read_text(); assert '\\\"--ftp-no-check-certificate=false\\\"' in u; assert '\\\"--no-check-certificate=false\\\"' in u; print('backup and restore credential sinks plus FTP environment overrides verified')\"",
           "expect_exit": 0
         },
         {
@@ -96,12 +96,22 @@ cat > .plan-auditor/plan.json <<'JSON'
         {
           "type": "regex",
           "path": "packages/server/src/db/validations/destination.ts",
+          "pattern": "parseBooleanFlagValue"
+        },
+        {
+          "type": "regex",
+          "path": "packages/server/src/db/validations/destination.ts",
           "pattern": "hasDisabledFtpCertificateVerification"
         },
         {
           "type": "regex",
           "path": "packages/server/src/utils/backups/redact.ts",
           "pattern": "sftp-key-file-pass"
+        },
+        {
+          "type": "regex",
+          "path": "apps/dokploy/__test__/backups/redact-credentials.test.ts",
+          "pattern": "fully redact shell-quote output"
         },
         {
           "type": "regex",
