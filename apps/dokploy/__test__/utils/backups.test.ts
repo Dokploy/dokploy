@@ -1,8 +1,10 @@
+import { apiCreateDestination } from "@dokploy/server/db/schema/destination";
 import { RCLONE_DESTINATION_PROVIDERS } from "@dokploy/server/db/validations/destination";
 import {
 	getRclonePathAndFlags,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
+import { normalizeVolumeBackupFilePath } from "@dokploy/server/utils/volume-backups/restore";
 import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
@@ -64,6 +66,28 @@ describe("normalizeS3Path", () => {
 	});
 });
 
+describe("normalizeVolumeBackupFilePath", () => {
+	test("accepts a destination-relative backup path", () => {
+		expect(normalizeVolumeBackupFilePath("app/prefix/volume-2026.tar")).toBe(
+			"app/prefix/volume-2026.tar",
+		);
+	});
+
+	test.each([
+		"/absolute/backup.tar",
+		"../backup.tar",
+		"app/../backup.tar",
+		"backup.tar; touch /tmp/pwned",
+		"backup.tar$(touch /tmp/pwned)",
+		"backup.tar`touch /tmp/pwned`",
+		"backup.tar\nmalicious-command",
+	])("rejects unsafe restore path %s", (value) => {
+		expect(() => normalizeVolumeBackupFilePath(value)).toThrow(
+			"Invalid volume backup file path",
+		);
+	});
+});
+
 const destination = (overrides: Record<string, unknown> = {}) =>
 	({
 		destinationId: "destination-id",
@@ -79,6 +103,42 @@ const destination = (overrides: Record<string, unknown> = {}) =>
 		createdAt: new Date(0),
 		...overrides,
 	}) as any;
+
+describe("FTP destination validation", () => {
+	const input = {
+		name: "FTP backups",
+		provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+		accessKey: "backup-user",
+		secretAccessKey: "secret",
+		bucket: "backups",
+		region: "21",
+		endpoint: "storage.example.com",
+	};
+
+	test("rejects plaintext FTP", () => {
+		expect(
+			apiCreateDestination.safeParse({ ...input, additionalFlags: [] }).success,
+		).toBe(false);
+	});
+
+	test.each([["--ftp-explicit-tls"], ["--ftp-tls"]])(
+		"accepts encrypted FTP with %s",
+		(additionalFlags) => {
+			expect(
+				apiCreateDestination.safeParse({ ...input, additionalFlags }).success,
+			).toBe(true);
+		},
+	);
+
+	test("rejects conflicting implicit and explicit FTPS", () => {
+		expect(
+			apiCreateDestination.safeParse({
+				...input,
+				additionalFlags: ["--ftp-explicit-tls", "--ftp-tls"],
+			}).success,
+		).toBe(false);
+	});
+});
 
 describe("getRclonePathAndFlags", () => {
 	test("preserves the existing S3 destination behavior", async () => {
