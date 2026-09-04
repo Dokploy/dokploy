@@ -1,0 +1,39 @@
+name: Issue 416 Security Validation
+
+on:
+  push:
+    branches: ["feat/issue-416-backup-destinations"]
+    paths:
+      - "packages/server/src/utils/volume-backups/restore.ts"
+      - "packages/server/src/db/schema/destination.ts"
+      - "apps/dokploy/__test__/utils/backups.test.ts"
+      - ".github/workflows/issue-416-security-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build server package
+        run: pnpm server:build
+      - name: Typecheck workspaces
+        run: pnpm typecheck
+      - name: Run security regression tests
+        run: pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/utils/backups.test.ts --run
+      - name: Biome check security fix files
+        run: |
+          pnpm exec biome check \
+            packages/server/src/utils/volume-backups/restore.ts \
+            packages/server/src/db/schema/destination.ts \
+            apps/dokploy/__test__/utils/backups.test.ts
