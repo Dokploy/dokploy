@@ -126,4 +126,34 @@ describe("docker-volume service commands", () => {
 		expect(hasToken(delCommand, READWRITE)).toBe(true);
 		expect(delCommand).not.toContain(" -v ");
 	});
+
+	it("readVolumeFile uses execAsyncRemote and mounts read-only on remote calls", async () => {
+		await readVolumeFile("myvol", "/file.txt", "srv-3");
+		expect(mocks.execAsync).not.toHaveBeenCalled();
+		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
+		const [serverId, command] = mocks.execAsyncRemote.mock.calls[0] as [
+			string,
+			string,
+		];
+		expect(serverId).toBe("srv-3");
+		expect(hasToken(command, READONLY)).toBe(true);
+		expect(command).not.toContain(" -v ");
+		expect(command).toContain("busybox cat");
+	});
+
+	it("writeVolumeFile uses execAsyncRemote and mounts read-write on remote calls", async () => {
+		await writeVolumeFile("myvol", "/file.txt", "hello", "srv-4");
+		expect(mocks.execAsync).not.toHaveBeenCalled();
+		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
+		const [serverId, command] = mocks.execAsyncRemote.mock.calls[0] as [
+			string,
+			string,
+		];
+		expect(serverId).toBe("srv-4");
+		expect(hasToken(command, READWRITE)).toBe(true);
+		expect(hasToken(command, READONLY)).toBe(false);
+		expect(command).not.toContain("readonly");
+		expect(command).not.toContain(" -v ");
+		expect(command).toContain("busybox sh -c");
+	});
 });

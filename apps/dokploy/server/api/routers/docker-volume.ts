@@ -14,10 +14,10 @@ import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, withPermission } from "../trpc";
 
-// Docker only treats a `-v`/`--mount` source as a *named volume* when it starts
-// with an alphanumeric character; a leading "." or "-" makes the CLI resolve it
-// as a (client-relative) bind-mount path instead. Forbid those leading
-// characters so a crafted volumeName can never escape into bind-mount mode.
+// Docker's `-v` syntax interprets a source starting with "." or "-" as a
+// client-relative bind-mount path. Forbid those leading characters so a
+// crafted volumeName cannot escape into bind-mount mode. The service also uses
+// `--mount type=volume` so Docker rejects invalid volume names as a second layer.
 export const volumeNameRegex = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
 
 const volumePathSchema = z
