@@ -169,7 +169,10 @@ export default async function handler(
 						},
 					);
 				} catch (error) {
-					console.error(`Failed to queue tag deployment for application ${app.applicationId}:`, error);
+					console.error(
+						`Failed to queue tag deployment for application ${app.applicationId}:`,
+						error,
+					);
 				}
 			}
 
@@ -209,7 +212,9 @@ export default async function handler(
 						description: `Hash: ${deploymentHash}`,
 						status: "queued",
 					});
-					await updateCompose(composeApp.composeId, { composeStatus: "queued" });
+					await updateCompose(composeApp.composeId, {
+						composeStatus: "queued",
+					});
 					jobData.deploymentId = deployment.deploymentId;
 					await myQueue.add(
 						"deployments",
@@ -220,7 +225,10 @@ export default async function handler(
 						},
 					);
 				} catch (error) {
-					console.error(`Failed to queue tag deployment for compose ${composeApp.composeId}:`, error);
+					console.error(
+						`Failed to queue tag deployment for compose ${composeApp.composeId}:`,
+						error,
+					);
 				}
 			}
 
@@ -314,7 +322,10 @@ export default async function handler(
 						},
 					);
 				} catch (error) {
-					console.error(`Failed to queue push deployment for application ${app.applicationId}:`, error);
+					console.error(
+						`Failed to queue push deployment for application ${app.applicationId}:`,
+						error,
+					);
 				}
 			}
 
@@ -362,7 +373,9 @@ export default async function handler(
 						description: "Triggered by Github",
 						status: "queued",
 					});
-					await updateCompose(composeApp.composeId, { composeStatus: "queued" });
+					await updateCompose(composeApp.composeId, {
+						composeStatus: "queued",
+					});
 					jobData.deploymentId = deployment.deploymentId;
 					await myQueue.add(
 						"deployments",
@@ -373,7 +386,10 @@ export default async function handler(
 						},
 					);
 				} catch (error) {
-					console.error(`Failed to queue push deployment for compose ${composeApp.composeId}:`, error);
+					console.error(
+						`Failed to queue push deployment for compose ${composeApp.composeId}:`,
+						error,
+					);
 				}
 			}
 
@@ -588,7 +604,9 @@ export default async function handler(
 							description: `Hash: ${deploymentHash}`,
 							status: "queued",
 						});
-						await updatePreviewDeployment(previewDeploymentId, { previewStatus: "queued" });
+						await updatePreviewDeployment(previewDeploymentId, {
+							previewStatus: "queued",
+						});
 						jobData.deploymentId = deployment.deploymentId;
 						await myQueue.add(
 							"deployments",
@@ -600,7 +618,10 @@ export default async function handler(
 						);
 					}
 				} catch (error) {
-					console.error(`Failed to queue preview deployment for application ${app.applicationId}:`, error);
+					console.error(
+						`Failed to queue preview deployment for application ${app.applicationId}:`,
+						error,
+					);
 				}
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
