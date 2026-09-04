@@ -27,6 +27,23 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).toContain('--s3-region="us-east-1"');
 	});
 
+	it("should redact FTP and SFTP obscured password flags", () => {
+		for (const backend of ["ftp", "sftp"] as const) {
+			const cmd = `rclone lsf --${backend}-host=storage.example.com --${backend}-pass='obscured-secret' :${backend}:backups`;
+			const redacted = redactRcloneCredentials(cmd);
+			expect(redacted).not.toContain("obscured-secret");
+			expect(redacted).toContain(`--${backend}-pass="[REDACTED]"`);
+		}
+	});
+
+	it("should redact unquoted FTP and SFTP password flags", () => {
+		const cmd =
+			"rclone lsf --ftp-pass=ftp-secret --sftp-pass=sftp-secret :ftp:backups";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("ftp-secret");
+		expect(redacted).not.toContain("sftp-secret");
+	});
+
 	it("should not modify non-credential flags", () => {
 		const cmd =
 			'rclone rcat --s3-region="eu-west-1" --s3-endpoint="https://s3.example.com" --s3-no-check-bucket :s3:bucket/file.gz';
