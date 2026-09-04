@@ -161,8 +161,8 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 			VOLUME_BACKUPS_PATH,
 			volumeBackup.appName,
 		);
-		// delete all the .tar files
-		const command = `rm -rf ${quote([`${volumeBackupPath}/*.tar`])}`;
+		// delete all the .tar files while keeping wildcard expansion intact
+		const command = `rm -rf ${quote([volumeBackupPath])}/*.tar`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
