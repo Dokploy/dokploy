@@ -28,7 +28,7 @@ export default function Document({
 	const title = appName || "Dokploy";
 	const description =
 		appDescription || "The Open Source alternative to Netlify, Vercel, Heroku.";
-	
+
 	let ogImage = ogImageUrl || "/og.png";
 	if (ogImage.startsWith("/")) {
 		ogImage = `${baseUrl}${ogImage}`;
