@@ -1,3 +1,4 @@
+import { apiCreateDestination } from "@dokploy/server/db/schema/destination";
 import { RCLONE_DESTINATION_PROVIDERS } from "@dokploy/server/db/validations/destination";
 import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
@@ -56,6 +57,44 @@ describe("issue #416 rclone path safety", () => {
 		await expect(
 			getRclonePathAndFlags(destination({ provider }), "app/../outside.sql.gz"),
 		).rejects.toThrow("Invalid rclone path");
+	});
+});
+
+describe("issue #416 SFTP host-key safety", () => {
+	const conflictingKnownHostsFlags = [
+		"--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts",
+		"--sftp-known-hosts-file=none",
+	];
+
+	test("rejects conflicting host-key flags during destination validation", () => {
+		const result = apiCreateDestination.safeParse({
+			name: "SFTP backups",
+			provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+			accessKey: "backup-user",
+			secretAccessKey: "",
+			bucket: "backups",
+			region: "",
+			endpoint: "storage.example.com",
+			additionalFlags: conflictingKnownHostsFlags,
+		});
+
+		expect(result.success).toBe(false);
+	});
+
+	test("rejects conflicting host-key flags at runtime", async () => {
+		await expect(
+			getRclonePathAndFlags(
+				destination({
+					provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+					endpoint: "storage.example.com",
+					accessKey: "backup-user",
+					secretAccessKey: "",
+					region: "",
+					bucket: "backups",
+					additionalFlags: conflictingKnownHostsFlags,
+				}),
+			),
+		).rejects.toThrow("SFTP destinations must verify the server host key");
 	});
 });
 
