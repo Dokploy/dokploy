@@ -46,9 +46,9 @@ export const TruncateTooltip = ({ text, className, ...props }: Props) => {
 
 	return (
 		<TooltipProvider>
-			<Tooltip 
-				delayDuration={0} 
-				open={isOpen} 
+			<Tooltip
+				delayDuration={0}
+				open={isOpen}
 				onOpenChange={(open) => {
 					// Only allow opening if it's actually truncated
 					if (isTruncated) {
