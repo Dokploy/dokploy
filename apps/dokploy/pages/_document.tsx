@@ -14,6 +14,7 @@ interface WhitelabelingDocumentProps {
 	ogImageUrl: string | null;
 	faviconHref: string | null;
 	customCss: string | null;
+	baseUrl: string;
 }
 
 export default function Document({
@@ -22,11 +23,16 @@ export default function Document({
 	ogImageUrl,
 	faviconHref,
 	customCss,
+	baseUrl,
 }: WhitelabelingDocumentProps) {
 	const title = appName || "Dokploy";
 	const description =
 		appDescription || "The Open Source alternative to Netlify, Vercel, Heroku.";
-	const ogImage = ogImageUrl || "/og.png";
+	
+	let ogImage = ogImageUrl || "/og.png";
+	if (ogImage.startsWith("/")) {
+		ogImage = `${baseUrl}${ogImage}`;
+	}
 
 	return (
 		<Html lang="en" className="font-sans">
@@ -80,6 +86,10 @@ Document.getInitialProps = async (
 	let faviconHref: string | null = null;
 	let customCss: string | null = null;
 
+	const host = ctx.req?.headers?.host || "localhost:3000";
+	const protocol = ctx.req?.headers?.["x-forwarded-proto"] || "http";
+	const baseUrl = `${protocol}://${host}`;
+
 	if (
 		globalThis.__SETTINGS_CACHE &&
 		globalThis.__SETTINGS_CACHE.expiresAt > Date.now() &&
@@ -88,6 +98,7 @@ Document.getInitialProps = async (
 		return {
 			...initialProps,
 			...globalThis.__SETTINGS_CACHE.data,
+			baseUrl,
 		};
 	}
 
@@ -125,5 +136,6 @@ Document.getInitialProps = async (
 		ogImageUrl,
 		faviconHref,
 		customCss,
+		baseUrl,
 	};
 };
