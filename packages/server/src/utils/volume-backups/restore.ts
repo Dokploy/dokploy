@@ -4,7 +4,7 @@ import {
 	findApplicationById,
 	findComposeById,
 	findDestinationById,
-	getS3Credentials,
+	getRclonePathAndFlags,
 	paths,
 } from "../..";
 
@@ -19,12 +19,12 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
+	const { flags: rcloneFlags, path: backupPath } =
+		await getRclonePathAndFlags(destination, backupFileName);
+	const localBackupPath = `${volumeBackupPath}/${backupFileName}`;
 
-	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${volumeBackupPath}/${backupFileName}`])}`;
+	// Command to download backup file from the configured destination
+	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([localBackupPath])}`;
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
@@ -32,16 +32,16 @@ export const restoreVolume = async (
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Volume backup path: ${volumeBackupPath}"
-	echo "Downloading backup from S3..."
-	mkdir -p ${volumeBackupPath}
+	echo "Downloading backup from destination..."
+	mkdir -p ${quote([volumeBackupPath])}
 	${downloadCommand}
 	echo "Download completed ✅"
 	echo "Creating new volume and restoring data..."
 	docker run --rm \
 		-v ${volumeName}:/volume_data \
-		-v ${volumeBackupPath}:/backup \
+		-v ${quote([volumeBackupPath])}:/backup \
 		ubuntu \
-		bash -c "cd /volume_data && tar xvf /backup/${quote([backupFileName])} ."
+		bash -c "cd /volume_data && tar xvf /backup/${backupFileName} ."
 	echo "Volume restore completed ✅"
 	`;
 
