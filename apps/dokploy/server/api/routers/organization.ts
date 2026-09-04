@@ -20,14 +20,15 @@ import {
 	organizationRole,
 	user,
 } from "@/server/db/schema";
-import {
-	createOrganizationSchema,
-	updateOrganizationSchema,
-} from "../schemas/organization-schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
-		.input(createOrganizationSchema)
+		.input(
+			z.object({
+				name: z.string(),
+				logo: z.string().optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
@@ -126,7 +127,14 @@ export const organizationRouter = createTRPCRouter({
 			});
 		}),
 	update: protectedProcedure
-		.input(updateOrganizationSchema)
+		.input(
+			z.object({
+				organizationId: z.string(),
+				name: z.string(),
+				logo: z.string().optional(),
+				defaultRole: z.string().min(1).nullable().optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			// First, verify the organization exists
 			const org = await db.query.organization.findFirst({

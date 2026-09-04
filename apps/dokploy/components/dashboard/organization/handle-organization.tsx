@@ -4,7 +4,7 @@ import { PenBoxIcon, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import type { z } from "zod";
+import { z } from "zod";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +26,16 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { createOrganizationSchema as organizationSchema } from "@/server/api/schemas/organization-schema";
 import { api } from "@/utils/api";
 import { resizeImage } from "@/utils/image-processing";
 import { sanitizeSvg } from "@/utils/sanitize-svg";
+
+const organizationSchema = z.object({
+	name: z.string().min(1, {
+		message: "Organization name is required",
+	}),
+	logo: z.string().optional(),
+});
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>;
 
@@ -253,14 +259,10 @@ export function AddOrganization({
 								<FormItem className="items-center gap-4">
 									<div className="flex items-center justify-between">
 										<FormLabel className="text-right">Name</FormLabel>
-										<span className="text-xs text-muted-foreground">
-											{field.value?.length || 0}/50
-										</span>
 									</div>
 									<FormControl>
 										<Input
 											placeholder="Organization name"
-											maxLength={50}
 											{...field}
 											className="col-span-3"
 										/>
