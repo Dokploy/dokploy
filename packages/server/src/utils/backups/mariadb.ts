@@ -9,6 +9,7 @@ import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getSafeRcloneErrorMessage } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
@@ -59,18 +60,18 @@ export const runMariadbBackup = async (
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Backup error:", safeErrorMessage);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
 			databaseType: "mariadb",
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: safeErrorMessage,
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		throw error;
+		throw new Error(safeErrorMessage);
 	}
 };

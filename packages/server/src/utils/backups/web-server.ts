@@ -16,7 +16,7 @@ import { findDestinationById } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
-import { redactRcloneCredentials } from "./redact";
+import { getSafeRcloneErrorMessage, redactRcloneCredentials } from "./redact";
 import {
 	getBackupTimestamp,
 	getRclonePathAndFlags,
@@ -142,9 +142,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			}
 		}
 	} catch (error) {
-		const safeErrorMessage = redactRcloneCredentials(
-			error instanceof Error ? error.message : String(error),
-		);
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
 		console.error("Backup error:", redactRcloneCredentials(String(error)));
 		writeStream.write("Backup error❌\n");
 		writeStream.write(`${safeErrorMessage}\n`);
@@ -155,6 +153,6 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			backupSize: formatBytes(computedBackupSize),
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		throw error;
+		throw new Error(safeErrorMessage);
 	}
 };

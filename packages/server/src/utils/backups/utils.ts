@@ -1,9 +1,11 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR,
 	FTP_TLS_CONFLICT_ERROR,
 	FTP_TLS_REQUIRED_ERROR,
 	getFtpTlsState,
+	hasDisabledFtpCertificateVerification,
 	hasSftpHostKeyVerification,
 	isNamedRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
@@ -173,6 +175,9 @@ export const getRclonePathAndFlags = async (
 			}
 			if (implicitTlsEnabled && explicitTlsEnabled) {
 				throw new Error(FTP_TLS_CONFLICT_ERROR);
+			}
+			if (hasDisabledFtpCertificateVerification(additionalFlags)) {
+				throw new Error(FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR);
 			}
 			defaultPort = implicitTlsEnabled ? "990" : "21";
 		} else if (!hasSftpHostKeyVerification(additionalFlags)) {
