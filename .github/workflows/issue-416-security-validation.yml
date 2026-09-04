@@ -29,6 +29,8 @@ jobs:
         run: pnpm server:build
       - name: Typecheck workspaces
         run: pnpm typecheck
+      - name: Run full Dokploy test suite
+        run: pnpm test
       - name: Run security regression tests
         run: pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/utils/backups.test.ts --run
       - name: Biome check security fix files
