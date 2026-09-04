@@ -20,10 +20,18 @@ export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
 // host and must stay restricted to owners/admins, regardless of whether the
 // request is also tied to a service. Attaching an accessible applicationId must
 // not downgrade this to a service-access check.
+//
+// `scheduleOrganizationId` is the owning organization of the targeted schedule
+// row (for dokploy-server schedules, the `organizationId` column). It is used to
+// enforce cross-organization isolation: callers may only act on dokploy-server
+// schedules owned by their own active organization. It is left optional so the
+// same helper can be used on `create` (where no schedule row exists yet — the
+// org is assigned to the caller's active org by the router).
 export const assertHostScheduleAccess = async (
 	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
 	scheduleType: Schedule["scheduleType"] | null | undefined,
 	serverId: string | null | undefined,
+	scheduleOrganizationId?: string | null,
 ) => {
 	if (scheduleType !== "server" && scheduleType !== "dokploy-server") return;
 
@@ -51,6 +59,18 @@ export const assertHostScheduleAccess = async (
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this server.",
+			});
+		}
+	}
+
+	if (scheduleType === "dokploy-server") {
+		if (
+			scheduleOrganizationId &&
+			scheduleOrganizationId !== ctx.session.activeOrganizationId
+		) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You don't have access to this schedule.",
 			});
 		}
 	}
