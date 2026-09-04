@@ -29,34 +29,55 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly one match, found {count}")
+              return text.replace(old, new, 1)
+
           router = Path("apps/dokploy/server/api/routers/destination.ts")
           text = router.read_text()
-          old = '''\t\t\t\tif (IS_CLOUD) {\n\t\t\t\t\tconst server = await findServerById(input.serverId || "");\n\t\t\t\t\tif (server.organizationId !== ctx.session.activeOrganizationId) {\n\t\t\t\t\t\tthrow new TRPCError({\n\t\t\t\t\t\t\tcode: "UNAUTHORIZED",\n\t\t\t\t\t\t\tmessage: "You are not allowed to use this server",\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tawait execAsyncRemote(input.serverId || "", rcloneCommand);\n\t\t\t\t} else {\n\t\t\t\t\tawait execAsync(rcloneCommand);\n\t\t\t\t}\n'''
-          new = '''\t\t\t\tif (input.serverId) {\n\t\t\t\t\tconst server = await findServerById(input.serverId);\n\t\t\t\t\tif (server.organizationId !== ctx.session.activeOrganizationId) {\n\t\t\t\t\t\tthrow new TRPCError({\n\t\t\t\t\t\t\tcode: "UNAUTHORIZED",\n\t\t\t\t\t\t\tmessage: "You are not allowed to use this server",\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tawait execAsyncRemote(input.serverId, rcloneCommand);\n\t\t\t\t} else {\n\t\t\t\t\tawait execAsync(rcloneCommand);\n\t\t\t\t}\n'''
-          if old not in text:
-              raise SystemExit("destination router execution block did not match expected source")
-          router.write_text(text.replace(old, new, 1))
+          text = replace_once(
+              text,
+              'if (IS_CLOUD) {\n\t\t\t\t\tconst server = await findServerById(input.serverId || "");',
+              'if (input.serverId) {\n\t\t\t\t\tconst server = await findServerById(input.serverId);',
+              "router remote branch",
+          )
+          text = replace_once(
+              text,
+              'await execAsyncRemote(input.serverId || "", rcloneCommand);',
+              'await execAsyncRemote(input.serverId, rcloneCommand);',
+              "router remote execution",
+          )
+          router.write_text(text)
 
           ui = Path("apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx")
           text = ui.read_text()
           anchor = '''\tconst isFileTransfer =\n\t\tcurrentProvider === RCLONE_DESTINATION_PROVIDERS.FTP ||\n\t\tcurrentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP;\n'''
-          replacement = anchor + '''\tconst hasRemoteServers = (servers?.length ?? 0) > 0;\n\tconst showServerSelector = Boolean(isCloud) || hasRemoteServers;\n'''
-          if anchor not in text:
-              raise SystemExit("destination form provider block did not match expected source")
-          text = text.replace(anchor, replacement, 1)
-
-          old_footer = '''\t\t\t\t\t<DialogFooter\n\t\t\t\t\t\tclassName={cn(\n\t\t\t\t\t\t\tisCloud ? "flex-col!" : "flex-row",\n\t\t\t\t\t\t\t"flex w-full  justify-between! gap-4",\n\t\t\t\t\t\t)}\n\t\t\t\t\t>\n\t\t\t\t\t\t{isCloud ? (\n'''
-          new_footer = '''\t\t\t\t\t<DialogFooter\n\t\t\t\t\t\tclassName={cn(\n\t\t\t\t\t\t\tshowServerSelector ? "flex-col!" : "flex-row",\n\t\t\t\t\t\t\t"flex w-full  justify-between! gap-4",\n\t\t\t\t\t\t)}\n\t\t\t\t\t>\n\t\t\t\t\t\t{showServerSelector ? (\n'''
-          if old_footer not in text:
-              raise SystemExit("destination form footer block did not match expected source")
-          text = text.replace(old_footer, new_footer, 1)
-
-          old_options = '''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectGroup>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectLabel>Servers</SelectLabel>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t{servers?.map((server) => (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tkey={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tvalue={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t{server.name}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t))}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value="none">None</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectGroup>\n'''
-          new_options = '''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectGroup>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectLabel>Servers</SelectLabel>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t{!isCloud && (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value="none">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDokploy Server (Local)\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t)}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t{servers?.map((server) => (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tkey={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tvalue={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t{server.name}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t))}\n\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectGroup>\n'''
-          if old_options not in text:
-              raise SystemExit("destination form server options did not match expected source")
-          text = text.replace(old_options, new_options, 1)
-          text = text.replace('''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectValue placeholder="Select a server" />''', '''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectValue\n\t\t\t\t\t\t\t\t\t\t\t\t\t\tplaceholder={isCloud ? "Select a server" : "Dokploy Server (Local)"}\n\t\t\t\t\t\t\t\t\t\t\t\t\t/>''', 1)
+          text = replace_once(
+              text,
+              anchor,
+              anchor + '\tconst hasRemoteServers = (servers?.length ?? 0) > 0;\n\tconst showServerSelector = Boolean(isCloud) || hasRemoteServers;\n',
+              "form server selector state",
+          )
+          text = replace_once(
+              text,
+              'isCloud ? "flex-col!" : "flex-row",',
+              'showServerSelector ? "flex-col!" : "flex-row",',
+              "footer layout",
+          )
+          text = replace_once(
+              text,
+              '\t\t\t\t\t\t{isCloud ? (\n\t\t\t\t\t\t\t<div className="flex flex-col gap-4 border p-2 rounded-lg">',
+              '\t\t\t\t\t\t{showServerSelector ? (\n\t\t\t\t\t\t\t<div className="flex flex-col gap-4 border p-2 rounded-lg">',
+              "footer selector branch",
+          )
+          text = replace_once(
+              text,
+              '<SelectItem value="none">None</SelectItem>',
+              '{!isCloud && (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value="none">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDokploy Server (Local)\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t)}',
+              "local server option",
+          )
           ui.write_text(text)
           PY
       - name: Format changed source
@@ -64,6 +85,7 @@ jobs:
       - name: Verify source routing invariants
         run: |
           grep -F 'if (input.serverId) {' apps/dokploy/server/api/routers/destination.ts
+          grep -F 'await execAsyncRemote(input.serverId, rcloneCommand);' apps/dokploy/server/api/routers/destination.ts
           grep -F 'showServerSelector = Boolean(isCloud) || hasRemoteServers' apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
           grep -F 'Dokploy Server (Local)' apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
       - name: Build server
