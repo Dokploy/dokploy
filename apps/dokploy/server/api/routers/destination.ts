@@ -3,6 +3,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	findServerById,
 	getRclonePathAndFlags,
 	IS_CLOUD,
 	removeDestinationById,
@@ -49,7 +50,7 @@ export const destinationRouter = createTRPCRouter({
 		}),
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const { flags, path } = await getRclonePathAndFlags(
 					input as Parameters<typeof getRclonePathAndFlags>[0],
@@ -71,18 +72,26 @@ export const destinationRouter = createTRPCRouter({
 				}
 
 				if (IS_CLOUD) {
+					const server = await findServerById(input.serverId || "");
+					if (server.organizationId !== ctx.session.activeOrganizationId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not allowed to use this server",
+						});
+					}
 					await execAsyncRemote(input.serverId || "", rcloneCommand);
 				} else {
 					await execAsync(rcloneCommand);
 				}
 			} catch (error) {
+				const safeMessage =
+					error instanceof Error
+						? redactRcloneCredentials(error.message)
+						: "Error connecting to destination";
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? redactRcloneCredentials(error.message)
-							: "Error connecting to destination",
-					cause: error,
+					code: error instanceof TRPCError ? error.code : "BAD_REQUEST",
+					message: safeMessage,
+					cause: new Error(safeMessage),
 				});
 			}
 		}),
