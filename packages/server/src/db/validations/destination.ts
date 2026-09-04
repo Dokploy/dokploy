@@ -47,9 +47,7 @@ const isBooleanFlagEnabled = (
 	(flags.includes(flagName) || flags.includes(`${flagName}=true`)) &&
 	!flags.includes(`${flagName}=false`);
 
-export const getFtpTlsState = (
-	flags: readonly string[] | null | undefined,
-) => {
+export const getFtpTlsState = (flags: readonly string[] | null | undefined) => {
 	const values = flags ?? [];
 	return {
 		implicitTlsEnabled: isBooleanFlagEnabled(values, "--ftp-tls"),
