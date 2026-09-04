@@ -81,7 +81,7 @@
     "react-dom": "19.2.7",
     "resend": "^6.0.2",
     "semver": "7.7.3",
-    "shell-quote": "^1.8.1",
+    "shell-quote": "^1.8.4",
     "slugify": "^1.6.6",
     "ssh2": "~1.16.0",
     "toml": "3.0.0",
