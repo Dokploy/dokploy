@@ -1,0 +1,81 @@
+name: Issue 416 Self-hosted Remote Fix
+
+on:
+  push:
+    branches: ["feat/issue-416-backup-destinations"]
+    paths:
+      - ".github/workflows/issue-416-selfhosted-remote-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/issue-416-backup-destinations
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply root-cause fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          router = Path("apps/dokploy/server/api/routers/destination.ts")
+          text = router.read_text()
+          old = '''\t\t\t\tif (IS_CLOUD) {\n\t\t\t\t\tconst server = await findServerById(input.serverId || "");\n\t\t\t\t\tif (server.organizationId !== ctx.session.activeOrganizationId) {\n\t\t\t\t\t\tthrow new TRPCError({\n\t\t\t\t\t\t\tcode: "UNAUTHORIZED",\n\t\t\t\t\t\t\tmessage: "You are not allowed to use this server",\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tawait execAsyncRemote(input.serverId || "", rcloneCommand);\n\t\t\t\t} else {\n\t\t\t\t\tawait execAsync(rcloneCommand);\n\t\t\t\t}\n'''
+          new = '''\t\t\t\tif (input.serverId) {\n\t\t\t\t\tconst server = await findServerById(input.serverId);\n\t\t\t\t\tif (server.organizationId !== ctx.session.activeOrganizationId) {\n\t\t\t\t\t\tthrow new TRPCError({\n\t\t\t\t\t\t\tcode: "UNAUTHORIZED",\n\t\t\t\t\t\t\tmessage: "You are not allowed to use this server",\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tawait execAsyncRemote(input.serverId, rcloneCommand);\n\t\t\t\t} else {\n\t\t\t\t\tawait execAsync(rcloneCommand);\n\t\t\t\t}\n'''
+          if old not in text:
+              raise SystemExit("destination router execution block did not match expected source")
+          router.write_text(text.replace(old, new, 1))
+
+          ui = Path("apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx")
+          text = ui.read_text()
+          anchor = '''\tconst isFileTransfer =\n\t\tcurrentProvider === RCLONE_DESTINATION_PROVIDERS.FTP ||\n\t\tcurrentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP;\n'''
+          replacement = anchor + '''\tconst hasRemoteServers = (servers?.length ?? 0) > 0;\n\tconst showServerSelector = Boolean(isCloud) || hasRemoteServers;\n'''
+          if anchor not in text:
+              raise SystemExit("destination form provider block did not match expected source")
+          text = text.replace(anchor, replacement, 1)
+
+          old_footer = '''\t\t\t\t\t<DialogFooter\n\t\t\t\t\t\tclassName={cn(\n\t\t\t\t\t\t\tisCloud ? "flex-col!" : "flex-row",\n\t\t\t\t\t\t\t"flex w-full  justify-between! gap-4",\n\t\t\t\t\t\t)}\n\t\t\t\t\t>\n\t\t\t\t\t\t{isCloud ? (\n'''
+          new_footer = '''\t\t\t\t\t<DialogFooter\n\t\t\t\t\t\tclassName={cn(\n\t\t\t\t\t\t\tshowServerSelector ? "flex-col!" : "flex-row",\n\t\t\t\t\t\t\t"flex w-full  justify-between! gap-4",\n\t\t\t\t\t\t)}\n\t\t\t\t\t>\n\t\t\t\t\t\t{showServerSelector ? (\n'''
+          if old_footer not in text:
+              raise SystemExit("destination form footer block did not match expected source")
+          text = text.replace(old_footer, new_footer, 1)
+
+          old_options = '''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectGroup>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectLabel>Servers</SelectLabel>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t{servers?.map((server) => (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tkey={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tvalue={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t{server.name}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t))}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value="none">None</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectGroup>\n'''
+          new_options = '''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectGroup>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectLabel>Servers</SelectLabel>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t{!isCloud && (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value="none">\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tDokploy Server (Local)\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t)}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t{servers?.map((server) => (\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tkey={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tvalue={server.serverId}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t{server.name}\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t))}\n\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectGroup>\n'''
+          if old_options not in text:
+              raise SystemExit("destination form server options did not match expected source")
+          text = text.replace(old_options, new_options, 1)
+          text = text.replace('''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectValue placeholder="Select a server" />''', '''\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectValue\n\t\t\t\t\t\t\t\t\t\t\t\t\t\tplaceholder={isCloud ? "Select a server" : "Dokploy Server (Local)"}\n\t\t\t\t\t\t\t\t\t\t\t\t\t/>''', 1)
+          ui.write_text(text)
+          PY
+      - name: Format changed source
+        run: pnpm exec biome check --write apps/dokploy/server/api/routers/destination.ts apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+      - name: Verify source routing invariants
+        run: |
+          grep -F 'if (input.serverId) {' apps/dokploy/server/api/routers/destination.ts
+          grep -F 'showServerSelector = Boolean(isCloud) || hasRemoteServers' apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+          grep -F 'Dokploy Server (Local)' apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+      - name: Build server
+        run: pnpm server:build
+      - name: Typecheck workspaces
+        run: pnpm typecheck
+      - name: Focused backup/security tests
+        run: pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/utils/backups.test.ts __test__/backups/redact-credentials.test.ts __test__/utils/issue-416-path-safety.test.ts --run
+      - name: Commit verified fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/dokploy/server/api/routers/destination.ts apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+          git commit -m "fix: test backup destinations on selected server"
+          git push origin HEAD:feat/issue-416-backup-destinations
