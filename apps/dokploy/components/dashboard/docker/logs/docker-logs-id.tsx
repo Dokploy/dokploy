@@ -397,7 +397,22 @@ export const DockerLogsId: React.FC<Props> = ({
 								<DownloadIcon className="size-4" />
 								<span className="hidden lg:ml-2 lg:inline">Download logs</span>
 							</Button>
-							<AnalyzeLogs logs={filteredLogs} context="runtime" />
+							<AnalyzeLogs
+								key={`${serverId}:${containerId}:${runType}:${serviceId}`}
+								logs={filteredLogs}
+								context="runtime"
+								target={
+									containerId && containerId !== "select-a-container"
+										? {
+												type: "runtime",
+												containerId,
+												runType,
+												serverId: serverId || undefined,
+												serviceId,
+											}
+										: undefined
+								}
+							/>
 						</div>
 					</div>
 					{isPaused && (

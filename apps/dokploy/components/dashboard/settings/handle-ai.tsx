@@ -78,6 +78,8 @@ const Schema = z.object({
 	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
 	isEnabled: z.boolean(),
+	enableCodeInspection: z.boolean(),
+	logLineLimit: z.number().int().min(1).max(10000),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -116,6 +118,8 @@ export const HandleAi = ({ aiId }: Props) => {
 			apiKey: "",
 			model: "",
 			isEnabled: true,
+			enableCodeInspection: false,
+			logLineLimit: 200,
 		},
 	});
 
@@ -127,6 +131,8 @@ export const HandleAi = ({ aiId }: Props) => {
 				apiKey: data?.apiKey ?? "",
 				model: data?.model ?? "",
 				isEnabled: data?.isEnabled ?? true,
+				enableCodeInspection: data?.enableCodeInspection ?? false,
+				logLineLimit: data?.logLineLimit ?? 200,
 			});
 		}
 		setModelSearch("");
@@ -162,6 +168,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			});
 
 			utils.ai.getAll.invalidate();
+			utils.ai.getEnabledProviders.invalidate();
 			toast.success("AI settings saved successfully");
 			refetch();
 			setOpen(false);
@@ -199,7 +206,7 @@ export const HandleAi = ({ aiId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{aiId ? "Edit AI" : "Add AI"}</DialogTitle>
 					<DialogDescription>
@@ -477,6 +484,58 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
+						<FormField
+							control={form.control}
+							name="enableCodeInspection"
+							render={({ field }) => (
+								<FormItem className="flex items-center justify-between gap-4 rounded-lg border p-4">
+									<div>
+										<FormLabel>
+											Inspect source code when analyzing logs
+										</FormLabel>
+										<FormDescription>
+											Allow this provider to receive relevant source files for
+											deployment and runtime diagnosis. Access is read-only. The
+											available checkout may differ from the deployed revision.
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="logLineLimit"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Log lines sent to AI</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											min={1}
+											max={10000}
+											step={1}
+											{...field}
+											onChange={(event) =>
+												field.onChange(event.target.valueAsNumber)
+											}
+										/>
+									</FormControl>
+									<FormDescription>
+										Latest lines fetched for both deployment and runtime
+										analysis, independently of viewer filters. Default: 200.
+										Maximum: 10,000 lines or 1 MiB; your model may require a
+										smaller limit.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<div className="flex justify-end gap-2 pt-4">
 							<TestConnectionButton
 								apiUrl={apiUrl}

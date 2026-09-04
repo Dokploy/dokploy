@@ -58,6 +58,7 @@ export const ShowDeploymentsModal = ({
 				/>
 			</DialogContent>
 			<ShowDeployment
+				deploymentId={activeLog?.deploymentId}
 				serverId={serverId || ""}
 				open={Boolean(activeLog && activeLog.logPath !== null)}
 				onClose={() => setActiveLog(null)}

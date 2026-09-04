@@ -4,7 +4,7 @@ import { aiCustomProviderSchema } from "@dokploy/server/db/schema/ai";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText, Output } from "ai";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { findServerById } from "./server";
@@ -36,7 +36,10 @@ export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	return aiSettings;
 };
 
-export const getAiSettingById = async (aiId: string) => {
+export const getAiSettingById = async (
+	aiId: string,
+	organizationId?: string,
+) => {
 	const aiSetting = await db.query.ai.findFirst({
 		where: eq(ai.aiId, aiId),
 	});
@@ -45,6 +48,9 @@ export const getAiSettingById = async (aiId: string) => {
 			code: "NOT_FOUND",
 			message: "AI settings not found",
 		});
+	}
+	if (organizationId && aiSetting.organizationId !== organizationId) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 	}
 	return aiSetting;
 };
@@ -99,6 +105,7 @@ const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
 
 export const saveAiSettings = async (organizationId: string, settings: any) => {
 	const aiId = settings.aiId;
+	if (aiId) await getAiSettingById(aiId, organizationId);
 
 	if (settings.apiUrl) {
 		const customProviders = await getCustomAiProviders(organizationId);
@@ -117,19 +124,13 @@ export const saveAiSettings = async (organizationId: string, settings: any) => {
 		}
 	}
 
-	return db
-		.insert(ai)
-		.values({
-			aiId,
-			organizationId,
-			...settings,
-		})
-		.onConflictDoUpdate({
-			target: ai.aiId,
-			set: {
-				...settings,
-			},
-		});
+	if (aiId) {
+		return db
+			.update(ai)
+			.set(settings)
+			.where(and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)));
+	}
+	return db.insert(ai).values({ ...settings, aiId: undefined, organizationId });
 };
 
 export const deleteAiSettings = async (aiId: string) => {

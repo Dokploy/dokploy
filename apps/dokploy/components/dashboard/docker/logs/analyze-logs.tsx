@@ -1,4 +1,5 @@
 "use client";
+import type { AnalysisTarget } from "@dokploy/server/utils/ai/log-analysis-schema";
 import copy from "copy-to-clipboard";
 import {
 	Bot,
@@ -10,7 +11,7 @@ import {
 	X,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,18 +33,23 @@ import type { LogLine } from "./utils";
 interface Props {
 	logs: LogLine[];
 	context: "build" | "runtime";
+	target?: AnalysisTarget;
 }
 
-const MAX_LOG_LINES = 200;
-
-export function AnalyzeLogs({ logs, context }: Props) {
+export function AnalyzeLogs({ logs, context, target }: Props) {
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
 	const [copied, setCopied] = useState(false);
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
-	const { mutate, isPending, data, reset } = api.ai.analyzeLogs.useMutation({
+	const {
+		mutate,
+		isPending,
+		data: analysisResult,
+		variables,
+		reset,
+	} = api.ai.analyzeLogs.useMutation({
 		onError: (error) => {
 			toast.error("Analysis failed", {
 				description: error.message,
@@ -51,15 +57,28 @@ export function AnalyzeLogs({ logs, context }: Props) {
 		},
 	});
 
+	const selectedProvider = providers?.find(
+		(provider) => provider.aiId === aiId,
+	);
+	const lineLimit = selectedProvider?.logLineLimit ?? 200;
+	const targetKey = JSON.stringify(target);
+	const data =
+		variables?.aiId === aiId && JSON.stringify(variables.target) === targetKey
+			? analysisResult
+			: undefined;
+	useEffect(() => {
+		reset();
+	}, [targetKey, aiId, reset]);
+
 	const handleAnalyze = () => {
-		if (!aiId || logs.length === 0) return;
+		if (!aiId || (!target && logs.length === 0)) return;
 
 		const logsText = logs
-			.slice(-MAX_LOG_LINES)
+			.slice(-lineLimit)
 			.map((l) => l.message)
 			.join("\n");
 
-		mutate({ aiId, logs: logsText, context });
+		mutate({ aiId, ...(target ? { target } : { logs: logsText }), context });
 	};
 
 	const handleCopy = () => {
@@ -87,7 +106,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					variant="outline"
 					size="sm"
 					className="h-9"
-					disabled={logs.length === 0}
+					disabled={!target && logs.length === 0}
 					title="Analyze logs with AI"
 				>
 					<Bot className="mr-2 size-4" />
@@ -138,10 +157,20 @@ export function AnalyzeLogs({ logs, context }: Props) {
 										))}
 									</SelectContent>
 								</Select>
+								<p className="text-xs text-muted-foreground">
+									{target
+										? "Fetches recent logs independently of viewer filters and loaded lines."
+										: "Uses the currently loaded logs. Source inspection is unavailable without a service target."}
+									{selectedProvider?.enableCodeInspection && target
+										? " Relevant source files may be sent to this provider."
+										: ""}
+								</p>
 								<Button
 									size="sm"
 									className="w-full"
-									disabled={!aiId || isPending || logs.length === 0}
+									disabled={
+										!aiId || isPending || (!target && logs.length === 0)
+									}
 									onClick={handleAnalyze}
 								>
 									{isPending ? (
@@ -153,9 +182,9 @@ export function AnalyzeLogs({ logs, context }: Props) {
 										<>
 											<Bot className="mr-2 h-3.5 w-3.5" />
 											Analyze{" "}
-											{logs.length > MAX_LOG_LINES
-												? `last ${MAX_LOG_LINES}`
-												: logs.length}{" "}
+											{target
+												? `latest ${lineLimit}`
+												: Math.min(logs.length, lineLimit)}{" "}
 											lines
 										</>
 									)}
@@ -164,6 +193,29 @@ export function AnalyzeLogs({ logs, context }: Props) {
 						)
 					) : (
 						<>
+							<p className="text-xs text-muted-foreground">
+								{data.lineCount} log lines ·{" "}
+								{data.sourceStatus === "inspected"
+									? "Source inspected"
+									: "Logs only"}
+							</p>
+							{data.notices.map((notice) => (
+								<p key={notice} className="text-xs text-muted-foreground">
+									{notice}
+								</p>
+							))}
+							{data.inspectedFiles.length > 0 && (
+								<details className="text-xs">
+									<summary>
+										Inspected files ({data.inspectedFiles.length})
+									</summary>
+									<ul className="pl-4 list-disc">
+										{data.inspectedFiles.map((file) => (
+											<li key={file}>{file}</li>
+										))}
+									</ul>
+								</details>
+							)}
 							<div className="max-h-[400px] overflow-y-auto">
 								<div className="prose prose-sm dark:prose-invert max-w-none text-sm wrap-break-word">
 									<ReactMarkdown>{data.analysis}</ReactMarkdown>
