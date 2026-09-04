@@ -212,6 +212,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	const isFileTransfer =
 		currentProvider === RCLONE_DESTINATION_PROVIDERS.FTP ||
 		currentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP;
+	const hasRemoteServers = (servers?.length ?? 0) > 0;
+	const showServerSelector = Boolean(isCloud) || hasRemoteServers;
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -593,11 +595,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 					<DialogFooter
 						className={cn(
-							isCloud ? "flex-col!" : "flex-row",
+							showServerSelector ? "flex-col!" : "flex-row",
 							"flex w-full  justify-between! gap-4",
 						)}
 					>
-						{isCloud ? (
+						{showServerSelector ? (
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
 									Select the server that will execute the backup so the
@@ -628,7 +630,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 																	{server.name}
 																</SelectItem>
 															))}
-															<SelectItem value="none">None</SelectItem>
+															{!isCloud && (
+																<SelectItem value="none">
+																	Dokploy Server (Local)
+																</SelectItem>
+															)}
 														</SelectGroup>
 													</SelectContent>
 												</Select>
