@@ -61,6 +61,17 @@ export const removeScheduleBackup = (backupId: string) => {
 export const getBackupTimestamp = () =>
 	new Date().toISOString().replace(/[:.]/g, "-");
 
+// Backups of two databases hosted by the same service land in the same folder
+// of the bucket, so the file name has to carry the database it came from:
+// retention lists that folder and would otherwise delete the other backup's
+// files. Restricted to characters that are safe both as an S3 key and inside
+// the rclone glob that keepLatestNBackups builds from this same prefix.
+export const getBackupFilePrefix = (database: string) =>
+	`${database.replace(/[^a-zA-Z0-9._-]/g, "_")}-`;
+
+export const getBackupFileName = (database: string, extension: string) =>
+	`${getBackupFilePrefix(database)}${getBackupTimestamp()}.${extension}`;
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
