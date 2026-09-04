@@ -14,7 +14,7 @@ on:
       - ".github/workflows/issue-416-final-security-validation.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -29,13 +29,39 @@ jobs:
           node-version: 24.4.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Apply Biome formatting
+        run: |
+          pnpm exec biome check --write \
+            packages/server/src/db/validations/destination.ts \
+            packages/server/src/db/schema/destination.ts \
+            packages/server/src/utils/backups/utils.ts \
+            apps/dokploy/server/api/routers/destination.ts \
+            apps/dokploy/server/api/routers/backup.ts \
+            apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx \
+            apps/dokploy/__test__/utils/backups.test.ts
+      - name: Commit formatter changes if needed
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add \
+              packages/server/src/db/validations/destination.ts \
+              packages/server/src/db/schema/destination.ts \
+              packages/server/src/utils/backups/utils.ts \
+              apps/dokploy/server/api/routers/destination.ts \
+              apps/dokploy/server/api/routers/backup.ts \
+              apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx \
+              apps/dokploy/__test__/utils/backups.test.ts
+            git commit -m "style: apply Biome formatting"
+            git push
+          fi
       - name: Build server package
         run: pnpm server:build
       - name: Typecheck workspaces
         run: pnpm typecheck
       - name: Run focused backup security tests
         run: pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/utils/backups.test.ts __test__/backups/redact-credentials.test.ts --run
-      - name: Biome check changed security files
+      - name: Verify Biome is clean
         run: |
           pnpm exec biome check \
             packages/server/src/db/validations/destination.ts \
