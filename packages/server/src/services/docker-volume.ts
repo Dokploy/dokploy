@@ -84,7 +84,7 @@ export const listVolumeFiles = async (
 	path: string,
 	serverId?: string,
 ) => {
-	const command = `docker run --rm -v ${quote([`${volumeName}:${VOLUME_MOUNT}:ro`])} busybox ls -1Ap ${quote([`${VOLUME_MOUNT}${path}`])}`;
+	const command = `docker run --rm --mount ${quote([`type=volume,source=${volumeName},target=${VOLUME_MOUNT},readonly`])} busybox ls -1Ap ${quote([`${VOLUME_MOUNT}${path}`])}`;
 	const { stdout } = serverId
 		? await execAsyncRemote(serverId, command)
 		: await execAsync(command);
@@ -109,7 +109,7 @@ export const readVolumeFile = async (
 	filePath: string,
 	serverId?: string,
 ) => {
-	const command = `docker run --rm -v ${quote([`${volumeName}:${VOLUME_MOUNT}:ro`])} busybox cat ${quote([`${VOLUME_MOUNT}${filePath}`])} | head -c ${CONTAINER_FILE_SIZE_LIMIT + 1} | base64 | tr -d '\\n'`;
+	const command = `docker run --rm --mount ${quote([`type=volume,source=${volumeName},target=${VOLUME_MOUNT},readonly`])} busybox cat ${quote([`${VOLUME_MOUNT}${filePath}`])} | head -c ${CONTAINER_FILE_SIZE_LIMIT + 1} | base64 | tr -d '\\n'`;
 	const { stdout, stderr } = serverId
 		? await execAsyncRemote(serverId, command)
 		: await execAsync(command);
@@ -137,7 +137,7 @@ export const writeVolumeFile = async (
 	}
 
 	const innerCommand = `printf '%s' ${base64Content} | base64 -d > ${quote([`${VOLUME_MOUNT}${filePath}`])}`;
-	const command = `docker run --rm -v ${quote([`${volumeName}:${VOLUME_MOUNT}`])} busybox sh -c ${quote([innerCommand])}`;
+	const command = `docker run --rm --mount ${quote([`type=volume,source=${volumeName},target=${VOLUME_MOUNT}`])} busybox sh -c ${quote([innerCommand])}`;
 
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
@@ -151,7 +151,7 @@ export const deleteVolumeFile = async (
 	path: string,
 	serverId?: string,
 ) => {
-	const command = `docker run --rm -v ${quote([`${volumeName}:${VOLUME_MOUNT}`])} busybox rm -rf ${quote([`${VOLUME_MOUNT}${path}`])}`;
+	const command = `docker run --rm --mount ${quote([`type=volume,source=${volumeName},target=${VOLUME_MOUNT}`])} busybox rm -rf ${quote([`${VOLUME_MOUNT}${path}`])}`;
 
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
