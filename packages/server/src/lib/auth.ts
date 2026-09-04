@@ -16,6 +16,7 @@ import {
 	getTrustedOrigins,
 	getTrustedProviders,
 	getUserByToken,
+	isAdminPresent,
 } from "../services/admin";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
@@ -206,10 +207,7 @@ const createBetterAuth = () =>
 								if (isSSORequest) {
 									return;
 								}
-								const isAdminPresent = await db.query.member.findFirst({
-									where: eq(schema.member.role, "owner"),
-								});
-								if (isAdminPresent) {
+								if (await isAdminPresent()) {
 									throw new APIError("BAD_REQUEST", {
 										message: "Admin is already created",
 									});
@@ -220,11 +218,11 @@ const createBetterAuth = () =>
 					after: async (user, context) => {
 						const isSSORequest = context?.path.includes("/sso");
 						const isSCIMRequest = context?.path.includes("/scim");
-						const isAdminPresent = await db.query.member.findFirst({
+						const ownerMember = await db.query.member.findFirst({
 							where: eq(schema.member.role, "owner"),
 						});
 
-						if (!IS_CLOUD && !isAdminPresent) {
+						if (!IS_CLOUD && !ownerMember) {
 							await updateWebServerSettings({
 								serverIp: await getPublicIpWithFallback(),
 							});
@@ -273,7 +271,7 @@ const createBetterAuth = () =>
 							return;
 						}
 
-						if (IS_CLOUD || !isAdminPresent) {
+						if (IS_CLOUD || !ownerMember) {
 							await db.transaction(async (tx) => {
 								const organization = await tx
 									.insert(schema.organization)
