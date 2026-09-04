@@ -121,11 +121,16 @@ describe("FTP destination validation", () => {
 		).toBe(false);
 	});
 
-	test.each([["--ftp-explicit-tls"], ["--ftp-tls"]])(
+	test.each(["--ftp-explicit-tls", "--ftp-tls"])(
 		"accepts encrypted FTP with %s",
-		(additionalFlags) => {
+		(flag) => {
+			const result = apiCreateDestination.safeParse({
+				...input,
+				additionalFlags: [flag],
+			});
 			expect(
-				apiCreateDestination.safeParse({ ...input, additionalFlags }).success,
+				result.success,
+				result.success ? undefined : JSON.stringify(result.error.issues),
 			).toBe(true);
 		},
 	);
