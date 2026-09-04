@@ -1,11 +1,15 @@
 import {
 	checkUserRepositoryPermissions,
+	createPendingGithubDeployment,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
 	findGithubById,
+	findPendingGithubDeploymentsBySha,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
+	haveAllChecksPassed,
 	IS_CLOUD,
+	removePendingGithubDeployment,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
@@ -25,6 +29,48 @@ import {
 
 const getGithubRepositoryOwner = (githubBody: any) =>
 	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
+
+type PendingGithubDeploymentRow = Awaited<
+	ReturnType<typeof findPendingGithubDeploymentsBySha>
+>[number];
+
+const isSameRepository = (
+	service: { owner: string | null; repository: string | null } | null,
+	owner: string | undefined,
+	repository: string | undefined,
+) =>
+	!!service &&
+	!!owner &&
+	!!repository &&
+	service.owner?.toLowerCase() === owner.toLowerCase() &&
+	service.repository?.toLowerCase() === repository.toLowerCase();
+
+const toDeploymentJob = (
+	row: PendingGithubDeploymentRow,
+): DeploymentJob | undefined => {
+	const log = {
+		titleLog: row.titleLog,
+		descriptionLog: row.descriptionLog,
+		type: "deploy" as const,
+	};
+
+	if (row.application) {
+		return {
+			...log,
+			applicationId: row.application.applicationId,
+			applicationType: "application",
+			server: !!row.application.serverId,
+		};
+	}
+	if (row.compose) {
+		return {
+			...log,
+			composeId: row.compose.composeId,
+			applicationType: "compose",
+			server: !!row.compose.serverId,
+		};
+	}
+};
 
 export default async function handler(
 	req: NextApiRequest,
@@ -77,11 +123,12 @@ export default async function handler(
 
 	if (
 		req.headers["x-github-event"] !== "push" &&
-		req.headers["x-github-event"] !== "pull_request"
+		req.headers["x-github-event"] !== "pull_request" &&
+		req.headers["x-github-event"] !== "check_suite"
 	) {
-		res
-			.status(400)
-			.json({ message: "We only accept push events or pull_request events" });
+		res.status(400).json({
+			message: "We only accept push, pull_request or check_suite events",
+		});
 		return;
 	}
 
@@ -104,6 +151,100 @@ export default async function handler(
 		return;
 	}
 
+	if (req.headers["x-github-event"] === "check_suite") {
+		const action = githubBody?.action;
+		if (action !== "completed") {
+			res.status(200).json({ message: `Ignored check_suite action ${action}` });
+			return;
+		}
+
+		try {
+			const headSha = githubBody?.check_suite?.head_sha;
+			const owner = getGithubRepositoryOwner(githubBody);
+			const repository = githubBody?.repository?.name;
+			// Forks and mirrors share commit shas, so a green suite on one
+			// repository must not release a service that deploys another one.
+			const pending = (await findPendingGithubDeploymentsBySha(headSha)).filter(
+				(row) => {
+					const service = row.application ?? row.compose;
+					return (
+						service?.githubId === githubResult.githubId &&
+						isSameRepository(service, owner, repository)
+					);
+				},
+			);
+
+			if (pending.length === 0) {
+				res
+					.status(200)
+					.json({ message: "No pending deployments for this commit" });
+				return;
+			}
+
+			const checksPassed = await haveAllChecksPassed(
+				githubResult,
+				owner,
+				repository,
+				headSha,
+			);
+
+			if (!checksPassed) {
+				res.status(200).json({ message: "Checks have not all passed yet" });
+				return;
+			}
+
+			let deployed = 0;
+			for (const row of pending) {
+				const jobData = toDeploymentJob(row);
+				if (!jobData) {
+					continue;
+				}
+
+				const serverId = row.application?.serverId ?? row.compose?.serverId;
+				// Every suite on the commit sends its own completed event, so two of
+				// them can land here together. Whoever deletes the row deploys, and
+				// the delete only sticks once the job is queued or dispatched, so a
+				// failed dispatch leaves the row for the next event instead of
+				// losing the deployment.
+				const consumed = await db.transaction(async (tx) => {
+					const removed = await removePendingGithubDeployment(
+						row.pendingGithubDeploymentId,
+						tx,
+					);
+					if (!removed) {
+						return false;
+					}
+					if (IS_CLOUD && serverId) {
+						jobData.serverId = serverId;
+						await deploy(jobData);
+						return true;
+					}
+					await myQueue.add(
+						"deployments",
+						{ ...jobData },
+						{
+							removeOnComplete: true,
+							removeOnFail: true,
+						},
+					);
+					return true;
+				});
+				if (consumed) {
+					deployed++;
+				}
+			}
+
+			res.status(200).json({
+				message: `Deployed ${deployed} apps after checks passed`,
+			});
+			return;
+		} catch (error) {
+			logWebhookError("Error deploying after checks passed:", error);
+			res.status(400).json({ message: "Error deploying after checks passed" });
+			return;
+		}
+	}
+
 	// Handle tag creation event
 	if (
 		req.headers["x-github-event"] === "push" &&
@@ -115,6 +256,7 @@ export default async function handler(
 			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
+			let parked = 0;
 
 			// Find applications configured to deploy on tag
 			const apps = await db.query.applications.findMany({
@@ -137,6 +279,17 @@ export default async function handler(
 					applicationType: "application",
 					server: !!app.serverId,
 				};
+
+				if (app.waitForChecks) {
+					await createPendingGithubDeployment({
+						applicationId: app.applicationId,
+						headSha: deploymentHash,
+						titleLog: jobData.titleLog,
+						descriptionLog: jobData.descriptionLog,
+					});
+					parked++;
+					continue;
+				}
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
@@ -177,6 +330,17 @@ export default async function handler(
 					server: !!composeApp.serverId,
 				};
 
+				if (composeApp.waitForChecks) {
+					await createPendingGithubDeployment({
+						composeId: composeApp.composeId,
+						headSha: deploymentHash,
+						titleLog: jobData.titleLog,
+						descriptionLog: jobData.descriptionLog,
+					});
+					parked++;
+					continue;
+				}
+
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
@@ -204,8 +368,9 @@ export default async function handler(
 				return;
 			}
 
+			const waiting = parked > 0 ? `, ${parked} waiting for checks` : "";
 			res.status(200).json({
-				message: `Deployed ${totalApps} apps based on tag ${tagName}`,
+				message: `Deployed ${totalApps - parked} apps based on tag ${tagName}${waiting}`,
 			});
 			return;
 		} catch (error) {
@@ -222,6 +387,7 @@ export default async function handler(
 
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
+			let parked = 0;
 			const owner = getGithubRepositoryOwner(githubBody);
 			const normalizedCommits = githubBody?.commits?.flatMap((commit: any) => [
 				...(commit.added || []),
@@ -257,6 +423,17 @@ export default async function handler(
 				);
 
 				if (!shouldDeployPaths) {
+					continue;
+				}
+
+				if (app.waitForChecks) {
+					await createPendingGithubDeployment({
+						applicationId: app.applicationId,
+						headSha: deploymentHash,
+						titleLog: jobData.titleLog,
+						descriptionLog: jobData.descriptionLog,
+					});
+					parked++;
 					continue;
 				}
 
@@ -307,6 +484,16 @@ export default async function handler(
 				if (!shouldDeployPaths) {
 					continue;
 				}
+				if (composeApp.waitForChecks) {
+					await createPendingGithubDeployment({
+						composeId: composeApp.composeId,
+						headSha: deploymentHash,
+						titleLog: jobData.titleLog,
+						descriptionLog: jobData.descriptionLog,
+					});
+					parked++;
+					continue;
+				}
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
@@ -332,7 +519,10 @@ export default async function handler(
 				res.status(200).json({ message: "No apps to deploy" });
 				return;
 			}
-			res.status(200).json({ message: `Deployed ${totalApps} apps` });
+			const waiting = parked > 0 ? `, ${parked} waiting for checks` : "";
+			res.status(200).json({
+				message: `Deployed ${totalApps - parked} apps${waiting}`,
+			});
 		} catch (error) {
 			logWebhookError("Error deploying Application:", error);
 			res.status(400).json({ message: "Error deploying Application" });

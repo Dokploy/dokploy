@@ -550,6 +550,7 @@ export const applicationRouter = createTRPCRouter({
 				watchPaths: input.watchPaths,
 				triggerType: input.triggerType,
 				enableSubmodules: input.enableSubmodules,
+				waitForChecks: input.waitForChecks,
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
@@ -732,6 +733,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 				watchPaths: null,
 				enableSubmodules: false,
+				waitForChecks: false,
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
