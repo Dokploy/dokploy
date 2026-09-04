@@ -6,6 +6,10 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isNamedRcloneDestinationProvider,
+	RCLONE_DESTINATION_PROVIDERS,
+	RCLONE_REMOTE_NAME_ERROR,
+	RCLONE_REMOTE_NAME_REGEX,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -54,6 +58,58 @@ const createSchema = createInsertSchema(destinations, {
 		.default([]),
 });
 
+const validateDestination = (
+	data: {
+		provider?: string | null;
+		accessKey?: string;
+		region?: string;
+		endpoint?: string;
+	},
+	ctx: z.RefinementCtx,
+) => {
+	if (isNamedRcloneDestinationProvider(data.provider)) {
+		const remoteName = data.endpoint?.trim() || "";
+		if (!RCLONE_REMOTE_NAME_REGEX.test(remoteName)) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["endpoint"],
+				message: RCLONE_REMOTE_NAME_ERROR,
+			});
+		}
+		return;
+	}
+
+	if (
+		data.provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+		data.provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+	) {
+		if (!data.endpoint?.trim()) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["endpoint"],
+				message: "Host is required",
+			});
+		}
+		if (!data.accessKey?.trim()) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["accessKey"],
+				message: "Username is required",
+			});
+		}
+		if (data.region?.trim()) {
+			const port = Number(data.region);
+			if (!Number.isInteger(port) || port < 1 || port > 65535) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["region"],
+					message: "Port must be an integer between 1 and 65535",
+				});
+			}
+		}
+	}
+};
+
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
@@ -68,7 +124,8 @@ export const apiCreateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
@@ -95,4 +152,5 @@ export const apiUpdateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);
