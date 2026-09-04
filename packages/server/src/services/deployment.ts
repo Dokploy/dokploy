@@ -1058,17 +1058,69 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 };
 
 export const clearOldDeployments = async (
-	appName: string,
-	serverId: string | null,
+	id: string,
+	type: "application" | "compose",
 ) => {
-	const { LOGS_PATH } = paths(!!serverId);
-	const folder = path.join(LOGS_PATH, appName);
-	const command = `
-		rm -rf ${folder};
-	`;
+	const serverId =
+		type === "application"
+			? (await findApplicationById(id)).serverId
+			: (await findComposeById(id)).serverId;
+
+	const deploymentList = await db.query.deployments.findMany({
+		where: eq(deployments[`${type}Id`], id),
+		orderBy: desc(deployments.createdAt),
+	});
+	const deletable = deploymentList.filter(
+		(deployment) => deployment.status !== "running",
+	);
+	const mostRecentSuccessful = deletable.find(
+		(deployment) => deployment.status === "done",
+	);
+	const deploymentToKeep = mostRecentSuccessful ?? deletable[0];
+
+	const toRemove = deletable.filter(
+		(deployment) => deployment.deploymentId !== deploymentToKeep?.deploymentId,
+	);
+
 	if (serverId) {
-		await execAsyncRemote(serverId, command);
+		let command = "";
+		for (const deployment of toRemove) {
+			try {
+				if (deployment.rollbackId) {
+					await removeRollbackById(deployment.rollbackId);
+				}
+				const logPath = path.join(deployment.logPath);
+				if (logPath && logPath !== ".") {
+					command += `rm -rf ${logPath};`;
+				}
+				await removeDeployment(deployment.deploymentId);
+			} catch (err) {
+				console.error(
+					`Failed to remove deployment ${deployment.deploymentId} during cleanup:`,
+					err,
+				);
+			}
+		}
+		if (command) {
+			await execAsyncRemote(serverId, command);
+		}
 	} else {
-		await execAsync(command);
+		for (const deployment of toRemove) {
+			try {
+				if (deployment.rollbackId) {
+					await removeRollbackById(deployment.rollbackId);
+				}
+				const logPath = path.join(deployment.logPath);
+				if (logPath && logPath !== "." && existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(deployment.deploymentId);
+			} catch (err) {
+				console.error(
+					`Failed to remove deployment ${deployment.deploymentId} during cleanup:`,
+					err,
+				);
+			}
+		}
 	}
 };
