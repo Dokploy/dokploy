@@ -204,7 +204,7 @@ export const apiUpdateMongo = createSchema
 		dockerImage: z.string().optional(),
 		replicaSets: z.boolean().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiResetMongo = createSchema
 	.pick({

@@ -460,6 +460,30 @@ export const mariadbRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mariadb",
+				});
+			}
+
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this environment",
+				});
+			}
+
 			const updatedMariadb = await db
 				.update(mariadbTable)
 				.set({
