@@ -22,9 +22,7 @@ export const normalizeVolumeBackupFilePath = (value: string) => {
 	}
 	const segments = normalized.split("/");
 	if (
-		segments.some(
-			(segment) => !segment || segment === "." || segment === "..",
-		)
+		segments.some((segment) => !segment || segment === "." || segment === "..")
 	) {
 		throw new Error("Invalid volume backup file path");
 	}
