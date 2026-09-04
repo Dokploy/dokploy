@@ -19,6 +19,7 @@ import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { SESSION_EXPIRED_MESSAGE } from "./auth-constants";
 
 type Resource = keyof typeof statements;
 type ActionOf<R extends Resource> = (typeof statements)[R][number];
@@ -160,7 +161,10 @@ export const publicProcedure = t.procedure;
  */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 	if (!ctx.session || !ctx.user) {
-		throw new TRPCError({ code: "UNAUTHORIZED" });
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: SESSION_EXPIRED_MESSAGE,
+		});
 	}
 	return next({
 		ctx: {
@@ -173,11 +177,13 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const cliProcedure = t.procedure.use(({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
+	if (!ctx.session || !ctx.user) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: SESSION_EXPIRED_MESSAGE,
+		});
+	}
+	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({
@@ -191,11 +197,13 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
+	if (!ctx.session || !ctx.user) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: SESSION_EXPIRED_MESSAGE,
+		});
+	}
+	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({
@@ -214,11 +222,13 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
  * is used in the UI gate and when activating/validating keys.
  */
 export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
+	if (!ctx.session || !ctx.user) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: SESSION_EXPIRED_MESSAGE,
+		});
+	}
+	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 
