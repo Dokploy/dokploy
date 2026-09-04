@@ -4,6 +4,7 @@ import {
 	generateSSHKey,
 	removeSSHKeyById,
 	updateSSHKeyById,
+	validateSshPrivateKeyParseable,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
@@ -27,6 +28,15 @@ export const sshRouter = createTRPCRouter({
 	create: withPermission("sshKeys", "create")
 		.input(apiCreateSshKey)
 		.mutation(async ({ input, ctx }) => {
+			const privateKeyValidation = validateSshPrivateKeyParseable(
+				input.privateKey,
+			);
+			if (!privateKeyValidation.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: privateKeyValidation.message,
+				});
+			}
 			try {
 				await createSshKey({
 					...input,
