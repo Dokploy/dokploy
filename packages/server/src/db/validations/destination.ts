@@ -57,10 +57,11 @@ export const getFtpTlsState = (flags: readonly string[] | null | undefined) => {
 
 export const hasSftpHostKeyVerification = (
 	flags: readonly string[] | null | undefined,
-): boolean =>
-	(flags ?? []).some((flag) => {
-		const prefix = "--sftp-known-hosts-file=";
-		if (!flag.startsWith(prefix)) return false;
-		const value = flag.slice(prefix.length).trim();
-		return value.length > 0 && value !== "none";
-	});
+): boolean => {
+	const prefix = "--sftp-known-hosts-file=";
+	const knownHostsFlags = (flags ?? []).filter((flag) => flag.startsWith(prefix));
+	if (knownHostsFlags.length !== 1) return false;
+
+	const value = knownHostsFlags[0]?.slice(prefix.length).trim() ?? "";
+	return value.length > 0 && value !== "none";
+};
