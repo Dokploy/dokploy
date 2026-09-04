@@ -1,7 +1,14 @@
 import {
+	ADDITIONAL_FLAG_ERROR,
+	ADDITIONAL_FLAG_REGEX,
+	FTP_TLS_CONFLICT_ERROR,
+	FTP_TLS_REQUIRED_ERROR,
+	getFtpTlsState,
+	hasSftpHostKeyVerification,
 	isNamedRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
 	RCLONE_REMOTE_NAME_REGEX,
+	SFTP_HOST_KEY_REQUIRED_ERROR,
 } from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
@@ -74,6 +81,16 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+const getValidatedAdditionalFlags = (destination: Destination): string[] => {
+	const flags = destination.additionalFlags ?? [];
+	for (const flag of flags) {
+		if (!ADDITIONAL_FLAG_REGEX.test(flag)) {
+			throw new Error(ADDITIONAL_FLAG_ERROR);
+		}
+	}
+	return flags;
+};
+
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
@@ -90,9 +107,7 @@ export const getS3Credentials = (destination: Destination) => {
 		rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
 	}
 
-	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
-	}
+	rcloneFlags.push(...getValidatedAdditionalFlags(destination));
 
 	return rcloneFlags;
 };
@@ -116,6 +131,7 @@ export const getRclonePathAndFlags = async (
 	path = "",
 ): Promise<{ flags: string[]; path: string }> => {
 	const provider = destination.provider;
+	const additionalFlags = getValidatedAdditionalFlags(destination);
 
 	if (isNamedRcloneDestinationProvider(provider)) {
 		const remoteName = destination.endpoint.trim();
@@ -124,7 +140,7 @@ export const getRclonePathAndFlags = async (
 		}
 		const remotePath = joinRclonePath(destination.bucket, path);
 		return {
-			flags: destination.additionalFlags ?? [],
+			flags: additionalFlags,
 			path: `${remoteName}:${remotePath}`,
 		};
 	}
@@ -135,7 +151,22 @@ export const getRclonePathAndFlags = async (
 	) {
 		const backend =
 			provider === RCLONE_DESTINATION_PROVIDERS.FTP ? "ftp" : "sftp";
-		const defaultPort = backend === "ftp" ? "21" : "22";
+
+		let defaultPort = "22";
+		if (provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
+			const { implicitTlsEnabled, explicitTlsEnabled } =
+				getFtpTlsState(additionalFlags);
+			if (!implicitTlsEnabled && !explicitTlsEnabled) {
+				throw new Error(FTP_TLS_REQUIRED_ERROR);
+			}
+			if (implicitTlsEnabled && explicitTlsEnabled) {
+				throw new Error(FTP_TLS_CONFLICT_ERROR);
+			}
+			defaultPort = implicitTlsEnabled ? "990" : "21";
+		} else if (!hasSftpHostKeyVerification(additionalFlags)) {
+			throw new Error(SFTP_HOST_KEY_REQUIRED_ERROR);
+		}
+
 		const port = destination.region.trim() || defaultPort;
 		const flags = [
 			`--${backend}-host=${quote([destination.endpoint.trim()])}`,
@@ -148,9 +179,7 @@ export const getRclonePathAndFlags = async (
 			);
 			flags.push(`--${backend}-pass=${quote([obscuredPassword])}`);
 		}
-		if (destination.additionalFlags?.length) {
-			flags.push(...destination.additionalFlags);
-		}
+		flags.push(...additionalFlags);
 		return {
 			flags,
 			path: `:${backend}:${joinRclonePath(destination.bucket, path)}`,
