@@ -10,6 +10,7 @@ import {
 	getServerIpCandidates,
 	getWebServerSettings,
 	manageDomain,
+	removeAcmeCertificate,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
@@ -240,6 +241,9 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
+				if (domain.certificateType === "letsencrypt") {
+					await removeAcmeCertificate(domain.host, application.serverId);
+				}
 			}
 
 			return result;
