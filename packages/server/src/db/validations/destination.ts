@@ -42,12 +42,32 @@ export const FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR =
 export const SFTP_HOST_KEY_REQUIRED_ERROR =
 	"SFTP destinations must verify the server host key. Add --sftp-known-hosts-file=/path/to/known_hosts.";
 
+const parseBooleanFlagValue = (
+	flag: string,
+	flagName: string,
+): boolean | undefined => {
+	if (flag === flagName) return true;
+	const prefix = `${flagName}=`;
+	if (!flag.startsWith(prefix)) return undefined;
+
+	const value = flag.slice(prefix.length).toLowerCase();
+	if (["1", "t", "true"].includes(value)) return true;
+	if (["0", "f", "false"].includes(value)) return false;
+	return undefined;
+};
+
+const getBooleanFlagValues = (flags: readonly string[], flagName: string) =>
+	flags
+		.filter((flag) => flag === flagName || flag.startsWith(`${flagName}=`))
+		.map((flag) => parseBooleanFlagValue(flag, flagName));
+
 const isBooleanFlagEnabled = (
 	flags: readonly string[],
 	flagName: string,
-): boolean =>
-	(flags.includes(flagName) || flags.includes(`${flagName}=true`)) &&
-	!flags.includes(`${flagName}=false`);
+): boolean => {
+	const values = getBooleanFlagValues(flags, flagName);
+	return values.length > 0 && values.every((value) => value === true);
+};
 
 export const getFtpTlsState = (flags: readonly string[] | null | undefined) => {
 	const values = flags ?? [];
@@ -62,7 +82,13 @@ export const hasDisabledFtpCertificateVerification = (
 ): boolean => {
 	const values = flags ?? [];
 	return ["--ftp-no-check-certificate", "--no-check-certificate"].some(
-		(flag) => values.includes(flag) || values.includes(`${flag}=true`),
+		(flagName) => {
+			const matchingValues = getBooleanFlagValues(values, flagName);
+			return (
+				matchingValues.length > 0 &&
+				matchingValues.some((value) => value !== false)
+			);
+		},
 	);
 };
 
