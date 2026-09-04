@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -14,6 +14,10 @@ export const ai = pgTable("ai", {
 	apiKey: text("apiKey").notNull(),
 	model: text("model").notNull(),
 	isEnabled: boolean("isEnabled").notNull().default(true),
+	enableCodeInspection: boolean("enableCodeInspection")
+		.notNull()
+		.default(false),
+	logLineLimit: integer("logLineLimit").notNull().default(200),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }), // Admin ID who created the AI settings
@@ -35,6 +39,8 @@ const createSchema = createInsertSchema(ai, {
 	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
 	isEnabled: z.boolean().optional(),
+	enableCodeInspection: z.boolean().default(false),
+	logLineLimit: z.number().int().min(1).max(10000).default(200),
 });
 
 export const apiCreateAi = createSchema
@@ -45,12 +51,18 @@ export const apiCreateAi = createSchema
 		model: true,
 		isEnabled: true,
 	})
-	.required();
+	.required()
+	.extend({
+		enableCodeInspection: z.boolean().default(false),
+		logLineLimit: z.number().int().min(1).max(10000).default(200),
+	});
 
 export const apiUpdateAi = createSchema
 	.partial()
 	.extend({
 		aiId: z.string().min(1),
+		enableCodeInspection: z.boolean().optional(),
+		logLineLimit: z.number().int().min(1).max(10000).optional(),
 	})
 	.omit({ organizationId: true });
 

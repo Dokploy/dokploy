@@ -16,6 +16,7 @@ import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
+	deploymentId?: string;
 	logPath: string | null;
 	open: boolean;
 	onClose: () => void;
@@ -23,6 +24,7 @@ interface Props {
 	errorMessage?: string;
 }
 export const ShowDeployment = ({
+	deploymentId,
 	logPath,
 	open,
 	onClose,
@@ -166,7 +168,14 @@ export const ShowDeployment = ({
 								<Copy className="h-3.5 w-3.5" />
 							)}
 						</Button>
-						<AnalyzeLogs logs={filteredLogs} context="build" />
+						<AnalyzeLogs
+							key={deploymentId || logPath}
+							logs={filteredLogs}
+							context="build"
+							target={
+								deploymentId ? { type: "deployment", deploymentId } : undefined
+							}
+						/>
 
 						{serverId && (
 							<div className="flex items-center space-x-2">

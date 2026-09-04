@@ -19,12 +19,14 @@ import {
 	saveCustomAiProviders,
 	suggestVariants,
 } from "@dokploy/server/services/ai";
+import { analyzeServiceLogs } from "@dokploy/server/services/ai-log-analysis";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
 import {
 	addNewService,
 	checkServiceAccess,
 } from "@dokploy/server/services/permission";
 import { findProjectById } from "@dokploy/server/services/project";
+import { analyzeLogsSchema } from "@dokploy/server/utils/ai/log-analysis-schema";
 import {
 	getProviderHeaders,
 	getProviderName,
@@ -45,8 +47,11 @@ import { generatePassword } from "@/templates/utils";
 export const aiRouter = createTRPCRouter({
 	one: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ input, ctx }) => {
+			return await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 
 	getModels: protectedProcedure
@@ -193,13 +198,17 @@ export const aiRouter = createTRPCRouter({
 
 	get: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ input, ctx }) => {
+			return await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 
 	delete: adminProcedure
 		.input(z.object({ aiId: z.string() }))
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			await getAiSettingById(input.aiId, ctx.session.activeOrganizationId);
 			return await deleteAiSettings(input.aiId);
 		}),
 
@@ -222,66 +231,18 @@ export const aiRouter = createTRPCRouter({
 		);
 		return settings
 			.filter((s) => s.isEnabled)
-			.map((s) => ({ aiId: s.aiId, name: s.name, model: s.model }));
+			.map((s) => ({
+				aiId: s.aiId,
+				name: s.name,
+				model: s.model,
+				enableCodeInspection: s.enableCodeInspection,
+				logLineLimit: s.logLineLimit,
+			}));
 	}),
 
 	analyzeLogs: protectedProcedure
-		.input(
-			z.object({
-				aiId: z.string().min(1),
-				logs: z.string().min(1),
-				context: z.enum(["build", "runtime"]),
-			}),
-		)
-		.mutation(async ({ input, ctx }) => {
-			try {
-				const aiSettings = await getAiSettingById(input.aiId);
-				if (!aiSettings?.isEnabled) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "AI provider is not enabled",
-					});
-				}
-
-				if (aiSettings.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
-					});
-				}
-
-				const provider = selectAIProvider(aiSettings);
-				const model = provider(aiSettings.model);
-
-				const contextLabel =
-					input.context === "build" ? "build/deployment" : "runtime/container";
-
-				const result = await generateText({
-					model,
-					prompt: `You are a DevOps engineer analyzing ${contextLabel} logs. Analyze the following logs and provide:
-
-1. **Summary**: A brief summary of what's happening
-2. **Issues Found**: Any errors, warnings, or problems detected
-3. **Root Cause**: The most likely root cause if there are errors
-4. **Suggested Fix**: Actionable steps to resolve the issues
-
-Be concise and practical. Focus on the most important issues. If the logs look healthy, say so briefly.
-
-Logs:
-${input.logs}`,
-				});
-
-				return { analysis: result.text };
-			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error.message
-							: `Analysis failed: ${error}`,
-				});
-			}
-		}),
+		.input(analyzeLogsSchema)
+		.mutation(({ input, ctx }) => analyzeServiceLogs(ctx, input)),
 
 	testConnection: protectedProcedure
 		.input(
