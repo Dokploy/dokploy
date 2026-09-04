@@ -1,0 +1,76 @@
+name: Issue 416 Audit Validation
+
+on:
+  push:
+    branches: ["feat/issue-416-backup-destinations"]
+    paths:
+      - "packages/server/src/utils/backups/utils.ts"
+      - "packages/server/src/utils/backups/redact.ts"
+      - "apps/dokploy/__test__/utils/issue-416-path-safety.test.ts"
+      - ".github/workflows/issue-416-audit-validation.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply Biome formatting
+        run: |
+          pnpm exec biome check --write \
+            packages/server/src/utils/backups/utils.ts \
+            packages/server/src/utils/backups/redact.ts \
+            apps/dokploy/__test__/utils/issue-416-path-safety.test.ts
+      - name: Commit formatter changes if needed
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add \
+              packages/server/src/utils/backups/utils.ts \
+              packages/server/src/utils/backups/redact.ts \
+              apps/dokploy/__test__/utils/issue-416-path-safety.test.ts
+            git commit -m "style: apply audit formatting"
+            git push
+          fi
+      - name: Build server package
+        run: pnpm server:build
+      - name: Typecheck workspaces
+        run: pnpm typecheck
+      - name: Reproduce and verify issue 416 security cases
+        run: |
+          pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts \
+            __test__/utils/backups.test.ts \
+            __test__/backups/redact-credentials.test.ts \
+            __test__/utils/issue-416-path-safety.test.ts \
+            --run
+      - name: Verify Biome is clean
+        run: |
+          pnpm exec biome check \
+            packages/server/src/utils/backups/utils.ts \
+            packages/server/src/utils/backups/redact.ts \
+            apps/dokploy/__test__/utils/issue-416-path-safety.test.ts
+      - name: Run full test suite required by fix-issue skill
+        id: full_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm test 2>&1 | tee full-test.log
+      - name: Report full-suite result
+        if: always()
+        run: |
+          echo "Full pnpm test outcome: ${{ steps.full_tests.outcome }}"
+          if [ -f full-test.log ]; then
+            tail -n 120 full-test.log
+          fi
