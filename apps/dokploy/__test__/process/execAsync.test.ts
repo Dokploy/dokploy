@@ -121,18 +121,22 @@ describe("execAsyncRemote", () => {
 		mocks.findServerById.mockResolvedValue(makeServer());
 		const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
-		const promise = execAsyncRemote("s1", "echo hi");
-		await flushMicrotasks();
+		try {
+			const promise = execAsyncRemote("s1", "echo hi");
+			await flushMicrotasks();
 
-		const client = getLastClient();
-		expect(client.connect).toHaveBeenCalledTimes(1);
+			const client = getLastClient();
+			expect(client.connect).toHaveBeenCalledTimes(1);
 
-		expect(setTimeoutSpy.mock.calls.filter((call) => call[1] === 1000)).toEqual(
-			[],
-		);
+			expect(
+				setTimeoutSpy.mock.calls.filter((call) => call[1] === 1000),
+			).toEqual([]);
 
-		// Settle the pending connection so the test does not hang.
-		client.emit("error", new Error("aborted"));
-		await expect(promise).rejects.toThrow("SSH connection error: aborted");
+			// Settle the pending connection so the test does not hang.
+			client.emit("error", new Error("aborted"));
+			await expect(promise).rejects.toThrow("SSH connection error: aborted");
+		} finally {
+			setTimeoutSpy.mockRestore();
+		}
 	});
 });
