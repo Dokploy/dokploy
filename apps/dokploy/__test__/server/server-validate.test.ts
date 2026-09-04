@@ -1,9 +1,9 @@
 import { execFileSync, execSync } from "node:child_process";
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { validateSwarm } from "@dokploy/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const resolveBin = (name: string) =>
 	execSync(`command -v ${name}`, { encoding: "utf8" }).trim();
@@ -45,20 +45,35 @@ const runValidateSwarm = (sandboxPath: string) =>
 	}).trim();
 
 describe("validateSwarm", () => {
+	const sandboxDirs: string[] = [];
+
+	const makeSandboxTracked = (localNodeState: string) => {
+		const dir = makeSandbox(localNodeState);
+		sandboxDirs.push(dir);
+		return dir;
+	};
+
+	afterEach(() => {
+		while (sandboxDirs.length > 0) {
+			const dir = sandboxDirs.pop()!;
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("reports true when the node is an active swarm member", () => {
-		expect(runValidateSwarm(makeSandbox("active"))).toBe("true");
+		expect(runValidateSwarm(makeSandboxTracked("active"))).toBe("true");
 	});
 
 	it("reports false when the node is not part of any swarm (LocalNodeState=inactive)", () => {
 		// Regression: the buggy `grep -q 'active'` matched `inactive` as a
 		// substring (in+active), falsely reporting isSwarmInstalled=true.
-		expect(runValidateSwarm(makeSandbox("inactive"))).toBe("false");
+		expect(runValidateSwarm(makeSandboxTracked("inactive"))).toBe("false");
 	});
 
 	it.each(["pending", "error", "locked"])(
 		"reports false for the non-active LocalNodeState=%s",
 		(state) => {
-			expect(runValidateSwarm(makeSandbox(state))).toBe("false");
+			expect(runValidateSwarm(makeSandboxTracked(state))).toBe("false");
 		},
 	);
 });
