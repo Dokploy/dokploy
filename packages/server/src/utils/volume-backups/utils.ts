@@ -12,6 +12,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { quote } from "shell-quote";
+import { getSafeRcloneErrorMessage } from "../backups/redact";
 import { getRclonePathAndFlags, normalizeS3Path } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
@@ -103,7 +104,10 @@ const cleanupOldVolumeBackups = async (
 			await execAsync(fullCommand);
 		}
 	} catch (error) {
-		console.error("Volume backup retention error", error);
+		console.error(
+			"Volume backup retention error",
+			getSafeRcloneErrorMessage(error),
+		);
 	}
 };
 
@@ -156,6 +160,8 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 			);
 		}
 	} catch (error) {
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Volume backup error:", safeErrorMessage);
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const volumeBackupPath = path.join(
 			VOLUME_BACKUPS_PATH,
@@ -184,7 +190,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				serviceType: mappedServiceType,
 				type: "error",
 				organizationId,
-				errorMessage: error instanceof Error ? error.message : String(error),
+				errorMessage: safeErrorMessage,
 			});
 		} catch (notificationError) {
 			console.error(
