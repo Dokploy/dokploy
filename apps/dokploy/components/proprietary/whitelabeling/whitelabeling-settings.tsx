@@ -402,7 +402,8 @@ export function WhitelabelingSettings() {
 											/>
 										</FormControl>
 										<FormDescription>
-											Open Graph image used for link previews on social media and messaging platforms. Recommended size: 1200x630px.
+											Open Graph image used for link previews on social media
+											and messaging platforms. Recommended size: 1200x630px.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -470,8 +471,6 @@ export function WhitelabelingSettings() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-4">
-
-
 							<FormField
 								control={form.control}
 								name="footerText"
