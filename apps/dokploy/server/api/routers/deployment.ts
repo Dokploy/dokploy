@@ -215,7 +215,10 @@ export const deploymentRouter = createTRPCRouter({
 					? await db.query.deployments.findFirst({
 							where: and(
 								eq(deployments[`${field}`], serviceIdForQuery),
-								or(eq(deployments.status, "queued"), eq(deployments.status, "running")),
+								or(
+									eq(deployments.status, "queued"),
+									eq(deployments.status, "running"),
+								),
 								// Exclude the one we're about to cancel
 								sql`${deployments.deploymentId} != ${deployment.deploymentId}`,
 							),

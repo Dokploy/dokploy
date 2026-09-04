@@ -249,7 +249,9 @@ export const deployCompose = async ({
 		try {
 			deployment = await findDeploymentById(deploymentId);
 		} catch (error) {
-			console.warn(`Deployment ${deploymentId} not found, resetting compose status to idle`);
+			console.warn(
+				`Deployment ${deploymentId} not found, resetting compose status to idle`,
+			);
 			await updateCompose(composeId, { composeStatus: "idle" });
 			return;
 		}
@@ -410,7 +412,9 @@ export const rebuildCompose = async ({
 		try {
 			deployment = await findDeploymentById(deploymentId);
 		} catch (error) {
-			console.warn(`Deployment ${deploymentId} not found, resetting compose status to idle`);
+			console.warn(
+				`Deployment ${deploymentId} not found, resetting compose status to idle`,
+			);
 			await updateCompose(composeId, { composeStatus: "idle" });
 			return;
 		}

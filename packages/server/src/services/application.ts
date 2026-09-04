@@ -200,7 +200,9 @@ export const deployApplication = async ({
 		try {
 			deployment = await findDeploymentById(deploymentId);
 		} catch (error) {
-			console.warn(`Deployment ${deploymentId} not found, resetting application status to idle`);
+			console.warn(
+				`Deployment ${deploymentId} not found, resetting application status to idle`,
+			);
 			await updateApplicationStatus(applicationId, "idle");
 			return;
 		}
@@ -336,7 +338,9 @@ export const rebuildApplication = async ({
 		try {
 			deployment = await findDeploymentById(deploymentId);
 		} catch (error) {
-			console.warn(`Deployment ${deploymentId} not found, resetting application status to idle`);
+			console.warn(
+				`Deployment ${deploymentId} not found, resetting application status to idle`,
+			);
 			await updateApplicationStatus(applicationId, "idle");
 			return;
 		}
@@ -424,7 +428,9 @@ export const deployPreviewApplication = async ({
 		try {
 			deployment = await findDeploymentById(deploymentId);
 		} catch (error) {
-			console.warn(`Deployment ${deploymentId} not found, resetting preview status to idle`);
+			console.warn(
+				`Deployment ${deploymentId} not found, resetting preview status to idle`,
+			);
 			await updatePreviewDeployment(previewDeploymentId, {
 				previewStatus: "idle",
 			});
@@ -572,7 +578,9 @@ export const rebuildPreviewApplication = async ({
 		try {
 			deployment = await findDeploymentById(deploymentId);
 		} catch (error) {
-			console.warn(`Deployment ${deploymentId} not found, resetting preview status to idle`);
+			console.warn(
+				`Deployment ${deploymentId} not found, resetting preview status to idle`,
+			);
 			await updatePreviewDeployment(previewDeploymentId, {
 				previewStatus: "idle",
 			});
