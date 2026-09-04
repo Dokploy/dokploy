@@ -39,7 +39,7 @@ export const initCronJobs = async () => {
 
 				await cleanupAll();
 
-				await sendDockerCleanupNotifications(admin.user.id);
+				await sendDockerCleanupNotifications(admin.organizationId);
 			});
 		} catch (error) {
 			console.error("[Backup] Docker Cleanup Error", error);
@@ -60,7 +60,7 @@ export const initCronJobs = async () => {
 					await cleanupAll(serverId);
 
 					await sendDockerCleanupNotifications(
-						admin.user.id,
+						server.organizationId,
 						`Docker cleanup for Server ${name} (${serverId})`,
 					);
 				});
