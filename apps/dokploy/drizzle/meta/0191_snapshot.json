@@ -1,6 +1,6 @@
 {
-  "id": "92a9010e-bc5f-4c9f-b97e-f2867a602e90",
-  "prevId": "633b82a2-0321-4ef4-ae09-7a8861830873",
+  "id": "c3145ce5-ef72-4b4f-b0f6-9d44e4644139",
+  "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2766,6 +2766,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'[]'::jsonb"
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildRegistryId": {
+          "name": "buildRegistryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2859,6 +2871,32 @@
             "serverId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "compose_buildServerId_server_serverId_fk": {
+          "name": "compose_buildServerId_server_serverId_fk",
+          "tableFrom": "compose",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "compose_buildRegistryId_registry_registryId_fk": {
+          "name": "compose_buildRegistryId_registry_registryId_fk",
+          "tableFrom": "compose",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "buildRegistryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -8351,6 +8389,12 @@
           "primaryKey": false,
           "notNull": false,
           "default": "ARRAY[]::text[]"
+        },
+        "onboardingCompletedAt": {
+          "name": "onboardingCompletedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -8946,7 +8990,8 @@
       "schema": "public",
       "values": [
         "cloudflare",
-        "route53"
+        "route53",
+        "porkbun"
       ]
     },
     "public.domainType": {

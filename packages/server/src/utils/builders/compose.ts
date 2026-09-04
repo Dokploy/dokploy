@@ -1,9 +1,17 @@
 import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
+import {
+	findRegistryByIdWithCredentials,
+	safeDockerLoginCommand,
+} from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
-import { writeDomainsToCompose } from "../docker/domain";
+import {
+	addDomainToCompose,
+	hasBuildableServices,
+	writeDomainsToCompose,
+} from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
@@ -14,31 +22,65 @@ import { withResolvedVaultRefs } from "../vault";
 
 export type ComposeNested = InferResultType<
 	"compose",
-	{ environment: { with: { project: true } }; mounts: true; domains: true }
+	{
+		environment: { with: { project: true } };
+		mounts: true;
+		domains: true;
+		buildRegistry: { columns: { password: false } };
+	}
 >;
 
-export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+type CreateCommandOptions = {
+	prebuilt?: boolean;
+	projectPath?: string;
+};
+
+export const getBuildComposeCommand = async (
+	rawCompose: ComposeNested,
+	options?: { prebuilt?: boolean; targetServerId?: string | null },
+) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
-	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const targetServerId = options?.targetServerId ?? compose.serverId;
+	const isRemote = !!targetServerId;
+	const { COMPOSE_PATH } = paths(isRemote);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
-	const command = createCommand(
-		compose,
-		mounts.length > 0 ? projectPath : undefined,
-	);
+	const prebuilt = options?.prebuilt ?? Boolean(compose.buildServerId);
+	const command = createCommand(compose, {
+		prebuilt,
+		projectPath: mounts.length > 0 ? projectPath : undefined,
+	});
 	const envCommand = compose.createEnvFile
-		? getCreateEnvFileCommand(compose)
+		? getCreateEnvFileCommand(compose, targetServerId)
 		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const newCompose = await writeDomainsToCompose(compose, domains);
+	const buildRegistry =
+		prebuilt && compose.buildRegistryId
+			? await findRegistryByIdWithCredentials(compose.buildRegistryId)
+			: undefined;
+
+	const registryLoginCommand = buildRegistry
+		? `${safeDockerLoginCommand(
+				buildRegistry.registryUrl,
+				buildRegistry.username,
+				buildRegistry.password,
+			)} || { echo "❌ Registry login failed"; exit 1; }`
+		: "";
+
+	const newCompose = await writeDomainsToCompose(compose, domains, {
+		buildRegistry,
+		loadServerId: targetServerId,
+	});
+
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
 Detected: ${mounts.length} mounts 📂
 Command: docker ${command}
 Source Type: docker ${sourceType} ✅
-Compose Type: ${composeType} ✅`;
+Compose Type: ${composeType} ✅
+Remote Build: ${prebuilt ? "enabled (pre-built images)" : "disabled"}`;
 
 	const logBox = boxen(logContent, {
 		padding: {
@@ -61,6 +103,8 @@ Compose Type: ${composeType} ✅`;
 
 		cd "${projectPath}";
 
+		${registryLoginCommand}
+
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
@@ -73,6 +117,82 @@ Compose Type: ${composeType} ✅`;
 	`;
 
 	return bashCommand;
+};
+
+export const getComposeRemoteBuildCommand = async (
+	rawCompose: ComposeNested,
+	buildServerId: string,
+) => {
+	const compose = await withResolvedVaultRefs(rawCompose);
+	if (!compose.buildRegistryId) {
+		throw new Error("Build registry is required for remote compose builds");
+	}
+
+	const buildRegistry = await findRegistryByIdWithCredentials(
+		compose.buildRegistryId,
+	);
+	const { COMPOSE_PATH } = paths(true);
+	const { sourceType, appName, composeType } = compose;
+	const path =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+
+	const loadCompose = { ...compose, serverId: buildServerId };
+	const composeSpec = await addDomainToCompose(loadCompose, []);
+
+	if (!composeSpec || !hasBuildableServices(composeSpec)) {
+		return `
+echo "ℹ️ No services with build: defined — skipping remote build phase";
+`;
+	}
+
+	const composeWrite = await writeDomainsToCompose(compose, [], {
+		buildRegistry,
+		loadServerId: buildServerId,
+	});
+	const envCommand = compose.createEnvFile
+		? getCreateEnvFileCommand(compose, buildServerId)
+		: "";
+	const loginCommand = `${safeDockerLoginCommand(
+		buildRegistry.registryUrl,
+		buildRegistry.username,
+		buildRegistry.password,
+	)} || { echo "❌ Registry login failed"; exit 1; }`;
+
+	const logContent = `
+App Name: ${appName}
+Remote Build Compose 🐳
+Build Server: ${buildServerId}
+Compose Type: ${composeType} ✅`;
+
+	const logBox = boxen(logContent, {
+		padding: { left: 1, right: 1, bottom: 1 },
+		width: 80,
+		borderStyle: "double",
+	});
+
+	return `
+	set -e
+	{
+		echo "${logBox}";
+
+		${composeWrite}
+
+		${envCommand}
+
+		cd "${projectPath}";
+
+		${loginCommand}
+
+		env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([appName])} -f ${quote([path])} build 2>&1 || { echo "Error: ❌ Docker compose build failed"; exit 1; }
+		env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([appName])} -f ${quote([path])} push 2>&1 || { echo "Error: ❌ Docker compose push failed"; exit 1; }
+
+		echo "Remote Compose Build & Push: ✅";
+	} || {
+		echo "Error: ❌ Remote build script execution failed";
+		exit 1
+	}
+	`;
 };
 
 // Shell control characters that must never appear in a user-provided compose
@@ -122,7 +242,14 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
-export const createCommand = (compose: ComposeNested, projectPath?: string) => {
+export const createCommand = (
+	compose: ComposeNested,
+	options?: CreateCommandOptions | string,
+) => {
+	const { prebuilt, projectPath } =
+		typeof options === "string"
+			? { projectPath: options }
+			: (options ?? {});
 	const { composeType, appName, sourceType } = compose;
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
@@ -139,7 +266,11 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 		const envFileFlag = compose.createEnvFile
 			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
 			: "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans`;
+		if (prebuilt) {
+			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} pull && docker compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --no-build --remove-orphans`;
+		} else {
+			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans`;
+		}
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
@@ -147,8 +278,11 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	return command;
 };
 
-export const getCreateEnvFileCommand = (compose: ComposeNested) => {
-	const { COMPOSE_PATH } = paths(!!compose.serverId);
+export const getCreateEnvFileCommand = (
+	compose: ComposeNested,
+	targetServerId?: string | null,
+) => {
+	const { COMPOSE_PATH } = paths(!!(targetServerId ?? compose.serverId));
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
 		join(COMPOSE_PATH, appName, "code", composePath) ||

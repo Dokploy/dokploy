@@ -118,7 +118,12 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	buildApplications: many(applications, {
 		relationName: "applicationBuildServer",
 	}),
-	compose: many(compose),
+	compose: many(compose, {
+		relationName: "composeServer",
+	}),
+	buildCompose: many(compose, {
+		relationName: "composeBuildServer",
+	}),
 	libsql: many(libsql),
 	redis: many(redis),
 	mariadb: many(mariadb),
