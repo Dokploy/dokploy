@@ -332,7 +332,18 @@ describe("FTP TLS certificate verification", () => {
 		endpoint: "storage.example.com",
 	};
 
-	test.each(["--ftp-no-check-certificate", "--no-check-certificate"])(
+	test.each([
+		"--ftp-no-check-certificate",
+		"--ftp-no-check-certificate=true",
+		"--ftp-no-check-certificate=TRUE",
+		"--ftp-no-check-certificate=1",
+		"--ftp-no-check-certificate=t",
+		"--no-check-certificate",
+		"--no-check-certificate=true",
+		"--no-check-certificate=TRUE",
+		"--no-check-certificate=1",
+		"--no-check-certificate=t",
+	])(
 		"rejects certificate-verification bypass %s at schema validation",
 		(flag) => {
 			expect(
@@ -344,33 +355,55 @@ describe("FTP TLS certificate verification", () => {
 		},
 	);
 
-	test.each(["--ftp-no-check-certificate", "--no-check-certificate"])(
-		"rejects certificate-verification bypass %s at runtime",
-		async (flag) => {
-			await expect(
-				getRclonePathAndFlags(
-					destination({
-						provider: RCLONE_DESTINATION_PROVIDERS.FTP,
-						endpoint: "storage.example.com",
-						accessKey: "backup-user",
-						secretAccessKey: "",
-						region: "",
-						bucket: "backups",
-						additionalFlags: ["--ftp-explicit-tls", flag],
-					}),
-				),
-			).rejects.toThrow("FTP TLS certificate verification cannot be disabled");
-		},
-	);
+	test.each([
+		"--ftp-no-check-certificate",
+		"--ftp-no-check-certificate=TRUE",
+		"--ftp-no-check-certificate=1",
+		"--no-check-certificate",
+		"--no-check-certificate=TRUE",
+		"--no-check-certificate=1",
+	])("rejects certificate-verification bypass %s at runtime", async (flag) => {
+		await expect(
+			getRclonePathAndFlags(
+				destination({
+					provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+					endpoint: "storage.example.com",
+					accessKey: "backup-user",
+					secretAccessKey: "",
+					region: "",
+					bucket: "backups",
+					additionalFlags: ["--ftp-explicit-tls", flag],
+				}),
+			),
+		).rejects.toThrow("FTP TLS certificate verification cannot be disabled");
+	});
 
 	test.each([
 		"--ftp-no-check-certificate=false",
+		"--ftp-no-check-certificate=FALSE",
+		"--ftp-no-check-certificate=0",
+		"--ftp-no-check-certificate=f",
 		"--no-check-certificate=false",
+		"--no-check-certificate=FALSE",
+		"--no-check-certificate=0",
+		"--no-check-certificate=f",
 	])("allows explicitly safe certificate flag %s", (flag) => {
 		expect(
 			apiCreateDestination.safeParse({
 				...input,
 				additionalFlags: ["--ftp-explicit-tls", flag],
+			}).success,
+		).toBe(true);
+	});
+	test.each([
+		"--ftp-explicit-tls=TRUE",
+		"--ftp-explicit-tls=1",
+		"--ftp-explicit-tls=t",
+	])("accepts pflag-compatible TLS true value %s", (flag) => {
+		expect(
+			apiCreateDestination.safeParse({
+				...input,
+				additionalFlags: [flag],
 			}).success,
 		).toBe(true);
 	});

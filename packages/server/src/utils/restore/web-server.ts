@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
+import { getSafeRcloneErrorMessage } from "../backups/redact";
 import { getRclonePathAndFlags } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
@@ -146,14 +147,9 @@ export const restoreWebServerBackup = async (
 			await execAsync(`rm -rf ${quote([tempDir])}`);
 		}
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring web server backup"
-			}`,
-		);
-		throw error;
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Restore error:", safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
+		throw new Error(safeErrorMessage);
 	}
 };
