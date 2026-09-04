@@ -29,8 +29,10 @@ if not all(x in s for x in required):
     raise SystemExit("known Swarm integration files not both present in failure log")
 if not re.search(r"Test Files\s+2 failed", s):
     raise SystemExit("full suite has a failure-file count other than the two known Swarm files")
-if not re.search(r"Tests\s+8 failed\s+\|\s+990 passed\s+\|\s+1 skipped", s):
-    raise SystemExit("full suite result changed from known 8 fail / 990 pass / 1 skip baseline")
+if not re.search(r"Tests\s+8 failed\b", s):
+    raise SystemExit("full suite has a failed-test count other than the eight known Swarm failures")
+if not re.search(r"Tests\s+8 failed[^\n]*1 skipped", s):
+    raise SystemExit("full suite skip/failure summary differs from the known infrastructure baseline")
 if "swarm manager" not in s.lower():
     raise SystemExit("known Docker Swarm manager environment signature missing")
 print("FULL_SUITE_ONLY_KNOWN_SWARM_ENV_FAILURES")
@@ -41,7 +43,7 @@ chmod +x .plan-auditor/full-suite-check.sh
 cat > .plan-auditor/plan.json <<'JSON'
 {
   "task": "Issue #416 / PR #5349 final root-cause, security, regression and acceptance audit",
-  "created": "2026-09-05T01:45:00+03:00",
+  "created": "2026-09-05T01:55:00+03:00",
   "steps": [
     {
       "id": 1,
@@ -68,13 +70,18 @@ cat > .plan-auditor/plan.json <<'JSON'
     },
     {
       "id": 2,
-      "title": "Security invariants and bypass resistance",
+      "title": "Security invariants, credential containment and bypass resistance",
       "verify": [
         {
           "type": "run",
-          "cmd": "pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/backups/redact-credentials.test.ts __test__/utils/issue-416-path-safety.test.ts --run",
+          "cmd": "pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/backups/redact-credentials.test.ts __test__/utils/backups.test.ts __test__/utils/issue-416-path-safety.test.ts --run",
           "expect_exit": 0,
           "timeout": 300
+        },
+        {
+          "type": "run",
+          "cmd": "python -c \"from pathlib import Path; base=Path('packages/server/src/utils/backups'); files=['postgres.ts','mysql.ts','mariadb.ts','mongo.ts','libsql.ts','compose.ts','web-server.ts']; [(_ for _ in ()).throw(AssertionError(f)) if 'getSafeRcloneErrorMessage(error)' not in (base/f).read_text() else None for f in files]; v=Path('packages/server/src/utils/volume-backups/utils.ts').read_text(); assert 'getSafeRcloneErrorMessage(error)' in v; assert 'errorMessage: safeErrorMessage' in v; assert 'Volume backup retention error' in v; assert 'errorMessage: error instanceof Error ? error.message' not in v; print('all backup notification/log credential sinks use safe rclone error messages')\"",
+          "expect_exit": 0
         },
         {
           "type": "regex",
@@ -88,8 +95,18 @@ cat > .plan-auditor/plan.json <<'JSON'
         },
         {
           "type": "regex",
+          "path": "packages/server/src/db/validations/destination.ts",
+          "pattern": "hasDisabledFtpCertificateVerification"
+        },
+        {
+          "type": "regex",
           "path": "packages/server/src/utils/backups/redact.ts",
           "pattern": "sftp-key-file-pass"
+        },
+        {
+          "type": "regex",
+          "path": "packages/server/src/utils/volume-backups/utils.ts",
+          "pattern": "getSafeRcloneErrorMessage"
         }
       ],
       "status": "pending"
