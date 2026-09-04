@@ -71,15 +71,15 @@ export const destinationRouter = createTRPCRouter({
 					});
 				}
 
-				if (IS_CLOUD) {
-					const server = await findServerById(input.serverId || "");
+				if (input.serverId) {
+					const server = await findServerById(input.serverId);
 					if (server.organizationId !== ctx.session.activeOrganizationId) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
 							message: "You are not allowed to use this server",
 						});
 					}
-					await execAsyncRemote(input.serverId || "", rcloneCommand);
+					await execAsyncRemote(input.serverId, rcloneCommand);
 				} else {
 					await execAsync(rcloneCommand);
 				}
