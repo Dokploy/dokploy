@@ -12,7 +12,7 @@ import {
 import { quote } from "shell-quote";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// The libsql `appName` is later interpolated raw into shell commands in
+// The libsql `appName` was previously interpolated raw into shell commands in
 // packages/server/src/utils/docker/utils.ts (stopService/startService/
 // removeService and their *Remote variants) and packages/server/src/
 // services/docker.ts (the two `--filter` find commands in getContainerLogs).
