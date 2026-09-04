@@ -47,8 +47,8 @@ const formSchema = z.object({
 	docsUrl: safeUrlField,
 	errorPageTitle: z.string(),
 	errorPageDescription: z.string(),
-	metaTitle: z.string(),
 	footerText: z.string(),
+	ogImageUrl: safeUrlField,
 });
 
 type FormSchema = z.infer<typeof formSchema>;
@@ -193,8 +193,8 @@ export function WhitelabelingSettings() {
 			docsUrl: "",
 			errorPageTitle: "",
 			errorPageDescription: "",
-			metaTitle: "",
 			footerText: "",
+			ogImageUrl: "",
 		},
 		resolver: zodResolver(formSchema),
 	});
@@ -212,8 +212,8 @@ export function WhitelabelingSettings() {
 				docsUrl: data.docsUrl ?? "",
 				errorPageTitle: data.errorPageTitle ?? "",
 				errorPageDescription: data.errorPageDescription ?? "",
-				metaTitle: data.metaTitle ?? "",
 				footerText: data.footerText ?? "",
+				ogImageUrl: data.ogImageUrl ?? "",
 			});
 		}
 	}, [data, form]);
@@ -242,8 +242,8 @@ export function WhitelabelingSettings() {
 				docsUrl: values.docsUrl || null,
 				errorPageTitle: values.errorPageTitle || null,
 				errorPageDescription: values.errorPageDescription || null,
-				metaTitle: values.metaTitle || null,
 				footerText: values.footerText || null,
+				ogImageUrl: values.ogImageUrl || null,
 			},
 		})
 			.then(async () => {
@@ -388,6 +388,26 @@ export function WhitelabelingSettings() {
 									</FormItem>
 								)}
 							/>
+
+							<FormField
+								control={form.control}
+								name="ogImageUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>OG Image URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="https://example.com/og.png"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Open Graph image used for link previews on social media and messaging platforms. Recommended size: 1200x630px.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 						</CardContent>
 					</Card>
 
@@ -441,31 +461,16 @@ export function WhitelabelingSettings() {
 						</CardContent>
 					</Card>
 
-					{/* Metadata & Links Section */}
+					{/* Links Section */}
 					<Card className="bg-transparent">
 						<CardHeader>
-							<CardTitle>Metadata & Links</CardTitle>
+							<CardTitle>Links</CardTitle>
 							<CardDescription>
-								Customize the page title, footer text, and sidebar links.
+								Customize the footer text and sidebar links.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="metaTitle"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Page Title</FormLabel>
-										<FormControl>
-											<Input placeholder="Dokploy" {...field} />
-										</FormControl>
-										<FormDescription>
-											Browser tab title. Defaults to "Dokploy" if empty.
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+
 
 							<FormField
 								control={form.control}
