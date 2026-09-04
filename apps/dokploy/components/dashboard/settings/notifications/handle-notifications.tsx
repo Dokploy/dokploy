@@ -89,6 +89,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("email"),
 			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
 			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
+			tlsServerName: z.string().optional(),
 			username: z.string().min(1, { message: "Username is required" }),
 			password: z.string().min(1, { message: "Password is required" }),
 			fromAddress: z.string().min(1, { message: "From Address is required" }),
@@ -407,6 +408,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					type: notification.notificationType,
 					smtpServer: notification.email?.smtpServer,
 					smtpPort: notification.email?.smtpPort,
+					tlsServerName: notification.email?.tlsServerName ?? "",
 					username: notification.email?.username,
 					password: notification.email?.password,
 					toAddresses: notification.email?.toAddresses,
@@ -641,6 +643,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				volumeBackup: volumeBackup,
 				smtpServer: data.smtpServer,
 				smtpPort: data.smtpPort,
+				tlsServerName: data.tlsServerName,
 				username: data.username,
 				password: data.password,
 				fromAddress: data.fromAddress,
@@ -1121,6 +1124,24 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												)}
 											/>
 										</div>
+
+										<FormField
+											control={form.control}
+											name="tlsServerName"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>TLS Server Name (Optional)</FormLabel>
+													<FormControl>
+														<Input placeholder="smtp.example.com" {...field} />
+													</FormControl>
+													<FormDescription>
+														Hostname used to verify the SMTP server certificate
+														when the SMTP server is an IP address.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 
 										<div className="flex md:flex-row flex-col gap-2 w-full">
 											<FormField
@@ -2043,6 +2064,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testEmailConnection({
 											smtpServer: data.smtpServer,
 											smtpPort: data.smtpPort,
+											tlsServerName: data.tlsServerName,
 											username: data.username,
 											password: data.password,
 											fromAddress: data.fromAddress,

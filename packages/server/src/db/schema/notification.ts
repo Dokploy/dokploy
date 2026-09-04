@@ -121,6 +121,7 @@ export const email = pgTable("email", {
 		.$defaultFn(() => nanoid()),
 	smtpServer: text("smtpServer").notNull(),
 	smtpPort: integer("smtpPort").notNull(),
+	tlsServerName: text("tlsServerName"),
 	username: text("username").notNull(),
 	password: text("password").notNull(),
 	fromAddress: text("fromAddress").notNull(),
@@ -375,7 +376,10 @@ export const apiCreateEmail = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
-	.required();
+	.required()
+	.extend({
+		tlsServerName: z.string().trim().optional(),
+	});
 
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
@@ -386,6 +390,7 @@ export const apiUpdateEmail = apiCreateEmail.partial().extend({
 export const apiTestEmailConnection = apiCreateEmail.pick({
 	smtpServer: true,
 	smtpPort: true,
+	tlsServerName: true,
 	username: true,
 	password: true,
 	toAddresses: true,
@@ -698,6 +703,7 @@ export const apiSendTest = notificationsSchema
 		channel: z.string(),
 		smtpServer: z.string(),
 		smtpPort: z.number(),
+		tlsServerName: z.string(),
 		fromAddress: z.string(),
 		username: z.string(),
 		password: z.string(),
