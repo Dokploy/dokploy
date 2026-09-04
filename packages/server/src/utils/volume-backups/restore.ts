@@ -19,8 +19,10 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const { flags: rcloneFlags, path: backupPath } =
-		await getRclonePathAndFlags(destination, backupFileName);
+	const { flags: rcloneFlags, path: backupPath } = await getRclonePathAndFlags(
+		destination,
+		backupFileName,
+	);
 	const localBackupPath = `${volumeBackupPath}/${backupFileName}`;
 
 	// Command to download backup file from the configured destination

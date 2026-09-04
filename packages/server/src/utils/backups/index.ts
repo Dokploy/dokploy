@@ -98,7 +98,7 @@ export const initCronJobs = async () => {
 			}
 		} catch (error) {
 			console.error(`[Backup] ${backup.databaseType} Error`, error);
-			}
+		}
 	}
 
 	if (webServerSettings?.logCleanupCron) {

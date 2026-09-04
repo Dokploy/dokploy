@@ -371,7 +371,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder={isFileTransfer ? "username" : "Access Key ID"}
+												placeholder={
+													isFileTransfer ? "username" : "Access Key ID"
+												}
 												{...field}
 											/>
 										</FormControl>
@@ -387,12 +389,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>
-											{isFileTransfer ? "Password (Optional)" : "Secret Access Key"}
+											{isFileTransfer
+												? "Password (Optional)"
+												: "Secret Access Key"}
 										</FormLabel>
 										<FormControl>
 											<Input
 												type={isFileTransfer ? "password" : "text"}
-												placeholder={isFileTransfer ? "password" : "Secret Access Key"}
+												placeholder={
+													isFileTransfer ? "password" : "Secret Access Key"
+												}
 												{...field}
 											/>
 										</FormControl>
@@ -438,7 +444,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											<Input
 												placeholder={
 													isFileTransfer
-														? currentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP
+														? currentProvider ===
+															RCLONE_DESTINATION_PROVIDERS.SFTP
 															? "22"
 															: "21"
 														: "us-east-1"
@@ -467,7 +474,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<Input
 											placeholder={
 												isNamedRemote
-													? currentProvider === RCLONE_DESTINATION_PROVIDERS.ONEDRIVE
+													? currentProvider ===
+														RCLONE_DESTINATION_PROVIDERS.ONEDRIVE
 														? "onedrive"
 														: "gdrive"
 													: isFileTransfer
@@ -479,8 +487,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									</FormControl>
 									{isNamedRemote && (
 										<p className="text-xs text-muted-foreground">
-											Configure this remote with rclone on the machine that runs the
-											backup, then enter only its remote name here (without a colon).
+											Configure this remote with rclone on the machine that runs
+											the backup, then enter only its remote name here (without
+											a colon).
 										</p>
 									)}
 									<FormMessage />
@@ -537,8 +546,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						{isCloud ? (
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
-									Select the server that will execute the backup so the destination
-									can be tested from the same environment.
+									Select the server that will execute the backup so the
+									destination can be tested from the same environment.
 								</span>
 								<FormField
 									control={form.control}
