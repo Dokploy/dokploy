@@ -18,7 +18,7 @@ export const validateRClone = () => `
 `;
 
 export const validateSwarm = () => `
-  if docker info --format '{{.Swarm.LocalNodeState}}' | grep -q 'active'; then
+  if docker info --format '{{.Swarm.LocalNodeState}}' | grep -qx 'active'; then
     echo true
   else
     echo false
