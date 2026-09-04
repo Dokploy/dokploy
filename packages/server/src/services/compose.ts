@@ -43,6 +43,7 @@ import {
 	updateDeploymentStatus,
 } from "./deployment";
 import { generateApplyPatchesCommand } from "./patch";
+import type { PermissionCtx } from "./permission";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
@@ -164,6 +165,36 @@ export const findComposeById = async (composeId: string) => {
 		});
 	}
 	return result;
+};
+
+/**
+ * Resource-scoped tenant guard for compose services: confirms the compose
+ * identified by `composeId` belongs to a project whose `organizationId`
+ * matches the caller's active organization, and rejects otherwise.
+ *
+ * `checkServicePermissionAndAccess` is session-scoped (it only verifies the
+ * caller's role within `activeOrganizationId` and skips the `accessedServices`
+ * membership check for owner/admin), so it cannot detect a `composeId` that
+ * belongs to a different organization. This helper loads the compose (via
+ * `findComposeById`, which also decrypts its `env`) together with its
+ * environment/project and enforces the cross-tenant boundary, returning the
+ * fetched compose row so callers can reuse it without a second query.
+ */
+export const assertComposeOrgAccess = async (
+	ctx: PermissionCtx,
+	composeId: string,
+) => {
+	const compose = await findComposeById(composeId);
+	if (
+		compose.environment.project.organizationId !==
+		ctx.session.activeOrganizationId
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this compose",
+		});
+	}
+	return compose;
 };
 
 export const loadServices = async (
