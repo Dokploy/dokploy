@@ -64,7 +64,7 @@ const validateDestination = (
 		accessKey?: string;
 		region?: string;
 		endpoint?: string;
-		additionalFlags?: string[];
+		additionalFlags?: string[] | null;
 	},
 	ctx: z.RefinementCtx,
 ) => {
