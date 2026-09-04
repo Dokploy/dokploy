@@ -89,6 +89,7 @@ import {
 	apiUpdateSlack,
 	apiUpdateTeams,
 	apiUpdateTelegram,
+	member,
 	notifications,
 	server,
 } from "@/server/db/schema";
@@ -517,7 +518,17 @@ export const notificationRouter = createTRPCRouter({
 						});
 					}
 
-					organizationId = "";
+					const activeMember = await db.query.member.findFirst({
+						orderBy: [desc(member.isDefault), desc(member.createdAt)],
+						with: { organization: true },
+					});
+					if (!activeMember?.organizationId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Organization not found",
+						});
+					}
+					organizationId = activeMember.organizationId;
 					ServerName = "Dokploy";
 				} else {
 					const result = await db
