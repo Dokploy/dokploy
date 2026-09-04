@@ -6,6 +6,7 @@ on:
       - feat/issue-416-backup-destinations
     paths:
       - .github/workflows/issue-416-plan-auditor.yml
+      - .github/issue-416-plan-auditor.sh
 
 permissions:
   contents: read
