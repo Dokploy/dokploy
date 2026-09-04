@@ -265,6 +265,11 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	if (backupCommand === null) {
+		throw new Error(
+			`Backup not supported for backupType=${backup.backupType} databaseType=${backup.databaseType}`,
+		);
+	}
 	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
