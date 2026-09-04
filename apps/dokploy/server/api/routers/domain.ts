@@ -240,6 +240,15 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
+			} else if (domain.previewDeploymentId) {
+				const previewDeployment = await findPreviewDeploymentById(
+					domain.previewDeploymentId,
+				);
+				const application = await findApplicationById(
+					previewDeployment.applicationId,
+				);
+				application.appName = previewDeployment.appName;
+				await removeDomain(application, domain.uniqueConfigKey);
 			}
 
 			return result;
