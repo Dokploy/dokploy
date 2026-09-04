@@ -118,6 +118,17 @@ const trimRclonePath = (value: string) =>
 const joinRclonePath = (...parts: string[]) =>
 	parts.map(trimRclonePath).filter(Boolean).join("/");
 
+export const assertSafeRclonePath = (value: string) => {
+	const normalizedSeparators = value.replace(/\\/g, "/");
+	if (/[\0\r\n]/.test(normalizedSeparators)) {
+		throw new Error("Invalid rclone path");
+	}
+	const segments = normalizedSeparators.split("/");
+	if (segments.some((segment) => segment === "." || segment === "..")) {
+		throw new Error("Invalid rclone path");
+	}
+};
+
 const obscureRclonePassword = async (password: string) => {
 	if (!password) return "";
 	const { stdout } = await execFileAsync("rclone", ["obscure", "-"], {
@@ -130,6 +141,7 @@ export const getRclonePathAndFlags = async (
 	destination: Destination,
 	path = "",
 ): Promise<{ flags: string[]; path: string }> => {
+	assertSafeRclonePath(path);
 	const provider = destination.provider;
 	const additionalFlags = getValidatedAdditionalFlags(destination);
 
