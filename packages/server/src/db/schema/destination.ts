@@ -6,10 +6,15 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	FTP_TLS_CONFLICT_ERROR,
+	FTP_TLS_REQUIRED_ERROR,
+	getFtpTlsState,
+	hasSftpHostKeyVerification,
 	isNamedRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
 	RCLONE_REMOTE_NAME_ERROR,
 	RCLONE_REMOTE_NAME_REGEX,
+	SFTP_HOST_KEY_REQUIRED_ERROR,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -111,30 +116,35 @@ const validateDestination = (
 	}
 
 	if (data.provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
-		const flags = data.additionalFlags ?? [];
-		const implicitTlsEnabled =
-			(flags.includes("--ftp-tls") || flags.includes("--ftp-tls=true")) &&
-			!flags.includes("--ftp-tls=false");
-		const explicitTlsEnabled =
-			(flags.includes("--ftp-explicit-tls") ||
-				flags.includes("--ftp-explicit-tls=true")) &&
-			!flags.includes("--ftp-explicit-tls=false");
+		const { implicitTlsEnabled, explicitTlsEnabled } = getFtpTlsState(
+			data.additionalFlags,
+		);
 
 		if (!implicitTlsEnabled && !explicitTlsEnabled) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["additionalFlags"],
-				message:
-					"FTP destinations must use TLS. Add --ftp-explicit-tls for port 21 or --ftp-tls for implicit FTPS (usually port 990).",
+				message: FTP_TLS_REQUIRED_ERROR,
 			});
 		}
 		if (implicitTlsEnabled && explicitTlsEnabled) {
 			ctx.addIssue({
 				code: "custom",
 				path: ["additionalFlags"],
-				message: "Choose either implicit FTPS or explicit FTPS, not both.",
+				message: FTP_TLS_CONFLICT_ERROR,
 			});
 		}
+	}
+
+	if (
+		data.provider === RCLONE_DESTINATION_PROVIDERS.SFTP &&
+		!hasSftpHostKeyVerification(data.additionalFlags)
+	) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["additionalFlags"],
+			message: SFTP_HOST_KEY_REQUIRED_ERROR,
+		});
 	}
 };
 
