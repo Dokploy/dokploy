@@ -1,3 +1,8 @@
+import {
+	isNamedRcloneDestinationProvider,
+	RCLONE_DESTINATION_PROVIDERS,
+	RCLONE_REMOTE_NAME_REGEX,
+} from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -12,6 +17,7 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
+import { execFileAsync } from "../process/execAsync";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
@@ -89,6 +95,72 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	return rcloneFlags;
+};
+
+const trimRclonePath = (value: string) =>
+	value.trim().replace(/^\/+|\/+$/g, "");
+
+const joinRclonePath = (...parts: string[]) =>
+	parts.map(trimRclonePath).filter(Boolean).join("/");
+
+const obscureRclonePassword = async (password: string) => {
+	if (!password) return "";
+	const { stdout } = await execFileAsync("rclone", ["obscure", "-"], {
+		input: password,
+	});
+	return stdout.trim();
+};
+
+export const getRclonePathAndFlags = async (
+	destination: Destination,
+	path = "",
+): Promise<{ flags: string[]; path: string }> => {
+	const provider = destination.provider;
+
+	if (isNamedRcloneDestinationProvider(provider)) {
+		const remoteName = destination.endpoint.trim();
+		if (!RCLONE_REMOTE_NAME_REGEX.test(remoteName)) {
+			throw new Error("Invalid rclone remote name");
+		}
+		const remotePath = joinRclonePath(destination.bucket, path);
+		return {
+			flags: destination.additionalFlags ?? [],
+			path: `${remoteName}:${remotePath}`,
+		};
+	}
+
+	if (
+		provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+		provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+	) {
+		const backend =
+			provider === RCLONE_DESTINATION_PROVIDERS.FTP ? "ftp" : "sftp";
+		const defaultPort = backend === "ftp" ? "21" : "22";
+		const port = destination.region.trim() || defaultPort;
+		const flags = [
+			`--${backend}-host=${quote([destination.endpoint.trim()])}`,
+			`--${backend}-user=${quote([destination.accessKey])}`,
+			`--${backend}-port=${quote([port])}`,
+		];
+		if (destination.secretAccessKey) {
+			const obscuredPassword = await obscureRclonePassword(
+				destination.secretAccessKey,
+			);
+			flags.push(`--${backend}-pass=${quote([obscuredPassword])}`);
+		}
+		if (destination.additionalFlags?.length) {
+			flags.push(...destination.additionalFlags);
+		}
+		return {
+			flags,
+			path: `:${backend}:${joinRclonePath(destination.bucket, path)}`,
+		};
+	}
+
+	return {
+		flags: getS3Credentials(destination),
+		path: `:s3:${joinRclonePath(destination.bucket, path)}`,
+	};
 };
 
 // User-controlled values (database name, user, password) are passed to the
@@ -265,8 +337,9 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
-	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+	const rcloneTarget = quote([rcloneDestination]);
+	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} ${rcloneTarget}`;
+	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${rcloneTarget}`;
 
 	logger.info(
 		{
@@ -290,7 +363,7 @@ export const getBackupCommand = (
 	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting backup and upload to destination..." >> ${logPath};
 
 	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
@@ -299,7 +372,7 @@ export const getBackupCommand = (
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
