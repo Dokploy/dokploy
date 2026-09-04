@@ -3,9 +3,10 @@ import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
+import { quote } from "shell-quote";
 import {
 	getBackupTimestamp,
-	getS3Credentials,
+	getRclonePathAndFlags,
 	normalizeS3Path,
 } from "../backups/utils";
 
@@ -73,14 +74,15 @@ export const backupVolume = async (
 	const serverId =
 		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
-	const s3AppName = getVolumeServiceAppName(volumeBackup);
+	const appName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
-	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const destinationPath = `${appName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
+	const { flags: rcloneFlags, path: rcloneDestination } =
+		await getRclonePathAndFlags(destination, destinationPath);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
+	const localBackupPath = `${volumeBackupPath}/${backupFileName}`;
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([localBackupPath])} ${quote([rcloneDestination])}`;
 
 	const backupCommand = `
 	set -e
@@ -91,18 +93,18 @@ export const backupVolume = async (
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
   -v ${volumeName}:/volume_data \
-  -v ${volumeBackupPath}:/backup \
+  -v ${quote([volumeBackupPath])}:/backup \
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
   echo "Volume backup done ✅"
   `;
 
 	const uploadCommand = `
-  echo "Starting upload to S3..."
+  echo "Starting upload to destination..."
   ${rcloneCommand}
-  echo "Upload to S3 done ✅"
+  echo "Upload to destination done ✅"
   echo "Cleaning up local backup file..."
-  rm "${volumeBackupPath}/${backupFileName}"
+  rm ${quote([localBackupPath])}
   echo "Local backup file cleaned up ✅"
   `;
 
@@ -123,7 +125,7 @@ export const backupVolume = async (
 	const lockWrapper = (body: string) => `
 		set -e
 
-		LOCK_PATH="${lockPath}"
+		LOCK_PATH=${quote([lockPath])}
 
 		echo "Waiting for volume backup lock: $LOCK_PATH"
 
