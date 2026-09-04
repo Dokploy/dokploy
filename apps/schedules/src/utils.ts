@@ -33,6 +33,10 @@ export const runJobs = async (job: QueueJob) => {
 		if (job.type === "backup") {
 			const { backupId } = job;
 			const backup = await findBackupById(backupId);
+			if (!backup.enabled) {
+				logger.info(`Backup ${backupId} is disabled; skipping`);
+				return;
+			}
 			const {
 				databaseType,
 				postgres,

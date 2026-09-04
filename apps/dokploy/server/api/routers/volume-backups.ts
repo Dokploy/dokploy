@@ -222,8 +222,8 @@ export const volumeBackupsRouter = createTRPCRouter({
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedVolumeBackup.cronExpression,
-						volumeBackupId: updatedVolumeBackup.volumeBackupId,
+						cronSchedule: existingVb.cronExpression,
+						volumeBackupId: existingVb.volumeBackupId,
 						type: "volume-backup",
 					});
 				}

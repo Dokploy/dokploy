@@ -220,7 +220,7 @@ export const backupRouter = createTRPCRouter({
 						});
 					} else {
 						await removeJob({
-							cronSchedule: backup.schedule,
+							cronSchedule: existing.schedule,
 							backupId: backup.backupId,
 							type: "backup",
 						});
