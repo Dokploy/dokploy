@@ -3,6 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { redactRcloneCredentials } from "../backups/redact";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
@@ -47,13 +48,12 @@ export const restorePostgresBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring postgres backup"
-			}`,
+		const safeMessage = redactRcloneCredentials(
+			error instanceof Error
+				? error.message
+				: "Error restoring postgres backup",
 		);
+		emit(`Error: ${safeMessage}`);
 		throw error;
 	}
 };

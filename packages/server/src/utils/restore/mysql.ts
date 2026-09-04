@@ -3,6 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { redactRcloneCredentials } from "../backups/redact";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
@@ -46,14 +47,11 @@ export const restoreMySqlBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring mysql backup"
-			}`,
-		);
-		throw new Error(
+		const safeMessage = redactRcloneCredentials(
 			error instanceof Error ? error.message : "Error restoring mysql backup",
 		);
+		console.error(safeMessage);
+		emit(`Error: ${safeMessage}`);
+		throw new Error(safeMessage);
 	}
 };

@@ -6,6 +6,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
+import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -98,7 +99,10 @@ const cleanupOldVolumeBackups = async (
 			await execAsync(fullCommand);
 		}
 	} catch (error) {
-		console.error("Volume backup retention error", error);
+		console.error(
+			"Volume backup retention error",
+			redactRcloneCredentials(String(error)),
+		);
 	}
 };
 
@@ -179,7 +183,9 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				serviceType: mappedServiceType,
 				type: "error",
 				organizationId,
-				errorMessage: error instanceof Error ? error.message : String(error),
+				errorMessage: redactRcloneCredentials(
+					error instanceof Error ? error.message : String(error),
+				),
 			});
 		} catch (notificationError) {
 			console.error(
