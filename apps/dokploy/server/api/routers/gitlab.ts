@@ -136,10 +136,12 @@ export const gitlabRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input, ctx }) => {
+			const gitlab = await findGitlabById(input.gitlabId);
+			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+
 			if (input.name) {
 				await updateGitProvider(input.gitProviderId, {
 					name: input.name,
-					organizationId: ctx.session.activeOrganizationId,
 				});
 
 				await updateGitlab(input.gitlabId, {

@@ -187,10 +187,12 @@ export const giteaRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateGitea)
 		.mutation(async ({ input, ctx }) => {
+			const gitea = await findGiteaById(input.giteaId);
+			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
+
 			if (input.name) {
 				await updateGitProvider(input.gitProviderId, {
 					name: input.name,
-					organizationId: ctx.session.activeOrganizationId,
 				});
 
 				await updateGitea(input.giteaId, {
