@@ -2,6 +2,7 @@ import {
 	getSafeRcloneErrorMessage,
 	redactRcloneCredentials,
 } from "@dokploy/server/utils/backups/redact";
+import { quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
 
 describe("redactRcloneCredentials (#4621)", () => {
@@ -83,5 +84,16 @@ describe("redactRcloneCredentials (#4621)", () => {
 			expect(safe).not.toContain(secret);
 		}
 		expect(safe.match(/\[REDACTED\]/g)?.length).toBe(5);
+	});
+	it("should fully redact shell-quote output with embedded quotes and whitespace", () => {
+		const secret = "PART_A' PART_B\" $PART_C;\\PART_D";
+		const cmd = `rclone lsf --s3-secret-access-key=${quote([secret])} --s3-region=us-east-1 :s3:bucket`;
+		const redacted = redactRcloneCredentials(cmd);
+
+		for (const fragment of ["PART_A", "PART_B", "PART_C", "PART_D"]) {
+			expect(redacted).not.toContain(fragment);
+		}
+		expect(redacted).toContain('--s3-secret-access-key="[REDACTED]"');
+		expect(redacted).toContain("--s3-region=us-east-1");
 	});
 });

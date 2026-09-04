@@ -197,6 +197,14 @@ export const getRclonePathAndFlags = async (
 			flags.push(`--${backend}-pass=${quote([obscuredPassword])}`);
 		}
 		flags.push(...additionalFlags);
+		if (provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
+			// CLI options override RCLONE_* environment defaults. Keep TLS
+			// certificate verification enabled on the execution host.
+			flags.push(
+				"--ftp-no-check-certificate=false",
+				"--no-check-certificate=false",
+			);
+		}
 		return {
 			flags,
 			path: `:${backend}:${joinRclonePath(destination.bucket, path)}`,

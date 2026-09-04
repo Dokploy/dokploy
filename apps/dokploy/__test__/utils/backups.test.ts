@@ -407,4 +407,21 @@ describe("FTP TLS certificate verification", () => {
 			}).success,
 		).toBe(true);
 	});
+	test("forces certificate verification on after user flags", async () => {
+		const result = await getRclonePathAndFlags(
+			destination({
+				provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+				endpoint: "storage.example.com",
+				accessKey: "backup-user",
+				secretAccessKey: "",
+				region: "",
+				bucket: "backups",
+				additionalFlags: ["--ftp-explicit-tls"],
+			}),
+		);
+		expect(result.flags.slice(-2)).toEqual([
+			"--ftp-no-check-certificate=false",
+			"--no-check-certificate=false",
+		]);
+	});
 });
