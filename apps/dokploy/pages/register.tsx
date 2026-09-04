@@ -1,6 +1,5 @@
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -29,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -103,6 +103,10 @@ const Register = ({ isCloud }: Props) => {
 	}, [form, form.reset, form.formState.isSubmitSuccessful]);
 
 	const onSubmit = async (values: Register) => {
+		setIsError(false);
+		setError(null);
+		setData(null);
+
 		const { data, error } = await authClient.signUp.email({
 			email: values.email,
 			password: values.password,
@@ -113,16 +117,16 @@ const Register = ({ isCloud }: Props) => {
 		if (error) {
 			setIsError(true);
 			setError(error.message || "An error occurred");
+			return;
+		}
+		toast.success("User registered successfully", {
+			duration: 2000,
+		});
+		if (!isCloud) {
+			router.push("/");
 		} else {
-			toast.success("User registered successfully", {
-				duration: 2000,
-			});
-			if (!isCloud) {
-				router.push("/");
-			} else {
-				pushToDataLayer("sign_up", { method: "email" });
-				setData(data);
-			}
+			pushToDataLayer("sign_up", { method: "email" });
+			setData(data);
 		}
 	};
 	return (
