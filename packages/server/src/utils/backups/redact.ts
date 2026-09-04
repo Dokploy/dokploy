@@ -9,3 +9,8 @@ export const redactRcloneCredentials = (command: string): string => {
 		'$1"[REDACTED]"',
 	);
 };
+
+export const getSafeRcloneErrorMessage = (error: unknown): string =>
+	redactRcloneCredentials(
+		error instanceof Error ? error.message : String(error),
+	);

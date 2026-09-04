@@ -1,4 +1,7 @@
-import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
+import {
+	getSafeRcloneErrorMessage,
+	redactRcloneCredentials,
+} from "@dokploy/server/utils/backups/redact";
 import { describe, expect, it } from "vitest";
 
 describe("redactRcloneCredentials (#4621)", () => {
@@ -63,5 +66,22 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("MYKEY");
 		expect(redacted).not.toContain("MYSECRET");
 		expect(redacted).toContain("[REDACTED]");
+	});
+	it("should sanitize rclone credentials from propagated backup errors", () => {
+		const error = new Error(
+			"Command failed: rclone rcat --s3-access-key-id=ACCESS_VALUE_9X --s3-secret-access-key=S3_VALUE_LEAK_9X --ftp-pass=FTP_VALUE_LEAK_9X --sftp-pass=SFTP_VALUE_LEAK_9X --sftp-key-file-pass=KEY_VALUE_LEAK_9X :ftp:backups/file.gz",
+		);
+		const safe = getSafeRcloneErrorMessage(error);
+
+		for (const secret of [
+			"ACCESS_VALUE_9X",
+			"S3_VALUE_LEAK_9X",
+			"FTP_VALUE_LEAK_9X",
+			"SFTP_VALUE_LEAK_9X",
+			"KEY_VALUE_LEAK_9X",
+		]) {
+			expect(safe).not.toContain(secret);
+		}
+		expect(safe.match(/\[REDACTED\]/g)?.length).toBe(5);
 	});
 });

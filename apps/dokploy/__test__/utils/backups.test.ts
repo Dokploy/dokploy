@@ -320,3 +320,58 @@ describe("getRclonePathAndFlags", () => {
 		).rejects.toThrow("SFTP destinations must verify the server host key");
 	});
 });
+
+describe("FTP TLS certificate verification", () => {
+	const input = {
+		name: "FTP backups",
+		provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+		accessKey: "backup-user",
+		secretAccessKey: "secret",
+		bucket: "backups",
+		region: "",
+		endpoint: "storage.example.com",
+	};
+
+	test.each(["--ftp-no-check-certificate", "--no-check-certificate"])(
+		"rejects certificate-verification bypass %s at schema validation",
+		(flag) => {
+			expect(
+				apiCreateDestination.safeParse({
+					...input,
+					additionalFlags: ["--ftp-explicit-tls", flag],
+				}).success,
+			).toBe(false);
+		},
+	);
+
+	test.each(["--ftp-no-check-certificate", "--no-check-certificate"])(
+		"rejects certificate-verification bypass %s at runtime",
+		async (flag) => {
+			await expect(
+				getRclonePathAndFlags(
+					destination({
+						provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+						endpoint: "storage.example.com",
+						accessKey: "backup-user",
+						secretAccessKey: "",
+						region: "",
+						bucket: "backups",
+						additionalFlags: ["--ftp-explicit-tls", flag],
+					}),
+				),
+			).rejects.toThrow("FTP TLS certificate verification cannot be disabled");
+		},
+	);
+
+	test.each([
+		"--ftp-no-check-certificate=false",
+		"--no-check-certificate=false",
+	])("allows explicitly safe certificate flag %s", (flag) => {
+		expect(
+			apiCreateDestination.safeParse({
+				...input,
+				additionalFlags: ["--ftp-explicit-tls", flag],
+			}).success,
+		).toBe(true);
+	});
+});

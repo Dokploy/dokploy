@@ -37,6 +37,8 @@ export const FTP_TLS_REQUIRED_ERROR =
 	"FTP destinations must use TLS. Add --ftp-explicit-tls for explicit FTPS (port 21) or --ftp-tls for implicit FTPS (port 990).";
 export const FTP_TLS_CONFLICT_ERROR =
 	"Choose either implicit FTPS or explicit FTPS, not both.";
+export const FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR =
+	"FTP TLS certificate verification cannot be disabled.";
 export const SFTP_HOST_KEY_REQUIRED_ERROR =
 	"SFTP destinations must verify the server host key. Add --sftp-known-hosts-file=/path/to/known_hosts.";
 
@@ -53,6 +55,15 @@ export const getFtpTlsState = (flags: readonly string[] | null | undefined) => {
 		implicitTlsEnabled: isBooleanFlagEnabled(values, "--ftp-tls"),
 		explicitTlsEnabled: isBooleanFlagEnabled(values, "--ftp-explicit-tls"),
 	};
+};
+
+export const hasDisabledFtpCertificateVerification = (
+	flags: readonly string[] | null | undefined,
+): boolean => {
+	const values = flags ?? [];
+	return ["--ftp-no-check-certificate", "--no-check-certificate"].some(
+		(flag) => values.includes(flag) || values.includes(`${flag}=true`),
+	);
 };
 
 export const hasSftpHostKeyVerification = (
