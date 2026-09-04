@@ -15,6 +15,7 @@ interface Props extends React.HTMLAttributes<HTMLParagraphElement> {
 export const TruncateTooltip = ({ text, className, ...props }: Props) => {
 	const textRef = useRef<HTMLParagraphElement>(null);
 	const [isTruncated, setIsTruncated] = useState(false);
+	const [isOpen, setIsOpen] = useState(false);
 
 	useEffect(() => {
 		const element = textRef.current;
@@ -43,13 +44,20 @@ export const TruncateTooltip = ({ text, className, ...props }: Props) => {
 		</p>
 	);
 
-	if (!isTruncated) {
-		return content;
-	}
-
 	return (
 		<TooltipProvider>
-			<Tooltip delayDuration={0}>
+			<Tooltip 
+				delayDuration={0} 
+				open={isOpen} 
+				onOpenChange={(open) => {
+					// Only allow opening if it's actually truncated
+					if (isTruncated) {
+						setIsOpen(open);
+					} else {
+						setIsOpen(false);
+					}
+				}}
+			>
 				<TooltipTrigger asChild>{content}</TooltipTrigger>
 				<TooltipPrimitive.Portal>
 					<TooltipPrimitive.Content
