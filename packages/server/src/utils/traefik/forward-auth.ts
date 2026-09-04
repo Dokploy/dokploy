@@ -37,18 +37,6 @@ export const forwardAuthMiddlewareName = (
 const proxyUrl = () =>
 	`http://${FORWARD_AUTH_SERVICE_NAME}:${FORWARD_AUTH_PORT}`;
 
-const loadOrEmptyMiddlewares = async (
-	serverId: string | null,
-): Promise<FileConfig> => {
-	try {
-		return serverId
-			? await loadRemoteMiddlewares(serverId)
-			: loadMiddlewares<FileConfig>();
-	} catch {
-		return { http: { middlewares: {} } };
-	}
-};
-
 const persistMiddlewares = async (
 	config: FileConfig,
 	serverId: string | null,
@@ -85,7 +73,12 @@ export const createForwardAuthMiddleware = async (
 	const authDomainHttps = authGate.https;
 
 	const { appName, serverId } = app;
-	const config = await loadOrEmptyMiddlewares(serverId);
+	let config: FileConfig;
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 
 	config.http = config.http || {};
 	config.http.middlewares = config.http.middlewares || {};

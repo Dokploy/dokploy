@@ -89,22 +89,8 @@ export const loadMiddlewares = <T>() => {
 export const loadRemoteMiddlewares = async (serverId: string) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
-
-	try {
-		const { stdout, stderr } = await execAsyncRemote(
-			serverId,
-			`cat ${configPath}`,
-		);
-
-		if (stderr) {
-			console.error(`Error: ${stderr}`);
-			throw new Error(`File not found: ${configPath}`);
-		}
-		const config = parse(stdout) as FileConfig;
-		return config;
-	} catch (_) {
-		throw new Error(`File not found: ${configPath}`);
-	}
+	const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+	return parse(stdout) as FileConfig;
 };
 export const writeMiddleware = (config: FileConfig) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
@@ -132,17 +118,9 @@ export const createPathMiddlewares = async (
 	let config: FileConfig;
 
 	if (app.serverId) {
-		try {
-			config = await loadRemoteMiddlewares(app.serverId);
-		} catch {
-			config = { http: { middlewares: {} } };
-		}
+		config = await loadRemoteMiddlewares(app.serverId);
 	} else {
-		try {
-			config = loadMiddlewares<FileConfig>();
-		} catch {
-			config = { http: { middlewares: {} } };
-		}
+		config = loadMiddlewares<FileConfig>();
 	}
 
 	if (!config) {
