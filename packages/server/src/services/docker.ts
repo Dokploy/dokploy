@@ -435,14 +435,14 @@ export const getContainerLogs = async (
 	if (!useContainerIdDirectly) {
 		// Find the real container ID by appName filter
 		const findResult = await exec(
-			`docker ps -q --filter "name=^${appNameOrId}" | head -1`,
+			`docker ps -q --filter ${quote([`name=^${appNameOrId}`])} | head -1`,
 		);
 		const containerId = findResult.stdout.trim();
 
 		if (!containerId) {
 			// Fallback: try as a swarm service
 			const svcResult = await exec(
-				`docker service ls -q --filter "name=${appNameOrId}" | head -1`,
+				`docker service ls -q --filter ${quote([`name=${appNameOrId}`])} | head -1`,
 			);
 			const serviceId = svcResult.stdout.trim();
 			if (!serviceId) {
