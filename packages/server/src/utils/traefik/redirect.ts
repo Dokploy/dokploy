@@ -70,12 +70,16 @@ export const createRedirectMiddleware = async (
 		},
 	};
 
-	if (config?.http) {
-		config.http.middlewares = {
-			...config.http.middlewares,
-			...newMiddleware,
-		};
+	if (!config.http) {
+		config.http = { middlewares: {} };
 	}
+	if (!config.http.middlewares) {
+		config.http.middlewares = {};
+	}
+	config.http.middlewares = {
+		...config.http.middlewares,
+		...newMiddleware,
+	};
 
 	let appConfig: FileConfig;
 
