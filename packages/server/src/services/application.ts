@@ -40,6 +40,11 @@ import {
 } from "./deployment";
 import { type Domain, getDomainHost } from "./domain";
 import {
+	getRegistryPasswords,
+	redactExecError,
+	redactSecrets,
+} from "./registry";
+import {
 	createPreviewDeploymentComment,
 	getIssueComment,
 	issueCommentExists,
@@ -246,11 +251,17 @@ export const deployApplication = async ({
 		});
 	} catch (error) {
 		let command = "";
+		const passwords = await getRegistryPasswords([
+			application.registryId,
+			application.buildRegistryId,
+			application.rollbackRegistryId,
+		]);
+		const rawMessage = error instanceof Error ? error.message : String(error);
+		const safeMessage = redactSecrets(rawMessage, passwords);
 
 		// Only log details for non-ExecError errors
 		if (!(error instanceof ExecError)) {
-			const message = error instanceof Error ? error.message : String(error);
-			const encodedMessage = encodeBase64(message);
+			const encodedMessage = encodeBase64(safeMessage);
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
@@ -267,13 +278,12 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
+			errorMessage: safeMessage || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 		});
 
-		throw error;
+		throw redactExecError(error, passwords);
 	} finally {
 		// Only extract commit info for non-docker sources
 		if (application.sourceType !== "docker") {
@@ -337,11 +347,16 @@ export const rebuildApplication = async ({
 		});
 	} catch (error) {
 		let command = "";
+		const passwords = await getRegistryPasswords([
+			application.registryId,
+			application.buildRegistryId,
+			application.rollbackRegistryId,
+		]);
 
 		// Only log details for non-ExecError errors
 		if (!(error instanceof ExecError)) {
 			const message = error instanceof Error ? error.message : String(error);
-			const encodedMessage = encodeBase64(message);
+			const encodedMessage = encodeBase64(redactSecrets(message, passwords));
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
@@ -353,7 +368,7 @@ export const rebuildApplication = async ({
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
-		throw error;
+		throw redactExecError(error, passwords);
 	}
 
 	return true;
@@ -579,11 +594,16 @@ export const rebuildPreviewApplication = async ({
 		});
 	} catch (error) {
 		let command = "";
+		const passwords = await getRegistryPasswords([
+			application.registryId,
+			application.buildRegistryId,
+			application.rollbackRegistryId,
+		]);
 
 		// Only log details for non-ExecError errors
 		if (!(error instanceof ExecError)) {
 			const message = error instanceof Error ? error.message : String(error);
-			const encodedMessage = encodeBase64(message);
+			const encodedMessage = encodeBase64(redactSecrets(message, passwords));
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
@@ -604,7 +624,7 @@ export const rebuildPreviewApplication = async ({
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "error",
 		});
-		throw error;
+		throw redactExecError(error, passwords);
 	}
 
 	return true;
