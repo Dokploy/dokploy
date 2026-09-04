@@ -26,10 +26,14 @@ const hasReplacement = (s: string) => s.includes(REPLACEMENT);
 
 describe("spawnAsync streaming UTF-8 decoding", () => {
 	it("decodes a multi-byte sequence split across two data events", async () => {
+		// The child writes the first byte, then waits for stdin to close before
+		// writing the remaining bytes. This ensures the two writes arrive as
+		// separate data events without relying on a fixed-duration timer.
 		const file = writeScript(
 			"split",
 			`process.stdout.write(Buffer.from([0xe2]));
-			setTimeout(() => process.stdout.write(Buffer.from([0x94, 0x80])), 50);`,
+			process.stdin.resume();
+			process.stdin.once("end", () => process.stdout.write(Buffer.from([0x94, 0x80])));`,
 		);
 		let streamed = "";
 		const chunkByteSizes: number[] = [];
@@ -38,6 +42,10 @@ describe("spawnAsync streaming UTF-8 decoding", () => {
 		});
 		result.child.stdout?.on("data", (b: Buffer) => {
 			chunkByteSizes.push(b.length);
+			// After the first byte arrives, signal the child to send the rest.
+			if (chunkByteSizes.length === 1) {
+				result.child.stdin?.end();
+			}
 		});
 		const captured = await result;
 		expect(chunkByteSizes.length).toBeGreaterThanOrEqual(2);
