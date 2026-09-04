@@ -3,8 +3,8 @@ import {
 	createMongo,
 	createMount,
 	deployMongo,
-	execAsync,
-	execAsyncRemote,
+	escapeJsLiteral,
+	execDockerArgv,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMongoById,
@@ -439,7 +439,20 @@ export const mongoRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"`;
+			const evalExpr = `db.getSiblingDB('admin').changeUserPassword('${escapeJsLiteral(databaseUser)}', '${escapeJsLiteral(password)}')`;
+			const argv = [
+				"exec",
+				container.Id,
+				"mongosh",
+				"-u",
+				databaseUser,
+				"-p",
+				databasePassword,
+				"--authenticationDatabase",
+				"admin",
+				"--eval",
+				evalExpr,
+			];
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -447,11 +460,7 @@ export const mongoRouter = createTRPCRouter({
 					.set({ databasePassword: password })
 					.where(eq(mongoTable.mongoId, mongoId));
 
-				if (serverId) {
-					await execAsyncRemote(serverId, command);
-				} else {
-					await execAsync(command, { shell: "/bin/bash" });
-				}
+				await execDockerArgv(serverId, argv);
 			});
 
 			await audit(ctx, {

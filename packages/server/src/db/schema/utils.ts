@@ -47,12 +47,26 @@ export const VOLUME_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
 export const VOLUME_NAME_MESSAGE =
 	"Volume name must start with a letter or number and contain only letters, numbers, dots, underscores and hyphens";
 
-/** Database password: blocks shell-dangerous characters like $ ! ' " \ / and spaces. */
+/**
+ * Database password: blocks shell-dangerous characters like $ ! ' " \ / ` and
+ * spaces. The backtick is intentionally excluded — it is a live
+ * command-substitution metacharacter inside bash double quotes.
+ */
 export const DATABASE_PASSWORD_REGEX =
-	/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/;
+	/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~]*$/;
 
 export const DATABASE_PASSWORD_MESSAGE =
-	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility";
+	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / ` and space characters for database compatibility";
+
+/**
+ * Database username: only letters, numbers, underscores and hyphens.
+ * Database usernames are interpolated into shell commands and SQL/JS
+ * literals, so shell metacharacters must never be permitted.
+ */
+export const DATABASE_USER_REGEX = /^[A-Za-z0-9_-]+$/;
+
+export const DATABASE_USER_MESSAGE =
+	"Database username can only contain letters, numbers, underscores and hyphens";
 
 export const generateAppName = (type: string) => {
 	const verb = faker.hacker.verb().replace(/ /g, "-");
