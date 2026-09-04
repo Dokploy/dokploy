@@ -1,0 +1,158 @@
+name: Issue 416 Final Plan Audit
+
+on:
+  push:
+    branches: ["feat/issue-416-backup-destinations"]
+    paths:
+      - ".github/workflows/issue-416-final-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pnpm install --frozen-lockfile
+      - name: Build server prerequisite
+        run: pnpm server:build
+      - name: Install sealed auditor release
+        run: python -m pip install plan-auditor==2.0.1
+      - name: Restore pre-implementation sealed plan
+        shell: bash
+        run: |
+          mkdir -p .plan-auditor
+          cat > .plan-auditor/plan.json <<'JSON'
+          {
+            "id": "dokploy-416-rclone-destinations",
+            "task": "Implement issue #416 on Dokploy canary: first-class Google Drive, OneDrive, FTP and SFTP backup destinations via a secure rclone abstraction while preserving S3 behavior.",
+            "created": "2026-09-04T19:45:00+03:00",
+            "requirements": [
+              "Google Drive, OneDrive, FTP and SFTP are explicitly configurable destination choices.",
+              "Existing S3 providers and stored destinations remain backward compatible and functionally unchanged.",
+              "Backup upload paths use one provider-neutral rclone destination abstraction.",
+              "Restore and retention/cleanup paths use the same abstraction so non-S3 destinations are not write-only.",
+              "User-controlled credentials, remote names and paths are shell-safe and secrets are not leaked in logs/errors.",
+              "No unsafe child_process.exec interpolation is introduced for rclone credential transformation.",
+              "Target current Dokploy canary and add automated regression/security tests."
+            ],
+            "steps": [
+              {
+                "id": 1,
+                "title": "Define provider-aware destination model and validation",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm --filter dokploy typecheck"},
+                  {"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"}
+                ]
+              },
+              {
+                "id": 2,
+                "title": "Implement secure rclone target/credential builder preserving S3 output",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/utils/backups.test.ts"},
+                  {"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/backups/redact-credentials.test.ts"}
+                ]
+              },
+              {
+                "id": 3,
+                "title": "Wire destination connection test through shared builder",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm --filter dokploy typecheck"},
+                  {"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/utils/backups.test.ts"}
+                ]
+              },
+              {
+                "id": 4,
+                "title": "Wire all database/compose/web-server backup uploads and retention cleanup",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"},
+                  {"type": "run", "cmd": "grep -R \"getS3Credentials\" packages/server/src/utils/backups packages/server/src/utils/volume-backups | wc -l"}
+                ]
+              },
+              {
+                "id": 5,
+                "title": "Wire restore paths to provider-neutral destination abstraction",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"},
+                  {"type": "run", "cmd": "grep -R \"getS3Credentials\" packages/server/src/utils/restore | wc -l"}
+                ]
+              },
+              {
+                "id": 6,
+                "title": "Implement first-class UI choices and conditional forms for four required providers",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm --filter dokploy typecheck"},
+                  {"type": "run", "cmd": "pnpm biome check apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx apps/dokploy/components/dashboard/settings/destination/constants.ts"}
+                ]
+              },
+              {
+                "id": 7,
+                "title": "Add regression and injection/redaction tests",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/utils/backups.test.ts apps/dokploy/__test__/backups/redact-credentials.test.ts"}
+                ]
+              },
+              {
+                "id": 8,
+                "title": "Run final build-quality gates and ensure patch is clean",
+                "status": "pending",
+                "verify": [
+                  {"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"},
+                  {"type": "run", "cmd": "pnpm --filter dokploy typecheck"},
+                  {"type": "run", "cmd": "git diff --check"}
+                ]
+              }
+            ]
+          }
+          JSON
+          cat > .plan-auditor/seal.json <<'JSON'
+          {
+            "format_version": 2,
+            "plan_id": "dokploy-416-rclone-destinations",
+            "sealed_at": "2026-09-04T17:02:45.323647+00:00",
+            "plan_hash": "7b48126ce91561e99c5cf11ef497e745fbd9441476b51115ea6039d945bf9626",
+            "criteria_count": 16,
+            "task": "Implement issue #416 on Dokploy canary: first-class Google Drive, OneDrive, FTP and SFTP backup destinations via a secure rclone abstraction while preserving S3 behavior.",
+            "requirements": [
+              "Google Drive, OneDrive, FTP and SFTP are explicitly configurable destination choices.",
+              "Existing S3 providers and stored destinations remain backward compatible and functionally unchanged.",
+              "Backup upload paths use one provider-neutral rclone destination abstraction.",
+              "Restore and retention/cleanup paths use the same abstraction so non-S3 destinations are not write-only.",
+              "User-controlled credentials, remote names and paths are shell-safe and secrets are not leaked in logs/errors.",
+              "No unsafe child_process.exec interpolation is introduced for rclone credential transformation.",
+              "Target current Dokploy canary and add automated regression/security tests."
+            ],
+            "steps": [
+              {"id": 1, "verify": [{"type": "run", "cmd": "pnpm --filter dokploy typecheck"}, {"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"}]},
+              {"id": 2, "verify": [{"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/utils/backups.test.ts"}, {"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/backups/redact-credentials.test.ts"}]},
+              {"id": 3, "verify": [{"type": "run", "cmd": "pnpm --filter dokploy typecheck"}, {"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/utils/backups.test.ts"}]},
+              {"id": 4, "verify": [{"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"}, {"type": "run", "cmd": "grep -R \"getS3Credentials\" packages/server/src/utils/backups packages/server/src/utils/volume-backups | wc -l"}]},
+              {"id": 5, "verify": [{"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"}, {"type": "run", "cmd": "grep -R \"getS3Credentials\" packages/server/src/utils/restore | wc -l"}]},
+              {"id": 6, "verify": [{"type": "run", "cmd": "pnpm --filter dokploy typecheck"}, {"type": "run", "cmd": "pnpm biome check apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx apps/dokploy/components/dashboard/settings/destination/constants.ts"}]},
+              {"id": 7, "verify": [{"type": "run", "cmd": "pnpm vitest run apps/dokploy/__test__/utils/backups.test.ts apps/dokploy/__test__/backups/redact-credentials.test.ts"}]},
+              {"id": 8, "verify": [{"type": "run", "cmd": "pnpm --filter @dokploy/server typecheck"}, {"type": "run", "cmd": "pnpm --filter dokploy typecheck"}, {"type": "run", "cmd": "git diff --check"}]}
+            ]
+          }
+          JSON
+      - name: Verify sealed plan has not been weakened
+        run: plan-auditor plan verify .
+      - name: Fresh final Plan Auditor audit
+        run: plan-auditor audit .
