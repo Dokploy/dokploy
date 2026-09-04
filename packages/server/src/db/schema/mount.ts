@@ -11,6 +11,7 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { VOLUME_NAME_MESSAGE, VOLUME_NAME_REGEX } from "./utils";
 
 export const serviceType = pgEnum("serviceType", [
 	"application",
@@ -122,6 +123,27 @@ const createSchema = createInsertSchema(mounts, {
 	]),
 });
 
+const validateVolumeMountName = (
+	data: { type?: string; volumeName?: string | null },
+	ctx: z.RefinementCtx,
+) => {
+	if (data.type === "volume") {
+		if (!data.volumeName) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Volume name is required for volume mounts",
+				path: ["volumeName"],
+			});
+		} else if (!VOLUME_NAME_REGEX.test(data.volumeName)) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: VOLUME_NAME_MESSAGE,
+				path: ["volumeName"],
+			});
+		}
+	}
+};
+
 export const apiCreateMount = createSchema
 	.pick({
 		type: true,
@@ -134,7 +156,8 @@ export const apiCreateMount = createSchema
 	})
 	.extend({
 		serviceId: z.string().min(1),
-	});
+	})
+	.superRefine(validateVolumeMountName);
 
 export const apiFindOneMount = z.object({
 	mountId: z.string().min(1),
@@ -157,6 +180,9 @@ export const apiFindMountByApplicationId = z.object({
 	serviceId: z.string().min(1),
 });
 
-export const apiUpdateMount = createSchema.partial().extend({
-	mountId: z.string().min(1),
-});
+export const apiUpdateMount = createSchema
+	.partial()
+	.extend({
+		mountId: z.string().min(1),
+	})
+	.superRefine(validateVolumeMountName);
