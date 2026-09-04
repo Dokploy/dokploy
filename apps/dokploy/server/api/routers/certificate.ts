@@ -1,6 +1,7 @@
 import {
 	createCertificate,
 	findCertificateById,
+	getAccessibleServerIds,
 	IS_CLOUD,
 	removeCertificateById,
 	updateCertificate,
@@ -26,6 +27,15 @@ export const certificateRouter = createTRPCRouter({
 					code: "UNAUTHORIZED",
 					message: "Please set a server to create a certificate",
 				});
+			}
+			if (input.serverId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
 			}
 			const cert = await createCertificate(
 				input,
