@@ -1,6 +1,10 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isNamedRcloneDestinationProvider,
+	RCLONE_DESTINATION_PROVIDERS,
+	RCLONE_REMOTE_NAME_ERROR,
+	RCLONE_REMOTE_NAME_REGEX,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -39,28 +43,87 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import { DESTINATION_PROVIDERS } from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-	additionalFlags: z
-		.array(
-			z.object({
-				value: z
-					.string()
-					.min(1, "Flag cannot be empty")
-					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
-			}),
-		)
-		.optional(),
-});
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		provider: z.string().min(1, "Provider is required"),
+		accessKeyId: z.string(),
+		secretAccessKey: z.string(),
+		bucket: z.string(),
+		region: z.string(),
+		endpoint: z.string(),
+		serverId: z.string().optional(),
+		additionalFlags: z
+			.array(
+				z.object({
+					value: z
+						.string()
+						.min(1, "Flag cannot be empty")
+						.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+				}),
+			)
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (isNamedRcloneDestinationProvider(data.provider)) {
+			if (!RCLONE_REMOTE_NAME_REGEX.test(data.endpoint.trim())) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["endpoint"],
+					message: RCLONE_REMOTE_NAME_ERROR,
+				});
+			}
+			return;
+		}
+
+		if (
+			data.provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+			data.provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+		) {
+			if (!data.endpoint.trim()) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["endpoint"],
+					message: "Host is required",
+				});
+			}
+			if (!data.accessKeyId.trim()) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["accessKeyId"],
+					message: "Username is required",
+				});
+			}
+			if (data.region.trim()) {
+				const port = Number(data.region);
+				if (!Number.isInteger(port) || port < 1 || port > 65535) {
+					ctx.addIssue({
+						code: "custom",
+						path: ["region"],
+						message: "Port must be an integer between 1 and 65535",
+					});
+				}
+			}
+			return;
+		}
+
+		for (const [field, label] of [
+			["accessKeyId", "Access Key Id"],
+			["secretAccessKey", "Secret Access Key"],
+			["bucket", "Bucket"],
+			["endpoint", "Endpoint"],
+		] as const) {
+			if (!data[field].trim()) {
+				ctx.addIssue({
+					code: "custom",
+					path: [field],
+					message: `${label} is required`,
+				});
+			}
+		}
+	});
 
 type AddDestination = z.infer<typeof addDestination>;
 
@@ -108,6 +171,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		resolver: zodResolver(addDestination),
 	});
 
+	const currentProvider = form.watch("provider");
+	const isNamedRemote = isNamedRcloneDestinationProvider(currentProvider);
+	const isFileTransfer =
+		currentProvider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+		currentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP;
+
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
 		name: "additionalFlags",
@@ -131,17 +200,25 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
 
+	const getPayload = (data: AddDestination) => ({
+		provider: data.provider,
+		accessKey: isNamedRcloneDestinationProvider(data.provider)
+			? ""
+			: data.accessKeyId,
+		bucket: data.bucket,
+		endpoint: data.endpoint.trim(),
+		name: data.name,
+		region: isNamedRcloneDestinationProvider(data.provider) ? "" : data.region,
+		secretAccessKey: isNamedRcloneDestinationProvider(data.provider)
+			? ""
+			: data.secretAccessKey,
+		additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
+	});
+
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
-			provider: data.provider || "",
-			accessKey: data.accessKeyId,
-			bucket: data.bucket,
-			endpoint: data.endpoint,
-			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
+			...getPayload(data),
 			destinationId: destinationId || "",
-			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
@@ -162,14 +239,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	};
 
 	const handleTestConnection = async (serverId?: string) => {
-		const result = await form.trigger([
-			"provider",
-			"accessKeyId",
-			"secretAccessKey",
-			"bucket",
-			"endpoint",
-			"additionalFlags",
-		]);
+		const result = await form.trigger();
 
 		if (!result) {
 			const errors = form.formState.errors;
@@ -184,38 +254,23 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			return;
 		}
 
-		if (isCloud && !serverId) {
+		const selectedServerId = serverId === "none" ? undefined : serverId;
+		if (isCloud && !selectedServerId) {
 			toast.error("Please select a server");
 			return;
 		}
 
-		const provider = form.getValues("provider");
-		const accessKey = form.getValues("accessKeyId");
-		const secretKey = form.getValues("secretAccessKey");
-		const bucket = form.getValues("bucket");
-		const endpoint = form.getValues("endpoint");
-		const region = form.getValues("region");
-
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
-
 		await testConnection({
-			provider,
-			accessKey,
-			bucket,
-			endpoint,
+			...getPayload(form.getValues()),
 			name: "Test",
-			region,
-			secretAccessKey: secretKey,
-			serverId,
-			additionalFlags:
-				form.getValues("additionalFlags")?.map((f) => f.value) ?? [],
+			serverId: selectedServerId,
 		})
 			.then(() => {
 				toast.success("Connection Success");
 			})
 			.catch((e) => {
 				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+					description: e.message,
 				});
 			});
 	};
@@ -244,9 +299,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						{destinationId ? "Update" : "Add"} Destination
 					</DialogTitle>
 					<DialogDescription>
-						In this section, you can configure and add new destinations for your
-						backups. Please ensure that you provide the correct information to
-						guarantee secure and efficient storage.
+						Configure a backup destination. Google Drive, OneDrive, and generic
+						rclone destinations use a named rclone remote configured on the
+						machine that executes the backup.
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
@@ -264,126 +319,170 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						<FormField
 							control={form.control}
 							name="name"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="provider"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Provider</FormLabel>
-										<FormControl>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												value={field.value}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
 							render={({ field }) => (
 								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
+									<FormLabel>Name</FormLabel>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Input placeholder="Backups" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
+						<FormField
+							control={form.control}
+							name="provider"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Provider</FormLabel>
+									<FormControl>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select a destination provider" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												{DESTINATION_PROVIDERS.map((provider) => (
+													<SelectItem key={provider.key} value={provider.key}>
+														{provider.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						{!isNamedRemote && (
+							<FormField
+								control={form.control}
+								name="accessKeyId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											{isFileTransfer ? "Username" : "Access Key Id"}
+										</FormLabel>
+										<FormControl>
+											<Input
+												placeholder={isFileTransfer ? "username" : "Access Key ID"}
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{!isNamedRemote && (
+							<FormField
+								control={form.control}
+								name="secretAccessKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											{isFileTransfer ? "Password (Optional)" : "Secret Access Key"}
+										</FormLabel>
+										<FormControl>
+											<Input
+												type={isFileTransfer ? "password" : "text"}
+												placeholder={isFileTransfer ? "password" : "Secret Access Key"}
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="bucket"
 							render={({ field }) => (
 								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
+									<FormLabel>
+										{isNamedRemote
+											? "Remote Base Path (Optional)"
+											: isFileTransfer
+												? "Base Path / Directory (Optional)"
+												: "Bucket"}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+											placeholder={
+												isNamedRemote || isFileTransfer
+													? "dokploy-backups"
+													: "dokploy-bucket"
+											}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{!isNamedRemote && (
+							<FormField
+								control={form.control}
+								name="region"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>{isFileTransfer ? "Port" : "Region"}</FormLabel>
+										<FormControl>
+											<Input
+												placeholder={
+													isFileTransfer
+														? currentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP
+															? "22"
+															: "21"
+														: "us-east-1"
+												}
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										{isNamedRemote
+											? "Rclone Remote Name"
+											: isFileTransfer
+												? "Host"
+												: "Endpoint"}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+												isNamedRemote
+													? currentProvider === RCLONE_DESTINATION_PROVIDERS.ONEDRIVE
+														? "onedrive"
+														: "gdrive"
+													: isFileTransfer
+														? "storage.example.com"
+														: "https://us.bucket.aws/s3"
+											}
 											{...field}
 										/>
 									</FormControl>
+									{isNamedRemote && (
+										<p className="text-xs text-muted-foreground">
+											Configure this remote with rclone on the machine that runs the
+											backup, then enter only its remote name here (without a colon).
+										</p>
+									)}
 									<FormMessage />
 								</FormItem>
 							)}
@@ -410,10 +509,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<FormItem>
 											<div className="flex items-center gap-2">
 												<FormControl>
-													<Input
-														placeholder="--s3-sign-accept-encoding=false"
-														{...field}
-													/>
+													<Input placeholder="--flag=value" {...field} />
 												</FormControl>
 												<Button
 													type="button"
@@ -441,8 +537,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						{isCloud ? (
 							<div className="flex flex-col gap-4 border p-2 rounded-lg">
 								<span className="text-sm text-muted-foreground">
-									Select a server to test the destination. If you don't have a
-									server choose the default one.
+									Select the server that will execute the backup so the destination
+									can be tested from the same environment.
 								</span>
 								<FormField
 									control={form.control}
@@ -469,19 +565,18 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 																	{server.name}
 																</SelectItem>
 															))}
-															<SelectItem value={"none"}>None</SelectItem>
+															<SelectItem value="none">None</SelectItem>
 														</SelectGroup>
 													</SelectContent>
 												</Select>
 											</FormControl>
-
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
 								<Button
 									type="button"
-									variant={"secondary"}
+									variant="secondary"
 									isLoading={isPendingConnection}
 									onClick={async () => {
 										await handleTestConnection(form.getValues("serverId"));
