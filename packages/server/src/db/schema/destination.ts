@@ -64,6 +64,7 @@ const validateDestination = (
 		accessKey?: string;
 		region?: string;
 		endpoint?: string;
+		additionalFlags?: string[];
 	},
 	ctx: z.RefinementCtx,
 ) => {
@@ -106,6 +107,33 @@ const validateDestination = (
 					message: "Port must be an integer between 1 and 65535",
 				});
 			}
+		}
+	}
+
+	if (data.provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
+		const flags = data.additionalFlags ?? [];
+		const implicitTlsEnabled =
+			(flags.includes("--ftp-tls") || flags.includes("--ftp-tls=true")) &&
+			!flags.includes("--ftp-tls=false");
+		const explicitTlsEnabled =
+			(flags.includes("--ftp-explicit-tls") ||
+				flags.includes("--ftp-explicit-tls=true")) &&
+			!flags.includes("--ftp-explicit-tls=false");
+
+		if (!implicitTlsEnabled && !explicitTlsEnabled) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["additionalFlags"],
+				message:
+					"FTP destinations must use TLS. Add --ftp-explicit-tls for port 21 or --ftp-tls for implicit FTPS (usually port 990).",
+			});
+		}
+		if (implicitTlsEnabled && explicitTlsEnabled) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["additionalFlags"],
+				message: "Choose either implicit FTPS or explicit FTPS, not both.",
+			});
 		}
 	}
 };
