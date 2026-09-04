@@ -29,6 +29,23 @@ jobs:
         run: pnpm server:build
       - name: Install sealed auditor release
         run: python -m pip install plan-auditor==2.0.1
+      - name: Provide sealed-plan Vitest workspace compatibility
+        shell: bash
+        run: |
+          cat > node_modules/.bin/vitest <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          normalized=()
+          for arg in "$@"; do
+            if [[ "$arg" == apps/dokploy/* ]]; then
+              normalized+=("${arg#apps/dokploy/}")
+            else
+              normalized+=("$arg")
+            fi
+          done
+          exec pnpm --dir apps/dokploy exec vitest --config __test__/vitest.config.ts "${normalized[@]}"
+          SH
+          chmod +x node_modules/.bin/vitest
       - name: Restore pre-implementation sealed plan
         shell: bash
         run: |
@@ -156,3 +173,9 @@ jobs:
         run: plan-auditor plan verify .
       - name: Fresh final Plan Auditor audit
         run: plan-auditor audit .
+      - name: Supplemental strict provider-neutral assertions
+        shell: bash
+        run: |
+          test "$(grep -R "getS3Credentials" packages/server/src/utils/backups packages/server/src/utils/volume-backups | wc -l)" -eq 0
+          test "$(grep -R "getS3Credentials" packages/server/src/utils/restore | wc -l)" -eq 0
+          pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts __test__/utils/backups.test.ts __test__/backups/redact-credentials.test.ts --run
