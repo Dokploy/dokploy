@@ -3,8 +3,9 @@ import {
 	createMount,
 	createPostgres,
 	deployPostgres,
-	execAsync,
-	execAsyncRemote,
+	escapePostgresIdentifier,
+	escapeSqlLiteral,
+	execDockerArgv,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findPostgresById,
@@ -445,7 +446,18 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} psql -U ${databaseUser} -d postgres -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"`;
+			const sql = `ALTER USER "${escapePostgresIdentifier(databaseUser)}" WITH PASSWORD '${escapeSqlLiteral(password)}';`;
+			const argv = [
+				"exec",
+				container.Id,
+				"psql",
+				"-U",
+				databaseUser,
+				"-d",
+				"postgres",
+				"-c",
+				sql,
+			];
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -453,11 +465,7 @@ export const postgresRouter = createTRPCRouter({
 					.set({ databasePassword: password })
 					.where(eq(postgresTable.postgresId, postgresId));
 
-				if (serverId) {
-					await execAsyncRemote(serverId, command);
-				} else {
-					await execAsync(command, { shell: "/bin/bash" });
-				}
+				await execDockerArgv(serverId, argv);
 			});
 
 			await audit(ctx, {

@@ -3,8 +3,7 @@ import {
 	createMount,
 	createRedis,
 	deployRedis,
-	execAsync,
-	execAsyncRemote,
+	execDockerArgv,
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
@@ -426,7 +425,17 @@ export const redisRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'`;
+			const argv = [
+				"exec",
+				container.Id,
+				"redis-cli",
+				"-a",
+				databasePassword,
+				"CONFIG",
+				"SET",
+				"requirepass",
+				password,
+			];
 
 			await db.transaction(async (tx) => {
 				await tx
@@ -434,11 +443,7 @@ export const redisRouter = createTRPCRouter({
 					.set({ databasePassword: password })
 					.where(eq(redisTable.redisId, redisId));
 
-				if (serverId) {
-					await execAsyncRemote(serverId, command);
-				} else {
-					await execAsync(command, { shell: "/bin/bash" });
-				}
+				await execDockerArgv(serverId, argv);
 			});
 
 			await audit(ctx, {

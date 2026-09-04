@@ -3,8 +3,8 @@ import {
 	createMount,
 	createMysql,
 	deployMySql,
-	execAsync,
-	execAsyncRemote,
+	escapeSqlLiteral,
+	execDockerArgv,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMySqlById,
@@ -438,7 +438,17 @@ export const mysqlRouter = createTRPCRouter({
 
 			const targetUser = type === "root" ? "root" : databaseUser;
 
-			const command = `docker exec ${container.Id} mysql -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"`;
+			const sql = `ALTER USER '${escapeSqlLiteral(targetUser)}'@'%' IDENTIFIED BY '${escapeSqlLiteral(password)}'; FLUSH PRIVILEGES;`;
+			const argv = [
+				"exec",
+				container.Id,
+				"mysql",
+				"-u",
+				"root",
+				`-p${databaseRootPassword}`,
+				"-e",
+				sql,
+			];
 
 			await db.transaction(async (tx) => {
 				const setData =
@@ -450,11 +460,7 @@ export const mysqlRouter = createTRPCRouter({
 					.set(setData)
 					.where(eq(mysqlTable.mysqlId, mysqlId));
 
-				if (serverId) {
-					await execAsyncRemote(serverId, command);
-				} else {
-					await execAsync(command, { shell: "/bin/bash" });
-				}
+				await execDockerArgv(serverId, argv);
 			});
 
 			await audit(ctx, {

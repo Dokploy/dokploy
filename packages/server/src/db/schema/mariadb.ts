@@ -40,6 +40,8 @@ import {
 	APP_NAME_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
+	DATABASE_USER_MESSAGE,
+	DATABASE_USER_REGEX,
 	encryptedText,
 	generateAppName,
 } from "./utils";
@@ -125,7 +127,9 @@ const createSchema = createInsertSchema(mariadb, {
 		.optional(),
 	createdAt: z.string(),
 	databaseName: z.string().min(1),
-	databaseUser: z.string().min(1),
+	databaseUser: z.string().min(1).regex(DATABASE_USER_REGEX, {
+		message: DATABASE_USER_MESSAGE,
+	}),
 	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
 		message: DATABASE_PASSWORD_MESSAGE,
 	}),

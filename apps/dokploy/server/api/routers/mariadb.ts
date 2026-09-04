@@ -3,8 +3,8 @@ import {
 	createMariadb,
 	createMount,
 	deployMariadb,
-	execAsync,
-	execAsyncRemote,
+	escapeSqlLiteral,
+	execDockerArgv,
 	findBackupsByDbId,
 	findEnvironmentById,
 	findMariadbById,
@@ -420,7 +420,17 @@ export const mariadbRouter = createTRPCRouter({
 
 			const targetUser = type === "root" ? "root" : databaseUser;
 
-			const command = `docker exec ${container.Id} mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"`;
+			const sql = `ALTER USER '${escapeSqlLiteral(targetUser)}'@'%' IDENTIFIED BY '${escapeSqlLiteral(password)}'; FLUSH PRIVILEGES;`;
+			const argv = [
+				"exec",
+				container.Id,
+				"mariadb",
+				"-u",
+				"root",
+				`-p${databaseRootPassword}`,
+				"-e",
+				sql,
+			];
 
 			await db.transaction(async (tx) => {
 				const setData =
@@ -432,11 +442,7 @@ export const mariadbRouter = createTRPCRouter({
 					.set(setData)
 					.where(eq(mariadbTable.mariadbId, mariadbId));
 
-				if (serverId) {
-					await execAsyncRemote(serverId, command);
-				} else {
-					await execAsync(command, { shell: "/bin/bash" });
-				}
+				await execDockerArgv(serverId, argv);
 			});
 
 			await audit(ctx, {

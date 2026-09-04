@@ -1,6 +1,7 @@
 import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
+import { quote } from "shell-quote";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
 
@@ -323,4 +324,49 @@ export const writeFileRemote = async (
 
 export const sleep = (ms: number) => {
 	return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+/**
+ * Escape a string for use as a SQL single-quoted string literal by doubling
+ * single quotes (`'` -> `''`). This is the standard SQL escaping for string
+ * literals wrapped in single quotes.
+ */
+export const escapeSqlLiteral = (str: string): string =>
+	str.replace(/'/g, "''");
+
+/**
+ * Escape a string for use as a PostgreSQL double-quoted identifier by doubling
+ * double quotes (`"` -> `""`).
+ */
+export const escapePostgresIdentifier = (str: string): string =>
+	str.replace(/"/g, '""');
+
+/**
+ * Escape a string for embedding inside a JavaScript single-quoted string
+ * literal (e.g. for `mongosh --eval`). Backslashes are doubled first, then
+ * single quotes are escaped.
+ */
+export const escapeJsLiteral = (str: string): string =>
+	str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+/**
+ * Execute `docker` with the given argv without a shell (local) or with proper
+ * shell quoting (remote SSH). Each argv element is treated as a single
+ * argument — never as shell source code — so attacker-controlled values
+ * cannot inject commands.
+ *
+ * @param serverId - When set, the command is run on the remote server over
+ * SSH (arguments are shell-quoted via `shell-quote`'s `quote()`). When falsy,
+ * it is executed locally via `execFile` (no shell at all).
+ * @param argv - The `docker` arguments (e.g. `["exec", id, "mysql", ...]`).
+ */
+export const execDockerArgv = async (
+	serverId: string | null | undefined,
+	argv: string[],
+): Promise<{ stdout: string; stderr: string }> => {
+	if (serverId) {
+		const command = quote(["docker", ...argv]);
+		return execAsyncRemote(serverId, command);
+	}
+	return execFileAsync("docker", argv);
 };
