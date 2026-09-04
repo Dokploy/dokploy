@@ -145,17 +145,13 @@ describe("getRclonePathAndFlags", () => {
 				"service/backup.tar",
 			);
 
-			expect(result.path).toBe(
-				`:${backend}:backups/service/backup.tar`,
-			);
-			expect(result.flags).toContain(
-				`--${backend}-host=storage.example.com`,
-			);
+			expect(result.path).toBe(`:${backend}:backups/service/backup.tar`);
+			expect(result.flags).toContain(`--${backend}-host=storage.example.com`);
 			expect(result.flags).toContain(`--${backend}-user=backup-user`);
 			expect(result.flags).toContain(`--${backend}-port=${defaultPort}`);
-			expect(result.flags.some((flag) => flag.startsWith(`--${backend}-pass=`))).toBe(
-				false,
-			);
+			expect(
+				result.flags.some((flag) => flag.startsWith(`--${backend}-pass=`)),
+			).toBe(false);
 		},
 	);
 });

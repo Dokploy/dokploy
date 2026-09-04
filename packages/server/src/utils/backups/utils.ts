@@ -8,6 +8,7 @@ import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { quote } from "shell-quote";
+import { execFileAsync } from "../process/execAsync";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
 import { runLibsqlBackup } from "./libsql";
@@ -17,7 +18,6 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
-import { execFileAsync } from "../process/execAsync";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
