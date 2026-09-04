@@ -1,10 +1,15 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	FTP_TLS_CONFLICT_ERROR,
+	FTP_TLS_REQUIRED_ERROR,
+	getFtpTlsState,
+	hasSftpHostKeyVerification,
 	isNamedRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
 	RCLONE_REMOTE_NAME_ERROR,
 	RCLONE_REMOTE_NAME_REGEX,
+	SFTP_HOST_KEY_REQUIRED_ERROR,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -106,6 +111,31 @@ const addDestination = z
 					});
 				}
 			}
+
+			const flags = data.additionalFlags?.map((flag) => flag.value) ?? [];
+			if (data.provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
+				const { implicitTlsEnabled, explicitTlsEnabled } = getFtpTlsState(flags);
+				if (!implicitTlsEnabled && !explicitTlsEnabled) {
+					ctx.addIssue({
+						code: "custom",
+						path: ["additionalFlags"],
+						message: FTP_TLS_REQUIRED_ERROR,
+					});
+				}
+				if (implicitTlsEnabled && explicitTlsEnabled) {
+					ctx.addIssue({
+						code: "custom",
+						path: ["additionalFlags"],
+						message: FTP_TLS_CONFLICT_ERROR,
+					});
+				}
+			} else if (!hasSftpHostKeyVerification(flags)) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["additionalFlags"],
+					message: SFTP_HOST_KEY_REQUIRED_ERROR,
+				});
+			}
 			return;
 		}
 
@@ -172,6 +202,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	});
 
 	const currentProvider = form.watch("provider");
+	const currentAdditionalFlags =
+		form.watch("additionalFlags")?.map((flag) => flag.value) ?? [];
+	const { implicitTlsEnabled: implicitFtpTlsEnabled } =
+		getFtpTlsState(currentAdditionalFlags);
 	const isNamedRemote = isNamedRcloneDestinationProvider(currentProvider);
 	const isFileTransfer =
 		currentProvider === RCLONE_DESTINATION_PROVIDERS.FTP ||
@@ -447,7 +481,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 														? currentProvider ===
 															RCLONE_DESTINATION_PROVIDERS.SFTP
 															? "22"
-															: "21"
+															: implicitFtpTlsEnabled
+																? "990"
+																: "21"
 														: "us-east-1"
 												}
 												{...field}
@@ -498,7 +534,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						/>
 						<div className="flex flex-col gap-2">
 							<div className="flex items-center justify-between">
-								<FormLabel>Additional Flags (Optional)</FormLabel>
+								<FormLabel>
+									{isFileTransfer
+										? "Security / Additional Flags"
+										: "Additional Flags (Optional)"}
+								</FormLabel>
 								<Button
 									type="button"
 									variant="ghost"
@@ -509,6 +549,18 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									Add Flag
 								</Button>
 							</div>
+							{currentProvider === RCLONE_DESTINATION_PROVIDERS.FTP && (
+								<p className="text-xs text-muted-foreground">
+									Required: --ftp-explicit-tls for explicit FTPS (port 21) or
+									--ftp-tls for implicit FTPS (port 990).
+								</p>
+							)}
+							{currentProvider === RCLONE_DESTINATION_PROVIDERS.SFTP && (
+								<p className="text-xs text-muted-foreground">
+									Required: --sftp-known-hosts-file=/path/to/known_hosts to
+									verify the server host key.
+								</p>
+							)}
 							{fields.map((field, index) => (
 								<FormField
 									key={field.id}
