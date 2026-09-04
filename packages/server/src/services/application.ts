@@ -314,7 +314,9 @@ export const rebuildApplication = async ({
 
 	try {
 		let command = "set -e;";
-		// Check case for docker only
+		if (application.sourceType === "docker") {
+			command += await buildRemoteDocker(application);
+		}
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
