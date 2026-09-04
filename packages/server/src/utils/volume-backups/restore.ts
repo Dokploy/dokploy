@@ -8,15 +8,22 @@ import {
 	paths,
 } from "../..";
 
+const UNSAFE_BACKUP_PATH_CHARS = /[\0\r\n;&|`$<>]/;
+
 export const normalizeVolumeBackupFilePath = (value: string) => {
 	const normalized = value.trim().replace(/\\/g, "/");
-	if (!normalized || normalized.startsWith("/") || normalized.endsWith("/")) {
+	if (
+		!normalized ||
+		normalized.startsWith("/") ||
+		normalized.endsWith("/") ||
+		UNSAFE_BACKUP_PATH_CHARS.test(normalized)
+	) {
 		throw new Error("Invalid volume backup file path");
 	}
 	const segments = normalized.split("/");
 	if (
 		segments.some(
-			(segment) => !segment || segment === "." || segment === ".." || segment.includes("\0"),
+			(segment) => !segment || segment === "." || segment === "..",
 		)
 	) {
 		throw new Error("Invalid volume backup file path");
