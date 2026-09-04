@@ -1,0 +1,51 @@
+name: Issue 416 Format Fix
+
+on:
+  push:
+    branches: ["feat/issue-416-backup-destinations"]
+    paths:
+      - ".github/workflows/issue-416-format-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.4.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format files reported by validation
+        run: |
+          pnpm exec biome format --write \
+            apps/dokploy/__test__/utils/backups.test.ts \
+            apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx \
+            packages/server/src/utils/backups/index.ts \
+            packages/server/src/utils/volume-backups/restore.ts
+          pnpm exec biome check --write packages/server/src/utils/backups/utils.ts
+      - name: Verify diff whitespace
+        run: git diff --check
+      - name: Commit formatter output
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/dokploy/__test__/utils/backups.test.ts \
+            apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx \
+            packages/server/src/utils/backups/index.ts \
+            packages/server/src/utils/backups/utils.ts \
+            packages/server/src/utils/volume-backups/restore.ts
+          git commit -m "style: apply Biome fixes for issue 416"
+          git push
