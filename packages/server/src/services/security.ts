@@ -3,6 +3,7 @@ import { type apiCreateSecurity, security } from "@dokploy/server/db/schema";
 import {
 	createSecurityMiddleware,
 	removeSecurityMiddleware,
+	replaceSecurityMiddlewareUser,
 } from "@dokploy/server/utils/traefik/security";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -91,41 +92,38 @@ export const updateSecurityById = async (
 	data: Partial<Security>,
 ) => {
 	try {
-		await db.transaction(async (tx) => {
-			const securityResponse = await findSecurityById(securityId);
+		const { oldSecurity, newSecurity, application } = await db.transaction(
+			async (tx) => {
+				const oldSecurity = await findSecurityById(securityId);
 
-			const application = await findApplicationById(
-				securityResponse.applicationId,
-			);
+				const application = await findApplicationById(
+					oldSecurity.applicationId,
+				);
 
-			await removeSecurityMiddleware(application, securityResponse);
+				const response = await tx
+					.update(security)
+					.set({
+						...data,
+					})
+					.where(eq(security.securityId, securityId))
+					.returning()
+					.then((res) => res[0]);
 
-			const response = await tx
-				.update(security)
-				.set({
-					...data,
-				})
-				.where(eq(security.securityId, securityId))
-				.returning()
-				.then((res) => res[0]);
+				if (!response) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Security not found",
+					});
+				}
 
-			if (!response) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Security not found",
-				});
-			}
+				return { oldSecurity, newSecurity: response, application };
+			},
+		);
 
-			await createSecurityMiddleware(application, response);
-
-			return response;
-		});
+		await replaceSecurityMiddlewareUser(application, oldSecurity, newSecurity);
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Error updating this security";
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message,
-		});
+		throw new TRPCError({ code: "BAD_REQUEST", message });
 	}
 };
