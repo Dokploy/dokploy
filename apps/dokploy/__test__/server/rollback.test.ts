@@ -180,23 +180,18 @@ describe("rollbackApplication mounts", () => {
 		});
 	});
 
-	it("resolves file mount source against the application serverId", async () => {
+	it("resolves file mount source against the local applications path", async () => {
 		const context = createContext({
 			mounts: buildMounts(),
-			serverId: "remote-server",
+			serverId: null,
 		});
 
-		await rollbackApplication(
-			APP_NAME,
-			"test-app:v1",
-			"remote-server",
-			context,
-		);
+		await rollbackApplication(APP_NAME, "test-app:v1", null, context);
 
 		const mounts = getMounts(createServiceMock.mock.calls[0]);
 		expect(mounts).toContainEqual({
 			Type: "bind",
-			Source: expectedFileSource("config.yaml", "remote-server"),
+			Source: expectedFileSource("config.yaml", null),
 			Target: "/app/config.yaml",
 		});
 	});
