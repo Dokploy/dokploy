@@ -111,7 +111,7 @@ describe("FTP destination validation", () => {
 		accessKey: "backup-user",
 		secretAccessKey: "secret",
 		bucket: "backups",
-		region: "21",
+		region: "",
 		endpoint: "storage.example.com",
 	};
 
@@ -142,6 +142,44 @@ describe("FTP destination validation", () => {
 				additionalFlags: ["--ftp-explicit-tls", "--ftp-tls"],
 			}).success,
 		).toBe(false);
+	});
+});
+
+describe("SFTP destination validation", () => {
+	const input = {
+		name: "SFTP backups",
+		provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+		accessKey: "backup-user",
+		secretAccessKey: "",
+		bucket: "backups",
+		region: "",
+		endpoint: "storage.example.com",
+	};
+
+	test("rejects SFTP without host-key verification", () => {
+		expect(
+			apiCreateDestination.safeParse({ ...input, additionalFlags: [] }).success,
+		).toBe(false);
+	});
+
+	test("rejects explicitly disabled SFTP host-key verification", () => {
+		expect(
+			apiCreateDestination.safeParse({
+				...input,
+				additionalFlags: ["--sftp-known-hosts-file=none"],
+			}).success,
+		).toBe(false);
+	});
+
+	test("accepts SFTP with a known-hosts file", () => {
+		const result = apiCreateDestination.safeParse({
+			...input,
+			additionalFlags: ["--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts"],
+		});
+		expect(
+			result.success,
+			result.success ? undefined : JSON.stringify(result.error.issues),
+		).toBe(true);
 	});
 });
 
@@ -192,31 +230,95 @@ describe("getRclonePathAndFlags", () => {
 		).rejects.toThrow("Invalid rclone remote name");
 	});
 
+	test("rejects unsafe stored additional flags at runtime", async () => {
+		await expect(
+			getRclonePathAndFlags(
+				destination({ additionalFlags: ["--transfers=2;touch /tmp/pwned"] }),
+			),
+		).rejects.toThrow("Invalid flag format");
+	});
+
 	test.each([
-		[RCLONE_DESTINATION_PROVIDERS.FTP, "ftp", "21"],
-		[RCLONE_DESTINATION_PROVIDERS.SFTP, "sftp", "22"],
+		["--ftp-explicit-tls", "21"],
+		["--ftp-tls", "990"],
 	] as const)(
-		"builds stateless %s flags and destination without invoking password obscuring when password is empty",
-		async (provider, backend, defaultPort) => {
+		"uses secure FTP mode %s with default port %s",
+		async (tlsFlag, defaultPort) => {
 			const result = await getRclonePathAndFlags(
 				destination({
-					provider,
+					provider: RCLONE_DESTINATION_PROVIDERS.FTP,
 					endpoint: "storage.example.com",
 					accessKey: "backup-user",
 					secretAccessKey: "",
 					region: "",
 					bucket: "/backups/",
+					additionalFlags: [tlsFlag],
 				}),
 				"service/backup.tar",
 			);
 
-			expect(result.path).toBe(`:${backend}:backups/service/backup.tar`);
-			expect(result.flags).toContain(`--${backend}-host=storage.example.com`);
-			expect(result.flags).toContain(`--${backend}-user=backup-user`);
-			expect(result.flags).toContain(`--${backend}-port=${defaultPort}`);
-			expect(
-				result.flags.some((flag) => flag.startsWith(`--${backend}-pass=`)),
-			).toBe(false);
+			expect(result.path).toBe(":ftp:backups/service/backup.tar");
+			expect(result.flags).toContain("--ftp-host=storage.example.com");
+			expect(result.flags).toContain("--ftp-user=backup-user");
+			expect(result.flags).toContain(`--ftp-port=${defaultPort}`);
+			expect(result.flags).toContain(tlsFlag);
 		},
 	);
+
+	test("rejects plaintext FTP at runtime", async () => {
+		await expect(
+			getRclonePathAndFlags(
+				destination({
+					provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+					endpoint: "storage.example.com",
+					accessKey: "backup-user",
+					secretAccessKey: "",
+					region: "",
+					bucket: "/backups/",
+					additionalFlags: [],
+				}),
+			),
+		).rejects.toThrow("FTP destinations must use TLS");
+	});
+
+	test("builds SFTP flags with host-key verification and port 22", async () => {
+		const result = await getRclonePathAndFlags(
+			destination({
+				provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+				endpoint: "storage.example.com",
+				accessKey: "backup-user",
+				secretAccessKey: "",
+				region: "",
+				bucket: "/backups/",
+				additionalFlags: [
+					"--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts",
+				],
+			}),
+			"service/backup.tar",
+		);
+
+		expect(result.path).toBe(":sftp:backups/service/backup.tar");
+		expect(result.flags).toContain("--sftp-host=storage.example.com");
+		expect(result.flags).toContain("--sftp-user=backup-user");
+		expect(result.flags).toContain("--sftp-port=22");
+		expect(result.flags).toContain(
+			"--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts",
+		);
+	});
+
+	test("rejects SFTP without host-key verification at runtime", async () => {
+		await expect(
+			getRclonePathAndFlags(
+				destination({
+					provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+					endpoint: "storage.example.com",
+					accessKey: "backup-user",
+					secretAccessKey: "",
+					region: "",
+					bucket: "/backups/",
+					additionalFlags: [],
+				}),
+			),
+		).rejects.toThrow("SFTP destinations must verify the server host key");
+	});
 });
