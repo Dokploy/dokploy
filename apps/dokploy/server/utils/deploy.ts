@@ -17,6 +17,11 @@ export const deploy = async (jobData: DeploymentJob) => {
 			body: JSON.stringify(jobData),
 		});
 
+		if (!result.ok) {
+			const errorData = await result.json().catch(() => ({}));
+			throw new Error(errorData.message || "Failed to queue deployment");
+		}
+
 		const data = await result.json();
 		return data;
 	} catch (error) {
