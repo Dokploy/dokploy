@@ -59,7 +59,9 @@ export const hasSftpHostKeyVerification = (
 	flags: readonly string[] | null | undefined,
 ): boolean => {
 	const prefix = "--sftp-known-hosts-file=";
-	const knownHostsFlags = (flags ?? []).filter((flag) => flag.startsWith(prefix));
+	const knownHostsFlags = (flags ?? []).filter((flag) =>
+		flag.startsWith(prefix),
+	);
 	if (knownHostsFlags.length !== 1) return false;
 
 	const value = knownHostsFlags[0]?.slice(prefix.length).trim() ?? "";
