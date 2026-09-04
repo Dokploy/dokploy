@@ -49,6 +49,9 @@ export const getGroup = (data: DeploymentJob): string => {
 	if (data.applicationType === "compose") {
 		return `compose:${data.composeId}`;
 	}
+	if (data.applicationType === "application-preview") {
+		return `preview:${data.previewDeploymentId}`;
+	}
 	return `application:${data.applicationId}`;
 };
 
@@ -190,6 +193,20 @@ export class InMemoryQueue {
 			});
 		}
 		return removed;
+	}
+
+	/** Remove a single waiting job by its deploymentId. Returns true if found and removed. */
+	removeWaitingByDeploymentId(deploymentId: string): boolean {
+		for (const partition of this.partitions.values()) {
+			const index = partition.waiting.findIndex(
+				(job) => job.data.deploymentId === deploymentId,
+			);
+			if (index !== -1) {
+				partition.waiting.splice(index, 1);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Drop every waiting job across all partitions. */

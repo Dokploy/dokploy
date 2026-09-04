@@ -1,6 +1,8 @@
 import {
+	cancelAllQueuedDeploymentsByApplicationId,
 	clearOldDeployments,
 	createApplication,
+	createDeployment,
 	createDomain,
 	deleteAllMiddlewares,
 	findApplicationById,
@@ -41,6 +43,7 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { killProcessWithFallback } from "@dokploy/server/utils/process/kill-process";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -69,15 +72,12 @@ import {
 	apiSaveGitProvider,
 	apiUpdateApplication,
 	applications,
+	deployments,
 	environments,
 	projects,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import {
-	cleanQueuesByApplication,
-	killDockerBuild,
-	myQueue,
-} from "@/server/queues/queueSetup";
+import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 
 export const applicationRouter = createTRPCRouter({
@@ -472,6 +472,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateApplicationStatus(input.applicationId, "queued");
+			const deployment = await createDeployment({
+				applicationId: input.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -839,6 +848,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateApplicationStatus(input.applicationId, "queued");
+			const deployment = await createDeployment({
+				applicationId: input.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -861,7 +879,20 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["cancel"],
 			});
+			// 1. Remove waiting jobs from the in-memory queue
 			await cleanQueuesByApplication(input.applicationId);
+			// 2. Mark all queued deployment DB rows as cancelled
+			await cancelAllQueuedDeploymentsByApplicationId(input.applicationId);
+			// 3. Reset service status to idle
+			const hasRunning = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.applicationId, input.applicationId),
+					eq(deployments.status, "running"),
+				),
+			});
+			if (!hasRunning) {
+				await updateApplicationStatus(input.applicationId, "idle");
+			}
 		}),
 	clearDeployments: protectedProcedure
 		.input(apiFindOneApplication)
@@ -886,7 +917,16 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const application = await findApplicationById(input.applicationId);
-			await killDockerBuild("application", application.serverId);
+			const runningDeployment = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.applicationId, application.applicationId),
+					eq(deployments.status, "running"),
+				),
+			});
+			await killProcessWithFallback(
+				runningDeployment?.pid,
+				application.serverId,
+			);
 			await audit(ctx, {
 				action: "stop",
 				resourceType: "application",
@@ -952,6 +992,15 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
+
+			await updateApplicationStatus(app.applicationId, "queued");
+			const deployment = await createDeployment({
+				applicationId: app.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
 
 			await myQueue.add(
 				"deployments",

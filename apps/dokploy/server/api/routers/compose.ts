@@ -1,11 +1,13 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
+	cancelAllQueuedDeploymentsByComposeId,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
+	createDeploymentCompose,
 	createDomain,
 	createMount,
 	deleteMount,
@@ -49,6 +51,7 @@ import {
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
+import { killProcessWithFallback } from "@dokploy/server/utils/process/kill-process";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
@@ -68,16 +71,14 @@ import {
 	apiSaveEnvironmentVariablesCompose,
 	apiUpdateCompose,
 	compose as composeTable,
+	deployments,
 	environments,
 	projects,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import {
-	cleanQueuesByCompose,
-	killDockerBuild,
-	myQueue,
-} from "@/server/queues/queueSetup";
+import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -283,7 +284,20 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			// 1. Remove waiting jobs from the in-memory queue
 			await cleanQueuesByCompose(input.composeId);
+			// 2. Mark all queued deployment DB rows as cancelled
+			await cancelAllQueuedDeploymentsByComposeId(input.composeId);
+			// 3. Reset service status to idle
+			const hasRunning = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.composeId, input.composeId),
+					eq(deployments.status, "running"),
+				),
+			});
+			if (!hasRunning) {
+				await updateCompose(input.composeId, { composeStatus: "idle" });
+			}
 			return { success: true, message: "Queues cleaned successfully" };
 		}),
 	clearDeployments: protectedProcedure
@@ -309,7 +323,13 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const compose = await findComposeById(input.composeId);
-			await killDockerBuild("compose", compose.serverId);
+			const runningDeployment = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.composeId, compose.composeId),
+					eq(deployments.status, "running"),
+				),
+			});
+			await killProcessWithFallback(runningDeployment?.pid, compose.serverId);
 		}),
 
 	loadServices: protectedProcedure
@@ -443,6 +463,15 @@ export const composeRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateCompose(compose.composeId, { composeStatus: "queued" });
+			const deployment = await createDeploymentCompose({
+				composeId: input.composeId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },
@@ -492,6 +521,15 @@ export const composeRouter = createTRPCRouter({
 				});
 				return true;
 			}
+			await updateCompose(compose.composeId, { composeStatus: "queued" });
+			const deployment = await createDeploymentCompose({
+				composeId: input.composeId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			});
+			jobData.deploymentId = deployment.deploymentId;
+
 			await myQueue.add(
 				"deployments",
 				{ ...jobData },

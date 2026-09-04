@@ -66,6 +66,12 @@ export const ShowDeployments = ({
 	const [removingDeploymentIds, setRemovingDeploymentIds] = useState<
 		Set<string>
 	>(new Set());
+	const [killingDeploymentIds, setKillingDeploymentIds] = useState<Set<string>>(
+		new Set(),
+	);
+	const [rollingBackDeploymentIds, setRollingBackDeploymentIds] = useState<
+		Set<string>
+	>(new Set());
 	const { data: deployments, isPending: isLoadingDeployments } =
 		api.deployment.allByType.useQuery(
 			{
@@ -80,10 +86,8 @@ export const ShowDeployments = ({
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { mutateAsync: rollback, isPending: isRollingBack } =
-		api.rollback.rollback.useMutation();
-	const { mutateAsync: killProcess, isPending: isKillingProcess } =
-		api.deployment.killProcess.useMutation();
+	const { mutateAsync: rollback } = api.rollback.rollback.useMutation();
+	const { mutateAsync: killProcess } = api.deployment.killProcess.useMutation();
 	const { mutateAsync: removeDeployment } =
 		api.deployment.removeDeployment.useMutation();
 
@@ -133,8 +137,7 @@ export const ShowDeployments = ({
 		const mostRecentDeployment = deployments[0];
 
 		if (
-			!mostRecentDeployment ||
-			mostRecentDeployment.status !== "running" ||
+			mostRecentDeployment?.status !== "running" ||
 			!mostRecentDeployment.startedAt
 		) {
 			return null;
@@ -369,30 +372,53 @@ export const ShowDeployments = ({
 										</div>
 
 										<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-											{deployment.pid && deployment.status === "running" && (
+											{((deployment.pid && deployment.status === "running") ||
+												deployment.status === "queued") && (
 												<DialogAction
-													title="Kill Process"
-													description="Are you sure you want to kill the process?"
+													title={
+														deployment.status === "queued"
+															? "Cancel Deployment"
+															: "Kill Process"
+													}
+													description={`Are you sure you want to ${deployment.status === "queued" ? "cancel the deployment" : "kill the process"}?`}
 													type="default"
 													onClick={async () => {
+														setKillingDeploymentIds((prev) => {
+															const next = new Set(prev);
+															next.add(deployment.deploymentId);
+															return next;
+														});
 														await killProcess({
 															deploymentId: deployment.deploymentId,
 														})
 															.then(() => {
-																toast.success("Process killed successfully");
+																toast.success(
+																	`Deployment ${deployment.status === "queued" ? "cancelled" : "killed"} successfully`,
+																);
 															})
 															.catch(() => {
-																toast.error("Error killing process");
+																toast.error(
+																	`Error ${deployment.status === "queued" ? "canceling deployment" : "killing process"}`,
+																);
+															})
+															.finally(() => {
+																setKillingDeploymentIds((prev) => {
+																	const next = new Set(prev);
+																	next.delete(deployment.deploymentId);
+																	return next;
+																});
 															});
 													}}
 												>
 													<Button
 														variant="destructive"
 														size="sm"
-														isLoading={isKillingProcess}
+														isLoading={killingDeploymentIds.has(
+															deployment.deploymentId,
+														)}
 														className="w-full sm:w-auto"
 													>
-														Kill Process
+														{deployment.status === "queued" ? "Cancel" : "Kill"}
 													</Button>
 												</DialogAction>
 											)}
@@ -469,6 +495,11 @@ export const ShowDeployments = ({
 														}
 														type="default"
 														onClick={async () => {
+															setRollingBackDeploymentIds((prev) => {
+																const next = new Set(prev);
+																next.add(deployment.deploymentId);
+																return next;
+															});
 															await rollback({
 																rollbackId: deployment.rollback.rollbackId,
 															})
@@ -479,13 +510,22 @@ export const ShowDeployments = ({
 																})
 																.catch(() => {
 																	toast.error("Error initiating rollback");
+																})
+																.finally(() => {
+																	setRollingBackDeploymentIds((prev) => {
+																		const next = new Set(prev);
+																		next.delete(deployment.deploymentId);
+																		return next;
+																	});
 																});
 														}}
 													>
 														<Button
 															variant="secondary"
 															size="sm"
-															isLoading={isRollingBack}
+															isLoading={rollingBackDeploymentIds.has(
+																deployment.deploymentId,
+															)}
 															className="w-full sm:w-auto"
 														>
 															<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />

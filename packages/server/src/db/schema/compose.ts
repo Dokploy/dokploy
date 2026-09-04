@@ -192,7 +192,9 @@ const createSchema = createInsertSchema(compose, {
 		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
-	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
+	composeStatus: z
+		.enum(["idle", "queued", "running", "done", "error"])
+		.optional(),
 	icon: z
 		.string()
 		.max(2 * 1024 * 1024, "Icon must be less than 2MB")

@@ -74,6 +74,15 @@ vi.mock("@dokploy/server", () => ({
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	getBitbucketHeaders: vi.fn(() => ({})),
 	removePreviewDeployment: vi.fn(),
+	createDeployment: vi
+		.fn()
+		.mockResolvedValue({ deploymentId: "mock-deployment-id" }),
+	createDeploymentCompose: vi
+		.fn()
+		.mockResolvedValue({ composeDeploymentId: "mock-compose-deployment-id" }),
+	createDeploymentPreview: vi
+		.fn()
+		.mockResolvedValue({ deploymentId: "mock-preview-deployment-id" }),
 }));
 
 vi.mock("@octokit/webhooks", () => ({

@@ -1,5 +1,8 @@
 import {
 	checkUserRepositoryPermissions,
+	createDeployment,
+	createDeploymentCompose,
+	createDeploymentPreview,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
 	findGithubById,
@@ -145,6 +148,13 @@ export default async function handler(
 					});
 					continue;
 				}
+				const deployment = await createDeployment({
+					applicationId: app.applicationId as string,
+					title: deploymentTitle,
+					description: `Hash: ${deploymentHash}`,
+					status: "queued",
+				});
+				jobData.deploymentId = deployment.deploymentId;
 				await myQueue.add(
 					"deployments",
 					{ ...jobData },
@@ -184,7 +194,13 @@ export default async function handler(
 					});
 					continue;
 				}
-
+				const deployment = await createDeploymentCompose({
+					composeId: composeApp.composeId as string,
+					title: deploymentTitle,
+					description: `Hash: ${deploymentHash}`,
+					status: "queued",
+				});
+				jobData.deploymentId = deployment.deploymentId;
 				await myQueue.add(
 					"deployments",
 					{ ...jobData },
@@ -267,6 +283,13 @@ export default async function handler(
 					});
 					continue;
 				}
+				const deployment = await createDeployment({
+					applicationId: app.applicationId as string,
+					title: "Deploy from Autodeploy Webhook",
+					description: "Triggered by Github",
+					status: "queued",
+				});
+				jobData.deploymentId = deployment.deploymentId;
 				await myQueue.add(
 					"deployments",
 					{ ...jobData },
@@ -314,7 +337,13 @@ export default async function handler(
 					});
 					continue;
 				}
-
+				const deployment = await createDeploymentCompose({
+					composeId: composeApp.composeId as string,
+					title: "Deploy from Autodeploy Webhook",
+					description: "Triggered by Github",
+					status: "queued",
+				});
+				jobData.deploymentId = deployment.deploymentId;
 				await myQueue.add(
 					"deployments",
 					{ ...jobData },
@@ -463,7 +492,7 @@ export default async function handler(
 				await createSecurityBlockedComment({
 					owner,
 					repository,
-					prNumber: Number.parseInt(prNumber),
+					prNumber: Number.parseInt(prNumber, 10),
 					prAuthor,
 					permission: userPermission,
 					githubId: githubResult.githubId,
@@ -529,6 +558,13 @@ export default async function handler(
 						});
 						continue;
 					}
+					const deployment = await createDeploymentPreview({
+						previewDeploymentId: previewDeploymentId as string,
+						title: "Deploy from Webhook",
+						description: `Hash: ${deploymentHash}`,
+						status: "queued",
+					});
+					jobData.deploymentId = deployment.deploymentId;
 					await myQueue.add(
 						"deployments",
 						{ ...jobData },

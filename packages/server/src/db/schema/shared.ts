@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const applicationStatus = pgEnum("applicationStatus", [
 	"idle",
+	"queued",
 	"running",
 	"done",
 	"error",
