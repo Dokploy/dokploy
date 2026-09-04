@@ -3,6 +3,7 @@ import {
 	createLibsql,
 	createMount,
 	deployLibsql,
+	findBackupsByDbId,
 	findEnvironmentById,
 	findLibsqlById,
 	findProjectById,
@@ -42,6 +43,7 @@ import {
 	apiUpdateLibsql,
 	libsql as libsqlTable,
 } from "@/server/db/schema";
+import { cancelJobs } from "@/server/utils/backup";
 export const libsqlRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateLibsql)
@@ -326,8 +328,11 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
+			const backups = await findBackupsByDbId(input.libsqlId, "libsql");
+
 			const cleanupOperations = [
 				async () => await removeService(libsql?.appName, libsql.serverId),
+				async () => await cancelJobs(backups),
 				async () => await removeLibsqlById(input.libsqlId),
 			];
 
