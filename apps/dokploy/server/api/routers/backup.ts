@@ -31,6 +31,7 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
+import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
 	getRclonePathAndFlags,
 	normalizeS3Path,
@@ -79,6 +80,20 @@ interface RcloneFile {
 	};
 }
 
+const assertDestinationAccess = async (
+	destinationId: string,
+	organizationId: string,
+) => {
+	const destination = await findDestinationById(destinationId);
+	if (destination.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this destination.",
+		});
+	}
+	return destination;
+};
+
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
@@ -96,6 +111,10 @@ export const backupRouter = createTRPCRouter({
 						backup: ["create"],
 					});
 				}
+				await assertDestinationAccess(
+					input.destinationId,
+					ctx.session.activeOrganizationId,
+				);
 
 				if (IS_CLOUD) {
 					const dbType = (
@@ -161,7 +180,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				console.error(error);
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: error instanceof TRPCError ? error.code : "BAD_REQUEST",
 					message:
 						error instanceof Error
 							? error.message
@@ -207,6 +226,10 @@ export const backupRouter = createTRPCRouter({
 						backup: ["update"],
 					});
 				}
+				await assertDestinationAccess(
+					input.destinationId,
+					ctx.session.activeOrganizationId,
+				);
 
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
@@ -242,7 +265,7 @@ export const backupRouter = createTRPCRouter({
 				const message =
 					error instanceof Error ? error.message : "Error updating this Backup";
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: error instanceof TRPCError ? error.code : "BAD_REQUEST",
 					message,
 				});
 			}
@@ -312,7 +335,7 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				const message =
 					error instanceof Error
-						? error.message
+						? redactRcloneCredentials(error.message)
 						: "Error running manual Postgres backup ";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -479,13 +502,10 @@ export const backupRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			try {
-				const destination = await findDestinationById(input.destinationId);
-				if (destination.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this destination.",
-					});
-				}
+				const destination = await assertDestinationAccess(
+					input.destinationId,
+					ctx.session.activeOrganizationId,
+				);
 				if (input.serverId) {
 					const targetServer = await findServerById(input.serverId);
 					if (
@@ -530,8 +550,6 @@ export const backupRouter = createTRPCRouter({
 					throw new Error("Failed to parse backup files list");
 				}
 
-				// Limit to first 100 files
-
 				const results = baseDir
 					? files.map((file) => ({
 							...file,
@@ -549,14 +567,15 @@ export const backupRouter = createTRPCRouter({
 
 				return results.slice(0, 100);
 			} catch (error) {
-				console.error("Error in listBackupFiles:", error);
+				const safeMessage =
+					error instanceof Error
+						? redactRcloneCredentials(error.message)
+						: "Error listing backup files";
+				console.error("Error in listBackupFiles:", safeMessage);
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error.message
-							: "Error listing backup files",
-					cause: error,
+					code: error instanceof TRPCError ? error.code : "BAD_REQUEST",
+					message: safeMessage,
+					cause: new Error(safeMessage),
 				});
 			}
 		}),
@@ -577,10 +596,14 @@ export const backupRouter = createTRPCRouter({
 					backup: ["restore"],
 				});
 			}
-			const destination = await findDestinationById(input.destinationId);
+			const destination = await assertDestinationAccess(
+				input.destinationId,
+				ctx.session.activeOrganizationId,
+			);
 			const queue: string[] = [];
 			let done = false;
-			const onLog = (log: string) => queue.push(log);
+			const onLog = (log: string) =>
+				queue.push(redactRcloneCredentials(log));
 			const runRestore = async () => {
 				if (input.backupType === "database") {
 					if (input.databaseType === "postgres") {
