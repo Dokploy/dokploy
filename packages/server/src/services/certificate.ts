@@ -53,7 +53,19 @@ export const createCertificate = async (
 
 	const cer = certificate[0];
 
-	createCertificateFiles(cer);
+	try {
+		await createCertificateFiles(cer);
+	} catch {
+		try {
+			await removeCertificateById(cer.certificateId);
+		} catch {
+			// Best-effort rollback; the original failure still surfaces below.
+		}
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Failed to write certificate files",
+		});
+	}
 
 	return cer;
 };
