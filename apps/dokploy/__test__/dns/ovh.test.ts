@@ -440,6 +440,33 @@ describe("ovhClient.updateRecord", () => {
 			/Recreate it manually: A app\.example\.com -> 1\.1\.1\.1/,
 		);
 	});
+
+	it("says the change was applied when only the zone refresh fails", async () => {
+		const cfg = freshConfig();
+		mockApi(
+			ovhSuccess({
+				id: 4,
+				zone: "example.com",
+				fieldType: "A",
+				subDomain: "app",
+				target: "1.1.1.1",
+				ttl: 60,
+			}),
+			ovhSuccess(null),
+			ovhSuccess({ id: 11 }),
+			ovhError("Service unavailable", 503),
+		);
+
+		// The replacement succeeded, so the record exists at the provider — only
+		// publishing failed. Rolling back would destroy correct state.
+		await expect(
+			ovhClient.updateRecord(cfg, "example.com", "4", {
+				type: "CNAME",
+				name: "app.example.com",
+				content: "example.com",
+			}),
+		).rejects.toThrow(/was applied, but refreshing zone "example\.com" failed/);
+	});
 });
 
 describe("ovhClient.deleteRecord", () => {

@@ -164,11 +164,23 @@ const mapWithConcurrency = async <T, R>(
 	return results;
 };
 
-// OVH only applies zone changes once the zone is explicitly refreshed.
+// OVH only applies zone changes once the zone is explicitly refreshed. This runs
+// after the record write has already succeeded, so a failure here means the
+// change exists at the provider but is not being served yet. Rolling the write
+// back would destroy correct state over a publish failure, so say what actually
+// happened instead of letting the caller read it as "nothing was applied".
 const refreshZone = async (config: OvhConfig, zone: string) => {
-	await ovhFetch(config, `/domain/zone/${encodeURIComponent(zone)}/refresh`, {
-		method: "POST",
-	});
+	try {
+		await ovhFetch(config, `/domain/zone/${encodeURIComponent(zone)}/refresh`, {
+			method: "POST",
+		});
+	} catch (error) {
+		throw new Error(
+			`OVH: the record change was applied, but refreshing zone "${zone}" failed, so it is not served yet. The next successful change to this zone will publish it, or you can refresh the zone from the OVH manager. Cause: ${
+				error instanceof Error ? error.message : String(error)
+			}`,
+		);
+	}
 };
 
 // Used to undo the delete half of a type change when the replacement fails.
