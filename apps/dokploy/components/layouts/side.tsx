@@ -43,6 +43,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { TruncateTooltip } from "@/components/shared/truncate-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
@@ -656,9 +657,12 @@ function SidebarLogo() {
 											)}
 										>
 											<div className="flex items-center gap-1.5 min-w-0 w-full">
-												<p className="text-sm font-medium truncate">
-													{activeOrganization?.name ?? "Select Organization"}
-												</p>
+												<TruncateTooltip
+													text={
+														activeOrganization?.name ?? "Select Organization"
+													}
+													className="text-sm font-medium"
+												/>
 												{haveValidLicense && (
 													<Badge variant="blue" className="shrink-0">
 														Enterprise
