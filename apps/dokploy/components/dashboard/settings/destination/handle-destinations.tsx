@@ -114,7 +114,8 @@ const addDestination = z
 
 			const flags = data.additionalFlags?.map((flag) => flag.value) ?? [];
 			if (data.provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
-				const { implicitTlsEnabled, explicitTlsEnabled } = getFtpTlsState(flags);
+				const { implicitTlsEnabled, explicitTlsEnabled } =
+					getFtpTlsState(flags);
 				if (!implicitTlsEnabled && !explicitTlsEnabled) {
 					ctx.addIssue({
 						code: "custom",
@@ -204,8 +205,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	const currentProvider = form.watch("provider");
 	const currentAdditionalFlags =
 		form.watch("additionalFlags")?.map((flag) => flag.value) ?? [];
-	const { implicitTlsEnabled: implicitFtpTlsEnabled } =
-		getFtpTlsState(currentAdditionalFlags);
+	const { implicitTlsEnabled: implicitFtpTlsEnabled } = getFtpTlsState(
+		currentAdditionalFlags,
+	);
 	const isNamedRemote = isNamedRcloneDestinationProvider(currentProvider);
 	const isFileTransfer =
 		currentProvider === RCLONE_DESTINATION_PROVIDERS.FTP ||

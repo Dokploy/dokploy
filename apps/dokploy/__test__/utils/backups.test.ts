@@ -290,9 +290,7 @@ describe("getRclonePathAndFlags", () => {
 				secretAccessKey: "",
 				region: "",
 				bucket: "/backups/",
-				additionalFlags: [
-					"--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts",
-				],
+				additionalFlags: ["--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts"],
 			}),
 			"service/backup.tar",
 		);

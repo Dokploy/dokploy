@@ -602,8 +602,7 @@ export const backupRouter = createTRPCRouter({
 			);
 			const queue: string[] = [];
 			let done = false;
-			const onLog = (log: string) =>
-				queue.push(redactRcloneCredentials(log));
+			const onLog = (log: string) => queue.push(redactRcloneCredentials(log));
 			const runRestore = async () => {
 				if (input.backupType === "database") {
 					if (input.databaseType === "postgres") {
