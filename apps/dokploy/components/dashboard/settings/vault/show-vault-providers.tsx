@@ -22,6 +22,7 @@ const providerLabels: Record<string, string> = {
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
 	phase: "Phase",
+	onepassword: "1Password",
 };
 
 export const ShowVaultProviders = () => {
