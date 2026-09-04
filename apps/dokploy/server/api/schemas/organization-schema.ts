@@ -6,7 +6,7 @@ export const organizationNameSchema = z
 		message: "Organization name is required",
 	})
 	.max(50, {
-		message: "Organization name must be less than 50 characters",
+		message: "Organization name must be 50 characters or fewer",
 	});
 
 export const createOrganizationSchema = z.object({
