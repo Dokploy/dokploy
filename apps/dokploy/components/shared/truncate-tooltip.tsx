@@ -22,7 +22,11 @@ export const TruncateTooltip = ({ text, className, ...props }: Props) => {
 		if (!element) return;
 
 		const checkTruncation = () => {
-			setIsTruncated(element.scrollWidth > element.clientWidth);
+			const truncated = element.scrollWidth > element.clientWidth;
+			setIsTruncated(truncated);
+			if (!truncated) {
+				setIsOpen(false);
+			}
 		};
 
 		checkTruncation();
