@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Focused credential-redaction tests
-        run: pnpm --filter=dokploy run test -- --run __test__/backups/redact-credentials.test.ts
+        run: pnpm --filter=dokploy exec vitest --config __test__/vitest.config.ts --run __test__/backups/redact-credentials.test.ts
       - name: Workspace typecheck
         run: pnpm typecheck
       - name: Biome check hardened files
