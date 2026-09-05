@@ -4,6 +4,7 @@ import { db } from "@dokploy/server/db";
 import { member, ssoProvider, user } from "@dokploy/server/db/schema";
 import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
 import {
+	assertSSODomainsGloballyUnique,
 	getOrganizationOwnerId,
 	requestToHeaders,
 } from "@dokploy/server/index";
@@ -137,25 +138,7 @@ export const ssoRouter = createTRPCRouter({
 					.where(eq(ssoProvider.id, existing.id));
 			}
 
-			const providers = await db.query.ssoProvider.findMany({
-				where: eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
-				columns: { providerId: true, domain: true },
-			});
-
-			for (const provider of providers) {
-				if (provider.providerId === input.providerId) continue;
-				const providerDomains = provider.domain
-					.split(",")
-					.map((d) => d.trim().toLowerCase());
-				for (const domain of input.domains) {
-					if (providerDomains.includes(domain)) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: `Domain ${domain} is already registered for another provider`,
-						});
-					}
-				}
-			}
+			await assertSSODomainsGloballyUnique(input.domains, input.providerId);
 
 			const issuerChanged =
 				normalizeTrustedOrigin(existing.issuer) !==
@@ -263,25 +246,8 @@ export const ssoRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.session.activeOrganizationId;
 
-			const providers = await db.query.ssoProvider.findMany({
-				columns: {
-					domain: true,
-				},
-			});
+			await assertSSODomainsGloballyUnique(input.domains);
 
-			for (const provider of providers) {
-				const providerDomains = provider.domain
-					.split(",")
-					.map((d) => d.trim().toLowerCase());
-				for (const domain of input.domains) {
-					if (providerDomains.includes(domain)) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: `Domain ${domain} is already registered for another provider`,
-						});
-					}
-				}
-			}
 			const domain = input.domains.join(",");
 
 			await auth.registerSSOProvider({
