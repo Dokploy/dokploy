@@ -12,6 +12,7 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
+	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../utils/docker/utils";
@@ -199,7 +200,7 @@ const dockerLoginForRegistry = async (
 	}
 };
 
-const rollbackApplication = async (
+export const rollbackApplication = async (
 	appName: string,
 	image: string,
 	serverId?: string | null,
@@ -268,6 +269,10 @@ const rollbackApplication = async (
 	);
 
 	const bindsMount = generateBindMounts(mounts);
+	const filesMount = generateFileMounts(
+		appName,
+		resolvedContext as Parameters<typeof generateFileMounts>[1],
+	);
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		resolvedContext.environment.project.env,
@@ -291,7 +296,7 @@ const rollbackApplication = async (
 				HealthCheck,
 				Image: rollbackImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount],
+				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(command
 					? {
 							Command: ["/bin/sh"],
