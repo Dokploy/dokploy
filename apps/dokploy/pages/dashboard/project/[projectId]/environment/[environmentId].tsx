@@ -127,7 +127,7 @@ export type Services = {
 	description?: string | null;
 	id: string;
 	createdAt: string;
-	status?: "idle" | "running" | "done" | "error";
+	status: "idle" | "running" | "done" | "error" | "queued" | undefined;
 	lastDeployDate?: Date | null;
 	icon?: string | null;
 };

@@ -10,7 +10,10 @@ import {
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
+	updateApplicationStatus,
+	updateCompose,
 	updateDeploymentStatus,
+	updatePreviewDeployment,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -19,7 +22,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql, or } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -30,7 +33,10 @@ import {
 	deployments,
 	server,
 } from "@/server/db/schema";
-import { myQueue } from "@/server/queues/queueSetup";
+import {
+	myQueue,
+	removeQueueJobByDeploymentId,
+} from "@/server/queues/queueSetup";
 import { fetchDeployApiJobs, type QueueJobRow } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
@@ -167,7 +173,10 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
-			const serviceId = deployment.applicationId || deployment.composeId;
+			const serviceId =
+				deployment.applicationId ||
+				deployment.composeId ||
+				deployment.previewDeploymentId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
@@ -182,21 +191,77 @@ export const deploymentRouter = createTRPCRouter({
 				}
 			}
 
-			if (!deployment.pid) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Deployment is not running",
-				});
-			}
+			if (deployment.status === "queued") {
+				const isRemoved = removeQueueJobByDeploymentId(deployment.deploymentId);
+				if (!isRemoved) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Deployment is already active or finished and cannot be canceled from the queue.",
+					});
+				}
 
-			const command = `kill -9 ${deployment.pid}`;
-			if (deployment.schedule?.serverId) {
-				await execAsyncRemote(deployment.schedule.serverId, command);
+				// Check if there are any OTHER queued deployments remaining for this service
+				const serviceIdForQuery =
+					deployment.applicationId ||
+					deployment.composeId ||
+					deployment.previewDeploymentId;
+				const field = deployment.applicationId
+					? "applicationId"
+					: deployment.composeId
+						? "composeId"
+						: "previewDeploymentId";
+				const otherQueued = serviceIdForQuery
+					? await db.query.deployments.findFirst({
+							where: and(
+								eq(deployments[`${field}`], serviceIdForQuery),
+								or(
+									eq(deployments.status, "queued"),
+									eq(deployments.status, "running"),
+								),
+								// Exclude the one we're about to cancel
+								sql`${deployments.deploymentId} != ${deployment.deploymentId}`,
+							),
+						})
+					: null;
+
+				// Only reset service status if no other queued deployments remain
+				if (!otherQueued) {
+					if (deployment.applicationId) {
+						await updateApplicationStatus(deployment.applicationId, "idle");
+					} else if (deployment.composeId) {
+						await updateCompose(deployment.composeId, {
+							composeStatus: "idle",
+						});
+					} else if (deployment.previewDeploymentId) {
+						await updatePreviewDeployment(deployment.previewDeploymentId, {
+							previewStatus: "idle",
+						});
+					}
+				}
 			} else {
-				await execAsync(command);
+				if (!deployment.pid) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Deployment is not running",
+					});
+				}
+
+				const command = `kill -9 ${deployment.pid}`;
+				if (deployment.schedule?.serverId) {
+					await execAsyncRemote(deployment.schedule.serverId, command);
+				} else {
+					await execAsync(command);
+				}
+
+				if (deployment.applicationId) {
+					await updateApplicationStatus(deployment.applicationId, "idle");
+				} else if (deployment.composeId) {
+					await updateCompose(deployment.composeId, { composeStatus: "idle" });
+				}
 			}
 
-			await updateDeploymentStatus(deployment.deploymentId, "error");
+			await updateDeploymentStatus(deployment.deploymentId, "cancelled");
 			await audit(ctx, {
 				action: "cancel",
 				resourceType: "deployment",

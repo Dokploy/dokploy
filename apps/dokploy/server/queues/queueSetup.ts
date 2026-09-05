@@ -27,6 +27,7 @@ interface DeploymentQueue {
 	on: (...args: unknown[]) => void;
 	run: () => Promise<void>;
 	removeWaiting: (predicate: (data: DeploymentJob) => boolean) => number;
+	removeWaitingByDeploymentId: (deploymentId: string) => boolean;
 	clearWaiting: () => number;
 }
 
@@ -37,6 +38,7 @@ const createNoopQueue = (): DeploymentQueue => ({
 	on: () => {},
 	run: () => Promise.resolve(),
 	removeWaiting: () => 0,
+	removeWaitingByDeploymentId: () => false,
 	clearWaiting: () => 0,
 });
 
@@ -53,6 +55,8 @@ const createInMemoryQueue = (): DeploymentQueue => {
 		on: () => {},
 		run: () => queue.run(),
 		removeWaiting: (predicate) => queue.removeWaiting(predicate),
+		removeWaitingByDeploymentId: (deploymentId) =>
+			queue.removeWaitingByDeploymentId(deploymentId),
 		clearWaiting: () => queue.clearWaiting(),
 	};
 };
@@ -79,13 +83,19 @@ export const startDeploymentWorker = () => myQueue.run();
 export const getJobsByApplicationId = async (applicationId: string) => {
 	const jobs = await myQueue.getJobs();
 	return jobs.filter(
-		(job) => (job.data as any)?.applicationId === applicationId,
+		(job) =>
+			job.data.applicationType === "application" &&
+			job.data.applicationId === applicationId,
 	);
 };
 
 export const getJobsByComposeId = async (composeId: string) => {
 	const jobs = await myQueue.getJobs();
-	return jobs.filter((job) => (job.data as any)?.composeId === composeId);
+	return jobs.filter(
+		(job) =>
+			job.data.applicationType === "compose" &&
+			job.data.composeId === composeId,
+	);
 };
 
 if (!IS_CLOUD) {
@@ -95,9 +105,11 @@ if (!IS_CLOUD) {
 	});
 }
 
-export const cleanQueuesByApplication = async (applicationId: string) => {
+export const cleanQueuesByApplication = (applicationId: string) => {
 	const removed = myQueue.removeWaiting(
-		(data) => (data as any)?.applicationId === applicationId,
+		(data) =>
+			data.applicationType === "application" &&
+			data.applicationId === applicationId,
 	);
 	if (removed > 0) {
 		console.log(
@@ -106,45 +118,23 @@ export const cleanQueuesByApplication = async (applicationId: string) => {
 	}
 };
 
-export const cleanQueuesByCompose = async (composeId: string) => {
+export const cleanQueuesByCompose = (composeId: string) => {
 	const removed = myQueue.removeWaiting(
-		(data) => (data as any)?.composeId === composeId,
+		(data) =>
+			data.applicationType === "compose" && data.composeId === composeId,
 	);
 	if (removed > 0) {
 		console.log(`Removed ${removed} waiting job(s) for compose ${composeId}`);
 	}
 };
 
+export const removeQueueJobByDeploymentId = (deploymentId: string): boolean => {
+	return myQueue.removeWaitingByDeploymentId(deploymentId);
+};
+
 export const cleanAllDeploymentQueue = async () => {
 	myQueue.clearWaiting();
 	return true;
-};
-
-export const killDockerBuild = async (
-	type: "application" | "compose",
-	serverId: string | null,
-) => {
-	try {
-		if (type === "application") {
-			const command = `pkill -2 -f "docker build"`;
-
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command);
-			}
-		} else if (type === "compose") {
-			const command = `pkill -2 -f "docker compose"`;
-
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command);
-			}
-		}
-	} catch (error) {
-		console.error(error);
-	}
 };
 
 export { myQueue };

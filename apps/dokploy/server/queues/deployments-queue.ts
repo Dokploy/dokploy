@@ -25,12 +25,14 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 					applicationId: job.data.applicationId,
 					titleLog: job.data.titleLog,
 					descriptionLog: job.data.descriptionLog,
+					deploymentId: job.data.deploymentId,
 				});
 			} else if (job.data.type === "deploy") {
 				await deployApplication({
 					applicationId: job.data.applicationId,
 					titleLog: job.data.titleLog,
 					descriptionLog: job.data.descriptionLog,
+					deploymentId: job.data.deploymentId,
 				});
 			}
 		} else if (job.data.applicationType === "compose") {
@@ -42,6 +44,7 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 					composeId: job.data.composeId,
 					titleLog: job.data.titleLog,
 					descriptionLog: job.data.descriptionLog,
+					deploymentId: job.data.deploymentId,
 					freshVolumes: job.data.freshVolumes,
 				});
 			} else if (job.data.type === "redeploy") {
@@ -49,6 +52,7 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 					composeId: job.data.composeId,
 					titleLog: job.data.titleLog,
 					descriptionLog: job.data.descriptionLog,
+					deploymentId: job.data.deploymentId,
 					freshVolumes: job.data.freshVolumes,
 				});
 			}
@@ -63,6 +67,7 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 					titleLog: job.data.titleLog,
 					descriptionLog: job.data.descriptionLog,
 					previewDeploymentId: job.data.previewDeploymentId,
+					deploymentId: job.data.deploymentId,
 				});
 			} else if (job.data.type === "deploy") {
 				await deployPreviewApplication({
@@ -70,10 +75,11 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 					titleLog: job.data.titleLog,
 					descriptionLog: job.data.descriptionLog,
 					previewDeploymentId: job.data.previewDeploymentId,
+					deploymentId: job.data.deploymentId,
 				});
 			}
 		}
 	} catch (error) {
-		console.log("Error", error);
+		console.error("Error", error);
 	}
 };
