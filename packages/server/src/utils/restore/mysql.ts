@@ -3,6 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { getSafeRcloneErrorMessage } from "../backups/redact";
 import { getRclonePathAndFlags } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
@@ -44,14 +45,9 @@ export const restoreMySqlBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring mysql backup"
-			}`,
-		);
-		throw new Error(
-			error instanceof Error ? error.message : "Error restoring mysql backup",
-		);
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Restore error:", safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
+		throw new Error(safeErrorMessage);
 	}
 };

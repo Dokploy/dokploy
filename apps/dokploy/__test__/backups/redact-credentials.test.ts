@@ -48,6 +48,15 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("sftp-secret");
 	});
 
+	it("should redact database passwords from restore command errors", () => {
+		const error = new Error(
+			"Command failed: docker exec -e DB_PASS='database-secret' -i container sh -c 'mysql -u root'",
+		);
+		const safe = getSafeRcloneErrorMessage(error);
+		expect(safe).not.toContain("database-secret");
+		expect(safe).toContain('DB_PASS="[REDACTED]"');
+	});
+
 	it("should not modify non-credential flags", () => {
 		const cmd =
 			'rclone rcat --s3-region="eu-west-1" --s3-endpoint="https://s3.example.com" --s3-no-check-bucket :s3:bucket/file.gz';
