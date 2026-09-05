@@ -147,11 +147,12 @@ export default async function handler(
 					...(commit.removed || []),
 				]);
 			}
-
-			const shouldDeployPaths = shouldDeploy(
-				composeResult.watchPaths,
-				normalizedCommits,
-			);
+			// Soft Serve push webhooks do not expose per-commit file lists, so the
+			// watch-paths filter cannot be evaluated and any matching-branch push
+			// should deploy (the branch guard above already verified the ref).
+			const shouldDeployPaths =
+				provider === "soft-serve" ||
+				shouldDeploy(composeResult.watchPaths, normalizedCommits);
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });

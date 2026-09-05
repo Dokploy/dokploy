@@ -170,17 +170,15 @@ export default async function handler(
 					...(commit.removed || []),
 				]);
 			} else if (provider === "soft-serve") {
-				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
-					...(commit.added || []),
-					...(commit.modified || []),
-					...(commit.removed || []),
-				]);
+				// Soft Serve push webhooks do not expose per-commit file lists, so
+				// the watch-paths filter is skipped below for this provider.
 			}
 
-			const shouldDeployPaths = shouldDeploy(
-				application.watchPaths,
-				normalizedCommits,
-			);
+			// Soft Serve cannot report changed files: bypass watch-paths and deploy
+			// on any matching-branch push (the branch guard above verified the ref).
+			const shouldDeployPaths =
+				provider === "soft-serve" ||
+				shouldDeploy(application.watchPaths, normalizedCommits);
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
