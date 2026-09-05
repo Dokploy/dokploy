@@ -1,4 +1,5 @@
 import {
+	assertRegistryBelongsToOrganization,
 	clearOldDeployments,
 	createApplication,
 	createDomain,
@@ -771,6 +772,20 @@ export const applicationRouter = createTRPCRouter({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this build server",
 					});
+				}
+			}
+
+			const organizationId = ctx.session.activeOrganizationId;
+			for (const candidateRegistryId of [
+				input.registryId,
+				input.rollbackRegistryId,
+				input.buildRegistryId,
+			]) {
+				if (candidateRegistryId) {
+					await assertRegistryBelongsToOrganization(
+						candidateRegistryId,
+						organizationId,
+					);
 				}
 			}
 
