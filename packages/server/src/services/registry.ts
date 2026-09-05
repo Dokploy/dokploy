@@ -118,43 +118,37 @@ export const updateRegistry = async (
 	registryData: Partial<Registry> & { serverId?: string | null },
 ) => {
 	try {
-		const response = await db
-			.update(registry)
-			.set({
-				...registryData,
-			})
-			.where(eq(registry.registryId, registryId))
-			.returning()
-			.then((res) => res[0]);
+		return await db.transaction(async (tx) => {
+			const response = await tx
+				.update(registry)
+				.set({
+					...registryData,
+				})
+				.where(eq(registry.registryId, registryId))
+				.returning()
+				.then((res) => res[0]);
 
-		const loginCommand = safeDockerLoginCommand(
-			response?.registryUrl,
-			response?.username,
-			response?.password,
-		);
+			const loginCommand = safeDockerLoginCommand(
+				response?.registryUrl,
+				response?.username,
+				response?.password,
+			);
 
-		if (
-			IS_CLOUD &&
-			!registryData?.serverId &&
-			registryData?.serverId !== "none"
-		) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Select a server to add the registry",
-			});
-		}
-
-		try {
-			if (registryData?.serverId && registryData?.serverId !== "none") {
-				await execAsyncRemote(registryData.serverId, loginCommand);
-			} else if (response?.registryType === "cloud") {
-				await execAsync(loginCommand);
+			try {
+				if (registryData?.serverId && registryData?.serverId !== "none") {
+					await execAsyncRemote(registryData.serverId, loginCommand);
+				} else if (
+					response?.registryType === "cloud" &&
+					(!IS_CLOUD || registryData?.serverId === "none")
+				) {
+					await execAsync(loginCommand);
+				}
+			} catch (execError) {
+				throw new Error(sanitizeRegistryError(execError, response?.password));
 			}
-		} catch (execError) {
-			throw new Error(sanitizeRegistryError(execError, response?.password));
-		}
 
-		return response;
+			return response;
+		});
 	} catch (error) {
 		const message =
 			error instanceof TRPCError
