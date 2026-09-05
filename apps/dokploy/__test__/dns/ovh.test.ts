@@ -467,6 +467,34 @@ describe("ovhClient.updateRecord", () => {
 			}),
 		).rejects.toThrow(/was applied, but refreshing zone "example\.com" failed/);
 	});
+
+	it("does not tell the user to recreate a record that was restored but not published", async () => {
+		const cfg = freshConfig();
+		mockApi(
+			ovhSuccess({
+				id: 4,
+				zone: "example.com",
+				fieldType: "A",
+				subDomain: "app",
+				target: "1.1.1.1",
+				ttl: 60,
+			}),
+			ovhSuccess(null), // DELETE de l'ancien
+			ovhError("Invalid target", 400), // POST de remplacement -> échec
+			ovhSuccess({ id: 12 }), // POST de restauration -> succès
+			ovhError("Service unavailable", 503), // refresh -> échec
+		);
+
+		const attempt = ovhClient.updateRecord(cfg, "example.com", "4", {
+			type: "CNAME",
+			name: "app.example.com",
+			content: "not a valid target",
+		});
+
+		// L'enregistrement existe de nouveau chez OVH : le recréer le dupliquerait.
+		await expect(attempt).rejects.toThrow(/was restored, but refreshing zone/);
+		await expect(attempt).rejects.not.toThrow(/Recreate it manually/);
+	});
 });
 
 describe("ovhClient.deleteRecord", () => {

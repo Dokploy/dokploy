@@ -184,12 +184,19 @@ const refreshZone = async (config: OvhConfig, zone: string) => {
 };
 
 // Used to undo the delete half of a type change when the replacement fails.
+// The restore and its publication are reported separately: a failed POST means
+// the record is really gone, whereas a failed refresh means it is back but not
+// served yet. Collapsing the two would tell the user to recreate a record that
+// already exists, which duplicates it as soon as the zone is refreshed.
 const restoreRecord = async (
 	config: OvhConfig,
 	zone: string,
 	record: OvhRecord,
 	cause: unknown,
 ) => {
+	const causeMessage = cause instanceof Error ? cause.message : String(cause);
+	const name = toFqdn(record.subDomain, zone);
+
 	try {
 		await ovhFetch(config, `/domain/zone/${encodeURIComponent(zone)}/record`, {
 			method: "POST",
@@ -200,13 +207,17 @@ const restoreRecord = async (
 				...(record.ttl === null ? {} : { ttl: record.ttl }),
 			},
 		});
+	} catch {
+		throw new Error(
+			`OVH: could not replace the record and could not restore the original one, which has been deleted. Recreate it manually: ${record.fieldType} ${name} -> ${record.target}. Original failure: ${causeMessage}`,
+		);
+	}
+
+	try {
 		await refreshZone(config, zone);
 	} catch {
-		const name = toFqdn(record.subDomain, zone);
 		throw new Error(
-			`OVH: could not replace the record and could not restore the original one, which has been deleted. Recreate it manually: ${record.fieldType} ${name} -> ${record.target}. Original failure: ${
-				cause instanceof Error ? cause.message : String(cause)
-			}`,
+			`OVH: the replacement failed and the original record was restored, but refreshing zone "${zone}" failed, so the restore is not served yet. Do not recreate it — the next successful change to this zone will publish it. Original failure: ${causeMessage}`,
 		);
 	}
 };
