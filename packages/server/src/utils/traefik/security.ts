@@ -121,6 +121,62 @@ export const removeSecurityMiddleware = async (
 	}
 };
 
+export const replaceSecurityMiddlewareUser = async (
+	application: ApplicationNested,
+	oldSecurity: Security,
+	newSecurity: Security,
+) => {
+	const { appName, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
+	const middlewareName = `auth-${appName}`;
+
+	const newUser = `${newSecurity.username}:${await bcrypt.hash(
+		newSecurity.password,
+		10,
+	)}`;
+
+	if (config.http?.middlewares) {
+		const currentMiddleware = config.http.middlewares[middlewareName];
+		if (isBasicAuthMiddleware(currentMiddleware)) {
+			const users =
+				currentMiddleware.basicAuth.users?.filter((user) => {
+					const [username] = user.split(":");
+					return username !== oldSecurity.username;
+				}) || [];
+			currentMiddleware.basicAuth.users = [...users, newUser];
+		} else {
+			config.http.middlewares[middlewareName] = {
+				basicAuth: {
+					removeHeader: true,
+					users: [newUser],
+				},
+			};
+		}
+	}
+
+	let appConfig: FileConfig;
+
+	if (serverId) {
+		appConfig = await loadOrCreateConfigRemote(serverId, appName);
+	} else {
+		appConfig = loadOrCreateConfig(appName);
+	}
+	addMiddleware(appConfig, middlewareName);
+
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
+	} else {
+		writeMiddleware(config);
+	}
+	await writeAppTraefikConfig(appConfig, appName, serverId);
+};
+
 const isBasicAuthMiddleware = (
 	middleware: HttpMiddleware | undefined,
 ): middleware is { basicAuth: BasicAuthMiddleware } => {
