@@ -1,6 +1,8 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
+	assertComposeOrgAccess,
+	assertEnvironmentOrgAccess,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -197,6 +199,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			await assertComposeOrgAccess(ctx, input.composeId);
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {
 				action: "update",
@@ -212,6 +215,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				envVars: ["write"],
 			});
+			await assertComposeOrgAccess(ctx, input.composeId);
 			const updated = await updateCompose(input.composeId, {
 				env: input.env,
 				createEnvFile: input.createEnvFile,
@@ -283,6 +287,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			await assertComposeOrgAccess(ctx, input.composeId);
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
 		}),
@@ -292,7 +297,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			await clearOldDeployments(compose.appName, compose.serverId);
 			await audit(ctx, {
 				action: "update",
@@ -308,7 +313,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["cancel"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			await killDockerBuild("compose", compose.serverId);
 		}),
 
@@ -318,6 +323,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["read"],
 			});
+			await assertComposeOrgAccess(ctx, input.composeId);
 			return await loadServices(input.composeId, input.type);
 		}),
 	loadMountsByService: protectedProcedure
@@ -331,7 +337,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			const container = await getComposeContainer(compose, input.serviceName);
 			const mounts = container?.Mounts.filter(
 				(mount) => mount.Type === "volume" && mount.Source !== "",
@@ -345,7 +351,7 @@ export const composeRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, input.composeId, {
 					service: ["create"],
 				});
-				const compose = await findComposeById(input.composeId);
+				const compose = await assertComposeOrgAccess(ctx, input.composeId);
 
 				const command = await cloneCompose(compose);
 				if (compose.serverId) {
@@ -369,8 +375,8 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			const result = await randomizeComposeFile(input.composeId, input.suffix);
-			const compose = await findComposeById(input.composeId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
@@ -385,11 +391,11 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			const result = await randomizeIsolatedDeploymentComposeFile(
 				input.composeId,
 				input.suffix,
 			);
-			const compose = await findComposeById(input.composeId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
@@ -404,7 +410,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			const domains = await findDomainsByComposeId(input.composeId);
 			const composeFile = await addDomainToCompose(compose, domains);
 			return stringify(composeFile, {
@@ -418,7 +424,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
@@ -469,7 +475,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: input.title || "Rebuild deployment",
@@ -518,13 +524,13 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			await stopCompose(input.composeId);
-			const composeForStop = await findComposeById(input.composeId);
 			await audit(ctx, {
 				action: "stop",
 				resourceType: "compose",
 				resourceId: input.composeId,
-				resourceName: composeForStop.name,
+				resourceName: compose.name,
 			});
 			return true;
 		}),
@@ -534,13 +540,13 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			await startCompose(input.composeId);
-			const composeForStart = await findComposeById(input.composeId);
 			await audit(ctx, {
 				action: "start",
 				resourceType: "compose",
 				resourceId: input.composeId,
-				resourceName: composeForStart.name,
+				resourceName: compose.name,
 			});
 			return true;
 		}),
@@ -550,7 +556,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			const { COMPOSE_PATH } = paths(!!compose.serverId);
 			const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 			const command = createCommand(
@@ -565,15 +571,15 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 			await updateCompose(input.composeId, {
 				refreshToken: nanoid(),
 			});
-			const composeForToken = await findComposeById(input.composeId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
 				resourceId: input.composeId,
-				resourceName: composeForToken.name,
+				resourceName: compose.name,
 			});
 			return true;
 		}),
@@ -728,6 +734,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 
 			await updateCompose(input.composeId, {
 				repository: null,
@@ -764,12 +771,11 @@ export const composeRouter = createTRPCRouter({
 				enableSubmodules: false,
 			});
 
-			const composeForDisconnect = await findComposeById(input.composeId);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
 				resourceId: input.composeId,
-				resourceName: composeForDisconnect.name,
+				resourceName: compose.name,
 			});
 			return true;
 		}),
@@ -785,6 +791,8 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			await assertComposeOrgAccess(ctx, input.composeId);
+			await assertEnvironmentOrgAccess(ctx, input.targetEnvironmentId);
 
 			const updatedCompose = await db
 				.update(composeTable)
@@ -823,7 +831,7 @@ export const composeRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, input.composeId, {
 					service: ["create"],
 				});
-				const compose = await findComposeById(input.composeId);
+				const compose = await assertComposeOrgAccess(ctx, input.composeId);
 
 				const decodedData = Buffer.from(input.base64, "base64").toString(
 					"utf-8",
@@ -957,7 +965,7 @@ export const composeRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, input.composeId, {
 					service: ["create"],
 				});
-				const compose = await findComposeById(input.composeId);
+				const compose = await assertComposeOrgAccess(ctx, input.composeId);
 				const decodedData = Buffer.from(input.base64, "base64").toString(
 					"utf-8",
 				);
@@ -1062,7 +1070,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["cancel"],
 			});
-			const compose = await findComposeById(input.composeId);
+			const compose = await assertComposeOrgAccess(ctx, input.composeId);
 
 			if (IS_CLOUD && compose.serverId) {
 				try {

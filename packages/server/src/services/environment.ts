@@ -7,6 +7,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import type { z } from "zod";
+import type { PermissionCtx } from "./permission";
 
 export type Environment = typeof environments.$inferSelect;
 
@@ -196,6 +197,40 @@ export const findEnvironmentById = async (environmentId: string) => {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Environment not found",
+		});
+	}
+	return environment;
+};
+
+/**
+ * Resource-scoped tenant guard for environments: confirms the environment
+ * identified by `environmentId` belongs to a project whose `organizationId`
+ * matches the caller's active organization, and rejects otherwise.
+ *
+ * Used by cross-resource move operations (e.g. `compose.move`) to ensure the
+ * target environment cannot be relocated into a different organization. The
+ * `environments` schema exposes a `project` relation, so the project's
+ * `organizationId` is loaded in a single query without importing
+ * `findProjectById` (which would create a module cycle with `./project`).
+ */
+export const assertEnvironmentOrgAccess = async (
+	ctx: PermissionCtx,
+	environmentId: string,
+) => {
+	const environment = await db.query.environments.findFirst({
+		where: eq(environments.environmentId, environmentId),
+		with: { project: true },
+	});
+	if (!environment) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Environment not found",
+		});
+	}
+	if (environment.project.organizationId !== ctx.session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this environment",
 		});
 	}
 	return environment;
