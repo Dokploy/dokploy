@@ -1018,6 +1018,30 @@ export const applicationRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this application",
+				});
+			}
+
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this environment",
+				});
+			}
+
 			const updatedApplication = await db
 				.update(applications)
 				.set({

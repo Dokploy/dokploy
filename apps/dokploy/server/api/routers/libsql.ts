@@ -433,6 +433,30 @@ export const libsqlRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const libsql = await findLibsqlById(input.libsqlId);
+			if (
+				libsql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this libsql",
+				});
+			}
+
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this environment",
+				});
+			}
+
 			const updatedLibsql = await db
 				.update(libsqlTable)
 				.set({
