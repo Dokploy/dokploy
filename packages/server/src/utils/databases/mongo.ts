@@ -2,13 +2,13 @@ import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 
@@ -24,10 +24,6 @@ export const buildMongo = async (rawMongo: MongoNested) => {
 		env,
 		externalPort,
 		dockerImage,
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
 		databaseUser,
 		databasePassword,
 		command,
@@ -101,12 +97,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 		Ulimits,
 	} = generateConfigContainer(mongo);
 
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(mongo);
 
 	const envVariables = prepareEnvironmentVariables(
 		defaultMongoEnv,

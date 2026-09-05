@@ -24,6 +24,7 @@ import {
 	Key,
 	KeyRound,
 	LayoutGrid,
+	Layers,
 	Loader2,
 	LogIn,
 	type LucideIcon,
@@ -393,6 +394,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: HardDrive,
 			isEnabled: ({ permissions }) => !!permissions?.destination.read,
+		},
+		{
+			isSingle: true,
+			title: "Resource Profiles",
+			url: "/dashboard/settings/resource-profiles",
+			icon: Layers,
+			isEnabled: ({ permissions }) => !!permissions?.resourceProfiles.read,
 		},
 
 		{

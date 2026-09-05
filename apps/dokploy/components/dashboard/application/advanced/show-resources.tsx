@@ -1,6 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { InfoIcon, Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -65,6 +65,8 @@ const ulimitSchema = z.object({
 });
 
 const addResourcesSchema = z.object({
+	resourceGroupId: z.string().optional(),
+	resourceProfileId: z.string().nullable().optional(),
 	memoryReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	memoryLimit: z.string().optional(),
@@ -105,6 +107,8 @@ interface Props {
 type AddResources = z.infer<typeof addResourcesSchema>;
 
 export const ShowResources = ({ id, type }: Props) => {
+	const { data: groups } = api.resourceProfile.all.useQuery();
+
 	const queryMap = {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
@@ -137,6 +141,8 @@ export const ShowResources = ({ id, type }: Props) => {
 
 	const form = useForm({
 		defaultValues: {
+			resourceGroupId: "",
+			resourceProfileId: "",
 			cpuLimit: "",
 			cpuReservation: "",
 			memoryLimit: "",
@@ -146,14 +152,52 @@ export const ShowResources = ({ id, type }: Props) => {
 		resolver: zodResolver(addResourcesSchema),
 	});
 
+	const selectedGroupId = form.watch("resourceGroupId");
+	const selectedProfileId = form.watch("resourceProfileId");
+
+	const prevGroupIdRef = useRef<string>("");
+	useEffect(() => {
+		if (prevGroupIdRef.current !== selectedGroupId) {
+			if (prevGroupIdRef.current !== "") {
+				form.setValue("resourceProfileId", "");
+			}
+			prevGroupIdRef.current = selectedGroupId;
+		}
+	}, [selectedGroupId, form]);
+
+	const selectedGroup = groups?.find(
+		(group) => group.groupId === selectedGroupId,
+	);
+
+	const selectedProfile = groups
+		?.flatMap((group) => group.profiles)
+		.find((profile) => profile.profileId === selectedProfileId);
+
+	const groupProfiles =
+		groups?.find((group) => group.groupId === selectedGroupId)?.profiles ?? [];
+
+	const inherited = {
+		memoryLimit: selectedProfile?.memoryLimit || undefined,
+		memoryReservation: selectedProfile?.memoryReservation || undefined,
+		cpuLimit: selectedProfile?.cpuLimit || undefined,
+		cpuReservation: selectedProfile?.cpuReservation || undefined,
+	};
+
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
 		name: "ulimitsSwarm",
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && groups) {
+			const profileId = (data as { resourceProfileId?: string | null })
+				?.resourceProfileId;
+			const group = groups.find((g) =>
+				g.profiles.some((p) => p.profileId === profileId),
+			);
 			form.reset({
+				resourceGroupId: group?.groupId || "",
+				resourceProfileId: profileId || "",
 				cpuLimit: data?.cpuLimit || undefined,
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
@@ -161,7 +205,7 @@ export const ShowResources = ({ id, type }: Props) => {
 				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
 			});
 		}
-	}, [data, form, form.reset]);
+	}, [data, groups, form, form.reset]);
 
 	const onSubmit = async (formData: AddResources) => {
 		await mutateAsync({
@@ -172,6 +216,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			mysqlId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
+			resourceProfileId: formData.resourceProfileId || null,
 			cpuLimit: formData.cpuLimit || null,
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,
@@ -213,6 +258,83 @@ export const ShowResources = ({ id, type }: Props) => {
 						<div className="grid w-full md:grid-cols-2 gap-4">
 							<FormField
 								control={form.control}
+								name="resourceGroupId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Profile Group</FormLabel>
+										<Select
+											onValueChange={(value) => {
+												field.onChange(value);
+											}}
+											value={field.value || undefined}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="None (custom values)" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												{groups?.map((group) => (
+													<SelectItem key={group.groupId} value={group.groupId}>
+														{group.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="resourceProfileId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Profile</FormLabel>
+										<Select
+											onValueChange={(value) => {
+												if (value === "") return;
+												field.onChange(value === "none" ? null : value);
+											}}
+											value={field.value || undefined}
+										>
+											<FormControl>
+												<SelectTrigger disabled={!selectedGroupId}>
+													<SelectValue placeholder="Select a profile" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												<SelectItem value="none">
+													None (custom values)
+												</SelectItem>
+												{groupProfiles.map((profile) => (
+													<SelectItem
+														key={profile.profileId}
+														value={profile.profileId}
+													>
+														{profile.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+						{selectedProfile && selectedGroup && (
+							<div className="text-xs text-muted-foreground">
+								Inherited from profile{" "}
+								<span className="font-medium text-foreground">
+									{selectedGroup.name} / {selectedProfile.name}
+								</span>
+								: leave a field empty to inherit its value; any filled field
+								overrides the profile.
+							</div>
+						)}
+						<div className="grid w-full md:grid-cols-2 gap-4">
+							<FormField
+								control={form.control}
 								name="memoryLimit"
 								render={({ field }) => {
 									return (
@@ -241,7 +363,11 @@ export const ShowResources = ({ id, type }: Props) => {
 												<NumberInputWithSteps
 													value={field.value}
 													onChange={field.onChange}
-													placeholder="1073741824 (1GB in bytes)"
+													placeholder={
+														inherited.memoryLimit
+															? `${inherited.memoryLimit} (from profile)`
+															: "1073741824 (1GB in bytes)"
+													}
 													step={MEMORY_STEP_MB}
 													converter={memoryConverter}
 												/>
@@ -280,7 +406,11 @@ export const ShowResources = ({ id, type }: Props) => {
 											<NumberInputWithSteps
 												value={field.value}
 												onChange={field.onChange}
-												placeholder="268435456 (256MB in bytes)"
+												placeholder={
+													inherited.memoryReservation
+														? `${inherited.memoryReservation} (from profile)`
+														: "268435456 (256MB in bytes)"
+												}
 												step={MEMORY_STEP_MB}
 												converter={memoryConverter}
 											/>
@@ -320,7 +450,11 @@ export const ShowResources = ({ id, type }: Props) => {
 												<NumberInputWithSteps
 													value={field.value}
 													onChange={field.onChange}
-													placeholder="2000000000 (2 CPUs)"
+													placeholder={
+														inherited.cpuLimit
+															? `${inherited.cpuLimit} (from profile)`
+															: "2000000000 (2 CPUs)"
+													}
 													step={CPU_STEP}
 													converter={cpuConverter}
 												/>
@@ -360,7 +494,11 @@ export const ShowResources = ({ id, type }: Props) => {
 												<NumberInputWithSteps
 													value={field.value}
 													onChange={field.onChange}
-													placeholder="1000000000 (1 CPU)"
+													placeholder={
+														inherited.cpuReservation
+															? `${inherited.cpuReservation} (from profile)`
+															: "1000000000 (1 CPU)"
+													}
 													step={CPU_STEP}
 													converter={cpuConverter}
 												/>

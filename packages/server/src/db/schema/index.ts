@@ -31,6 +31,7 @@ export * from "./project";
 export * from "./redirects";
 export * from "./redis";
 export * from "./registry";
+export * from "./resource-profile";
 export * from "./rollbacks";
 export * from "./schedule";
 export * from "./scim";

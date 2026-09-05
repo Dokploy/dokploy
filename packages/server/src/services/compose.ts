@@ -170,6 +170,43 @@ export const loadServices = async (
 	composeId: string,
 	type: "fetch" | "cache" = "fetch",
 ) => {
+	const composeData = await loadComposeSpecification(composeId, type);
+
+	if (!composeData?.services) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Services not found",
+		});
+	}
+
+	const services = Object.keys(composeData.services);
+
+	return [...services];
+};
+
+export const loadServicesWithResources = async (
+	composeId: string,
+	type: "fetch" | "cache" = "fetch",
+) => {
+	const composeData = await loadComposeSpecification(composeId, type);
+
+	if (!composeData?.services) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Services not found",
+		});
+	}
+
+	return Object.entries(composeData.services).map(([serviceName, service]) => ({
+		serviceName,
+		hasDeployResources: !!service.deploy?.resources,
+	}));
+};
+
+export const loadComposeSpecification = async (
+	composeId: string,
+	type: "fetch" | "cache" = "fetch",
+) => {
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
@@ -197,16 +234,7 @@ export const loadServices = async (
 		composeData = randomizedCompose;
 	}
 
-	if (!composeData?.services) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Services not found",
-		});
-	}
-
-	const services = Object.keys(composeData.services);
-
-	return [...services];
+	return composeData;
 };
 
 export const updateCompose = async (
@@ -345,7 +373,7 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
