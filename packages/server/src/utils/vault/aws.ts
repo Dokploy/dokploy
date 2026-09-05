@@ -15,7 +15,7 @@ const parseRef = (ref: string) => {
 			`Invalid AWS Secrets Manager reference "${ref}": use the secret name, not the ARN`,
 		);
 	}
-	const separatorIndex = ref.lastIndexOf(":");
+	const separatorIndex = ref.indexOf(":"); // AWS friendly names cannot contain ':' and ARNs are rejected above, so the first ':' is the unambiguous separator.
 	if (separatorIndex === -1) {
 		return { secretId: ref, field: null };
 	}

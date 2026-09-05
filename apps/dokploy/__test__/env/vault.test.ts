@@ -12,11 +12,44 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+const {
+	send: awsSend,
+	SecretsManagerClient,
+	GetSecretValueCommand,
+	ListSecretsCommand,
+} = vi.hoisted(() => {
+	class FakeCommand {
+		input: any;
+		constructor(input: any) {
+			this.input = input;
+		}
+	}
+	const send = vi.fn();
+	class SecretsManagerClient {
+		send(command: unknown) {
+			return send(command);
+		}
+	}
+	return {
+		send,
+		SecretsManagerClient,
+		GetSecretValueCommand: class extends FakeCommand {},
+		ListSecretsCommand: class extends FakeCommand {},
+	};
+});
+
+vi.mock("@aws-sdk/client-secrets-manager", () => ({
+	SecretsManagerClient,
+	GetSecretValueCommand,
+	ListSecretsCommand,
+}));
+
 import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
 import {
 	resolveVaultReferences,
 	withResolvedVaultRefs,
 } from "@dokploy/server/utils/vault";
+import { awsClient } from "@dokploy/server/utils/vault/aws";
 import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
@@ -36,7 +69,10 @@ const jsonResponse = (body: unknown, ok = true, status = 200) =>
 beforeEach(() => {
 	findMany.mockReset();
 	mockFetch.mockReset();
+	awsSend.mockReset();
 });
+
+type AwsCommand = { input: { SecretId: string } };
 
 const scope = {
 	organizationId: "org-1",
@@ -737,6 +773,126 @@ describe("phase client", () => {
 
 		const result = await resolveVaultReferences(
 			"DB_PASSWORD=${{vault.phase-prod.DB_PASSWORD}}",
+			scope,
+		);
+
+		expect(result).toBe("DB_PASSWORD=s3cret");
+	});
+});
+
+describe("aws client", () => {
+	const config = {
+		providerType: "aws" as const,
+		region: "us-east-1",
+		accessKeyId: "AKID",
+		secretAccessKey: "SECRET",
+	};
+
+	const mockStore = (store: Record<string, string>) =>
+		awsSend.mockImplementation((cmd: AwsCommand) => {
+			const value = store[cmd.input.SecretId];
+			if (value === undefined) {
+				return Promise.reject(
+					new Error(
+						`ResourceNotFoundException: Secrets Manager can't find ${cmd.input.SecretId}`,
+					),
+				);
+			}
+			return Promise.resolve({ SecretString: value });
+		});
+
+	it("splits on the first colon so a JSON field key containing a colon resolves", async () => {
+		mockStore({
+			mysecret: JSON.stringify({
+				"db:prod": "prodval",
+				"db:staging": "stageval",
+				password: "s3cret",
+			}),
+		});
+
+		const result = await awsClient.getSecrets(config, ["mysecret:db:prod"]);
+
+		expect(result).toEqual({ "mysecret:db:prod": "prodval" });
+		expect(awsSend).toHaveBeenCalledTimes(1);
+		expect((awsSend.mock.calls[0]?.[0] as AwsCommand).input.SecretId).toBe(
+			"mysecret",
+		);
+	});
+
+	it("extracts a colon-free field from a JSON secret", async () => {
+		mockStore({
+			mysecret: JSON.stringify({ user: "admin", password: "pw" }),
+		});
+
+		const result = await awsClient.getSecrets(config, [
+			"mysecret:user",
+			"mysecret:password",
+		]);
+
+		expect(result).toEqual({
+			"mysecret:user": "admin",
+			"mysecret:password": "pw",
+		});
+		expect(awsSend).toHaveBeenCalledTimes(1);
+		expect((awsSend.mock.calls[0]?.[0] as AwsCommand).input.SecretId).toBe(
+			"mysecret",
+		);
+	});
+
+	it("returns the whole SecretString when no field separator is present", async () => {
+		mockStore({ mysecret: "plain-value" });
+
+		const result = await awsClient.getSecrets(config, ["mysecret"]);
+
+		expect(result).toEqual({ mysecret: "plain-value" });
+		expect(awsSend).toHaveBeenCalledTimes(1);
+		expect((awsSend.mock.calls[0]?.[0] as AwsCommand).input.SecretId).toBe(
+			"mysecret",
+		);
+	});
+
+	it("dedupes refs sharing a secret id to a single GetSecretValue call", async () => {
+		mockStore({
+			mysecret: JSON.stringify({ "db:prod": "a", "db:staging": "b" }),
+		});
+
+		const result = await awsClient.getSecrets(config, [
+			"mysecret:db:prod",
+			"mysecret:db:staging",
+		]);
+
+		expect(result).toEqual({
+			"mysecret:db:prod": "a",
+			"mysecret:db:staging": "b",
+		});
+		expect(awsSend).toHaveBeenCalledTimes(1);
+		expect((awsSend.mock.calls[0]?.[0] as AwsCommand).input.SecretId).toBe(
+			"mysecret",
+		);
+	});
+
+	it("rejects an ARN ref with a clear error before any fetch", async () => {
+		await expect(
+			awsClient.getSecrets(config, [
+				"arn:aws:secretsmanager:us-east-1:123:secret:mysecret-xxx",
+			]),
+		).rejects.toThrow("use the secret name, not the ARN");
+		expect(awsSend).not.toHaveBeenCalled();
+	});
+
+	it("resolves env refs end to end through an aws provider", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "aws-prod",
+				providerType: "aws",
+				config,
+				assignments: assignedEverywhere,
+			},
+		]);
+		mockStore({ mysecret: JSON.stringify({ DB_PASSWORD: "s3cret" }) });
+
+		const result = await resolveVaultReferences(
+			"DB_PASSWORD=${{vault.aws-prod.mysecret:DB_PASSWORD}}",
 			scope,
 		);
 
