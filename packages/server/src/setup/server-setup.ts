@@ -311,9 +311,13 @@ const installRequirements = async (
 						return;
 					}
 					stream
-						.on("close", () => {
+						.on("close", (code: number | null) => {
 							client.end();
-							resolve();
+							if (code === 0) {
+								resolve();
+							} else {
+								reject(new Error(`Setup script failed with exit code ${code}`));
+							}
 						})
 						.on("data", (data: string) => {
 							onData?.(data.toString());
@@ -417,48 +421,48 @@ export const setupSwarm = () => `
 
 				# Try IPv4 with multiple services
 				# First attempt: ifconfig.io
-				ip=\$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
+				ip=$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
 
 				# Second attempt: icanhazip.com
-				if [ -z "\$ip" ]; then
-					ip=\$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+				if [ -z "$ip" ]; then
+					ip=$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 				fi
 
 				# Third attempt: ipecho.net
-				if [ -z "\$ip" ]; then
-					ip=\$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
+				if [ -z "$ip" ]; then
+					ip=$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
 				fi
 
 				# If no IPv4, try IPv6 with multiple services
-				if [ -z "\$ip" ]; then
+				if [ -z "$ip" ]; then
 					# Try IPv6 with ifconfig.io
-					ip=\$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
+					ip=$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
 
 					# Try IPv6 with icanhazip.com
-					if [ -z "\$ip" ]; then
-						ip=\$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+					if [ -z "$ip" ]; then
+						ip=$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 					fi
 
 					# Try IPv6 with ipecho.net
-					if [ -z "\$ip" ]; then
-						ip=\$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
+					if [ -z "$ip" ]; then
+						ip=$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
 					fi
 				fi
 
-				if [ -z "\$ip" ]; then
+				if [ -z "$ip" ]; then
 					echo "Error: Could not determine server IP address automatically (neither IPv4 nor IPv6)." >&2
 					echo "Please set the ADVERTISE_ADDR environment variable manually." >&2
 					echo "Example: export ADVERTISE_ADDR=<your-server-ip>" >&2
 					exit 1
 				fi
 
-				echo "\$ip"
+				echo "$ip"
 			}
-			advertise_addr=\$(get_ip)
-			echo "Advertise address: \$advertise_addr"
+			advertise_addr=$(get_ip)
+			echo "Advertise address: $advertise_addr"
 
 			# Initialize Docker Swarm
-			$SUDO_CMD docker swarm init --advertise-addr \$advertise_addr
+			$SUDO_CMD docker swarm init --advertise-addr $advertise_addr
 			echo "Swarm initialized ✅"
 		fi
 	`;
@@ -497,7 +501,7 @@ const installUtilities = () => `
 		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
-		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
+		$SUDO_CMD sed -i '/^#.*/community/s/^#//' /etc/apk/repositories
 		$SUDO_CMD apk update >/dev/null
 		$SUDO_CMD apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
 		;;
