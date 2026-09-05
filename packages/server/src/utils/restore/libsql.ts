@@ -3,6 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Libsql } from "@dokploy/server/services/libsql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { getSafeRcloneErrorMessage } from "../backups/redact";
 import {
 	getRclonePathAndFlags,
 	getServiceContainerCommand,
@@ -38,11 +39,9 @@ export const restoreLibsqlBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring libsql backup"
-			}`,
-		);
-		throw error;
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Restore error:", safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
+		throw new Error(safeErrorMessage);
 	}
 };
