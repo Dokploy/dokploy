@@ -67,11 +67,14 @@ export const updateGitlab = async (
 	gitlabId: string,
 	input: Partial<Gitlab>,
 ) => {
+	const {
+		gitlabId: _gitlabId,
+		gitProviderId: _gitProviderId,
+		...editable
+	} = input;
 	return await db
 		.update(gitlab)
-		.set({
-			...input,
-		})
+		.set(editable)
 		.where(eq(gitlab.gitlabId, gitlabId))
 		.returning()
 		.then((response) => response[0]);

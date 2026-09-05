@@ -68,11 +68,14 @@ export const updateGithub = async (
 	githubId: string,
 	input: Partial<Github>,
 ) => {
+	const {
+		githubId: _githubId,
+		gitProviderId: _gitProviderId,
+		...editable
+	} = input;
 	return await db
 		.update(github)
-		.set({
-			...input,
-		})
+		.set(editable)
 		.where(eq(github.githubId, githubId))
 		.returning()
 		.then((response) => response[0]);

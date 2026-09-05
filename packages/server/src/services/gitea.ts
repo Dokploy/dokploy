@@ -82,9 +82,14 @@ export const findGiteaById = async (giteaId: string) => {
 
 export const updateGitea = async (giteaId: string, input: Partial<Gitea>) => {
 	try {
+		const {
+			giteaId: _giteaId,
+			gitProviderId: _gitProviderId,
+			...editable
+		} = input;
 		const updateResult = await db
 			.update(gitea)
-			.set(input)
+			.set(editable)
 			.where(eq(gitea.giteaId, giteaId))
 			.returning();
 
