@@ -25,6 +25,7 @@ const providerLabels: Record<string, string> = {
 	route53: "AWS Route53",
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
+	ovh: "OVHcloud",
 };
 
 export const ShowDnsProviders = () => {
