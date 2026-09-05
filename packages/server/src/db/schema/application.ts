@@ -352,8 +352,19 @@ const createSchema = createInsertSchema(applications, {
 		"static",
 		"railpack",
 	]),
-	railpackVersion: z.string().optional(),
-	herokuVersion: z.string().optional(),
+	railpackVersion: z
+		.string()
+		.regex(
+			/^\d+\.\d+\.\d+(-[A-Za-z0-9.-]+)?$/,
+			"Invalid railpackVersion: must be a semver version (e.g. 0.15.4)",
+		)
+		.nullable()
+		.optional(),
+	herokuVersion: z
+		.string()
+		.regex(/^\d*$/, "Invalid herokuVersion: must be an integer (e.g. 24)")
+		.nullable()
+		.optional(),
 	publishDirectory: z.string().optional(),
 	isStaticSpa: z.boolean().optional(),
 	createEnvFile: z.boolean().optional(),

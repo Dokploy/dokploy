@@ -1,3 +1,4 @@
+import { quote } from "shell-quote";
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
@@ -18,7 +19,7 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 		"--path",
 		buildAppDirectory,
 		"--builder",
-		`heroku/builder:${application.herokuVersion || "24"}`,
+		`heroku/builder:${quote([application.herokuVersion || "24"])}`,
 	];
 
 	if (cleanCache) {
