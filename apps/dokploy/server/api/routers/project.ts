@@ -883,22 +883,26 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 
+				const memberRecord =
+					ctx.user.role !== "owner" && ctx.user.role !== "admin"
+						? await findMemberByUserId(
+								ctx.user.id,
+								ctx.session.activeOrganizationId,
+							)
+						: null;
+
 				if (
 					input.duplicateInSameProject &&
 					sourceEnvironment &&
-					ctx.user.role !== "owner" &&
-					ctx.user.role !== "admin"
+					memberRecord &&
+					!memberRecord.accessedProjects.includes(
+						sourceEnvironment.project.projectId,
+					)
 				) {
-					const { accessedProjects } = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (!accessedProjects.includes(sourceEnvironment.project.projectId)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this project",
-						});
-					}
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this project",
+					});
 				}
 
 				const targetProject = input.duplicateInSameProject
@@ -915,9 +919,35 @@ export const projectRouter = createTRPCRouter({
 				if (input.includeServices) {
 					const servicesToDuplicate = input.selectedServices || [];
 
+					const assertCanReadSourceService = (
+						sourceOrganizationId: string,
+						serviceId: string,
+					) => {
+						if (sourceOrganizationId !== ctx.session.activeOrganizationId) {
+							throw new TRPCError({
+								code: "UNAUTHORIZED",
+								message: "You are not authorized to access this service",
+							});
+						}
+						if (
+							memberRecord &&
+							!memberRecord.accessedServices.includes(serviceId)
+						) {
+							throw new TRPCError({
+								code: "UNAUTHORIZED",
+								message: "You don't have access to this service",
+							});
+						}
+					};
+
 					const duplicateService = async (id: string, type: string) => {
 						switch (type) {
 							case "application": {
+								const fetched = await findApplicationById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
 								const {
 									applicationId,
 									domains,
@@ -930,7 +960,7 @@ export const projectRouter = createTRPCRouter({
 									appName,
 									refreshToken,
 									...application
-								} = await findApplicationById(id);
+								} = fetched;
 								const newAppName = appName.substring(
 									0,
 									appName.lastIndexOf("-"),
@@ -999,6 +1029,11 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "compose": {
+								const fetched = await findComposeById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
 								const {
 									composeId,
 									mounts,
@@ -1006,7 +1041,7 @@ export const projectRouter = createTRPCRouter({
 									appName,
 									refreshToken,
 									...compose
-								} = await findComposeById(id);
+								} = fetched;
 
 								const newAppName = appName.substring(
 									0,
@@ -1043,8 +1078,12 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "libsql": {
-								const { libsqlId, mounts, appName, ...libsql } =
-									await findLibsqlById(id);
+								const fetched = await findLibsqlById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
+								const { libsqlId, mounts, appName, ...libsql } = fetched;
 
 								const newAppName = appName.substring(
 									0,
@@ -1072,8 +1111,13 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mariadb": {
+								const fetched = await findMariadbById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
 								const { mariadbId, mounts, backups, appName, ...mariadb } =
-									await findMariadbById(id);
+									fetched;
 
 								const newAppName = appName.substring(
 									0,
@@ -1108,8 +1152,12 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mongo": {
-								const { mongoId, mounts, backups, appName, ...mongo } =
-									await findMongoById(id);
+								const fetched = await findMongoById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
+								const { mongoId, mounts, backups, appName, ...mongo } = fetched;
 
 								const newAppName = appName.substring(
 									0,
@@ -1144,8 +1192,12 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mysql": {
-								const { mysqlId, mounts, backups, appName, ...mysql } =
-									await findMySqlById(id);
+								const fetched = await findMySqlById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
+								const { mysqlId, mounts, backups, appName, ...mysql } = fetched;
 
 								const newAppName = appName.substring(
 									0,
@@ -1180,8 +1232,13 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "postgres": {
+								const fetched = await findPostgresById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
 								const { postgresId, mounts, backups, appName, ...postgres } =
-									await findPostgresById(id);
+									fetched;
 
 								const newAppName = appName.substring(
 									0,
@@ -1216,8 +1273,12 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "redis": {
-								const { redisId, mounts, appName, ...redis } =
-									await findRedisById(id);
+								const fetched = await findRedisById(id);
+								assertCanReadSourceService(
+									fetched.environment.project.organizationId,
+									id,
+								);
+								const { redisId, mounts, appName, ...redis } = fetched;
 
 								const newAppName = appName.substring(
 									0,
