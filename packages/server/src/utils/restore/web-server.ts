@@ -50,21 +50,43 @@ export const restoreWebServerBackup = async (
 				`cd ${quote([tempDir])} && unzip ${quote([backupFile])} > /dev/null 2>&1`,
 			);
 
-			// Restore filesystem first
-			emit("Restoring filesystem...");
-			emit(`Copying from ${tempDir}/filesystem/* to ${BASE_PATH}/`);
+			// /bin/sh has no nullglob, so a missing/empty filesystem/ leaves the
+			// `filesystem/*` glob literal and the copy would fail *after* wiping
+			// BASE_PATH. Verify there's something to restore before any wipe.
+			emit("Verifying backup filesystem contents...");
+			const { stdout: fsListing } = await execAsync(
+				`ls -A ${quote([`${tempDir}/filesystem`])} 2>/dev/null || true`,
+			);
+			if (!fsListing.trim()) {
+				throw new Error(
+					"Backup archive has no filesystem/ tree (missing or empty); refusing to wipe BASE_PATH",
+				);
+			}
 
-			// First clean the target directory
-			emit("Cleaning target directory...");
-			await execAsync(`rm -rf "${BASE_PATH}/"*`);
+			// Stage into a sibling of BASE_PATH, then wipe and swap only after the
+			// full copy succeeds, so a mid-restore failure leaves the live data
+			// intact. BASE_PATH is a bind mount in production, so its contents are
+			// replaced, never the directory itself.
+			const stagingDir = `${BASE_PATH}.restore-staging`;
+			emit("Staging filesystem restore...");
+			await execAsync(`rm -rf ${quote([stagingDir])}`);
+			await execAsync(`mkdir -p ${quote([stagingDir])}`);
+			try {
+				await execAsync(
+					`cp -rp "${tempDir}/filesystem/"* ${quote([stagingDir])}/`,
+				);
 
-			// Ensure the target directory exists
-			emit("Setting up target directory...");
-			await execAsync(`mkdir -p "${BASE_PATH}"`);
+				emit("Cleaning target directory...");
+				await execAsync(`rm -rf "${BASE_PATH}/"*`);
 
-			// Copy files preserving permissions
-			emit("Copying files...");
-			await execAsync(`cp -rp "${tempDir}/filesystem/"* "${BASE_PATH}/"`);
+				emit("Setting up target directory...");
+				await execAsync(`mkdir -p "${BASE_PATH}"`);
+
+				emit("Copying files...");
+				await execAsync(`mv "${stagingDir}/"* "${BASE_PATH}/"`);
+			} finally {
+				await execAsync(`rm -rf ${quote([stagingDir])}`);
+			}
 
 			// Now handle database restore
 			emit("Starting database restore...");
