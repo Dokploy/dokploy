@@ -83,6 +83,18 @@ export const createScheduleSchema = createInsertSchema(schedules, {
 	scheduleType: z.enum(["application", "compose", "server", "dokploy-server"]),
 });
 
-export const updateScheduleSchema = createScheduleSchema.extend({
-	scheduleId: z.string().min(1),
-});
+export const updateScheduleSchema = createScheduleSchema
+	.extend({ scheduleId: z.string().min(1) })
+	.omit({
+		// Ownership anchor — must never be caller-mutable on update. Allowing it
+		// would let a caller reassign a schedule into their own org (schedule theft).
+		organizationId: true,
+		// A schedule's type and target server are fixed at creation time. Allowing
+		// them to change on update enables re-typing a schedule onto a server the
+		// caller controls after passing the gate on the existing schedule's org.
+		scheduleType: true,
+		serverId: true,
+		// On-disk path identifier and creation timestamp are managed internally.
+		appName: true,
+		createdAt: true,
+	});

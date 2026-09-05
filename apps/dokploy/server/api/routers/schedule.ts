@@ -90,32 +90,12 @@ export const scheduleRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const existingSchedule = await findScheduleById(input.scheduleId);
 
-			if (
-				IS_CLOUD &&
-				input.scheduleType &&
-				input.scheduleType !== existingSchedule.scheduleType
-			) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Changing scheduleType is not allowed in the cloud version.",
-				});
-			}
-
 			await assertHostScheduleAccess(
 				ctx,
 				existingSchedule.scheduleType,
 				existingSchedule.serverId,
+				existingSchedule.organizationId,
 			);
-			if (
-				input.scheduleType &&
-				input.scheduleType !== existingSchedule.scheduleType
-			) {
-				await assertHostScheduleAccess(
-					ctx,
-					input.scheduleType,
-					input.serverId ?? existingSchedule.serverId,
-				);
-			}
 
 			const serviceId =
 				existingSchedule.applicationId || existingSchedule.composeId;
@@ -169,6 +149,7 @@ export const scheduleRouter = createTRPCRouter({
 				ctx,
 				scheduleItem.scheduleType,
 				scheduleItem.serverId,
+				scheduleItem.organizationId,
 			);
 
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
@@ -308,6 +289,25 @@ export const scheduleRouter = createTRPCRouter({
 						});
 					}
 				}
+
+				if (schedule.scheduleType === "dokploy-server") {
+					const member = await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+					if (member.role !== "owner" && member.role !== "admin") {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "Only owners and admins can read host-level schedules.",
+						});
+					}
+					if (schedule.organizationId !== ctx.session.activeOrganizationId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this schedule.",
+						});
+					}
+				}
 			}
 			return schedule;
 		}),
@@ -320,6 +320,7 @@ export const scheduleRouter = createTRPCRouter({
 				ctx,
 				scheduleItem.scheduleType,
 				scheduleItem.serverId,
+				scheduleItem.organizationId,
 			);
 
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
