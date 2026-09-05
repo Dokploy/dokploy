@@ -41,7 +41,8 @@ export const rebuildDatabase = async (
 
 	for (const mount of database.mounts) {
 		if (mount.type === "volume") {
-			const command = `docker volume rm ${quote([mount?.volumeName ?? ""])} --force`;
+			if (!mount.volumeName) continue;
+			const command = `docker volume rm ${quote([mount.volumeName])} --force`;
 			if (database.serverId) {
 				await execAsyncRemote(database.serverId, command);
 			} else {
