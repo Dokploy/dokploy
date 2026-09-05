@@ -33,6 +33,10 @@ import {
 import { findBackupById } from "./backup";
 import { type Compose, findComposeById, updateCompose } from "./compose";
 import {
+	checkServicePermissionAndAccess,
+	type PermissionCtx,
+} from "./permission";
+import {
 	findPreviewDeploymentById,
 	type PreviewDeployment,
 	updatePreviewDeployment,
@@ -104,6 +108,38 @@ export const findDeploymentById = async (deploymentId: string) => {
 		});
 	}
 	return deployment;
+};
+
+// Authorizes a deployment that may be owned by an application/compose service,
+// a remote-server schedule, or a host-level (dokploy-server) schedule. Falls
+// back to reject-by-default when no ownership relation can be established.
+export const assertDeploymentAccess = async (
+	ctx: PermissionCtx,
+	serviceId: string | null | undefined,
+	schedule: { serverId: string | null; organizationId: string | null } | null,
+	permission: "cancel" | "read",
+	message = "You don't have access to this deployment.",
+) => {
+	if (serviceId) {
+		await checkServicePermissionAndAccess(ctx, serviceId, {
+			deployment: [permission],
+		});
+		return;
+	}
+	if (schedule?.serverId) {
+		const targetServer = await findServerById(schedule.serverId);
+		if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({ code: "UNAUTHORIZED", message });
+		}
+		return;
+	}
+	if (schedule?.organizationId) {
+		if (schedule.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({ code: "UNAUTHORIZED", message });
+		}
+		return;
+	}
+	throw new TRPCError({ code: "UNAUTHORIZED", message });
 };
 
 export const findDeploymentByApplicationId = async (applicationId: string) => {

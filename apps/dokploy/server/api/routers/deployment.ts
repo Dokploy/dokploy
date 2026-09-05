@@ -1,4 +1,5 @@
 import {
+	assertDeploymentAccess,
 	execAsync,
 	execAsyncRemote,
 	findAllDeploymentsByApplicationId,
@@ -129,22 +130,13 @@ export const deploymentRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			if (input.type === "schedule") {
 				const schedule = await findScheduleById(input.id);
-				const serviceId = schedule.applicationId || schedule.composeId;
-				if (serviceId) {
-					await checkServicePermissionAndAccess(ctx, serviceId, {
-						deployment: ["read"],
-					});
-				} else if (schedule.serverId) {
-					const targetServer = await findServerById(schedule.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this schedule.",
-						});
-					}
-				}
+				await assertDeploymentAccess(
+					ctx,
+					schedule.applicationId || schedule.composeId,
+					schedule,
+					"read",
+					"You don't have access to this schedule.",
+				);
 			} else {
 				await checkServicePermissionAndAccess(ctx, input.id, {
 					deployment: ["read"],
@@ -167,20 +159,12 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
-			const serviceId = deployment.applicationId || deployment.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					deployment: ["cancel"],
-				});
-			} else if (deployment.schedule?.serverId) {
-				const targetServer = await findServerById(deployment.schedule.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this deployment.",
-					});
-				}
-			}
+			await assertDeploymentAccess(
+				ctx,
+				deployment.applicationId || deployment.composeId,
+				deployment.schedule,
+				"cancel",
+			);
 
 			if (!deployment.pid) {
 				throw new TRPCError({
@@ -212,20 +196,12 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
-			const serviceId = deployment.applicationId || deployment.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					deployment: ["cancel"],
-				});
-			} else if (deployment.schedule?.serverId) {
-				const targetServer = await findServerById(deployment.schedule.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this deployment.",
-					});
-				}
-			}
+			await assertDeploymentAccess(
+				ctx,
+				deployment.applicationId || deployment.composeId,
+				deployment.schedule,
+				"cancel",
+			);
 			const result = await removeDeployment(input.deploymentId);
 			await audit(ctx, {
 				action: "delete",
@@ -244,20 +220,12 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
-			const serviceId = deployment.applicationId || deployment.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					deployment: ["read"],
-				});
-			} else if (deployment.schedule?.serverId) {
-				const targetServer = await findServerById(deployment.schedule.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this deployment.",
-					});
-				}
-			}
+			await assertDeploymentAccess(
+				ctx,
+				deployment.applicationId || deployment.composeId,
+				deployment.schedule,
+				"read",
+			);
 
 			if (!deployment.logPath) {
 				return "";
