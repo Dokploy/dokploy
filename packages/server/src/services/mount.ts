@@ -23,6 +23,31 @@ import type { z } from "zod";
 
 export type Mount = typeof mounts.$inferSelect;
 
+// Absolute host paths a "bind" mount must never be allowed to target for a
+// non-owner/admin caller - each one gives a way off the container onto the
+// Dokploy control host (docker.sock -> full daemon control, /etc/dokploy ->
+// Dokploy's own config/certs, /root //boot/proc/sys -> host takeover).
+const DANGEROUS_HOST_PATH_PREFIXES = [
+	"/var/run/docker.sock",
+	"/run/docker.sock",
+	"/var/lib/docker",
+	"/etc/dokploy",
+	"/root",
+	"/boot",
+	"/proc",
+	"/sys",
+];
+
+export const isDangerousBindMountPath = (hostPath: string): boolean => {
+	// Resolve against "/" so relative segments and ".." traversal tricks
+	// (e.g. "../../var/run/docker.sock") can't sneak past the prefix check.
+	const normalized = path.posix.resolve("/", hostPath.trim());
+	if (normalized === "/") return true;
+	return DANGEROUS_HOST_PATH_PREFIXES.some(
+		(prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`),
+	);
+};
+
 export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 	try {
 		const { serviceId, ...rest } = input;
