@@ -3,6 +3,7 @@ import {
 	type SpawnOptions,
 	spawn,
 } from "node:child_process";
+import { StringDecoder } from "node:string_decoder";
 import BufferList from "bl";
 
 export const spawnAsync = (
@@ -15,11 +16,20 @@ export const spawnAsync = (
 	const stdout = child.stdout ? new BufferList() : new BufferList();
 	const stderr = child.stderr ? new BufferList() : new BufferList();
 
+	const stdoutDecoder = new StringDecoder("utf8");
+	const stderrDecoder = new StringDecoder("utf8");
+
 	if (child.stdout) {
 		child.stdout.on("data", (data) => {
 			stdout.append(data);
 			if (onData) {
-				onData(data.toString());
+				onData(stdoutDecoder.write(data));
+			}
+		});
+		child.stdout.on("end", () => {
+			const tail = stdoutDecoder.end();
+			if (onData && tail.length) {
+				onData(tail);
 			}
 		});
 	}
@@ -27,7 +37,13 @@ export const spawnAsync = (
 		child.stderr.on("data", (data) => {
 			stderr.append(data);
 			if (onData) {
-				onData(data.toString());
+				onData(stderrDecoder.write(data));
+			}
+		});
+		child.stderr.on("end", () => {
+			const tail = stderrDecoder.end();
+			if (onData && tail.length) {
+				onData(tail);
 			}
 		});
 	}
