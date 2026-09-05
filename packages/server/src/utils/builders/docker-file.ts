@@ -35,14 +35,14 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		const commandArgs = [
 			"build",
 			"-t",
-			image,
+			quote([image]),
 			"-f",
-			dockerFilePath,
-			dockerContextPath,
+			quote([dockerFilePath]),
+			quote([dockerContextPath]),
 		];
 
 		if (dockerBuildStage) {
-			commandArgs.push("--target", dockerBuildStage);
+			commandArgs.push("--target", quote([dockerBuildStage]));
 		}
 
 		if (cleanCache) {
