@@ -838,12 +838,90 @@ export const findNotificationById = async (notificationId: string) => {
 };
 
 export const removeNotificationById = async (notificationId: string) => {
-	const result = await db
-		.delete(notifications)
-		.where(eq(notifications.notificationId, notificationId))
-		.returning();
+	return db.transaction(async (tx) => {
+		const deleted = await tx
+			.delete(notifications)
+			.where(eq(notifications.notificationId, notificationId))
+			.returning()
+			.then((value) => value[0]);
 
-	return result[0];
+		if (!deleted) {
+			return undefined;
+		}
+
+		switch (deleted.notificationType) {
+			case "slack":
+				if (deleted.slackId) {
+					await tx.delete(slack).where(eq(slack.slackId, deleted.slackId));
+				}
+				break;
+			case "telegram":
+				if (deleted.telegramId) {
+					await tx
+						.delete(telegram)
+						.where(eq(telegram.telegramId, deleted.telegramId));
+				}
+				break;
+			case "discord":
+				if (deleted.discordId) {
+					await tx
+						.delete(discord)
+						.where(eq(discord.discordId, deleted.discordId));
+				}
+				break;
+			case "email":
+				if (deleted.emailId) {
+					await tx.delete(email).where(eq(email.emailId, deleted.emailId));
+				}
+				break;
+			case "resend":
+				if (deleted.resendId) {
+					await tx.delete(resend).where(eq(resend.resendId, deleted.resendId));
+				}
+				break;
+			case "gotify":
+				if (deleted.gotifyId) {
+					await tx.delete(gotify).where(eq(gotify.gotifyId, deleted.gotifyId));
+				}
+				break;
+			case "ntfy":
+				if (deleted.ntfyId) {
+					await tx.delete(ntfy).where(eq(ntfy.ntfyId, deleted.ntfyId));
+				}
+				break;
+			case "mattermost":
+				if (deleted.mattermostId) {
+					await tx
+						.delete(mattermost)
+						.where(eq(mattermost.mattermostId, deleted.mattermostId));
+				}
+				break;
+			case "custom":
+				if (deleted.customId) {
+					await tx.delete(custom).where(eq(custom.customId, deleted.customId));
+				}
+				break;
+			case "lark":
+				if (deleted.larkId) {
+					await tx.delete(lark).where(eq(lark.larkId, deleted.larkId));
+				}
+				break;
+			case "pushover":
+				if (deleted.pushoverId) {
+					await tx
+						.delete(pushover)
+						.where(eq(pushover.pushoverId, deleted.pushoverId));
+				}
+				break;
+			case "teams":
+				if (deleted.teamsId) {
+					await tx.delete(teams).where(eq(teams.teamsId, deleted.teamsId));
+				}
+				break;
+		}
+
+		return deleted;
+	});
 };
 
 export const createLarkNotification = async (
