@@ -68,7 +68,7 @@ export const runComposeBackup = async (
 			projectName: project.name,
 			databaseType: getDatabaseType(databaseType),
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
@@ -79,7 +79,9 @@ export const runComposeBackup = async (
 	}
 };
 
-const getDatabaseType = (databaseType: BackupSchedule["databaseType"]) => {
+export const getDatabaseType = (
+	databaseType: BackupSchedule["databaseType"],
+) => {
 	if (databaseType === "mongo") {
 		return "mongodb";
 	}
@@ -91,6 +93,9 @@ const getDatabaseType = (databaseType: BackupSchedule["databaseType"]) => {
 	}
 	if (databaseType === "mysql") {
 		return "mysql";
+	}
+	if (databaseType === "libsql") {
+		return "libsql";
 	}
 	return "mongodb";
 };
