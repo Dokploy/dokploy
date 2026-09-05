@@ -1,4 +1,8 @@
-import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
+import {
+	getSafeRcloneErrorMessage,
+	redactRcloneCredentials,
+} from "@dokploy/server/utils/backups/redact";
+import { quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
 
 describe("redactRcloneCredentials (#4621)", () => {
@@ -27,6 +31,23 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).toContain('--s3-region="us-east-1"');
 	});
 
+	it("should redact FTP and SFTP obscured password flags", () => {
+		for (const backend of ["ftp", "sftp"] as const) {
+			const cmd = `rclone lsf --${backend}-host=storage.example.com --${backend}-pass='obscured-secret' :${backend}:backups`;
+			const redacted = redactRcloneCredentials(cmd);
+			expect(redacted).not.toContain("obscured-secret");
+			expect(redacted).toContain(`--${backend}-pass="[REDACTED]"`);
+		}
+	});
+
+	it("should redact unquoted FTP and SFTP password flags", () => {
+		const cmd =
+			"rclone lsf --ftp-pass=ftp-secret --sftp-pass=sftp-secret :ftp:backups";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("ftp-secret");
+		expect(redacted).not.toContain("sftp-secret");
+	});
+
 	it("should not modify non-credential flags", () => {
 		const cmd =
 			'rclone rcat --s3-region="eu-west-1" --s3-endpoint="https://s3.example.com" --s3-no-check-bucket :s3:bucket/file.gz';
@@ -46,5 +67,33 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("MYKEY");
 		expect(redacted).not.toContain("MYSECRET");
 		expect(redacted).toContain("[REDACTED]");
+	});
+	it("should sanitize rclone credentials from propagated backup errors", () => {
+		const error = new Error(
+			"Command failed: rclone rcat --s3-access-key-id=ACCESS_VALUE_9X --s3-secret-access-key=S3_VALUE_LEAK_9X --ftp-pass=FTP_VALUE_LEAK_9X --sftp-pass=SFTP_VALUE_LEAK_9X --sftp-key-file-pass=KEY_VALUE_LEAK_9X :ftp:backups/file.gz",
+		);
+		const safe = getSafeRcloneErrorMessage(error);
+
+		for (const secret of [
+			"ACCESS_VALUE_9X",
+			"S3_VALUE_LEAK_9X",
+			"FTP_VALUE_LEAK_9X",
+			"SFTP_VALUE_LEAK_9X",
+			"KEY_VALUE_LEAK_9X",
+		]) {
+			expect(safe).not.toContain(secret);
+		}
+		expect(safe.match(/\[REDACTED\]/g)?.length).toBe(5);
+	});
+	it("should fully redact shell-quote output with embedded quotes and whitespace", () => {
+		const secret = "PART_A' PART_B\" $PART_C;\\PART_D";
+		const cmd = `rclone lsf --s3-secret-access-key=${quote([secret])} --s3-region=us-east-1 :s3:bucket`;
+		const redacted = redactRcloneCredentials(cmd);
+
+		for (const fragment of ["PART_A", "PART_B", "PART_C", "PART_D"]) {
+			expect(redacted).not.toContain(fragment);
+		}
+		expect(redacted).toContain('--s3-secret-access-key="[REDACTED]"');
+		expect(redacted).toContain("--s3-region=us-east-1");
 	});
 });

@@ -9,10 +9,11 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getSafeRcloneErrorMessage } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRclonePathAndFlags,
 	normalizeS3Path,
 } from "./utils";
 
@@ -35,8 +36,8 @@ export const runComposeBackup = async (
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const { flags: rcloneFlags, path: rcloneDestination } =
+			await getRclonePathAndFlags(destination, bucketDestination);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,
@@ -62,20 +63,20 @@ export const runComposeBackup = async (
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Backup error:", safeErrorMessage);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
 			databaseType: getDatabaseType(databaseType),
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: safeErrorMessage,
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		throw error;
+		throw new Error(safeErrorMessage);
 	}
 };
 

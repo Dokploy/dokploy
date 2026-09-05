@@ -4,9 +4,30 @@ import {
 	findApplicationById,
 	findComposeById,
 	findDestinationById,
-	getS3Credentials,
+	getRclonePathAndFlags,
 	paths,
 } from "../..";
+
+const UNSAFE_BACKUP_PATH_CHARS = /[\0\r\n;&|`$<>]/;
+
+export const normalizeVolumeBackupFilePath = (value: string) => {
+	const normalized = value.trim().replace(/\\/g, "/");
+	if (
+		!normalized ||
+		normalized.startsWith("/") ||
+		normalized.endsWith("/") ||
+		UNSAFE_BACKUP_PATH_CHARS.test(normalized)
+	) {
+		throw new Error("Invalid volume backup file path");
+	}
+	const segments = normalized.split("/");
+	if (
+		segments.some((segment) => !segment || segment === "." || segment === "..")
+	) {
+		throw new Error("Invalid volume backup file path");
+	}
+	return segments.join("/");
+};
 
 export const restoreVolume = async (
 	id: string,
@@ -19,29 +40,36 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
+	const safeBackupFileName = normalizeVolumeBackupFilePath(backupFileName);
+	const { flags: rcloneFlags, path: backupPath } = await getRclonePathAndFlags(
+		destination,
+		safeBackupFileName,
+	);
+	const localBackupPath = path.join(
+		volumeBackupPath,
+		...safeBackupFileName.split("/"),
+	);
+	const localBackupDirectory = path.dirname(localBackupPath);
 
-	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${volumeBackupPath}/${backupFileName}`])}`;
+	// Command to download backup file from the configured destination
+	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([localBackupPath])}`;
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
-	echo "Backup file name: ${backupFileName}"
+	echo "Backup file name:" ${quote([safeBackupFileName])}
 	echo "Volume backup path: ${volumeBackupPath}"
-	echo "Downloading backup from S3..."
-	mkdir -p ${volumeBackupPath}
+	echo "Downloading backup from destination..."
+	mkdir -p ${quote([localBackupDirectory])}
 	${downloadCommand}
 	echo "Download completed ✅"
 	echo "Creating new volume and restoring data..."
 	docker run --rm \
 		-v ${volumeName}:/volume_data \
-		-v ${volumeBackupPath}:/backup \
+		-v ${quote([volumeBackupPath])}:/backup \
 		ubuntu \
-		bash -c "cd /volume_data && tar xvf /backup/${quote([backupFileName])} ."
+		bash -c 'cd /volume_data && tar xvf "/backup/$1" .' -- ${quote([safeBackupFileName])}
 	echo "Volume restore completed ✅"
 	`;
 
