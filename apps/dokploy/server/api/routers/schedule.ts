@@ -138,10 +138,10 @@ export const scheduleRouter = createTRPCRouter({
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
-						scheduleId: updatedSchedule.scheduleId,
+						cronSchedule: existingSchedule.cronExpression,
+						scheduleId: existingSchedule.scheduleId,
 						type: "schedule",
-						timezone: updatedSchedule.timezone,
+						timezone: existingSchedule.timezone,
 					});
 				}
 			} else {
