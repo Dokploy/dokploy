@@ -8,6 +8,7 @@ export const dnsProviderType = pgEnum("DnsProviderType", [
 	"cloudflare",
 	"route53",
 	"porkbun",
+	"infomaniak",
 	"ovh",
 ]);
 
@@ -26,6 +27,11 @@ export const porkbunDnsConfigSchema = z.object({
 	providerType: z.literal("porkbun"),
 	apiKey: z.string().trim().min(1),
 	secretApiKey: z.string().trim().min(1),
+});
+
+export const infomaniakDnsConfigSchema = z.object({
+	providerType: z.literal("infomaniak"),
+	apiToken: z.string().trim().min(1),
 });
 
 export const ovhApiEndpoints = [
@@ -50,6 +56,7 @@ export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
 	cloudflareDnsConfigSchema,
 	route53DnsConfigSchema,
 	porkbunDnsConfigSchema,
+	infomaniakDnsConfigSchema,
 	ovhDnsConfigSchema,
 ]);
 

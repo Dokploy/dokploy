@@ -44,6 +44,7 @@ const providerLabels = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
 	porkbun: "Porkbun",
+	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
 } as const;
 
@@ -66,7 +67,13 @@ const DnsProviderSchema = z.object({
 		.regex(/^[a-zA-Z0-9_-]+$/, {
 			message: "Only letters, numbers, dashes and underscores",
 		}),
-	providerType: z.enum(["cloudflare", "route53", "porkbun", "ovh"]),
+	providerType: z.enum([
+		"cloudflare",
+		"route53",
+		"porkbun",
+		"infomaniak",
+		"ovh",
+	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
@@ -117,6 +124,11 @@ const buildConfig = (data: DnsProviderForm) => {
 				providerType: "porkbun" as const,
 				apiKey: data.apiKey,
 				secretApiKey: data.secretApiKey,
+			};
+		case "infomaniak":
+			return {
+				providerType: "infomaniak" as const,
+				apiToken: data.apiToken,
 			};
 		case "ovh":
 			return {
@@ -186,6 +198,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 				...(provider.config.providerType === "porkbun" && {
 					apiKey: provider.config.apiKey,
 					secretApiKey: provider.config.secretApiKey,
+				}),
+				...(provider.config.providerType === "infomaniak" && {
+					apiToken: provider.config.apiToken,
 				}),
 				...(provider.config.providerType === "ovh" && {
 					endpoint: provider.config.endpoint,
@@ -419,6 +434,27 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 									)}
 								/>
 							</>
+						)}
+
+						{providerType === "infomaniak" && (
+							<FormField
+								control={form.control}
+								name="apiToken"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Token</FormLabel>
+										<FormControl>
+											<Input type="password" {...field} />
+										</FormControl>
+										<FormDescription>
+											Create a token at manager.infomaniak.com with the{" "}
+											<code>domain:read</code>, <code>dns:read</code> and{" "}
+											<code>dns:write</code> scopes.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 						)}
 
 						{providerType === "ovh" && (

@@ -115,10 +115,13 @@ export const ShowServers = () => {
 																className="relative hover:shadow-lg transition-shadow flex flex-col bg-transparent"
 															>
 																<CardHeader className="pb-3">
-																	<div className="flex items-start justify-between gap-2">
+																	<div className="flex items-start justify-between gap-2 min-w-0">
 																		<div className="flex min-w-0 items-center gap-2">
 																			<ServerIcon className="size-5 shrink-0 text-muted-foreground" />
-																			<CardTitle className="text-lg wrap-break-word min-w-0">
+																			<CardTitle
+																				className="text-lg truncate min-w-0"
+																				title={server.name}
+																			>
 																				{server.name}
 																			</CardTitle>
 																		</div>
