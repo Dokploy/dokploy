@@ -326,6 +326,58 @@ describe("infomaniakClient.upsertRecord", () => {
 
 		expect(lastBody().target).toBe('"token-value"');
 	});
+
+	it("queries the API with a source and type filter instead of the whole zone", async () => {
+		mockFetch
+			.mockResolvedValueOnce(ikSuccess([]))
+			.mockResolvedValueOnce(ikSuccess({ id: 50 }));
+
+		await infomaniakClient.upsertRecord(config, {
+			zoneId: "example.com",
+			type: "A",
+			name: "app.example.com",
+			content: "1.2.3.4",
+		});
+
+		const [url] = mockFetch.mock.calls[0] as [string];
+		expect(url).toContain("filter%5Bsource%5D=app");
+		expect(url).toContain("filter%5Btypes%5D%5B%5D=A");
+	});
+
+	it("ignores a partial filter hit rather than overwriting a different record", async () => {
+		// filter[source] matches substrings: asking for "auto" also returns
+		// "autoconfig" and "autodiscover". Trusting it would overwrite one of them.
+		mockFetch
+			.mockResolvedValueOnce(
+				ikSuccess([
+					{
+						id: 61,
+						type: "CNAME",
+						source: "autoconfig",
+						target: "a.example.net",
+						ttl: 300,
+					},
+					{
+						id: 62,
+						type: "CNAME",
+						source: "autodiscover",
+						target: "b.example.net",
+						ttl: 300,
+					},
+				]),
+			)
+			.mockResolvedValueOnce(ikSuccess({ id: 63 }));
+
+		const result = await infomaniakClient.upsertRecord(config, {
+			zoneId: "example.com",
+			type: "CNAME",
+			name: "auto.example.com",
+			content: "c.example.net",
+		});
+
+		expect(result).toEqual({ id: "63" });
+		expect(lastCall()[1].method).toBe("POST");
+	});
 });
 
 describe("infomaniakClient.updateRecord", () => {
