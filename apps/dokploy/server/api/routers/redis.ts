@@ -462,6 +462,30 @@ export const redisRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const redis = await findRedisById(input.redisId);
+			if (
+				redis.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this redis",
+				});
+			}
+
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this environment",
+				});
+			}
+
 			const updatedRedis = await db
 				.update(redisTable)
 				.set({

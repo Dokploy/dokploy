@@ -478,6 +478,30 @@ export const mysqlRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const mysql = await findMySqlById(input.mysqlId);
+			if (
+				mysql.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mysql",
+				});
+			}
+
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this environment",
+				});
+			}
+
 			const updatedMysql = await db
 				.update(mysqlTable)
 				.set({

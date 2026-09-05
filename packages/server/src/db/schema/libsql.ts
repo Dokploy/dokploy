@@ -246,7 +246,7 @@ export const apiUpdateLibsql = createSchema
 	.extend({
 		libsqlId: z.string().min(1),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, environmentId: true });
 
 export const apiRebuildLibsql = createSchema
 	.pick({
