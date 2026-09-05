@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { canCreateCheckout } from "@/components/dashboard/settings/billing/billing-gates";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -983,18 +984,21 @@ export const ShowBilling = () => {
 															Manage Subscription
 														</Button>
 													)}
-													{!isEnterpriseCloud &&
-														(data?.subscriptions?.length ?? 0) === 0 && (
-															<Button
-																className="w-full"
-																onClick={() =>
-																	handleCheckout("hobby", data!.hobbyProductId!)
-																}
-																disabled={hobbyServerQuantity < 1}
-															>
-																Get Started
-															</Button>
-														)}
+													{canCreateCheckout(
+														isEnterpriseCloud,
+														billingStatus,
+														data?.subscriptions?.length ?? 0,
+													) && (
+														<Button
+															className="w-full"
+															onClick={() =>
+																handleCheckout("hobby", data!.hobbyProductId!)
+															}
+															disabled={hobbyServerQuantity < 1}
+														>
+															Get Started
+														</Button>
+													)}
 												</div>
 											</div>
 										</section>
@@ -1128,24 +1132,26 @@ export const ShowBilling = () => {
 															Manage Subscription
 														</Button>
 													)}
-													{!isEnterpriseCloud &&
-														(data?.subscriptions?.length ?? 0) === 0 && (
-															<Button
-																className="w-full"
-																onClick={() =>
-																	handleCheckout(
-																		"startup",
-																		data!.startupProductId!,
-																	)
-																}
-																disabled={
-																	startupServerQuantity <
-																	STARTUP_SERVERS_INCLUDED
-																}
-															>
-																Get Started
-															</Button>
-														)}
+													{canCreateCheckout(
+														isEnterpriseCloud,
+														billingStatus,
+														data?.subscriptions?.length ?? 0,
+													) && (
+														<Button
+															className="w-full"
+															onClick={() =>
+																handleCheckout(
+																	"startup",
+																	data!.startupProductId!,
+																)
+															}
+															disabled={
+																startupServerQuantity < STARTUP_SERVERS_INCLUDED
+															}
+														>
+															Get Started
+														</Button>
+													)}
 												</div>
 											</div>
 										</section>
@@ -1350,18 +1356,21 @@ export const ShowBilling = () => {
 																	Manage Subscription
 																</Button>
 															)}
-															{!isEnterpriseCloud &&
-																(data?.subscriptions?.length ?? 0) === 0 && (
-																	<Button
-																		className="w-full"
-																		onClick={async () => {
-																			handleCheckout("legacy", product.id);
-																		}}
-																		disabled={hobbyServerQuantity < 1}
-																	>
-																		Subscribe
-																	</Button>
-																)}
+															{canCreateCheckout(
+																isEnterpriseCloud,
+																billingStatus,
+																data?.subscriptions?.length ?? 0,
+															) && (
+																<Button
+																	className="w-full"
+																	onClick={async () => {
+																		handleCheckout("legacy", product.id);
+																	}}
+																	disabled={hobbyServerQuantity < 1}
+																>
+																	Subscribe
+																</Button>
+															)}
 														</div>
 													</div>
 												</section>

@@ -226,6 +226,23 @@ export const stripeRouter = createTRPCRouter({
 				}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
+			}
+
+			const owner = await findUserById(ctx.user.ownerId);
+
+			const billingStatus = await getBillingStatus(owner.id);
+			if (billingStatus.hasActiveAccess) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You already have an active plan or trial",
+				});
+			}
+
 			const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 				apiVersion: "2024-09-30.acacia",
 			});
@@ -235,8 +252,6 @@ export const stripeRouter = createTRPCRouter({
 				input.serverQuantity,
 				input.isAnnual,
 			);
-			// Always operate on the organization owner's Stripe customer
-			const owner = await findUserById(ctx.user.ownerId);
 
 			let stripeCustomerId = owner.stripeCustomerId;
 
