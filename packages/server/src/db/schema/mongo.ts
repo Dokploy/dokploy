@@ -135,7 +135,7 @@ const createSchema = createInsertSchema(mongo, {
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
-	externalPort: z.number(),
+	externalPort: z.number().nullable(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 	replicaSets: z.boolean().default(false),
