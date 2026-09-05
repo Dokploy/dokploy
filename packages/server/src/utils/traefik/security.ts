@@ -36,21 +36,25 @@ export const createSecurityMiddleware = async (
 
 	const user = `${data.username}:${await bcrypt.hash(data.password, 10)}`;
 
-	if (config.http?.middlewares) {
-		const currentMiddleware = config.http.middlewares[middlewareName];
-		if (isBasicAuthMiddleware(currentMiddleware)) {
-			currentMiddleware.basicAuth.users = [
-				...(currentMiddleware.basicAuth.users || []),
-				user,
-			];
-		} else {
-			config.http.middlewares[middlewareName] = {
-				basicAuth: {
-					removeHeader: true,
-					users: [user],
-				},
-			};
-		}
+	if (!config.http) {
+		config.http = { middlewares: {} };
+	}
+	if (!config.http.middlewares) {
+		config.http.middlewares = {};
+	}
+	const currentMiddleware = config.http.middlewares[middlewareName];
+	if (isBasicAuthMiddleware(currentMiddleware)) {
+		currentMiddleware.basicAuth.users = [
+			...(currentMiddleware.basicAuth.users || []),
+			user,
+		];
+	} else {
+		config.http.middlewares[middlewareName] = {
+			basicAuth: {
+				removeHeader: true,
+				users: [user],
+			},
+		};
 	}
 	let appConfig: FileConfig;
 
