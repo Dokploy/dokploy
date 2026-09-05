@@ -4,6 +4,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { quote } from "shell-quote";
+import { toMb } from "../monitoring/units";
 
 export const getContainers = async (serverId?: string | null) => {
 	try {
@@ -715,6 +716,106 @@ export const getAllContainerStats = async (serverId?: string) => {
 		return stats;
 	} catch (error) {
 		console.error("getAllContainerStats error:", error);
+		return [];
+	}
+};
+
+export interface ContainerWithLabels {
+	containerId: string;
+	name: string;
+	image: string;
+	state: string;
+	labels: Record<string, string>;
+	sizeMb: number;
+	virtualSizeMb: number;
+}
+
+// docker ps's `.Labels` format is a single "k1=v1,k2=v2" string, so we only
+// extract the label keys Dokploy itself relies on to identify a service.
+export const SWARM_SERVICE_LABEL = "com.docker.swarm.service.name";
+export const STACK_NAMESPACE_LABEL = "com.docker.stack.namespace";
+export const COMPOSE_PROJECT_LABEL = "com.docker.compose.project";
+export const COMPOSE_SERVICE_LABEL = "com.docker.compose.service";
+const RELEVANT_LABEL_KEYS = [
+	SWARM_SERVICE_LABEL,
+	STACK_NAMESPACE_LABEL,
+	COMPOSE_PROJECT_LABEL,
+	COMPOSE_SERVICE_LABEL,
+];
+
+const parseRelevantLabels = (raw: string): Record<string, string> => {
+	const labels: Record<string, string> = {};
+	if (!raw) return labels;
+
+	for (const key of RELEVANT_LABEL_KEYS) {
+		const match = raw.match(new RegExp(`(?:^|,)${key}=([^,]*)`));
+		if (match?.[1] !== undefined) {
+			labels[key] = match[1];
+		}
+	}
+
+	return labels;
+};
+
+// `docker ps -s` formats Size as either "0B" or "1.83kB (virtual 5.58MB)" —
+// the first number is the container's own writable layer, the second
+// (when present) also includes the shared image layers.
+const parseSize = (raw: string): { sizeMb: number; virtualSizeMb: number } => {
+	const [sizePart, virtualPart] = raw.split(" (virtual ");
+	const sizeMb = toMb(sizePart);
+	const virtualSizeMb = virtualPart
+		? toMb(virtualPart.replace(")", ""))
+		: sizeMb;
+	return { sizeMb, virtualSizeMb };
+};
+
+export const getAllContainersWithLabels = async (
+	serverId?: string,
+): Promise<ContainerWithLabels[]> => {
+	try {
+		let stdout = "";
+		const command = "docker ps -a -s --format '{{json .}}'";
+
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, command);
+			stdout = result.stdout;
+		} else {
+			const result = await execAsync(command);
+			stdout = result.stdout;
+		}
+
+		if (!stdout.trim()) {
+			return [];
+		}
+
+		return stdout
+			.trim()
+			.split("\n")
+			.flatMap((line) => {
+				try {
+					const raw = JSON.parse(line);
+					const { sizeMb, virtualSizeMb } = parseSize(raw.Size ?? "");
+					return [
+						{
+							containerId: raw.ID as string,
+							name: raw.Names as string,
+							image: raw.Image as string,
+							state: raw.State as string,
+							labels: parseRelevantLabels(raw.Labels ?? ""),
+							sizeMb,
+							virtualSizeMb,
+						},
+					];
+				} catch (error) {
+					console.error(
+						"getAllContainersWithLabels: failed to parse container line:",
+						error,
+					);
+					return [];
+				}
+			});
+	} catch (error) {
+		console.error("getAllContainersWithLabels error:", error);
 		return [];
 	}
 };
