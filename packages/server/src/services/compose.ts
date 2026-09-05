@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
@@ -7,10 +7,14 @@ import {
 	cleanAppName,
 	compose,
 } from "@dokploy/server/db/schema";
-import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	getBuildComposeCommand,
+	ROLLBACK_OK_MARKER,
+} from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
+	getComposePath,
 	loadDockerCompose,
 	loadDockerComposeRemote,
 } from "@dokploy/server/utils/docker/domain";
@@ -225,6 +229,47 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
+export const didRollbackSucceed = async (
+	compose: Compose,
+	logPath: string,
+	deploymentId: string,
+) => {
+	const command = `if grep -q '^${ROLLBACK_OK_MARKER}:${deploymentId}$' "${logPath}" 2>/dev/null; then echo "LIVE_OK"; else echo "LIVE_FAILED"; fi`;
+	try {
+		if (compose.serverId) {
+			const { stdout } = await execAsyncRemote(compose.serverId, command);
+			return stdout.trim() === "LIVE_OK";
+		}
+		const { stdout } = await execAsync(command);
+		return stdout.trim() === "LIVE_OK";
+	} catch {
+		return false;
+	}
+};
+
+export const backupCurrentDeployment = async (
+	compose: Compose,
+	logPath: string,
+) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const backupDir = join(COMPOSE_PATH, compose.appName, ".deploy-backup");
+	const composeFilePath = getComposePath(compose);
+	const envFilePath = join(dirname(composeFilePath), ".env");
+
+	const backupCommand = `
+mkdir -p ${quote([backupDir])} 2>/dev/null || exit 1;
+if [ -f ${quote([composeFilePath])} ]; then cp ${quote([composeFilePath])} ${quote([join(backupDir, "docker-compose.yml.bak")])} || exit 1; else echo "No previous compose file found"; fi
+if [ -f ${quote([envFilePath])} ]; then cp ${quote([envFilePath])} ${quote([join(backupDir, "env.bak")])} || exit 1; else echo "No previous env file found"; fi
+	`;
+
+	const command = `(${backupCommand}) >> ${logPath} 2>&1`;
+	if (compose.serverId) {
+		await execAsyncRemote(compose.serverId, command);
+	} else {
+		await execAsync(command);
+	}
+};
+
 export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
@@ -248,6 +293,7 @@ export const deployCompose = async ({
 	});
 
 	try {
+		await backupCurrentDeployment(compose, deployment.logPath);
 		const entity = {
 			...compose,
 			type: "compose" as const,
@@ -299,7 +345,7 @@ export const deployCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(entity);
+		command += await getBuildComposeCommand(entity, deployment.deploymentId);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -338,14 +384,19 @@ export const deployCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+		const rollbackSucceeded = await didRollbackSucceed(
+			compose,
+			deployment.logPath,
+			deployment.deploymentId,
+		);
 		await updateCompose(composeId, {
-			composeStatus: "error",
+			composeStatus: rollbackSucceeded ? "done" : "error",
 		});
 		await sendBuildErrorNotifications({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
@@ -387,6 +438,7 @@ export const rebuildCompose = async ({
 	});
 
 	try {
+		await backupCurrentDeployment(compose, deployment.logPath);
 		let command = "set -e;";
 		if (compose.sourceType === "raw") {
 			command += getCreateComposeFileCommand(compose);
@@ -425,7 +477,7 @@ export const rebuildCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(compose);
+		command += await getBuildComposeCommand(compose, deployment.deploymentId);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -454,8 +506,13 @@ export const rebuildCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+		const rollbackSucceeded = await didRollbackSucceed(
+			compose,
+			deployment.logPath,
+			deployment.deploymentId,
+		);
 		await updateCompose(composeId, {
-			composeStatus: "error",
+			composeStatus: rollbackSucceeded ? "done" : "error",
 		});
 		throw error;
 	}
