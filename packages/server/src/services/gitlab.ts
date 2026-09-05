@@ -4,6 +4,7 @@ import {
 	gitlab,
 	gitProvider,
 } from "@dokploy/server/db/schema";
+import { assertGitProviderAccess } from "@dokploy/server/services/git-provider";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -61,6 +62,15 @@ export const findGitlabById = async (gitlabId: string) => {
 	}
 
 	return gitlabProviderResult;
+};
+
+export const assertGitlabProviderAccess = async (
+	gitlabId: string,
+	session: { userId: string; activeOrganizationId: string },
+) => {
+	const gitlabProvider = await findGitlabById(gitlabId);
+	await assertGitProviderAccess(session, gitlabProvider.gitProvider);
+	return gitlabProvider;
 };
 
 export const updateGitlab = async (
