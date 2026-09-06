@@ -31,7 +31,7 @@ export const isNamedRcloneDestinationProvider = (
 
 export const RCLONE_REMOTE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 export const RCLONE_REMOTE_NAME_ERROR =
-	"Rclone remote name may contain only letters, numbers, dots, underscores, and dashes";
+	"Invalid rclone remote name. Use only letters, numbers, dots, underscores, and dashes";
 
 export const FTP_TLS_REQUIRED_ERROR =
 	"FTP destinations must use TLS. Add --ftp-explicit-tls for explicit FTPS (port 21) or --ftp-tls for implicit FTPS (port 990).";
