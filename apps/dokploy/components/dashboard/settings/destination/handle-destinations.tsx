@@ -1,15 +1,11 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
-	FTP_TLS_CONFLICT_ERROR,
-	FTP_TLS_REQUIRED_ERROR,
+	getDestinationValidationIssues,
 	getFtpTlsState,
-	hasSftpHostKeyVerification,
 	isNamedRcloneDestinationProvider,
+	isRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
-	RCLONE_REMOTE_NAME_ERROR,
-	RCLONE_REMOTE_NAME_REGEX,
-	SFTP_HOST_KEY_REQUIRED_ERROR,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -72,73 +68,22 @@ const addDestination = z
 			.optional(),
 	})
 	.superRefine((data, ctx) => {
-		if (isNamedRcloneDestinationProvider(data.provider)) {
-			if (!RCLONE_REMOTE_NAME_REGEX.test(data.endpoint.trim())) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["endpoint"],
-					message: RCLONE_REMOTE_NAME_ERROR,
-				});
-			}
-			return;
+		const additionalFlags = data.additionalFlags?.map((flag) => flag.value) ?? [];
+		for (const issue of getDestinationValidationIssues({
+			provider: data.provider,
+			accessKey: data.accessKeyId,
+			region: data.region,
+			endpoint: data.endpoint,
+			additionalFlags,
+		})) {
+			ctx.addIssue({
+				code: "custom",
+				path: [issue.field === "accessKey" ? "accessKeyId" : issue.field],
+				message: issue.message,
+			});
 		}
 
-		if (
-			data.provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
-			data.provider === RCLONE_DESTINATION_PROVIDERS.SFTP
-		) {
-			if (!data.endpoint.trim()) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["endpoint"],
-					message: "Host is required",
-				});
-			}
-			if (!data.accessKeyId.trim()) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["accessKeyId"],
-					message: "Username is required",
-				});
-			}
-			if (data.region.trim()) {
-				const port = Number(data.region);
-				if (!Number.isInteger(port) || port < 1 || port > 65535) {
-					ctx.addIssue({
-						code: "custom",
-						path: ["region"],
-						message: "Port must be an integer between 1 and 65535",
-					});
-				}
-			}
-
-			const flags = data.additionalFlags?.map((flag) => flag.value) ?? [];
-			if (data.provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
-				const { implicitTlsEnabled, explicitTlsEnabled } =
-					getFtpTlsState(flags);
-				if (!implicitTlsEnabled && !explicitTlsEnabled) {
-					ctx.addIssue({
-						code: "custom",
-						path: ["additionalFlags"],
-						message: FTP_TLS_REQUIRED_ERROR,
-					});
-				}
-				if (implicitTlsEnabled && explicitTlsEnabled) {
-					ctx.addIssue({
-						code: "custom",
-						path: ["additionalFlags"],
-						message: FTP_TLS_CONFLICT_ERROR,
-					});
-				}
-			} else if (!hasSftpHostKeyVerification(flags)) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["additionalFlags"],
-					message: SFTP_HOST_KEY_REQUIRED_ERROR,
-				});
-			}
-			return;
-		}
+		if (isRcloneDestinationProvider(data.provider)) return;
 
 		for (const [field, label] of [
 			["accessKeyId", "Access Key Id"],

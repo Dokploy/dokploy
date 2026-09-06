@@ -104,3 +104,80 @@ export const hasSftpHostKeyVerification = (
 	const value = knownHostsFlags[0]?.slice(prefix.length).trim() ?? "";
 	return value.length > 0 && value !== "none";
 };
+
+type DestinationValidationField =
+	| "endpoint"
+	| "accessKey"
+	| "region"
+	| "additionalFlags";
+
+export interface DestinationValidationIssue {
+	field: DestinationValidationField;
+	message: string;
+}
+
+export interface DestinationValidationInput {
+	provider?: string | null;
+	accessKey?: string;
+	region?: string;
+	endpoint?: string;
+	additionalFlags?: readonly string[] | null;
+}
+
+export const getDestinationValidationIssues = (
+	data: DestinationValidationInput,
+): DestinationValidationIssue[] => {
+	const issues: DestinationValidationIssue[] = [];
+	const provider = data.provider;
+	const flags = data.additionalFlags ?? [];
+
+	if (isNamedRcloneDestinationProvider(provider)) {
+		if (!RCLONE_REMOTE_NAME_REGEX.test(data.endpoint?.trim() || "")) {
+			issues.push({ field: "endpoint", message: RCLONE_REMOTE_NAME_ERROR });
+		}
+		return issues;
+	}
+
+	if (
+		provider !== RCLONE_DESTINATION_PROVIDERS.FTP &&
+		provider !== RCLONE_DESTINATION_PROVIDERS.SFTP
+	) {
+		return issues;
+	}
+
+	if (!data.endpoint?.trim()) {
+		issues.push({ field: "endpoint", message: "Host is required" });
+	}
+	if (!data.accessKey?.trim()) {
+		issues.push({ field: "accessKey", message: "Username is required" });
+	}
+	if (data.region?.trim()) {
+		const port = Number(data.region);
+		if (!Number.isInteger(port) || port < 1 || port > 65535) {
+			issues.push({
+				field: "region",
+				message: "Port must be an integer between 1 and 65535",
+			});
+		}
+	}
+
+	if (provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
+		const { implicitTlsEnabled, explicitTlsEnabled } = getFtpTlsState(flags);
+		if (!implicitTlsEnabled && !explicitTlsEnabled) {
+			issues.push({ field: "additionalFlags", message: FTP_TLS_REQUIRED_ERROR });
+		}
+		if (implicitTlsEnabled && explicitTlsEnabled) {
+			issues.push({ field: "additionalFlags", message: FTP_TLS_CONFLICT_ERROR });
+		}
+		if (hasDisabledFtpCertificateVerification(flags)) {
+			issues.push({
+				field: "additionalFlags",
+				message: FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR,
+			});
+		}
+	} else if (!hasSftpHostKeyVerification(flags)) {
+		issues.push({ field: "additionalFlags", message: SFTP_HOST_KEY_REQUIRED_ERROR });
+	}
+
+	return issues;
+};

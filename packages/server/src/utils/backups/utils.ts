@@ -1,16 +1,11 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
-	FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR,
-	FTP_TLS_CONFLICT_ERROR,
-	FTP_TLS_REQUIRED_ERROR,
+	getDestinationValidationIssues,
 	getFtpTlsState,
-	hasDisabledFtpCertificateVerification,
-	hasSftpHostKeyVerification,
 	isNamedRcloneDestinationProvider,
+	isRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
-	RCLONE_REMOTE_NAME_REGEX,
-	SFTP_HOST_KEY_REQUIRED_ERROR,
 } from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
@@ -147,15 +142,16 @@ export const getRclonePathAndFlags = async (
 	const provider = destination.provider;
 	const additionalFlags = getValidatedAdditionalFlags(destination);
 
+	if (isRcloneDestinationProvider(provider)) {
+		const [issue] = getDestinationValidationIssues(destination);
+		if (issue) throw new Error(issue.message);
+	}
+
 	if (isNamedRcloneDestinationProvider(provider)) {
-		const remoteName = destination.endpoint.trim();
-		if (!RCLONE_REMOTE_NAME_REGEX.test(remoteName)) {
-			throw new Error("Invalid rclone remote name");
-		}
 		const remotePath = joinRclonePath(destination.bucket, path);
 		return {
 			flags: additionalFlags,
-			path: `${remoteName}:${remotePath}`,
+			path: `${destination.endpoint.trim()}:${remotePath}`,
 		};
 	}
 
@@ -165,25 +161,12 @@ export const getRclonePathAndFlags = async (
 	) {
 		const backend =
 			provider === RCLONE_DESTINATION_PROVIDERS.FTP ? "ftp" : "sftp";
-
-		let defaultPort = "22";
-		if (provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
-			const { implicitTlsEnabled, explicitTlsEnabled } =
-				getFtpTlsState(additionalFlags);
-			if (!implicitTlsEnabled && !explicitTlsEnabled) {
-				throw new Error(FTP_TLS_REQUIRED_ERROR);
-			}
-			if (implicitTlsEnabled && explicitTlsEnabled) {
-				throw new Error(FTP_TLS_CONFLICT_ERROR);
-			}
-			if (hasDisabledFtpCertificateVerification(additionalFlags)) {
-				throw new Error(FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR);
-			}
-			defaultPort = implicitTlsEnabled ? "990" : "21";
-		} else if (!hasSftpHostKeyVerification(additionalFlags)) {
-			throw new Error(SFTP_HOST_KEY_REQUIRED_ERROR);
-		}
-
+		const defaultPort =
+			provider === RCLONE_DESTINATION_PROVIDERS.FTP
+				? getFtpTlsState(additionalFlags).implicitTlsEnabled
+					? "990"
+					: "21"
+				: "22";
 		const port = destination.region.trim() || defaultPort;
 		const flags = [
 			`--${backend}-host=${quote([destination.endpoint.trim()])}`,
