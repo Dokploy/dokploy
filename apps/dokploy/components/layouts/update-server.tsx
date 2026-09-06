@@ -10,6 +10,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "../ui/tooltip";
+import { isUpdateDismissed } from "@/lib/dismissed-update";
 
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
@@ -50,7 +51,11 @@ export const UpdateServerButton = () => {
 
 				const fetchedUpdateData = await getUpdateData();
 
-				if (fetchedUpdateData?.updateAvailable) {
+				if (
+					fetchedUpdateData?.updateAvailable &&
+					fetchedUpdateData.latestVersion &&
+					!isUpdateDismissed(fetchedUpdateData.latestVersion)
+				) {
 					// Stop interval when update is available
 					clearUpdatesInterval();
 					setUpdateData(fetchedUpdateData);
@@ -79,6 +84,9 @@ export const UpdateServerButton = () => {
 				updateData={updateData}
 				isOpen={isOpen}
 				onOpenChange={setIsOpen}
+				onDismissed={() =>
+					setUpdateData({ latestVersion: null, updateAvailable: false })
+				}
 			>
 				<TooltipProvider delayDuration={0}>
 					<Tooltip>

@@ -27,12 +27,14 @@ import {
 import { api } from "@/utils/api";
 import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 import { UpdateWebServer } from "./update-webserver";
+import { dismissUpdate } from "@/lib/dismissed-update";
 
 interface Props {
 	updateData?: IUpdateData;
 	children?: React.ReactNode;
 	isOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
+	onDismissed?: () => void;
 }
 
 export const UpdateServer = ({
@@ -40,6 +42,7 @@ export const UpdateServer = ({
 	children,
 	isOpen: isOpenProp,
 	onOpenChange: onOpenChangeProp,
+	onDismissed,
 }: Props) => {
 	const [hasCheckedUpdate, setHasCheckedUpdate] = useState(!!updateData);
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
@@ -83,6 +86,17 @@ export const UpdateServer = ({
 	const onOpenChange = (open: boolean) => {
 		setIsOpenInternal(open);
 		onOpenChangeProp?.(open);
+	};
+
+	const handleSkipVersion = () => {
+		if (latestVersion) {
+			dismissUpdate(latestVersion);
+		}
+		setIsUpdateAvailable(false);
+		setLatestVersion("");
+		setHasCheckedUpdate(true);
+		onOpenChange(false);
+		onDismissed?.();
 	};
 
 	return (
@@ -255,7 +269,12 @@ export const UpdateServer = ({
 					<ToggleAutoCheckUpdates disabled={isPending} />
 				</div>
 
-				<div className="flex items-center justify-end mt-4">
+				<div className="flex items-center justify-between mt-4">
+					{isUpdateAvailable && (
+						<Button variant="outline" onClick={handleSkipVersion}>
+							Skip this version
+						</Button>
+					)}
 					<div className="flex items-center gap-2">
 						<Button variant="outline" onClick={() => onOpenChange?.(false)}>
 							Cancel
