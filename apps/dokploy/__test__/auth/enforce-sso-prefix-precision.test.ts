@@ -41,7 +41,7 @@ function collectEndpointPaths(distDirs: string[]): string[] {
 					const content = readFileSync(full, "utf8");
 					let m: RegExpExecArray | null = re.exec(content);
 					while (m !== null) {
-						paths.add(m[1]);
+						paths.add(m[1]!);
 						m = re.exec(content);
 					}
 				}
