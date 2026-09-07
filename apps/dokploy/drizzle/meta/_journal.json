@@ -1352,6 +1352,13 @@
       "when": 1788600069255,
       "tag": "0192_light_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 193,
+      "version": "7",
+      "when": 1788802431830,
+      "tag": "0193_chemical_the_liberteens",
+      "breakpoints": true
     }
   ]
 }

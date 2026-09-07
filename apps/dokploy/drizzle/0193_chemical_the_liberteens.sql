@@ -1,0 +1,1 @@
+ALTER TYPE "public"."VaultProviderType" ADD VALUE 'aws-parameter-store' BEFORE 'doppler';
