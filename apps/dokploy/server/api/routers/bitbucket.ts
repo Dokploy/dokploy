@@ -126,7 +126,10 @@ export const bitbucketRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateBitbucket)
 		.mutation(async ({ input, ctx }) => {
-			const result = await updateBitbucket(input.bitbucketId, {
+			const bb = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderAccess(ctx.session, bb.gitProvider);
+
+			await updateBitbucket(input.bitbucketId, {
 				...input,
 				organizationId: ctx.session.activeOrganizationId,
 			});
@@ -138,6 +141,6 @@ export const bitbucketRouter = createTRPCRouter({
 				resourceName: input.name,
 			});
 
-			return result;
+			return { success: true };
 		}),
 });
