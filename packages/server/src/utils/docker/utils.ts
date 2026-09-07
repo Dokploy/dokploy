@@ -948,6 +948,14 @@ export const waitForSwarmServiceConvergence = async (
 	const deadline = Date.now() + timeoutMs;
 
 	let lastState = "unknown";
+	// Most recent failed task's error seen across poll iterations. Swarm's
+	// restart supervisor rewrites a failed task's DesiredState to "shutdown"
+	// and there are transitional windows (e.g. a replacement at Status.State
+	// "starting" before its own failure is recorded) where the current poll
+	// observes no task with Status.State "failed". Remembering the last
+	// failure prevents a transitional state from overwriting the real error
+	// that an earlier poll already captured.
+	let lastFailureErr: string | undefined;
 	while (true) {
 		const info = await service.inspect();
 		const desiredTasksCount = info.Spec?.Mode?.Replicated?.Replicas ?? 1;
@@ -966,9 +974,25 @@ export const waitForSwarmServiceConvergence = async (
 			return;
 		}
 
-		const failedTask = currentTasks.find((task) =>
-			["failed", "rejected"].includes(task.Status?.State ?? ""),
-		);
+		// Search the unfiltered task list for failures. Swarm's restart
+		// supervisor rewrites a failed task's DesiredState to "shutdown"
+		// before setting Status.State to "failed", so filtering to
+		// DesiredState === "running" (currentTasks) hides the real failure.
+		// listTasks retains historical tasks (default --task-history-limit 5),
+		// so pick the most recent failure by Status.Timestamp (CreatedAt
+		// fallback) to avoid surfacing stale errors from prior deploys.
+		const failedTask = tasks
+			.filter((task) =>
+				["failed", "rejected"].includes(task.Status?.State ?? ""),
+			)
+			.sort(
+				(a, b) =>
+					new Date(b.Status?.Timestamp ?? b.CreatedAt ?? 0).getTime() -
+					new Date(a.Status?.Timestamp ?? a.CreatedAt ?? 0).getTime(),
+			)[0];
+		if (failedTask) {
+			lastFailureErr = failedTask.Status?.Err ?? failedTask.Status?.State;
+		}
 		lastState =
 			failedTask?.Status?.Err ??
 			failedTask?.Status?.State ??
@@ -976,8 +1000,13 @@ export const waitForSwarmServiceConvergence = async (
 			lastState;
 
 		if (Date.now() >= deadline) {
+			// Prefer a real failure error captured on any poll over a
+			// transitional state ("new"/"preparing"/"starting") observed on
+			// the final poll, so the operator sees the container's actual
+			// error string rather than a misleading non-failure state.
+			const finalState = lastFailureErr ?? lastState;
 			throw new ServiceConvergenceError(
-				`Service ${appName} did not converge within ${timeoutMs}ms: ${runningTasksCount}/${desiredTasksCount} tasks running (last state: ${lastState})`,
+				`Service ${appName} did not converge within ${timeoutMs}ms: ${runningTasksCount}/${desiredTasksCount} tasks running (last state: ${finalState})`,
 			);
 		}
 
