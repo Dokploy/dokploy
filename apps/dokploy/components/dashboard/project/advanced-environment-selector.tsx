@@ -77,7 +77,6 @@ export const AdvancedEnvironmentSelector = ({
 	const createEnvironment = api.environment.create.useMutation();
 	const updateEnvironment = api.environment.update.useMutation();
 	const deleteEnvironment = api.environment.remove.useMutation();
-	const duplicateEnvironment = api.environment.duplicate.useMutation();
 
 	// Refetch project data
 	const utils = api.useUtils();
@@ -156,26 +155,6 @@ export const AdvancedEnvironmentSelector = ({
 			}
 		} catch (error) {
 			toast.error("Failed to delete environment");
-		}
-	};
-
-	const handleDuplicateEnvironment = async (environment: Environment) => {
-		try {
-			const result = await duplicateEnvironment.mutateAsync({
-				environmentId: environment.environmentId,
-				name: `${environment.name}-copy`,
-				description: environment.description || undefined,
-			});
-
-			toast.success("Environment duplicated successfully");
-			utils.project.one.invalidate({ projectId });
-
-			// Navigate to the new duplicated environment
-			router.push(
-				`/dashboard/project/${projectId}/environment/${result.environmentId}`,
-			);
-		} catch (error) {
-			toast.error("Failed to duplicate environment");
 		}
 	};
 
