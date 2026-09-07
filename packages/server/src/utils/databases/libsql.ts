@@ -161,7 +161,7 @@ export const buildLibsql = async (rawLibsql: LibsqlNested) => {
 			TaskTemplate: {
 				...settings.TaskTemplate,
 				Networks: resolvedNetworks,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+				ForceUpdate: (inspect.Spec.TaskTemplate?.ForceUpdate ?? 0) + 1,
 			},
 		});
 	} catch {

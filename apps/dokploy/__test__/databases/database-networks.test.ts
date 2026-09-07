@@ -1,5 +1,5 @@
-import { buildLibSql } from "@dokploy/server/utils/databases/libsql";
-import { buildMariaDB } from "@dokploy/server/utils/databases/mariadb";
+import { buildLibsql } from "@dokploy/server/utils/databases/libsql";
+import { buildMariadb } from "@dokploy/server/utils/databases/mariadb";
 import { buildMongo } from "@dokploy/server/utils/databases/mongo";
 import { buildMysql } from "@dokploy/server/utils/databases/mysql";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
@@ -157,7 +157,7 @@ describe("database networks configuration", () => {
 		});
 	});
 
-	describe("buildMariaDB", () => {
+	describe("buildMariadb", () => {
 		it("attaches networks at both root and TaskTemplate when creating and updating service", async () => {
 			inspectMock.mockResolvedValue({
 				Version: { Index: "15" },
@@ -167,7 +167,7 @@ describe("database networks configuration", () => {
 			});
 			const db = createBaseDb("mariadb-test-1");
 
-			await buildMariaDB(db as any);
+			await buildMariadb(db as any);
 
 			expect(updateMock).toHaveBeenCalledTimes(1);
 			const [updatePayload] = updateMock.mock.calls[0] as [any];
@@ -232,7 +232,7 @@ describe("database networks configuration", () => {
 		});
 	});
 
-	describe("buildLibSql", () => {
+	describe("buildLibsql", () => {
 		it("attaches networks at both root and TaskTemplate when creating and updating service", async () => {
 			inspectMock.mockResolvedValue({
 				Version: { Index: "30" },
@@ -242,7 +242,7 @@ describe("database networks configuration", () => {
 			});
 			const db = createBaseDb("libsql-test-1");
 
-			await buildLibSql(db as any);
+			await buildLibsql(db as any);
 
 			expect(updateMock).toHaveBeenCalledTimes(1);
 			const [updatePayload] = updateMock.mock.calls[0] as [any];
