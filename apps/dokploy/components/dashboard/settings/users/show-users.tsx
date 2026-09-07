@@ -40,7 +40,6 @@ export const ShowUsers = () => {
 	const { data: hasValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
 
-	const utils = api.useUtils();
 	const { data: session } = api.user.session.useQuery();
 
 	const FREE_ROLES = ["owner", "admin", "member"];
@@ -272,33 +271,6 @@ export const ShowUsers = () => {
 																					type="destructive"
 																					disabled={isRemoving}
 																					onClick={async () => {
-																						if (!isCloud) {
-																							const orgCount =
-																								await utils.user.checkUserOrganizations.fetch(
-																									{
-																										userId: member.user.id,
-																									},
-																								);
-
-																							if (orgCount === 1) {
-																								await mutateAsync({
-																									userId: member.user.id,
-																								})
-																									.then(() => {
-																										toast.success(
-																											"User deleted successfully",
-																										);
-																										refetch();
-																									})
-																									.catch(() => {
-																										toast.error(
-																											"Error deleting user",
-																										);
-																									});
-																								return;
-																							}
-																						}
-
 																						const { error } =
 																							await authClient.organization.removeMember(
 																								{
