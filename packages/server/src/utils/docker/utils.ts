@@ -950,11 +950,7 @@ export const waitForSwarmServiceConvergence = async (
 	let lastState = "unknown";
 	while (true) {
 		const info = await service.inspect();
-		const configuredReplicas = info.Spec?.Mode?.Replicated?.Replicas;
-		const desiredTasksCount =
-			configuredReplicas !== undefined && configuredReplicas > 0
-				? configuredReplicas
-				: 1;
+		const desiredTasksCount = info.Spec?.Mode?.Replicated?.Replicas ?? 1;
 
 		const tasks = await remoteDocker.listTasks({
 			filters: JSON.stringify({ service: [appName] }),
