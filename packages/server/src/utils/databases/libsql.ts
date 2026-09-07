@@ -86,6 +86,7 @@ export const buildLibsql = async (rawLibsql: LibsqlNested) => {
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
+		Networks: resolvedNetworks,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
@@ -156,6 +157,12 @@ export const buildLibsql = async (rawLibsql: LibsqlNested) => {
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			Networks: resolvedNetworks,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				Networks: resolvedNetworks,
+				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+			},
 		});
 	} catch {
 		await docker.createService(settings);

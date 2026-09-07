@@ -72,6 +72,7 @@ export const buildPostgres = async (rawPostgres: PostgresNested) => {
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
+		Networks: resolvedNetworks,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
@@ -125,8 +126,10 @@ export const buildPostgres = async (rawPostgres: PostgresNested) => {
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			Networks: resolvedNetworks,
 			TaskTemplate: {
 				...settings.TaskTemplate,
+				Networks: resolvedNetworks,
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
