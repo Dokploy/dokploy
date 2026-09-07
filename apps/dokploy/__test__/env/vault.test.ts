@@ -20,6 +20,7 @@ import {
 import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
+import { infisicalClient } from "@dokploy/server/utils/vault/infisical";
 import { phaseClient } from "@dokploy/server/utils/vault/phase";
 import { scalewayClient } from "@dokploy/server/utils/vault/scaleway";
 
@@ -428,6 +429,58 @@ describe("azure client", () => {
 		const names = await azureClient.listSecretNames?.(config);
 
 		expect(names).toEqual(["first", "second"]);
+	});
+});
+
+describe("infisical client", () => {
+	const config = {
+		providerType: "infisical" as const,
+		siteUrl: "https://app.infisical.com",
+		clientId: "client-1",
+		clientSecret: "client-secret",
+		projectId: "workspace-1",
+		environmentSlug: "prod",
+		secretPath: "/frontend",
+	};
+
+	const loginResponse = () => jsonResponse({ accessToken: "token-1" });
+
+	it("asks the list endpoint to expand secret references", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(
+				jsonResponse({
+					secrets: [{ secretKey: "DB_URL", secretValue: "postgres://real" }],
+				}),
+			);
+
+		const result = await infisicalClient.getSecrets(config, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://real" });
+		const [listUrl] = mockFetch.mock.calls[1] as [string];
+		const params = new URL(listUrl).searchParams;
+		expect(params.get("expandSecretReferences")).toBe("true");
+		expect(params.get("workspaceId")).toBe("workspace-1");
+		expect(params.get("environment")).toBe("prod");
+		expect(params.get("secretPath")).toBe("/frontend");
+	});
+
+	it("throws a clear error for a missing secret", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(jsonResponse({ secrets: [] }));
+
+		await expect(
+			infisicalClient.getSecrets(config, ["ABSENT"]),
+		).rejects.toThrow('secret "ABSENT" not found in environment "prod"');
+	});
+
+	it("propagates authentication failures with the status code", async () => {
+		mockFetch.mockResolvedValueOnce(jsonResponse({}, false, 401));
+
+		await expect(infisicalClient.getSecrets(config, ["DB_URL"])).rejects.toThrow(
+			"authentication failed (status 401)",
+		);
 	});
 });
 
