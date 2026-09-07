@@ -132,7 +132,8 @@ const createBetterAuth = () =>
 					ctx.path.startsWith("/sign-in/passkey") ||
 					ctx.path.startsWith("/sign-up/email") ||
 					ctx.path.startsWith("/passkey/verify-authentication") ||
-					ctx.path.startsWith("/passkey/generate-authenticate-options");
+					ctx.path.startsWith("/passkey/generate-authenticate-options") ||
+					ctx.path.startsWith("/callback/");
 
 				if (!IS_CLOUD && isBlockedAuthPath) {
 					const settings = await getWebServerSettings();
