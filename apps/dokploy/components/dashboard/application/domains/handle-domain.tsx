@@ -2,6 +2,7 @@ import {
 	DEFAULT_FREE_DOMAIN_PROVIDER,
 	FREE_DOMAIN_PROVIDERS,
 	type FreeDomainProvider,
+	getFreeDomainProvider,
 	isFreeDomain,
 } from "@dokploy/server/utils/free-domain";
 import {
@@ -267,6 +268,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				domainType: data?.domainType || type,
 				middlewares: data?.middlewares || [],
 			});
+			setDomainProvider(
+				getFreeDomainProvider(data.host) ?? DEFAULT_FREE_DOMAIN_PROVIDER,
+			);
 		}
 
 		if (!domainId) {
@@ -284,6 +288,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				domainType: type,
 				middlewares: [],
 			});
+			setDomainProvider(DEFAULT_FREE_DOMAIN_PROVIDER);
 		}
 	}, [form, data, isPending, domainId]);
 
