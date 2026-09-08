@@ -97,7 +97,7 @@ export const PlanStep = ({ onNext }: Props) => {
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
 							{[
-								"1 server included",
+								"Setup 1 server",
 								"Unlimited apps & databases",
 								"Community support",
 							].map((f) => (
@@ -140,7 +140,7 @@ export const PlanStep = ({ onNext }: Props) => {
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
 							{[
-								"1 server included",
+								"Setup 1 server",
 								"Unlimited apps & databases",
 								"2 environments",
 								"Community support",
@@ -183,7 +183,7 @@ export const PlanStep = ({ onNext }: Props) => {
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
 							{[
-								`${STARTUP_SERVERS_INCLUDED} servers included`,
+								`Setup up to ${STARTUP_SERVERS_INCLUDED} servers`,
 								"Unlimited users & environments",
 								"Basic RBAC + 2FA",
 								"Email & chat support",

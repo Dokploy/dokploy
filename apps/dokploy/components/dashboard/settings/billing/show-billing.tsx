@@ -333,7 +333,7 @@ export const ShowBilling = () => {
 												</span>
 												<ul className="flex flex-col gap-1 mt-1">
 													{[
-														"1 server included",
+														"Setup 1 server",
 														"Unlimited apps & databases",
 														"Community support",
 													].map((feature) => (
@@ -917,7 +917,7 @@ export const ShowBilling = () => {
 													"Unlimited Deployments",
 													"Unlimited Databases",
 													"Unlimited Applications",
-													"1 Server Included",
+													"Setup 1 Server",
 													"1 Organization",
 													"1 User",
 													"2 Environments",
@@ -1049,7 +1049,7 @@ export const ShowBilling = () => {
 													All the features of Hobby, plus…
 												</li>
 												{[
-													"3 Servers Included",
+													"Setup up to 3 Servers",
 													"3 Organizations",
 													"Unlimited Users",
 													"Unlimited Environments",
