@@ -148,6 +148,31 @@ const listZoneRecords = async (config: InfomaniakConfig, zoneId: string) =>
 		`/2/zones/${encodeURIComponent(zoneId)}/records?with=records_description`,
 	);
 
+// The API filters server-side, which avoids pulling a whole zone just to find
+// one record. The match is still checked here: filter[source] is documented with
+// a bare subdomain example, so nothing guarantees it compares exactly the way
+// toSource writes the apex, and a filter that silently over-matches would
+// otherwise turn an update into a duplicate.
+const findRecord = async (
+	config: InfomaniakConfig,
+	zoneId: string,
+	type: string,
+	source: string,
+) => {
+	const query = new URLSearchParams({
+		"filter[source]": source,
+		"filter[types][]": type,
+	});
+	const candidates = await ikFetch<InfomaniakRecord[]>(
+		config,
+		`/2/zones/${encodeURIComponent(zoneId)}/records?${query}`,
+	);
+	return candidates.find(
+		(candidate) =>
+			candidate.type === type && normalizeSource(candidate.source) === source,
+	);
+};
+
 export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 	async listZones(config) {
 		const domains = await listDomainProducts(config);
@@ -171,12 +196,7 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 
 	async upsertRecord(config, record) {
 		const source = toSource(record.name, record.zoneId);
-		const existing = await listZoneRecords(config, record.zoneId);
-		const match = existing.find(
-			(candidate) =>
-				candidate.type === record.type &&
-				normalizeSource(candidate.source) === source,
-		);
+		const match = await findRecord(config, record.zoneId, record.type, source);
 
 		const body = JSON.stringify(recordPayload(record, record.zoneId));
 		const zone = encodeURIComponent(record.zoneId);
