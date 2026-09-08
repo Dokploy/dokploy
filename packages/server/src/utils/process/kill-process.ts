@@ -19,15 +19,8 @@ export const killProcessWithFallback = async (
 			);
 		}
 	} else {
-		try {
-			const command = `pkill -2 -f "docker build"`;
-			if (serverId) {
-				await execAsyncRemote(serverId, command);
-			} else {
-				await execAsync(command);
-			}
-		} catch (error) {
-			console.warn("Fallback pkill failed:", error);
-		}
+		console.warn(
+			"Targeted cancellation unavailable: No PID provided. The job will remain running if active.",
+		);
 	}
 };
