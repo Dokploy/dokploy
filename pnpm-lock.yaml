@@ -121,6 +121,9 @@ importers:
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.1108.0
         version: 3.1108.0
+      '@aws-sdk/client-ssm':
+        specifier: 3.1108.0
+        version: 3.1108.0
       '@better-auth/api-key':
         specifier: 1.6.23
         version: 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.0)(better-call@1.3.7(zod@4.3.6))(jose@6.1.3)(kysely@0.29.3)(nanostores@1.1.1))(@better-auth/utils@0.4.2)(better-auth@1.6.23(22e2e61d74361da37f96c4dc24795f27))(better-call@1.3.7(zod@4.3.6))
@@ -597,6 +600,9 @@ importers:
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.1108.0
         version: 3.1108.0
+      '@aws-sdk/client-ssm':
+        specifier: 3.1108.0
+        version: 3.1108.0
       '@better-auth/api-key':
         specifier: 1.6.23
         version: 1.6.23(@better-auth/core@1.6.23(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.0)(better-call@1.3.7(zod@4.3.6))(jose@6.1.3)(kysely@0.29.3)(nanostores@1.1.1))(@better-auth/utils@0.4.2)(better-auth@1.6.23(2ed6fd84380fde286153435e0641a0ef))(better-call@1.3.7(zod@4.3.6))
@@ -679,8 +685,8 @@ importers:
         specifier: 4.0.8
         version: 4.0.8
       nanoid:
-        specifier: 3.3.11
-        version: 3.3.11
+        specifier: 3.3.18
+        version: 3.3.18
       node-os-utils:
         specifier: 2.0.1
         version: 2.0.1
@@ -892,6 +898,10 @@ packages:
 
   '@aws-sdk/client-secrets-manager@3.1108.0':
     resolution: {integrity: sha512-pZtoHWD+WorgM9xK1ikNcKLbtEMIS6wFtELuCX5AOo9v3ZajV8wOEmXz/7JnBHbsLmyBnyv3NCf7whyV++joiw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-ssm@3.1108.0':
+    resolution: {integrity: sha512-9bKhMapsv17V2lrC/HtjhfqH72EZOWhdJKod8JkITHALLwdCKgsnnOZ1JPWB1bCMx0hWMW5OtQKdyHjGobE4NQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.977.7':
@@ -7186,11 +7196,6 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nanoid@3.3.12:
-    resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
   nanoid@3.3.18:
     resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -9304,6 +9309,17 @@ snapshots:
       tslib: 2.8.1
 
   '@aws-sdk/client-secrets-manager@3.1108.0':
+    dependencies:
+      '@aws-sdk/core': 3.977.7
+      '@aws-sdk/credential-provider-node': 3.972.79
+      '@aws-sdk/types': 3.974.3
+      '@smithy/core': 3.32.0
+      '@smithy/fetch-http-handler': 5.7.0
+      '@smithy/node-http-handler': 4.10.0
+      '@smithy/types': 4.17.0
+      tslib: 2.8.1
+
+  '@aws-sdk/client-ssm@3.1108.0':
     dependencies:
       '@aws-sdk/core': 3.977.7
       '@aws-sdk/credential-provider-node': 3.972.79
@@ -16295,8 +16311,6 @@ snapshots:
 
   nanoid@3.3.11: {}
 
-  nanoid@3.3.12: {}
-
   nanoid@3.3.18: {}
 
   nanostores@1.1.1: {}
@@ -16777,7 +16791,7 @@ snapshots:
 
   postcss@8.5.15:
     dependencies:
-      nanoid: 3.3.12
+      nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
 

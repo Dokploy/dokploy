@@ -123,13 +123,13 @@ pnpm run docker:push
 In the case you lost your password, you can reset the owner's password using the following command
 
 ```bash
-pnpm run reset-password
+pnpm --filter=dokploy run reset-password
 ```
 
 To reset the password of a specific user instead, pass their email as an argument
 
 ```bash
-pnpm run reset-password -- user@example.com
+pnpm --filter=dokploy run reset-password user@example.com
 ```
 
 Both commands print the new randomly generated password to the console.

@@ -10,7 +10,7 @@ export interface PublicWhitelabelingConfig {
 	loginLogoUrl: string | null;
 	faviconUrl: string | null;
 	customCss: string | null;
-	metaTitle: string | null;
+	ogImageUrl: string | null;
 	errorPageTitle: string | null;
 	errorPageDescription: string | null;
 	footerText: string | null;
@@ -50,7 +50,7 @@ export const getPublicWhitelabelingConfig =
 			loginLogoUrl: config.loginLogoUrl,
 			faviconUrl: config.faviconUrl,
 			customCss: config.customCss,
-			metaTitle: config.metaTitle,
+			ogImageUrl: config.ogImageUrl,
 			errorPageTitle: config.errorPageTitle,
 			errorPageDescription: config.errorPageDescription,
 			footerText: config.footerText,
