@@ -56,7 +56,7 @@ export const PlanStep = ({ onNext }: Props) => {
 		try {
 			await startFreeTrial();
 			await utils.project.onboardingStatus.invalidate();
-			toast.success("Your 14-day trial has started");
+			toast.success("Your 7-day trial has started");
 			onNext();
 		} catch (error) {
 			toast.error(
@@ -90,14 +90,14 @@ export const PlanStep = ({ onNext }: Props) => {
 							Recommended
 						</span>
 						<p className={`${displayFont.className} text-2xl mt-3`}>
-							14-day free trial
+							7-day free trial
 						</p>
 						<p className="text-sm text-zinc-400 dark:text-zinc-600 mt-1 max-w-xs">
 							No card required — cancel anytime.
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
 							{[
-								"1 server included",
+								"Setup 1 server",
 								"Unlimited apps & databases",
 								"Community support",
 							].map((f) => (
@@ -140,7 +140,7 @@ export const PlanStep = ({ onNext }: Props) => {
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
 							{[
-								"1 server included",
+								"Setup 1 server",
 								"Unlimited apps & databases",
 								"2 environments",
 								"Community support",
@@ -183,7 +183,7 @@ export const PlanStep = ({ onNext }: Props) => {
 						</p>
 						<ul className="flex flex-col gap-1.5 mt-4">
 							{[
-								`${STARTUP_SERVERS_INCLUDED} servers included`,
+								`Setup up to ${STARTUP_SERVERS_INCLUDED} servers`,
 								"Unlimited users & environments",
 								"Basic RBAC + 2FA",
 								"Email & chat support",

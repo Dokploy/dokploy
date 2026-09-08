@@ -1,6 +1,6 @@
 {
-  "id": "3245801b-bd78-477e-baf0-2a5f7a3a2071",
-  "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
+  "id": "719d3b27-c42a-41e4-8b5d-b76b7d8de983",
+  "prevId": "72de05be-6787-4fd9-8146-68e5902357a7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7983,6 +7983,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "domain_verified": {
+          "name": "domain_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -8803,7 +8810,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
@@ -8954,7 +8961,8 @@
         "cloudflare",
         "route53",
         "porkbun",
-        "infomaniak"
+        "infomaniak",
+        "ovh"
       ]
     },
     "public.domainType": {
@@ -9134,6 +9142,7 @@
         "hashicorp",
         "infisical",
         "aws",
+        "aws-parameter-store",
         "doppler",
         "azure",
         "scaleway",

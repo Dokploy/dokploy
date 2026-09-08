@@ -9,17 +9,31 @@ import NextDocument, {
 } from "next/document";
 
 interface WhitelabelingDocumentProps {
-	metaTitle: string | null;
+	appName: string | null;
+	appDescription: string | null;
+	ogImageUrl: string | null;
 	faviconHref: string | null;
 	customCss: string | null;
+	baseUrl: string;
 }
 
 export default function Document({
-	metaTitle,
+	appName,
+	appDescription,
+	ogImageUrl,
 	faviconHref,
 	customCss,
+	baseUrl,
 }: WhitelabelingDocumentProps) {
-	const title = metaTitle || "Dokploy";
+	const title = appName || "Dokploy";
+	const description =
+		appDescription || "The Open Source alternative to Netlify, Vercel, Heroku.";
+
+	let ogImage = ogImageUrl || "/og.png";
+	if (ogImage.startsWith("/")) {
+		ogImage = `${baseUrl}${ogImage}`;
+	}
+
 	return (
 		<Html lang="en" className="font-sans">
 			<Head>
@@ -27,6 +41,9 @@ export default function Document({
 				    paint (and for social scrapers), avoiding a flash of / fallback to
 				    the default Dokploy branding. */}
 				<title>{title}</title>
+				<meta property="og:title" content={title} />
+				<meta property="og:description" content={description} />
+				<meta property="og:image" content={ogImage} />
 				<link rel="icon" href={faviconHref || "/icon.svg"} />
 				{customCss && (
 					<style
@@ -48,7 +65,9 @@ const SETTINGS_CACHE_TTL = 60 * 1000; // 1 minute
 declare global {
 	var __SETTINGS_CACHE: {
 		data: {
-			metaTitle: string | null;
+			appName: string | null;
+			appDescription: string | null;
+			ogImageUrl: string | null;
 			faviconHref: string | null;
 			customCss: string | null;
 		};
@@ -61,9 +80,15 @@ Document.getInitialProps = async (
 ): Promise<DocumentInitialProps & WhitelabelingDocumentProps> => {
 	const initialProps = await NextDocument.getInitialProps(ctx);
 
-	let metaTitle: string | null = null;
+	let appName: string | null = null;
+	let appDescription: string | null = null;
+	let ogImageUrl: string | null = null;
 	let faviconHref: string | null = null;
 	let customCss: string | null = null;
+
+	const host = ctx.req?.headers?.host || "localhost:3000";
+	const protocol = ctx.req?.headers?.["x-forwarded-proto"] || "http";
+	const baseUrl = `${protocol}://${host}`;
 
 	if (
 		globalThis.__SETTINGS_CACHE &&
@@ -73,13 +98,16 @@ Document.getInitialProps = async (
 		return {
 			...initialProps,
 			...globalThis.__SETTINGS_CACHE.data,
+			baseUrl,
 		};
 	}
 
 	try {
 		const config = await getPublicWhitelabelingConfig();
 		if (config) {
-			metaTitle = config.metaTitle;
+			appName = config.appName;
+			appDescription = config.appDescription;
+			ogImageUrl = config.ogImageUrl;
 			// Remove any </style> tags to prevent XSS breakout
 			customCss = config.customCss
 				? config.customCss.replace(/<\/\s*style[^>]*>/gi, "")
@@ -92,7 +120,9 @@ Document.getInitialProps = async (
 
 	globalThis.__SETTINGS_CACHE = {
 		data: {
-			metaTitle,
+			appName,
+			appDescription,
+			ogImageUrl,
 			faviconHref,
 			customCss,
 		},
@@ -101,8 +131,11 @@ Document.getInitialProps = async (
 
 	return {
 		...initialProps,
-		metaTitle,
+		appName,
+		appDescription,
+		ogImageUrl,
 		faviconHref,
 		customCss,
+		baseUrl,
 	};
 };

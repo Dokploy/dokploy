@@ -1,6 +1,6 @@
 {
-  "id": "3245801b-bd78-477e-baf0-2a5f7a3a2071",
-  "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
+  "id": "72de05be-6787-4fd9-8146-68e5902357a7",
+  "prevId": "68c11a1a-d7e0-475f-868f-f3a098d942a7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -7983,6 +7983,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "domain_verified": {
+          "name": "domain_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -8954,7 +8961,8 @@
         "cloudflare",
         "route53",
         "porkbun",
-        "infomaniak"
+        "infomaniak",
+        "ovh"
       ]
     },
     "public.domainType": {
@@ -9134,6 +9142,7 @@
         "hashicorp",
         "infisical",
         "aws",
+        "aws-parameter-store",
         "doppler",
         "azure",
         "scaleway",
