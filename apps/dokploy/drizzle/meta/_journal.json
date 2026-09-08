@@ -1366,6 +1366,13 @@
       "when": 1788858506799,
       "tag": "0194_acoustic_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 195,
+      "version": "7",
+      "when": 1788867370653,
+      "tag": "0195_classy_whirlwind",
+      "breakpoints": true
     }
   ]
 }
