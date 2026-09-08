@@ -446,13 +446,11 @@ describe("infisical client", () => {
 	const loginResponse = () => jsonResponse({ accessToken: "token-1" });
 
 	it("asks the list endpoint to expand secret references", async () => {
-		mockFetch
-			.mockResolvedValueOnce(loginResponse())
-			.mockResolvedValueOnce(
-				jsonResponse({
-					secrets: [{ secretKey: "DB_URL", secretValue: "postgres://real" }],
-				}),
-			);
+		mockFetch.mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(
+			jsonResponse({
+				secrets: [{ secretKey: "DB_URL", secretValue: "postgres://real" }],
+			}),
+		);
 
 		const result = await infisicalClient.getSecrets(config, ["DB_URL"]);
 
@@ -478,9 +476,9 @@ describe("infisical client", () => {
 	it("propagates authentication failures with the status code", async () => {
 		mockFetch.mockResolvedValueOnce(jsonResponse({}, false, 401));
 
-		await expect(infisicalClient.getSecrets(config, ["DB_URL"])).rejects.toThrow(
-			"authentication failed (status 401)",
-		);
+		await expect(
+			infisicalClient.getSecrets(config, ["DB_URL"]),
+		).rejects.toThrow("authentication failed (status 401)");
 	});
 });
 
