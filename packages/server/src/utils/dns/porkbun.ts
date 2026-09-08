@@ -61,7 +61,9 @@ const inlinePriority = (record: {
 	content: string;
 	prio?: string | null;
 }) =>
-	(record.type === "MX" || record.type === "SRV") && record.prio && record.prio !== "0"
+	(record.type === "MX" || record.type === "SRV") &&
+	record.prio &&
+	record.prio !== "0"
 		? `${record.prio} ${record.content}`
 		: record.content;
 
