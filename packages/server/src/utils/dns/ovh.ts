@@ -285,7 +285,18 @@ export const ovhClient: DnsClient<OvhConfig> = {
 			)}&subDomain=${encodeURIComponent(subDomain)}`,
 		);
 
-		const existingId = existing[0];
+		let existingId: number | undefined;
+		for (const id of existing) {
+			const candidate = await ovhFetch<OvhRecord>(
+				config,
+				`/domain/zone/${zone}/record/${id}`,
+			);
+			if (candidate.target === record.content) {
+				existingId = id;
+				break;
+			}
+		}
+
 		if (existingId !== undefined) {
 			await ovhFetch(config, `/domain/zone/${zone}/record/${existingId}`, {
 				method: "PUT",
