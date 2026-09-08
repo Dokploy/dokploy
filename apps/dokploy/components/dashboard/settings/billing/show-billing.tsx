@@ -117,7 +117,7 @@ export const ShowBilling = () => {
 				utils.stripe.getProducts.invalidate(),
 				utils.user.get.invalidate(),
 			]);
-			toast.success("Your 14-day trial has started");
+			toast.success("Your 7-day trial has started");
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error starting trial",
@@ -326,7 +326,7 @@ export const ShowBilling = () => {
 											<Clock className="h-5 w-5 text-primary shrink-0" />
 											<div className="flex flex-col gap-1.5">
 												<span className="text-sm font-medium">
-													14-day free trial
+													7-day free trial
 												</span>
 												<span className="text-sm text-muted-foreground">
 													No credit card required — cancel anytime.
