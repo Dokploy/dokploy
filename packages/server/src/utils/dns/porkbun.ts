@@ -96,7 +96,9 @@ export const porkbunClient: DnsClient<PorkbunConfig> = {
 			ttl: record.ttl ?? 600,
 		};
 
-		const existingRecord = existing.records[0];
+		const existingRecord = existing.records.find(
+			(r) => r.content === record.content,
+		);
 		if (existingRecord) {
 			await pbFetch(
 				config,

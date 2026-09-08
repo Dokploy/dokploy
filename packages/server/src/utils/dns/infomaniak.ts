@@ -175,7 +175,8 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 		const match = existing.find(
 			(candidate) =>
 				candidate.type === record.type &&
-				normalizeSource(candidate.source) === source,
+				normalizeSource(candidate.source) === source &&
+				unquoteTarget(candidate.target) === record.content,
 		);
 
 		const body = JSON.stringify(recordPayload(record, record.zoneId));
