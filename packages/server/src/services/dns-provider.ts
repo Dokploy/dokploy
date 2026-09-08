@@ -19,6 +19,7 @@ const SENSITIVE_FIELDS: Record<DnsProviderConfig["providerType"], string[]> = {
 	route53: ["secretAccessKey"],
 	porkbun: ["secretApiKey"],
 	infomaniak: ["apiToken"],
+	ovh: ["applicationSecret", "consumerKey"],
 };
 
 export const maskDnsProviderConfig = (

@@ -56,7 +56,7 @@ export const PlanStep = ({ onNext }: Props) => {
 		try {
 			await startFreeTrial();
 			await utils.project.onboardingStatus.invalidate();
-			toast.success("Your 14-day trial has started");
+			toast.success("Your 7-day trial has started");
 			onNext();
 		} catch (error) {
 			toast.error(
@@ -90,7 +90,7 @@ export const PlanStep = ({ onNext }: Props) => {
 							Recommended
 						</span>
 						<p className={`${displayFont.className} text-2xl mt-3`}>
-							14-day free trial
+							7-day free trial
 						</p>
 						<p className="text-sm text-zinc-400 dark:text-zinc-600 mt-1 max-w-xs">
 							No card required — cancel anytime.

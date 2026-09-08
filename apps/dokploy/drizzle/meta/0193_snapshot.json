@@ -1,6 +1,6 @@
 {
-  "id": "a92cac11-c5cf-404a-989f-352dfa0f5cf1",
-  "prevId": "3245801b-bd78-477e-baf0-2a5f7a3a2071",
+  "id": "68c11a1a-d7e0-475f-868f-f3a098d942a7",
+  "prevId": "a92cac11-c5cf-404a-989f-352dfa0f5cf1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -9135,6 +9135,7 @@
         "hashicorp",
         "infisical",
         "aws",
+        "aws-parameter-store",
         "doppler",
         "azure",
         "scaleway",

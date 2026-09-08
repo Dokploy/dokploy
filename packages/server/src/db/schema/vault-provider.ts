@@ -8,6 +8,7 @@ export const vaultProviderType = pgEnum("VaultProviderType", [
 	"hashicorp",
 	"infisical",
 	"aws",
+	"aws-parameter-store",
 	"doppler",
 	"azure",
 	"scaleway",
@@ -38,6 +39,21 @@ export const awsVaultConfigSchema = z.object({
 	accessKeyId: z.string().min(1),
 	secretAccessKey: z.string().min(1),
 	endpoint: z.string().url().optional(),
+});
+
+export const awsParameterStoreVaultConfigSchema = z.object({
+	providerType: z.literal("aws-parameter-store"),
+	region: z.string().min(1),
+	accessKeyId: z.string().min(1),
+	secretAccessKey: z.string().min(1),
+	endpoint: z.string().url().optional(),
+	parameterPath: z
+		.string()
+		.trim()
+		.refine((path) => path === "" || path.startsWith("/"), {
+			message: "Parameter discovery path must start with /",
+		})
+		.optional(),
 });
 
 export const dopplerVaultConfigSchema = z.object({
@@ -76,6 +92,7 @@ export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	hashicorpVaultConfigSchema,
 	infisicalVaultConfigSchema,
 	awsVaultConfigSchema,
+	awsParameterStoreVaultConfigSchema,
 	dopplerVaultConfigSchema,
 	azureVaultConfigSchema,
 	scalewayVaultConfigSchema,
