@@ -172,11 +172,14 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 	async upsertRecord(config, record) {
 		const source = toSource(record.name, record.zoneId);
 		const existing = await listZoneRecords(config, record.zoneId);
+		const expectedContent = unquoteTarget(
+			quoteTarget(record.type, record.content),
+		);
 		const match = existing.find(
 			(candidate) =>
 				candidate.type === record.type &&
 				normalizeSource(candidate.source) === source &&
-				unquoteTarget(candidate.target) === record.content,
+				unquoteTarget(candidate.target) === expectedContent,
 		);
 
 		const body = JSON.stringify(recordPayload(record, record.zoneId));
