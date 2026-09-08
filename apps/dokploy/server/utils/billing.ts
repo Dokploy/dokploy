@@ -77,7 +77,7 @@ export const getCurrentPlan = async (
 	return getCurrentPlanForUser(ownerId);
 };
 
-export const TRIAL_DURATION_DAYS = 14;
+export const TRIAL_DURATION_DAYS = 7;
 export const TRIAL_SERVER_LIMIT = 1;
 
 export interface BillingStatus {
