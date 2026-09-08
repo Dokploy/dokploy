@@ -32,12 +32,47 @@ const login = async (config: InfisicalConfig) => {
 	return body.accessToken;
 };
 
-const fetchSecrets = async (config: InfisicalConfig) => {
-	const accessToken = await login(config);
+// A reference may address a folder: `<path>:<KEY>`, mirroring the HashiCorp
+// client in this directory. Without a colon the whole ref is the secret name
+// and the provider's own `secretPath` is used, which is the previous
+// behaviour. Dots cannot serve as the separator here because Infisical allows
+// them inside secret names, so `a.b.C` is genuinely ambiguous.
+const parseRef = (ref: string) => {
+	const separatorIndex = ref.lastIndexOf(":");
+	if (separatorIndex === -1) {
+		return { path: null, key: ref };
+	}
+	const path = ref.slice(0, separatorIndex);
+	const key = ref.slice(separatorIndex + 1);
+	if (!path || !key) {
+		throw new Error(
+			`Invalid Infisical reference "${ref}": expected format <path>:<KEY> (e.g. external/sentry:SENTRY_DSN)`,
+		);
+	}
+	return { path, key };
+};
+
+const resolveSecretPath = (config: InfisicalConfig, refPath: string | null) => {
+	if (!refPath) {
+		return config.secretPath;
+	}
+	if (refPath.startsWith("/")) {
+		return refPath;
+	}
+	const base = config.secretPath.replace(/\/+$/, "");
+	return `${base}/${refPath}`;
+};
+
+// One login serves every path a batch of refs touches.
+const readPath = async (
+	config: InfisicalConfig,
+	accessToken: string,
+	secretPath: string,
+) => {
 	const params = new URLSearchParams({
 		workspaceId: config.projectId,
 		environment: config.environmentSlug,
-		secretPath: config.secretPath,
+		secretPath,
 		// Infisical's list endpoint leaves secret references (`${env.folder.KEY}`)
 		// unexpanded unless asked, so without this a referencing secret arrives as
 		// the literal `${...}` string, lands in the generated .env and the deploy
@@ -52,7 +87,7 @@ const fetchSecrets = async (config: InfisicalConfig) => {
 
 	if (!response.ok) {
 		throw new Error(
-			`Infisical: failed to fetch secrets (status ${response.status})`,
+			`Infisical: failed to fetch secrets at "${secretPath}" (status ${response.status})`,
 		);
 	}
 
@@ -67,18 +102,41 @@ const fetchSecrets = async (config: InfisicalConfig) => {
 	return secrets;
 };
 
+const fetchSecrets = async (
+	config: InfisicalConfig,
+	secretPath = config.secretPath,
+) => readPath(config, await login(config), secretPath);
+
 export const infisicalClient: VaultClient<InfisicalConfig> = {
 	async getSecrets(config, refs) {
-		const secrets = await fetchSecrets(config);
-		const result: Record<string, string> = {};
+		const byPath = new Map<string, string[]>();
 		for (const ref of refs) {
-			if (secrets[ref] === undefined) {
-				throw new Error(
-					`Infisical: secret "${ref}" not found in environment "${config.environmentSlug}"`,
-				);
-			}
-			result[ref] = secrets[ref];
+			const { path } = parseRef(ref);
+			const secretPath = resolveSecretPath(config, path);
+			byPath.set(secretPath, [...(byPath.get(secretPath) ?? []), ref]);
 		}
+
+		const accessToken = await login(config);
+		const result: Record<string, string> = {};
+		await Promise.all(
+			[...byPath.entries()].map(async ([secretPath, pathRefs]) => {
+				const secrets = await readPath(config, accessToken, secretPath);
+				for (const ref of pathRefs) {
+					const { path, key } = parseRef(ref);
+					if (secrets[key] === undefined) {
+						// The path is only worth naming when the ref asked for one;
+						// for a bare ref the wording stays as it was, so existing
+						// error messages don't change for anyone.
+						throw new Error(
+							path
+								? `Infisical: secret "${key}" not found at "${secretPath}" in environment "${config.environmentSlug}"`
+								: `Infisical: secret "${key}" not found in environment "${config.environmentSlug}"`,
+						);
+					}
+					result[ref] = secrets[key];
+				}
+			}),
+		);
 		return result;
 	},
 
