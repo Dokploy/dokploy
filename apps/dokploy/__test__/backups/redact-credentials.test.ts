@@ -47,4 +47,21 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("MYSECRET");
 		expect(redacted).toContain("[REDACTED]");
 	});
+
+	it("should redact Azure Blob Storage account key in rclone command", () => {
+		const cmd =
+			'rclone rcat --azureblob-account="myazurestorage" --azureblob-key="dGhpcy1pcy1hbi1henVyZS1rZXk=" :azureblob:container/file.sql.gz';
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("dGhpcy1pcy1hbi1henVyZS1rZXk=");
+		expect(redacted).toContain('--azureblob-key="[REDACTED]"');
+		expect(redacted).toContain('--azureblob-account="myazurestorage"');
+	});
+
+	it("should redact Azure Blob Storage SAS URL in rclone command", () => {
+		const cmd =
+			'rclone lsf --azureblob-sas-url="https://myaccount.blob.core.windows.net/?sv=2022-11-02&sig=supersensitive" :azureblob:container/';
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("supersensitive");
+		expect(redacted).toContain('--azureblob-sas-url="[REDACTED]"');
+	});
 });

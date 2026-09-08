@@ -63,7 +63,7 @@ const runsSafely = (command: string) => {
 // Payloads that try to break out of every quoting style used in the builders.
 const p = (mark: string) => [
 	`$(touch ${mark})`,
-	"`touch " + mark + "`",
+	`\`touch ${mark}\``,
 	`x'; touch ${mark}; '`,
 	`x"; touch ${mark}; echo "`,
 	`x; touch ${mark}`,

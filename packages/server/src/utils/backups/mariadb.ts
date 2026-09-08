@@ -12,7 +12,7 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getDestinationRemote,
 	normalizeS3Path,
 } from "./utils";
 
@@ -33,8 +33,8 @@ export const runMariadbBackup = async (
 		description: "MariaDB Backup",
 	});
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const { rcloneFlags, getRemotePath } = getDestinationRemote(destination);
+		const rcloneDestination = getRemotePath(bucketDestination);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,
