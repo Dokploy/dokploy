@@ -1,6 +1,6 @@
 {
-  "id": "72de05be-6787-4fd9-8146-68e5902357a7",
-  "prevId": "68c11a1a-d7e0-475f-868f-f3a098d942a7",
+  "id": "719d3b27-c42a-41e4-8b5d-b76b7d8de983",
+  "prevId": "72de05be-6787-4fd9-8146-68e5902357a7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -8810,7 +8810,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
