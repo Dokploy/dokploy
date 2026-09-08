@@ -218,6 +218,32 @@ describe("preview deployments with a build server", () => {
 		).toMatchObject({ serverId: "deploy-server", buildRegistry });
 	});
 
+	it.each([
+		["deploy", deployPreviewApplication],
+		["rebuild", rebuildPreviewApplication],
+	])("copies file mounts on the deploy server on %s", async (_, run) => {
+		setup();
+
+		await run({
+			applicationId: "app-1",
+			titleLog: "Preview",
+			descriptionLog: "",
+			previewDeploymentId: "preview-1",
+		});
+
+		const copyCalls = remoteCalls().filter(({ command }) =>
+			command.includes("cp -a"),
+		);
+		expect(copyCalls).toEqual([
+			{
+				serverId: "deploy-server",
+				command: expect.stringMatching(
+					/applications\/app-abc\/files .*applications\/preview-app-abc-xyz\/files/,
+				),
+			},
+		]);
+	});
+
 	it("writes the deployment log on the build server and records it", async () => {
 		setup();
 
