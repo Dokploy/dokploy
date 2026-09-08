@@ -74,12 +74,23 @@ export const destinationRouter = createTRPCRouter({
 				}
 			} catch (error) {
 				const isAzure = input.destinationType === "azure_blob";
+				let message =
+					error instanceof Error
+						? error?.message
+						: `Error connecting to ${isAzure ? "container" : "bucket"}`;
+
+				if (
+					error instanceof Error &&
+					error.message.includes("directory not found")
+				) {
+					message = isAzure
+						? `Container "${input.bucket}" was not found in storage account "${input.accessKey || input.name}". Please make sure the container exists in Azure.`
+						: `Bucket "${input.bucket}" was not found. Please make sure the bucket exists in your storage provider.`;
+				}
+
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error?.message
-							: `Error connecting to ${isAzure ? "container" : "bucket"}`,
+					message,
 					cause: error,
 				});
 			}
