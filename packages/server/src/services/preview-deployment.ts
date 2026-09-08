@@ -13,7 +13,7 @@ import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
-import { manageDomain } from "../utils/traefik/domain";
+import { manageDomain, removeAcmeCertificate } from "../utils/traefik/domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
@@ -67,6 +67,12 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				await removeDirectoryCode(application?.appName, application?.serverId),
 			async () =>
 				await removeTraefikConfig(application?.appName, application?.serverId),
+			async () => {
+				const domain = previewDeployment.domain;
+				if (domain?.certificateType === "letsencrypt") {
+					await removeAcmeCertificate(domain.host, application?.serverId);
+				}
+			},
 			async () =>
 				await db
 					.delete(previewDeployments)

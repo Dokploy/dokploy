@@ -1,5 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
+import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
+import { encodeBase64 } from "../docker/utils";
+import { execAsyncRemote } from "../process/execAsync";
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
@@ -16,6 +22,78 @@ import {
 	removeForwardAuthMiddleware,
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+
+const ACME_CERT_RESOLVER = "letsencrypt";
+
+interface AcmeCertificate {
+	domain?: { main?: string; sans?: string[] };
+	[key: string]: unknown;
+}
+
+interface AcmeStore {
+	[resolverName: string]: {
+		Certificates?: AcmeCertificate[];
+		[key: string]: unknown;
+	};
+}
+
+// Prunes the stale certificate entry left in Traefik's acme.json after a
+// domain/app is deleted. Without this Traefik keeps retrying ACME renewal
+// for a domain that no longer resolves anywhere, forever.
+export const removeAcmeCertificate = async (
+	host: string,
+	serverId?: string | null,
+) => {
+	try {
+		const { DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
+		const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
+
+		const raw = serverId
+			? (await execAsyncRemote(serverId, `cat ${quote([acmeJsonPath])}`)).stdout
+			: fs.existsSync(acmeJsonPath)
+				? fs.readFileSync(acmeJsonPath, "utf8")
+				: "";
+
+		if (!raw?.trim()) {
+			return;
+		}
+
+		const store = JSON.parse(raw) as AcmeStore;
+		const resolver = store[ACME_CERT_RESOLVER];
+
+		if (!resolver?.Certificates?.length) {
+			return;
+		}
+
+		const normalizedHost = host.toLowerCase();
+		const nextCertificates = resolver.Certificates.filter((cert) => {
+			const main = cert.domain?.main?.toLowerCase();
+			const sans = cert.domain?.sans?.map((san) => san.toLowerCase()) || [];
+			return main !== normalizedHost && !sans.includes(normalizedHost);
+		});
+
+		if (nextCertificates.length === resolver.Certificates.length) {
+			return;
+		}
+
+		resolver.Certificates = nextCertificates;
+		const updated = JSON.stringify(store);
+		const tmpPath = `${acmeJsonPath}.tmp`;
+
+		if (serverId) {
+			const encoded = encodeBase64(updated);
+			await execAsyncRemote(
+				serverId,
+				`echo "${encoded}" | base64 -d > ${quote([tmpPath])} && mv ${quote([tmpPath])} ${quote([acmeJsonPath])}`,
+			);
+		} else {
+			fs.writeFileSync(tmpPath, updated, "utf8");
+			fs.renameSync(tmpPath, acmeJsonPath);
+		}
+	} catch (error) {
+		console.error(`Error removing acme certificate for ${host}:`, error);
+	}
+};
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
