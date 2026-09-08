@@ -38,6 +38,12 @@ const fetchSecrets = async (config: InfisicalConfig) => {
 		workspaceId: config.projectId,
 		environment: config.environmentSlug,
 		secretPath: config.secretPath,
+		// Infisical's list endpoint leaves secret references (`${env.folder.KEY}`)
+		// unexpanded unless asked, so without this a referencing secret arrives as
+		// the literal `${...}` string, lands in the generated .env and the deploy
+		// still reports success. Single secrets read via /raw/{name} expand by
+		// default, which makes the difference easy to miss in the UI.
+		expandSecretReferences: "true",
 	});
 	const response = await vaultFetch(
 		`${baseUrl(config)}/api/v3/secrets/raw?${params.toString()}`,
