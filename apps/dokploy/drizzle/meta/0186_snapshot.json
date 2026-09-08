@@ -1,5 +1,5 @@
 {
-  "id": "c9bd795e-2581-48e8-b8ff-c7a2a5d96dd1",
+  "id": "ccbcfb66-ba47-4ae4-8913-a9ac6700046a",
   "prevId": "8e851600-c994-4d52-a9d0-a8257e22a073",
   "version": "7",
   "dialect": "postgresql",
@@ -1257,6 +1257,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "title": {
           "name": "title",
           "type": "text",
@@ -1731,6 +1737,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "application_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "application_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "application",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "application_customGitSSHKeyId_ssh-key_sshKeyId_fk": {
           "name": "application_customGitSSHKeyId_ssh-key_sshKeyId_fk",
           "tableFrom": "application",
@@ -4134,6 +4153,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -4262,6 +4287,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "libsql_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "libsql_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "libsql",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "libsql_environmentId_environment_environmentId_fk": {
           "name": "libsql_environmentId_environment_environmentId_fk",
           "tableFrom": "libsql",
@@ -4403,6 +4441,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -4525,6 +4569,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "mariadb_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "mariadb_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "mariadb",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "mariadb_environmentId_environment_environmentId_fk": {
           "name": "mariadb_environmentId_environment_environmentId_fk",
           "tableFrom": "mariadb",
@@ -4651,6 +4708,12 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4784,6 +4847,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "mongo_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "mongo_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "mongo",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "mongo_environmentId_environment_environmentId_fk": {
           "name": "mongo_environmentId_environment_environmentId_fk",
           "tableFrom": "mongo",
@@ -5142,6 +5218,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -5264,6 +5346,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "mysql_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "mysql_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "mysql",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "mysql_environmentId_environment_environmentId_fk": {
           "name": "mysql_environmentId_environment_environmentId_fk",
           "tableFrom": "mysql",
@@ -5320,12 +5415,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "dockerId": {
-          "name": "dockerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "driver": {
           "name": "driver",
@@ -6499,6 +6588,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
@@ -6615,6 +6710,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "postgres_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "postgres_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "postgres",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "postgres_environmentId_environment_environmentId_fk": {
           "name": "postgres_environmentId_environment_environmentId_fk",
           "tableFrom": "postgres",
@@ -7000,6 +7108,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "resourceProfileId": {
+          "name": "resourceProfileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -7122,6 +7236,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "redis_resourceProfileId_resource_profile_profileId_fk": {
+          "name": "redis_resourceProfileId_resource_profile_profileId_fk",
+          "tableFrom": "redis",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "resourceProfileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "redis_environmentId_environment_environmentId_fk": {
           "name": "redis_environmentId_environment_environmentId_fk",
           "tableFrom": "redis",
@@ -7243,6 +7370,287 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.compose_service_resource_profile": {
+      "name": "compose_service_resource_profile",
+      "schema": "",
+      "columns": {
+        "composeServiceId": {
+          "name": "composeServiceId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serviceName": {
+          "name": "serviceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "profileId": {
+          "name": "profileId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "composeServiceProfile_profileId_idx": {
+          "name": "composeServiceProfile_profileId_idx",
+          "columns": [
+            {
+              "expression": "profileId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "compose_service_resource_profile_composeId_compose_composeId_fk": {
+          "name": "compose_service_resource_profile_composeId_compose_composeId_fk",
+          "tableFrom": "compose_service_resource_profile",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "compose_service_resource_profile_profileId_resource_profile_profileId_fk": {
+          "name": "compose_service_resource_profile_profileId_resource_profile_profileId_fk",
+          "tableFrom": "compose_service_resource_profile",
+          "tableTo": "resource_profile",
+          "columnsFrom": [
+            "profileId"
+          ],
+          "columnsTo": [
+            "profileId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "compose_service_unique": {
+          "name": "compose_service_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "composeId",
+            "serviceName"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.resource_group": {
+      "name": "resource_group",
+      "schema": "",
+      "columns": {
+        "groupId": {
+          "name": "groupId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "resource_group_organizationId_organization_id_fk": {
+          "name": "resource_group_organizationId_organization_id_fk",
+          "tableFrom": "resource_group",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "resource_group_org_name_unique": {
+          "name": "resource_group_org_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organizationId",
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.resource_profile": {
+      "name": "resource_profile",
+      "schema": "",
+      "columns": {
+        "profileId": {
+          "name": "profileId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "memoryReservation": {
+          "name": "memoryReservation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "memoryLimit": {
+          "name": "memoryLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuReservation": {
+          "name": "cpuReservation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cpuLimit": {
+          "name": "cpuLimit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "groupId": {
+          "name": "groupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "resourceProfile_groupId_idx": {
+          "name": "resourceProfile_groupId_idx",
+          "columns": [
+            {
+              "expression": "groupId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "resource_profile_groupId_resource_group_groupId_fk": {
+          "name": "resource_profile_groupId_resource_group_groupId_fk",
+          "tableFrom": "resource_profile",
+          "tableTo": "resource_group",
+          "columnsFrom": [
+            "groupId"
+          ],
+          "columnsTo": [
+            "groupId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "resource_profile_group_name_unique": {
+          "name": "resource_profile_group_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "groupId",
+            "name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

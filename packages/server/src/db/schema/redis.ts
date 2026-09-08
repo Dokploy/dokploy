@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { resourceProfile } from "./resource-profile";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -61,6 +62,10 @@ export const redis = pgTable("redis", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	resourceProfileId: text("resourceProfileId").references(
+		() => resourceProfile.profileId,
+		{ onDelete: "set null" },
+	),
 	externalPort: integer("externalPort"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -98,6 +103,10 @@ export const redisRelations = relations(redis, ({ one, many }) => ({
 		fields: [redis.environmentId],
 		references: [environments.environmentId],
 	}),
+	resourceProfile: one(resourceProfile, {
+		fields: [redis.resourceProfileId],
+		references: [resourceProfile.profileId],
+	}),
 	mounts: many(mounts),
 	server: one(server, {
 		fields: [redis.serverId],
@@ -124,6 +133,7 @@ const createSchema = createInsertSchema(redis, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	resourceProfileId: z.string().nullish(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

@@ -22,6 +22,7 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { patch } from "./patch";
 import { ports } from "./port";
+import { resourceProfile } from "./resource-profile";
 import { previewDeployments } from "./preview-deployments";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
@@ -116,6 +117,10 @@ export const applications = pgTable("application", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	resourceProfileId: text("resourceProfileId").references(
+		() => resourceProfile.profileId,
+		{ onDelete: "set null" },
+	),
 	title: text("title"),
 	enabled: boolean("enabled"),
 	subtitle: text("subtitle"),
@@ -246,6 +251,10 @@ export const applicationsRelations = relations(
 			fields: [applications.environmentId],
 			references: [environments.environmentId],
 		}),
+		resourceProfile: one(resourceProfile, {
+			fields: [applications.resourceProfileId],
+			references: [resourceProfile.profileId],
+		}),
 		deployments: many(deployments),
 		customGitSSHKey: one(sshKeys, {
 			fields: [applications.customGitSSHKeyId],
@@ -321,6 +330,7 @@ const createSchema = createInsertSchema(applications, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	resourceProfileId: z.string().nullish(),
 	title: z.string().optional(),
 	enabled: z.boolean().optional(),
 	subtitle: z.string().optional(),

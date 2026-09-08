@@ -13,6 +13,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { resourceProfile } from "./resource-profile";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -67,6 +68,10 @@ export const mysql = pgTable("mysql", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	resourceProfileId: text("resourceProfileId").references(
+		() => resourceProfile.profileId,
+		{ onDelete: "set null" },
+	),
 	externalPort: integer("externalPort"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
@@ -103,6 +108,10 @@ export const mysqlRelations = relations(mysql, ({ one, many }) => ({
 	environment: one(environments, {
 		fields: [mysql.environmentId],
 		references: [environments.environmentId],
+	}),
+	resourceProfile: one(resourceProfile, {
+		fields: [mysql.resourceProfileId],
+		references: [resourceProfile.profileId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -141,6 +150,7 @@ const createSchema = createInsertSchema(mysql, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	resourceProfileId: z.string().nullish(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
