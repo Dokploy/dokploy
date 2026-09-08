@@ -1,7 +1,16 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { HelpCircle, ServerOff } from "lucide-react";
+import {
+	AlertTriangle,
+	ArrowUpRight,
+	Check,
+	Copy,
+	Globe,
+	HelpCircle,
+	Loader2,
+	ServerOff,
+} from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -84,8 +93,38 @@ const Service = (
 
 	const { data } = api.compose.one.useQuery({ composeId });
 
-	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canReadDeployments = !!permissions?.deployment.read;
+	const canReadDomains = !!permissions?.domain.read;
+
+	const { data: deployments } = api.deployment.allByCompose.useQuery(
+		{
+			composeId,
+		},
+		{
+			enabled: canReadDeployments,
+			refetchInterval: canReadDeployments ? 5000 : false,
+		},
+	);
+	const { data: serviceDomains } = api.domain.byComposeId.useQuery(
+		{ composeId },
+		{
+			enabled: canReadDomains,
+			refetchInterval: canReadDomains ? 10000 : false,
+		},
+	);
+	const latestLiveDeployment = deployments
+		?.filter((d) => d.status === "done")
+		.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0];
+	const latestDeployment = deployments?.sort((a, b) =>
+		(b.createdAt || "").localeCompare(a.createdAt || ""),
+	)[0];
+	const isDeploying = ["running", "queued"].includes(
+		latestDeployment?.status || "",
+	);
+	const [appNameCopied, setAppNameCopied] = useState(false);
+
+	const { data: auth } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
@@ -112,31 +151,91 @@ const Service = (
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex flex-col gap-4">
-							<CardHeader className="flex flex-row justify-between items-center">
-								<div className="flex flex-col">
-									<CardTitle className="text-xl flex flex-row gap-2 items-center">
-										<div className="relative flex flex-row gap-4 items-center">
-											<ShowIconSettings
-												serviceId={composeId}
-												serviceType="compose"
-												icon={data?.icon}
-											/>
-											<div className="absolute -right-1 -top-2 z-10">
-												<StatusTooltip status={data?.composeStatus} />
-											</div>
+							<CardHeader className="flex flex-row justify-between items-start gap-6">
+								<div className="flex flex-row gap-4 items-center min-w-0">
+									<div className="relative shrink-0">
+										<ShowIconSettings
+											serviceId={composeId}
+											serviceType="compose"
+											icon={data?.icon}
+										/>
+										<div className="absolute -right-1 -top-2 z-10">
+											<StatusTooltip status={data?.composeStatus} />
 										</div>
-										{data?.name}
-									</CardTitle>
-									{data?.description && (
-										<CardDescription>{data?.description}</CardDescription>
-									)}
-
-									<span className="text-sm text-muted-foreground">
-										{data?.appName}
-									</span>
+									</div>
+									<div className="flex flex-col gap-1 min-w-0">
+										<CardTitle className="text-xl leading-tight truncate">
+											{data?.name}
+										</CardTitle>
+										<button
+											type="button"
+											className="flex w-fit flex-row items-center gap-1.5 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+											title="Copy compose project name"
+											onClick={() => {
+												copy(data?.appName || "");
+												setAppNameCopied(true);
+												setTimeout(() => setAppNameCopied(false), 1500);
+											}}
+										>
+											{data?.appName}
+											{appNameCopied ? (
+												<Check className="size-3 text-green-600" />
+											) : (
+												<Copy className="size-3 opacity-50" />
+											)}
+										</button>
+										{data?.description && (
+											<CardDescription className="truncate">
+												{data?.description}
+											</CardDescription>
+										)}
+									</div>
 								</div>
 								<div className="flex flex-col h-fit w-fit gap-2">
-									<div className="flex flex-row h-fit w-fit gap-2">
+									<div className="flex flex-row gap-2 justify-end flex-wrap">
+										{latestLiveDeployment && (
+											<Badge
+												variant="secondary"
+												className="gap-1.5 border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+												title={`Last successful deploy: ${latestLiveDeployment?.createdAt}`}
+											>
+												<span className="relative flex size-2">
+													<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+													<span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+												</span>
+												Live
+											</Badge>
+										)}
+										{isDeploying && (
+											<Badge
+												variant="secondary"
+												className="gap-1.5 border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+											>
+												<Loader2 className="size-3 animate-spin" />
+												Deploying
+											</Badge>
+										)}
+										{latestDeployment?.status === "error" &&
+											latestLiveDeployment && (
+												<Badge
+													variant="secondary"
+													className="gap-1.5 border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400"
+													title="The last deployment failed. The previous successful deployment is still serving traffic."
+												>
+													<AlertTriangle className="size-3" />
+													Deploy failed
+												</Badge>
+											)}
+										{!latestLiveDeployment && (
+											<Badge
+												variant="secondary"
+												className="text-muted-foreground"
+											>
+												No deployments yet
+											</Badge>
+										)}
+									</div>
+									<div className="flex flex-row h-fit w-fit gap-2 items-center">
 										<Badge
 											className="cursor-pointer"
 											onClick={() => {
@@ -178,18 +277,36 @@ const Service = (
 												</Tooltip>
 											</TooltipProvider>
 										)}
-									</div>
-									<div className="flex flex-row gap-2 justify-end">
 										{permissions?.service.create && (
 											<UpdateCompose composeId={composeId} />
 										)}
-
 										{permissions?.service.delete && (
 											<DeleteService id={composeId} type="compose" />
 										)}
 									</div>
 								</div>
 							</CardHeader>
+							{(serviceDomains?.length ?? 0) > 0 && (
+								<div className="flex flex-wrap items-center gap-2 px-6 pb-5">
+									<Globe className="size-3.5 text-muted-foreground" />
+									{serviceDomains?.map((domain) => (
+										<a
+											key={domain.domainId}
+											href={`http${domain.https ? "s" : ""}://${domain.host}`}
+											target="_blank"
+											rel="noreferrer"
+											className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+												domain.enabled
+													? "border-border bg-accent hover:border-primary/40 hover:bg-primary/10"
+													: "border-border bg-muted/40 text-muted-foreground line-through opacity-70"
+											}`}
+										>
+											<ArrowUpRight className="size-3" />
+											{domain.host}
+										</a>
+									))}
+								</div>
+							)}
 						</div>
 						<CardContent className="space-y-2 py-8 border-t">
 							{data?.server?.serverStatus === "inactive" ? (

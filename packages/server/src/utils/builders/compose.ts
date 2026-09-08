@@ -3,7 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
-import { writeDomainsToCompose } from "../docker/domain";
+import { getComposePath, writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
@@ -12,12 +12,17 @@ import {
 } from "../docker/utils";
 import { withResolvedVaultRefs } from "../vault";
 
+export const ROLLBACK_OK_MARKER = "__DOKPLOY_ROLLBACK_OK__";
+
 export type ComposeNested = InferResultType<
 	"compose",
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
 
-export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+export const getBuildComposeCommand = async (
+	rawCompose: ComposeNested,
+	deploymentId?: string,
+) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
@@ -50,6 +55,39 @@ Compose Type: ${composeType} ✅`;
 		borderStyle: "double",
 	});
 
+	const backupDir = join(COMPOSE_PATH, compose.appName, ".deploy-backup");
+	const composeFilePath = getComposePath(compose);
+	const envFilePath = join(dirname(composeFilePath), ".env");
+	const isTransactional = composeType === "docker-compose";
+	const restoreCommand = command
+		.split(" ")
+		.join(" ")
+		.replace(/ --build/g, "");
+	const rollbackMarkerLine = deploymentId
+		? `${ROLLBACK_OK_MARKER}:${deploymentId}`
+		: ROLLBACK_OK_MARKER;
+	const isEnvRequired = compose.createEnvFile ? "1" : "0";
+
+	const restoreCommands = isTransactional
+		? `
+		echo "Restoring previous working deployment... ⏪";
+		RESTORE_FILES_OK=1;
+		cp "${backupDir}/last-good-docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || cp "${backupDir}/docker-compose.yml.bak" "${composeFilePath}" 2>/dev/null || RESTORE_FILES_OK=0;
+		RESTORE_ENV_OK=1;
+		cp "${backupDir}/last-good-env.bak" "${envFilePath}" 2>/dev/null || cp "${backupDir}/env.bak" "${envFilePath}" 2>/dev/null || RESTORE_ENV_OK=0;
+		if [ "$RESTORE_ENV_OK" = "0" ] && { [ "${isEnvRequired}" = "1" ] || [ -f "${backupDir}/last-good-env.bak" -o -f "${backupDir}/env.bak" ]; }; then RESTORE_FILES_OK=0; echo "Warning: ⚠️ Previous .env could not be restored"; fi
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && [ "$RESTORE_FILES_OK" = "1" ] && echo "${rollbackMarkerLine}" || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
+		`
+		: "";
+
+	const persistLastGood = isTransactional
+		? `
+		mkdir -p "${backupDir}";
+		cp "${composeFilePath}" "${backupDir}/last-good-docker-compose.yml.bak" 2>/dev/null || rm -f "${backupDir}/last-good-docker-compose.yml.bak";
+		cp "${envFilePath}" "${backupDir}/last-good-env.bak" 2>/dev/null || rm -f "${backupDir}/last-good-env.bak";
+		`
+		: "";
+
 	const bashCommand = `
 	set -e
 	{
@@ -62,8 +100,10 @@ Compose Type: ${composeType} ✅`;
 		cd "${projectPath}";
 
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
+
+		${persistLastGood}
 
 		echo "Docker Compose Deployed: ✅";
 	} || {
