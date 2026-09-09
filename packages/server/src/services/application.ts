@@ -8,6 +8,7 @@ import {
 import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
 	getBuildCommand,
+	getBuildCommandRedactionSet,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
@@ -223,12 +224,15 @@ export const deployApplication = async ({
 		}
 
 		command += await getBuildCommand(application);
+		const buildRedaction = await getBuildCommandRedactionSet(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemote(serverId, commandWithLog, undefined, {
+				redact: buildRedaction,
+			});
 		} else {
-			await execAsync(commandWithLog);
+			await execAsync(commandWithLog, { redact: buildRedaction });
 		}
 
 		await mechanizeDockerContainer(application);
@@ -267,7 +271,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
@@ -316,11 +320,14 @@ export const rebuildApplication = async ({
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
+		const buildRedaction = await getBuildCommandRedactionSet(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemote(serverId, commandWithLog, undefined, {
+				redact: buildRedaction,
+			});
 		} else {
-			await execAsync(commandWithLog);
+			await execAsync(commandWithLog, { redact: buildRedaction });
 		}
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -441,12 +448,15 @@ export const deployPreviewApplication = async ({
 				branch: previewDeployment.branch,
 			});
 			command += await getBuildCommand(application);
+			const buildRedaction = await getBuildCommandRedactionSet(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+				await execAsyncRemote(application.serverId, commandWithLog, undefined, {
+					redact: buildRedaction,
+				});
 			} else {
-				await execAsync(commandWithLog);
+				await execAsync(commandWithLog, { redact: buildRedaction });
 			}
 			await mechanizeDockerContainer(application);
 		}
@@ -556,11 +566,14 @@ export const rebuildPreviewApplication = async ({
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
 		command += await getBuildCommand(application);
+		const buildRedaction = await getBuildCommandRedactionSet(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemote(serverId, commandWithLog, undefined, {
+				redact: buildRedaction,
+			});
 		} else {
-			await execAsync(commandWithLog);
+			await execAsync(commandWithLog, { redact: buildRedaction });
 		}
 		await mechanizeDockerContainer(application);
 

@@ -3,6 +3,7 @@ import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
+import { redactSecrets } from "./redact";
 
 export class WriteFileRemoteError extends Error {
 	constructor(
@@ -25,7 +26,15 @@ const execAsyncBase = util.promisify(exec);
 
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: {
+		cwd?: string;
+		env?: NodeJS.ProcessEnv;
+		shell?: string;
+		// Exact secret-bearing substrings embedded in `command` (e.g. escaped
+		// KEY=VALUE build args). Redacted from the retained command/stdout/stderr
+		// when the command fails, so ExecError cannot leak them into logs.
+		redact?: string[];
+	},
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, options);
@@ -41,14 +50,19 @@ export const execAsync = async (
 			const stdout = error.stdout?.toString() || "";
 			// @ts-expect-error
 			const stderr = error.stderr?.toString() || "";
+			const redact = (text: string) =>
+				options?.redact ? redactSecrets(text, options.redact) : text;
 
-			throw new ExecError(`Command execution failed: ${error.message}`, {
-				command,
-				stdout,
-				stderr,
-				exitCode,
-				originalError: error,
-			});
+			throw new ExecError(
+				`Command execution failed: ${redact(error.message)}`,
+				{
+					command: redact(command),
+					stdout: redact(stdout),
+					stderr: redact(stderr),
+					exitCode,
+					originalError: error,
+				},
+			);
 		}
 		throw error;
 	}
@@ -156,6 +170,11 @@ export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
 	onData?: (data: string) => void,
+	options?: {
+		// Exact secret-bearing substrings embedded in `command`; redacted from the
+		// retained command/stdout/stderr when the remote command fails.
+		redact?: string[];
+	},
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -170,14 +189,19 @@ export const execAsyncRemote = async (
 		conn
 			.once("ready", () => {
 				conn.exec(command, (err, stream) => {
+					const redact = (text: string) =>
+						options?.redact ? redactSecrets(text, options.redact) : text;
 					if (err) {
 						onData?.(err.message);
 						reject(
-							new ExecError(`Remote command execution failed: ${err.message}`, {
-								command,
-								serverId,
-								originalError: err,
-							}),
+							new ExecError(
+								`Remote command execution failed: ${redact(err.message)}`,
+								{
+									command: redact(command),
+									serverId,
+									originalError: err,
+								},
+							),
 						);
 						return;
 					}
@@ -191,9 +215,9 @@ export const execAsyncRemote = async (
 									new ExecError(
 										`Remote command failed with exit code ${code}`,
 										{
-											command,
-											stdout,
-											stderr,
+											command: redact(command),
+											stdout: redact(stdout),
+											stderr: redact(stderr),
 											exitCode: code,
 											serverId,
 										},

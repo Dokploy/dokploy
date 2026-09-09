@@ -2,6 +2,7 @@ import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { quote } from "shell-quote";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
@@ -9,7 +10,9 @@ import {
 	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
+	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForShell,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
@@ -38,6 +41,35 @@ export type ApplicationNested = InferResultType<
 		environment: { with: { project: true } };
 	}
 >;
+
+/**
+ * The exact secret-bearing substrings that getBuildCommand embeds in the returned
+ * command string: shell-escaped `KEY=VALUE` pairs passed as `--env` args
+ * (nixpacks/railpack) and the `KEY=VALUE docker build ...` prefix (docker-file).
+ * Vault refs are resolved first so the redaction set matches what actually lands
+ * in the command. Callers executing the command should pass these to
+ * execAsync/execAsyncRemote so a failed build's error cannot carry cleartext
+ * secrets into logs (see dokploy#5354).
+ */
+export const getBuildCommandRedactionSet = async (
+	rawApplication: ApplicationNested,
+): Promise<string[]> => {
+	const application = await withResolvedVaultRefs(rawApplication);
+	const envArgs = prepareEnvironmentVariablesForShell(
+		application.env,
+		application.environment.project.env,
+		application.environment.env,
+	);
+	const secrets = getEnvironmentVariablesObject(
+		application.buildSecrets,
+		application.environment.project.env,
+		application.environment.env,
+	);
+	const dockerPrefixArgs = Object.entries(secrets).map(
+		([key, value]) => `${key}=${quote([value])}`,
+	);
+	return [...envArgs, ...dockerPrefixArgs];
+};
 
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	const application = await withResolvedVaultRefs(rawApplication);
