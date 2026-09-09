@@ -158,6 +158,7 @@ const findRecord = async (
 	zoneId: string,
 	type: string,
 	source: string,
+	expectedContent: string,
 ) => {
 	const query = new URLSearchParams({
 		"filter[source]": source,
@@ -169,7 +170,9 @@ const findRecord = async (
 	);
 	return candidates.find(
 		(candidate) =>
-			candidate.type === type && normalizeSource(candidate.source) === source,
+			candidate.type === type &&
+			normalizeSource(candidate.source) === source &&
+			unquoteTarget(candidate.target) === expectedContent,
 	);
 };
 
@@ -196,7 +199,16 @@ export const infomaniakClient: DnsClient<InfomaniakConfig> = {
 
 	async upsertRecord(config, record) {
 		const source = toSource(record.name, record.zoneId);
-		const match = await findRecord(config, record.zoneId, record.type, source);
+		const expectedContent = unquoteTarget(
+			quoteTarget(record.type, record.content),
+		);
+		const match = await findRecord(
+			config,
+			record.zoneId,
+			record.type,
+			source,
+			expectedContent,
+		);
 
 		const body = JSON.stringify(recordPayload(record, record.zoneId));
 		const zone = encodeURIComponent(record.zoneId);

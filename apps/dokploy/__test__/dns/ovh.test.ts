@@ -261,9 +261,21 @@ describe("ovhClient.upsertRecord", () => {
 		expect(calls[2]?.[1].method).toBe("POST");
 	});
 
-	it("updates the existing record instead of creating a duplicate", async () => {
+	it("updates the existing record when content matches", async () => {
 		const cfg = freshConfig();
-		mockApi(ovhSuccess([4]), ovhSuccess(null), ovhSuccess(null));
+		mockApi(
+			ovhSuccess([4]),
+			ovhSuccess({
+				id: 4,
+				zone: "example.com",
+				fieldType: "A",
+				subDomain: "app",
+				target: "1.2.3.4",
+				ttl: 60,
+			}),
+			ovhSuccess(null),
+			ovhSuccess(null),
+		);
 
 		const result = await ovhClient.upsertRecord(cfg, {
 			zoneId: "example.com",
@@ -274,9 +286,38 @@ describe("ovhClient.upsertRecord", () => {
 
 		expect(result).toEqual({ id: "4" });
 		const calls = apiCalls();
-		expect(calls[1]?.[0]).toContain("/domain/zone/example.com/record/4");
-		expect(calls[1]?.[1].method).toBe("PUT");
-		expect(calls[2]?.[0]).toContain("/refresh");
+		expect(calls[2]?.[0]).toContain("/domain/zone/example.com/record/4");
+		expect(calls[2]?.[1].method).toBe("PUT");
+		expect(calls[3]?.[0]).toContain("/refresh");
+	});
+
+	it("creates a new record when content differs from existing", async () => {
+		const cfg = freshConfig();
+		mockApi(
+			ovhSuccess([4]),
+			ovhSuccess({
+				id: 4,
+				zone: "example.com",
+				fieldType: "A",
+				subDomain: "app",
+				target: "1.1.1.1",
+				ttl: 60,
+			}),
+			ovhSuccess({ id: 10 }),
+			ovhSuccess(null),
+		);
+
+		const result = await ovhClient.upsertRecord(cfg, {
+			zoneId: "example.com",
+			type: "A",
+			name: "app.example.com",
+			content: "5.6.7.8",
+		});
+
+		expect(result).toEqual({ id: "10" });
+		const calls = apiCalls();
+		expect(calls[2]?.[1].method).toBe("POST");
+		expect(calls[3]?.[0]).toContain("/refresh");
 	});
 
 	it("omits the ttl so OVH applies the zone default", async () => {
