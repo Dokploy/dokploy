@@ -561,17 +561,23 @@ export const mongoRouter = createTRPCRouter({
 					ilike(mongoTable.description ?? "", `%${input.description.trim()}%`),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${mongoTable.mongoId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			// Owners/admins see every service, matching checkServiceAccess and the
+			// server router's services procedure - accessedServices only constrains
+			// member roles (it only gains entries for the creating user).
+			if (member.role !== "owner" && member.role !== "admin") {
+				if (member.accessedServices.length === 0)
+					return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${mongoTable.mongoId} IN (${sql.join(
+						member.accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([
