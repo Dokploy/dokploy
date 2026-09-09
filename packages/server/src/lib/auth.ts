@@ -311,6 +311,18 @@ const createBetterAuth = () =>
 									isDefault: true, // Mark first organization as default
 								});
 							});
+
+							if (!IS_CLOUD && process.env.NODE_ENV === "production") {
+								// On a fresh self-hosted install the server boot ran
+								// initCronJobs() before any owner existed, so it returned
+								// early and nothing was scheduled - and docker/log cleanup
+								// default to enabled, so no settings toggle ever fires to
+								// schedule them either. Now that the first owner exists,
+								// register the jobs. node-schedule replaces same-named
+								// jobs, so a repeated call after a restart is safe.
+								const { initCronJobs } = await import("../utils/backups/index");
+								await initCronJobs();
+							}
 						} else if (isSSORequest) {
 							const providerId = context?.params?.providerId;
 							if (!providerId) {
