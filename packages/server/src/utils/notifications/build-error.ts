@@ -4,6 +4,7 @@ import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { escapeTelegramHtml, truncateTelegramText } from "./telegram-text";
 import {
 	sendCustomNotification,
 	sendDiscordNotification,
@@ -201,7 +202,7 @@ export const sendBuildErrorNotifications = async ({
 
 				await sendTelegramNotification(
 					telegram,
-					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
+					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${escapeTelegramHtml(projectName)}\n<b>Application:</b> ${escapeTelegramHtml(applicationName)}\n<b>Type:</b> ${escapeTelegramHtml(applicationType)}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${truncateTelegramText(escapeTelegramHtml(errorMessage))}</pre>`,
 					inlineButton,
 				);
 			}

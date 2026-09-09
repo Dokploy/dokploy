@@ -111,7 +111,7 @@ export const sendTelegramNotification = async (
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
-		await fetch(url, {
+		const response = await fetch(url, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -125,6 +125,14 @@ export const sendTelegramNotification = async (
 				},
 			}),
 		});
+		if (!response.ok) {
+			// Telegram signals rejection (message too long, unparseable
+			// entities, ...) as a 4xx with a JSON body; fetch does not throw,
+			// so without this the notification vanishes without a trace.
+			console.error(
+				`Telegram notification failed with status ${response.status}: ${await response.text()}`,
+			);
+		}
 	} catch (err) {
 		console.log(err);
 	}
