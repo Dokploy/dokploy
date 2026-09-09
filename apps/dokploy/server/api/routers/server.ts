@@ -37,6 +37,7 @@ import {
 	apiFindOneServer,
 	apiRemoveServer,
 	apiUpdateServer,
+	apiUpdateServerBuildCgroupParent,
 	apiUpdateServerBuildsConcurrency,
 	apiUpdateServerMonitoring,
 	applications,
@@ -544,6 +545,20 @@ export const serverRouter = createTRPCRouter({
 			}
 			return await updateServerById(input.serverId, {
 				buildsConcurrency: input.buildsConcurrency,
+			});
+		}),
+	updateBuildCgroupParent: withPermission("server", "create")
+		.input(apiUpdateServerBuildCgroupParent)
+		.mutation(async ({ input, ctx }) => {
+			const currentServer = await findServerById(input.serverId);
+			if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this server",
+				});
+			}
+			return await updateServerById(input.serverId, {
+				buildCgroupParent: input.buildCgroupParent,
 			});
 		}),
 	publicIp: protectedProcedure.query(async () => {

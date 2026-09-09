@@ -18,6 +18,19 @@ export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
 export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
 
+// Value for `docker build --cgroup-parent`; empty string clears the setting.
+// Accepts cgroupfs paths ("builds") and systemd slices ("builds.slice:docker:").
+export const buildCgroupParentSchema = z
+	.string()
+	.trim()
+	.max(255)
+	.regex(
+		/^[A-Za-z0-9_.:/-]*$/,
+		"Only letters, digits, '_', '-', '.', ':' and '/' are allowed",
+	)
+	.transform((value) => (value === "" ? null : value))
+	.nullable();
+
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;

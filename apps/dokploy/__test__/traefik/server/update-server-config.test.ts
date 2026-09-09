@@ -26,6 +26,7 @@ const baseSettings: WebServerSettings = {
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
 	buildsConcurrency: 1,
+	buildCgroupParent: null,
 	logCleanupCron: null,
 	metricsConfig: {
 		containers: {

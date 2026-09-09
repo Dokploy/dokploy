@@ -13,6 +13,7 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
+import { resolveBuildCgroupParent } from "./build-cgroup-parent";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
@@ -45,9 +46,14 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 
 	if (application.sourceType !== "docker") {
 		const { buildType } = application;
+		// The build runs on the build server when one is assigned
+		const cgroupParent = await resolveBuildCgroupParent(
+			application.buildServerId || application.serverId,
+		);
+		const options = { cgroupParent };
 		switch (buildType) {
 			case "nixpacks":
-				command = getNixpacksCommand(application);
+				command = getNixpacksCommand(application, options);
 				break;
 			case "heroku_buildpacks":
 				command = getHerokuCommand(application);
@@ -56,10 +62,10 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 				command = getPaketoCommand(application);
 				break;
 			case "static":
-				command = getStaticCommand(application);
+				command = getStaticCommand(application, options);
 				break;
 			case "dockerfile":
-				command = getDockerCommand(application);
+				command = getDockerCommand(application, options);
 				break;
 			case "railpack":
 				command = getRailpackCommand(application);

@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { BuildCgroupParent } from "@/components/dashboard/settings/servers/actions/build-cgroup-parent";
 import { BuildsConcurrency } from "@/components/dashboard/settings/servers/actions/builds-concurrency";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -54,6 +55,57 @@ const Page = () => {
 									<div className="flex flex-col gap-3">
 										{servers.map((server) => (
 											<BuildsConcurrency
+												key={server.serverId}
+												serverId={server.serverId}
+												label={server.name}
+											/>
+										))}
+									</div>
+								) : (
+									<p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4 text-center">
+										No remote servers added yet.
+									</p>
+								)}
+							</div>
+						</CardContent>
+					</div>
+				</Card>
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+					<div className="rounded-xl bg-background shadow-md">
+						<CardHeader>
+							<CardTitle className="text-xl">Build Resource Limits</CardTitle>
+							<CardDescription>
+								Run the build steps of Dockerfile and static builds inside a
+								cgroup of your choice, so the host can cap the CPU and memory
+								that builds may take away from running services.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="flex flex-col gap-6">
+							<AlertBlock type="info">
+								The value is passed to <code>docker build --cgroup-parent</code>{" "}
+								and only applies to <code>RUN</code> steps of Dockerfile, static
+								and Nixpacks static builds. Create the cgroup on the host first,
+								e.g. a systemd slice <code>builds.slice</code> with{" "}
+								<code>CPUQuota=</code> and enter{" "}
+								<code>builds.slice:docker:</code> here (systemd cgroup driver),
+								or a plain cgroupfs path such as <code>builds</code>. Leave
+								empty to disable.
+							</AlertBlock>
+							<div className="flex flex-col gap-2">
+								<p className="text-sm font-medium text-muted-foreground">
+									Dokploy Server
+								</p>
+								<BuildCgroupParent />
+							</div>
+
+							<div className="flex flex-col gap-2">
+								<p className="text-sm font-medium text-muted-foreground">
+									Remote Servers
+								</p>
+								{servers && servers.length > 0 ? (
+									<div className="flex flex-col gap-3">
+										{servers.map((server) => (
+											<BuildCgroupParent
 												key={server.serverId}
 												serverId={server.serverId}
 												label={server.name}

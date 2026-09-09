@@ -10,7 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { certificateType } from "./shared";
+import { buildCgroupParentSchema, certificateType } from "./shared";
 
 export const webServerSettings = pgTable("webServerSettings", {
 	id: text("id")
@@ -107,6 +107,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
 	// Concurrent builds on the local web server
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
+	// cgroup parent passed to `docker build --cgroup-parent` on the local web server
+	buildCgroupParent: text("buildCgroupParent"),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
 	// Cache Cleanup Configuration
@@ -171,10 +173,15 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	remoteServersOnly: z.boolean().optional(),
 	enforceSSO: z.boolean().optional(),
 	buildsConcurrency: z.number().int().min(1).max(100).optional(),
+	buildCgroupParent: buildCgroupParentSchema.optional(),
 });
 
 export const apiUpdateWebServerBuildsConcurrency = z.object({
 	buildsConcurrency: z.number().int().min(1).max(100),
+});
+
+export const apiUpdateWebServerBuildCgroupParent = z.object({
+	buildCgroupParent: buildCgroupParentSchema,
 });
 
 export const apiAssignDomain = z

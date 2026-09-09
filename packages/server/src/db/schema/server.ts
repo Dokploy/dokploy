@@ -23,6 +23,7 @@ import { network } from "./network";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { schedules } from "./schedule";
+import { buildCgroupParentSchema } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
@@ -43,6 +44,7 @@ export const server = pgTable("server", {
 		.$defaultFn(() => generateAppName("server")),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
+	buildCgroupParent: text("buildCgroupParent"),
 	createdAt: text("createdAt").notNull(),
 	organizationId: text("organizationId")
 		.notNull()
@@ -188,6 +190,11 @@ export const apiUpdateServer = createSchema
 export const apiUpdateServerBuildsConcurrency = z.object({
 	serverId: z.string().min(1),
 	buildsConcurrency: z.number().int().min(1).max(100),
+});
+
+export const apiUpdateServerBuildCgroupParent = z.object({
+	serverId: z.string().min(1),
+	buildCgroupParent: buildCgroupParentSchema,
 });
 
 export const apiUpdateServerMonitoring = createSchema

@@ -1373,6 +1373,13 @@
       "when": 1788867370653,
       "tag": "0195_classy_whirlwind",
       "breakpoints": true
+    },
+    {
+      "idx": 196,
+      "version": "7",
+      "when": 1788940150684,
+      "tag": "0196_orange_red_wolf",
+      "breakpoints": true
     }
   ]
 }
