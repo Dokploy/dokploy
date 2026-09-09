@@ -320,8 +320,20 @@ const createBetterAuth = () =>
 								// schedule them either. Now that the first owner exists,
 								// register the jobs. node-schedule replaces same-named
 								// jobs, so a repeated call after a restart is safe.
-								const { initCronJobs } = await import("../utils/backups/index");
-								await initCronJobs();
+								// Isolated: a failing DB read here must not surface as a
+								// signup error after the user and owner org are already
+								// committed - that would leave a partial account AND an
+								// error the admin can't retry past. Cron registration is
+								// confirmed on the next server boot instead.
+								try {
+									const { initCronJobs } = await import("../utils/backups/index");
+									await initCronJobs();
+								} catch (error) {
+									console.error(
+										"Failed to register cron jobs after first-owner signup; they will be registered on the next server start",
+										error,
+									);
+								}
 							}
 						} else if (isSSORequest) {
 							const providerId = context?.params?.providerId;
