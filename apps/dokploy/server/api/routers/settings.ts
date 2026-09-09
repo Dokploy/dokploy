@@ -65,6 +65,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateWebServerBuildCgroupParent,
 	apiUpdateWebServerBuildsConcurrency,
 	projects,
 	server,
@@ -450,6 +451,28 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "builds-concurrency",
+			});
+			return true;
+		}),
+
+	updateBuildCgroupParent: adminProcedure
+		.input(apiUpdateWebServerBuildCgroupParent)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings({
+				buildCgroupParent: input.buildCgroupParent,
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "build-cgroup-parent",
 			});
 			return true;
 		}),

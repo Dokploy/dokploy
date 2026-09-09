@@ -40,6 +40,9 @@ vi.mock("@dokploy/server/db", () => {
 				member: {
 					findMany: vi.fn().mockResolvedValue([]),
 				},
+				webServerSettings: {
+					findFirst: vi.fn().mockResolvedValue({ buildCgroupParent: null }),
+				},
 			},
 		},
 	};

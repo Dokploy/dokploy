@@ -10,7 +10,14 @@ import {
 import type { ApplicationNested } from ".";
 import { createEnvFileCommand } from "./utils";
 
-export const getDockerCommand = (application: ApplicationNested) => {
+export interface DockerBuildOptions {
+	cgroupParent?: string | null;
+}
+
+export const getDockerCommand = (
+	application: ApplicationNested,
+	options: DockerBuildOptions = {},
+) => {
 	const {
 		appName,
 		env,
@@ -47,6 +54,10 @@ export const getDockerCommand = (application: ApplicationNested) => {
 
 		if (cleanCache) {
 			commandArgs.push("--no-cache");
+		}
+
+		if (options.cgroupParent) {
+			commandArgs.push("--cgroup-parent", quote([options.cgroupParent]));
 		}
 
 		const args = prepareEnvironmentVariablesForShell(

@@ -5,6 +5,7 @@ import { quote } from "shell-quote";
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import type { DockerBuildOptions } from "./docker-file";
 
 export const getNixpacksCommand = (application: ApplicationNested) => {
 	const { env, appName, publishDirectory, cleanCache } = application;

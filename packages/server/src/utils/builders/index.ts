@@ -13,6 +13,7 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
+import { resolveBuildCgroupParent } from "./build-cgroup-parent";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
@@ -39,12 +40,23 @@ export type ApplicationNested = InferResultType<
 	}
 >;
 
-export const getBuildCommand = async (rawApplication: ApplicationNested) => {
+/**
+ * `buildHostServerId` is the server that executes the build command
+ * (null = local web server). Defaults to the assigned build server, then the
+ * deploy server; preview deployments always build on the deploy server.
+ */
+export const getBuildCommand = async (
+	rawApplication: ApplicationNested,
+	buildHostServerId: string | null = rawApplication.buildServerId ||
+		rawApplication.serverId,
+) => {
 	const application = await withResolvedVaultRefs(rawApplication);
 	let command = "";
 
 	if (application.sourceType !== "docker") {
 		const { buildType } = application;
+		const cgroupParent = await resolveBuildCgroupParent(buildHostServerId);
+		const options = { cgroupParent };
 		switch (buildType) {
 			case "nixpacks":
 				command = getNixpacksCommand(application);
@@ -56,10 +68,10 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 				command = getPaketoCommand(application);
 				break;
 			case "static":
-				command = getStaticCommand(application);
+				command = getStaticCommand(application, options);
 				break;
 			case "dockerfile":
-				command = getDockerCommand(application);
+				command = getDockerCommand(application, options);
 				break;
 			case "railpack":
 				command = getRailpackCommand(application);
