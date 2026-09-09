@@ -83,25 +83,62 @@ export const azureBlobDestinationSchema = z
 		},
 	);
 
-export const destinationSchema = z.object({
-	name: z.string().min(1, "Name is required"),
-	destinationType: z.preprocess(
-		(val) => (val === "az_bs" ? "azure_blob" : val),
-		z.enum(["s3", "azure_blob"]).default("s3"),
-	),
-	provider: z.string().min(1, "Provider is required").default("AWS"),
-	accessKey: z.string().optional().default(""),
-	secretAccessKey: z
-		.string()
-		.min(1, "Secret Access Key / Account Key / SAS URL is required"),
-	bucket: z.string().min(1, "Bucket / Container is required"),
-	region: z.string().optional().default(""),
-	endpoint: z.string().optional().default(""),
-	additionalFlags: z
-		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
-		.default([]),
-	serverId: z.string().optional(),
-});
+export const destinationSchema = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		destinationType: z.preprocess(
+			(val) => (val === "az_bs" ? "azure_blob" : val),
+			z.enum(["s3", "azure_blob"]).default("s3"),
+		),
+		provider: z.string().min(1, "Provider is required").default("AWS"),
+		accessKey: z.string().optional().default(""),
+		secretAccessKey: z
+			.string()
+			.min(1, "Secret Access Key / Account Key / SAS URL is required"),
+		bucket: z.string().min(1, "Bucket / Container is required"),
+		region: z.string().optional().default(""),
+		endpoint: z.string().optional().default(""),
+		additionalFlags: z
+			.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
+			.default([]),
+		serverId: z.string().optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.destinationType === "s3") {
+			if (!data.accessKey || data.accessKey.trim().length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Access Key Id is required for S3",
+					path: ["accessKey"],
+				});
+			}
+			if (!data.endpoint || data.endpoint.trim().length === 0) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Endpoint is required for S3",
+					path: ["endpoint"],
+				});
+			}
+		} else if (data.destinationType === "azure_blob") {
+			if (data.provider !== "account_key" && data.provider !== "sas_url") {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Provider must be either 'account_key' or 'sas_url'",
+					path: ["provider"],
+				});
+			}
+			if (
+				data.provider === "account_key" &&
+				(!data.accessKey || data.accessKey.trim().length === 0)
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Storage Account Name is required when using Account Key",
+					path: ["accessKey"],
+				});
+			}
+		}
+	});
 
 export const apiCreateDestination = destinationSchema;
 

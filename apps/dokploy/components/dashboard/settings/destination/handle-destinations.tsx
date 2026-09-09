@@ -97,6 +97,13 @@ const destinationFormSchema = z
 				});
 			}
 		} else if (data.destinationType === "azure_blob") {
+			if (data.provider !== "account_key" && data.provider !== "sas_url") {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Provider must be either 'account_key' or 'sas_url'",
+					path: ["provider"],
+				});
+			}
 			if (data.provider === "account_key") {
 				if (!data.accessKeyId || data.accessKeyId.trim().length === 0) {
 					ctx.addIssue({
@@ -228,8 +235,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			destinationType: data.destinationType,
 			name: data.name,
 			provider:
-				data.provider ||
-				(data.destinationType === "azure_blob" ? "account_key" : "AWS"),
+				data.destinationType === "azure_blob"
+					? data.provider === "sas_url"
+						? "sas_url"
+						: "account_key"
+					: data.provider || "AWS",
 			accessKey: data.accessKeyId || "",
 			secretAccessKey: data.secretAccessKey,
 			bucket: data.bucket,
@@ -289,7 +299,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 		await testConnection({
 			destinationType: currentVals.destinationType,
-			provider: currentVals.provider || (isAzure ? "account_key" : "AWS"),
+			provider:
+				currentVals.destinationType === "azure_blob"
+					? currentVals.provider === "sas_url"
+						? "sas_url"
+						: "account_key"
+					: currentVals.provider || "AWS",
 			accessKey: currentVals.accessKeyId || "",
 			secretAccessKey: currentVals.secretAccessKey,
 			bucket: currentVals.bucket,
@@ -358,9 +373,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									type="button"
 									onClick={() => {
 										form.setValue("destinationType", "s3");
+										const currentProvider = form.getValues("provider");
 										if (
-											form.getValues("provider") === "account_key" ||
-											form.getValues("provider") === "sas_url"
+											currentProvider === "account_key" ||
+											currentProvider === "sas_url"
 										) {
 											form.setValue("provider", "AWS");
 										}
@@ -379,9 +395,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									type="button"
 									onClick={() => {
 										form.setValue("destinationType", "azure_blob");
+										const currentProvider = form.getValues("provider");
 										if (
-											!form.getValues("provider") ||
-											form.getValues("provider") === "AWS"
+											currentProvider !== "account_key" &&
+											currentProvider !== "sas_url"
 										) {
 											form.setValue("provider", "account_key");
 										}

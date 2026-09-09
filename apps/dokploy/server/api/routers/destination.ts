@@ -5,6 +5,7 @@ import {
 	findDestinationById,
 	getDestinationRemote,
 	IS_CLOUD,
+	redactRcloneCredentials,
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
@@ -76,7 +77,7 @@ export const destinationRouter = createTRPCRouter({
 				const isAzure = input.destinationType === "azure_blob";
 				let message =
 					error instanceof Error
-						? error?.message
+						? redactRcloneCredentials(error.message)
 						: `Error connecting to ${isAzure ? "container" : "bucket"}`;
 
 				if (

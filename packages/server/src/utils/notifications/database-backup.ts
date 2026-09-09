@@ -4,6 +4,7 @@ import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { redactRcloneCredentials } from "../backups/redact";
 import {
 	sendCustomNotification,
 	sendDiscordNotification,
@@ -24,7 +25,7 @@ export const sendDatabaseBackupNotifications = async ({
 	applicationName,
 	databaseType,
 	type,
-	errorMessage,
+	errorMessage: rawErrorMessage,
 	organizationId,
 	databaseName,
 }: {
@@ -36,6 +37,9 @@ export const sendDatabaseBackupNotifications = async ({
 	errorMessage?: string;
 	databaseName: string;
 }) => {
+	const errorMessage = rawErrorMessage
+		? redactRcloneCredentials(rawErrorMessage)
+		: undefined;
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
 	const notificationList = await db.query.notifications.findMany({

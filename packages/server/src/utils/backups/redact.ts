@@ -8,8 +8,17 @@
  */
 export const redactRcloneCredentials = (command: string): string => {
 	return command
-		.replace(/(--s3-access-key-id=)"[^"]*"/g, '$1"[REDACTED]"')
-		.replace(/(--s3-secret-access-key=)"[^"]*"/g, '$1"[REDACTED]"')
-		.replace(/(--azureblob-key=)"[^"]*"/g, '$1"[REDACTED]"')
-		.replace(/(--azureblob-sas-url=)"[^"]*"/g, '$1"[REDACTED]"');
+		.replace(
+			/(--s3-access-key-id=)(?:"[^"]*"|'[^']*'|[^\s]+)/g,
+			'$1"[REDACTED]"',
+		)
+		.replace(
+			/(--s3-secret-access-key=)(?:"[^"]*"|'[^']*'|[^\s]+)/g,
+			'$1"[REDACTED]"',
+		)
+		.replace(/(--azureblob-key=)(?:"[^"]*"|'[^']*'|[^\s]+)/g, '$1"[REDACTED]"')
+		.replace(
+			/(--azureblob-sas-url=)(?:"[^"]*"|'[^']*'|[^\s]+)/g,
+			'$1"[REDACTED]"',
+		);
 };

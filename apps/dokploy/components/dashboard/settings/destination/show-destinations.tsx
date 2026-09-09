@@ -19,6 +19,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
 import { HandleDestinations } from "./handle-destinations";
 
@@ -29,13 +36,28 @@ export const ShowDestinations = () => {
 	const { mutateAsync: testConnection } =
 		api.destination.testConnection.useMutation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: servers } = api.server.withSSHKey.useQuery(undefined, {
+		enabled: !!isCloud,
+	});
 	const [testingDestinationId, setTestingDestinationId] = useState<
 		string | null
 	>(null);
 
 	const handleQuickTest = async (
 		destination: NonNullable<typeof data>[number],
+		serverId?: string,
 	) => {
+		const targetServerId =
+			serverId || (isCloud ? servers?.[0]?.serverId : undefined);
+
+		if (isCloud && !targetServerId) {
+			toast.error(
+				"A server with SSH keys is required to test destinations in cloud mode. Please add a server first.",
+			);
+			return;
+		}
+
 		setTestingDestinationId(destination.destinationId);
 		try {
 			const isAzure =
@@ -53,6 +75,7 @@ export const ShowDestinations = () => {
 				region: destination.region || "",
 				endpoint: destination.endpoint || "",
 				additionalFlags: destination.additionalFlags || [],
+				serverId: targetServerId,
 			});
 			toast.success(`Connection to "${destination.name}" succeeded!`);
 		} catch (error) {
@@ -154,19 +177,63 @@ export const ShowDestinations = () => {
 															</div>
 
 															<div className="flex flex-row items-center gap-1 self-end sm:self-center">
-																<Button
-																	variant="ghost"
-																	size="sm"
-																	className="h-8 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-																	isLoading={isTesting}
-																	onClick={() => handleQuickTest(destination)}
-																	title="Test Connection"
-																>
-																	<PlugZap className="size-3.5 text-primary" />
-																	<span className="hidden md:inline">
-																		Test Connection
-																	</span>
-																</Button>
+																{isCloud && servers && servers.length > 1 ? (
+																	<DropdownMenu>
+																		<DropdownMenuTrigger asChild>
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				className="h-8 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+																				isLoading={isTesting}
+																				title="Test Connection"
+																			>
+																				<PlugZap className="size-3.5 text-primary" />
+																				<span className="hidden md:inline">
+																					Test Connection
+																				</span>
+																			</Button>
+																		</DropdownMenuTrigger>
+																		<DropdownMenuContent align="end">
+																			<DropdownMenuLabel>
+																				Run Test on Server
+																			</DropdownMenuLabel>
+																			{servers.map((server) => (
+																				<DropdownMenuItem
+																					key={server.serverId}
+																					onClick={() =>
+																						handleQuickTest(
+																							destination,
+																							server.serverId,
+																						)
+																					}
+																				>
+																					{server.name}
+																				</DropdownMenuItem>
+																			))}
+																		</DropdownMenuContent>
+																	</DropdownMenu>
+																) : (
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		className="h-8 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+																		isLoading={isTesting}
+																		onClick={() =>
+																			handleQuickTest(
+																				destination,
+																				isCloud
+																					? servers?.[0]?.serverId
+																					: undefined,
+																			)
+																		}
+																		title="Test Connection"
+																	>
+																		<PlugZap className="size-3.5 text-primary" />
+																		<span className="hidden md:inline">
+																			Test Connection
+																		</span>
+																	</Button>
+																)}
 
 																<HandleDestinations
 																	destinationId={destination.destinationId}

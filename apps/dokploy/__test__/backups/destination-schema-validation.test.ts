@@ -140,5 +140,80 @@ describe("Destination Zod Schema Validation", () => {
 				expect(result.data.name).toBe("Updated Azure Backup");
 			}
 		});
+
+		it("rejects apiCreateDestination for S3 when accessKey is missing or empty", () => {
+			const invalidS3 = {
+				name: "S3 without key",
+				destinationType: "s3",
+				provider: "AWS",
+				secretAccessKey: "mysecret",
+				bucket: "mybucket",
+				endpoint: "https://s3.amazonaws.com",
+			};
+
+			const result = apiCreateDestination.safeParse(invalidS3);
+			expect(result.success).toBe(false);
+			if (!result.success) {
+				expect(
+					result.error.issues.some((i) => i.path.includes("accessKey")),
+				).toBe(true);
+			}
+		});
+
+		it("rejects apiCreateDestination for S3 when endpoint is missing or empty", () => {
+			const invalidS3 = {
+				name: "S3 without endpoint",
+				destinationType: "s3",
+				provider: "AWS",
+				accessKey: "mykey",
+				secretAccessKey: "mysecret",
+				bucket: "mybucket",
+			};
+
+			const result = apiCreateDestination.safeParse(invalidS3);
+			expect(result.success).toBe(false);
+			if (!result.success) {
+				expect(
+					result.error.issues.some((i) => i.path.includes("endpoint")),
+				).toBe(true);
+			}
+		});
+
+		it("rejects apiCreateDestination for Azure account_key when storage account name is missing", () => {
+			const invalidAzure = {
+				name: "Azure without account name",
+				destinationType: "azure_blob",
+				provider: "account_key",
+				secretAccessKey: "mysecretkey",
+				bucket: "mycontainer",
+			};
+
+			const result = apiCreateDestination.safeParse(invalidAzure);
+			expect(result.success).toBe(false);
+			if (!result.success) {
+				expect(
+					result.error.issues.some((i) => i.path.includes("accessKey")),
+				).toBe(true);
+			}
+		});
+
+		it("rejects apiCreateDestination for Azure when provider is invalid", () => {
+			const invalidAzure = {
+				name: "Azure with invalid provider",
+				destinationType: "azure_blob",
+				provider: "Minio",
+				accessKey: "acc",
+				secretAccessKey: "key",
+				bucket: "mycontainer",
+			};
+
+			const result = apiCreateDestination.safeParse(invalidAzure);
+			expect(result.success).toBe(false);
+			if (!result.success) {
+				expect(
+					result.error.issues.some((i) => i.path.includes("provider")),
+				).toBe(true);
+			}
+		});
 	});
 });
