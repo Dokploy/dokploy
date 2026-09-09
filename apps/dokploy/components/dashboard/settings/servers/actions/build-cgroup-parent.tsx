@@ -88,7 +88,7 @@ export const BuildCgroupParent = ({ serverId, label }: Props) => {
 				<div className="flex items-center gap-2">
 					<Input
 						type="text"
-						placeholder="builds.slice:docker:"
+						placeholder="/builds"
 						value={value}
 						onChange={(e) => setValue(e.target.value)}
 						className="w-56 font-mono"

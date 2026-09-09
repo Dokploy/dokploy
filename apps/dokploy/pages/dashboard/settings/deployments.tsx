@@ -85,12 +85,13 @@ const Page = () => {
 								The value is passed to <code>docker build --cgroup-parent</code>{" "}
 								and only applies to <code>RUN</code> steps of Dockerfile and
 								static builds. Nixpacks, Buildpacks, Railpack and Compose builds
-								are not affected. Create the cgroup on the host first, e.g. a
-								systemd slice <code>builds.slice</code> with{" "}
-								<code>CPUQuota=</code> and enter{" "}
-								<code>builds.slice:docker:</code> here (systemd cgroup driver),
-								or a plain cgroupfs path such as <code>builds</code>. Leave
-								empty to disable.
+								are not affected. Use an absolute cgroupfs path such as{" "}
+								<code>/builds</code>: BuildKit then creates{" "}
+								<code>/sys/fs/cgroup/builds/buildkit/&lt;id&gt;</code> and a
+								limit written to <code>/sys/fs/cgroup/builds/cpu.max</code> (or{" "}
+								<code>memory.max</code>) caps all builds on that host together.
+								systemd slice notation is not supported by the built-in BuildKit
+								executor. Leave empty to disable.
 							</AlertBlock>
 							<div className="flex flex-col gap-2">
 								<p className="text-sm font-medium text-muted-foreground">

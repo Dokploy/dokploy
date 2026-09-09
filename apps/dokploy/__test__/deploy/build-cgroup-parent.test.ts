@@ -28,13 +28,11 @@ const dockerArgs = (command: string) => {
 describe("build cgroup parent", () => {
 	it("passes --cgroup-parent to docker build when configured", () => {
 		const args = dockerArgs(
-			getDockerCommand(baseApplication, {
-				cgroupParent: "builds.slice:docker:",
-			}),
+			getDockerCommand(baseApplication, { cgroupParent: "/builds" }),
 		);
 		const idx = args.indexOf("--cgroup-parent");
 		expect(idx).toBeGreaterThan(-1);
-		expect(args[idx + 1]).toBe("builds.slice:docker:");
+		expect(args[idx + 1]).toBe("/builds");
 	});
 
 	it("omits --cgroup-parent when not configured", () => {
@@ -46,7 +44,7 @@ describe("build cgroup parent", () => {
 		).not.toContain("--cgroup-parent");
 	});
 
-	it("accepts systemd slices and cgroupfs paths", () => {
+	it("accepts cgroupfs paths and keeps slice notation as opaque text", () => {
 		expect(buildCgroupParentSchema.parse("builds.slice:docker:")).toBe(
 			"builds.slice:docker:",
 		);

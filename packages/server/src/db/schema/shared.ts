@@ -18,8 +18,8 @@ export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
 export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
 
-// Value for `docker build --cgroup-parent`; empty string clears the setting.
-// Accepts cgroupfs paths ("builds") and systemd slices ("builds.slice:docker:").
+// Value for `docker build --cgroup-parent` (cgroupfs path such as "/builds");
+// empty string clears the setting.
 export const buildCgroupParentSchema = z
 	.string()
 	.trim()
