@@ -55,3 +55,30 @@ describe("execAsync build-secret redaction (dokploy#5354)", () => {
 		expect(stdout.trim()).toBe("build-ok");
 	});
 });
+
+describe("redaction follow-ups (greptile review on dokploy#5354)", () => {
+	const secretPair = "MY_API_KEY=sk-test-1234567890abcdef";
+	const exportForm = "export MY_API_KEY=sk-test-1234567890abcdef";
+
+	it("railpack export-line form is stripped when included in the redaction set", () => {
+		const out = redactSecrets(`Dockerfile:2\n${exportForm} && buildx build`, [
+			exportForm,
+		]);
+		expect(out).not.toContain("sk-test-1234567890abcdef");
+		expect(out).toContain("***");
+	});
+
+	it("the nested originalError no longer carries the raw command", async () => {
+		const failure = await execAsync(`${secretPair} false`, {
+			redact: [secretPair],
+		}).catch((e: unknown) => e);
+		expect(failure).toBeInstanceOf(ExecError);
+		const err = failure as ExecError;
+		// deploy handlers log the complete error object - the nested error must
+		// not smuggle the command past the redaction set
+		expect(String(err.originalError)).not.toContain(
+			"sk-test-1234567890abcdef",
+		);
+		expect(String(err.originalError)).not.toContain(secretPair);
+	});
+});

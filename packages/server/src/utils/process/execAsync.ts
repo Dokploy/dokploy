@@ -60,7 +60,11 @@ export const execAsync = async (
 					stdout: redact(stdout),
 					stderr: redact(stderr),
 					exitCode,
-					originalError: error,
+					// child_process's ExecException carries the RAW command in its
+					// message and .cmd - swap it for a sanitized value-only error
+					// so deploy handlers logging the complete ExecError (including
+					// the nested error) cannot leak embedded secrets.
+					originalError: new Error(redact(error.message)),
 				},
 			);
 		}
@@ -184,6 +188,11 @@ export const execAsyncRemote = async (
 	let stderr = "";
 	return new Promise((resolve, reject) => {
 		const conn = new Client();
+		// Redaction must also cover the pre-exec branches: authentication and
+		// connection failures throw an ExecError that retains the command, and
+		// deploy handlers log the complete error object.
+		const redact = (text: string) =>
+			options?.redact ? redactSecrets(text, options.redact) : text;
 
 		sleep(1000);
 		conn
@@ -256,9 +265,9 @@ export const execAsyncRemote = async (
 					onData?.(friendlyMessage);
 					reject(
 						new ExecError(
-							`Authentication failed: Invalid SSH private key. ${friendlyMessage}`,
+							redact(`Authentication failed: Invalid SSH private key. ${friendlyMessage}`),
 							{
-								command,
+								command: redact(command),
 								serverId,
 								originalError: err,
 							},
@@ -268,8 +277,8 @@ export const execAsyncRemote = async (
 					const errorMsg = `SSH connection error: ${err.message}`;
 					onData?.(errorMsg);
 					reject(
-						new ExecError(errorMsg, {
-							command,
+						new ExecError(redact(errorMsg), {
+							command: redact(command),
 							serverId,
 							originalError: err,
 						}),

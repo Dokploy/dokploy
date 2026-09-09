@@ -12,6 +12,13 @@ export class ExecError extends Error {
 	public readonly stdout?: string;
 	public readonly stderr?: string;
 	public readonly exitCode?: number;
+	/**
+	 * The underlying error the runtime handed us, retained for programmatic
+	 * diagnostics (e.g. exit-code and signal details). It may still contain the
+	 * RAW command text in its message - every string field on ExecError itself
+	 * is already redacted, but deploy handlers should never log this nested
+	 * error directly (greptile follow-up on dokploy#5354).
+	 */
 	public readonly originalError?: Error;
 	public readonly serverId?: string | null;
 

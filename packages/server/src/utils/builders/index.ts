@@ -11,6 +11,7 @@ import {
 	generateFileMounts,
 	generateVolumeMounts,
 	getEnvironmentVariablesObject,
+	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForShell,
 } from "../docker/utils";
@@ -68,7 +69,23 @@ export const getBuildCommandRedactionSet = async (
 	const dockerPrefixArgs = Object.entries(secrets).map(
 		([key, value]) => `${key}=${quote([value])}`,
 	);
-	return [...envArgs, ...dockerPrefixArgs];
+	// Railpack additionally embeds each value as a dotted-shell `export KEY=...`
+	// line in the build command (see getRailpackCommand) - a differently
+	// escaped form that the entries above do not cover. Without this, a failed
+	// railpack build leaks the secret through error.message/command.
+	const rawEnv = prepareEnvironmentVariables(
+		application.env,
+		application.environment.project.env,
+		application.environment.env,
+	);
+	const railpackExports: string[] = [];
+	for (const pair of rawEnv) {
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
+		if (key && value) {
+			railpackExports.push(`export ${key}=${quote([value])}`);
+		}
+	}
+	return [...envArgs, ...dockerPrefixArgs, ...railpackExports];
 };
 
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
