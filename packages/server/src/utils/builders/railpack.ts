@@ -57,7 +57,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		`secrets-hash=${secretsHash}`,
 		...(cacheKey ? ["--build-arg", `cache-key=${cacheKey}`] : []),
 		"--build-arg",
-		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
+		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion || "0.15.4"}`,
 		"-f",
 		`${buildAppDirectory}/railpack-plan.json`,
 		"--output",
@@ -86,7 +86,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 # Ensure we have a builder with containerd (isolated per build)
 
-export RAILPACK_VERSION=${application.railpackVersion}
+export RAILPACK_VERSION=${application.railpackVersion || "0.15.4"}
 # use sudo for non-root so the install can write to /usr/local/bin
 if [ "$(id -u)" -eq 0 ]; then
 	SUDO_CMD=""
