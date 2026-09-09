@@ -5,12 +5,13 @@ import {
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
@@ -85,6 +87,29 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		},
 	});
 
+	useEffect(() => {
+		const queryError = router.query.error;
+		if (!queryError) return;
+
+		const raw = Array.isArray(queryError) ? queryError[0] : queryError;
+		if (!raw) return;
+		const normalized = raw.replace(/[+_]/g, " ").toLowerCase();
+
+		setError(
+			normalized.includes("account not linked")
+				? "This account already exists but isn't linked to that sign-in provider yet. Contact your administrator to link it."
+				: normalized.includes("access denied")
+					? "Access was denied by the identity provider."
+					: "We couldn't complete sign-in. Please try again or contact your administrator.",
+		);
+
+		const { error: _removed, ...rest } = router.query;
+		router.replace({ pathname: router.pathname, query: rest }, undefined, {
+			shallow: true,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [router.query.error]);
+
 	const onSubmit = async (values: LoginForm) => {
 		setIsLoginLoading(true);
 		try {
@@ -109,8 +134,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				return;
 			}
 
-			// @ts-ignore
-			if (data?.twoFactorRedirect as boolean) {
+			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
@@ -470,6 +494,11 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the login/onboarding logo and app name
+	// render correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	if (IS_CLOUD) {
 		try {
 			const { user } = await validateRequest(context.req);
@@ -485,6 +514,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				IS_CLOUD: IS_CLOUD,
 				enforceSSO: false,
 			},
@@ -516,6 +546,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 	return {
 		props: {
+			trpcState: helpers.dehydrate(),
 			hasAdmin,
 			enforceSSO: webServerSettings?.enforceSSO ?? false,
 		},

@@ -1,0 +1,1 @@
+ALTER TABLE "network" ADD COLUMN "dockerId" text;

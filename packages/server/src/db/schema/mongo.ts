@@ -202,6 +202,7 @@ export const apiUpdateMongo = createSchema
 	.extend({
 		mongoId: z.string().min(1),
 		dockerImage: z.string().optional(),
+		replicaSets: z.boolean().optional(),
 	})
 	.omit({ serverId: true });
 

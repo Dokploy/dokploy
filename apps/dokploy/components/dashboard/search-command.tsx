@@ -175,7 +175,7 @@ export const SearchCommand = () => {
 						</CommandItem>
 						<CommandItem
 							onSelect={() => {
-								router.push("/dashboard/deployments");
+								router.push("/dashboard/overview?tab=deployments");
 								setOpen(false);
 							}}
 						>

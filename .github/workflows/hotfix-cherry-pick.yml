@@ -34,3 +34,16 @@ jobs:
           fi
           git commit --amend -m "$(git log -1 --format=%B)" -m "[skip ci]"
           git push origin main
+
+      - name: Sync cherry-pick back into canary
+        run: |
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          git fetch origin canary main
+          git checkout -B canary origin/canary
+          if ! git merge origin/main -m "chore: sync hotfix from main into canary [skip ci]"; then
+            git merge --abort
+            echo "::error::Could not auto-sync the hotfix into canary (real conflict, not just history divergence). Merge main into canary manually to avoid a conflict on the next release PR."
+            exit 1
+          fi
+          git push origin canary

@@ -124,8 +124,12 @@ export const getAccessibleGitProviderIds = async (session: {
  * Authorizes read access to a specific git provider for the current session.
  * Throws if the provider belongs to a different organization (cross-org IDOR)
  * or if the caller is not entitled to it within the active organization.
- * Must be called before returning any git-provider record that carries secrets
- * (OAuth tokens, app private keys, webhook secrets).
+ *
+ * This only proves the caller may *use* the provider (e.g. pick it as a repo
+ * source when creating a deploy) - it does NOT mean they may see its raw
+ * credentials. Being able to use a shared provider and being able to read its
+ * OAuth tokens / client secrets / private keys are different privileges; gate
+ * the latter with canViewGitProviderSecrets before returning secret fields.
  */
 export const assertGitProviderAccess = async (
 	session: { userId: string; activeOrganizationId: string },
@@ -145,4 +149,25 @@ export const assertGitProviderAccess = async (
 			message: "You don't have access to this git provider",
 		});
 	}
+};
+
+// Being allowed to use a shared provider (assertGitProviderAccess) must not
+// imply being allowed to read its raw OAuth tokens / client secrets / private
+// keys. Only the provider's owner or an org owner/admin gets those back.
+export const canViewGitProviderSecrets = async (
+	session: { userId: string; activeOrganizationId: string },
+	provider: { userId: string; organizationId: string },
+): Promise<boolean> => {
+	if (provider.organizationId !== session.activeOrganizationId) return false;
+	if (provider.userId === session.userId) return true;
+
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, session.userId),
+			eq(member.organizationId, session.activeOrganizationId),
+		),
+		columns: { role: true },
+	});
+
+	return memberRecord?.role === "owner" || memberRecord?.role === "admin";
 };

@@ -39,6 +39,8 @@ const ENTERPRISE_RESOURCES = [
 	"logs",
 	"monitoring",
 	"auditLog",
+	"vaultProvider",
+	"dnsProvider",
 ];
 
 describe("enterpriseOnlyResources set", () => {
