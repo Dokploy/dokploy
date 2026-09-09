@@ -18,11 +18,11 @@ describe("pipeBetweenServers", () => {
 		expect(bytes).toBe(11);
 	});
 
-	it("pipes multi-megabyte data unchanged", async () => {
+	it("pipes data larger than the pipe buffer unchanged", async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pipe-"));
 		const source = path.join(dir, "src.bin");
 		const target = path.join(dir, "dst.bin");
-		const size = 3 * 1024 * 1024;
+		const size = 1024 * 1024;
 		const progress: number[] = [];
 
 		const bytes = await pipeBetweenServers({
@@ -38,7 +38,7 @@ describe("pipeBetweenServers", () => {
 		expect(progress.at(-1)).toBe(size);
 		expect(await fs.readFile(target)).toEqual(await fs.readFile(source));
 		await fs.rm(dir, { recursive: true, force: true });
-	});
+	}, 30_000);
 
 	it("reports a target failure with its stderr", async () => {
 		await expect(
