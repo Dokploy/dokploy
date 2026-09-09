@@ -445,7 +445,18 @@ export const apiSaveBuildType = createSchema
 	// Only the identity fields are required: herokuVersion/railpackVersion et al.
 	// apply to other build types, and forcing API callers to pass them as null is
 	// trial-and-error friction the web UI never sees (it submits every field).
+	// The nullable fields default to null rather than staying optional: Drizzle
+	// skips undefined on update, so optional-without-default would leave stale
+	// values (e.g. switching to dockerfile would keep the old herokuVersion);
+	// defaulting to null clears them exactly like the UI's explicit nulls.
 	.required({ applicationId: true, buildType: true })
+	.extend({
+		dockerfile: z.string().nullable().default(null),
+		dockerContextPath: z.string().nullable().default(null),
+		dockerBuildStage: z.string().nullable().default(null),
+		herokuVersion: z.string().nullable().default(null),
+		railpackVersion: z.string().nullable().default(null),
+	})
 	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
 const branchField = z
@@ -543,9 +554,12 @@ export const apiSaveEnvironmentVariables = createSchema
 		buildSecrets: true,
 		createEnvFile: true,
 	})
-	// Only applicationId is required: a caller setting env should not have to
-	// pass buildArgs/buildSecrets/createEnvFile explicitly.
-	.required({ applicationId: true });
+	// applicationId and env stay required: env is the point of the mutation,
+	// and an applicationId-only call would pass validation only to die in
+	// drizzle's mapUpdateSet ("No values to set") as an INTERNAL_SERVER_ERROR
+	// instead of a clean BAD_REQUEST. buildArgs/buildSecrets/createEnvFile
+	// stay optional as reported in #4724.
+	.required({ applicationId: true, env: true });
 
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),

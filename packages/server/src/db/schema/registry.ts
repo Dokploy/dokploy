@@ -82,7 +82,7 @@ export const apiCreateRegistry = createSchema
 		// Matches the DB default: API callers should not have to pass the only
 		// accepted value explicitly.
 		registryType: z.enum(["cloud"]).default("cloud"),
-		imagePrefix: z.string().nullable().optional(),
+		imagePrefix: z.string().nullable().default(null),
 	})
 	.required({ registryName: true, username: true, password: true, registryUrl: true })
 	.extend({
@@ -95,7 +95,7 @@ export const apiTestRegistry = createSchema.pick({}).extend({
 	password: z.string().min(1),
 	registryUrl: registryUrlSchema,
 	registryType: z.enum(["cloud"]).default("cloud"),
-	imagePrefix: z.string().nullable().optional(),
+	imagePrefix: z.string().nullable().default(null),
 	serverId: z.string().optional(),
 });
 
