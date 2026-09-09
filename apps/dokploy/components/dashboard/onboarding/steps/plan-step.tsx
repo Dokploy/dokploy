@@ -11,9 +11,13 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { displayFont } from "../font";
 
-const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-);
+// Guard the module-level init: without a publishable key (self-hosted),
+// loadStripe still loads Stripe.js and the wrapper throws an IntegrationError
+// for the missing apiKey, and the rejected promise at module scope breaks
+// every page that imports this module (e.g. login -> onboarding wizard).
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+	: Promise.resolve(null);
 
 interface Props {
 	onNext: () => void;

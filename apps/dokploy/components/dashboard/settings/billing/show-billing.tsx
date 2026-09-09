@@ -42,9 +42,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
-const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-);
+// Guard the module-level init: without a publishable key (self-hosted),
+// loadStripe still loads Stripe.js and the wrapper throws an IntegrationError
+// for the missing apiKey, and the rejected promise at module scope breaks
+// every page that imports this module (e.g. login -> onboarding wizard).
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+	: Promise.resolve(null);
 
 /** Precio legacy / Hobby: $4.50/mo primer servidor, $3.50 siguientes; anual $45.90 primero, $35.70 siguientes. */
 export const calculatePrice = (count: number, isAnnual = false) => {
@@ -170,7 +174,7 @@ export const ShowBilling = () => {
 
 	const useNewPricing = data?.hobbyProductId && data?.startupProductId;
 	const products = data?.products.filter((product) => {
-		// @ts-ignore
+		// @ts-expect-error
 		const interval = product?.default_price?.recurring?.interval;
 		return isAnnual ? interval === "year" : interval === "month";
 	});
