@@ -57,3 +57,25 @@ describe("file mount filePath guards (dokploy#5292)", () => {
 		expect(cmd).toContain("base64 -d");
 	});
 });
+
+describe("file mount filePath resolves-inside guard (greptile follow-up)", () => {
+	it('createFile refuses a "." filePath (resolves to the directory itself)', async () => {
+		const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), "dokploy-5292-"));
+		await expect(createFile(outputPath, ".", "x")).rejects.toThrow(
+			/inside the service's files directory/,
+		);
+		expect(fs.statSync(outputPath).isDirectory()).toBe(true);
+	});
+
+	it('createFile still allows "."-prefixed real files', async () => {
+		const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), "dokploy-5292-"));
+		await createFile(outputPath, "./ok.txt", "y");
+		expect(fs.readFileSync(path.join(outputPath, "ok.txt"), "utf-8")).toBe("y");
+	});
+
+	it('getCreateFileCommand refuses a "." filePath', () => {
+		expect(() => getCreateFileCommand("/srv/app/files", ".", "x")).toThrow(
+			/inside the service's files directory/,
+		);
+	});
+});

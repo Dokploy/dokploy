@@ -776,6 +776,13 @@ export const createFile = async (
 			throw new Error("filePath is required to create a file mount");
 		}
 		const fullPath = path.join(outputPath, filePath);
+		if (path.resolve(fullPath) === path.resolve(outputPath)) {
+			// "." and similar no-op relative paths resolve back to the base and
+			// would overwrite the service's whole files directory (dokploy#5292).
+			throw new Error(
+				"filePath must name a path inside the service's files directory, not the directory itself",
+			);
+		}
 		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
@@ -800,6 +807,11 @@ export const getCreateFileCommand = (
 		throw new Error("filePath is required to create a file mount");
 	}
 	const fullPath = path.join(outputPath, filePath);
+	if (path.resolve(fullPath) === path.resolve(outputPath)) {
+		throw new Error(
+			"filePath must name a path inside the service's files directory, not the directory itself",
+		);
+	}
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 		return `mkdir -p ${quote([fullPath])};`;
 	}
