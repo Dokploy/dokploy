@@ -110,4 +110,12 @@ describe("getRailpackCommand", () => {
 			getSecretsHash(secondCommand),
 		);
 	});
+
+	it("falls back to the column default when railpackVersion is null", () => {
+		const command = getRailpackCommand(createApplication({ railpackVersion: null }));
+
+		expect(command).toContain("railpack-frontend:v0.15.4");
+		expect(command).not.toContain("vnull");
+		expect(command).not.toContain("RAILPACK_VERSION=null");
+	});
 });
