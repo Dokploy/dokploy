@@ -59,6 +59,39 @@ export const recordAdvancedStats = async (
 	}
 };
 
+// Virtual devices that never represent real disk I/O.
+const virtualDiskPatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
+
+// Partition suffix patterns: sdX1, vdX1, xvdX1, hdX1 (trailing digits) and
+// nvme0n1p1 / mmcblk0p1 / md0p1 (p<digits> after a digit-bearing base).
+const partitionSuffixPatterns = [/p\d+$/, /\d+$/];
+
+/**
+ * Decides whether a /proc/diskstats row should be summed into host disk I/O.
+ * Virtual devices (loop, ram, cdrom, floppy) are excluded, and a partition
+ * row is excluded whenever its parent disk is also present, because the
+ * parent disk's counters already include all of its partitions' I/O -
+ * summing both counts every byte twice.
+ */
+export const shouldIncludeDiskStat = (
+	device: string,
+	allDevices: string[],
+): boolean => {
+	if (virtualDiskPatterns.some((pattern) => pattern.test(device))) {
+		return false;
+	}
+	for (const suffixPattern of partitionSuffixPatterns) {
+		if (!suffixPattern.test(device)) {
+			continue;
+		}
+		const parent = device.replace(suffixPattern, "");
+		if (parent !== device && allDevices.includes(parent)) {
+			return false;
+		}
+	}
+	return true;
+};
+
 /**
  * Get host system statistics using node-os-utils
  * This is used when monitoring "dokploy" to show host stats instead of container stats
@@ -99,14 +132,14 @@ export const getHostSystemStats = async (): Promise<Container> => {
 	let blockWriteBytes = 0;
 	const diskStats = await osutils.disk.stats();
 	if (diskStats.success && diskStats.data.length > 0) {
-		// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
-		const excludePatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
+		const devices = diskStats.data
+			.map((stat) => stat.device)
+			.filter((device): device is string => !!device);
 		for (const stat of diskStats.data) {
-			// Skip virtual devices
-			if (
-				stat.device &&
-				excludePatterns.some((pattern) => pattern.test(stat.device))
-			) {
+			// Skip virtual devices and partitions: /proc/diskstats lists a
+			// partition's I/O in both its own row and its parent disk's row,
+			// so summing both counts every byte twice.
+			if (!stat.device || !shouldIncludeDiskStat(stat.device, devices)) {
 				continue;
 			}
 			// readBytes and writeBytes are DataSize objects with .toBytes() method
