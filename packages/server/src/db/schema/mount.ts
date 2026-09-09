@@ -134,6 +134,18 @@ export const apiCreateMount = createSchema
 	})
 	.extend({
 		serviceId: z.string().min(1),
+	})
+	.superRefine((value, ctx) => {
+		// A file mount without a filePath would be materialized with an empty
+		// path, which overwrites the service's whole `files/` directory path with
+		// a regular file and breaks every sibling mount (dokploy#5292).
+		if (value.type === "file" && !value.filePath?.trim()) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["filePath"],
+				message: "filePath is required for file mounts",
+			});
+		}
 	});
 
 export const apiFindOneMount = z.object({

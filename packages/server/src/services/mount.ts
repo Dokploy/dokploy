@@ -82,6 +82,13 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 export const createFileMount = async (mountId: string) => {
 	try {
 		const mount = await findMountById(mountId);
+		if (!mount.filePath?.trim()) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"filePath is required for file mounts - an empty filePath would overwrite the service's files directory",
+			});
+		}
 		const baseFilePath = await getBaseFilesPath(mountId);
 
 		const serverId = await getServerId(mount);

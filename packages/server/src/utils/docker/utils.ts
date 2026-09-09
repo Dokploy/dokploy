@@ -769,6 +769,12 @@ export const createFile = async (
 	content: string,
 ) => {
 	try {
+		if (!filePath?.trim()) {
+			// path.join(outputPath, "") === outputPath: without this guard the
+			// mount's content would be written onto the `files/` directory path
+			// itself, turning it into a regular file (dokploy#5292).
+			throw new Error("filePath is required to create a file mount");
+		}
 		const fullPath = path.join(outputPath, filePath);
 		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
@@ -790,6 +796,9 @@ export const getCreateFileCommand = (
 	filePath: string,
 	content: string,
 ) => {
+	if (!filePath?.trim()) {
+		throw new Error("filePath is required to create a file mount");
+	}
 	const fullPath = path.join(outputPath, filePath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 		return `mkdir -p ${quote([fullPath])};`;
