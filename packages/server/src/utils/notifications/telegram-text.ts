@@ -32,5 +32,15 @@ export const truncateTelegramText = (
 		truncated = truncated.substring(0, lastAmpersand);
 	}
 
+	// The cut can also split a surrogate pair (emoji and other non-BMP
+	// characters common in build output); a dangling high surrogate is
+	// invalid in the JSON payload, so back off one more code unit.
+	if (truncated.length > 0) {
+		const lastCode = truncated.charCodeAt(truncated.length - 1);
+		if (lastCode >= 0xd800 && lastCode <= 0xdbff) {
+			truncated = truncated.substring(0, truncated.length - 1);
+		}
+	}
+
 	return `${truncated}…`;
 };

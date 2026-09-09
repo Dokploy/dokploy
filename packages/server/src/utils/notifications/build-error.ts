@@ -200,9 +200,12 @@ export const sendBuildErrorNotifications = async ({
 					],
 				];
 
+				// Names have no server-side length limit; bound each so the
+				// composed message can never approach Telegram's 4096-char
+				// ceiling (which Telegram answers with a silent 400).
 				await sendTelegramNotification(
 					telegram,
-					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${escapeTelegramHtml(projectName)}\n<b>Application:</b> ${escapeTelegramHtml(applicationName)}\n<b>Type:</b> ${escapeTelegramHtml(applicationType)}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${truncateTelegramText(escapeTelegramHtml(errorMessage))}</pre>`,
+					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${truncateTelegramText(escapeTelegramHtml(projectName), 200)}\n<b>Application:</b> ${truncateTelegramText(escapeTelegramHtml(applicationName), 200)}\n<b>Type:</b> ${truncateTelegramText(escapeTelegramHtml(applicationType), 200)}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${truncateTelegramText(escapeTelegramHtml(errorMessage))}</pre>`,
 					inlineButton,
 				);
 			}

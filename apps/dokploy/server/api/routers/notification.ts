@@ -212,7 +212,16 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestTelegramConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendTelegramNotification(input, "Hi, From Dokploy 👋");
+				// sendTelegramNotification resolves false when Telegram rejects
+				// the message (fetch does not throw on 4xx) - surface that as a
+				// failed test instead of reporting success.
+				const delivered = await sendTelegramNotification(
+					input,
+					"Hi, From Dokploy 👋",
+				);
+				if (!delivered) {
+					throw new Error("Telegram rejected the test message");
+				}
 				return true;
 			} catch (error) {
 				throw new TRPCError({

@@ -132,9 +132,12 @@ export const sendTelegramNotification = async (
 			console.error(
 				`Telegram notification failed with status ${response.status}: ${await response.text()}`,
 			);
+			return false;
 		}
+		return true;
 	} catch (err) {
 		console.log(err);
+		return false;
 	}
 };
 
