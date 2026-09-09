@@ -442,7 +442,10 @@ export const apiSaveBuildType = createSchema
 		herokuVersion: true,
 		railpackVersion: true,
 	})
-	.required()
+	// Only the identity fields are required: herokuVersion/railpackVersion et al.
+	// apply to other build types, and forcing API callers to pass them as null is
+	// trial-and-error friction the web UI never sees (it submits every field).
+	.required({ applicationId: true, buildType: true })
 	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
 const branchField = z
@@ -540,7 +543,9 @@ export const apiSaveEnvironmentVariables = createSchema
 		buildSecrets: true,
 		createEnvFile: true,
 	})
-	.required();
+	// Only applicationId is required: a caller setting env should not have to
+	// pass buildArgs/buildSecrets/createEnvFile explicitly.
+	.required({ applicationId: true });
 
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),
