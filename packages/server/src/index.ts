@@ -76,6 +76,7 @@ export {
 } from "./utils/access-log/handler";
 export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
+export * from "./utils/backups/azure";
 export * from "./utils/backups/compose";
 export * from "./utils/backups/index";
 export * from "./utils/backups/libsql";
@@ -83,6 +84,7 @@ export * from "./utils/backups/mariadb";
 export * from "./utils/backups/mongo";
 export * from "./utils/backups/mysql";
 export * from "./utils/backups/postgres";
+export * from "./utils/backups/redact";
 export * from "./utils/backups/utils";
 export * from "./utils/backups/web-server";
 export * from "./utils/builders/compose";

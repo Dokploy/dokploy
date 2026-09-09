@@ -47,4 +47,53 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("MYSECRET");
 		expect(redacted).toContain("[REDACTED]");
 	});
+
+	it("should redact Azure Blob Storage account key in rclone command", () => {
+		const cmd =
+			'rclone rcat --azureblob-account="myazurestorage" --azureblob-key="dGhpcy1pcy1hbi1henVyZS1rZXk=" :azureblob:container/file.sql.gz';
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("dGhpcy1pcy1hbi1henVyZS1rZXk=");
+		expect(redacted).toContain('--azureblob-key="[REDACTED]"');
+		expect(redacted).toContain('--azureblob-account="myazurestorage"');
+	});
+
+	it("should redact Azure Blob Storage SAS URL in rclone command", () => {
+		const cmd =
+			'rclone lsf --azureblob-sas-url="https://myaccount.blob.core.windows.net/?sv=2022-11-02&sig=supersensitive" :azureblob:container/';
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("supersensitive");
+		expect(redacted).toContain('--azureblob-sas-url="[REDACTED]"');
+	});
+
+	it("should redact unquoted and shell-escaped Azure credentials produced by shell-quote", () => {
+		const cmdKey =
+			"rclone rcat --azureblob-account=myazurestorage --azureblob-key=dGhpcy1pcy1hbi1henVyZS1rZXk\\=\\= :azureblob:container/file.sql.gz";
+		const redactedKey = redactRcloneCredentials(cmdKey);
+		expect(redactedKey).not.toContain("dGhpcy1pcy1hbi1henVyZS1rZXk");
+		expect(redactedKey).toContain('--azureblob-key="[REDACTED]"');
+
+		const cmdSas =
+			"rclone lsf --azureblob-sas-url=https\\://myaccount.blob.core.windows.net/\\?sv\\=2022-11-02\\&sig\\=supersensitive :azureblob:container/";
+		const redactedSas = redactRcloneCredentials(cmdSas);
+		expect(redactedSas).not.toContain("supersensitive");
+		expect(redactedSas).toContain('--azureblob-sas-url="[REDACTED]"');
+	});
+
+	it("should redact single-quoted Azure credentials", () => {
+		const cmd =
+			"rclone rcat --azureblob-account='myazurestorage' --azureblob-key='singlequotedkey' :azureblob:container/";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("singlequotedkey");
+		expect(redacted).toContain('--azureblob-key="[REDACTED]"');
+	});
+
+	it("should redact unquoted S3 credentials", () => {
+		const cmd =
+			"rclone rcat --s3-access-key-id=AKIAIOSFODNN7EXAMPLE --s3-secret-access-key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY :s3:bucket/file.gz";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("AKIAIOSFODNN7EXAMPLE");
+		expect(redacted).not.toContain("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY");
+		expect(redacted).toContain('--s3-access-key-id="[REDACTED]"');
+		expect(redacted).toContain('--s3-secret-access-key="[REDACTED]"');
+	});
 });

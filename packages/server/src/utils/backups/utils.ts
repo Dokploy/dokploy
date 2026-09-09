@@ -68,14 +68,81 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
-	const { accessKey, secretAccessKey, region, endpoint, provider } =
+export interface DestinationRemote {
+	rcloneFlags: string[];
+	remoteBase: string;
+	getRemotePath: (subPath?: string) => string;
+}
+
+export const getDestinationRemote = (
+	destination: Pick<
+		Destination,
+		| "accessKey"
+		| "secretAccessKey"
+		| "bucket"
+		| "region"
+		| "endpoint"
+		| "provider"
+		| "additionalFlags"
+	> & {
+		destinationType?: string | null;
+	},
+): DestinationRemote => {
+	const destinationType =
+		destination.destinationType === "az_bs" ||
+		destination.destinationType === "azure_blob"
+			? "azure_blob"
+			: "s3";
+
+	if (destinationType === "azure_blob") {
+		const rcloneFlags: string[] = [];
+		const isSas =
+			destination.provider === "sas_url" ||
+			destination.secretAccessKey.startsWith("http://") ||
+			destination.secretAccessKey.startsWith("https://");
+
+		if (isSas) {
+			rcloneFlags.push(
+				`--azureblob-sas-url=${quote([destination.secretAccessKey])}`,
+			);
+		} else {
+			if (destination.accessKey) {
+				rcloneFlags.push(
+					`--azureblob-account=${quote([destination.accessKey])}`,
+				);
+			}
+			rcloneFlags.push(
+				`--azureblob-key=${quote([destination.secretAccessKey])}`,
+			);
+		}
+
+		if (destination.endpoint) {
+			rcloneFlags.push(`--azureblob-endpoint=${quote([destination.endpoint])}`);
+		}
+
+		if (destination.additionalFlags?.length) {
+			rcloneFlags.push(...destination.additionalFlags);
+		}
+
+		const container = destination.bucket;
+		const remoteBase = `:azureblob:${container}`;
+
+		return {
+			rcloneFlags,
+			remoteBase,
+			getRemotePath: (subPath?: string) =>
+				subPath ? `${remoteBase}/${subPath.replace(/^\/+/, "")}` : remoteBase,
+		};
+	}
+
+	// Default: S3
+	const { accessKey, secretAccessKey, region, endpoint, provider, bucket } =
 		destination;
 	const rcloneFlags = [
-		`--s3-access-key-id=${quote([accessKey])}`,
+		`--s3-access-key-id=${quote([accessKey || ""])}`,
 		`--s3-secret-access-key=${quote([secretAccessKey])}`,
-		`--s3-region=${quote([region])}`,
-		`--s3-endpoint=${quote([endpoint])}`,
+		`--s3-region=${quote([region || ""])}`,
+		`--s3-endpoint=${quote([endpoint || ""])}`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
@@ -88,7 +155,18 @@ export const getS3Credentials = (destination: Destination) => {
 		rcloneFlags.push(...destination.additionalFlags);
 	}
 
-	return rcloneFlags;
+	const remoteBase = `:s3:${bucket}`;
+
+	return {
+		rcloneFlags,
+		remoteBase,
+		getRemotePath: (subPath?: string) =>
+			subPath ? `${remoteBase}/${subPath.replace(/^\/+/, "")}` : remoteBase,
+	};
+};
+
+export const getS3Credentials = (destination: Destination) => {
+	return getDestinationRemote(destination).rcloneFlags;
 };
 
 // User-controlled values (database name, user, password) are passed to the
@@ -290,7 +368,7 @@ export const getBackupCommand = (
 	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting backup and upload to destination..." >> ${logPath};
 
 	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
@@ -299,7 +377,7 @@ export const getBackupCommand = (
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded to destination successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
