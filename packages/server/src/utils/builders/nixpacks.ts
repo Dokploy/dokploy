@@ -7,10 +7,7 @@ import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
 import type { DockerBuildOptions } from "./docker-file";
 
-export const getNixpacksCommand = (
-	application: ApplicationNested,
-	options: DockerBuildOptions = {},
-) => {
+export const getNixpacksCommand = (application: ApplicationNested) => {
 	const { env, appName, publishDirectory, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
@@ -64,7 +61,7 @@ export const getNixpacksCommand = (
 		exit 1;
 	}
 	docker rm ${buildContainerId}
-	${getStaticCommand(application, options)}
+	${getStaticCommand(application)}
 				`;
 	}
 

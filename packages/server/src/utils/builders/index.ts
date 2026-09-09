@@ -40,20 +40,26 @@ export type ApplicationNested = InferResultType<
 	}
 >;
 
-export const getBuildCommand = async (rawApplication: ApplicationNested) => {
+/**
+ * `buildHostServerId` is the server that executes the build command
+ * (null = local web server). Defaults to the assigned build server, then the
+ * deploy server; preview deployments always build on the deploy server.
+ */
+export const getBuildCommand = async (
+	rawApplication: ApplicationNested,
+	buildHostServerId: string | null = rawApplication.buildServerId ||
+		rawApplication.serverId,
+) => {
 	const application = await withResolvedVaultRefs(rawApplication);
 	let command = "";
 
 	if (application.sourceType !== "docker") {
 		const { buildType } = application;
-		// The build runs on the build server when one is assigned
-		const cgroupParent = await resolveBuildCgroupParent(
-			application.buildServerId || application.serverId,
-		);
+		const cgroupParent = await resolveBuildCgroupParent(buildHostServerId);
 		const options = { cgroupParent };
 		switch (buildType) {
 			case "nixpacks":
-				command = getNixpacksCommand(application, options);
+				command = getNixpacksCommand(application);
 				break;
 			case "heroku_buildpacks":
 				command = getHerokuCommand(application);

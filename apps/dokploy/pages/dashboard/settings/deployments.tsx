@@ -83,9 +83,10 @@ const Page = () => {
 						<CardContent className="flex flex-col gap-6">
 							<AlertBlock type="info">
 								The value is passed to <code>docker build --cgroup-parent</code>{" "}
-								and only applies to <code>RUN</code> steps of Dockerfile, static
-								and Nixpacks static builds. Create the cgroup on the host first,
-								e.g. a systemd slice <code>builds.slice</code> with{" "}
+								and only applies to <code>RUN</code> steps of Dockerfile and
+								static builds. Nixpacks, Buildpacks, Railpack and Compose builds
+								are not affected. Create the cgroup on the host first, e.g. a
+								systemd slice <code>builds.slice</code> with{" "}
 								<code>CPUQuota=</code> and enter{" "}
 								<code>builds.slice:docker:</code> here (systemd cgroup driver),
 								or a plain cgroupfs path such as <code>builds</code>. Leave
