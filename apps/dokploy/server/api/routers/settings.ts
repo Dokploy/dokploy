@@ -707,6 +707,7 @@ export const settingsRouter = createTRPCRouter({
 					"licenseKey",
 					"organization",
 					"previewDeployment",
+					"sandbox",
 				],
 			});
 
