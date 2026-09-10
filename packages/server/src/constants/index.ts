@@ -13,6 +13,8 @@ export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
 
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 
+export const VECTOR_RESYNC_CRON_JOB = "*/15 * * * *";
+
 // Body size limits for the OpenAPI catch-all route (pages/api/[...trpc].ts).
 const parseByteSize = (envVar: string, fallback: number): number => {
 	const raw = process.env[envVar];
@@ -134,6 +136,7 @@ export const paths = (isServer = false) => {
 		CERTIFICATES_PATH: `${DYNAMIC_TRAEFIK_PATH}/certificates`,
 		MONITORING_PATH: `${BASE_PATH}/monitoring`,
 		REGISTRY_PATH: `${BASE_PATH}/registry`,
+		VECTOR_PATH: `${BASE_PATH}/vector`,
 		SCHEDULES_PATH: `${BASE_PATH}/schedules`,
 		VOLUME_BACKUPS_PATH: `${BASE_PATH}/volume-backups`,
 		VOLUME_BACKUP_LOCK_PATH: `${BASE_PATH}/volume-backup-lock`,

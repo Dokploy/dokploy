@@ -12,6 +12,7 @@ import {
 	IS_CLOUD,
 	redactServerSshKey,
 	removeDeploymentsByServerId,
+	removeVectorAgent,
 	serverAudit,
 	serverSetup,
 	serverValidate,
@@ -50,6 +51,10 @@ import {
 	server,
 } from "@/server/db/schema";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
+import {
+	applyVectorResyncSchedule,
+	syncVectorAgentAndSchedule,
+} from "@/server/utils/vector-resync";
 
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
@@ -453,6 +458,73 @@ export const serverRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+	setupLogManagement: withPermission("server", "create")
+		.input(apiFindOneServer)
+		.mutation(async ({ input, ctx }) => {
+			const server = await findServerById(input.serverId);
+			if (server.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to setup this server",
+				});
+			}
+			const result = await syncVectorAgentAndSchedule(input.serverId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "server",
+				resourceId: input.serverId,
+				resourceName: server.name,
+			});
+			return result;
+		}),
+	updateLogManagement: withPermission("server", "create")
+		.input(
+			z.object({
+				serverId: z.string().min(1),
+				enableLogManagement: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const server = await findServerById(input.serverId);
+			if (server.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this server",
+				});
+			}
+			await updateServerById(input.serverId, {
+				enableLogManagement: input.enableLogManagement,
+			});
+			try {
+				const result = await syncVectorAgentAndSchedule(input.serverId);
+				await audit(ctx, {
+					action: "update",
+					resourceType: "server",
+					resourceId: input.serverId,
+					resourceName: server.name,
+				});
+				return { ...result, enableLogManagement: input.enableLogManagement };
+			} catch (error) {
+				await updateServerById(input.serverId, {
+					enableLogManagement: server.enableLogManagement,
+				});
+				await syncVectorAgentAndSchedule(input.serverId).catch(
+					(teardownError) => {
+						console.error(
+							`[Vector] Failed to tear down agent for server ${input.serverId} after a failed sync — it may still be running:`,
+							teardownError,
+						);
+					},
+				);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? `Failed to sync Vector agent: ${error.message}`
+							: "Failed to sync Vector agent",
+				});
+			}
+		}),
 	remove: withPermission("server", "delete")
 		.input(apiRemoveServer)
 		.mutation(async ({ input, ctx }) => {
@@ -473,11 +545,28 @@ export const serverRouter = createTRPCRouter({
 						message: "Server has active services, please delete them first",
 					});
 				}
+				let vectorAgentRemovalWarning: string | undefined;
+				if (currentServer.enableLogManagement) {
+					await removeVectorAgent({ serverId: input.serverId }).catch(
+						(error) => {
+							vectorAgentRemovalWarning =
+								error instanceof Error ? error.message : String(error);
+							console.error(
+								`[Vector] Failed to remove agent for server ${input.serverId} before deletion:`,
+								error,
+							);
+						},
+					);
+					await applyVectorResyncSchedule(input.serverId, false);
+				}
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "server",
 					resourceId: currentServer.serverId,
 					resourceName: currentServer.name,
+					...(vectorAgentRemovalWarning
+						? { metadata: { vectorAgentRemovalWarning } }
+						: {}),
 				});
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
@@ -488,7 +577,10 @@ export const serverRouter = createTRPCRouter({
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
-				return redactServerSshKey(currentServer);
+				return {
+					...redactServerSshKey(currentServer),
+					vectorAgentRemovalWarning,
+				};
 			} catch (error) {
 				throw error;
 			}
@@ -511,7 +603,34 @@ export const serverRouter = createTRPCRouter({
 						message: "Server is inactive",
 					});
 				}
-				const currentServer = await updateServerById(input.serverId, {
+
+				const connectionChanged =
+					server.ipAddress !== input.ipAddress ||
+					server.port !== input.port ||
+					server.username !== input.username ||
+					server.sshKeyId !== input.sshKeyId;
+
+				let vectorAgentWarning: string | undefined;
+				const recordVectorWarning = (prefix: string, error: unknown) => {
+					const message = `${prefix}: ${error instanceof Error ? error.message : String(error)}`;
+					vectorAgentWarning = vectorAgentWarning
+						? `${vectorAgentWarning} ${message}`
+						: message;
+					console.error(`[Vector] ${message}`);
+				};
+
+				if (connectionChanged && server.enableLogManagement) {
+					await removeVectorAgent({ serverId: input.serverId }).catch(
+						(error) => {
+							recordVectorWarning(
+								"Failed to remove the agent from the old host",
+								error,
+							);
+						},
+					);
+				}
+
+				let currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
 
@@ -521,13 +640,37 @@ export const serverRouter = createTRPCRouter({
 					input.enableDockerCleanup,
 				);
 
+				if (connectionChanged && server.enableLogManagement) {
+					try {
+						await syncVectorAgentAndSchedule(input.serverId);
+					} catch (error) {
+						currentServer =
+							(await updateServerById(input.serverId, {
+								enableLogManagement: false,
+							})) ?? currentServer;
+						await syncVectorAgentAndSchedule(input.serverId).catch(
+							(teardownError) => {
+								console.error(
+									`[Vector] Failed to tear down agent for server ${input.serverId} after a failed sync — it may still be running:`,
+									teardownError,
+								);
+							},
+						);
+						recordVectorWarning(
+							"Failed to install the agent on the new host, log management has been turned off for this server",
+							error,
+						);
+					}
+				}
+
 				await audit(ctx, {
 					action: "update",
 					resourceType: "server",
 					resourceId: input.serverId,
 					resourceName: server.name,
+					...(vectorAgentWarning ? { metadata: { vectorAgentWarning } } : {}),
 				});
-				return currentServer;
+				return { ...currentServer, vectorAgentWarning };
 			} catch (error) {
 				throw error;
 			}

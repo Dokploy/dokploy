@@ -21,6 +21,7 @@ import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
 import { gitlabRouter } from "./routers/gitlab";
 import { libsqlRouter } from "./routers/libsql";
+import { logProviderRouter } from "./routers/log-provider";
 import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
@@ -85,6 +86,7 @@ export const appRouter = createTRPCRouter({
 	github: githubRouter,
 	gitlab: gitlabRouter,
 	libsql: libsqlRouter,
+	logProvider: logProviderRouter,
 	mariadb: mariadbRouter,
 	mongo: mongoRouter,
 	mounts: mountRouter,

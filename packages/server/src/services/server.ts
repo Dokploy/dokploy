@@ -87,6 +87,25 @@ export const findServersByUserId = async (userId: string) => {
 	return servers;
 };
 
+export const findServersWithLogManagementEnabled = async (
+	organizationId: string,
+) => {
+	return await db.query.server.findMany({
+		where: and(
+			eq(server.organizationId, organizationId),
+			eq(server.enableLogManagement, true),
+		),
+		columns: { serverId: true },
+	});
+};
+
+export const findAllServersWithLogManagementEnabled = async () => {
+	return await db.query.server.findMany({
+		where: eq(server.enableLogManagement, true),
+		columns: { serverId: true, organizationId: true },
+	});
+};
+
 export const deleteServer = async (serverId: string) => {
 	const currentServer = await db
 		.delete(server)

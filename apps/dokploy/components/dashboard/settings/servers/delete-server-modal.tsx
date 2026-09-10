@@ -109,8 +109,13 @@ export const DeleteServerModal = ({
 
 	const handleDeleteServer = async () => {
 		try {
-			await deleteServer({ serverId });
+			const result = await deleteServer({ serverId });
 			toast.success(`Server ${serverName} deleted successfully`);
+			if (result?.vectorAgentRemovalWarning) {
+				toast.error(
+					`Couldn't remove the Vector log agent from this host — it may still be running there: ${result.vectorAgentRemovalWarning}`,
+				);
+			}
 			setOpen(false);
 			utils.server.all.invalidate();
 		} catch (error: any) {

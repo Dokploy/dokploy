@@ -40,21 +40,29 @@ describe("pipeBetweenServers", () => {
 		await fs.rm(dir, { recursive: true, force: true });
 	}, 30_000);
 
-	it("reports a target failure with its stderr", async () => {
-		await expect(
-			pipeBetweenServers({
-				source: { serverId: null, command: "printf x" },
-				target: { serverId: null, command: "echo boom >&2; exit 3" },
-			}),
-		).rejects.toThrow("target exited with code 3: boom");
-	});
+	it(
+		"reports a target failure with its stderr",
+		async () => {
+			await expect(
+				pipeBetweenServers({
+					source: { serverId: null, command: "printf x" },
+					target: { serverId: null, command: "echo boom >&2; exit 3" },
+				}),
+			).rejects.toThrow("target exited with code 3: boom");
+		},
+		30_000,
+	);
 
-	it("reports a source failure", async () => {
-		await expect(
-			pipeBetweenServers({
-				source: { serverId: null, command: "exit 2" },
-				target: { serverId: null, command: "cat > /dev/null" },
-			}),
-		).rejects.toThrow("source exited with code 2");
-	});
+	it(
+		"reports a source failure",
+		async () => {
+			await expect(
+				pipeBetweenServers({
+					source: { serverId: null, command: "exit 2" },
+					target: { serverId: null, command: "cat > /dev/null" },
+				}),
+			).rejects.toThrow("source exited with code 2");
+		},
+		30_000,
+	);
 });
