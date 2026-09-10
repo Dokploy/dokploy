@@ -18,6 +18,7 @@ const providerLabels: Record<string, string> = {
 	hashicorp: "HashiCorp Vault",
 	infisical: "Infisical",
 	aws: "AWS Secrets Manager",
+	"aws-parameter-store": "AWS Parameter Store",
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
@@ -32,7 +33,7 @@ export const ShowVaultProviders = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">

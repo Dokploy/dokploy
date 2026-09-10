@@ -269,7 +269,8 @@ export const createCommand = (
 		if (prebuilt) {
 			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} pull && docker compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --no-build --remove-orphans`;
 		} else {
-			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans`;
+			const pullFlag = compose.pullImages ? " --pull always" : "";
+			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
 		}
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;

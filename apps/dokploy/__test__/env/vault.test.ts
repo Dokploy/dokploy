@@ -20,6 +20,7 @@ import {
 import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
+import { infisicalClient } from "@dokploy/server/utils/vault/infisical";
 import { phaseClient } from "@dokploy/server/utils/vault/phase";
 import { scalewayClient } from "@dokploy/server/utils/vault/scaleway";
 
@@ -428,6 +429,152 @@ describe("azure client", () => {
 		const names = await azureClient.listSecretNames?.(config);
 
 		expect(names).toEqual(["first", "second"]);
+	});
+});
+
+describe("infisical client", () => {
+	const config = {
+		providerType: "infisical" as const,
+		siteUrl: "https://app.infisical.com",
+		clientId: "client-1",
+		clientSecret: "client-secret",
+		projectId: "workspace-1",
+		environmentSlug: "prod",
+		secretPath: "/frontend",
+	};
+
+	const loginResponse = () => jsonResponse({ accessToken: "token-1" });
+	const list = (secrets: Record<string, string>) =>
+		jsonResponse({
+			secrets: Object.entries(secrets).map(([secretKey, secretValue]) => ({
+				secretKey,
+				secretValue,
+			})),
+		});
+	const listPathOf = (callIndex: number) => {
+		const [url] = mockFetch.mock.calls[callIndex] as [string];
+		return new URL(url).searchParams.get("secretPath");
+	};
+
+	it("asks the list endpoint to expand secret references", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://real" }));
+
+		const result = await infisicalClient.getSecrets(config, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://real" });
+		const [listUrl] = mockFetch.mock.calls[1] as [string];
+		const params = new URL(listUrl).searchParams;
+		expect(params.get("expandSecretReferences")).toBe("true");
+		expect(params.get("workspaceId")).toBe("workspace-1");
+		expect(params.get("environment")).toBe("prod");
+		expect(params.get("secretPath")).toBe("/frontend");
+	});
+
+	it("throws a clear error for a missing secret", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(jsonResponse({ secrets: [] }));
+
+		await expect(
+			infisicalClient.getSecrets(config, ["ABSENT"]),
+		).rejects.toThrow('secret "ABSENT" not found in environment "prod"');
+	});
+
+	it("propagates authentication failures with the status code", async () => {
+		mockFetch.mockResolvedValueOnce(jsonResponse({}, false, 401));
+
+		await expect(
+			infisicalClient.getSecrets(config, ["DB_URL"]),
+		).rejects.toThrow("authentication failed (status 401)");
+	});
+
+	it("resolves a relative <path>:<KEY> ref against the provider path", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({ SENTRY_DSN: "https://key@sentry.io/1" }));
+
+		const result = await infisicalClient.getSecrets(config, [
+			"shared/sentry:SENTRY_DSN",
+		]);
+
+		expect(result).toEqual({
+			"shared/sentry:SENTRY_DSN": "https://key@sentry.io/1",
+		});
+		expect(listPathOf(1)).toBe("/frontend/shared/sentry");
+	});
+
+	it("treats a leading slash as an absolute path", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({ SENTRY_DSN: "https://key@sentry.io/1" }));
+
+		await infisicalClient.getSecrets(config, ["/external/sentry:SENTRY_DSN"]);
+
+		expect(listPathOf(1)).toBe("/external/sentry");
+	});
+
+	it("keeps the root path clean when the provider sits at /", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({ KEY: "value" }));
+
+		await infisicalClient.getSecrets({ ...config, secretPath: "/" }, [
+			"external/sentry:KEY",
+		]);
+
+		expect(listPathOf(1)).toBe("/external/sentry");
+	});
+
+	it("logs in once and fetches each path once", async () => {
+		const byPath: Record<string, Record<string, string>> = {
+			"/frontend": { A: "a", B: "b" },
+			"/frontend/other": { C: "c" },
+		};
+		mockFetch.mockImplementation(async (url: string) => {
+			if (url.includes("/auth/universal-auth/login")) return loginResponse();
+			const path = new URL(url).searchParams.get("secretPath") as string;
+			return list(byPath[path] ?? {});
+		});
+
+		const result = await infisicalClient.getSecrets(config, [
+			"A",
+			"B",
+			"other:C",
+		]);
+
+		expect(result).toEqual({ A: "a", B: "b", "other:C": "c" });
+
+		const urls = mockFetch.mock.calls.map(([url]) => url as string);
+		expect(urls.filter((u) => u.includes("/login"))).toHaveLength(1);
+		expect(
+			urls
+				.filter((u) => u.includes("/secrets/raw?"))
+				.map((u) => new URL(u).searchParams.get("secretPath"))
+				.sort(),
+		).toEqual(["/frontend", "/frontend/other"]);
+	});
+
+	it("names the path when a secret is missing from an explicit one", async () => {
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({}));
+
+		await expect(
+			infisicalClient.getSecrets(config, ["external/sentry:ABSENT"]),
+		).rejects.toThrow(
+			'secret "ABSENT" not found at "/frontend/external/sentry"',
+		);
+	});
+
+	it("rejects a ref with an empty path or key", async () => {
+		await expect(infisicalClient.getSecrets(config, [":KEY"])).rejects.toThrow(
+			"expected format <path>:<KEY>",
+		);
+		await expect(
+			infisicalClient.getSecrets(config, ["external/sentry:"]),
+		).rejects.toThrow("expected format <path>:<KEY>");
 	});
 });
 

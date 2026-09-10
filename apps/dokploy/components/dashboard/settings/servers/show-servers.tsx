@@ -49,7 +49,7 @@ export const ShowServers = () => {
 	return (
 		<div className="w-full">
 			{query?.success && isCloud && <WelcomeSubscription />}
-			<Card className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full  p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">

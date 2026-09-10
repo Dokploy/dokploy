@@ -1,10 +1,11 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 
-import { GlobeIcon, PenBoxIcon, Plus, X } from "lucide-react";
+import { PenBoxIcon, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -255,8 +256,10 @@ export function AddOrganization({
 							control={form.control}
 							name="name"
 							render={({ field }) => (
-								<FormItem className="tems-center gap-4">
-									<FormLabel className="text-right">Name</FormLabel>
+								<FormItem className="items-center gap-4">
+									<div className="flex items-center justify-between">
+										<FormLabel className="text-right">Name</FormLabel>
+									</div>
 									<FormControl>
 										<Input
 											placeholder="Organization name"
@@ -285,16 +288,16 @@ export function AddOrganization({
 										<FormControl>
 											<div className="col-span-3 flex flex-col gap-3">
 												<div className="flex items-center gap-3">
-													<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted/50 p-1">
+													<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-muted/50 overflow-hidden">
 														{field.value ? (
 															// biome-ignore lint/performance/noImgElement: user uploaded logo preview
 															<img
 																src={field.value}
 																alt="Logo preview"
-																className="size-full object-contain"
+																className="size-full object-cover"
 															/>
 														) : (
-															<GlobeIcon className="size-5 text-muted-foreground" />
+															<Logo className="size-7" />
 														)}
 													</div>
 													<div className="relative flex-1">

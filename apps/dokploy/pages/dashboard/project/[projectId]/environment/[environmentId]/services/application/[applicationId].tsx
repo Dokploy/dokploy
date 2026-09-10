@@ -36,6 +36,7 @@ import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { AssignNetworks } from "@/components/dashboard/networks/assign-networks";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -193,6 +194,13 @@ const Service = (
 								<div className="flex flex-row gap-2 justify-end">
 									{permissions?.service.create && (
 										<UpdateApplication applicationId={applicationId} />
+									)}
+									{permissions?.service.create && (
+										<TransferService
+											id={applicationId}
+											type="application"
+											serverId={data?.serverId}
+										/>
 									)}
 									{permissions?.service.delete && (
 										<DeleteService id={applicationId} type="application" />

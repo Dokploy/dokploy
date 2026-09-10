@@ -43,6 +43,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { TruncateTooltip } from "@/components/shared/truncate-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
@@ -100,6 +101,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { TrialBanner } from "../dashboard/billing/trial-banner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
@@ -656,9 +658,12 @@ function SidebarLogo() {
 											)}
 										>
 											<div className="flex items-center gap-1.5 min-w-0 w-full">
-												<p className="text-sm font-medium truncate">
-													{activeOrganization?.name ?? "Select Organization"}
-												</p>
+												<TruncateTooltip
+													text={
+														activeOrganization?.name ?? "Select Organization"
+													}
+													className="text-sm font-medium"
+												/>
 												{haveValidLicense && (
 													<Badge variant="blue" className="shrink-0">
 														Enterprise
@@ -1225,6 +1230,7 @@ export default function Page({ children }: Props) {
 				<SidebarRail />
 			</Sidebar>
 			<SidebarInset>
+				{isCloud === true && <TrialBanner />}
 				{!includesProjects && (
 					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 						<div className="flex items-center justify-between w-full px-4">

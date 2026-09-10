@@ -24,6 +24,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { ShowBuildServer } from "@/components/dashboard/application/advanced/show-build-server";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { FreshVolumes } from "@/components/dashboard/compose/advanced/fresh-volumes";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -34,6 +35,7 @@ import { ShowBackups } from "@/components/dashboard/database/backups/show-backup
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { AssignComposeNetworks } from "@/components/dashboard/networks/assign-compose-networks";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -185,6 +187,13 @@ const Service = (
 											<UpdateCompose composeId={composeId} />
 										)}
 
+										{permissions?.service.create && (
+											<TransferService
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId}
+											/>
+										)}
 										{permissions?.service.delete && (
 											<DeleteService id={composeId} type="compose" />
 										)}
@@ -439,6 +448,7 @@ const Service = (
 												<ShowImport composeId={composeId} />
 												<AssignComposeNetworks composeId={composeId} />
 												<IsolatedDeploymentTab composeId={composeId} />
+												<FreshVolumes composeId={composeId} />
 											</div>
 										</TabsContent>
 									)}
