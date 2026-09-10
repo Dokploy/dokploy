@@ -55,12 +55,8 @@ export const sandboxes = pgTable("sandbox", {
 	status: sandboxStatus("status").notNull().default("creating"),
 	cpu: real("cpu").notNull().default(SANDBOX_DEFAULTS.cpu),
 	memoryMb: integer("memoryMb").notNull().default(SANDBOX_DEFAULTS.memoryMb),
-	pidsLimit: integer("pidsLimit")
-		.notNull()
-		.default(SANDBOX_DEFAULTS.pidsLimit),
-	timeoutMs: integer("timeoutMs")
-		.notNull()
-		.default(SANDBOX_DEFAULTS.timeoutMs),
+	pidsLimit: integer("pidsLimit").notNull().default(SANDBOX_DEFAULTS.pidsLimit),
+	timeoutMs: integer("timeoutMs").notNull().default(SANDBOX_DEFAULTS.timeoutMs),
 	expiresAt: timestamp("expiresAt", { withTimezone: true }),
 	lastActivityAt: timestamp("lastActivityAt", { withTimezone: true }),
 	networkMode: sandboxNetworkMode("networkMode").notNull().default("isolated"),
@@ -137,7 +133,9 @@ export const apiExecSandbox = z.object({
 	sandboxId: z.string().min(1),
 	cmd: z.string().min(1).max(65_536),
 	cwd: absolutePath.optional(),
-	env: z.record(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/), z.string()).optional(),
+	env: z
+		.record(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/), z.string())
+		.optional(),
 	timeoutMs: z.number().int().min(1000).max(600_000).optional(),
 });
 
