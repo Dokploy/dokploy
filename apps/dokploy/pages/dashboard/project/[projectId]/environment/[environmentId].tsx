@@ -3,6 +3,7 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
 	Ban,
+	Box,
 	Check,
 	CheckCircle2,
 	ChevronsUpDown,
@@ -1062,6 +1063,14 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
+									<Link
+										href={`/dashboard/project/${projectId}/environment/${environmentId}/sandboxes`}
+									>
+										<Button variant="outline">
+											<Box className="size-4" />
+											Sandboxes
+										</Button>
+									</Link>
 									{permissions?.service.create && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
