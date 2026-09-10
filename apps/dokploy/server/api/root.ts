@@ -53,6 +53,7 @@ import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { tagRouter } from "./routers/tag";
+import { transferRouter } from "./routers/transfer";
 import { userRouter } from "./routers/user";
 import { vaultProviderRouter } from "./routers/vault-provider";
 import { volumeBackupsRouter } from "./routers/volume-backups";
@@ -120,6 +121,7 @@ export const appRouter = createTRPCRouter({
 	tag: tagRouter,
 	patch: patchRouter,
 	overview: overviewRouter,
+	transfer: transferRouter,
 });
 
 // export type definition of API

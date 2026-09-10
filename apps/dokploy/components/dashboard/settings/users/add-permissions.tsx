@@ -320,7 +320,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4"
+						className="grid  grid-cols-1 md:grid-cols-2 w-full gap-4"
 					>
 						{isCustomRole && (
 							<div className="md:col-span-2 rounded-lg border p-3 bg-muted/50 text-sm text-muted-foreground">
