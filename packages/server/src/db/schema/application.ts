@@ -512,6 +512,7 @@ export const apiSaveDockerProvider = createSchema
 		username: true,
 		password: true,
 		registryUrl: true,
+		registryId: true,
 	})
 	.required();
 
