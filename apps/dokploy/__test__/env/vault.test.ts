@@ -472,6 +472,50 @@ describe("infisical client", () => {
 		expect(params.get("secretPath")).toBe("/frontend");
 	});
 
+	it("asks for imported secrets and merges them", async () => {
+		mockFetch.mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(
+			jsonResponse({
+				secrets: [],
+				imports: [
+					{
+						secretPath: "/shared",
+						secrets: [
+							{ secretKey: "DB_URL", secretValue: "postgres://imported" },
+						],
+					},
+				],
+			}),
+		);
+
+		const result = await infisicalClient.getSecrets(config, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://imported" });
+		const [listUrl] = mockFetch.mock.calls[1] as [string];
+		// snake_case on purpose: `includeImports` is silently ignored and the
+		// response comes back with an empty `imports` array.
+		expect(new URL(listUrl).searchParams.get("include_imports")).toBe("true");
+	});
+
+	it("lets a folder's own secret win over an imported one of the same name", async () => {
+		mockFetch.mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(
+			jsonResponse({
+				secrets: [{ secretKey: "DB_URL", secretValue: "postgres://local" }],
+				imports: [
+					{
+						secretPath: "/shared",
+						secrets: [
+							{ secretKey: "DB_URL", secretValue: "postgres://imported" },
+						],
+					},
+				],
+			}),
+		);
+
+		const result = await infisicalClient.getSecrets(config, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://local" });
+	});
+
 	it("throws a clear error for a missing secret", async () => {
 		mockFetch
 			.mockResolvedValueOnce(loginResponse())
