@@ -496,6 +496,33 @@ describe("infisical client", () => {
 		expect(new URL(listUrl).searchParams.get("include_imports")).toBe("true");
 	});
 
+	it("lets the later import win when two define the same key", async () => {
+		mockFetch.mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(
+			jsonResponse({
+				secrets: [],
+				imports: [
+					{
+						secretPath: "/base",
+						secrets: [{ secretKey: "DB_URL", secretValue: "postgres://base" }],
+					},
+					{
+						secretPath: "/override",
+						secrets: [
+							{ secretKey: "DB_URL", secretValue: "postgres://override" },
+						],
+					},
+				],
+			}),
+		);
+
+		const result = await infisicalClient.getSecrets(config, ["DB_URL"]);
+
+		// Infisical documents this order: "If two imports carry a secret with the
+		// same name, the value from the bottom-most import wins." The response
+		// lists imports in that order, so assigning them in sequence matches it.
+		expect(result).toEqual({ DB_URL: "postgres://override" });
+	});
+
 	it("lets a folder's own secret win over an imported one of the same name", async () => {
 		mockFetch.mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(
 			jsonResponse({
