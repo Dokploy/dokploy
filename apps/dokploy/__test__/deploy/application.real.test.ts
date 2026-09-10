@@ -422,8 +422,11 @@ describe(
 
 				// Verify updateDeployment was called with commit info
 				expect(deploymentService.updateDeployment).toHaveBeenCalled();
-				const updateCall = vi.mocked(deploymentService.updateDeployment).mock
-					.calls[0];
+				const allCalls = vi.mocked(deploymentService.updateDeployment).mock
+					.calls;
+				const updateCall = allCalls.find(
+					(call) => call[1] && "title" in call[1],
+				);
 
 				// Real commit info should have title and hash
 				expect(updateCall?.[1]).toHaveProperty("title");
