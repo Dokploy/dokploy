@@ -55,7 +55,7 @@ export interface SandboxReconcilePlan {
 }
 
 export const planSandboxReconcile = (
-	rows: { sandboxId: string; containerId: string | null }[],
+	rows: { sandboxId: string; containerId: string | null; status: string }[],
 	containers: { Id: string; State: string; Labels: Record<string, string> }[],
 ): SandboxReconcilePlan => {
 	const rowsById = new Map(rows.map((row) => [row.sandboxId, row]));
@@ -65,6 +65,8 @@ export const planSandboxReconcile = (
 	for (const container of containers) {
 		const sandboxId = container.Labels?.[SANDBOX_ID_LABEL];
 		const row = sandboxId ? rowsById.get(sandboxId) : undefined;
+		// A sandbox mid-creation has no containerId yet; leave it to createSandbox.
+		if (row?.status === "creating") continue;
 		if (
 			!row ||
 			row.containerId !== container.Id ||
@@ -77,7 +79,11 @@ export const planSandboxReconcile = (
 	}
 
 	const markError = rows
-		.filter((row) => !row.containerId || !liveContainerIds.has(row.containerId))
+		.filter(
+			(row) =>
+				row.status === "running" &&
+				(!row.containerId || !liveContainerIds.has(row.containerId)),
+		)
 		.map((row) => row.sandboxId);
 
 	return { removeContainers, markError };
@@ -95,12 +101,12 @@ const reconcileServer = async (serverId: string | null) => {
 		listSandboxContainers(docker),
 		db.query.sandboxes.findMany({
 			where: and(
-				eq(sandboxes.status, "running"),
+				inArray(sandboxes.status, ["running", "creating"]),
 				serverId
 					? eq(sandboxes.serverId, serverId)
 					: isNull(sandboxes.serverId),
 			),
-			columns: { sandboxId: true, containerId: true },
+			columns: { sandboxId: true, containerId: true, status: true },
 		}),
 	]);
 	const plan = planSandboxReconcile(rows, containers);

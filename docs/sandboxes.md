@@ -183,15 +183,20 @@ Each sandbox container is created with:
   capability is needed inside the container.
 - A dedicated bridge network per server: `dokploy-sandboxes-isolated`
   (`internal: true`, no egress) for `networkMode: "isolated"` (default) or
-  `dokploy-sandboxes` for `networkMode: "internet"`. Sandboxes are never
-  attached to `dokploy-network` or to any application network, and nothing is
-  published through Traefik.
+  `dokploy-sandboxes` for `networkMode: "internet"`. Both are created with
+  `com.docker.network.bridge.enable_icc=false`, so sandboxes cannot reach
+  each other even on the same bridge (a network created by an earlier build
+  without that option is recreated automatically once no sandbox is attached
+  to it). Sandboxes are never attached to `dokploy-network` or to any
+  application network, and nothing is published through Traefik.
 - Labels `dokploy.sandbox=true`, `dokploy.sandboxId`, `dokploy.projectId` and
   `dokploy.environmentId` so the reaper/reconcile can find orphans.
 - Commands run through `docker exec` with a per-command timeout; on timeout the
   whole process tree started by that exec is killed (matched by a marker env
-  var, no `procps` needed), falling back to killing the container, in which
-  case the sandbox is marked `error`.
+  var, no `procps` needed). If that kill cannot run (for example the command
+  exhausted `PidsLimit`, so nothing can fork), the container is killed and
+  started again: every process is gone, files are kept and the sandbox stays
+  `running`. Only when the restart itself fails is the sandbox marked `error`.
 
 Environment variables passed at creation are stored encrypted at rest and are
 never returned by the API.

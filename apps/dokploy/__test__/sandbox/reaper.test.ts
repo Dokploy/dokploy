@@ -76,9 +76,9 @@ describe("planSandboxReconcile", () => {
 	it("removes containers without a running row and errors rows without a container", () => {
 		const plan = planSandboxReconcile(
 			[
-				{ sandboxId: "ok", containerId: "c-ok" },
-				{ sandboxId: "gone", containerId: "c-gone" },
-				{ sandboxId: "never-started", containerId: null },
+				{ sandboxId: "ok", containerId: "c-ok", status: "running" },
+				{ sandboxId: "gone", containerId: "c-gone", status: "running" },
+				{ sandboxId: "never-started", containerId: null, status: "running" },
 			],
 			[
 				container("c-ok", "ok"),
@@ -92,16 +92,24 @@ describe("planSandboxReconcile", () => {
 
 	it("removes a stopped container even when its row is running, and errors the row", () => {
 		const plan = planSandboxReconcile(
-			[{ sandboxId: "sb", containerId: "c1" }],
+			[{ sandboxId: "sb", containerId: "c1", status: "running" }],
 			[container("c1", "sb", "exited")],
 		);
 		expect(plan.removeContainers).toEqual(["c1"]);
 		expect(plan.markError).toEqual(["sb"]);
 	});
 
+	it("leaves containers of sandboxes that are still being created alone", () => {
+		const plan = planSandboxReconcile(
+			[{ sandboxId: "new", containerId: null, status: "creating" }],
+			[container("c-new", "new")],
+		);
+		expect(plan).toEqual({ removeContainers: [], markError: [] });
+	});
+
 	it("does nothing when everything matches", () => {
 		const plan = planSandboxReconcile(
-			[{ sandboxId: "sb", containerId: "c1" }],
+			[{ sandboxId: "sb", containerId: "c1", status: "running" }],
 			[container("c1", "sb")],
 		);
 		expect(plan).toEqual({ removeContainers: [], markError: [] });

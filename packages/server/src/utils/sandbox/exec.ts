@@ -27,6 +27,7 @@ export interface SandboxExecResult {
 	timedOut: boolean;
 	truncated: boolean;
 	containerKilled: boolean;
+	containerRestarted: boolean;
 }
 
 export const toSandboxEnvArray = (env?: Record<string, string> | string[]) =>
@@ -35,9 +36,17 @@ export const toSandboxEnvArray = (env?: Record<string, string> | string[]) =>
 		: Object.entries(env ?? {}).map(([key, value]) => `${key}=${value}`);
 
 // Finds every process started by the exec (children included) through the
-// marker env var and kills it, without relying on pkill/procps being installed.
-export const buildSandboxKillCommand = (marker: string) =>
-	`for p in /proc/[0-9]*; do if tr '\\0' '\\n' < "$p/environ" 2>/dev/null | grep -qxF ${quote([`${SANDBOX_EXEC_MARKER_ENV}=${marker}`])}; then kill -9 "\${p#/proc/}" 2>/dev/null; fi; done; true`;
+// marker env var and kills it with the shell builtin `kill`, so each
+// iteration needs a single extra pid, which matters when the command
+// exhausted PidsLimit. GNU grep reads the NUL-separated environ with -z;
+// busybox grep has no -z, so it falls back to tr.
+export const buildSandboxKillCommand = (marker: string) => {
+	const pattern = quote([`${SANDBOX_EXEC_MARKER_ENV}=${marker}`]);
+	const kill = 'p="${f#/proc/}"; kill -9 "${p%/environ}" 2>/dev/null';
+	const withZ = `for f in /proc/[0-9]*/environ; do if grep -qzxF ${pattern} "$f" 2>/dev/null; then ${kill}; fi; done`;
+	const withTr = `for f in /proc/[0-9]*/environ; do if tr '\\0' '\\n' < "$f" 2>/dev/null | grep -qxF ${pattern}; then ${kill}; fi; done`;
+	return `if grep -qzF x /dev/null 2>/dev/null; [ $? -ne 2 ]; then ${withZ}; else ${withTr}; fi; true`;
+};
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -114,6 +123,7 @@ export const runSandboxExec = async (
 
 	let timedOut = false;
 	let containerKilled = false;
+	let containerRestarted = false;
 	let timeoutTask: Promise<void> | null = null;
 	const timer = setTimeout(() => {
 		timedOut = true;
@@ -127,6 +137,9 @@ export const runSandboxExec = async (
 				sleep(KILL_GRACE_MS).then(() => false),
 			]);
 			if (!ended) {
+				// The marker kill could not run (e.g. PidsLimit exhausted, no
+				// grep). Killing and starting the container again drops every
+				// process while keeping the filesystem, so the sandbox stays usable.
 				await container
 					.kill({ signal: "SIGKILL" })
 					.then(() => {
@@ -134,6 +147,14 @@ export const runSandboxExec = async (
 					})
 					.catch(() => {});
 				stream.destroy();
+				if (containerKilled) {
+					await container
+						.start()
+						.then(() => {
+							containerRestarted = true;
+						})
+						.catch(() => {});
+				}
 			}
 		})();
 	}, options.timeoutMs);
@@ -158,5 +179,6 @@ export const runSandboxExec = async (
 		timedOut,
 		truncated: state.truncated,
 		containerKilled,
+		containerRestarted,
 	};
 };

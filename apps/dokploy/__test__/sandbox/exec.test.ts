@@ -51,6 +51,7 @@ const createDocker = (opts: {
 	const kill = vi.fn(async () => {
 		stream.end();
 	});
+	const start = vi.fn(async () => undefined);
 	const killExecStart = vi.fn(async () => {
 		if (opts.dieOnKill) stream.end();
 	});
@@ -58,7 +59,7 @@ const createDocker = (opts: {
 
 	const exec = vi.fn(async (options: { Cmd: string[] }) => {
 		execCreate(options);
-		if (options.Cmd[2]?.startsWith("for p in /proc/")) {
+		if (options.Cmd[2]?.startsWith("if grep -qzF x /dev/null")) {
 			return { start: killExecStart, inspect };
 		}
 		return {
@@ -77,10 +78,10 @@ const createDocker = (opts: {
 	});
 
 	const docker = {
-		getContainer: vi.fn(() => ({ exec, kill })),
+		getContainer: vi.fn(() => ({ exec, kill, start })),
 		modem: { demuxStream },
 	};
-	return { docker, execCreate, execStart, kill, killExecStart, inspect };
+	return { docker, execCreate, execStart, kill, start, killExecStart, inspect };
 };
 
 describe("runSandboxExec", () => {
@@ -168,10 +169,11 @@ describe("runSandboxExec", () => {
 		expect(killExecStart).toHaveBeenCalledWith({ Detach: true });
 		expect(kill).not.toHaveBeenCalled();
 		expect(result.containerKilled).toBe(false);
+		expect(result.containerRestarted).toBe(false);
 	});
 
-	it("kills the container when the process survives the marker kill", async () => {
-		const { docker, kill } = createDocker({
+	it("kills and restarts the container when the process survives the marker kill", async () => {
+		const { docker, kill, start } = createDocker({
 			frames: [],
 			exitCode: 0,
 			endAfterMs: 0,
@@ -184,14 +186,35 @@ describe("runSandboxExec", () => {
 		expect(result.timedOut).toBe(true);
 		expect(result.exitCode).toBe(SANDBOX_EXEC_TIMEOUT_EXIT_CODE);
 		expect(kill).toHaveBeenCalledWith({ signal: "SIGKILL" });
+		expect(start).toHaveBeenCalledTimes(1);
 		expect(result.containerKilled).toBe(true);
+		expect(result.containerRestarted).toBe(true);
+	}, 10_000);
+
+	it("reports a failed restart so the sandbox can be marked as error", async () => {
+		const { docker, start } = createDocker({
+			frames: [],
+			exitCode: 0,
+			endAfterMs: 0,
+			dieOnKill: false,
+		});
+		start.mockRejectedValueOnce(new Error("no such container"));
+		const result = await runSandboxExec(docker as never, "ctr", {
+			cmd: "sleep 100",
+			timeoutMs: 50,
+		});
+		expect(result.containerKilled).toBe(true);
+		expect(result.containerRestarted).toBe(false);
 	}, 10_000);
 });
 
 describe("buildSandboxKillCommand", () => {
 	it("matches the marker as a fixed string and never fails the shell", () => {
 		const cmd = buildSandboxKillCommand("abc-123");
-		expect(cmd).toContain(`grep -qxF ${quote(["DOKPLOY_EXEC_ID=abc-123"])}`);
+		expect(cmd).toContain(`grep -qzxF ${quote(["DOKPLOY_EXEC_ID=abc-123"])}`);
+		expect(cmd).toContain(
+			`tr '\\0' '\\n' < "$f" 2>/dev/null | grep -qxF ${quote(["DOKPLOY_EXEC_ID=abc-123"])}`,
+		);
 		expect(parse(cmd)).toContain("DOKPLOY_EXEC_ID=abc-123");
 		expect(cmd).toContain("kill -9");
 		expect(cmd.endsWith("; true")).toBe(true);

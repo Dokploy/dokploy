@@ -123,16 +123,39 @@ export const ensureSandboxImage = async (docker: Dockerode, image: string) => {
 	});
 };
 
+// Sandboxes share a bridge per server, so inter-container traffic must be
+// disabled or two isolated sandboxes could talk to each other.
+export const SANDBOX_NETWORK_OPTIONS = {
+	"com.docker.network.bridge.enable_icc": "false",
+};
+
 export const ensureSandboxNetwork = async (
 	docker: Dockerode,
 	mode: SandboxNetworkMode,
 ) => {
 	const name = getSandboxNetworkName(mode);
+	let existing: {
+		Options?: Record<string, string>;
+		Containers?: Record<string, unknown>;
+	} | null = null;
 	try {
-		await docker.getNetwork(name).inspect();
-		return name;
+		existing = await docker.getNetwork(name).inspect();
 	} catch (error) {
 		if (!isNotFound(error)) throw error;
+	}
+	if (existing) {
+		if (
+			existing.Options?.["com.docker.network.bridge.enable_icc"] === "false"
+		) {
+			return name;
+		}
+		if (Object.keys(existing.Containers ?? {}).length > 0) {
+			console.warn(
+				`[Sandbox] Network ${name} allows inter-container traffic but is in use; it will be recreated once no sandbox is attached`,
+			);
+			return name;
+		}
+		await docker.getNetwork(name).remove();
 	}
 	try {
 		await docker.createNetwork({
@@ -140,6 +163,7 @@ export const ensureSandboxNetwork = async (
 			Driver: "bridge",
 			Internal: mode === "isolated",
 			CheckDuplicate: true,
+			Options: { ...SANDBOX_NETWORK_OPTIONS },
 			Labels: { [SANDBOX_LABEL]: "true" },
 		});
 	} catch (error) {
@@ -321,7 +345,7 @@ export const execInSandbox = async (
 		onStdout: options.onStdout,
 		onStderr: options.onStderr,
 	});
-	if (result.containerKilled) {
+	if (result.containerKilled && !result.containerRestarted) {
 		await updateSandboxById(sandbox.sandboxId, { status: "error" });
 	}
 	return result;
