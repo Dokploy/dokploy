@@ -1,0 +1,2 @@
+ALTER TYPE "public"."deploymentStatus" ADD VALUE IF NOT EXISTS 'queued' BEFORE 'running';--> statement-breakpoint
+ALTER TYPE "public"."applicationStatus" ADD VALUE IF NOT EXISTS 'queued' BEFORE 'running';
