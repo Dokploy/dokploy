@@ -11,6 +11,7 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { projects } from "./project";
 import { redis } from "./redis";
+import { sandboxes } from "./sandbox";
 import { encryptedText } from "./utils";
 
 export const environments = pgTable("environment", {
@@ -45,6 +46,7 @@ export const environmentRelations = relations(
 		mysql: many(mysql),
 		postgres: many(postgres),
 		redis: many(redis),
+		sandboxes: many(sandboxes),
 	}),
 );
 
