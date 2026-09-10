@@ -22,7 +22,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql, or } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -248,8 +248,13 @@ export const deploymentRouter = createTRPCRouter({
 				}
 
 				const command = `kill -9 ${deployment.pid}`;
-				if (deployment.schedule?.serverId) {
-					await execAsyncRemote(deployment.schedule.serverId, command);
+				const targetServerId =
+					deployment.application?.buildServerId ||
+					deployment.application?.serverId ||
+					deployment.compose?.serverId ||
+					deployment.schedule?.serverId;
+				if (targetServerId) {
+					await execAsyncRemote(targetServerId, command);
 				} else {
 					await execAsync(command);
 				}

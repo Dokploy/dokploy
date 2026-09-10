@@ -925,7 +925,7 @@ export const applicationRouter = createTRPCRouter({
 			});
 			await killProcessWithFallback(
 				runningDeployment?.pid,
-				application.serverId,
+				application.buildServerId || application.serverId,
 			);
 			await audit(ctx, {
 				action: "stop",

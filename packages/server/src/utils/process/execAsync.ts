@@ -152,6 +152,56 @@ export const execFileAsync = async (
 	});
 };
 
+export const execAsyncWithPid = (
+	command: string,
+	onPid?: (pid: number) => void,
+	options?: { cwd?: string; env?: NodeJS.ProcessEnv },
+): Promise<{ stdout: string; stderr: string }> => {
+	return new Promise((resolve, reject) => {
+		let stdoutComplete = "";
+		let stderrComplete = "";
+
+		const childProcess = exec(command, options, (error) => {
+			if (error) {
+				reject(
+					new ExecError(`Command execution failed: ${error.message}`, {
+						command,
+						stdout: stdoutComplete,
+						stderr: stderrComplete,
+						exitCode: error.code,
+						originalError: error,
+					}),
+				);
+				return;
+			}
+			resolve({ stdout: stdoutComplete, stderr: stderrComplete });
+		});
+
+		if (childProcess.pid != null) {
+			onPid?.(childProcess.pid);
+		}
+
+		childProcess.stdout?.on("data", (data: Buffer | string) => {
+			stdoutComplete += data.toString();
+		});
+
+		childProcess.stderr?.on("data", (data: Buffer | string) => {
+			stderrComplete += data.toString();
+		});
+
+		childProcess.on("error", (error) => {
+			reject(
+				new ExecError(`Command execution error: ${error.message}`, {
+					command,
+					stdout: stdoutComplete,
+					stderr: stderrComplete,
+					originalError: error,
+				}),
+			);
+		});
+	});
+};
+
 export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
@@ -259,6 +309,27 @@ export const execAsyncRemote = async (
 				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
 			});
+	});
+};
+
+export const execAsyncRemoteWithPid = async (
+	serverId: string | null,
+	command: string,
+	onPid?: (pid: string) => void,
+): Promise<{ stdout: string; stderr: string }> => {
+	if (!serverId) return { stdout: "", stderr: "" };
+
+	const wrappedCommand = `echo "PID:$$"; ${command}`;
+	let pidCaptured = false;
+
+	return execAsyncRemote(serverId, wrappedCommand, (data) => {
+		if (!pidCaptured && onPid) {
+			const match = data.match(/PID:(\d+)/);
+			if (match?.[1]) {
+				pidCaptured = true;
+				onPid(match[1]);
+			}
+		}
 	});
 };
 

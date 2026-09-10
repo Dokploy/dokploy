@@ -16,6 +16,8 @@ import {
 	ExecError,
 	execAsync,
 	execAsyncRemote,
+	execAsyncRemoteWithPid,
+	execAsyncWithPid,
 } from "@dokploy/server/utils/process/execAsync";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import { buildRemoteDocker } from "@dokploy/server/utils/providers/docker";
@@ -250,10 +252,15 @@ export const deployApplication = async ({
 		command += await getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const writePid = (pid: number | string) => {
+			updateDeployment(deployment.deploymentId, { pid: String(pid) }).catch(
+				console.error,
+			);
+		};
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemoteWithPid(serverId, commandWithLog, writePid);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsyncWithPid(commandWithLog, writePid);
 		}
 
 		await mechanizeDockerContainer(application);
@@ -366,10 +373,15 @@ export const rebuildApplication = async ({
 		// Check case for docker only
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const writePid = (pid: number | string) => {
+			updateDeployment(deployment.deploymentId, { pid: String(pid) }).catch(
+				console.error,
+			);
+		};
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemoteWithPid(serverId, commandWithLog, writePid);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsyncWithPid(commandWithLog, writePid);
 		}
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -520,10 +532,19 @@ export const deployPreviewApplication = async ({
 			command += await getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			const writePid = (pid: number | string) => {
+				updateDeployment(deployment.deploymentId, { pid: String(pid) }).catch(
+					console.error,
+				);
+			};
 			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+				await execAsyncRemoteWithPid(
+					application.serverId,
+					commandWithLog,
+					writePid,
+				);
 			} else {
-				await execAsync(commandWithLog);
+				await execAsyncWithPid(commandWithLog, writePid);
 			}
 			await mechanizeDockerContainer(application);
 		}
@@ -662,10 +683,15 @@ export const rebuildPreviewApplication = async ({
 		// Only rebuild, don't clone repository
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const writePid = (pid: number | string) => {
+			updateDeployment(deployment.deploymentId, { pid: String(pid) }).catch(
+				console.error,
+			);
+		};
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemoteWithPid(serverId, commandWithLog, writePid);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsyncWithPid(commandWithLog, writePid);
 		}
 		await mechanizeDockerContainer(application);
 

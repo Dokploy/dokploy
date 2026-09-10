@@ -90,6 +90,7 @@ export const findDeploymentById = async (deploymentId: string) => {
 					appName: true,
 					name: true,
 					serverId: true,
+					buildServerId: true,
 				},
 			},
 			compose: {

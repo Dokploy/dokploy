@@ -77,6 +77,9 @@ vi.mock("@dokploy/server/utils/providers/git", async () => {
 
 vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsync: vi.fn(),
+	execAsyncWithPid: vi.fn(),
+	execAsyncRemote: vi.fn(),
+	execAsyncRemoteWithPid: vi.fn(),
 	ExecError: class ExecError extends Error {},
 }));
 
@@ -159,6 +162,10 @@ describe("deployApplication - Command Generation Tests", () => {
 			stdout: "",
 			stderr: "",
 		} as any);
+		vi.mocked(execProcess.execAsyncWithPid).mockResolvedValue({
+			stdout: "",
+			stderr: "",
+		} as any);
 		vi.mocked(builders.mechanizeDockerContainer).mockResolvedValue(
 			undefined as any,
 		);
@@ -216,8 +223,9 @@ describe("deployApplication - Command Generation Tests", () => {
 			}),
 		);
 
-		expect(execProcess.execAsync).toHaveBeenCalledWith(
+		expect(execProcess.execAsyncWithPid).toHaveBeenCalledWith(
 			expect.stringContaining("nixpacks build"),
+			expect.any(Function),
 		);
 	});
 
@@ -245,8 +253,9 @@ describe("deployApplication - Command Generation Tests", () => {
 			}),
 		);
 
-		expect(execProcess.execAsync).toHaveBeenCalledWith(
+		expect(execProcess.execAsyncWithPid).toHaveBeenCalledWith(
 			expect.stringContaining("railpack prepare"),
+			expect.any(Function),
 		);
 	});
 
@@ -260,7 +269,7 @@ describe("deployApplication - Command Generation Tests", () => {
 			descriptionLog: "",
 		});
 
-		const execCalls = vi.mocked(execProcess.execAsync).mock.calls;
+		const execCalls = vi.mocked(execProcess.execAsyncWithPid).mock.calls;
 		expect(execCalls.length).toBeGreaterThan(0);
 
 		const fullCommand = execCalls[0]?.[0];
@@ -279,7 +288,7 @@ describe("deployApplication - Command Generation Tests", () => {
 			descriptionLog: "",
 		});
 
-		const execCalls = vi.mocked(execProcess.execAsync).mock.calls;
+		const execCalls = vi.mocked(execProcess.execAsyncWithPid).mock.calls;
 		const fullCommand = execCalls[0]?.[0];
 
 		expect(fullCommand).toContain(">> /tmp/test-deployment.log 2>&1");

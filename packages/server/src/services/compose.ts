@@ -21,6 +21,8 @@ import {
 	ExecError,
 	execAsync,
 	execAsyncRemote,
+	execAsyncRemoteWithPid,
+	execAsyncWithPid,
 } from "@dokploy/server/utils/process/execAsync";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import {
@@ -326,10 +328,15 @@ export const deployCompose = async ({
 		command = "set -e;";
 		command += await getBuildComposeCommand(entity);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const writePid = (pid: number | string) => {
+			updateDeployment(deployment.deploymentId, { pid: String(pid) }).catch(
+				console.error,
+			);
+		};
 		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, commandWithLog);
+			await execAsyncRemoteWithPid(compose.serverId, commandWithLog, writePid);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsyncWithPid(commandWithLog, writePid);
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -476,10 +483,15 @@ export const rebuildCompose = async ({
 		command = "set -e;";
 		command += await getBuildComposeCommand(compose);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const writePid = (pid: number | string) => {
+			updateDeployment(deployment.deploymentId, { pid: String(pid) }).catch(
+				console.error,
+			);
+		};
 		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, commandWithLog);
+			await execAsyncRemoteWithPid(compose.serverId, commandWithLog, writePid);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsyncWithPid(commandWithLog, writePid);
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
