@@ -174,6 +174,8 @@ The dashboard console on the sandbox page uses this protocol.
 Each sandbox container is created with:
 
 - `CapDrop: ["ALL"]` and `SecurityOpt: ["no-new-privileges"]`.
+- `Init: true` (docker-init/tini as PID 1) so processes orphaned by a killed
+  command are reaped instead of lingering as zombies.
 - CPU (`NanoCpus`), memory (`Memory` = `MemorySwap`, so no swap) and
   `PidsLimit` quotas; `RestartPolicy: no`; JSON log capped at 10 MiB.
 - A non-root user for the built-in templates (`1000:1000`); the workdir is

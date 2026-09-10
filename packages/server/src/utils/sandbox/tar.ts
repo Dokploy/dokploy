@@ -90,7 +90,15 @@ export const extractSandboxFile = (
 			reject(error);
 		};
 
+		let first = true;
 		extractor.on("entry", (header, entryStream, next) => {
+			// Docker returns the requested path as the first entry; a directory
+			// tar would otherwise leak its first file as if it were the target.
+			if (first && header.type !== "file") {
+				fail(new SandboxNotRegularFileError());
+				return;
+			}
+			first = false;
 			if (found || header.type !== "file") {
 				entryStream.on("end", next);
 				entryStream.resume();

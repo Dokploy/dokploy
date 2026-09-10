@@ -40,10 +40,11 @@ describe("buildSandboxContainerOptions", () => {
 		expect(options.User).toBe("1000:1000");
 	});
 
-	it("keeps the container alive with a portable command", () => {
+	it("keeps the container alive with a portable command under an init", () => {
 		const options = buildSandboxContainerOptions(spec);
 		expect(options.Entrypoint).toEqual([""]);
 		expect(options.Cmd).toEqual(["tail", "-f", "/dev/null"]);
+		expect(options.HostConfig?.Init).toBe(true);
 		expect(options.WorkingDir).toBe("/home/user");
 	});
 

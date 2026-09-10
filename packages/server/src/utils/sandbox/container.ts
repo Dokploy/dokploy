@@ -68,6 +68,9 @@ export const buildSandboxContainerOptions = (
 			[SANDBOX_ENVIRONMENT_LABEL]: spec.environmentId,
 		},
 		HostConfig: {
+			// docker-init (tini) as PID 1 reaps the orphans left behind when a
+			// timed-out command's shell is killed; `tail` would leave zombies.
+			Init: true,
 			NanoCpus: Math.round(spec.cpu * 1e9),
 			Memory: memory,
 			MemorySwap: memory,

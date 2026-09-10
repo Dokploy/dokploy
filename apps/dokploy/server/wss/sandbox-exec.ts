@@ -5,7 +5,7 @@ import {
 	validateRequest,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
-import { type WebSocket, WebSocketServer } from "ws";
+import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { apiExecSandbox, SANDBOX_DEFAULTS } from "@/server/db/schema";
 
@@ -46,37 +46,8 @@ export const setupSandboxExecWebSocketServer = (
 			return;
 		}
 
-		const { user, session } = await validateRequest(req);
-		if (!user || !session?.activeOrganizationId) {
-			ws.close(4001, "Unauthorized");
-			return;
-		}
-		const ctx = {
-			user: { id: user.id },
-			session: { activeOrganizationId: session.activeOrganizationId },
-		};
-
-		try {
-			await checkServicePermissionAndAccess(ctx, sandboxId, {
-				deployment: ["create"],
-			});
-			const sandbox = await findSandboxById(sandboxId);
-			if (
-				sandbox.environment.project.organizationId !==
-				session.activeOrganizationId
-			) {
-				ws.close(4003, "Not authorized");
-				return;
-			}
-		} catch {
-			ws.close(4003, "Not authorized");
-			return;
-		}
-
 		let running = false;
-		send(ws, { type: "ready", sandboxId });
-
-		ws.on("message", async (raw) => {
+		const handle = async (raw: RawData) => {
 			let parsed: z.infer<typeof execMessage>;
 			try {
 				parsed = execMessage.parse(JSON.parse(raw.toString()));
@@ -115,6 +86,51 @@ export const setupSandboxExecWebSocketServer = (
 			} finally {
 				running = false;
 			}
+		};
+
+		// Clients may send as soon as the socket opens, before authorization
+		// finishes; queue those messages instead of dropping them.
+		let authorized = false;
+		const pending: RawData[] = [];
+		ws.on("message", (raw) => {
+			if (!authorized) {
+				pending.push(raw);
+				return;
+			}
+			void handle(raw);
 		});
+
+		const { user, session } = await validateRequest(req);
+		if (!user || !session?.activeOrganizationId) {
+			ws.close(4001, "Unauthorized");
+			return;
+		}
+		const ctx = {
+			user: { id: user.id },
+			session: { activeOrganizationId: session.activeOrganizationId },
+		};
+
+		try {
+			await checkServicePermissionAndAccess(ctx, sandboxId, {
+				deployment: ["create"],
+			});
+			const sandbox = await findSandboxById(sandboxId);
+			if (
+				sandbox.environment.project.organizationId !==
+				session.activeOrganizationId
+			) {
+				ws.close(4003, "Not authorized");
+				return;
+			}
+		} catch {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		authorized = true;
+		send(ws, { type: "ready", sandboxId });
+		for (const raw of pending.splice(0)) {
+			void handle(raw);
+		}
 	});
 };

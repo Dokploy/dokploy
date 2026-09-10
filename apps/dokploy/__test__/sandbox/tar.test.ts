@@ -122,6 +122,20 @@ describe("extractSandboxFile", () => {
 		).rejects.toBeInstanceOf(SandboxFileTooLargeError);
 	});
 
+	it("rejects a directory archive even when it contains files", async () => {
+		const dir = await buildSandboxDirectoryTar({ name: "proj" });
+		const file = await buildSandboxFileTar({
+			name: "proj/main.py",
+			content: Buffer.from("print(1)"),
+		});
+		// tar-stream pads each archive with two zero blocks; strip the first
+		// archive's end-of-archive marker so the entries are read as one tar.
+		const combined = Buffer.concat([dir.subarray(0, dir.length - 1024), file]);
+		await expect(
+			extractSandboxFile(Readable.from(combined), 1024),
+		).rejects.toBeInstanceOf(SandboxNotRegularFileError);
+	});
+
 	it("rejects archives without a regular file", async () => {
 		const tar = await buildSandboxDirectoryTar({ name: "dir" });
 		await expect(
