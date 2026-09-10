@@ -168,9 +168,10 @@ export const ShowDeployments = ({
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
-					{(type === "application" || type === "compose") && (
-						<CancelQueues id={id} type={type} />
-					)}
+					{(type === "application" || type === "compose") &&
+						deployments?.some((d) => d.status === "queued") && (
+							<CancelQueues id={id} type={type} />
+						)}
 					{type === "application" && (
 						<ShowRollbackSettings applicationId={id}>
 							<Button variant="outline">
