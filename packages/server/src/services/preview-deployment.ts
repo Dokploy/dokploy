@@ -28,11 +28,19 @@ export const findPreviewDeploymentById = async (
 	const application = await db.query.previewDeployments.findFirst({
 		where: eq(previewDeployments.previewDeploymentId, previewDeploymentId),
 		with: {
+			deployments: {
+				columns: {
+					buildServerId: true,
+					status: true,
+				},
+				orderBy: desc(deployments.createdAt),
+			},
 			domain: true,
 			application: {
 				columns: {
 					applicationId: true,
 					serverId: true,
+					buildServerId: true,
 				},
 			},
 		},
@@ -55,33 +63,35 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		);
 
 		application.appName = previewDeployment.appName;
-		const cleanupOperations = [
-			async () =>
-				await removeService(application?.appName, application?.serverId),
-			async () =>
-				await removeDeploymentsByPreviewDeploymentId(
-					previewDeployment,
-					application?.serverId,
-				),
-			async () =>
-				await removeDirectoryCode(application?.appName, application?.serverId),
-			async () =>
-				await removeTraefikConfig(application?.appName, application?.serverId),
-			async () =>
-				await db
-					.delete(previewDeployments)
-					.where(
-						eq(previewDeployments.previewDeploymentId, previewDeploymentId),
-					)
-					.returning(),
+
+		const cleanupServerIds = [
+			null,
+			application.serverId,
+			application.buildServerId,
+			...previewDeployment.deployments.map(
+				(deployment) => deployment.buildServerId,
+			),
 		];
-		for (const operation of cleanupOperations) {
-			try {
-				await operation();
-			} catch (error) {
-				console.error(error);
-			}
+
+		const uniqueCleanupServerIds = [...new Set(cleanupServerIds)];
+
+		await removeService(application.appName, application.serverId);
+
+		for (const serverId of uniqueCleanupServerIds) {
+			await removeDirectoryCode(application.appName, serverId);
 		}
+
+		await removeTraefikConfig(application.appName, application.serverId);
+
+		await removeDeploymentsByPreviewDeploymentId(
+			previewDeployment,
+			uniqueCleanupServerIds,
+		);
+
+		await db
+			.delete(previewDeployments)
+			.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
+			.returning();
 		return previewDeployment;
 	} catch (error) {
 		const message =
