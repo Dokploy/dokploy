@@ -110,24 +110,41 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
+export const STACK_COMPOSE_MODELS_ERROR =
+	"Compose models are not supported with Docker Swarm stack deployments. Use Docker Compose deployment type or remove the models configuration.";
+
+export const composeSpecificationUsesModels = (
+	spec: ComposeSpecification | null | undefined,
+): boolean => {
+	if (!spec || typeof spec !== "object") return false;
+	if (Object.hasOwn(spec, "models")) return true;
+	const services = spec.services;
+	if (!services || typeof services !== "object") return false;
+	for (const service of Object.values(services)) {
+		if (
+			service &&
+			typeof service === "object" &&
+			Object.hasOwn(service, "models")
+		) {
+			return true;
+		}
+	}
+	return false;
+};
+
+export const isStackDeployCommand = (command: string) => {
+	const [first, second] = command.trim().split(/\s+/);
+	return first === "stack" && second === "deploy";
+};
+
 export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
+	dockerCommand = "",
 ) => {
+	let composeConverted: ComposeSpecification | null;
 	try {
-		const composeConverted = await addDomainToCompose(compose, domains);
-		const path = getComposePath(compose);
-
-		if (!composeConverted) {
-			return `
-echo "❌ Error: Compose file not found";
-exit 1;
-			`;
-		}
-
-		const composeString = stringify(composeConverted, { lineWidth: 1000 });
-		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > "${path}";`;
+		composeConverted = await addDomainToCompose(compose, domains);
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : String(error ?? "");
@@ -137,6 +154,26 @@ exit 1;
 exit 1;
 		`;
 	}
+
+	const path = getComposePath(compose);
+
+	if (!composeConverted) {
+		return `
+echo "❌ Error: Compose file not found";
+exit 1;
+			`;
+	}
+
+	if (
+		isStackDeployCommand(dockerCommand) &&
+		composeSpecificationUsesModels(composeConverted)
+	) {
+		throw new Error(STACK_COMPOSE_MODELS_ERROR);
+	}
+
+	const composeString = stringify(composeConverted, { lineWidth: 1000 });
+	const encodedContent = encodeBase64(composeString);
+	return `echo "${encodedContent}" | base64 -d > "${path}";`;
 };
 export const applyComposeFilePatch = async (
 	compose: Compose,
