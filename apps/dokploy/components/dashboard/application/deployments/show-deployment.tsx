@@ -12,9 +12,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-const QUEUED_LOG_MESSAGE = "Waiting for worker to pick job...";
 import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
+
+const QUEUED_LOG_MESSAGE = "Waiting for worker to pick job...";
 
 interface Props {
 	logPath: string | null;

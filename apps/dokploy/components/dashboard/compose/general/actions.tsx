@@ -105,7 +105,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 					>
 						<Button
 							variant="secondary"
-							isLoading={data?.composeStatus === "running"}
+							isLoading={
+								data?.composeStatus === "running" ||
+								data?.composeStatus === "queued"
+							}
 							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 						>
 							<Tooltip>

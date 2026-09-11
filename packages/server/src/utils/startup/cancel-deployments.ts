@@ -22,10 +22,7 @@ export const initCancelDeployments = async () => {
 			.from(deployments)
 			.leftJoin(schedules, eq(deployments.scheduleId, schedules.scheduleId))
 			.where(
-				or(
-					eq(deployments.status, "running"),
-					eq(deployments.status, "queued"),
-				),
+				or(eq(deployments.status, "running"), eq(deployments.status, "queued")),
 			);
 
 		const deploymentIdsToCancel = runningDeployments
@@ -92,10 +89,7 @@ export const initCancelDeployments = async () => {
 				.update(previewDeployments)
 				.set({ previewStatus: "idle" })
 				.where(
-					inArray(
-						previewDeployments.previewDeploymentId,
-						previewDeploymentIds,
-					),
+					inArray(previewDeployments.previewDeploymentId, previewDeploymentIds),
 				);
 		}
 
