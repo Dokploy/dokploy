@@ -89,8 +89,8 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("email"),
 			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
 			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-			username: z.string().min(1, { message: "Username is required" }),
-			password: z.string().min(1, { message: "Password is required" }),
+			username: z.string().optional(),
+			password: z.string().optional(),
 			fromAddress: z.string().min(1, { message: "From Address is required" }),
 			toAddresses: z
 				.array(
@@ -641,8 +641,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				volumeBackup: volumeBackup,
 				smtpServer: data.smtpServer,
 				smtpPort: data.smtpPort,
-				username: data.username,
-				password: data.password,
+				username: data.username || "",
+				password: data.password || "",
 				fromAddress: data.fromAddress,
 				toAddresses: data.toAddresses,
 				name: data.name,
@@ -1130,9 +1130,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormItem className="w-full">
 														<FormLabel>Username</FormLabel>
 														<FormControl>
-															<Input placeholder="username" {...field} />
+															<Input
+																placeholder="username"
+																{...field}
+																value={field.value ?? ""}
+															/>
 														</FormControl>
-
+														<FormDescription>
+															Optional. Leave blank if your SMTP server does not
+															require authentication.
+														</FormDescription>
 														<FormMessage />
 													</FormItem>
 												)}
@@ -1149,9 +1156,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																type="password"
 																placeholder="******************"
 																{...field}
+																value={field.value ?? ""}
 															/>
 														</FormControl>
-
+														<FormDescription>
+															Optional. Leave blank if your SMTP server does not
+															require authentication.
+														</FormDescription>
 														<FormMessage />
 													</FormItem>
 												)}
@@ -2043,8 +2054,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testEmailConnection({
 											smtpServer: data.smtpServer,
 											smtpPort: data.smtpPort,
-											username: data.username,
-											password: data.password,
+											username: data.username || "",
+											password: data.password || "",
 											fromAddress: data.fromAddress,
 											toAddresses: data.toAddresses,
 										});
