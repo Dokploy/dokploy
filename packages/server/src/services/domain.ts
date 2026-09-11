@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
+import type { FreeDomainProvider } from "@dokploy/server/utils/free-domain";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
@@ -47,16 +48,18 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 	return result;
 };
 
-export const generateTraefikMeDomain = async (
+export const generateFreeDomain = async (
 	appName: string,
 	_userId: string,
 	serverId?: string,
+	domainProvider?: FreeDomainProvider,
 ) => {
 	if (serverId) {
 		const server = await findServerById(serverId);
 		return generateRandomDomain({
 			serverIp: server.ipAddress,
 			projectName: appName,
+			domainProvider,
 		});
 	}
 
@@ -64,12 +67,14 @@ export const generateTraefikMeDomain = async (
 		return generateRandomDomain({
 			serverIp: "",
 			projectName: appName,
+			domainProvider,
 		});
 	}
 	const settings = await getWebServerSettings();
 	return generateRandomDomain({
 		serverIp: settings?.serverIp || "",
 		projectName: appName,
+		domainProvider,
 	});
 };
 
