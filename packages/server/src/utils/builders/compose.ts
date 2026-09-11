@@ -64,6 +64,19 @@ Compose Type: ${composeType} ✅`;
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
+		${
+			compose.composeType === "stack" &&
+			compose.serviceScales &&
+			compose.serviceScales.length > 0
+				? [...compose.serviceScales]
+						.sort((a, b) => a.serviceName.localeCompare(b.serviceName))
+						.map(
+							(s) =>
+								`docker service scale ${compose.appName}_${s.serviceName}=${s.replicas} >/dev/null 2>&1 || true;`,
+						)
+						.join("\n\t\t")
+				: ""
+		}
 
 		echo "Docker Compose Deployed: ✅";
 	} || {
@@ -139,8 +152,17 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 		const envFileFlag = compose.createEnvFile
 			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
 			: "";
+		const scaleFlags =
+			compose.serviceScales && compose.serviceScales.length > 0
+				? `${[...compose.serviceScales]
+						.sort((a, b) => a.serviceName.localeCompare(b.serviceName))
+						.map((scale) => `--scale ${scale.serviceName}=${scale.replicas}`)
+						.join(" ")} `
+				: "";
 		const pullFlag = compose.pullImages ? " --pull always" : "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans ${scaleFlags}${pullFlag}`
+			.replace(/\s+/g, " ")
+			.trim();
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
@@ -194,8 +216,8 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 
 	const envVars = getEnvironmentVariablesObject(
 		compose.env,
-		compose.environment.project.env,
-		compose.environment.env,
+		compose.environment?.project?.env,
+		compose.environment?.env,
 	);
 	const exports = Object.entries(envVars)
 		.map(([key, value]) => `${key}=${quote([value])}`)

@@ -583,3 +583,41 @@ export const stopCompose = async (composeId: string) => {
 
 	return true;
 };
+
+export const scaleComposeService = async (
+	composeId: string,
+	serviceName: string,
+	replicas: number,
+) => {
+	const compose = await findComposeById(composeId);
+	const existingScales = compose.serviceScales || [];
+	const updatedScales = existingScales.filter(
+		(s) => s.serviceName !== serviceName,
+	);
+	updatedScales.push({ serviceName, replicas });
+
+	await updateCompose(composeId, {
+		serviceScales: updatedScales,
+	});
+
+	if (compose.composeType === "docker-compose") {
+		const { COMPOSE_PATH } = paths(!!compose.serverId);
+		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+		const scaleCommand = `cd ${quote([projectPath])} && env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([compose.appName])} up -d --no-build --scale ${quote([`${serviceName}=${replicas}`])} ${quote([serviceName])}`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, scaleCommand);
+		} else {
+			await execAsync(scaleCommand);
+		}
+	} else if (compose.composeType === "stack") {
+		const swarmScaleCommand = `docker service scale ${quote([`${compose.appName}_${serviceName}=${replicas}`])}`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, swarmScaleCommand);
+		} else {
+			await execAsync(swarmScaleCommand);
+		}
+	}
+
+	return { success: true, serviceName, replicas };
+};
+
