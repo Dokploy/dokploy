@@ -156,13 +156,13 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${container.Id} --no-stream --format "{{json .}}"`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
 					return;
 				}
-				const stat = JSON.parse(stdout);
+				const stat = JSON.parse(stdout.trim());
 
 				await recordAdvancedStats(stat, appName);
 				const data = await getLastAdvancedStatsFile(appName);
