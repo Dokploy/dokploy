@@ -134,10 +134,28 @@ export const resolveQueuedDeployment = async <
 		return createNew();
 	}
 	try {
-		const deployment = await findDeploymentById(deploymentId);
-		await updateDeploymentStatus(deployment.deploymentId, "running");
+		const claimed = await db
+			.update(deployments)
+			.set({
+				status: "running",
+				startedAt: new Date().toISOString(),
+			})
+			.where(
+				and(
+					eq(deployments.deploymentId, deploymentId),
+					eq(deployments.status, "queued"),
+				),
+			)
+			.returning();
+
+		if (claimed.length === 0) {
+			console.log(`Deployment ${deploymentId} is no longer queued, skipping`);
+			await resetStatus().catch(console.error);
+			return null;
+		}
+
 		await setRunning();
-		return deployment as unknown as T;
+		return claimed[0] as unknown as T;
 	} catch (error) {
 		console.error(`Deployment ${deploymentId} lookup failed, skipping`, error);
 		await updateDeploymentStatus(deploymentId, "error").catch(console.error);
