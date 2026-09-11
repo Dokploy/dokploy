@@ -15,7 +15,10 @@ import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
 import { findApplicationById } from "./application";
-import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
+import {
+	getActiveDeploymentStatus,
+	removeDeploymentsByPreviewDeploymentId,
+} from "./deployment";
 import { createDomain } from "./domain";
 import { findGithubById, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
@@ -99,6 +102,18 @@ export const updatePreviewDeployment = async (
 	previewDeploymentId: string,
 	previewDeploymentData: Partial<PreviewDeployment>,
 ) => {
+	if (
+		previewDeploymentData.previewStatus === "done" ||
+		previewDeploymentData.previewStatus === "error" ||
+		previewDeploymentData.previewStatus === "idle"
+	) {
+		previewDeploymentData.previewStatus =
+			(await getActiveDeploymentStatus(
+				"previewDeploymentId",
+				previewDeploymentId,
+			)) ?? previewDeploymentData.previewStatus;
+	}
+
 	const application = await db
 		.update(previewDeployments)
 		.set({

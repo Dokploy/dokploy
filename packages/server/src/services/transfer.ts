@@ -40,6 +40,7 @@ import {
 	deployApplication,
 	findApplicationById,
 	updateApplication,
+	updateApplicationStatus,
 } from "./application";
 import {
 	deployCompose,
@@ -133,7 +134,7 @@ const updateStatus = async (
 ) => {
 	switch (serviceType) {
 		case "application":
-			return await updateApplication(serviceId, { applicationStatus: status });
+			return await updateApplicationStatus(serviceId, status);
 		case "compose":
 			return await updateCompose(serviceId, { composeStatus: status });
 		case "postgres":

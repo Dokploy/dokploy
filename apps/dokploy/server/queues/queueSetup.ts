@@ -1,4 +1,5 @@
 import {
+	cancelAllQueuedDeployments,
 	createDeployment,
 	createDeploymentCompose,
 	createDeploymentPreview,
@@ -16,6 +17,7 @@ import { resolveBuildsConcurrency } from "./concurrency";
 import { processDeploymentJob } from "./deployments-queue";
 import { type InMemoryJob, InMemoryQueue } from "./in-memory-queue";
 import type { DeploymentJob } from "./queue-types";
+import { withServiceLock } from "./service-lock";
 
 /**
  * Deployment queue.
@@ -111,26 +113,32 @@ if (!IS_CLOUD) {
 }
 
 export const cleanQueuesByApplication = async (applicationId: string) => {
-	const removed = myQueue.removeWaiting(
-		(data) =>
-			data.applicationType === "application" &&
-			data.applicationId === applicationId,
-	);
-	if (removed > 0) {
-		console.log(
-			`Removed ${removed} waiting job(s) for application ${applicationId}`,
+	return withServiceLock(`application:${applicationId}`, async () => {
+		await cancelAllQueuedDeployments("applicationId", applicationId);
+		const removed = myQueue.removeWaiting(
+			(data) =>
+				data.applicationType === "application" &&
+				data.applicationId === applicationId,
 		);
-	}
+		if (removed > 0) {
+			console.log(
+				`Removed ${removed} waiting job(s) for application ${applicationId}`,
+			);
+		}
+	});
 };
 
 export const cleanQueuesByCompose = async (composeId: string) => {
-	const removed = myQueue.removeWaiting(
-		(data) =>
-			data.applicationType === "compose" && data.composeId === composeId,
-	);
-	if (removed > 0) {
-		console.log(`Removed ${removed} waiting job(s) for compose ${composeId}`);
-	}
+	return withServiceLock(`compose:${composeId}`, async () => {
+		await cancelAllQueuedDeployments("composeId", composeId);
+		const removed = myQueue.removeWaiting(
+			(data) =>
+				data.applicationType === "compose" && data.composeId === composeId,
+		);
+		if (removed > 0) {
+			console.log(`Removed ${removed} waiting job(s) for compose ${composeId}`);
+		}
+	});
 };
 
 export const cleanAllDeploymentQueue = async () => {
@@ -191,55 +199,61 @@ const enqueueDeployment = async (
 
 export const enqueueApplicationDeployment = async (jobData: DeploymentJob) => {
 	if (jobData.applicationType !== "application") return;
-	await updateApplicationStatus(jobData.applicationId, "queued");
-	return enqueueDeployment(
-		jobData,
-		() =>
-			createDeployment({
-				applicationId: jobData.applicationId,
-				title: jobData.titleLog,
-				description: jobData.descriptionLog,
-				status: "queued",
-			}),
-		() => updateApplicationStatus(jobData.applicationId, "idle"),
-	);
+	return withServiceLock(`application:${jobData.applicationId}`, async () => {
+		await updateApplicationStatus(jobData.applicationId, "queued");
+		return enqueueDeployment(
+			jobData,
+			() =>
+				createDeployment({
+					applicationId: jobData.applicationId,
+					title: jobData.titleLog,
+					description: jobData.descriptionLog,
+					status: "queued",
+				}),
+			() => updateApplicationStatus(jobData.applicationId, "idle"),
+		);
+	});
 };
 
 export const enqueueComposeDeployment = async (jobData: DeploymentJob) => {
 	if (jobData.applicationType !== "compose") return;
-	await updateCompose(jobData.composeId, { composeStatus: "queued" });
-	return enqueueDeployment(
-		jobData,
-		() =>
-			createDeploymentCompose({
-				composeId: jobData.composeId,
-				title: jobData.titleLog,
-				description: jobData.descriptionLog,
-				status: "queued",
-			}),
-		() => updateCompose(jobData.composeId, { composeStatus: "idle" }),
-	);
+	return withServiceLock(`compose:${jobData.composeId}`, async () => {
+		await updateCompose(jobData.composeId, { composeStatus: "queued" });
+		return enqueueDeployment(
+			jobData,
+			() =>
+				createDeploymentCompose({
+					composeId: jobData.composeId,
+					title: jobData.titleLog,
+					description: jobData.descriptionLog,
+					status: "queued",
+				}),
+			() => updateCompose(jobData.composeId, { composeStatus: "idle" }),
+		);
+	});
 };
 
 export const enqueuePreviewDeployment = async (jobData: DeploymentJob) => {
 	if (jobData.applicationType !== "application-preview") return;
-	await updatePreviewDeployment(jobData.previewDeploymentId, {
-		previewStatus: "queued",
+	return withServiceLock(`preview:${jobData.previewDeploymentId}`, async () => {
+		await updatePreviewDeployment(jobData.previewDeploymentId, {
+			previewStatus: "queued",
+		});
+		return enqueueDeployment(
+			jobData,
+			() =>
+				createDeploymentPreview({
+					previewDeploymentId: jobData.previewDeploymentId,
+					title: jobData.titleLog,
+					description: jobData.descriptionLog,
+					status: "queued",
+				}),
+			() =>
+				updatePreviewDeployment(jobData.previewDeploymentId, {
+					previewStatus: "idle",
+				}),
+		);
 	});
-	return enqueueDeployment(
-		jobData,
-		() =>
-			createDeploymentPreview({
-				previewDeploymentId: jobData.previewDeploymentId,
-				title: jobData.titleLog,
-				description: jobData.descriptionLog,
-				status: "queued",
-			}),
-		() =>
-			updatePreviewDeployment(jobData.previewDeploymentId, {
-				previewStatus: "idle",
-			}),
-	);
 };
 
 export { myQueue };

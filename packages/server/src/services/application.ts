@@ -35,6 +35,7 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	getActiveDeploymentStatus,
 	resolveQueuedDeployment,
 	updateDeployment,
 	updateDeploymentStatus,
@@ -165,10 +166,22 @@ export const updateApplicationStatus = async (
 	applicationId: string,
 	applicationStatus: Application["applicationStatus"],
 ) => {
+	let effectiveStatus = applicationStatus;
+
+	if (
+		applicationStatus === "done" ||
+		applicationStatus === "error" ||
+		applicationStatus === "idle"
+	) {
+		effectiveStatus =
+			(await getActiveDeploymentStatus("applicationId", applicationId)) ??
+			applicationStatus;
+	}
+
 	const application = await db
 		.update(applications)
 		.set({
-			applicationStatus: applicationStatus,
+			applicationStatus: effectiveStatus,
 		})
 		.where(eq(applications.applicationId, applicationId))
 		.returning();

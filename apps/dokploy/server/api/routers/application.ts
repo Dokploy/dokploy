@@ -1,5 +1,4 @@
 import {
-	cancelAllQueuedDeploymentsByApplicationId,
 	clearOldDeployments,
 	createApplication,
 	createDomain,
@@ -70,7 +69,6 @@ import {
 	apiSaveGitProvider,
 	apiUpdateApplication,
 	applications,
-	deployments,
 	environments,
 	projects,
 } from "@/server/db/schema";
@@ -845,17 +843,8 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["cancel"],
 			});
-			await cancelAllQueuedDeploymentsByApplicationId(input.applicationId);
 			await cleanQueuesByApplication(input.applicationId);
-			const hasRunning = await db.query.deployments.findFirst({
-				where: and(
-					eq(deployments.applicationId, input.applicationId),
-					eq(deployments.status, "running"),
-				),
-			});
-			if (!hasRunning) {
-				await updateApplicationStatus(input.applicationId, "idle");
-			}
+			await updateApplicationStatus(input.applicationId, "idle");
 		}),
 	clearDeployments: protectedProcedure
 		.input(apiFindOneApplication)

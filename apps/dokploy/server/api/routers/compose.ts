@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
-	cancelAllQueuedDeploymentsByComposeId,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -69,7 +68,6 @@ import {
 	apiSaveEnvironmentVariablesCompose,
 	apiUpdateCompose,
 	compose as composeTable,
-	deployments,
 	environments,
 	projects,
 } from "@/server/db/schema";
@@ -285,17 +283,8 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
-			await cancelAllQueuedDeploymentsByComposeId(input.composeId);
 			await cleanQueuesByCompose(input.composeId);
-			const hasRunning = await db.query.deployments.findFirst({
-				where: and(
-					eq(deployments.composeId, input.composeId),
-					eq(deployments.status, "running"),
-				),
-			});
-			if (!hasRunning) {
-				await updateCompose(input.composeId, { composeStatus: "idle" });
-			}
+			await updateCompose(input.composeId, { composeStatus: "idle" });
 			return { success: true, message: "Queues cleaned successfully" };
 		}),
 	clearDeployments: protectedProcedure

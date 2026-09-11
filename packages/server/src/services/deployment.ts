@@ -122,6 +122,45 @@ export const findDeploymentByApplicationId = async (applicationId: string) => {
 
 export const QUEUED_LOG_MESSAGE = "Waiting for worker to pick job...";
 
+type DeploymentServiceColumn =
+	| "applicationId"
+	| "composeId"
+	| "previewDeploymentId";
+
+export const getActiveDeploymentStatus = async (
+	serviceColumn: DeploymentServiceColumn,
+	serviceId: string,
+): Promise<"queued" | "running" | null> => {
+	const remaining = await db.query.deployments.findFirst({
+		where: and(
+			eq(deployments[serviceColumn], serviceId),
+			inArray(deployments.status, ["queued", "running"]),
+		),
+		columns: { status: true },
+	});
+	if (!remaining) return null;
+	return remaining.status === "running" ? "running" : "queued";
+};
+
+export const cancelAllQueuedDeployments = async (
+	serviceColumn: DeploymentServiceColumn,
+	serviceId: string,
+) => {
+	return db
+		.update(deployments)
+		.set({
+			status: "cancelled",
+			finishedAt: new Date().toISOString(),
+		})
+		.where(
+			and(
+				eq(deployments[serviceColumn], serviceId),
+				eq(deployments.status, "queued"),
+			),
+		)
+		.returning();
+};
+
 export const resolveQueuedDeployment = async <
 	T extends { deploymentId: string },
 >(
@@ -1043,41 +1082,12 @@ export const updateDeploymentStatus = async (
 	return application;
 };
 
-export const cancelAllQueuedDeploymentsByApplicationId = async (
+export const cancelAllQueuedDeploymentsByApplicationId = (
 	applicationId: string,
-) => {
-	return db
-		.update(deployments)
-		.set({
-			status: "cancelled",
-			finishedAt: new Date().toISOString(),
-		})
-		.where(
-			and(
-				eq(deployments.applicationId, applicationId),
-				eq(deployments.status, "queued"),
-			),
-		)
-		.returning();
-};
+) => cancelAllQueuedDeployments("applicationId", applicationId);
 
-export const cancelAllQueuedDeploymentsByComposeId = async (
-	composeId: string,
-) => {
-	return db
-		.update(deployments)
-		.set({
-			status: "cancelled",
-			finishedAt: new Date().toISOString(),
-		})
-		.where(
-			and(
-				eq(deployments.composeId, composeId),
-				eq(deployments.status, "queued"),
-			),
-		)
-		.returning();
-};
+export const cancelAllQueuedDeploymentsByComposeId = (composeId: string) =>
+	cancelAllQueuedDeployments("composeId", composeId);
 
 export const createServerDeployment = async (
 	deployment: Omit<

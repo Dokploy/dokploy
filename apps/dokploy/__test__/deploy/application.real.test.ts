@@ -34,6 +34,9 @@ vi.mock("@dokploy/server/db", () => {
 				applications: {
 					findFirst: vi.fn(),
 				},
+				deployments: {
+					findFirst: vi.fn().mockResolvedValue(null),
+				},
 				patch: {
 					findMany: vi.fn().mockResolvedValue([]),
 				},
@@ -63,6 +66,7 @@ vi.mock("@dokploy/server/services/admin", () => ({
 vi.mock("@dokploy/server/services/deployment", () => ({
 	createDeployment: vi.fn(),
 	resolveQueuedDeployment: vi.fn(),
+	getActiveDeploymentStatus: vi.fn().mockResolvedValue(null),
 	updateDeploymentStatus: vi.fn(),
 	updateDeployment: vi.fn(),
 }));

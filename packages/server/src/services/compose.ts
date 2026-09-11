@@ -39,6 +39,7 @@ import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
+	getActiveDeploymentStatus,
 	resolveQueuedDeployment,
 	updateDeployment,
 	updateDeploymentStatus,
@@ -215,6 +216,17 @@ export const updateCompose = async (
 	composeData: Partial<Compose>,
 ) => {
 	const { appName, ...rest } = composeData;
+
+	if (
+		rest.composeStatus === "done" ||
+		rest.composeStatus === "error" ||
+		rest.composeStatus === "idle"
+	) {
+		rest.composeStatus =
+			(await getActiveDeploymentStatus("composeId", composeId)) ??
+			rest.composeStatus;
+	}
+
 	const composeResult = await db
 		.update(compose)
 		.set({
