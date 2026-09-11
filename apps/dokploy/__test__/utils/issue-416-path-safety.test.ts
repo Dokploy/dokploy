@@ -5,6 +5,10 @@ import {
 	assertSafeRclonePath,
 	getRclonePathAndFlags,
 } from "@dokploy/server/utils/backups/utils";
+import {
+	normalizeDockerVolumeName,
+	normalizeVolumeBackupFilePath,
+} from "@dokploy/server/utils/volume-backups/restore";
 import { describe, expect, test } from "vitest";
 
 const destination = (overrides: Record<string, unknown> = {}) =>
@@ -106,5 +110,28 @@ describe("issue #416 credential redaction", () => {
 
 		expect(redacted).not.toContain("obscured-secret");
 		expect(redacted).toContain('--sftp-key-file-pass="[REDACTED]"');
+	});
+});
+
+
+describe("issue #416 volume name and backup path shell safety", () => {
+	test("accepts valid docker volume names", () => {
+		expect(normalizeDockerVolumeName("app_data")).toBe("app_data");
+		expect(normalizeDockerVolumeName("App.Data-1")).toBe("App.Data-1");
+	});
+
+	test.each(["", "../evil", "vol;rm -rf /", "vol$(id)", "-sneaky"])(
+		"rejects unsafe docker volume name %s",
+		(value) => {
+			expect(() => normalizeDockerVolumeName(value)).toThrow(
+				"Invalid docker volume name",
+			);
+		},
+	);
+
+	test("normalizes generated backup file names", () => {
+		expect(
+			normalizeVolumeBackupFilePath("app_data-2026-01-01T00-00-00.tar"),
+		).toBe("app_data-2026-01-01T00-00-00.tar");
 	});
 });

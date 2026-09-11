@@ -10,6 +10,14 @@ import {
 
 const UNSAFE_BACKUP_PATH_CHARS = /[\0\r\n;&|`$<>]/;
 
+export const normalizeDockerVolumeName = (value: string) => {
+	const normalized = value.trim();
+	if (!normalized || !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(normalized)) {
+		throw new Error("Invalid docker volume name");
+	}
+	return normalized;
+};
+
 export const normalizeVolumeBackupFilePath = (value: string) => {
 	const normalized = value.trim().replace(/\\/g, "/");
 	if (
@@ -39,7 +47,8 @@ export const restoreVolume = async (
 ) => {
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
-	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
+	const safeVolumeName = normalizeDockerVolumeName(volumeName);
+	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, safeVolumeName);
 	const safeBackupFileName = normalizeVolumeBackupFilePath(backupFileName);
 	const { flags: rcloneFlags, path: backupPath } = await getRclonePathAndFlags(
 		destination,
@@ -57,7 +66,7 @@ export const restoreVolume = async (
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
 	set -e
-	echo "Volume name: ${volumeName}"
+	echo "Volume name: ${safeVolumeName}"
 	echo "Backup file name:" ${quote([safeBackupFileName])}
 	echo "Volume backup path: ${volumeBackupPath}"
 	echo "Downloading backup from destination..."
@@ -66,7 +75,7 @@ export const restoreVolume = async (
 	echo "Download completed ✅"
 	echo "Creating new volume and restoring data..."
 	docker run --rm \
-		-v ${volumeName}:/volume_data \
+		-v ${quote([safeVolumeName])}:/volume_data \
 		-v ${quote([volumeBackupPath])}:/backup \
 		ubuntu \
 		bash -c 'cd /volume_data && tar xvf "/backup/$1" .' -- ${quote([safeBackupFileName])}
@@ -76,7 +85,7 @@ export const restoreVolume = async (
 	// Function to check if volume exists and get containers using it
 	const checkVolumeCommand = `
 	# Check if volume exists
-	VOLUME_EXISTS=$(docker volume ls -q --filter name="^${volumeName}$" | wc -l)
+	VOLUME_EXISTS=$(docker volume ls -q --filter name="^${safeVolumeName}$" | wc -l)
 	echo "Volume exists: $VOLUME_EXISTS"
 	
 	if [ "$VOLUME_EXISTS" = "0" ]; then
@@ -86,18 +95,18 @@ export const restoreVolume = async (
 		echo "Volume exists, checking for containers using it (including stopped ones)..."
 		
 		# Get ALL containers (running and stopped) using this volume - much simpler with native filter!
-		CONTAINERS_USING_VOLUME=$(docker ps -a --filter "volume=${volumeName}" --format "{{.ID}}|{{.Names}}|{{.State}}|{{.Labels}}")
+		CONTAINERS_USING_VOLUME=$(docker ps -a --filter "volume=${safeVolumeName}" --format "{{.ID}}|{{.Names}}|{{.State}}|{{.Labels}}")
 		
 		if [ -z "$CONTAINERS_USING_VOLUME" ]; then
 			echo "Volume exists but no containers are using it"
 			echo "Removing existing volume and proceeding with restore"
-			docker volume rm ${volumeName} --force
+			docker volume rm ${quote([safeVolumeName])} --force
 			${baseRestoreCommand}
 		else
 			echo ""
 			echo "⚠️  WARNING: Cannot restore volume as it is currently in use!"
 			echo ""
-			echo "📋 The following containers are using volume '${volumeName}':"
+			echo "📋 The following containers are using volume '${safeVolumeName}':"
 			echo ""
 			
 			echo "$CONTAINERS_USING_VOLUME" | while IFS='|' read container_id container_name container_state labels; do
@@ -120,7 +129,7 @@ export const restoreVolume = async (
 			echo ""
 			echo "🔧 To restore this volume, please:"
 			echo "   1. Stop all containers/services using this volume"
-			echo "   2. Remove the existing volume: docker volume rm ${volumeName}"
+			echo "   2. Remove the existing volume: docker volume rm ${safeVolumeName}"
 			echo "   3. Run the restore operation again"
 			echo ""
 			echo "❌ Volume restore aborted - volume is in use"

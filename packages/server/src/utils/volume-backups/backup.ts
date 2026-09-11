@@ -9,6 +9,10 @@ import {
 	getRclonePathAndFlags,
 	normalizeS3Path,
 } from "../backups/utils";
+import {
+	normalizeDockerVolumeName,
+	normalizeVolumeBackupFilePath,
+} from "./restore";
 
 interface RestartSafeBackupCommandOptions {
 	stopCommand: string;
@@ -75,7 +79,10 @@ export const backupVolume = async (
 		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const appName = getVolumeServiceAppName(volumeBackup);
-	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
+	const safeVolumeName = normalizeDockerVolumeName(volumeName);
+	const backupFileName = normalizeVolumeBackupFilePath(
+		`${safeVolumeName}-${getBackupTimestamp()}.tar`,
+	);
 	const destinationPath = `${appName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
 	const { flags: rcloneFlags, path: rcloneDestination } =
 		await getRclonePathAndFlags(destination, destinationPath);
@@ -86,16 +93,16 @@ export const backupVolume = async (
 
 	const backupCommand = `
 	set -e
-	echo "Volume name: ${volumeName}"
-	echo "Backup file name: ${backupFileName}"
+	echo "Volume name:" ${quote([safeVolumeName])}
+	echo "Backup file name:" ${quote([backupFileName])}
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
 	echo "Starting volume backup" 
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
-  -v ${volumeName}:/volume_data \
+  -v ${quote([safeVolumeName])}:/volume_data \
   -v ${quote([volumeBackupPath])}:/backup \
   ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
+  bash -c 'cd /volume_data && tar cvf "/backup/$1" .' -- ${quote([backupFileName])}
   echo "Volume backup done ✅"
   `;
 
