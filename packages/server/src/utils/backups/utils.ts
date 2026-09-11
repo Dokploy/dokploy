@@ -303,3 +303,17 @@ export const getBackupCommand = (
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
+
+export const getBackupFolder = (backup: BackupSchedule) => {
+	const appName = backup.compose?.appName
+		? backup.serviceName
+			? `${backup.compose.appName}_${backup.serviceName}`
+			: backup.compose.appName
+		: backup.postgres?.appName ||
+			backup.mysql?.appName ||
+			backup.mariadb?.appName ||
+			backup.mongo?.appName ||
+			backup.libsql?.appName ||
+			backup.appName;
+	return `${appName}/${normalizeS3Path(backup.prefix)}`;
+};
