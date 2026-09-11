@@ -41,10 +41,24 @@ export const isAdminPresent = async () => {
 		where: eq(member.role, "owner"),
 	});
 
-	if (!admin) {
-		return false;
+	if (admin) {
+		return true;
 	}
-	return true;
+
+	// Partial DB restore can drop member.owner while user/org rows remain.
+	// Those instances are initialized, not a fresh Setup.
+	const org = await db.query.organization.findFirst({
+		with: {
+			owner: true,
+		},
+	});
+
+	if (org?.owner) {
+		return true;
+	}
+
+	const existingUser = await db.query.user.findFirst();
+	return Boolean(existingUser);
 };
 
 export const findOwner = async () => {
