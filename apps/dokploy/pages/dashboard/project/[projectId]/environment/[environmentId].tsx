@@ -882,6 +882,16 @@ const EnvironmentPage = (
 							</CardHeader>
 							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
+									{permissions?.monitoring.read && (
+										<Button variant="outline" asChild>
+											<Link
+												href={`/dashboard/project/${projectId}/environment/${environmentId}/monitoring`}
+											>
+												<CircuitBoard className="h-4 w-4" />
+												Monitoring
+											</Link>
+										</Button>
+									)}
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
