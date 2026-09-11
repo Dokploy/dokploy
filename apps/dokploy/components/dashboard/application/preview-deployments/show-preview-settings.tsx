@@ -190,7 +190,32 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="wildcardDomain"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Wildcard Domain</FormLabel>
+												<div className="flex items-center gap-2">
+													<FormLabel>Wildcard Domain</FormLabel>
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>
+																	Use <code>${"{prNumber}"}</code> to build a
+																	domain that's deterministic per pull request
+																	instead of a random one, e.g.{" "}
+																	<code>frontend-pr${"{prNumber}"}.example.com</code>
+																	. Useful when another service in the same PR
+																	needs to reference this app's preview URL
+																	ahead of time. Give each application its own
+																	prefix (like <code>frontend-</code> /{" "}
+																	<code>backend-</code> above) — two apps using
+																	the same <code>${"{prNumber}"}</code> pattern
+																	will collide on the same domain for a given
+																	PR.
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
 												<FormControl>
 													<Input placeholder="*.sslip.io" {...field} />
 												</FormControl>
@@ -466,7 +491,21 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<Secrets
 													name="env"
 													title="Environment Settings"
-													description="You can add environment variables to your resource."
+													description={
+														<span>
+															You can add environment variables to your
+															resource. Use{" "}
+															<code>{"${{preview.prNumber}}"}</code> to
+															reference the pull request number, e.g. to
+															point at another service's deterministic
+															preview domain (
+															<code>
+																VITE_API_URL=https://backend-pr$
+																{"{{preview.prNumber}}"}.example.com
+															</code>
+															).
+														</span>
+													}
 													placeholder={[
 														"NODE_ENV=production",
 														"PORT=3000",
