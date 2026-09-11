@@ -434,3 +434,22 @@ export const findMemberByUserId = async (
 	}
 	return result;
 };
+
+// Some actions (e.g. a bind mount targeting a sensitive host path) must stay
+// restricted to the org's owner/admin even if a custom role was granted the
+// underlying resource permission (e.g. volume:create) - that permission only
+// covers ordinary use, not host takeover.
+export const isPrivilegedOrgRole = async (session: {
+	userId: string;
+	activeOrganizationId: string;
+}): Promise<boolean> => {
+	const memberRecord = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, session.userId),
+			eq(member.organizationId, session.activeOrganizationId),
+		),
+		columns: { role: true },
+	});
+
+	return memberRecord?.role === "owner" || memberRecord?.role === "admin";
+};
