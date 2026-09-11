@@ -25,7 +25,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +66,11 @@ import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 import { HandleForwardAuth } from "./handle-forward-auth";
 import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
+import {
+	didServerIpChange,
+	getHostsToAutoValidate,
+	isCurrentValidation,
+} from "./validation";
 
 export type ValidationState = {
 	isLoading: boolean;
@@ -87,7 +92,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canCreateDomain = permissions?.domain.create ?? false;
 	const canDeleteDomain = permissions?.domain.delete ?? false;
-	const { data: application } =
+	const { data: application, isFetched: isApplicationFetched } =
 		type === "application"
 			? api.application.one.useQuery(
 					{
@@ -108,6 +113,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
+	const autoValidatedHostsRef = useRef<Set<string>>(new Set());
+	const validationRequestIdRef = useRef(0);
+	const hostValidationRequestIdsRef = useRef<Map<string, number>>(new Map());
+	const lastAutoValidatedServerIpRef = useRef<string | undefined>(undefined);
+	const activeValidationScopeRef = useRef(`${type}:${id}`);
+	const lastObservedServerIpRef = useRef<string | undefined>(undefined);
+	const validationScope = `${type}:${id}`;
 	const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
 		if (typeof window !== "undefined") {
 			return (
@@ -121,7 +133,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = useState({});
-	const { data: ip } = api.settings.getIp.useQuery();
+	const { data: ip, isFetched: isIpFetched } = api.settings.getIp.useQuery();
 
 	const {
 		data,
@@ -182,41 +194,171 @@ export const ShowDomains = ({ id, type }: Props) => {
 		}
 	};
 
-	const handleValidateDomain = async (host: string) => {
-		setValidationStates((prev) => ({
-			...prev,
-			[host]: { isLoading: true },
-		}));
-
-		try {
-			const result = await validateDomain({
-				domain: host,
-				serverId: application?.serverId ?? undefined,
-			});
-
-			setValidationStates((prev) => ({
-				...prev,
-				[host]: {
-					isLoading: false,
-					isValid: result.isValid,
-					error: result.error,
-					resolvedIp: result.resolvedIp,
-					cdnProvider: result.cdnProvider,
-					message: result.error && result.isValid ? result.error : undefined,
-				},
-			}));
-		} catch (err) {
-			const error = err as Error;
-			setValidationStates((prev) => ({
-				...prev,
-				[host]: {
-					isLoading: false,
-					isValid: false,
-					error: error.message || "Failed to validate domain",
-				},
-			}));
+	const resolveServerIp = useCallback(() => {
+		const remoteIp = application?.server?.ipAddress?.toString();
+		if (application?.serverId) {
+			return remoteIp || undefined;
 		}
-	};
+
+		return ip?.toString() || undefined;
+	}, [application?.server?.ipAddress, application?.serverId, ip]);
+	const resolvedServerIp = resolveServerIp();
+
+	if (activeValidationScopeRef.current !== validationScope) {
+		activeValidationScopeRef.current = validationScope;
+		validationRequestIdRef.current += 1;
+		autoValidatedHostsRef.current = new Set();
+		hostValidationRequestIdsRef.current = new Map();
+		lastAutoValidatedServerIpRef.current = undefined;
+	}
+
+	if (didServerIpChange(lastObservedServerIpRef.current, resolvedServerIp)) {
+		lastObservedServerIpRef.current = resolvedServerIp;
+		validationRequestIdRef.current += 1;
+		hostValidationRequestIdsRef.current = new Map();
+		autoValidatedHostsRef.current = new Set();
+	}
+
+	const handleValidateDomain = useCallback(
+		async (host: string) => {
+			const serviceRequestId = validationRequestIdRef.current;
+			const hostRequestId =
+				(hostValidationRequestIdsRef.current.get(host) ?? 0) + 1;
+			hostValidationRequestIdsRef.current.set(host, hostRequestId);
+
+			const isCurrentRequest = () =>
+				isCurrentValidation({
+					currentScopeRequestId: validationRequestIdRef.current,
+					currentHostRequestId: hostValidationRequestIdsRef.current.get(host),
+					hostRequestId,
+					scopeRequestId: serviceRequestId,
+				});
+
+			if (!isCurrentRequest()) {
+				return;
+			}
+
+			setValidationStates((prev) => ({
+				...prev,
+				[host]: { isLoading: true },
+			}));
+
+			try {
+				const result = await validateDomain({
+					domain: host,
+					serverId: application?.serverId ?? undefined,
+				});
+
+				if (!isCurrentRequest()) {
+					return;
+				}
+
+				setValidationStates((prev) => ({
+					...prev,
+					[host]: {
+						isLoading: false,
+						isValid: result.isValid,
+						error: result.error,
+						resolvedIp: result.resolvedIp,
+						cdnProvider: result.cdnProvider,
+						message: result.error && result.isValid ? result.error : undefined,
+					},
+				}));
+			} catch (err) {
+				if (!isCurrentRequest()) {
+					return;
+				}
+
+				const error = err as Error;
+				setValidationStates((prev) => ({
+					...prev,
+					[host]: {
+						isLoading: false,
+						isValid: false,
+						error: error.message || "Failed to validate domain",
+					},
+				}));
+			}
+		},
+		[validateDomain, application?.serverId],
+	);
+
+	useEffect(() => {
+		setValidationStates({});
+
+		return () => {
+			validationRequestIdRef.current += 1;
+			autoValidatedHostsRef.current = new Set();
+			hostValidationRequestIdsRef.current = new Map();
+			lastAutoValidatedServerIpRef.current = undefined;
+		};
+	}, [validationScope]);
+
+	useEffect(() => {
+		if (!data?.length || !isApplicationFetched || !application) {
+			return;
+		}
+
+		if (application.serverId) {
+			if (!application.server?.ipAddress) {
+				return;
+			}
+		} else if (!isIpFetched) {
+			return;
+		}
+
+		const serverIp = resolvedServerIp;
+		if (!serverIp) {
+			return;
+		}
+
+		if (lastAutoValidatedServerIpRef.current !== serverIp) {
+			lastAutoValidatedServerIpRef.current = serverIp;
+			autoValidatedHostsRef.current = new Set();
+		}
+
+		const hostsToValidate = getHostsToAutoValidate(
+			data,
+			autoValidatedHostsRef.current,
+		);
+		hostsToValidate.forEach((host) => {
+			autoValidatedHostsRef.current.add(host);
+		});
+
+		if (hostsToValidate.length === 0) {
+			return;
+		}
+
+		const maxConcurrent = 5;
+		let nextIndex = 0;
+
+		const runNext = async () => {
+			while (nextIndex < hostsToValidate.length) {
+				const host = hostsToValidate[nextIndex];
+				nextIndex += 1;
+				if (!host) {
+					continue;
+				}
+				await handleValidateDomain(host);
+			}
+		};
+
+		void Promise.all(
+			Array.from(
+				{ length: Math.min(maxConcurrent, hostsToValidate.length) },
+				() => runNext(),
+			),
+		);
+	}, [
+		data,
+		isIpFetched,
+		isApplicationFetched,
+		application,
+		application?.serverId,
+		application?.server?.ipAddress,
+		resolvedServerIp,
+		handleValidateDomain,
+	]);
 
 	const columns = createColumns({
 		id,
