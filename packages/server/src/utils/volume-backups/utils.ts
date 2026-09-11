@@ -156,8 +156,8 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 			VOLUME_BACKUPS_PATH,
 			volumeBackup.appName,
 		);
-		// delete all the .tar.gz files
-		const command = `rm -rf ${volumeBackupPath}/*.tar.gz`;
+		// delete all the .tar and .tar.gz files (including legacy .tar from pre-upgrade)
+		const command = `rm -rf ${volumeBackupPath}/*.tar*`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
