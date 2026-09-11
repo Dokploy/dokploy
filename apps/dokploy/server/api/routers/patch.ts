@@ -226,18 +226,39 @@ export const patchRouter = createTRPCRouter({
 				input.id,
 				input.type,
 			);
-			// For delete patches, show current file content from repo (what will be deleted)
+			let originalContent = "";
+			let fileExistsInRepo = true;
+
+			try {
+				originalContent = await readPatchRepoFile(
+					input.id,
+					input.type,
+					input.filePath,
+				);
+			} catch {
+				fileExistsInRepo = false;
+			}
+
 			if (existingPatch?.type === "delete") {
-				try {
-					return await readPatchRepoFile(input.id, input.type, input.filePath);
-				} catch {
-					return "(File not found in repo - will be removed if it exists)";
-				}
+				return {
+					filePath: input.filePath,
+					fileExistsInRepo,
+					originalContent: fileExistsInRepo
+						? originalContent
+						: "(File not found in repo - will be removed if it exists)",
+					patchedContent: "",
+					patchType: "delete" as const,
+				};
 			}
-			if (existingPatch?.content) {
-				return existingPatch.content;
-			}
-			return await readPatchRepoFile(input.id, input.type, input.filePath);
+
+			return {
+				filePath: input.filePath,
+				fileExistsInRepo,
+				originalContent,
+				patchedContent: existingPatch?.content ?? originalContent,
+				patchType:
+					existingPatch?.type ?? (fileExistsInRepo ? "update" : "create"),
+			};
 		}),
 
 	saveFileAsPatch: protectedProcedure
