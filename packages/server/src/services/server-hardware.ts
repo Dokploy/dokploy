@@ -5,6 +5,10 @@ import {
 import { TRPCError } from "@trpc/server";
 import { IS_CLOUD } from "../constants";
 
+// Matches remoteStream SSH readyTimeout. Hardware commands are fast; this
+// bounds stalled docker/nvidia-smi/df/SSH so the API cannot wait forever.
+export const HARDWARE_PROBE_TIMEOUT_MS = 30_000;
+
 const NVIDIA_INVENTORY_QUERY =
 	"nvidia-smi --query-gpu=index,uuid,name,memory.total,memory.free,driver_version --format=csv,noheader,nounits";
 const NVIDIA_COMPUTE_CAP_QUERY =
@@ -365,8 +369,10 @@ export const getServerHardware = async (
 		: buildLocalHardwareScript();
 	try {
 		const result = serverId
-			? await execAsyncRemote(serverId, script)
-			: await execAsync(script);
+			? await execAsyncRemote(serverId, script, undefined, {
+					timeout: HARDWARE_PROBE_TIMEOUT_MS,
+				})
+			: await execAsync(script, { timeout: HARDWARE_PROBE_TIMEOUT_MS });
 		return parseServerHardware(result.stdout);
 	} catch (error) {
 		return emptyHardware(error);

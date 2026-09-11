@@ -1,4 +1,4 @@
-import { exec, execFile } from "node:child_process";
+import { type ChildProcess, exec, execFile, spawn } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
@@ -23,12 +23,119 @@ export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
 
+export interface ExecAsyncOptions {
+	cwd?: string;
+	env?: NodeJS.ProcessEnv;
+	shell?: string;
+	timeout?: number;
+}
+
+export interface ExecAsyncRemoteOptions {
+	timeout?: number;
+}
+
+const killProcessGroup = (child: ChildProcess) => {
+	if (child.pid == null) return;
+	if (process.platform === "win32") {
+		child.kill("SIGKILL");
+		return;
+	}
+	try {
+		process.kill(-child.pid, "SIGKILL");
+	} catch {
+		try {
+			child.kill("SIGKILL");
+		} catch {
+			// already exited
+		}
+	}
+};
+
+const execAsyncTimed = (
+	command: string,
+	options: ExecAsyncOptions & { timeout: number },
+): Promise<{ stdout: string; stderr: string }> => {
+	const { timeout, cwd, env, shell } = options;
+	const isWin = process.platform === "win32";
+	const shellPath =
+		shell ?? (isWin ? process.env.ComSpec || "cmd.exe" : "/bin/sh");
+	const args = isWin ? ["/d", "/s", "/c", command] : ["-c", command];
+
+	return new Promise((resolve, reject) => {
+		let stdout = "";
+		let stderr = "";
+		let settled = false;
+		const child = spawn(shellPath, args, {
+			cwd,
+			env,
+			detached: !isWin,
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+
+		const timer = setTimeout(() => {
+			killProcessGroup(child);
+			finish(
+				new ExecError(`Command execution timed out after ${timeout}ms`, {
+					command,
+					stdout,
+					stderr,
+				}),
+			);
+		}, timeout);
+
+		const finish = (error?: ExecError) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			if (error) reject(error);
+			else resolve({ stdout, stderr });
+		};
+
+		child.stdout?.on("data", (data) => {
+			stdout += data.toString();
+		});
+		child.stderr?.on("data", (data) => {
+			stderr += data.toString();
+		});
+		child.on("error", (error) => {
+			finish(
+				new ExecError(`Command execution failed: ${error.message}`, {
+					command,
+					stdout,
+					stderr,
+					originalError: error,
+				}),
+			);
+		});
+		child.on("close", (code) => {
+			if (code === 0) {
+				finish();
+				return;
+			}
+			finish(
+				new ExecError(`Command execution failed: Command failed: ${command}`, {
+					command,
+					stdout,
+					stderr,
+					exitCode: code ?? undefined,
+				}),
+			);
+		});
+	});
+};
+
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: ExecAsyncOptions,
 ): Promise<{ stdout: string; stderr: string }> => {
+	const timeout = options?.timeout;
+	if (timeout != null && timeout > 0) {
+		return execAsyncTimed(command, { ...options, timeout });
+	}
+
+	const { timeout: _timeout, ...execOptions } = options ?? {};
 	try {
-		const result = await execAsyncBase(command, options);
+		const result = await execAsyncBase(command, execOptions);
 		return {
 			stdout: result.stdout.toString(),
 			stderr: result.stderr.toString(),
@@ -156,6 +263,7 @@ export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
 	onData?: (data: string) => void,
+	options?: ExecAsyncRemoteOptions,
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -163,16 +271,84 @@ export const execAsyncRemote = async (
 
 	let stdout = "";
 	let stderr = "";
+	const timeoutMs = options?.timeout;
 	return new Promise((resolve, reject) => {
 		const conn = new Client();
+		let stream: { close: () => void; destroy: () => void } | undefined;
+		let settled = false;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+
+		const settle = (
+			error?: ExecError,
+			value?: { stdout: string; stderr: string },
+		) => {
+			if (settled) return;
+			settled = true;
+			if (timer !== undefined) {
+				clearTimeout(timer);
+				timer = undefined;
+			}
+			if (error) {
+				try {
+					stream?.close();
+				} catch {
+					// already closed
+				}
+				try {
+					stream?.destroy();
+				} catch {
+					// already destroyed
+				}
+				try {
+					conn.end();
+				} catch {
+					// already ended
+				}
+				try {
+					conn.destroy();
+				} catch {
+					// already destroyed
+				}
+				reject(error);
+				return;
+			}
+			try {
+				conn.end();
+			} catch {
+				// already ended
+			}
+			resolve(value ?? { stdout, stderr });
+		};
+
+		if (timeoutMs != null && timeoutMs > 0) {
+			timer = setTimeout(() => {
+				settle(
+					new ExecError(`Command execution timed out after ${timeoutMs}ms`, {
+						command,
+						stdout,
+						stderr,
+						serverId,
+					}),
+				);
+			}, timeoutMs);
+		}
 
 		sleep(1000);
 		conn
 			.once("ready", () => {
-				conn.exec(command, (err, stream) => {
+				if (settled) return;
+				conn.exec(command, (err, commandStream) => {
+					if (settled) {
+						try {
+							commandStream?.close();
+						} catch {
+							// already closed
+						}
+						return;
+					}
 					if (err) {
 						onData?.(err.message);
-						reject(
+						settle(
 							new ExecError(`Remote command execution failed: ${err.message}`, {
 								command,
 								serverId,
@@ -181,13 +357,13 @@ export const execAsyncRemote = async (
 						);
 						return;
 					}
-					stream
+					stream = commandStream;
+					commandStream
 						.on("close", (code: number, _signal: string) => {
-							conn.end();
 							if (code === 0) {
-								resolve({ stdout, stderr });
+								settle(undefined, { stdout, stderr });
 							} else {
-								reject(
+								settle(
 									new ExecError(
 										`Remote command failed with exit code ${code}`,
 										{
@@ -212,7 +388,7 @@ export const execAsyncRemote = async (
 				});
 			})
 			.on("error", (err) => {
-				conn.end();
+				if (settled) return;
 				if (err.level === "client-authentication") {
 					const technicalDetail = `Error: ${err.message} ${err.level}`;
 					const friendlyMessage = [
@@ -228,9 +404,8 @@ export const execAsyncRemote = async (
 						"  • Try generating a new SSH key in Dokploy and add only the public key to the server, then try again.",
 						"  • Make sure to follow the instructions on the Setup Server Button on the SSH Keys tab and then click on deployments tab and check the logs for more details.",
 					].join("\n");
-					const errorMsg = `Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`;
 					onData?.(friendlyMessage);
-					reject(
+					settle(
 						new ExecError(
 							`Authentication failed: Invalid SSH private key. ${friendlyMessage}`,
 							{
@@ -243,7 +418,7 @@ export const execAsyncRemote = async (
 				} else {
 					const errorMsg = `SSH connection error: ${err.message}`;
 					onData?.(errorMsg);
-					reject(
+					settle(
 						new ExecError(errorMsg, {
 							command,
 							serverId,
@@ -257,7 +432,10 @@ export const execAsyncRemote = async (
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
+				timeout: timeoutMs != null && timeoutMs > 0 ? timeoutMs : 99999,
+				...(timeoutMs != null && timeoutMs > 0
+					? { readyTimeout: timeoutMs }
+					: {}),
 			});
 	});
 };

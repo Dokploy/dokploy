@@ -6,6 +6,7 @@ import {
 	buildLocalHardwareScript,
 	buildRemoteHardwareScript,
 	getServerHardware,
+	HARDWARE_PROBE_TIMEOUT_MS,
 	parseNvidiaGpuLine,
 	parseServerHardware,
 } from "@dokploy/server/services/server-hardware";
@@ -799,6 +800,7 @@ describe("getServerHardware", () => {
 		const result = await getServerHardware();
 		expect(execAsync).toHaveBeenCalledWith(
 			expect.stringContaining("docker info --format"),
+			expect.objectContaining({ timeout: HARDWARE_PROBE_TIMEOUT_MS }),
 		);
 		expect(execAsyncRemote).not.toHaveBeenCalled();
 		expect(result.cpu.count).toBe(8);
@@ -820,6 +822,8 @@ describe("getServerHardware", () => {
 		expect(execAsyncRemote).toHaveBeenCalledWith(
 			"remote-server",
 			expect.stringContaining("/proc/meminfo"),
+			undefined,
+			expect.objectContaining({ timeout: HARDWARE_PROBE_TIMEOUT_MS }),
 		);
 		expect(execAsync).not.toHaveBeenCalled();
 		expect(result.gpu.devices[0]?.uuid).toBe("GPU-aaa");
@@ -843,5 +847,17 @@ describe("getServerHardware", () => {
 		expect(result.cpu.count).toBeNull();
 		expect(result.gpu.detection).toBe("unavailable");
 		expect(execAsync).not.toHaveBeenCalled();
+	});
+
+	it("treats a timed-out probe as empty hardware, not zero GPUs", async () => {
+		vi.mocked(execAsync).mockRejectedValue(
+			new Error("Command execution timed out after 30000ms"),
+		);
+		const result = await getServerHardware();
+		expect(result.error).toContain("timed out");
+		expect(result.cpu.count).toBeNull();
+		expect(result.memory.totalBytes).toBeNull();
+		expect(result.disk.totalBytes).toBeNull();
+		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
 	});
 });
