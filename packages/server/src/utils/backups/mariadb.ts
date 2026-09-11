@@ -8,13 +8,8 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import {
-	getBackupCommand,
-	getBackupTimestamp,
-	getS3Credentials,
-	normalizeS3Path,
-} from "./utils";
+import { executeBackup } from "./executor";
+import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,
@@ -35,19 +30,14 @@ export const runMariadbBackup = async (
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const backupCommand = getBackupCommand(
+		await executeBackup({
 			backup,
-			rcloneFlags,
+			executionId: deployment.deploymentId,
+			logPath: deployment.logPath,
 			rcloneDestination,
-			deployment.logPath,
-		);
-		if (mariadb.serverId) {
-			await execAsyncRemote(mariadb.serverId, backupCommand);
-		} else {
-			await execAsync(backupCommand, {
-				shell: "/bin/bash",
-			});
-		}
+			rcloneFlags,
+			serverId: mariadb.serverId,
+		});
 
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
@@ -65,8 +55,8 @@ export const runMariadbBackup = async (
 			projectName: project.name,
 			databaseType: "mariadb",
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage:
+				error instanceof Error ? error.message : "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});

@@ -8,13 +8,8 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import {
-	getBackupCommand,
-	getBackupTimestamp,
-	getS3Credentials,
-	normalizeS3Path,
-} from "./utils";
+import { executeBackup } from "./executor";
+import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { environmentId, name, appName } = mongo;
@@ -32,20 +27,14 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const backupCommand = getBackupCommand(
+		await executeBackup({
 			backup,
-			rcloneFlags,
+			executionId: deployment.deploymentId,
+			logPath: deployment.logPath,
 			rcloneDestination,
-			deployment.logPath,
-		);
-
-		if (mongo.serverId) {
-			await execAsyncRemote(mongo.serverId, backupCommand);
-		} else {
-			await execAsync(backupCommand, {
-				shell: "/bin/bash",
-			});
-		}
+			rcloneFlags,
+			serverId: mongo.serverId,
+		});
 
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
@@ -63,8 +52,8 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mongodb",
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage:
+				error instanceof Error ? error.message : "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});
