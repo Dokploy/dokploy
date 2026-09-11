@@ -652,18 +652,10 @@ export interface DefinitionsService {
 	models?:
 		| ListOfStrings
 		| {
-				/**
-				 * This interface was referenced by `undefined`'s JSON-Schema definition
-				 * via the `patternProperty` "^[a-zA-Z0-9._-]+$".
-				 */
 				[k: string]: {
 					endpoint_var?: string;
 					model_var?: string;
-					/**
-					 * This interface was referenced by `undefined`'s JSON-Schema definition
-					 * via the `patternProperty` "^x-".
-					 */
-					[k: string]: unknown;
+					[key: `x-${string}`]: unknown;
 				} | null;
 		  };
 	networks?:
@@ -898,18 +890,10 @@ export interface DefinitionsConfig {
 export interface PropertiesModels {
 	[k: string]: DefinitionsModel;
 }
-/**
- * This interface was referenced by `PropertiesModels`'s JSON-Schema definition
- * via the `patternProperty` "^[a-zA-Z0-9._-]+$".
- */
 export interface DefinitionsModel {
 	name?: string;
 	model: string;
 	context_size?: number;
 	runtime_flags?: string[];
-	/**
-	 * This interface was referenced by `DefinitionsModel`'s JSON-Schema definition
-	 * via the `patternProperty` "^x-".
-	 */
-	[k: string]: unknown;
+	[key: `x-${string}`]: unknown;
 }

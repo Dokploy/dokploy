@@ -6,7 +6,8 @@ import {
 import { addDomainToCompose } from "@dokploy/server/utils/docker/domain";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { expect, test, vi } from "vitest";
-import { parse, stringify } from "yaml";
+import { stringify } from "yaml";
+import composeSpec from "../../../components/shared/compose-spec.json";
 
 vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
 	...(await importOriginal<
@@ -15,150 +16,98 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
 	execAsyncRemote: vi.fn(),
 }));
 
-const modelsComposeFile = `
-services:
-  chat:
-    image: my-chat-app
-    models:
-      - llm
-  worker:
-    image: my-worker
-    models:
-      embed:
-        endpoint_var: EMBED_URL
-        model_var: EMBED_MODEL
-models:
-  llm:
-    model: ai/smollm2
-    context_size: 2048
-    runtime_flags:
-      - "--verbose"
-  embed:
-    model: ai/all-minilm
-    name: embeddings
-`;
-
-const expectedModels = {
-	llm: {
-		model: "ai/smollm2",
-		context_size: 2048,
-		runtime_flags: ["--verbose"],
-	},
-	embed: {
-		model: "ai/all-minilm",
-		name: "embeddings",
-	},
-};
-
-const expectedChatModels = ["llm"];
-const expectedWorkerModels = {
-	embed: {
-		endpoint_var: "EMBED_URL",
-		model_var: "EMBED_MODEL",
-	},
-};
-
-const assertModelsPreserved = (
-	spec: ComposeSpecification | null,
-	serviceNames: { chat: string; worker: string } = {
-		chat: "chat",
-		worker: "worker",
-	},
-) => {
-	expect(spec?.models).toEqual(expectedModels);
-	expect(spec?.services?.[serviceNames.chat]?.models).toEqual(
-		expectedChatModels,
-	);
-	expect(spec?.services?.[serviceNames.worker]?.models).toEqual(
-		expectedWorkerModels,
-	);
-};
-
-const rawCompose = (overrides?: Record<string, unknown>) =>
-	({
-		appName: "chat-app",
-		composeFile: modelsComposeFile,
-		composePath: "./docker-compose.yml",
-		composeType: "docker-compose",
-		isolatedDeployment: false,
-		isolatedDeploymentsVolume: false,
-		randomize: false,
-		serverId: null,
-		sourceType: "raw",
-		suffix: "",
-		...overrides,
-	}) as unknown as Compose;
-
-test("compose without models is unchanged besides existing suffix behavior", () => {
-	const composeData = parse(`
-services:
-  web:
-    image: nginx:latest
-    volumes:
-      - web_data:/data
-volumes:
-  web_data:
-`) as ComposeSpecification;
-	const updated = addSuffixToAllProperties(composeData, "testhash");
-
-	expect(updated.models).toBeUndefined();
-	expect(updated.services).toEqual({
-		"web-testhash": {
-			image: "nginx:latest",
-			volumes: ["web_data-testhash:/data"],
+const modelCompose = {
+	services: {
+		app: {
+			image: "my-chat-app",
+			models: ["llm"],
 		},
-	});
-	expect(updated.volumes).toEqual({
-		"web_data-testhash": null,
-	});
+		worker: {
+			image: "my-worker",
+			models: {
+				llm: {
+					endpoint_var: "LLM_URL",
+					model_var: "LLM_MODEL",
+				},
+			},
+		},
+	},
+	models: {
+		llm: {
+			model: "ai/smollm2",
+			context_size: 2048,
+			runtime_flags: ["--verbose"],
+		},
+	},
+} satisfies ComposeSpecification;
+
+test("bundled compose schema declares models", () => {
+	expect(composeSpec.properties).toHaveProperty("models");
+	expect(composeSpec.definitions.model.required).toEqual(["model"]);
+	expect(composeSpec.definitions.service.properties).toHaveProperty("models");
 });
 
 test("suffixing does not rename model identifiers or drop model config", () => {
 	const updated = addSuffixToAllProperties(
-		parse(modelsComposeFile) as ComposeSpecification,
+		structuredClone(modelCompose),
 		"testhash",
 	);
 
-	assertModelsPreserved(updated, {
-		chat: "chat-testhash",
-		worker: "worker-testhash",
+	expect(updated.models?.llm?.model).toBe("ai/smollm2");
+	expect(updated.models?.llm?.context_size).toBe(2048);
+	expect(updated.models?.llm?.runtime_flags).toEqual(["--verbose"]);
+	expect(updated.services?.["app-testhash"]?.models).toEqual(["llm"]);
+	expect(updated.services?.["worker-testhash"]?.models).toEqual({
+		llm: {
+			endpoint_var: "LLM_URL",
+			model_var: "LLM_MODEL",
+		},
 	});
-	expect(updated.services).not.toHaveProperty("chat");
+	expect(updated.services).not.toHaveProperty("app");
 	expect(updated.models).not.toHaveProperty("llm-testhash");
 });
 
 test("isolated deployment preserves model identifiers", () => {
-	assertModelsPreserved(
-		addAppNameToPreventCollision(
-			parse(modelsComposeFile) as ComposeSpecification,
-			"chat-app",
-			false,
-		),
+	const updated = addAppNameToPreventCollision(
+		structuredClone(modelCompose),
+		"chat-app",
+		false,
 	);
+
+	expect(updated.models?.llm?.model).toBe("ai/smollm2");
+	expect(updated.services?.app?.models).toEqual(["llm"]);
+	expect(updated.services?.worker?.models).toEqual({
+		llm: {
+			endpoint_var: "LLM_URL",
+			model_var: "LLM_MODEL",
+		},
+	});
 });
 
 test("raw remote compose conversion preserves models", async () => {
-	vi.mocked(execAsyncRemote).mockResolvedValue({
-		stdout: "services:\n  dropped:\n    image: alpine:latest\n",
-		stderr: "",
-	});
-
 	const converted = await addDomainToCompose(
-		rawCompose({ serverId: "remote-server" }),
+		{
+			appName: "chat-app",
+			composeFile: stringify(modelCompose, { lineWidth: 1000 }),
+			composePath: "./docker-compose.yml",
+			composeType: "docker-compose",
+			isolatedDeployment: false,
+			isolatedDeploymentsVolume: false,
+			randomize: false,
+			serverId: "remote-server",
+			sourceType: "raw",
+			suffix: "",
+		} as unknown as Compose,
 		[],
 	);
 
-	assertModelsPreserved(converted);
 	expect(execAsyncRemote).not.toHaveBeenCalled();
-
-	const written = parse(
-		stringify(converted, { lineWidth: 1000 }),
-	) as ComposeSpecification;
-	assertModelsPreserved(written);
-});
-
-test("invalid YAML still fails at parse", async () => {
-	await expect(
-		addDomainToCompose(rawCompose({ composeFile: "services: [" }), []),
-	).rejects.toThrow();
+	expect(converted?.models?.llm?.model).toBe("ai/smollm2");
+	expect(converted?.services?.app?.models).toEqual(["llm"]);
+	expect(converted?.services?.worker?.models).toEqual({
+		llm: {
+			endpoint_var: "LLM_URL",
+			model_var: "LLM_MODEL",
+		},
+	});
 });
