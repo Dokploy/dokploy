@@ -16,6 +16,7 @@ import {
 import { config } from "dotenv";
 import next from "next";
 import packageInfo from "../package.json";
+import { initVectorResyncSchedules } from "./utils/vector-resync";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -65,7 +66,10 @@ void app.prepare().then(async () => {
 			await initSchedules();
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
+			await initVectorResyncSchedules();
 			await sendDokployRestartNotifications();
+		} else if (IS_CLOUD) {
+			await initVectorResyncSchedules();
 		}
 		await initEnterpriseBackupCronJobs();
 

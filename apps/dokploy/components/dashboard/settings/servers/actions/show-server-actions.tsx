@@ -12,6 +12,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ShowStorageActions } from "./show-storage-actions";
 import { ShowTraefikActions } from "./show-traefik-actions";
 import { ToggleDockerCleanup } from "./toggle-docker-cleanup";
+import { ToggleLogManagement } from "./toggle-log-management";
 
 interface Props {
 	serverId: string;
@@ -49,6 +50,7 @@ export const ShowServerActions = ({ serverId, asButton = false }: Props) => {
 					<ShowTraefikActions serverId={serverId} />
 					<ShowStorageActions serverId={serverId} />
 					<ToggleDockerCleanup serverId={serverId} />
+					<ToggleLogManagement serverId={serverId} />
 				</div>
 			</DialogContent>
 		</Dialog>

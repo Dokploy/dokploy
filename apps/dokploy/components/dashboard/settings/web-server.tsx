@@ -13,6 +13,7 @@ import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
+import { ToggleLogManagement } from "./servers/actions/toggle-log-management";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
@@ -68,6 +69,7 @@ export const WebServer = () => {
 							</span>
 
 							<ToggleDockerCleanup />
+							<ToggleLogManagement />
 						</div>
 					</CardContent>
 				</div>

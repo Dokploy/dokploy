@@ -4,6 +4,7 @@ import {
 	checkPortInUse,
 	checkPostgresHealth,
 	checkTraefikHealth,
+	claimWebServerLogManagement,
 	cleanupAll,
 	cleanupAllBackground,
 	cleanupBuilders,
@@ -71,6 +72,7 @@ import {
 } from "@/server/db/schema";
 import { cleanAllDeploymentQueue } from "@/server/queues/queueSetup";
 import { removeJob, schedule } from "@/server/utils/backup";
+import { syncWebVectorAgentAndSchedule } from "@/server/utils/vector-resync";
 import packageInfo from "../../../package.json";
 import { appRouter } from "../root";
 import {
@@ -408,6 +410,75 @@ export const settingsRouter = createTRPCRouter({
 				resourceName: "docker-cleanup",
 			});
 			return true;
+		}),
+
+	updateLogManagement: adminProcedure
+		.input(z.object({ enableLogManagement: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			const activeOrganizationId = ctx.session.activeOrganizationId;
+			const current = await getWebServerSettings();
+			const currentOwner = current?.logManagementOrganizationId ?? null;
+
+			if (currentOwner && currentOwner !== activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: input.enableLogManagement
+						? "The local Vector agent is already used by another organization on this instance — disable it there first."
+						: "You are not authorized to disable the local Vector agent — it belongs to another organization.",
+				});
+			}
+
+			const previous = {
+				enableLogManagement: !!current?.enableLogManagement,
+				logManagementOrganizationId: currentOwner,
+			};
+
+			const claimed = await claimWebServerLogManagement(
+				activeOrganizationId,
+				input.enableLogManagement,
+			);
+			if (!claimed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"The local Vector agent was just claimed by another organization — try again.",
+				});
+			}
+
+			try {
+				const result =
+					await syncWebVectorAgentAndSchedule(activeOrganizationId);
+				await audit(ctx, {
+					action: "update",
+					resourceType: "settings",
+					resourceName: "log-management",
+				});
+				return { ...result, enableLogManagement: input.enableLogManagement };
+			} catch (error) {
+				await updateWebServerSettings(previous);
+				await syncWebVectorAgentAndSchedule(activeOrganizationId).catch(
+					(teardownError) => {
+						console.error(
+							"[Vector] Failed to reconcile local agent after a failed sync:",
+							teardownError,
+						);
+					},
+				);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? `Failed to sync local Vector agent: ${error.message}`
+							: "Failed to sync local Vector agent",
+				});
+			}
 		}),
 
 	updateRemoteServersOnly: enterpriseProcedure
