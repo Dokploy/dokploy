@@ -1,5 +1,5 @@
 import { execFileSync, execSync } from "node:child_process";
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -12,7 +12,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const cloud = { enabled: false };
 
@@ -38,18 +38,25 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
 const resolveBin = (name: string) =>
 	execSync(`command -v ${name}`, { encoding: "utf8" }).trim();
 
+const b64 = (value: unknown) =>
+	Buffer.from(
+		typeof value === "string" ? value : JSON.stringify(value),
+	).toString("base64");
+
 const envelope = (opts: {
 	dockerPresent?: boolean;
-	infoExit?: number;
-	info?: unknown;
+	engineExit?: number;
+	engine?: unknown;
+	pluginsExit?: number;
+	plugins?: unknown;
 	containerStatus?: string;
 }) =>
 	JSON.stringify({
 		dockerPresent: opts.dockerPresent ?? true,
-		infoExit: opts.infoExit ?? 0,
-		infoBase64: opts.info
-			? Buffer.from(JSON.stringify(opts.info)).toString("base64")
-			: "",
+		engineExit: opts.engineExit ?? 0,
+		engineBase64: opts.engine === undefined ? "" : b64(opts.engine),
+		pluginsExit: opts.pluginsExit ?? 0,
+		pluginsBase64: opts.plugins === undefined ? "" : b64(opts.plugins),
 		containerStatus: opts.containerStatus ?? "",
 	});
 
@@ -65,19 +72,20 @@ const plugin = (
 	...extra,
 });
 
-const info = (
-	plugins: ReturnType<typeof plugin>[] | null | undefined,
+const engine = (
 	server: { version?: string; os?: string; arch?: string } = {},
 ) => ({
 	serverVersion: server.version ?? "28.5.2",
 	os: server.os ?? "linux",
 	arch: server.arch ?? "amd64",
-	...(plugins === undefined ? {} : { plugins }),
 });
+
+const sandboxes: string[] = [];
 
 const makeSandbox = (dockerShim?: string) => {
 	const dir = mkdtempSync(path.join(tmpdir(), "dokploy-model-runner-"));
-	for (const tool of ["tr", "base64", "printf"]) {
+	sandboxes.push(dir);
+	for (const tool of ["tr", "base64"]) {
 		const shim = path.join(dir, tool);
 		writeFileSync(shim, `#!/bin/sh\nexec ${resolveBin(tool)} "$@"\n`);
 		chmodSync(shim, 0o755);
@@ -90,21 +98,38 @@ const makeSandbox = (dockerShim?: string) => {
 	return dir;
 };
 
+afterEach(() => {
+	for (const dir of sandboxes) {
+		rmSync(dir, { recursive: true, force: true });
+	}
+	sandboxes.length = 0;
+});
+
 const fakeDocker = (opts: {
-	info?: unknown;
-	infoExit?: number;
+	engine?: unknown;
+	engineExit?: number;
+	plugins?: unknown;
+	pluginsExit?: number;
 	inspect?: string;
 }) => {
-	const infoJson = opts.info === undefined ? "" : JSON.stringify(opts.info);
-	const infoExit = opts.infoExit ?? 0;
+	const engineJson =
+		opts.engine === undefined ? "" : JSON.stringify(opts.engine);
+	const pluginsJson =
+		opts.plugins === undefined ? "" : JSON.stringify(opts.plugins);
 	const inspect =
 		opts.inspect === undefined
 			? "exit 1"
 			: `printf '%s\\n' ${JSON.stringify(opts.inspect)}`;
 	return `#!/bin/sh
 if [ "$1" = "info" ]; then
-	${infoJson ? `printf '%s\\n' ${JSON.stringify(infoJson)}` : ":"}
-	exit ${infoExit}
+	case "$*" in
+	*ClientInfo.Plugins*)
+		${pluginsJson ? `printf '%s\\n' ${JSON.stringify(pluginsJson)}` : ":"}
+		exit ${opts.pluginsExit ?? 0}
+		;;
+	esac
+	${engineJson ? `printf '%s\\n' ${JSON.stringify(engineJson)}` : ":"}
+	exit ${opts.engineExit ?? 0}
 fi
 if [ "$1" = "inspect" ]; then
 	${inspect}
@@ -121,11 +146,13 @@ const runScript = (sandboxPath: string) =>
 	});
 
 describe("buildModelRunnerScript", () => {
-	it("only uses docker info and inspect, and keeps docker info's exit status", () => {
+	it("separates engine and plugin docker info probes and keeps their exit statuses", () => {
 		const script = buildModelRunnerScript();
 		expect(script).toContain("command -v docker");
-		expect(script).toContain("docker info --format");
-		expect(script).toContain("infoExit=$?");
+		expect(script).toContain("{{json .ServerVersion}}");
+		expect(script).toContain("{{json .ClientInfo.Plugins}}");
+		expect(script).toContain("engineExit=$?");
+		expect(script).toContain("pluginsExit=$?");
 		expect(script).toContain(
 			"docker inspect -f '{{.State.Status}}' docker-model-runner",
 		);
@@ -143,10 +170,13 @@ describe("buildModelRunnerScript", () => {
 describe("composeModelsSupported", () => {
 	it.each([
 		[null, false],
-		["not-a-version", false],
+		["garbage", false],
 		["2.37.3", false],
+		["v2.38.0-rc.1", false],
+		["2.38.0-beta.1", false],
 		["2.38.0", true],
 		["v2.39.1", true],
+		["v2.40.3-desktop.1", true],
 		["v5.0.0", true],
 	] as const)("%s => %s", (version, supported) => {
 		expect(composeModelsSupported(version)).toBe(supported);
@@ -164,11 +194,11 @@ describe("parseModelRunnerCapability", () => {
 		expect(result.modelRunner.cliAvailable).toBe(false);
 	});
 
-	it("treats a present CLI with a failed docker info as an operational error", () => {
+	it("treats a failed engine probe as unreachable even if plugins succeed", () => {
 		const result = parseModelRunnerCapability(
 			envelope({
-				infoExit: 1,
-				info: info([plugin("compose", "v2.38.0")]),
+				engineExit: 1,
+				plugins: [plugin("compose", "v2.38.0")],
 				containerStatus: "exited",
 			}),
 		);
@@ -178,30 +208,33 @@ describe("parseModelRunnerCapability", () => {
 		expect(result.modelRunner.standaloneRunnerContainerStatus).toBe("exited");
 	});
 
+	it("keeps the engine available when plugin metadata fails", () => {
+		const result = parseModelRunnerCapability(
+			envelope({
+				engine: engine(),
+				pluginsExit: 1,
+			}),
+		);
+		expect(result.error).toBeUndefined();
+		expect(result.docker).toEqual({
+			available: true,
+			version: "28.5.2",
+			os: "linux",
+			arch: "amd64",
+		});
+		expect(result.compose.available).toBe(false);
+		expect(result.modelRunner.cliAvailable).toBe(false);
+	});
+
 	it("returns error for a malformed probe envelope", () => {
 		const result = parseModelRunnerCapability("not-json");
 		expect(result.error).toBe("Could not parse model runner probe output");
 		expect(result.docker.available).toBe(false);
 	});
 
-	it("returns error for malformed docker info when the engine call succeeded", () => {
+	it("treats missing plugins as compose and model unavailable", () => {
 		const result = parseModelRunnerCapability(
-			JSON.stringify({
-				dockerPresent: true,
-				infoExit: 0,
-				infoBase64: Buffer.from("not-json").toString("base64"),
-				containerStatus: "",
-			}),
-		);
-		expect(result.error).toBe("Could not parse docker info output");
-		expect(result.docker.available).toBe(false);
-	});
-
-	it("treats missing ClientInfo/Plugins as compose and model unavailable", () => {
-		const result = parseModelRunnerCapability(
-			envelope({
-				info: { serverVersion: "28.5.2", os: "linux", arch: "amd64" },
-			}),
+			envelope({ engine: engine(), plugins: [] }),
 		);
 		expect(result.error).toBeUndefined();
 		expect(result.docker.available).toBe(true);
@@ -215,7 +248,7 @@ describe("parseModelRunnerCapability", () => {
 		["malformed version", [plugin("compose", "not-a-version")]],
 	] as const)("compose plugin %s", (_name, plugins) => {
 		const result = parseModelRunnerCapability(
-			envelope({ info: info([...plugins]) }),
+			envelope({ engine: engine(), plugins: [...plugins] }),
 		);
 		if (_name === "malformed version") {
 			expect(result.compose.available).toBe(true);
@@ -230,12 +263,18 @@ describe("parseModelRunnerCapability", () => {
 
 	it.each([
 		["2.37.3", false],
+		["v2.38.0-rc.1", false],
+		["2.38.0-beta.1", false],
 		["2.38.0", true],
 		["v2.39.1", true],
+		["v2.40.3-desktop.1", true],
 		["v5.0.0", true],
 	] as const)("compose %s => modelsSupported=%s", (version, supported) => {
 		const result = parseModelRunnerCapability(
-			envelope({ info: info([plugin("compose", version)]) }),
+			envelope({
+				engine: engine(),
+				plugins: [plugin("compose", version)],
+			}),
 		);
 		expect(result.compose).toEqual({
 			available: true,
@@ -249,7 +288,7 @@ describe("parseModelRunnerCapability", () => {
 		["invalid Err", [plugin("model", "v1.0.2", { message: "broken" })]],
 	] as const)("model plugin %s", (_name, plugins) => {
 		const result = parseModelRunnerCapability(
-			envelope({ info: info([...plugins]) }),
+			envelope({ engine: engine(), plugins: [...plugins] }),
 		);
 		expect(result.modelRunner.cliAvailable).toBe(false);
 		expect(result.modelRunner.cliVersion).toBeNull();
@@ -263,7 +302,8 @@ describe("parseModelRunnerCapability", () => {
 	] as const)("standalone runner %s", (status, expected) => {
 		const result = parseModelRunnerCapability(
 			envelope({
-				info: info([plugin("model", "v1.0.2")]),
+				engine: engine(),
+				plugins: [plugin("model", "v1.0.2")],
 				containerStatus: status,
 			}),
 		);
@@ -274,20 +314,16 @@ describe("parseModelRunnerCapability", () => {
 	it("does not leak plugin Path or unrelated docker-info fields", () => {
 		const result = parseModelRunnerCapability(
 			envelope({
-				info: {
-					...info([
-						plugin("compose", "v2.38.0", undefined, {
-							Path: "/usr/libexec/docker/cli-plugins/docker-compose",
-							Vendor: "Docker Inc.",
-						}),
-						plugin("model", "v1.0.2", undefined, {
-							Path: "/usr/libexec/docker/cli-plugins/docker-model",
-						}),
-					]),
-					HttpProxy: "http://proxy.internal:8080",
-					RegistryConfig: { IndexConfigs: {} },
-					Labels: ["secret=1"],
-				},
+				engine: engine(),
+				plugins: [
+					plugin("compose", "v2.38.0", undefined, {
+						Path: "/usr/libexec/docker/cli-plugins/docker-compose",
+						Vendor: "Docker Inc.",
+					}),
+					plugin("model", "v1.0.2", undefined, {
+						Path: "/usr/libexec/docker/cli-plugins/docker-model",
+					}),
+				],
 				containerStatus: "running",
 			}),
 		);
@@ -295,9 +331,6 @@ describe("parseModelRunnerCapability", () => {
 		expect(serialized).not.toContain("Path");
 		expect(serialized).not.toContain("/usr/libexec");
 		expect(serialized).not.toContain("Vendor");
-		expect(serialized).not.toContain("proxy.internal");
-		expect(serialized).not.toContain("RegistryConfig");
-		expect(serialized).not.toContain("secret=1");
 		expect(result.modelRunner).toEqual({
 			cliAvailable: true,
 			cliVersion: "v1.0.2",
@@ -314,13 +347,13 @@ describe("model runner probe script", () => {
 		expect(result.modelRunner.cliAvailable).toBe(false);
 	});
 
-	it("records docker info's non-zero exit as an unreachable engine", () => {
+	it("records a non-zero engine probe as unreachable", () => {
 		const result = parseModelRunnerCapability(
 			runScript(
 				makeSandbox(
 					fakeDocker({
-						info: info([plugin("compose", "v2.38.0")]),
-						infoExit: 1,
+						engineExit: 1,
+						plugins: [plugin("compose", "v2.38.0")],
 					}),
 				),
 			),
@@ -330,12 +363,31 @@ describe("model runner probe script", () => {
 		expect(result.compose.available).toBe(true);
 	});
 
+	it("does not report engine unreachable when only ClientInfo.Plugins fails", () => {
+		const result = parseModelRunnerCapability(
+			runScript(
+				makeSandbox(
+					fakeDocker({
+						engine: engine(),
+						pluginsExit: 1,
+					}),
+				),
+			),
+		);
+		expect(result.error).toBeUndefined();
+		expect(result.docker.available).toBe(true);
+		expect(result.docker.version).toBe("28.5.2");
+		expect(result.compose.available).toBe(false);
+		expect(result.modelRunner.cliAvailable).toBe(false);
+	});
+
 	it("reads inspect status even when the model plugin is absent", () => {
 		const result = parseModelRunnerCapability(
 			runScript(
 				makeSandbox(
 					fakeDocker({
-						info: info([plugin("compose", "v2.38.0")]),
+						engine: engine(),
+						plugins: [plugin("compose", "v2.38.0")],
 						inspect: "running",
 					}),
 				),
@@ -349,7 +401,8 @@ describe("model runner probe script", () => {
 
 describe("getModelRunnerCapability", () => {
 	const probeJson = envelope({
-		info: info([plugin("compose", "v2.38.0"), plugin("model", "v1.0.2")]),
+		engine: engine(),
+		plugins: [plugin("compose", "v2.38.0"), plugin("model", "v1.0.2")],
 		containerStatus: "running",
 	});
 
@@ -378,7 +431,7 @@ describe("getModelRunnerCapability", () => {
 		const result = await getModelRunnerCapability("remote-server");
 		expect(execAsyncRemote).toHaveBeenCalledWith(
 			"remote-server",
-			expect.stringContaining("docker info --format"),
+			expect.stringContaining("{{json .ClientInfo.Plugins}}"),
 		);
 		expect(execAsync).not.toHaveBeenCalled();
 		expect(result.modelRunner.cliAvailable).toBe(true);

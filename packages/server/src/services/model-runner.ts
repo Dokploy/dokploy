@@ -40,17 +40,17 @@ export interface ModelRunnerCapability {
 
 interface ProbeEnvelope {
 	dockerPresent?: boolean;
-	infoExit?: number;
-	infoBase64?: string;
+	engineExit?: number;
+	engineBase64?: string;
+	pluginsExit?: number;
+	pluginsBase64?: string;
 	containerStatus?: string;
 }
 
-interface DockerInfoProbe {
+interface EngineProbe {
 	serverVersion?: string | null;
 	os?: string | null;
 	arch?: string | null;
-	plugins?: DockerInfoPlugin[] | null;
-	clientInfo?: { plugins?: DockerInfoPlugin[] | null } | null;
 }
 
 interface DockerInfoPlugin {
@@ -115,7 +115,7 @@ const findPlugin = (
 
 export const composeModelsSupported = (version: string | null): boolean => {
 	if (!version) return false;
-	const parsed = semver.coerce(version);
+	const parsed = semver.clean(version);
 	if (!parsed) return false;
 	return semver.gte(parsed, COMPOSE_MODELS_MIN_VERSION);
 };
@@ -129,28 +129,42 @@ const b64Decode = (value?: string): string => {
 	}
 };
 
+const parseJson = (text: string): unknown => {
+	try {
+		return JSON.parse(text);
+	} catch {
+		return null;
+	}
+};
+
 /**
- * Read-only capability probe. Commands are `docker info` (narrow format) and
- * `docker inspect` of `docker-model-runner`. Plugin discovery uses Docker's
+ * Read-only capability probe. Engine reachability and CLI plugin metadata are
+ * separate `docker info` templates so an older CLI missing ClientInfo.Plugins
+ * cannot be reported as an unreachable engine. Plugin discovery uses Docker's
  * metadata subcommand. No install/configuration/model-lifecycle/server-mutation
- * commands. `docker info` stdout is captured before base64 so its exit status
+ * commands. Each docker info stdout is captured before base64 so exit status
  * is preserved.
  */
 export const buildModelRunnerScript = () => `
 dockerPresent=false
-infoExit=0
-infoB64=""
+engineExit=0
+engineB64=""
+pluginsExit=0
+pluginsB64=""
 containerStatus=""
 
 if command -v docker >/dev/null 2>&1; then
 	dockerPresent=true
-	infoOutput=$(docker info --format '{"serverVersion":{{json .ServerVersion}},"os":{{json .OSType}},"arch":{{json .Architecture}},"plugins":{{json .ClientInfo.Plugins}}}' 2>/dev/null)
-	infoExit=$?
-	infoB64=$(printf '%s' "$infoOutput" | base64 2>/dev/null | tr -d '\\n')
+	engineOutput=$(docker info --format '{"serverVersion":{{json .ServerVersion}},"os":{{json .OSType}},"arch":{{json .Architecture}}}' 2>/dev/null)
+	engineExit=$?
+	engineB64=$(printf '%s' "$engineOutput" | base64 2>/dev/null | tr -d '\\n')
+	pluginsOutput=$(docker info --format '{{json .ClientInfo.Plugins}}' 2>/dev/null)
+	pluginsExit=$?
+	pluginsB64=$(printf '%s' "$pluginsOutput" | base64 2>/dev/null | tr -d '\\n')
 	containerStatus=$(docker inspect -f '{{.State.Status}}' docker-model-runner 2>/dev/null | tr -d '\\n')
 fi
 
-printf '{"dockerPresent":%s,"infoExit":%s,"infoBase64":"%s","containerStatus":"%s"}' "$dockerPresent" "$infoExit" "$infoB64" "$containerStatus"
+printf '{"dockerPresent":%s,"engineExit":%s,"engineBase64":"%s","pluginsExit":%s,"pluginsBase64":"%s","containerStatus":"%s"}' "$dockerPresent" "$engineExit" "$engineB64" "$pluginsExit" "$pluginsB64" "$containerStatus"
 `;
 
 export const parseModelRunnerCapability = (
@@ -177,32 +191,25 @@ export const parseModelRunnerCapability = (
 		});
 	}
 
-	const infoExit = Number(envelope.infoExit ?? 0);
-	const infoText = b64Decode(envelope.infoBase64).trim();
-	let info: DockerInfoProbe | null = null;
-	if (infoText) {
-		try {
-			info = JSON.parse(infoText);
-		} catch {
-			if (infoExit === 0) {
-				return emptyCapability(
-					new Error("Could not parse docker info output"),
-					{
-						modelRunner: {
-							cliAvailable: false,
-							cliVersion: null,
-							standaloneRunnerContainerStatus: containerStatus,
-						},
-					},
-				);
-			}
-		}
-	}
+	const engineExit = Number(envelope.engineExit ?? 0);
+	const pluginsExit = Number(envelope.pluginsExit ?? 0);
+	const engineText = b64Decode(envelope.engineBase64).trim();
+	const pluginsText = b64Decode(envelope.pluginsBase64).trim();
 
-	const plugins = capabilityFromPlugins(info);
+	const engine =
+		engineExit === 0 && engineText
+			? (parseJson(engineText) as EngineProbe | null)
+			: null;
+	const pluginList =
+		pluginsExit === 0 && pluginsText
+			? (parseJson(pluginsText) as DockerInfoPlugin[] | null)
+			: null;
+	const plugins = capabilityFromPlugins(
+		Array.isArray(pluginList) ? pluginList : null,
+	);
 	plugins.modelRunner.standaloneRunnerContainerStatus = containerStatus;
 
-	if (infoExit !== 0 || !info) {
+	if (engineExit !== 0) {
 		return emptyCapability(ENGINE_UNREACHABLE, plugins);
 	}
 
@@ -210,9 +217,9 @@ export const parseModelRunnerCapability = (
 		checkedAt: new Date().toISOString(),
 		docker: {
 			available: true,
-			version: nullIfEmpty(info.serverVersion ?? undefined),
-			os: nullIfEmpty(info.os ?? undefined),
-			arch: nullIfEmpty(info.arch ?? undefined),
+			version: nullIfEmpty(engine?.serverVersion ?? undefined),
+			os: nullIfEmpty(engine?.os ?? undefined),
+			arch: nullIfEmpty(engine?.arch ?? undefined),
 		},
 		compose: plugins.compose,
 		modelRunner: plugins.modelRunner,
@@ -220,9 +227,8 @@ export const parseModelRunnerCapability = (
 };
 
 const capabilityFromPlugins = (
-	info: DockerInfoProbe | null,
+	plugins: DockerInfoPlugin[] | null,
 ): Pick<ModelRunnerCapability, "compose" | "modelRunner"> => {
-	const plugins = info?.plugins ?? info?.clientInfo?.plugins;
 	const composePlugin = findPlugin(plugins, "compose");
 	const modelPlugin = findPlugin(plugins, "model");
 	const composeVersion = nullIfEmpty(composePlugin?.Version);
