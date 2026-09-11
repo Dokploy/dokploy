@@ -497,6 +497,7 @@ export interface ComposeSpecification {
 	 */
 	include?: DefinitionsInclude[];
 	services?: PropertiesServices;
+	models?: PropertiesModels;
 	networks?: PropertiesNetworks;
 	volumes?: PropertiesVolumes;
 	secrets?: PropertiesSecrets;
@@ -648,6 +649,23 @@ export interface DefinitionsService {
 	mem_swappiness?: number;
 	memswap_limit?: number | string;
 	network_mode?: string;
+	models?:
+		| ListOfStrings
+		| {
+				/**
+				 * This interface was referenced by `undefined`'s JSON-Schema definition
+				 * via the `patternProperty` "^[a-zA-Z0-9._-]+$".
+				 */
+				[k: string]: {
+					endpoint_var?: string;
+					model_var?: string;
+					/**
+					 * This interface was referenced by `undefined`'s JSON-Schema definition
+					 * via the `patternProperty` "^x-".
+					 */
+					[k: string]: unknown;
+				} | null;
+		  };
 	networks?:
 		| ListOfStrings
 		| {
@@ -873,6 +891,24 @@ export interface DefinitionsConfig {
 	template_driver?: string;
 	/**
 	 * This interface was referenced by `DefinitionsConfig`'s JSON-Schema definition
+	 * via the `patternProperty` "^x-".
+	 */
+	[k: string]: unknown;
+}
+export interface PropertiesModels {
+	[k: string]: DefinitionsModel;
+}
+/**
+ * This interface was referenced by `PropertiesModels`'s JSON-Schema definition
+ * via the `patternProperty` "^[a-zA-Z0-9._-]+$".
+ */
+export interface DefinitionsModel {
+	name?: string;
+	model: string;
+	context_size?: number;
+	runtime_flags?: string[];
+	/**
+	 * This interface was referenced by `DefinitionsModel`'s JSON-Schema definition
 	 * via the `patternProperty` "^x-".
 	 */
 	[k: string]: unknown;
