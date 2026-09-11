@@ -38,6 +38,7 @@ import { TransferService } from "@/components/dashboard/shared/transfer-service"
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { ScrollFadeContainer } from "@/components/shared/scroll-fade-container";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -233,7 +234,7 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center w-full overflow-auto">
+									<ScrollFadeContainer className="flex flex-row items-center w-full">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											{permissions?.envVars.read && (
@@ -279,7 +280,7 @@ const Service = (
 												<TabsTrigger value="advanced">Advanced</TabsTrigger>
 											)}
 										</TabsList>
-									</div>
+									</ScrollFadeContainer>
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">

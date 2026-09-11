@@ -2,18 +2,30 @@
 
 import type * as React from "react";
 
+import {
+	ScrollFadeEdges,
+	useScrollFade,
+} from "@/components/shared/scroll-fade-container";
 import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
+	const [ref, canScrollLeft, canScrollRight] =
+		useScrollFade<HTMLDivElement>([props.children]);
+
 	return (
 		<div
+			ref={ref}
 			data-slot="table-container"
-			className="relative w-full overflow-x-auto"
+			className="relative w-full overflow-x-auto no-scrollbar"
 		>
 			<table
 				data-slot="table"
 				className={cn("w-full caption-bottom text-sm", className)}
 				{...props}
+			/>
+			<ScrollFadeEdges
+				canScrollLeft={canScrollLeft}
+				canScrollRight={canScrollRight}
 			/>
 		</div>
 	);
