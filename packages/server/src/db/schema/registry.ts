@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { applications } from "./application";
+import { compose } from "./compose";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -41,6 +42,9 @@ export const registryRelations = relations(registry, ({ many }) => ({
 	}),
 	rollbackApplications: many(applications, {
 		relationName: "applicationRollbackRegistry",
+	}),
+	buildComposes: many(compose, {
+		relationName: "composeBuildRegistry",
 	}),
 }));
 
