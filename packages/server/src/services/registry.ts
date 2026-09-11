@@ -3,9 +3,10 @@ import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
 import {
 	execAsync,
 	execAsyncRemote,
+	ExecError,
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
 
@@ -36,6 +37,55 @@ function sanitizeRegistryError(
 	if (!password) return message;
 	return message.split(password).join("***");
 }
+
+export const redactSecrets = (
+	text: string,
+	secrets: (string | null | undefined)[],
+): string => {
+	let result = text;
+	for (const secret of secrets) {
+		if (secret) {
+			result = result.split(secret).join("***");
+		}
+	}
+	return result;
+};
+
+export const getRegistryPasswords = async (
+	registryIds: (string | null | undefined)[],
+): Promise<(string | null)[]> => {
+	const uniqueIds = [...new Set(registryIds.filter((id): id is string => !!id))];
+	if (uniqueIds.length === 0) {
+		return [];
+	}
+	const rows = await db.query.registry.findMany({
+		where: inArray(registry.registryId, uniqueIds),
+		columns: { password: true },
+	});
+	return rows.flatMap((row) =>
+		row.password ? [row.password, shEscape(row.password)] : [row.password],
+	);
+};
+
+export const redactExecError = (
+	error: unknown,
+	secrets: (string | null | undefined)[],
+): unknown => {
+	if (error instanceof ExecError) {
+		return new ExecError(redactSecrets(error.message, secrets), {
+			command: redactSecrets(error.command, secrets),
+			stdout: error.stdout ? redactSecrets(error.stdout, secrets) : error.stdout,
+			stderr: error.stderr ? redactSecrets(error.stderr, secrets) : error.stderr,
+			exitCode: error.exitCode,
+			originalError: undefined,
+			serverId: error.serverId,
+		});
+	}
+	if (error instanceof Error) {
+		error.message = redactSecrets(error.message, secrets);
+	}
+	return error;
+};
 
 export const createRegistry = async (
 	input: z.infer<typeof apiCreateRegistry>,
