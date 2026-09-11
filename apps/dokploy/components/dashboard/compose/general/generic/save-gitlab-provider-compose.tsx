@@ -2,10 +2,12 @@ import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation"
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { BranchDirectLookup } from "@/components/dashboard/shared/branch-direct-lookup";
+import { RepositoryDirectLookup } from "@/components/dashboard/shared/repository-direct-lookup";
 import { GitlabIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +102,8 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 
 	const repository = form.watch("repository");
 	const gitlabId = form.watch("gitlabId");
+	const [shouldLoadRepositories, setShouldLoadRepositories] = useState(false);
+	const [shouldLoadBranches, setShouldLoadBranches] = useState(false);
 
 	const gitlabUrl = useMemo(() => {
 		const url = gitlabProviders?.find(
@@ -120,7 +124,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			gitlabId,
 		},
 		{
-			enabled: !!gitlabId,
+			enabled: !!gitlabId && shouldLoadRepositories,
 		},
 	);
 
@@ -136,7 +140,11 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			gitlabId: gitlabId,
 		},
 		{
-			enabled: !!repository?.owner && !!repository?.repo && !!gitlabId,
+			enabled:
+				!!repository?.owner &&
+				!!repository?.repo &&
+				!!gitlabId &&
+				shouldLoadBranches,
 		},
 	);
 
@@ -252,7 +260,31 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 											</Link>
 										)}
 									</div>
-									<Popover>
+									<RepositoryDirectLookup
+										provider="gitlab"
+										providerId={gitlabId}
+										onSelect={(selected) => {
+											form.setValue(
+												"repository",
+												{
+													owner: selected.owner,
+													repo: selected.name,
+													gitlabPathNamespace: selected.path,
+													id:
+														typeof selected.id === "number"
+															? selected.id
+															: null,
+												},
+												{ shouldValidate: true },
+											);
+											form.setValue("branch", "");
+										}}
+									/>
+									<Popover
+										onOpenChange={(open) => {
+											if (open) setShouldLoadRepositories(true);
+										}}
+									>
 										<PopoverTrigger asChild>
 											<FormControl>
 												<Button
@@ -268,7 +300,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 															? "Loading...."
 															: (repositories?.find(
 																	(repo) => repo.name === field.value.repo,
-																)?.name ?? "Select repository")}
+																)?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -354,7 +386,23 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="block w-full">
 									<FormLabel>Branch</FormLabel>
-									<Popover>
+									<BranchDirectLookup
+										provider="gitlab"
+										providerId={gitlabId}
+										owner={repository?.owner ?? ""}
+										repository={repository?.repo ?? ""}
+										projectId={repository?.id ?? undefined}
+										onSelect={(branch) => {
+											form.setValue("branch", branch, {
+												shouldValidate: true,
+											});
+										}}
+									/>
+									<Popover
+										onOpenChange={(open) => {
+											if (open) setShouldLoadBranches(true);
+										}}
+									>
 										<PopoverTrigger asChild>
 											<FormControl>
 												<Button
@@ -367,9 +415,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
-															? branches?.find(
+															? (branches?.find(
 																	(branch) => branch.name === field.value,
-																)?.name
+																)?.name ?? field.value)
 															: "Select branch"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>

@@ -72,3 +72,12 @@ export const apiToggleShareGitProvider = z.object({
 	gitProviderId: z.string().min(1),
 	sharedWithOrganization: z.boolean(),
 });
+
+export const apiFindRepository = z.object({
+	owner: z.string().trim().min(1, "Repository owner is required"),
+	repository: z.string().trim().min(1, "Repository name is required"),
+});
+
+export const apiFindBranch = apiFindRepository.extend({
+	branch: z.string().trim().min(1, "Branch name is required"),
+});
