@@ -11,6 +11,7 @@ import {
 	getContainersByAppLabel,
 	getContainersByAppNameMatch,
 	getDockerEvents,
+	getModelRunnerCapability as getModelRunnerCapabilityData,
 	getServerHardware as getServerHardwareData,
 	getServerHealth as getServerHealthData,
 	getServiceContainersByAppName,
@@ -93,6 +94,23 @@ export const dockerRouter = createTRPCRouter({
 				}
 			}
 			return await getServerHardwareData(input.serverId);
+		}),
+
+	getModelRunnerCapability: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await checkPermission(ctx, { docker: ["read"], server: ["read"] });
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getModelRunnerCapabilityData(input.serverId);
 		}),
 
 	restartContainer: withPermission("docker", "read")
