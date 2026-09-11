@@ -44,6 +44,40 @@ import { findVolumeBackupById } from "./volume-backups";
 
 export type ServicePath = { href: string | null; label: string };
 
+export const getDeploymentErrorMessage = async ({
+	logPath,
+	serverId,
+	fallback,
+	maxLines = 50,
+}: {
+	logPath: string;
+	serverId: string | null;
+	fallback: string;
+	maxLines?: number;
+}): Promise<string> => {
+	try {
+		if (!logPath || logPath === ".") return fallback;
+
+		let content = "";
+		if (serverId) {
+			const { stdout } = await execAsyncRemote(
+				serverId,
+				`tail -n ${maxLines} ${logPath}`,
+			);
+			content = stdout;
+		} else {
+			if (!existsSync(logPath)) return fallback;
+			const fileContent = await fsPromises.readFile(logPath, "utf-8");
+			content = fileContent.trim().split("\n").slice(-maxLines).join("\n");
+		}
+
+		const trimmed = content.trim();
+		return trimmed.length > 0 ? trimmed : fallback;
+	} catch {
+		return fallback;
+	}
+};
+
 export async function resolveServicePath(
 	orgId: string,
 	data: Record<string, unknown>,
