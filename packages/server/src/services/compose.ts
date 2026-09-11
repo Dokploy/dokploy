@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
@@ -603,7 +603,15 @@ export const scaleComposeService = async (
 	if (compose.composeType === "docker-compose") {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
-		const scaleCommand = `cd ${quote([projectPath])} && env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([compose.appName])} up -d --no-build --scale ${quote([`${serviceName}=${replicas}`])} ${quote([serviceName])}`;
+		const path =
+			compose.sourceType === "raw"
+				? "docker-compose.yml"
+				: compose.composePath || "docker-compose.yml";
+		const projectDirectoryFlag = `--project-directory ${quote([projectPath])} `;
+		const envFileFlag = compose.createEnvFile
+			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+			: "";
+		const scaleCommand = `cd ${quote([projectPath])} && env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([compose.appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --no-build --scale ${quote([`${serviceName}=${replicas}`])} ${quote([serviceName])}`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, scaleCommand);
 		} else {

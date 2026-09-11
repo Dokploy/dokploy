@@ -219,7 +219,10 @@ const createSchema = createInsertSchema(compose, {
 	serviceScales: z
 		.array(
 			z.object({
-				serviceName: z.string(),
+				serviceName: z
+					.string()
+					.min(1)
+					.regex(/^[a-zA-Z0-9._-]+$/, "Invalid service name"),
 				replicas: z.number().int().min(0),
 			}),
 		)
@@ -304,7 +307,10 @@ export const apiRandomizeCompose = createSchema
 
 export const apiScaleComposeService = z.object({
 	composeId: z.string().min(1),
-	serviceName: z.string().min(1),
+	serviceName: z
+		.string()
+		.min(1)
+		.regex(/^[a-zA-Z0-9._-]+$/, "Invalid service name"),
 	replicas: z.number().int().min(0),
 });
 

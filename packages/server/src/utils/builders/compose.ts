@@ -72,7 +72,7 @@ Compose Type: ${composeType} ✅`;
 						.sort((a, b) => a.serviceName.localeCompare(b.serviceName))
 						.map(
 							(s) =>
-								`docker service scale ${compose.appName}_${s.serviceName}=${s.replicas} >/dev/null 2>&1 || true;`,
+								`docker service scale ${compose.appName}_${s.serviceName}=${s.replicas};`,
 						)
 						.join("\n\t\t")
 				: ""
