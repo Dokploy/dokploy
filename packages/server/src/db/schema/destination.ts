@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	getDestinationValidationIssues,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -54,6 +55,25 @@ const createSchema = createInsertSchema(destinations, {
 		.default([]),
 });
 
+const validateDestination = (
+	data: {
+		provider?: string | null;
+		accessKey?: string;
+		region?: string;
+		endpoint?: string;
+		additionalFlags?: string[] | null;
+	},
+	ctx: z.RefinementCtx,
+) => {
+	for (const issue of getDestinationValidationIssues(data)) {
+		ctx.addIssue({
+			code: "custom",
+			path: [issue.field],
+			message: issue.message,
+		});
+	}
+};
+
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
@@ -68,7 +88,8 @@ export const apiCreateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
@@ -95,4 +116,5 @@ export const apiUpdateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+	})
+	.superRefine(validateDestination);
