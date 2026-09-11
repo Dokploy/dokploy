@@ -75,6 +75,43 @@ export const canEditDeployGitSource = async (
 	return provider.userId === userId || provider.sharedWithOrganization;
 };
 
+export const getConnectedGitProviderId = (service: {
+	sourceType: string;
+	github?: { gitProviderId: string } | null;
+	gitlab?: { gitProviderId: string } | null;
+	bitbucket?: { gitProviderId: string } | null;
+	gitea?: { gitProviderId: string } | null;
+}): string | null => {
+	switch (service.sourceType) {
+		case "github":
+			return service.github?.gitProviderId ?? null;
+		case "gitlab":
+			return service.gitlab?.gitProviderId ?? null;
+		case "bitbucket":
+			return service.bitbucket?.gitProviderId ?? null;
+		case "gitea":
+			return service.gitea?.gitProviderId ?? null;
+		default:
+			return null;
+	}
+};
+
+export const assertCanEditExistingDeployGitSource = async (
+	gitProviderId: string | null | undefined,
+	session: { userId: string; activeOrganizationId: string },
+) => {
+	if (!gitProviderId) return;
+
+	const canEdit = await canEditDeployGitSource(gitProviderId, session);
+	if (!canEdit) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"You are not authorized to change the git source of this service",
+		});
+	}
+};
+
 export const getAccessibleGitProviderIds = async (session: {
 	userId: string;
 	activeOrganizationId: string;
