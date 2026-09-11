@@ -9,7 +9,7 @@ import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import { enqueueApplicationDeployment } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 
 /**
@@ -275,14 +275,7 @@ export default async function handler(
 					console.error("Background deployment failed:", error);
 				});
 			} else {
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
+				await enqueueApplicationDeployment(jobData);
 			}
 		} catch (error) {
 			logWebhookError("Error deploying Application:", error);

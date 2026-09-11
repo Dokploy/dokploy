@@ -12,6 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { QUEUED_LOG_MESSAGE } from "@dokploy/server";
 import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
@@ -21,6 +22,7 @@ interface Props {
 	onClose: () => void;
 	serverId?: string;
 	errorMessage?: string;
+	status?: string;
 }
 export const ShowDeployment = ({
 	logPath,
@@ -28,6 +30,7 @@ export const ShowDeployment = ({
 	onClose,
 	serverId,
 	errorMessage,
+	status,
 }: Props) => {
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
@@ -99,8 +102,31 @@ export const ShowDeployment = ({
 			});
 		}
 
+		if (status === "cancelled" && filteredLogsResult.length > 0) {
+			const isOnlyQueuedLog =
+				filteredLogsResult.some((log) =>
+					log.message.includes(QUEUED_LOG_MESSAGE),
+				) &&
+				!filteredLogsResult.some((log) => log.message.includes("Building on"));
+			if (isOnlyQueuedLog) {
+				filteredLogsResult = [
+					{
+						message: "Deployment was cancelled while queued.",
+						rawTimestamp: null,
+						timestamp: null,
+					},
+				];
+			} else {
+				filteredLogsResult.push({
+					message: "Deployment cancelled.",
+					rawTimestamp: null,
+					timestamp: null,
+				});
+			}
+		}
+
 		setFilteredLogs(filteredLogsResult);
-	}, [data, showExtraLogs]);
+	}, [data, showExtraLogs, status]);
 
 	useEffect(() => {
 		scrollToBottom();

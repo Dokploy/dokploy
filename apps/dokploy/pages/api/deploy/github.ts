@@ -15,7 +15,11 @@ import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import {
+	enqueueApplicationDeployment,
+	enqueueComposeDeployment,
+	enqueuePreviewDeployment,
+} from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	extractCommitMessage,
@@ -129,30 +133,30 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
-				const jobData: DeploymentJob = {
-					applicationId: app.applicationId as string,
-					titleLog: deploymentTitle,
-					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
-					applicationType: "application",
-					server: !!app.serverId,
-				};
+				try {
+					const jobData: DeploymentJob = {
+						applicationId: app.applicationId as string,
+						titleLog: deploymentTitle,
+						descriptionLog: `Hash: ${deploymentHash}`,
+						type: "deploy",
+						applicationType: "application",
+						server: !!app.serverId,
+					};
 
-				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
-					});
-					continue;
+					if (IS_CLOUD && app.serverId) {
+						jobData.serverId = app.serverId;
+						deploy(jobData).catch((error) => {
+							console.error("Background deployment failed:", error);
+						});
+						continue;
+					}
+					await enqueueApplicationDeployment(jobData);
+				} catch (error) {
+					console.error(
+						`Failed to queue tag deployment for application ${app.applicationId}:`,
+						error,
+					);
 				}
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
 			}
 
 			// Find compose apps configured to deploy on tag
@@ -168,31 +172,30 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
-				const jobData: DeploymentJob = {
-					composeId: composeApp.composeId as string,
-					titleLog: deploymentTitle,
-					type: "deploy",
-					applicationType: "compose",
-					descriptionLog: `Hash: ${deploymentHash}`,
-					server: !!composeApp.serverId,
-				};
+				try {
+					const jobData: DeploymentJob = {
+						composeId: composeApp.composeId as string,
+						titleLog: deploymentTitle,
+						type: "deploy",
+						applicationType: "compose",
+						descriptionLog: `Hash: ${deploymentHash}`,
+						server: !!composeApp.serverId,
+					};
 
-				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
-					});
-					continue;
+					if (IS_CLOUD && composeApp.serverId) {
+						jobData.serverId = composeApp.serverId;
+						deploy(jobData).catch((error) => {
+							console.error("Background deployment failed:", error);
+						});
+						continue;
+					}
+					await enqueueComposeDeployment(jobData);
+				} catch (error) {
+					console.error(
+						`Failed to queue tag deployment for compose ${composeApp.composeId}:`,
+						error,
+					);
 				}
-
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
 			}
 
 			const totalApps = apps.length + composeApps.length;
@@ -242,39 +245,39 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
-				const jobData: DeploymentJob = {
-					applicationId: app.applicationId as string,
-					titleLog: deploymentTitle,
-					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
-					applicationType: "application",
-					server: !!app.serverId,
-				};
+				try {
+					const jobData: DeploymentJob = {
+						applicationId: app.applicationId as string,
+						titleLog: deploymentTitle,
+						descriptionLog: `Hash: ${deploymentHash}`,
+						type: "deploy",
+						applicationType: "application",
+						server: !!app.serverId,
+					};
 
-				const shouldDeployPaths = shouldDeploy(
-					app.watchPaths,
-					normalizedCommits,
-				);
+					const shouldDeployPaths = shouldDeploy(
+						app.watchPaths,
+						normalizedCommits,
+					);
 
-				if (!shouldDeployPaths) {
-					continue;
+					if (!shouldDeployPaths) {
+						continue;
+					}
+
+					if (IS_CLOUD && app.serverId) {
+						jobData.serverId = app.serverId;
+						deploy(jobData).catch((error) => {
+							console.error("Background deployment failed:", error);
+						});
+						continue;
+					}
+					await enqueueApplicationDeployment(jobData);
+				} catch (error) {
+					console.error(
+						`Failed to queue push deployment for application ${app.applicationId}:`,
+						error,
+					);
 				}
-
-				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
-					});
-					continue;
-				}
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
 			}
 
 			const composeApps = await db.query.compose.findMany({
@@ -290,39 +293,38 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
-				const jobData: DeploymentJob = {
-					composeId: composeApp.composeId as string,
-					titleLog: deploymentTitle,
-					type: "deploy",
-					applicationType: "compose",
-					descriptionLog: `Hash: ${deploymentHash}`,
-					server: !!composeApp.serverId,
-				};
+				try {
+					const jobData: DeploymentJob = {
+						composeId: composeApp.composeId as string,
+						titleLog: deploymentTitle,
+						type: "deploy",
+						applicationType: "compose",
+						descriptionLog: `Hash: ${deploymentHash}`,
+						server: !!composeApp.serverId,
+					};
 
-				const shouldDeployPaths = shouldDeploy(
-					composeApp.watchPaths,
-					normalizedCommits,
-				);
+					const shouldDeployPaths = shouldDeploy(
+						composeApp.watchPaths,
+						normalizedCommits,
+					);
 
-				if (!shouldDeployPaths) {
-					continue;
+					if (!shouldDeployPaths) {
+						continue;
+					}
+					if (IS_CLOUD && composeApp.serverId) {
+						jobData.serverId = composeApp.serverId;
+						deploy(jobData).catch((error) => {
+							console.error("Background deployment failed:", error);
+						});
+						continue;
+					}
+					await enqueueComposeDeployment(jobData);
+				} catch (error) {
+					console.error(
+						`Failed to queue push deployment for compose ${composeApp.composeId}:`,
+						error,
+					);
 				}
-				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
-					});
-					continue;
-				}
-
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
 			}
 
 			const totalApps = apps.length + composeApps.length;
@@ -471,71 +473,68 @@ export default async function handler(
 			}
 
 			for (const app of secureApps) {
-				// check for labels
-				if (app?.previewLabels && app?.previewLabels?.length > 0) {
-					let hasLabel = false;
-					const labels = githubBody?.pull_request?.labels;
-					for (const label of labels) {
-						if (app?.previewLabels?.includes(label.name)) {
-							hasLabel = true;
-							break;
+				try {
+					if (app?.previewLabels && app?.previewLabels?.length > 0) {
+						let hasLabel = false;
+						const labels = githubBody?.pull_request?.labels;
+						for (const label of labels) {
+							if (app?.previewLabels?.includes(label.name)) {
+								hasLabel = true;
+								break;
+							}
 						}
+						if (!hasLabel) continue;
 					}
-					if (!hasLabel) continue;
-				}
 
-				const previewDeploymentResult =
-					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+					const previewDeploymentResult =
+						await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
-				let previewDeploymentId =
-					previewDeploymentResult?.previewDeploymentId || "";
+					let previewDeploymentId =
+						previewDeploymentResult?.previewDeploymentId || "";
 
-				if (!previewDeploymentResult && shouldCreateDeployment) {
-					// The limit only applies to new previews, existing ones must
-					// still be redeployed when the pull request is updated.
-					const previewLimit = app?.previewLimit ?? 3;
-					if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
-						console.warn(
-							`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
-						);
-						continue;
-					}
-					const previewDeployment = await createPreviewDeployment({
-						applicationId: app.applicationId as string,
-						branch: prBranch,
-						pullRequestId: prId,
-						pullRequestNumber: prNumber,
-						pullRequestTitle: prTitle,
-						pullRequestURL: prURL,
-					});
-					previewDeploymentId = previewDeployment.previewDeploymentId;
-				}
-
-				const jobData: DeploymentJob = {
-					applicationId: app.applicationId as string,
-					titleLog: "Preview Deployment",
-					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
-					applicationType: "application-preview",
-					server: !!app.serverId,
-					previewDeploymentId,
-				};
-
-				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
+					if (!previewDeploymentResult && shouldCreateDeployment) {
+						const previewLimit = app?.previewLimit ?? 3;
+						if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
+							console.warn(
+								`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
+							);
+							continue;
+						}
+						const previewDeployment = await createPreviewDeployment({
+							applicationId: app.applicationId as string,
+							branch: prBranch,
+							pullRequestId: prId,
+							pullRequestNumber: prNumber,
+							pullRequestTitle: prTitle,
+							pullRequestURL: prURL,
 						});
-						continue;
+						previewDeploymentId = previewDeployment.previewDeploymentId;
 					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
+
+					const jobData: DeploymentJob = {
+						applicationId: app.applicationId as string,
+						titleLog: "Preview Deployment",
+						descriptionLog: `Hash: ${deploymentHash}`,
+						type: "deploy",
+						applicationType: "application-preview",
+						server: !!app.serverId,
+						previewDeploymentId,
+					};
+
+					if (previewDeploymentId) {
+						if (IS_CLOUD && app.serverId) {
+							jobData.serverId = app.serverId;
+							deploy(jobData).catch((error) => {
+								console.error("Background deployment failed:", error);
+							});
+							continue;
+						}
+						await enqueuePreviewDeployment(jobData);
+					}
+				} catch (error) {
+					console.error(
+						`Failed to queue preview deployment for application ${app.applicationId}:`,
+						error,
 					);
 				}
 			}

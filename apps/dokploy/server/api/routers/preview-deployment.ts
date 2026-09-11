@@ -10,7 +10,7 @@ import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { apiFindAllByApplication } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import { enqueuePreviewDeployment } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -100,14 +100,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueuePreviewDeployment(jobData);
 			await audit(ctx, {
 				action: "redeploy",
 				resourceType: "previewDeployment",

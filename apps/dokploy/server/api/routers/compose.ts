@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
+	cancelAllQueuedDeploymentsByComposeId,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -68,14 +69,15 @@ import {
 	apiSaveEnvironmentVariablesCompose,
 	apiUpdateCompose,
 	compose as composeTable,
+	deployments,
 	environments,
 	projects,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
+	enqueueComposeDeployment,
 	killDockerBuild,
-	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
@@ -283,7 +285,17 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				deployment: ["create"],
 			});
+			await cancelAllQueuedDeploymentsByComposeId(input.composeId);
 			await cleanQueuesByCompose(input.composeId);
+			const hasRunning = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.composeId, input.composeId),
+					eq(deployments.status, "running"),
+				),
+			});
+			if (!hasRunning) {
+				await updateCompose(input.composeId, { composeStatus: "idle" });
+			}
 			return { success: true, message: "Queues cleaned successfully" };
 		}),
 	clearDeployments: protectedProcedure
@@ -443,14 +455,7 @@ export const composeRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueComposeDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "compose",
@@ -492,14 +497,7 @@ export const composeRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueComposeDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "compose",

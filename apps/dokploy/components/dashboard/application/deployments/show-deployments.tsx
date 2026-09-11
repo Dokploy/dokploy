@@ -133,8 +133,7 @@ export const ShowDeployments = ({
 		const mostRecentDeployment = deployments[0];
 
 		if (
-			!mostRecentDeployment ||
-			mostRecentDeployment.status !== "running" ||
+			mostRecentDeployment?.status !== "running" ||
 			!mostRecentDeployment.startedAt
 		) {
 			return null;
@@ -165,9 +164,10 @@ export const ShowDeployments = ({
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
-					{(type === "application" || type === "compose") && (
-						<CancelQueues id={id} type={type} />
-					)}
+					{(type === "application" || type === "compose") &&
+						deployments?.some((d) => d.status === "queued") && (
+							<CancelQueues id={id} type={type} />
+						)}
 					{type === "application" && (
 						<ShowRollbackSettings applicationId={id}>
 							<Button variant="outline">
@@ -286,7 +286,9 @@ export const ShowDeployments = ({
 								deployment.deploymentId,
 							);
 							const canDelete =
-								deployment.status === "done" || deployment.status === "error";
+								deployment.status === "done" ||
+								deployment.status === "error" ||
+								deployment.status === "cancelled";
 
 							return (
 								<div
@@ -506,6 +508,7 @@ export const ShowDeployments = ({
 					onClose={() => setActiveLog(null)}
 					logPath={activeLog?.logPath || ""}
 					errorMessage={activeLog?.errorMessage || ""}
+					status={activeLog?.status ?? undefined}
 				/>
 			</CardContent>
 		</Card>

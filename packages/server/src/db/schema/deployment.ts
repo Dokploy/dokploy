@@ -18,6 +18,7 @@ import { schedules } from "./schedule";
 import { server } from "./server";
 import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
+	"queued",
 	"running",
 	"done",
 	"error",
@@ -118,7 +119,7 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 
 const schema = createInsertSchema(deployments, {
 	title: z.string().min(1),
-	status: z.string().default("running"),
+	status: z.enum(deploymentStatus.enumValues).default("running"),
 	logPath: z.string().min(1),
 	applicationId: z.string(),
 	composeId: z.string(),

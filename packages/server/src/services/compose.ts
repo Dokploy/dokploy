@@ -39,6 +39,7 @@ import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
+	resolveQueuedDeployment,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
@@ -229,11 +230,13 @@ export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	deploymentId,
 	freshVolumes = false,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 	freshVolumes?: boolean;
 }) => {
 	const compose = await findComposeById(composeId);
@@ -241,11 +244,18 @@ export const deployCompose = async ({
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
 	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	const deployment = await resolveQueuedDeployment(
+		deploymentId,
+		() =>
+			createDeploymentCompose({
+				composeId: composeId,
+				title: titleLog,
+				description: descriptionLog,
+			}),
+		() => updateCompose(composeId, { composeStatus: "running" }),
+		() => updateCompose(composeId, { composeStatus: "idle" }),
+	);
+	if (!deployment) return;
 
 	try {
 		const entity = {
@@ -371,20 +381,29 @@ export const rebuildCompose = async ({
 	composeId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	deploymentId,
 	freshVolumes = false,
 }: {
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 	freshVolumes?: boolean;
 }) => {
 	const compose = await findComposeById(composeId);
 
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	const deployment = await resolveQueuedDeployment(
+		deploymentId,
+		() =>
+			createDeploymentCompose({
+				composeId: composeId,
+				title: titleLog,
+				description: descriptionLog,
+			}),
+		() => updateCompose(composeId, { composeStatus: "running" }),
+		() => updateCompose(composeId, { composeStatus: "idle" }),
+	);
+	if (!deployment) return;
 
 	try {
 		let command = "set -e;";

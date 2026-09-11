@@ -120,10 +120,36 @@ export const findDeploymentByApplicationId = async (applicationId: string) => {
 	return deployment;
 };
 
+export const QUEUED_LOG_MESSAGE = "Waiting for worker to pick job...";
+
+export const resolveQueuedDeployment = async <
+	T extends { deploymentId: string },
+>(
+	deploymentId: string | undefined,
+	createNew: () => Promise<T>,
+	setRunning: () => Promise<unknown>,
+	resetStatus: () => Promise<unknown>,
+): Promise<T | null> => {
+	if (!deploymentId) {
+		return createNew();
+	}
+	try {
+		const deployment = await findDeploymentById(deploymentId);
+		await updateDeploymentStatus(deployment.deploymentId, "running");
+		await setRunning();
+		return deployment as unknown as T;
+	} catch (error) {
+		console.error(`Deployment ${deploymentId} lookup failed, skipping`, error);
+		await updateDeploymentStatus(deploymentId, "error").catch(console.error);
+		await resetStatus().catch(console.error);
+		return null;
+	}
+};
+
 export const createDeployment = async (
 	deployment: Omit<
 		z.infer<typeof apiCreateDeployment>,
-		"deploymentId" | "createdAt" | "status" | "logPath"
+		"deploymentId" | "createdAt" | "logPath"
 	>,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
@@ -136,16 +162,21 @@ export const createDeployment = async (
 		const serverId = application.buildServerId || application.serverId;
 
 		const { LOGS_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
+
+		const initialLog =
+			deployment.status === "queued"
+				? QUEUED_LOG_MESSAGE
+				: "Initializing deployment";
 
 		if (serverId) {
 			const server = await findServerById(serverId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${application.appName};
-            	echo "Initializing deployment" >> ${logFilePath};
+            	echo '${initialLog}' >> ${logFilePath};
 			    echo "Building on ${serverId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
 			`;
 
@@ -154,7 +185,7 @@ export const createDeployment = async (
 			await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
 				recursive: true,
 			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment\n");
+			await fsPromises.writeFile(logFilePath, `${initialLog}\n`);
 		}
 
 		const deploymentCreate = await db
@@ -162,10 +193,11 @@ export const createDeployment = async (
 			.values({
 				applicationId: deployment.applicationId,
 				title: deployment.title || "Deployment",
-				status: "running",
+				status: deployment.status || "running",
 				logPath: logFilePath,
 				description: deployment.description || "",
-				startedAt: new Date().toISOString(),
+				startedAt:
+					deployment.status === "queued" ? undefined : new Date().toISOString(),
 				...(application.buildServerId && {
 					buildServerId: application.buildServerId,
 				}),
@@ -204,7 +236,7 @@ export const createDeployment = async (
 export const createDeploymentPreview = async (
 	deployment: Omit<
 		z.infer<typeof apiCreateDeploymentPreview>,
-		"deploymentId" | "createdAt" | "status" | "logPath"
+		"deploymentId" | "createdAt" | "logPath"
 	>,
 ) => {
 	const previewDeployment = await findPreviewDeploymentById(
@@ -218,9 +250,14 @@ export const createDeploymentPreview = async (
 	try {
 		const appName = `${previewDeployment.appName}`;
 		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
+
+		const initialLog =
+			deployment.status === "queued"
+				? QUEUED_LOG_MESSAGE
+				: "Initializing deployment";
 
 		if (previewDeployment?.application?.serverId) {
 			const server = await findServerById(
@@ -229,7 +266,7 @@ export const createDeploymentPreview = async (
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
-            	echo "Initializing deployment" >> ${logFilePath};
+            	echo '${initialLog}' >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -237,18 +274,19 @@ export const createDeploymentPreview = async (
 			await fsPromises.mkdir(path.join(LOGS_PATH, appName), {
 				recursive: true,
 			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+			await fsPromises.writeFile(logFilePath, `${initialLog}\n`);
 		}
 
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
 				title: deployment.title || "Deployment",
-				status: "running",
+				status: deployment.status || "running",
 				logPath: logFilePath,
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
-				startedAt: new Date().toISOString(),
+				startedAt:
+					deployment.status === "queued" ? undefined : new Date().toISOString(),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -286,7 +324,7 @@ export const createDeploymentPreview = async (
 export const createDeploymentCompose = async (
 	deployment: Omit<
 		z.infer<typeof apiCreateDeploymentCompose>,
-		"deploymentId" | "createdAt" | "status" | "logPath"
+		"deploymentId" | "createdAt" | "logPath"
 	>,
 ) => {
 	const compose = await findComposeById(deployment.composeId);
@@ -297,16 +335,21 @@ export const createDeploymentCompose = async (
 	);
 	try {
 		const { LOGS_PATH } = paths(!!compose.serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
+
+		const initialLog =
+			deployment.status === "queued"
+				? QUEUED_LOG_MESSAGE
+				: "Initializing deployment";
 
 		if (compose.serverId) {
 			const server = await findServerById(compose.serverId);
 
 			const command = `
 mkdir -p ${LOGS_PATH}/${compose.appName};
-echo "Initializing deployment\n" >> ${logFilePath};
+echo '${initialLog}' >> ${logFilePath};
 `;
 
 			await execAsyncRemote(server.serverId, command);
@@ -314,7 +357,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 			await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
 				recursive: true,
 			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment\n");
+			await fsPromises.writeFile(logFilePath, `${initialLog}\n`);
 		}
 
 		const deploymentCreate = await db
@@ -323,9 +366,10 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
 				description: deployment.description || "",
-				status: "running",
+				status: deployment.status || "running",
 				logPath: logFilePath,
-				startedAt: new Date().toISOString(),
+				startedAt:
+					deployment.status === "queued" ? undefined : new Date().toISOString(),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -381,7 +425,7 @@ export const createDeploymentBackup = async (
 	await removeLastTenDeployments(deployment.backupId, "backup", serverId);
 	try {
 		const { LOGS_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${backup.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, backup.appName, fileName);
 
@@ -468,7 +512,7 @@ export const createDeploymentSchedule = async (
 		);
 	try {
 		const { SCHEDULES_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(SCHEDULES_PATH, schedule.appName, fileName);
 
@@ -546,7 +590,7 @@ export const createDeploymentVolumeBackup = async (
 	);
 	try {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${volumeBackup.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(
 			VOLUME_BACKUPS_PATH,
@@ -965,8 +1009,13 @@ export const updateDeploymentStatus = async (
 		.update(deployments)
 		.set({
 			status: deploymentStatus,
+			...(deploymentStatus === "running" && {
+				startedAt: new Date().toISOString(),
+			}),
 			finishedAt:
-				deploymentStatus === "done" || deploymentStatus === "error"
+				deploymentStatus === "done" ||
+				deploymentStatus === "error" ||
+				deploymentStatus === "cancelled"
 					? new Date().toISOString()
 					: null,
 		})
@@ -974,6 +1023,42 @@ export const updateDeploymentStatus = async (
 		.returning();
 
 	return application;
+};
+
+export const cancelAllQueuedDeploymentsByApplicationId = async (
+	applicationId: string,
+) => {
+	return db
+		.update(deployments)
+		.set({
+			status: "cancelled",
+			finishedAt: new Date().toISOString(),
+		})
+		.where(
+			and(
+				eq(deployments.applicationId, applicationId),
+				eq(deployments.status, "queued"),
+			),
+		)
+		.returning();
+};
+
+export const cancelAllQueuedDeploymentsByComposeId = async (
+	composeId: string,
+) => {
+	return db
+		.update(deployments)
+		.set({
+			status: "cancelled",
+			finishedAt: new Date().toISOString(),
+		})
+		.where(
+			and(
+				eq(deployments.composeId, composeId),
+				eq(deployments.status, "queued"),
+			),
+		)
+		.returning();
 };
 
 export const createServerDeployment = async (
@@ -987,7 +1072,7 @@ export const createServerDeployment = async (
 
 		const server = await findServerById(deployment.serverId);
 		await removeLastFiveDeployments(deployment.serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss.SSS");
 		const fileName = `${server.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, server.appName, fileName);
 		await fsPromises.mkdir(path.join(LOGS_PATH, server.appName), {

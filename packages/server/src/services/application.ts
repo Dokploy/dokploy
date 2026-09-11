@@ -35,6 +35,7 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	resolveQueuedDeployment,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
@@ -179,10 +180,12 @@ export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -192,11 +195,18 @@ export const deployApplication = async ({
 	};
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
-	const deployment = await createDeployment({
-		applicationId: applicationId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	const deployment = await resolveQueuedDeployment(
+		deploymentId,
+		() =>
+			createDeployment({
+				applicationId: applicationId,
+				title: titleLog,
+				description: descriptionLog,
+			}),
+		() => updateApplicationStatus(applicationId, "running"),
+		() => updateApplicationStatus(applicationId, "idle"),
+	);
+	if (!deployment) return;
 
 	try {
 		let command = "set -e;";
@@ -297,20 +307,29 @@ export const rebuildApplication = async ({
 	applicationId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
-	const deployment = await createDeployment({
-		applicationId: applicationId,
-		title: titleLog,
-		description: descriptionLog,
-	});
+	const deployment = await resolveQueuedDeployment(
+		deploymentId,
+		() =>
+			createDeployment({
+				applicationId: applicationId,
+				title: titleLog,
+				description: descriptionLog,
+			}),
+		() => updateApplicationStatus(applicationId, "running"),
+		() => updateApplicationStatus(applicationId, "idle"),
+	);
+	if (!deployment) return;
 
 	try {
 		let command = "set -e;";
@@ -364,19 +383,34 @@ export const deployPreviewApplication = async ({
 	titleLog = "Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
 	previewDeploymentId: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 
-	const deployment = await createDeploymentPreview({
-		title: titleLog,
-		description: descriptionLog,
-		previewDeploymentId: previewDeploymentId,
-	});
+	const deployment = await resolveQueuedDeployment(
+		deploymentId,
+		() =>
+			createDeploymentPreview({
+				title: titleLog,
+				description: descriptionLog,
+				previewDeploymentId: previewDeploymentId,
+			}),
+		() =>
+			updatePreviewDeployment(previewDeploymentId, {
+				previewStatus: "running",
+			}),
+		() =>
+			updatePreviewDeployment(previewDeploymentId, {
+				previewStatus: "idle",
+			}),
+	);
+	if (!deployment) return;
 
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
@@ -484,21 +518,36 @@ export const rebuildPreviewApplication = async ({
 	titleLog = "Rebuild Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
+	deploymentId,
 }: {
 	applicationId: string;
 	titleLog: string;
 	descriptionLog: string;
 	previewDeploymentId: string;
+	deploymentId?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
 
-	const deployment = await createDeploymentPreview({
-		title: titleLog,
-		description: descriptionLog,
-		previewDeploymentId: previewDeploymentId,
-	});
+	const deployment = await resolveQueuedDeployment(
+		deploymentId,
+		() =>
+			createDeploymentPreview({
+				title: titleLog,
+				description: descriptionLog,
+				previewDeploymentId: previewDeploymentId,
+			}),
+		() =>
+			updatePreviewDeployment(previewDeploymentId, {
+				previewStatus: "running",
+			}),
+		() =>
+			updatePreviewDeployment(previewDeploymentId, {
+				previewStatus: "idle",
+			}),
+	);
+	if (!deployment) return;
 
 	const previewDomain = getDomainHost(previewDeployment?.domain as Domain);
 	const issueParams = {

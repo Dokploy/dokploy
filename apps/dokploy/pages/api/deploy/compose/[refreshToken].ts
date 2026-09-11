@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import { enqueueComposeDeployment } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	extractBranchName,
@@ -198,14 +198,7 @@ export default async function handler(
 					console.error("Background deployment failed:", error);
 				});
 			} else {
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
+				await enqueueComposeDeployment(jobData);
 			}
 		} catch (error) {
 			logWebhookError("Error deploying Compose:", error);

@@ -1,4 +1,13 @@
-import { IS_CLOUD } from "@dokploy/server";
+import {
+	createDeployment,
+	createDeploymentCompose,
+	createDeploymentPreview,
+	IS_CLOUD,
+	updateApplicationStatus,
+	updateCompose,
+	updateDeploymentStatus,
+	updatePreviewDeployment,
+} from "@dokploy/server";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -79,13 +88,19 @@ export const startDeploymentWorker = () => myQueue.run();
 export const getJobsByApplicationId = async (applicationId: string) => {
 	const jobs = await myQueue.getJobs();
 	return jobs.filter(
-		(job) => (job.data as any)?.applicationId === applicationId,
+		(job) =>
+			job.data.applicationType === "application" &&
+			job.data.applicationId === applicationId,
 	);
 };
 
 export const getJobsByComposeId = async (composeId: string) => {
 	const jobs = await myQueue.getJobs();
-	return jobs.filter((job) => (job.data as any)?.composeId === composeId);
+	return jobs.filter(
+		(job) =>
+			job.data.applicationType === "compose" &&
+			job.data.composeId === composeId,
+	);
 };
 
 if (!IS_CLOUD) {
@@ -97,7 +112,9 @@ if (!IS_CLOUD) {
 
 export const cleanQueuesByApplication = async (applicationId: string) => {
 	const removed = myQueue.removeWaiting(
-		(data) => (data as any)?.applicationId === applicationId,
+		(data) =>
+			data.applicationType === "application" &&
+			data.applicationId === applicationId,
 	);
 	if (removed > 0) {
 		console.log(
@@ -108,7 +125,8 @@ export const cleanQueuesByApplication = async (applicationId: string) => {
 
 export const cleanQueuesByCompose = async (composeId: string) => {
 	const removed = myQueue.removeWaiting(
-		(data) => (data as any)?.composeId === composeId,
+		(data) =>
+			data.applicationType === "compose" && data.composeId === composeId,
 	);
 	if (removed > 0) {
 		console.log(`Removed ${removed} waiting job(s) for compose ${composeId}`);
@@ -145,6 +163,83 @@ export const killDockerBuild = async (
 	} catch (error) {
 		console.error(error);
 	}
+};
+
+const enqueueDeployment = async (
+	jobData: DeploymentJob,
+	createRecord: () => Promise<{ deploymentId: string }>,
+	resetStatus: () => Promise<unknown>,
+) => {
+	try {
+		const deployment = await createRecord();
+		jobData.deploymentId = deployment.deploymentId;
+		return myQueue.add(
+			"deployments",
+			{ ...jobData },
+			{ removeOnComplete: true, removeOnFail: true },
+		);
+	} catch (error) {
+		if (jobData.deploymentId) {
+			await updateDeploymentStatus(jobData.deploymentId, "cancelled").catch(
+				console.error,
+			);
+		}
+		await resetStatus().catch(console.error);
+		throw error;
+	}
+};
+
+export const enqueueApplicationDeployment = async (jobData: DeploymentJob) => {
+	if (jobData.applicationType !== "application") return;
+	await updateApplicationStatus(jobData.applicationId, "queued");
+	return enqueueDeployment(
+		jobData,
+		() =>
+			createDeployment({
+				applicationId: jobData.applicationId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			}),
+		() => updateApplicationStatus(jobData.applicationId, "idle"),
+	);
+};
+
+export const enqueueComposeDeployment = async (jobData: DeploymentJob) => {
+	if (jobData.applicationType !== "compose") return;
+	await updateCompose(jobData.composeId, { composeStatus: "queued" });
+	return enqueueDeployment(
+		jobData,
+		() =>
+			createDeploymentCompose({
+				composeId: jobData.composeId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			}),
+		() => updateCompose(jobData.composeId, { composeStatus: "idle" }),
+	);
+};
+
+export const enqueuePreviewDeployment = async (jobData: DeploymentJob) => {
+	if (jobData.applicationType !== "application-preview") return;
+	await updatePreviewDeployment(jobData.previewDeploymentId, {
+		previewStatus: "queued",
+	});
+	return enqueueDeployment(
+		jobData,
+		() =>
+			createDeploymentPreview({
+				previewDeploymentId: jobData.previewDeploymentId,
+				title: jobData.titleLog,
+				description: jobData.descriptionLog,
+				status: "queued",
+			}),
+		() =>
+			updatePreviewDeployment(jobData.previewDeploymentId, {
+				previewStatus: "idle",
+			}),
+	);
 };
 
 export { myQueue };

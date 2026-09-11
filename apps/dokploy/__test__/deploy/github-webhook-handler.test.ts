@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
 	applicationsFindMany: vi.fn(),
 	composeFindMany: vi.fn(),
 	queueAdd: vi.fn(),
+	enqueueApplicationDeployment: vi.fn(),
+	enqueueComposeDeployment: vi.fn(),
+	enqueuePreviewDeployment: vi.fn(),
 	verify: vi.fn(),
 	shouldDeploy: vi.fn(),
 	createPreviewDeployment: vi.fn(),
@@ -88,6 +91,9 @@ vi.mock("@/server/queues/queueSetup", () => ({
 	myQueue: {
 		add: mocks.queueAdd,
 	},
+	enqueueApplicationDeployment: mocks.enqueueApplicationDeployment,
+	enqueueComposeDeployment: mocks.enqueueComposeDeployment,
+	enqueuePreviewDeployment: mocks.enqueuePreviewDeployment,
 }));
 
 vi.mock("@/server/utils/deploy", () => ({
@@ -171,7 +177,9 @@ describe("GitHub app webhook auto-deploy", () => {
 		mocks.verify.mockResolvedValue(true);
 		mocks.shouldDeploy.mockReturnValue(true);
 		mocks.composeFindMany.mockResolvedValue([]);
-		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.enqueueApplicationDeployment.mockResolvedValue({ id: "job-id" });
+		mocks.enqueueComposeDeployment.mockResolvedValue({ id: "job-id" });
+		mocks.enqueuePreviewDeployment.mockResolvedValue({ id: "job-id" });
 
 		mocks.applicationsFindMany.mockImplementation(({ where }) => {
 			const matches =
@@ -209,16 +217,11 @@ describe("GitHub app webhook auto-deploy", () => {
 			res,
 		);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueApplicationDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -253,16 +256,11 @@ describe("GitHub app webhook auto-deploy", () => {
 
 		await handler(createPushRequest("main"), res);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueComposeDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationType: "compose",
 				composeId: "compose-id",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -295,17 +293,12 @@ describe("GitHub app webhook auto-deploy", () => {
 
 		await handler(createTagRequest("v1.0.0"), res);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueApplicationDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application",
 				titleLog: "Tag created: v1.0.0",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -319,7 +312,9 @@ describe("GitHub app webhook auto-deploy", () => {
 
 		await handler(createPushRequest("feature"), res);
 
-		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(mocks.enqueueApplicationDeployment).not.toHaveBeenCalled();
+		expect(mocks.enqueueComposeDeployment).not.toHaveBeenCalled();
+		expect(mocks.enqueuePreviewDeployment).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
 	});
@@ -389,7 +384,9 @@ describe("GitHub app webhook preview deployments", () => {
 			githubWebhookSecret: "webhook-secret",
 		});
 		mocks.verify.mockResolvedValue(true);
-		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.enqueueApplicationDeployment.mockResolvedValue({ id: "job-id" });
+		mocks.enqueueComposeDeployment.mockResolvedValue({ id: "job-id" });
+		mocks.enqueuePreviewDeployment.mockResolvedValue({ id: "job-id" });
 		mocks.createPreviewDeployment.mockResolvedValue({
 			previewDeploymentId: "new-preview-id",
 		});
@@ -411,17 +408,12 @@ describe("GitHub app webhook preview deployments", () => {
 		await handler(createPullRequestRequest("synchronize"), res);
 
 		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueuePreviewDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application-preview",
 				previewDeploymentId: "existing-preview-0",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -439,7 +431,9 @@ describe("GitHub app webhook preview deployments", () => {
 		await handler(createPullRequestRequest("opened"), res);
 
 		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
-		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(mocks.enqueueApplicationDeployment).not.toHaveBeenCalled();
+		expect(mocks.enqueueComposeDeployment).not.toHaveBeenCalled();
+		expect(mocks.enqueuePreviewDeployment).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
 	});
 
@@ -462,17 +456,12 @@ describe("GitHub app webhook preview deployments", () => {
 				pullRequestNumber: 42,
 			}),
 		);
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueuePreviewDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application-preview",
 				previewDeploymentId: "new-preview-id",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);

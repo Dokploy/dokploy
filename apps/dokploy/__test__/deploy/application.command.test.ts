@@ -61,6 +61,7 @@ vi.mock("@dokploy/server/services/admin", () => ({
 
 vi.mock("@dokploy/server/services/deployment", () => ({
 	createDeployment: vi.fn(),
+	resolveQueuedDeployment: vi.fn(),
 	updateDeploymentStatus: vi.fn(),
 	updateDeployment: vi.fn(),
 }));
@@ -152,7 +153,7 @@ describe("deployApplication - Command Generation Tests", () => {
 		vi.mocked(adminService.getDokployUrl).mockResolvedValue(
 			"http://localhost:3000",
 		);
-		vi.mocked(deploymentService.createDeployment).mockResolvedValue(
+		vi.mocked(deploymentService.resolveQueuedDeployment).mockResolvedValue(
 			createMockDeployment() as any,
 		);
 		vi.mocked(execProcess.execAsync).mockResolvedValue({

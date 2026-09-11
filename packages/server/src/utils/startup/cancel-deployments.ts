@@ -2,9 +2,10 @@ import {
 	applications,
 	compose,
 	deployments,
+	previewDeployments,
 	schedules,
 } from "@dokploy/server/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { db } from "../../db/index";
 
 export const initCancelDeployments = async () => {
@@ -14,12 +15,18 @@ export const initCancelDeployments = async () => {
 		const runningDeployments = await db
 			.select({
 				deploymentId: deployments.deploymentId,
+				previewDeploymentId: deployments.previewDeploymentId,
 				scheduleId: deployments.scheduleId,
 				scheduleType: schedules.scheduleType,
 			})
 			.from(deployments)
 			.leftJoin(schedules, eq(deployments.scheduleId, schedules.scheduleId))
-			.where(eq(deployments.status, "running"));
+			.where(
+				or(
+					eq(deployments.status, "running"),
+					eq(deployments.status, "queued"),
+				),
+			);
 
 		const deploymentIdsToCancel = runningDeployments
 			.filter(
@@ -38,6 +45,7 @@ export const initCancelDeployments = async () => {
 			.update(deployments)
 			.set({
 				status: "cancelled",
+				finishedAt: new Date().toISOString(),
 			})
 			.where(inArray(deployments.deploymentId, deploymentIdsToCancel))
 			.returning();
@@ -69,6 +77,26 @@ export const initCancelDeployments = async () => {
 				.update(compose)
 				.set({ composeStatus: "idle" })
 				.where(inArray(compose.composeId, composeIds));
+		}
+
+		const previewDeploymentIds = [
+			...new Set(
+				result
+					.map((deployment) => deployment.previewDeploymentId)
+					.filter((id): id is string => !!id),
+			),
+		];
+
+		if (previewDeploymentIds.length > 0) {
+			await db
+				.update(previewDeployments)
+				.set({ previewStatus: "idle" })
+				.where(
+					inArray(
+						previewDeployments.previewDeploymentId,
+						previewDeploymentIds,
+					),
+				);
 		}
 
 		console.log(`Cancelled ${result.length} deployments`);

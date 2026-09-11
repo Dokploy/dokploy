@@ -1,4 +1,5 @@
 import {
+	cancelAllQueuedDeploymentsByApplicationId,
 	clearOldDeployments,
 	createApplication,
 	createDomain,
@@ -69,14 +70,15 @@ import {
 	apiSaveGitProvider,
 	apiUpdateApplication,
 	applications,
+	deployments,
 	environments,
 	projects,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
+	enqueueApplicationDeployment,
 	killDockerBuild,
-	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 
@@ -232,11 +234,7 @@ export const applicationRouter = createTRPCRouter({
 					console.error("Background deployment failed:", error);
 				});
 			} else {
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{ removeOnComplete: true, removeOnFail: true },
-				);
+				await enqueueApplicationDeployment(jobData);
 			}
 
 			await audit(ctx, {
@@ -472,14 +470,7 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueApplicationDeployment(jobData);
 			await audit(ctx, {
 				action: "rebuild",
 				resourceType: "application",
@@ -839,14 +830,7 @@ export const applicationRouter = createTRPCRouter({
 				});
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueApplicationDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "application",
@@ -861,7 +845,17 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				deployment: ["cancel"],
 			});
+			await cancelAllQueuedDeploymentsByApplicationId(input.applicationId);
 			await cleanQueuesByApplication(input.applicationId);
+			const hasRunning = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.applicationId, input.applicationId),
+					eq(deployments.status, "running"),
+				),
+			});
+			if (!hasRunning) {
+				await updateApplicationStatus(input.applicationId, "idle");
+			}
 		}),
 	clearDeployments: protectedProcedure
 		.input(apiFindOneApplication)
@@ -953,14 +947,7 @@ export const applicationRouter = createTRPCRouter({
 				return true;
 			}
 
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueApplicationDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "application",
