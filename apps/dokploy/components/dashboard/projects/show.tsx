@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ResourceUsageStrip } from "@/components/dashboard/resource-metrics/usage-strip";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
@@ -65,6 +66,17 @@ export const ShowProjects = () => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 	const { data: availableTags } = api.tag.all.useQuery();
+	const projectIds = useMemo(
+		() => data?.map((project) => project.projectId) ?? [],
+		[data],
+	);
+	const { data: resourceMetrics } = api.project.resourceMetrics.useQuery(
+		{ projectIds },
+		{
+			enabled: projectIds.length > 0 && isCloud === false,
+			refetchInterval: 30_000,
+		},
+	);
 
 	const [searchQuery, setSearchQuery] = useState(
 		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
@@ -491,6 +503,14 @@ export const ShowProjects = () => {
 																	</div>
 																</CardTitle>
 															</CardHeader>
+															<CardContent className="pt-0">
+																<ResourceUsageStrip
+																	metrics={
+																		resourceMetrics?.projects[project.projectId]
+																	}
+																	compact
+																/>
+															</CardContent>
 															<CardFooter className="pt-4 mt-auto">
 																<div className="space-y-1 text-xs flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
