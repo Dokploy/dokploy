@@ -10,6 +10,7 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	restartStandaloneTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -32,7 +33,10 @@ const dev = process.env.NODE_ENV !== "production";
 // This prevents race conditions with the install script
 if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 	setupDirectories();
-	createDefaultTraefikConfig();
+	const traefikConfigChanged = await createDefaultTraefikConfig();
+	if (traefikConfigChanged) {
+		await restartStandaloneTraefik();
+	}
 	createDefaultServerTraefikConfig();
 	console.log("✅ initialization complete");
 }
