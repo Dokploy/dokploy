@@ -12,7 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { QUEUED_LOG_MESSAGE } from "@dokploy/server";
+const QUEUED_LOG_MESSAGE = "Waiting for worker to pick job...";
 import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
