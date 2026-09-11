@@ -7,20 +7,28 @@ import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
+	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForFile,
 } from "../docker/utils";
+import { withResolvedVaultRefs } from "../vault";
 
 export type ComposeNested = InferResultType<
 	"compose",
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
 
-export const getBuildComposeCommand = async (compose: ComposeNested) => {
+export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
-	const command = createCommand(compose);
-	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const command = createCommand(
+		compose,
+		mounts.length > 0 ? projectPath : undefined,
+	);
+	const envCommand = compose.createEnvFile
+		? getCreateEnvFileCommand(compose)
+		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
@@ -70,7 +78,8 @@ Compose Type: ${composeType} ✅`;
 // Shell control characters that must never appear in a user-provided compose
 // command: they would let it break out of the `docker ${command}` invocation
 // into arbitrary host commands. A normal docker compose CLI line never needs them.
-const UNSAFE_COMPOSE_COMMAND = /[;&|`$(){}<>\n\\]/;
+// Removed '&' from the blocklist to allow '&&' chaining
+const UNSAFE_COMPOSE_COMMAND = /[;|`$(){}<>\n\\]/;
 
 const sanitizeCommand = (command: string) => {
 	const sanitizedCommand = command.trim();
@@ -81,14 +90,39 @@ const sanitizeCommand = (command: string) => {
 		);
 	}
 
-	const parts = sanitizedCommand.split(/\s+/);
+	if (sanitizedCommand.includes("&")) {
+		// Block single '&' (e.g., backgrounding tasks) or malformed chains like '&&&'
+		if (
+			/(?<!&)&(?!&)/.test(sanitizedCommand) ||
+			sanitizedCommand.includes("&&&")
+		) {
+			throw new Error("Single '&' is not allowed. Use '&&' for chaining.");
+		}
 
+		// Split by '&&' and check that every chained command (skipping the first one) is safe
+		const chains = sanitizedCommand.split("&&").map((cmd) => cmd.trim());
+		const isSafeChain = chains
+			.slice(1)
+			.every(
+				(cmd) =>
+					cmd.startsWith("docker compose ") ||
+					cmd.startsWith("docker-compose "),
+			);
+
+		if (!isSafeChain) {
+			throw new Error(
+				"Chained commands must strictly start with 'docker compose '",
+			);
+		}
+	}
+
+	const parts = sanitizedCommand.split(/\s+/);
 	const restCommand = parts.map((arg) => arg.replace(/^"(.*)"$/, "$1"));
 
 	return restCommand.join(" ");
 };
 
-export const createCommand = (compose: ComposeNested) => {
+export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	const { composeType, appName, sourceType } = compose;
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
@@ -99,7 +133,14 @@ export const createCommand = (compose: ComposeNested) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		command = `compose -p ${quote([appName])} -f ${quote([path])} up -d --build --remove-orphans`;
+		const projectDirectoryFlag = projectPath
+			? `--project-directory ${quote([projectPath])} `
+			: "";
+		const envFileFlag = compose.createEnvFile
+			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+			: "";
+		const pullFlag = compose.pullImages ? " --pull always" : "";
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
@@ -127,10 +168,18 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
 	}
 
-	const envFileContent = prepareEnvironmentVariablesForFile(
-		envContent,
-		compose.environment.project.env,
-		compose.environment.env,
+	const envFileContent = (
+		compose.composeType === "stack"
+			? prepareEnvironmentVariables(
+					envContent,
+					compose.environment.project.env,
+					compose.environment.env,
+				)
+			: prepareEnvironmentVariablesForFile(
+					envContent,
+					compose.environment.project.env,
+					compose.environment.env,
+				)
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);

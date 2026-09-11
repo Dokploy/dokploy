@@ -154,6 +154,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							name="Write"
 							dataKey="write"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillWrite)"
 							stroke="hsl(142, 71%, 45%)"
 							strokeWidth={2}
@@ -163,6 +164,7 @@ export const ContainerBlockChart = ({ data }: Props) => {
 							name="Read"
 							dataKey="read"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillRead)"
 							stroke="hsl(217, 91%, 60%)"
 							strokeWidth={2}

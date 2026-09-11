@@ -35,7 +35,7 @@ import { ChangeRole } from "./change-role";
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isPending, refetch } = api.user.all.useQuery();
-	const { mutateAsync } = api.user.remove.useMutation();
+	const { mutateAsync, isPending: isRemoving } = api.user.remove.useMutation();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: hasValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
@@ -52,7 +52,7 @@ export const ShowUsers = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -237,6 +237,7 @@ export const ShowUsers = () => {
 																					title="Delete User"
 																					description="Are you sure you want to delete this user?"
 																					type="destructive"
+																					disabled={isRemoving}
 																					onClick={async () => {
 																						await mutateAsync({
 																							userId: member.user.id,
@@ -269,6 +270,7 @@ export const ShowUsers = () => {
 																					title="Unlink User"
 																					description="Are you sure you want to unlink this user?"
 																					type="destructive"
+																					disabled={isRemoving}
 																					onClick={async () => {
 																						if (!isCloud) {
 																							const orgCount =

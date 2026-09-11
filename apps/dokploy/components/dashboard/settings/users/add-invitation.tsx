@@ -106,6 +106,7 @@ export const AddInvitation = () => {
 	const { mutateAsync: createUserWithCredentials, isPending: isCreating } =
 		api.user.createUserWithCredentials.useMutation();
 	const { data: customRoles } = api.customRole.all.useQuery();
+	const { data: activeOrganization } = api.organization.active.useQuery();
 	const [error, setError] = useState<string | null>(null);
 
 	const form = useForm<AddInvitation>({
@@ -131,6 +132,16 @@ export const AddInvitation = () => {
 			form.setValue("mode", "invitation");
 		}
 	}, [form, isCloud]);
+
+	useEffect(() => {
+		if (
+			activeOrganization?.defaultRole &&
+			activeOrganization.defaultRole !== "owner" &&
+			!form.formState.dirtyFields.role
+		) {
+			form.setValue("role", activeOrganization.defaultRole);
+		}
+	}, [form, activeOrganization?.defaultRole]);
 
 	const onSubmit = async (data: AddInvitation) => {
 		setError(null);
@@ -267,10 +278,7 @@ export const AddInvitation = () => {
 								return (
 									<FormItem>
 										<FormLabel>Role</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-										>
+										<Select onValueChange={field.onChange} value={field.value}>
 											<FormControl>
 												<SelectTrigger>
 													<SelectValue placeholder="Select a role" />

@@ -26,6 +26,11 @@ interface Props {
 	serviceId?: string;
 }
 
+// Sentinel the container-picker views fall back to before a real container
+// is selected/auto-selected — querying logs for it just surfaces Docker's
+// raw "No such container: select-a-container" daemon error.
+const PLACEHOLDER_CONTAINER_ID = "select-a-container";
+
 export const priorities = [
 	{
 		label: "Info",
@@ -55,13 +60,16 @@ export const DockerLogsId: React.FC<Props> = ({
 	runType,
 	serviceId,
 }) => {
+	const hasContainer =
+		!!containerId && containerId !== PLACEHOLDER_CONTAINER_ID;
+
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
 			serverId: serverId ?? undefined,
 		},
 		{
-			enabled: !!containerId,
+			enabled: hasContainer,
 		},
 	);
 
@@ -134,7 +142,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	};
 
 	useEffect(() => {
-		if (!containerId) return;
+		if (!hasContainer) return;
 
 		let isCurrentConnection = true;
 		let noDataTimeout: NodeJS.Timeout;
@@ -344,11 +352,11 @@ export const DockerLogsId: React.FC<Props> = ({
 							/>
 						</div>
 
-						<div className="flex gap-2">
+						<div className="flex flex-wrap gap-2">
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9"
+								className="h-9 w-full sm:w-auto"
 								onClick={handlePauseResume}
 								title={isPaused ? "Resume logs" : "Pause logs"}
 							>
@@ -364,7 +372,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9"
+								className="h-9 w-full sm:w-auto"
 								onClick={handleCopy}
 								disabled={filteredLogs.length === 0}
 								title="Copy logs to clipboard"
@@ -381,7 +389,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9 sm:w-auto w-full"
+								className="h-9 w-full sm:w-auto"
 								onClick={handleDownload}
 								disabled={filteredLogs.length === 0 || !data?.Name}
 								title="Download logs as text file"
@@ -410,7 +418,7 @@ export const DockerLogsId: React.FC<Props> = ({
 					<div
 						ref={scrollRef}
 						onScroll={handleScroll}
-						className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
+						className="h-[50vh] sm:h-[720px] overflow-y-auto space-y-0 border p-4 bg-[#fafafa] dark:bg-[#050506] rounded custom-logs-scrollbar"
 					>
 						{filteredLogs.length > 0 ? (
 							filteredLogs.map((filteredLog: LogLine, index: number) => (
@@ -425,9 +433,14 @@ export const DockerLogsId: React.FC<Props> = ({
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								<Loader2 className="h-6 w-6 animate-spin" />
 							</div>
-						) : (
+						) : hasContainer ? (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								No logs found
+							</div>
+						) : (
+							<div className="flex justify-center items-center h-full text-center text-sm text-muted-foreground px-8">
+								Select a container above to view its logs. If none are listed,
+								make sure the service is deployed and running.
 							</div>
 						)}
 					</div>

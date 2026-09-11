@@ -47,16 +47,16 @@ export const createProject = async (
 	};
 };
 
-export const findProjectById = async (projectId: string) => {
-	const serviceColumns = {
-		name: true,
-		description: true,
-		appName: true,
-		createdAt: true,
-		serverId: true,
-		applicationStatus: true,
-	} as const;
+export const serviceColumns = {
+	name: true,
+	description: true,
+	appName: true,
+	createdAt: true,
+	serverId: true,
+	applicationStatus: true,
+} as const;
 
+export const findProjectById = async (projectId: string) => {
 	const project = await db.query.projects.findFirst({
 		where: eq(projects.projectId, projectId),
 		with: {

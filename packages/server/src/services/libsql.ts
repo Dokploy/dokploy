@@ -7,7 +7,10 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildLibsql } from "@dokploy/server/utils/databases/libsql";
-import { pullImage } from "@dokploy/server/utils/docker/utils";
+import {
+	pullImage,
+	waitForSwarmServiceConvergence,
+} from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
@@ -149,6 +152,7 @@ export const deployLibsql = async (
 		}
 
 		await buildLibsql(libsql);
+		await waitForSwarmServiceConvergence(libsql.appName, libsql.serverId);
 		await updateLibsqlById(libsqlId, {
 			applicationStatus: "done",
 		});
