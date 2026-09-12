@@ -3,18 +3,20 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-	buildLocalHardwareScript,
-	buildRemoteHardwareScript,
 	getServerHardware,
 	HARDWARE_PROBE_TIMEOUT_MS,
 	parseNvidiaGpuLine,
 	parseServerHardware,
 } from "@dokploy/server/services/server-hardware";
+import { buildHardwareScripts } from "@dokploy/server/services/server-hardware-scripts";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const buildLocalHardwareScript = () => buildHardwareScripts(false).join("\n");
+const buildRemoteHardwareScript = () => buildHardwareScripts(true).join("\n");
 
 const cloud = { enabled: false };
 
@@ -123,11 +125,21 @@ afterEach(() => {
 	sandboxes.length = 0;
 });
 
-const runScript = (script: string, sandboxPath: string) =>
-	execFileSync(resolveBin("sh"), ["-c", script], {
+const runScript = (script: string, sandboxPath: string) => {
+	const stdout = execFileSync(resolveBin("sh"), ["-c", script], {
 		encoding: "utf8",
 		env: { ...process.env, PATH: sandboxPath },
 	});
+	return JSON.stringify(
+		Object.assign(
+			{ kind: script.includes("docker info") ? "local" : "remote" },
+			...stdout
+				.trim()
+				.split("\n")
+				.map((line) => JSON.parse(line)),
+		),
+	);
+};
 
 const inventoryQueries = (script: string) =>
 	[...script.matchAll(/nvidia-smi --query-gpu=(\S+)/g)].map(
@@ -859,5 +871,126 @@ describe("getServerHardware", () => {
 		expect(result.memory.totalBytes).toBeNull();
 		expect(result.disk.totalBytes).toBeNull();
 		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+	});
+});
+
+describe("hardware timeout isolation regressions", () => {
+	it.each(["inventory", "compute", "engine"])(
+		"preserves independent local facts when %s hangs",
+		async (hung) => {
+			const actual = await vi.importActual<
+				typeof import("@dokploy/server/utils/process/execAsync")
+			>("@dokploy/server/utils/process/execAsync");
+			const sandbox = makeSandbox({
+				docker: `#!/bin/sh
+${hung === "engine" ? "/bin/sleep 60" : ""}
+printf '%s' '{"ncpu":8,"memTotal":16000000000,"arch":"x86_64"}'
+`,
+				"nvidia-smi": `#!/bin/sh
+case "$*" in
+ *compute_cap*) ${hung === "compute" ? "/bin/sleep 60" : ""}
+printf '%s' '0, 7.5';;
+ *) ${hung === "inventory" ? "/bin/sleep 60" : ""}
+printf '%s' '${t4}';;
+esac
+`,
+			});
+			vi.mocked(execAsync).mockImplementation((command, options) => {
+				expect(options?.timeout).toBeGreaterThan(0);
+				expect(options?.timeout).toBeLessThanOrEqual(30_000);
+				return actual.execAsync(command, {
+					...options,
+					timeout: 3_000,
+					env: { NODE_ENV: "test", PATH: sandbox },
+				});
+			});
+			const result = await getServerHardware();
+			expect(result.error).toContain("timed out");
+			expect(result.cpu.count).toBe(hung === "engine" ? null : 8);
+			expect(result.memory.totalBytes).toBe(
+				hung === "engine" ? null : 16_000_000_000,
+			);
+			expect(result.gpu.devices).toHaveLength(hung === "inventory" ? 0 : 1);
+			if (hung === "compute")
+				expect(result.gpu.devices[0]?.computeCapability).toBeNull();
+		},
+	);
+	it.each(["disk", "inventory", "compute", "cpu", "memory", "arch"])(
+		"preserves remote sibling facts when %s hangs",
+		async (hung) => {
+			const actual = await vi.importActual<
+				typeof import("@dokploy/server/utils/process/execAsync")
+			>("@dokploy/server/utils/process/execAsync");
+			const sandbox = makeSandbox({
+				awk: `#!/bin/sh
+case "$*" in
+*MemTotal*) ${hung === "memory" ? "/bin/sleep 60" : ""}; printf '4096';;
+*MemAvailable*) printf '1024';;
+*) exec ${resolveBin("awk")} "$@";;
+esac
+`.replace("; printf", "\nprintf"),
+				nproc: `#!/bin/sh
+${hung === "cpu" ? "/bin/sleep 60" : ""}
+printf '4'
+`,
+				uname: `#!/bin/sh
+${hung === "arch" ? "/bin/sleep 60" : ""}
+printf 'aarch64'
+`,
+				df: `#!/bin/sh
+${hung === "disk" ? "/bin/sleep 60" : ""}
+printf '%s\\n' 'Filesystem 1024-blocks Used Available Capacity Mounted on' '/dev/test 1000 750 250 75% /'
+`,
+				"nvidia-smi": `#!/bin/sh
+case "$*" in
+*compute_cap*) ${hung === "compute" ? "/bin/sleep 60" : ""}
+printf '0, 7.5';;
+*) ${hung === "inventory" ? "/bin/sleep 60" : ""}
+printf '%s' '${t4}';;
+esac
+`,
+			});
+			vi.mocked(execAsyncRemote).mockImplementation(
+				(_id, command, _onData, options) => {
+					expect(options?.timeout).toBeGreaterThan(0);
+					expect(options?.timeout).toBeLessThanOrEqual(30_000);
+					return actual.execAsync(command, {
+						timeout: 3_000,
+						env: { NODE_ENV: "test", PATH: sandbox },
+					});
+				},
+			);
+			const result = await getServerHardware("fixture-server");
+			expect(result.error).toContain("timed out");
+			expect(result.cpu).toEqual({
+				count: hung === "cpu" ? null : 4,
+				arch: hung === "arch" ? null : "aarch64",
+			});
+			expect(result.memory.totalBytes).toBe(
+				hung === "memory" ? null : 4096 * 1024,
+			);
+			expect(result.disk.totalBytes).toBe(hung === "disk" ? null : 1000 * 1024);
+			expect(result.gpu.devices).toHaveLength(hung === "inventory" ? 0 : 1);
+			if (hung === "compute")
+				expect(result.gpu.devices[0]?.computeCapability).toBeNull();
+		},
+	);
+	it("does not report malformed nonempty inventory as successfully empty", () => {
+		expect(
+			parseServerHardware(localEnvelope({ gpuExit: 0, gpuCsv: "malformed" }))
+				.gpu.detection,
+		).toBe("unavailable");
+	});
+	it("leaves unsupported compute capability unknown", () => {
+		expect(
+			parseServerHardware(
+				localEnvelope({
+					gpuExit: 0,
+					gpuCsv: t4,
+					capExit: 0,
+					capCsv: "0, [N/A]",
+				}),
+			).gpu.devices[0]?.computeCapability,
+		).toBeNull();
 	});
 });

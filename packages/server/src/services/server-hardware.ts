@@ -4,15 +4,11 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { IS_CLOUD } from "../constants";
+import { buildHardwareScripts } from "./server-hardware-scripts";
 
 // Matches remoteStream SSH readyTimeout. Hardware commands are fast; this
 // bounds stalled docker/nvidia-smi/df/SSH so the API cannot wait forever.
 export const HARDWARE_PROBE_TIMEOUT_MS = 30_000;
-
-const NVIDIA_INVENTORY_QUERY =
-	"nvidia-smi --query-gpu=index,uuid,name,memory.total,memory.free,driver_version --format=csv,noheader,nounits";
-const NVIDIA_COMPUTE_CAP_QUERY =
-	"nvidia-smi --query-gpu=index,compute_cap --format=csv,noheader,nounits";
 
 export interface ServerHardwareGpu {
 	index: number;
@@ -92,8 +88,8 @@ const emptyHardware = (error?: unknown): ServerHardware => ({
 		: {}),
 });
 
-const nullIfEmpty = (value: string | null | undefined): string | null => {
-	const trimmed = value?.trim();
+const nullIfEmpty = (value: unknown): string | null => {
+	const trimmed = typeof value === "string" ? value.trim() : "";
 	return trimmed ? trimmed : null;
 };
 
@@ -213,7 +209,12 @@ export const parseComputeCapLine = (
 	if (parts.length < 2) return null;
 	const index = parseNonNegativeInt(parts[0]);
 	const computeCapability = nullIfEmpty(parts.slice(1).join(","));
-	if (index == null || !computeCapability) return null;
+	if (
+		index == null ||
+		!computeCapability ||
+		!/^\d+\.\d+$/.test(computeCapability)
+	)
+		return null;
 	return { index, computeCapability };
 };
 
@@ -243,40 +244,6 @@ export const mergeComputeCapabilities = (
 	}));
 };
 
-export const buildLocalHardwareScript = () => `
-engineOutput=$(docker info --format '{"ncpu":{{json .NCPU}},"memTotal":{{json .MemTotal}},"arch":{{json .Architecture}}}' 2>/dev/null)
-engineExit=$?
-engineB64=$(printf '%s' "$engineOutput" | base64 2>/dev/null | tr -d '\\n')
-gpuCsv=$(${NVIDIA_INVENTORY_QUERY} 2>/dev/null)
-gpuExit=$?
-gpuB64=$(printf '%s' "$gpuCsv" | base64 2>/dev/null | tr -d '\\n')
-capCsv=$(${NVIDIA_COMPUTE_CAP_QUERY} 2>/dev/null)
-capExit=$?
-capB64=$(printf '%s' "$capCsv" | base64 2>/dev/null | tr -d '\\n')
-printf '{"kind":"local","engineExit":%s,"engineBase64":"%s","gpuExit":%s,"gpuBase64":"%s","capExit":%s,"capBase64":"%s"}' "$engineExit" "$engineB64" "$gpuExit" "$gpuB64" "$capExit" "$capB64"
-`;
-
-export const buildRemoteHardwareScript = () => `
-memTotalKb=$(awk '/^MemTotal:/{print $2}' /proc/meminfo 2>/dev/null)
-memAvailKb=$(awk '/^MemAvailable:/{print $2}' /proc/meminfo 2>/dev/null)
-cpuCount=$(nproc 2>/dev/null)
-if [ -z "$cpuCount" ]; then
-	cpuCount=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null)
-fi
-arch=$(uname -m 2>/dev/null)
-diskOutput=$(df -Pk / 2>/dev/null)
-diskExit=$?
-diskTotalK=$(printf '%s\\n' "$diskOutput" | awk 'NR==2{print $2}')
-diskAvailK=$(printf '%s\\n' "$diskOutput" | awk 'NR==2{print $4}')
-gpuCsv=$(${NVIDIA_INVENTORY_QUERY} 2>/dev/null)
-gpuExit=$?
-gpuB64=$(printf '%s' "$gpuCsv" | base64 2>/dev/null | tr -d '\\n')
-capCsv=$(${NVIDIA_COMPUTE_CAP_QUERY} 2>/dev/null)
-capExit=$?
-capB64=$(printf '%s' "$capCsv" | base64 2>/dev/null | tr -d '\\n')
-printf '{"kind":"remote","memTotalKb":"%s","memAvailKb":"%s","cpuCount":"%s","arch":"%s","diskTotalK":"%s","diskAvailK":"%s","diskExit":%s,"gpuExit":%s,"gpuBase64":"%s","capExit":%s,"capBase64":"%s"}' "$memTotalKb" "$memAvailKb" "$cpuCount" "$arch" "$diskTotalK" "$diskAvailK" "$diskExit" "$gpuExit" "$gpuB64" "$capExit" "$capB64"
-`;
-
 const gpuFromProbe = (
 	gpuExit: number,
 	gpuCsv: string,
@@ -288,7 +255,8 @@ const gpuFromProbe = (
 	}
 	const devices = parseNvidiaGpuCsv(gpuCsv);
 	return {
-		detection: "available",
+		detection:
+			gpuCsv.trim() && devices.length === 0 ? "unavailable" : "available",
 		devices:
 			capExit === 0 ? mergeComputeCapabilities(devices, capCsv) : devices,
 	};
@@ -364,17 +332,35 @@ export const getServerHardware = async (
 		});
 	}
 
-	const script = serverId
-		? buildRemoteHardwareScript()
-		: buildLocalHardwareScript();
-	try {
-		const result = serverId
-			? await execAsyncRemote(serverId, script, undefined, {
-					timeout: HARDWARE_PROBE_TIMEOUT_MS,
-				})
-			: await execAsync(script, { timeout: HARDWARE_PROBE_TIMEOUT_MS });
-		return parseServerHardware(result.stdout);
-	} catch (error) {
-		return emptyHardware(error);
+	const results = await Promise.allSettled(
+		buildHardwareScripts(Boolean(serverId)).map(async (script) => {
+			const result = serverId
+				? await execAsyncRemote(serverId, script, undefined, {
+						timeout: HARDWARE_PROBE_TIMEOUT_MS,
+					})
+				: await execAsync(script, { timeout: HARDWARE_PROBE_TIMEOUT_MS });
+			const parsed: unknown = JSON.parse(result.stdout);
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+				throw new Error("Could not parse server hardware output");
+			}
+			return parsed;
+		}),
+	);
+	const fields = {};
+	const errors: string[] = [];
+	for (const result of results) {
+		if (result.status === "fulfilled") Object.assign(fields, result.value);
+		else
+			errors.push(
+				result.reason instanceof Error
+					? result.reason.message
+					: "Could not read server hardware",
+			);
 	}
+	return {
+		...parseServerHardware(
+			JSON.stringify({ ...fields, kind: serverId ? "remote" : "local" }),
+		),
+		...(errors.length ? { error: [...new Set(errors)].join("; ") } : {}),
+	};
 };
