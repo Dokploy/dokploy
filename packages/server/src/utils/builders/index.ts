@@ -78,6 +78,30 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	return command;
 };
 
+export const buildContainerCommand = (
+	application: Pick<
+		ApplicationNested,
+		"command" | "args" | "customCommand" | "customShell"
+	>,
+) => {
+	const { command, args, customCommand, customShell } = application;
+	if (customCommand?.trim()) {
+		const script = customCommand.trim();
+		return {
+			Command: [customShell === "bash" ? "bash" : "sh", "-c", script],
+		};
+	}
+	return {
+		...(command && {
+			Command: command.split(" "),
+		}),
+		...(args &&
+			args.length > 0 && {
+				Args: args,
+			}),
+	};
+};
+
 export const mechanizeDockerContainer = async (
 	rawApplication: ApplicationNested,
 ) => {
@@ -90,8 +114,6 @@ export const mechanizeDockerContainer = async (
 		memoryLimit,
 		memoryReservation,
 		cpuReservation,
-		command,
-		args,
 		ports,
 	} = application;
 
@@ -142,13 +164,7 @@ export const mechanizeDockerContainer = async (
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
-				...(command && {
-					Command: command.split(" "),
-				}),
-				...(args &&
-					args.length > 0 && {
-						Args: args,
-					}),
+				...buildContainerCommand(application),
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
