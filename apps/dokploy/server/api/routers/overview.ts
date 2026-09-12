@@ -1,4 +1,5 @@
 import {
+	countActiveDeploymentsByOrganization,
 	getAllBackupsForOrganization,
 	getAllDomainsForOrganization,
 	getAllServicesForOrganization,
@@ -8,16 +9,37 @@ import {
 	hasPermission,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { applicationStatus } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 export const overviewRouter = createTRPCRouter({
-	services: withPermission("service", "read").query(async ({ ctx }) => {
-		const orgId = ctx.session.activeOrganizationId;
-		const accessedServices =
-			ctx.user.role !== "owner" && ctx.user.role !== "admin"
-				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
-				: null;
-		return getAllServicesForOrganization(orgId, accessedServices);
+	services: withPermission("service", "read")
+		.input(
+			z
+				.object({ status: z.enum(applicationStatus.enumValues).optional() })
+				.optional(),
+		)
+		.query(async ({ input, ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const accessedServices =
+				ctx.user.role !== "owner" && ctx.user.role !== "admin"
+					? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+					: null;
+			return getAllServicesForOrganization(
+				orgId,
+				accessedServices,
+				input?.status,
+			);
+		}),
+
+	activeDeploymentsByOrganization: protectedProcedure.query(async ({ ctx }) => {
+		// An API key is scoped to a single organization (see validateRequest); never let it enumerate the owner's other memberships.
+		const isApiKeyRequest = !!ctx.req.headers["x-api-key"];
+		return countActiveDeploymentsByOrganization(
+			ctx.user.id,
+			isApiKeyRequest ? ctx.session.activeOrganizationId : null,
+		);
 	}),
 
 	// Reads backup and/or volumeBackup run history depending on which the user can see.

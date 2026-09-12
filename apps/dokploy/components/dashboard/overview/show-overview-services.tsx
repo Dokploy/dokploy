@@ -1,4 +1,5 @@
 import type {
+	OverviewService,
 	OverviewServiceType,
 	OverviewSortBy,
 } from "@dokploy/server/services/overview-shared";
@@ -46,6 +47,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useSortPreference } from "@/hooks/use-sort-preference";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
@@ -93,6 +95,33 @@ const idKeyByType: Record<string, string> = {
 	mariadb: "mariadbId",
 	redis: "redisId",
 	mongo: "mongoId",
+};
+
+export const OverviewServiceIcon = ({
+	service,
+	className = "h-5 w-5",
+}: {
+	service: Pick<OverviewService, "type" | "icon" | "name">;
+	className?: string;
+}) => {
+	if (service.type in DB_ENGINE_ICONS) {
+		const Icon = DB_ENGINE_ICONS[service.type as keyof typeof DB_ENGINE_ICONS];
+		return <Icon className={className} />;
+	}
+	if (service.icon) {
+		return (
+			<img
+				src={service.icon}
+				alt={service.name}
+				className={cn("object-contain rounded-sm", className)}
+			/>
+		);
+	}
+	return service.type === "compose" ? (
+		<CircuitBoard className={className} />
+	) : (
+		<GlobeIcon className={className} />
+	);
 };
 
 export const ShowOverviewServices = () => {
@@ -246,28 +275,6 @@ export const ShowOverviewServices = () => {
 		currentPageIndex * pageSize + pageSize,
 	);
 
-	const renderIcon = (service: NonNullable<typeof services>[number]) => {
-		if (service.type in DB_ENGINE_ICONS) {
-			const Icon =
-				DB_ENGINE_ICONS[service.type as keyof typeof DB_ENGINE_ICONS];
-			return <Icon className="h-5 w-5" />;
-		}
-		if (service.icon) {
-			return (
-				<img
-					src={service.icon}
-					alt={service.name}
-					className="size-5 object-contain rounded-sm"
-				/>
-			);
-		}
-		return service.type === "compose" ? (
-			<CircuitBoard className="h-5 w-5" />
-		) : (
-			<GlobeIcon className="h-5 w-5" />
-		);
-	};
-
 	return (
 		<Card className="bg-sidebar p-2.5 rounded-xl w-full">
 			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
@@ -406,7 +413,7 @@ export const ShowOverviewServices = () => {
 										<TableRow key={service.id}>
 											<TableCell>
 												<Link href={href} className="flex items-center gap-2">
-													{renderIcon(service)}
+													<OverviewServiceIcon service={service} />
 													<div className="flex flex-col min-w-0">
 														<span className="font-medium truncate">
 															{service.name}
