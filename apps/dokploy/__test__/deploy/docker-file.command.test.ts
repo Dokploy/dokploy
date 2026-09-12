@@ -1,4 +1,5 @@
 import type { ApplicationNested } from "@dokploy/server/utils/builders";
+import type { BuildPlan } from "@dokploy/server/utils/builders/build-platform";
 import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
 import { describe, expect, it } from "vitest";
 
@@ -28,14 +29,23 @@ const createApplication = (
 		...overrides,
 	}) as unknown as ApplicationNested;
 
+const localPlan = (overrides: Partial<BuildPlan> = {}): BuildPlan => ({
+	platforms: [],
+	builder: null,
+	createDefaultBuilder: false,
+	output: { mode: "local", image: "test-app" },
+	...overrides,
+});
+
 describe("getDockerCommand", () => {
 	it("builds with classic docker build and no platform flag by default", () => {
-		const command = getDockerCommand(createApplication());
+		const command = getDockerCommand(createApplication(), localPlan());
 
 		expect(command).toContain("docker build -t test-app -f");
 		expect(command).not.toContain("buildx");
 		expect(command).not.toContain("--platform");
 		expect(command).not.toContain("--push");
+		expect(command).not.toContain("--load");
 	});
 
 	it("adds --target when dockerBuildStage is set", () => {
@@ -43,6 +53,7 @@ describe("getDockerCommand", () => {
 			createApplication({
 				dockerBuildStage: "builder",
 			}),
+			localPlan(),
 		);
 
 		expect(command).toContain("--target builder");
@@ -53,6 +64,7 @@ describe("getDockerCommand", () => {
 			createApplication({
 				cleanCache: true,
 			}),
+			localPlan(),
 		);
 
 		expect(command).toContain("--no-cache");
@@ -63,6 +75,7 @@ describe("getDockerCommand", () => {
 			createApplication({
 				createEnvFile: false,
 			}),
+			localPlan(),
 		);
 
 		expect(command).not.toContain("base64 -d");
@@ -73,6 +86,7 @@ describe("getDockerCommand", () => {
 			createApplication({
 				createEnvFile: true,
 			}),
+			localPlan(),
 		);
 
 		expect(command).toContain("base64 -d");
@@ -80,9 +94,8 @@ describe("getDockerCommand", () => {
 
 	it("adds --platform on classic docker build for a single architecture", () => {
 		const command = getDockerCommand(
-			createApplication({
-				buildArchitecture: "amd64",
-			}),
+			createApplication(),
+			localPlan({ platforms: ["linux/amd64"] }),
 		);
 
 		expect(command).toContain("docker build ");
@@ -91,11 +104,12 @@ describe("getDockerCommand", () => {
 		expect(command).not.toContain("--push");
 	});
 
-	it("uses buildx --load when a named builder is set for a single architecture", () => {
+	it("uses buildx --load when a named builder is set for a local image", () => {
 		const command = getDockerCommand(
-			createApplication({
-				buildArchitecture: "arm64",
-				buildxBuilder: "native-arm",
+			createApplication(),
+			localPlan({
+				platforms: ["linux/arm64"],
+				builder: "native-arm",
 			}),
 		);
 
@@ -103,17 +117,21 @@ describe("getDockerCommand", () => {
 		expect(command).toContain("--builder");
 		expect(command).toContain("native-arm");
 		expect(command).toContain("--platform linux/arm64");
+		expect(command).toContain("--load");
 		expect(command).not.toContain("--push");
 	});
 
 	it("pushes a multi-arch manifest and does not tag a local image", () => {
-		const command = getDockerCommand(
-			createApplication({
-				buildArchitecture: "multi",
-				registry: { registryId: "r1" } as ApplicationNested["registry"],
-			}),
-			{ pushTags: ["ghcr.io/acme/test-app:latest"] },
-		);
+		const command = getDockerCommand(createApplication(), {
+			platforms: ["linux/amd64", "linux/arm64"],
+			builder: null,
+			createDefaultBuilder: true,
+			output: {
+				mode: "push",
+				tags: ["ghcr.io/acme/test-app:latest"],
+				logins: "",
+			},
+		});
 
 		expect(command).toContain("docker buildx create");
 		expect(command).toContain("dokploy-multiarch");
@@ -123,13 +141,15 @@ describe("getDockerCommand", () => {
 		expect(command).toContain("-t");
 		expect(command).toContain("ghcr.io/acme/test-app");
 		expect(command).not.toContain("docker build -t test-app");
+		expect(command).not.toContain("--load");
 	});
 
 	it("quotes a user-supplied builder name so it cannot break out of the command", () => {
 		const command = getDockerCommand(
-			createApplication({
-				buildArchitecture: "amd64",
-				buildxBuilder: "x; touch /tmp/pwned",
+			createApplication(),
+			localPlan({
+				platforms: ["linux/amd64"],
+				builder: "x; touch /tmp/pwned",
 			}),
 		);
 

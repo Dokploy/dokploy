@@ -2,12 +2,7 @@ import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import {
-	collectRegistryPushTargets,
-	getRegistryTag,
-	registryLoginCommands,
-	uploadImageRemoteCommand,
-} from "../cluster/upload";
+import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -18,8 +13,8 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
-import { planBuildArchitecture } from "./build-platform";
-import { type DockerBuildOptions, getDockerCommand } from "./docker-file";
+import { resolveBuildPlan } from "./build-platform";
+import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
 import { getPaketoCommand } from "./paketo";
@@ -47,22 +42,11 @@ export type ApplicationNested = InferResultType<
 
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	const application = await withResolvedVaultRefs(rawApplication);
-	const plan = planBuildArchitecture(application);
+	const plan = await resolveBuildPlan(application);
 	let command = "";
-	const buildOptions: DockerBuildOptions = {};
 
-	if (plan.kind === "multi") {
-		const targets = await collectRegistryPushTargets(application);
-		if (targets.length === 0) {
-			throw new Error(
-				"Multi-architecture builds require a registry. Docker cannot load a multi-arch image into the local daemon.",
-			);
-		}
-		buildOptions.pushTags = targets.map((target) => target.tag);
-		const logins = registryLoginCommands(targets);
-		if (logins) {
-			command += `${logins}\n`;
-		}
+	if (plan.output.mode === "push" && plan.output.logins) {
+		command += `${plan.output.logins}\n`;
 	}
 
 	if (application.sourceType !== "docker") {
@@ -78,19 +62,19 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 				command += getPaketoCommand(application);
 				break;
 			case "static":
-				command += getStaticCommand(application, buildOptions);
+				command += getStaticCommand(application, plan);
 				break;
 			case "dockerfile":
-				command += getDockerCommand(application, buildOptions);
+				command += getDockerCommand(application, plan);
 				break;
 			case "railpack":
-				command += getRailpackCommand(application, buildOptions);
+				command += getRailpackCommand(application, plan);
 				break;
 		}
 	}
 
 	if (
-		plan.kind !== "multi" &&
+		plan.output.mode === "local" &&
 		(application.registry ||
 			application.buildRegistry ||
 			application.rollbackRegistry)

@@ -1,116 +1,82 @@
 import {
 	BuildArchitectureError,
 	DEFAULT_MULTIARCH_BUILDER,
-	dockerfileBuildxBuilder,
+	dockerfileBuilderName,
 	ensureMultiarchBuilderCommand,
-	planBuildArchitecture,
+	planArchitecture,
 	planPlatformArgs,
 	usesBuildx,
 } from "@dokploy/server/utils/builders/build-platform";
 import { describe, expect, it } from "vitest";
 
 const base = {
+	appName: "test-app",
 	buildType: "dockerfile",
 	sourceType: "git",
 	registry: null,
 	buildRegistry: null,
-	rollbackRegistry: null,
 };
 
-describe("planBuildArchitecture", () => {
+describe("planArchitecture", () => {
 	it("defaults to host with no platform", () => {
-		const plan = planBuildArchitecture(base);
-		expect(plan).toEqual({ kind: "host", builder: null });
+		const plan = planArchitecture(base);
+		expect(plan.architecture).toBe("host");
+		expect(plan.platforms).toEqual([]);
+		expect(plan.builder).toBe(null);
 		expect(planPlatformArgs(plan)).toEqual([]);
-		expect(usesBuildx(plan)).toBe(false);
 	});
 
-	it("trims a named builder on host", () => {
-		const plan = planBuildArchitecture({
+	it("trims a named builder", () => {
+		const plan = planArchitecture({
 			...base,
 			buildArchitecture: "host",
 			buildxBuilder: "  native-arm  ",
 		});
-		expect(plan).toEqual({ kind: "host", builder: "native-arm" });
-		expect(usesBuildx(plan)).toBe(true);
-		expect(dockerfileBuildxBuilder(plan)).toBe("native-arm");
+		expect(plan.builder).toBe("native-arm");
 	});
 
 	it("maps amd64 and arm64 to a single platform", () => {
 		expect(
-			planBuildArchitecture({
+			planArchitecture({
 				...base,
 				buildArchitecture: "amd64",
-			}),
-		).toEqual({
-			kind: "single",
-			platform: "linux/amd64",
-			builder: null,
-		});
+			}).platforms,
+		).toEqual(["linux/amd64"]);
 		expect(
-			planBuildArchitecture({
+			planArchitecture({
 				...base,
 				buildArchitecture: "arm64",
 				buildxBuilder: "box",
 			}),
-		).toEqual({
-			kind: "single",
-			platform: "linux/arm64",
+		).toMatchObject({
+			platforms: ["linux/arm64"],
 			builder: "box",
 		});
 	});
 
-	it("plans multi-arch when a registry is present", () => {
-		const plan = planBuildArchitecture({
+	it("maps multi-arch to both platforms", () => {
+		const plan = planArchitecture({
 			...base,
 			buildArchitecture: "multi",
 			registry: { registryId: "r1" },
 		});
-		expect(plan).toEqual({
-			kind: "multi",
-			platforms: ["linux/amd64", "linux/arm64"],
-			builder: null,
-		});
+		expect(plan.platforms).toEqual(["linux/amd64", "linux/arm64"]);
 		expect(planPlatformArgs(plan)).toEqual([
 			"--platform",
 			"linux/amd64,linux/arm64",
 		]);
-		expect(dockerfileBuildxBuilder(plan)).toBe(DEFAULT_MULTIARCH_BUILDER);
-		expect(ensureMultiarchBuilderCommand(plan)).toContain(
-			DEFAULT_MULTIARCH_BUILDER,
-		);
-	});
-
-	it("does not create the default builder when the user named one", () => {
-		const plan = planBuildArchitecture({
-			...base,
-			buildArchitecture: "multi",
-			buildxBuilder: "farm",
-			buildRegistry: { registryId: "r1" },
-		});
-		expect(dockerfileBuildxBuilder(plan)).toBe("farm");
-		expect(ensureMultiarchBuilderCommand(plan)).toBe("");
-	});
-
-	it("rejects multi-arch without a registry", () => {
-		expect(() =>
-			planBuildArchitecture({
-				...base,
-				buildArchitecture: "multi",
-			}),
-		).toThrow(BuildArchitectureError);
 	});
 
 	it("rejects pack builders when architecture is not host", () => {
 		expect(() =>
-			planBuildArchitecture({
+			planArchitecture({
 				...base,
 				buildType: "nixpacks",
 				buildArchitecture: "amd64",
 			}),
-		).toThrow(/Host native/);
+		).toThrow(BuildArchitectureError);
 		expect(() =>
-			planBuildArchitecture({
+			planArchitecture({
 				...base,
 				buildType: "heroku_buildpacks",
 				buildArchitecture: "multi",
@@ -120,13 +86,49 @@ describe("planBuildArchitecture", () => {
 	});
 
 	it("ignores architecture for docker source images", () => {
-		const plan = planBuildArchitecture({
+		const plan = planArchitecture({
 			...base,
 			sourceType: "docker",
 			buildArchitecture: "multi",
 			buildxBuilder: "farm",
 			registry: { registryId: "r1" },
 		});
-		expect(plan).toEqual({ kind: "host", builder: null });
+		expect(plan.architecture).toBe("host");
+		expect(plan.platforms).toEqual([]);
+	});
+});
+
+describe("dockerfile builder selection", () => {
+	it("creates dokploy-multiarch only when pushing without a named builder", () => {
+		const plan = {
+			platforms: ["linux/amd64", "linux/arm64"] as const,
+			builder: null,
+			createDefaultBuilder: true,
+			output: {
+				mode: "push" as const,
+				tags: ["ghcr.io/acme/app:latest"],
+				logins: "",
+			},
+		};
+		expect(dockerfileBuilderName(plan)).toBe(DEFAULT_MULTIARCH_BUILDER);
+		expect(ensureMultiarchBuilderCommand(plan)).toContain(
+			DEFAULT_MULTIARCH_BUILDER,
+		);
+		expect(usesBuildx(plan)).toBe(true);
+	});
+
+	it("does not create the default builder when the user named one", () => {
+		const plan = {
+			platforms: ["linux/amd64", "linux/arm64"] as const,
+			builder: "farm",
+			createDefaultBuilder: false,
+			output: {
+				mode: "push" as const,
+				tags: ["ghcr.io/acme/app:latest"],
+				logins: "",
+			},
+		};
+		expect(dockerfileBuilderName(plan)).toBe("farm");
+		expect(ensureMultiarchBuilderCommand(plan)).toBe("");
 	});
 });

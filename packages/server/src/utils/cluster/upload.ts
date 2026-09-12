@@ -95,29 +95,31 @@ export const uploadImageRemoteCommand = async (
 	const targets = await collectRegistryPushTargets(application);
 	const commands: string[] = [];
 	for (const target of targets) {
-		if (target.kind === "cluster") {
-			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
-			commands.push(
-				getRegistryCommands(target.registry, target.imageName, target.tag),
-			);
-		}
-		if (target.kind === "build") {
-			commands.push(`echo "🔑 [Enabled Build Registry]"`);
-			commands.push(
-				getRegistryCommands(target.registry, target.imageName, target.tag),
-			);
-			commands.push(
-				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
-			);
-			commands.push(
-				`echo "📊 Check the Logs tab to see when the container starts running."`,
-			);
-		}
-		if (target.kind === "rollback") {
-			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
-			commands.push(
-				getRegistryCommands(target.registry, target.imageName, target.tag),
-			);
+		switch (target.kind) {
+			case "cluster":
+				commands.push(`echo "📦 [Enabled Registry Swarm]"`);
+				commands.push(
+					getRegistryCommands(target.registry, target.imageName, target.tag),
+				);
+				break;
+			case "build":
+				commands.push(`echo "🔑 [Enabled Build Registry]"`);
+				commands.push(
+					getRegistryCommands(target.registry, target.imageName, target.tag),
+				);
+				commands.push(
+					`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
+				);
+				commands.push(
+					`echo "📊 Check the Logs tab to see when the container starts running."`,
+				);
+				break;
+			case "rollback":
+				commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
+				commands.push(
+					getRegistryCommands(target.registry, target.imageName, target.tag),
+				);
+				break;
 		}
 	}
 	try {

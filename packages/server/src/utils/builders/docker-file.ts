@@ -9,21 +9,17 @@ import {
 } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
 import {
-	dockerfileBuildxBuilder,
+	type BuildPlan,
+	dockerfileBuilderName,
 	ensureMultiarchBuilderCommand,
-	planBuildArchitecture,
 	planPlatformArgs,
 	usesBuildx,
 } from "./build-platform";
 import { createEnvFileCommand } from "./utils";
 
-export type DockerBuildOptions = {
-	pushTags?: string[];
-};
-
 export const getDockerCommand = (
 	application: ApplicationNested,
-	options: DockerBuildOptions = {},
+	plan: BuildPlan,
 ) => {
 	const {
 		appName,
@@ -36,40 +32,31 @@ export const getDockerCommand = (
 		createEnvFile,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
-	const plan = planBuildArchitecture(application);
 
 	try {
-		const image = `${appName}`;
-
 		const defaultContextPath =
 			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
 
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
 
-		if (
-			plan.kind === "multi" &&
-			(!options.pushTags || options.pushTags.length === 0)
-		) {
-			throw new Error(
-				"Multi-architecture builds require registry tags to push.",
-			);
-		}
-
 		const commandArgs = usesBuildx(plan) ? ["buildx", "build"] : ["build"];
-		const builder = dockerfileBuildxBuilder(plan);
+		const builder = dockerfileBuilderName(plan);
 		if (builder) {
 			commandArgs.push("--builder", quote([builder]));
 		}
 		commandArgs.push(...planPlatformArgs(plan));
 
-		if (plan.kind === "multi") {
-			for (const tag of options.pushTags ?? []) {
+		if (plan.output.mode === "push") {
+			for (const tag of plan.output.tags) {
 				commandArgs.push("-t", quote([tag]));
 			}
 			commandArgs.push("--push");
 		} else {
-			commandArgs.push("-t", image);
+			commandArgs.push("-t", plan.output.image);
+			if (usesBuildx(plan)) {
+				commandArgs.push("--load");
+			}
 		}
 
 		commandArgs.push("-f", dockerFilePath, dockerContextPath);

@@ -1,10 +1,8 @@
-import {
-	type DockerBuildOptions,
-	getDockerCommand,
-} from "@dokploy/server/utils/builders/docker-file";
+import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
 import { getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import type { BuildPlan } from "./build-platform";
 
 const nginxSpaConfig = `
 worker_processes 1;
@@ -33,7 +31,7 @@ http {
 
 export const getStaticCommand = (
 	application: ApplicationNested,
-	options: DockerBuildOptions = {},
+	plan: BuildPlan,
 ) => {
 	const { publishDirectory, isStaticSpa } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
@@ -70,7 +68,7 @@ export const getStaticCommand = (
 			buildType: "dockerfile",
 			dockerfile: "Dockerfile",
 		},
-		options,
+		plan,
 	);
 	return command;
 };

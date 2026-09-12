@@ -8,8 +8,7 @@ import {
 } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
-import { planBuildArchitecture, planPlatformArgs } from "./build-platform";
-import type { DockerBuildOptions } from "./docker-file";
+import { type BuildPlan, planPlatformArgs } from "./build-platform";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");
@@ -21,10 +20,9 @@ const calculateSecretsHash = (envVariables: string[]): string => {
 
 export const getRailpackCommand = (
 	application: ApplicationNested,
-	options: DockerBuildOptions = {},
+	plan: BuildPlan,
 ) => {
 	const { env, appName, cleanCache } = application;
-	const plan = planBuildArchitecture(application);
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariablesForShell(
 		env,
@@ -50,17 +48,16 @@ export const getRailpackCommand = (
 	const secretsHash = calculateSecretsHash(envVariables);
 
 	const cacheKey = cleanCache ? nanoid(10) : undefined;
-	const pushTags = options.pushTags ?? [];
-	if (plan.kind === "multi" && pushTags.length === 0) {
-		throw new Error("Multi-architecture builds require registry tags to push.");
-	}
 	// Use a unique builder name per build so concurrent deployments don't race
 	// on a shared "builder-containerd" instance (create/use/rm collisions).
 	const ephemeralBuilder = `railpack-${appName}-${nanoid(6)}`;
 	const builderName = plan.builder ?? ephemeralBuilder;
 	const ownsEphemeralBuilder = plan.builder === null;
 	const quotedBuilder = quote([builderName]);
-	const multiArchArgs = pushTags.flatMap((tag) => ["-t", quote([tag])]);
+	const pushArgs =
+		plan.output.mode === "push"
+			? [...plan.output.tags.flatMap((tag) => ["-t", quote([tag])]), "--push"]
+			: ["--output", `type=docker,name=${plan.output.image}`];
 	const buildArgs = [
 		"buildx",
 		"build",
@@ -74,9 +71,7 @@ export const getRailpackCommand = (
 		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 		"-f",
 		`${buildAppDirectory}/railpack-plan.json`,
-		...(plan.kind === "multi"
-			? [...multiArchArgs, "--push"]
-			: ["--output", `type=docker,name=${appName}`]),
+		...pushArgs,
 	];
 
 	// Add secrets properly formatted
