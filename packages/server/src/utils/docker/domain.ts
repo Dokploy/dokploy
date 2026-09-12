@@ -228,11 +228,28 @@ const skipDockerGlobalOptions = (tokens: string[]) => {
 	return i;
 };
 
+const skipStackOrchestratorOption = (tokens: string[], i: number) => {
+	const token = tokens[i];
+	if (!token) return i;
+	if (token === "--orchestrator") {
+		if (i + 1 >= tokens.length) return -1;
+		return i + 2;
+	}
+	if (token.startsWith("--orchestrator=")) return i + 1;
+	return i;
+};
+
+// Docker documents `stack up` as an alias of `stack deploy` (CLI 28.5+ / 29.x).
+// Deprecated `--orchestrator` is a stack-level string flag that may sit between
+// `stack` and `deploy`/`up`; `stack --orchestrator deploy` consumes `deploy` as
+// the flag value and is not a deployment.
 export const isStackDeployCommand = (command: string) => {
 	const tokens = tokenizeDockerCommand(command);
 	const i = skipDockerGlobalOptions(tokens);
-	if (i < 0) return false;
-	return tokens[i] === "stack" && tokens[i + 1] === "deploy";
+	if (i < 0 || tokens[i] !== "stack") return false;
+	const j = skipStackOrchestratorOption(tokens, i + 1);
+	if (j < 0) return false;
+	return tokens[j] === "deploy" || tokens[j] === "up";
 };
 
 export const writeDomainsToCompose = async (

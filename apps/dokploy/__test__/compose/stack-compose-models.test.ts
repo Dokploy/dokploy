@@ -214,6 +214,61 @@ services:
 		expect(isStackDeployCommand("-cD remote stack deploy --help")).toBe(false);
 	});
 
+	it("treats stack up as the documented stack deploy alias", () => {
+		expect(isStackDeployCommand("stack up -c docker-compose.yml demo")).toBe(
+			true,
+		);
+		expect(
+			isStackDeployCommand("'stack' 'up' -c docker-compose.yml demo"),
+		).toBe(true);
+		expect(
+			isStackDeployCommand(
+				"--context remote stack up -c docker-compose.yml demo",
+			),
+		).toBe(true);
+		expect(
+			isStackDeployCommand(
+				"--context=remote stack up -c docker-compose.yml demo",
+			),
+		).toBe(true);
+		expect(isStackDeployCommand("-D stack up -c docker-compose.yml demo")).toBe(
+			true,
+		);
+		expect(
+			isStackDeployCommand("st\"ack\" u'p' -c docker-compose.yml demo"),
+		).toBe(true);
+	});
+
+	it("does not treat compose commands as stack up", () => {
+		expect(isStackDeployCommand("compose up")).toBe(false);
+		expect(isStackDeployCommand("compose run app stack up")).toBe(false);
+		expect(isStackDeployCommand("compose exec app stack up")).toBe(false);
+		expect(isStackDeployCommand("compose -f stack.yml up")).toBe(false);
+		expect(isStackDeployCommand("--context stack compose up")).toBe(false);
+	});
+
+	it("skips deprecated stack --orchestrator before deploy or up", () => {
+		expect(
+			isStackDeployCommand(
+				"stack --orchestrator swarm deploy -c docker-compose.yml demo",
+			),
+		).toBe(true);
+		expect(
+			isStackDeployCommand(
+				"stack --orchestrator=swarm up -c docker-compose.yml demo",
+			),
+		).toBe(true);
+		expect(
+			isStackDeployCommand(
+				"--context remote stack --orchestrator swarm up -c docker-compose.yml demo",
+			),
+		).toBe(true);
+		expect(isStackDeployCommand("stack --orchestrator deploy")).toBe(false);
+		expect(
+			isStackDeployCommand("stack --orchestrator deploy -c file.yml demo"),
+		).toBe(false);
+	});
+
 	it("classifies quoted shell argv the way /bin/sh does", () => {
 		expect(
 			isStackDeployCommand("'stack' 'deploy' -c docker-compose.yml demo"),
@@ -405,6 +460,50 @@ services:
 				}),
 			),
 		).rejects.toThrow(STACK_COMPOSE_MODELS_ERROR);
+	});
+
+	it("rejects custom stack up commands when models are present", async () => {
+		const models = yaml(spec({ models: { llm: { model: "ai/smollm2" } } }));
+		for (const command of [
+			"stack up -c docker-compose.yml demo",
+			"'stack' 'up' -c docker-compose.yml demo",
+			"--context remote stack up -c docker-compose.yml demo",
+			"--context=remote stack up -c docker-compose.yml demo",
+			"-D stack up -c docker-compose.yml demo",
+			"stack --orchestrator swarm up -c docker-compose.yml demo",
+			"stack --orchestrator=swarm deploy -c docker-compose.yml demo",
+		]) {
+			await expect(
+				writeDeploy(
+					compose({
+						composeType: "docker-compose",
+						command,
+						composeFile: models,
+					}),
+				),
+			).rejects.toThrow(STACK_COMPOSE_MODELS_ERROR);
+		}
+	});
+
+	it("allows compose commands that only resemble stack up", async () => {
+		const models = yaml(spec({ models: { llm: { model: "ai/smollm2" } } }));
+		for (const command of [
+			"compose up",
+			"compose run app stack up",
+			"compose exec app stack up",
+			"compose -f stack.yml up",
+			"--context stack compose up",
+		]) {
+			await expect(
+				writeDeploy(
+					compose({
+						composeType: "docker-compose",
+						command,
+						composeFile: models,
+					}),
+				),
+			).resolves.toContain("base64 -d");
+		}
 	});
 
 	it("does not treat a compose file token containing 'stack deploy' as stack deploy", async () => {
@@ -627,6 +726,27 @@ describe("getBuildComposeCommand stack models", () => {
 			),
 		).rejects.toThrow(STACK_COMPOSE_MODELS_ERROR);
 	});
+
+	it("does not emit stack up when models are present", async () => {
+		await expect(
+			getBuildComposeCommand(
+				buildArgs({
+					composeType: "docker-compose",
+					command: "stack up -c docker-compose.yml demo",
+					composeFile: yaml(spec({ models: { llm: { model: "ai/smollm2" } } })),
+				}),
+			),
+		).rejects.toThrow(STACK_COMPOSE_MODELS_ERROR);
+		await expect(
+			getBuildComposeCommand(
+				buildArgs({
+					composeType: "docker-compose",
+					command: "--context remote stack up -c docker-compose.yml demo",
+					composeFile: yaml(spec({ models: { llm: { model: "ai/smollm2" } } })),
+				}),
+			),
+		).rejects.toThrow(STACK_COMPOSE_MODELS_ERROR);
+	});
 });
 
 const fakeDockerArgv = (command: string, pathPrefix: string) => {
@@ -753,6 +873,13 @@ process.stdout.write(JSON.stringify(process.argv.slice(2)));
 		expect(
 			fakeDockerArgv("'stack' 'deploy' -c file.yml demo", fakePath),
 		).toEqual(["stack", "deploy", "-c", "file.yml", "demo"]);
+		expect(fakeDockerArgv("'stack' 'up' -c file.yml demo", fakePath)).toEqual([
+			"stack",
+			"up",
+			"-c",
+			"file.yml",
+			"demo",
+		]);
 		expect(
 			fakeDockerArgv(
 				'--config "/tmp/docker config" stack deploy -c file.yml demo',
