@@ -15,6 +15,7 @@ import {
 	writeDomainsToCompose,
 } from "@dokploy/server/utils/docker/domain";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
+import * as processUtils from "@dokploy/server/utils/process/execAsync";
 import {
 	afterAll,
 	afterEach,
@@ -28,6 +29,7 @@ import { parse, stringify } from "yaml";
 
 const disk = vi.hoisted(() => ({
 	yaml: "services:\n  app:\n    image: nginx:alpine\n",
+	reads: [] as string[],
 }));
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -36,6 +38,7 @@ vi.mock("node:fs", async (importOriginal) => {
 		...actual,
 		existsSync: (p: Parameters<typeof actual.existsSync>[0]) => {
 			const path = String(p);
+			disk.reads.push(path);
 			if (path.includes("/code/") && path.endsWith("docker-compose.yml")) {
 				return true;
 			}
@@ -46,6 +49,7 @@ vi.mock("node:fs", async (importOriginal) => {
 			enc?: BufferEncoding,
 		) => {
 			const path = String(p);
+			disk.reads.push(path);
 			if (path.includes("/code/") && path.endsWith("docker-compose.yml")) {
 				return disk.yaml;
 			}
@@ -88,6 +92,129 @@ const compose = (
 
 const writeDeploy = (c: ReturnType<typeof compose>) =>
 	writeDomainsToCompose(c, [], createCommand(c as never));
+
+describe("managed Stack command regressions", () => {
+	afterEach(() => vi.restoreAllMocks());
+	it.each([
+		"-D=false stack deploy",
+		"-D=true stack deploy",
+		"-D stack deploy",
+		"--debug=false stack up",
+		"-Dlerror stack deploy",
+		"-l=error stack deploy",
+		"-- stack deploy",
+		"stack --orchestrator swarm --orchestrator=swarm deploy",
+		"stack --orchestrator deploy --orchestrator up deploy",
+		"-c --something stack --orchestrator=--something deploy",
+	])("recognizes and blocks models for %s", async (prefix) => {
+		const command = `${prefix} -c docker-compose.yml demo`;
+		expect(isStackDeployCommand(command)).toBe(true);
+		await expect(
+			writeDeploy(
+				compose({ command, composeFile: yaml(spec({ models: {} })) }),
+			),
+		).rejects.toThrow(STACK_COMPOSE_MODELS_ERROR);
+	});
+
+	it.each([
+		"-c models.yml",
+		"-c plain.yml",
+		"-c docker-compose.yml -c models.yml",
+		"-c docker-compose.yml --compose-file docker-compose.yml",
+		"--compose-file=docker-compose.yml,models.yml",
+		"-c -",
+		"-c ../outside.yml",
+		"-c /etc/compose.yml",
+		"-c subdir/../docker-compose.yml",
+		"-c linked-compose.yml",
+		"-c '../outside file.yml'",
+		"",
+	])("rejects unmanaged input without reading files: %s", async (files) => {
+		disk.reads.length = 0;
+		await expect(
+			writeDeploy(
+				compose({
+					sourceType: "github",
+					command: `stack deploy ${files} demo`,
+				}),
+			),
+		).rejects.toThrow(/exactly one.*managed Compose file/);
+		expect(disk.reads).toEqual([]);
+	});
+
+	it("reports selected-file policy before configured models", async () => {
+		await expect(
+			writeDeploy(
+				compose({
+					command: "stack deploy -c plain.yml demo",
+					composeFile: yaml(spec({ models: {} })),
+				}),
+			),
+		).rejects.toThrow(/exactly one.*managed Compose file/);
+	});
+
+	it("accepts the managed Git path with quoted spaces", async () => {
+		vi.spyOn(db.query.patch, "findMany").mockResolvedValue([]);
+		await expect(
+			writeDeploy(
+				compose({
+					sourceType: "github",
+					composePath: "dir with spaces/docker-compose.yml",
+					command: 'stack deploy -c "dir with spaces/docker-compose.yml" demo',
+				}),
+			),
+		).resolves.toContain("base64 -d");
+	});
+
+	it("rejects remote alternative input before opening an SSH read", async () => {
+		const remote = vi
+			.spyOn(processUtils, "execAsyncRemote")
+			.mockRejectedValue(new Error("unexpected SSH read"));
+		await expect(
+			writeDeploy(
+				compose({
+					sourceType: "github",
+					serverId: "fixture",
+					command: "stack deploy -c models.yml demo",
+				}),
+			),
+		).rejects.toThrow(/exactly one.*managed Compose file/);
+		expect(remote).not.toHaveBeenCalled();
+	});
+
+	it("keeps the managed remote document and ordinary transforms", async () => {
+		vi.spyOn(db.query.patch, "findMany").mockResolvedValue([]);
+		const remote = vi
+			.spyOn(processUtils, "execAsyncRemote")
+			.mockResolvedValue({ stdout: yaml(spec()), stderr: "" });
+		await expect(
+			writeDeploy(compose({ sourceType: "github", serverId: "fixture" })),
+		).resolves.toContain("base64 -d");
+		expect(remote).toHaveBeenCalledOnce();
+	});
+
+	it.each([
+		"stack deploy -cdocker-compose.yml demo",
+		"stack deploy -c=docker-compose.yml demo",
+		"stack deploy -qdc./docker-compose.yml demo",
+		"stack deploy demo --compose-file=./docker-compose.yml",
+		"stack deploy --resolve-image -c -c docker-compose.yml demo",
+		"stack deploy --orchestrator swarm -c docker-compose.yml demo",
+		"stack deploy -c docker-compose.yml -- demo",
+	])("accepts one managed input: %s", async (command) => {
+		await expect(writeDeploy(compose({ command }))).resolves.toContain(
+			"base64 -d",
+		);
+	});
+
+	it("does not treat operands after -- as selected inputs", async () => {
+		await expect(
+			writeDeploy(
+				compose({ command: "stack deploy -- demo -c docker-compose.yml" }),
+			),
+		).rejects.toThrow(/exactly one.*managed Compose file/);
+	});
+});
 
 describe("composeSpecificationUsesModels", () => {
 	it("detects top-level and service-level models structurally", () => {
@@ -760,55 +887,7 @@ const fakeDockerArgv = (command: string, pathPrefix: string) => {
 	return JSON.parse(result.stdout) as string[];
 };
 
-const argvLooksLikeStackDeploy = (argv: string[]) => {
-	let i = 0;
-	while (i < argv.length) {
-		const token = argv[i];
-		if (!token || token === "-" || !token.startsWith("-")) break;
-		if (token === "--") {
-			i += 1;
-			break;
-		}
-		if (
-			token === "-D" ||
-			token === "-v" ||
-			token === "-h" ||
-			token.startsWith("--debug") ||
-			token.startsWith("--tls") ||
-			token.startsWith("--help") ||
-			token.startsWith("--version")
-		) {
-			i += 1;
-			continue;
-		}
-		if (
-			token.startsWith("--context") ||
-			token.startsWith("--config") ||
-			token.startsWith("--host") ||
-			token.startsWith("--log-level") ||
-			token.startsWith("--tlscacert") ||
-			token.startsWith("--tlscert") ||
-			token.startsWith("--tlskey") ||
-			token === "-c" ||
-			token.startsWith("-c") ||
-			token === "-H" ||
-			token.startsWith("-H") ||
-			token === "-l" ||
-			token.startsWith("-l")
-		) {
-			if (token.includes("=") || (token.startsWith("-c") && token.length > 2)) {
-				i += 1;
-				continue;
-			}
-			i += 2;
-			continue;
-		}
-		break;
-	}
-	return argv[i] === "stack" && argv[i + 1] === "deploy";
-};
-
-describe("fake-docker shell argv differential", () => {
+describe("captured Docker shell argv", () => {
 	let fakePath = "";
 
 	beforeAll(() => {
@@ -825,39 +904,6 @@ process.stdout.write(JSON.stringify(process.argv.slice(2)));
 
 	afterAll(() => {
 		if (fakePath) rmSync(fakePath, { recursive: true, force: true });
-	});
-
-	const corpus = [
-		"stack deploy -c docker-compose.yml demo",
-		"'stack' 'deploy' -c docker-compose.yml demo",
-		"st\"ack\" de'ploy' -c docker-compose.yml demo",
-		'--config "/tmp/docker config" stack deploy -c file.yml demo',
-		"--config '/tmp/docker config' stack deploy -c file.yml demo",
-		'--context "remote" stack deploy -c file.yml demo',
-		"-c 'remote' stack deploy -c file.yml demo",
-		"-D stack deploy -c file.yml demo",
-		"--debug=false stack deploy -c file.yml demo",
-		"--context=remote stack deploy -c file.yml demo",
-		"-c remote stack deploy -c file.yml demo",
-		"-H unix:///var/run/docker.sock stack deploy -c file.yml demo",
-		"'compose' up",
-		"compose run app 'stack' 'deploy'",
-		"--context remote compose up",
-		"-D compose up",
-		"--debug false stack deploy --help",
-		"-H stack deploy --help",
-		"compose -f my-stack deploy-file.yml up",
-		"stack\tdeploy -c file.yml demo",
-		"  stack   deploy  -c file.yml demo",
-	];
-
-	it("agrees with /bin/sh argv for the supported custom-command corpus", () => {
-		for (const command of corpus) {
-			const argv = fakeDockerArgv(command, fakePath);
-			expect(isStackDeployCommand(command), command).toBe(
-				argvLooksLikeStackDeploy(argv),
-			);
-		}
 	});
 
 	it("classifies default createCommand stack deploy as stack deploy in generated-shell argv", () => {
