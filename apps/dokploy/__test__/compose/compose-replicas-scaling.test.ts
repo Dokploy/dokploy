@@ -1,4 +1,7 @@
-import { createCommand, getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	createCommand,
+	getBuildComposeCommand,
+} from "@dokploy/server/utils/builders/compose";
 import { describe, expect, it } from "vitest";
 
 const base = {
@@ -88,8 +91,9 @@ describe("compose getBuildComposeCommand with Swarm serviceScales", () => {
 		} as any);
 
 		expect(cmd).toContain("docker stack deploy");
-		expect(cmd).toContain("docker service scale compose-app_web=3");
-		expect(cmd).toContain("docker service scale compose-app_worker=2");
+		expect(cmd).toContain('docker service scale "compose-app_web=3"');
+		expect(cmd).toContain('docker service scale "compose-app_worker=2"');
+		expect(cmd).toContain("Docker service scale failed for web");
 	});
 
 	it("does not append swarm service scale commands for docker-compose type", async () => {

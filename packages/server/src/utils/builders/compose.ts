@@ -72,7 +72,7 @@ Compose Type: ${composeType} ✅`;
 						.sort((a, b) => a.serviceName.localeCompare(b.serviceName))
 						.map(
 							(s) =>
-								`docker service scale ${compose.appName}_${s.serviceName}=${s.replicas};`,
+								`docker service scale "${compose.appName}_${s.serviceName}=${s.replicas}" 2>&1 || { echo "Error: ❌ Docker service scale failed for ${s.serviceName}"; exit 1; };`,
 						)
 						.join("\n\t\t")
 				: ""
@@ -160,9 +160,10 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 						.join(" ")} `
 				: "";
 		const pullFlag = compose.pullImages ? " --pull always" : "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans ${scaleFlags}${pullFlag}`
-			.replace(/\s+/g, " ")
-			.trim();
+		command =
+			`compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans ${scaleFlags}${pullFlag}`
+				.replace(/\s+/g, " ")
+				.trim();
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
