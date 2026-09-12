@@ -199,5 +199,5 @@ export const ensureMultiarchBuilderCommand = (plan: BuildPlan): string => {
 	if (!plan.createDefaultBuilder) {
 		return "";
 	}
-	return `docker buildx create --name ${quote([DEFAULT_MULTIARCH_BUILDER])} --driver docker-container || true\n`;
+	return `docker buildx inspect ${quote([DEFAULT_MULTIARCH_BUILDER])} >/dev/null 2>&1 || docker buildx create --name ${quote([DEFAULT_MULTIARCH_BUILDER])} --driver docker-container --driver-opt network=host\n`;
 };

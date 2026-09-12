@@ -133,8 +133,9 @@ describe("getDockerCommand", () => {
 			},
 		});
 
-		expect(command).toContain("docker buildx create");
+		expect(command).toContain("docker buildx inspect");
 		expect(command).toContain("dokploy-multiarch");
+		expect(command).toContain("network=host");
 		expect(command).toContain("docker buildx build");
 		expect(command).toContain("--platform linux/amd64,linux/arm64");
 		expect(command).toContain("--push");

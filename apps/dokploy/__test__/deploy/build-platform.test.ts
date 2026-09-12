@@ -150,6 +150,7 @@ describe("dockerfile builder selection", () => {
 		expect(ensureMultiarchBuilderCommand(plan)).toContain(
 			DEFAULT_MULTIARCH_BUILDER,
 		);
+		expect(ensureMultiarchBuilderCommand(plan)).toContain("network=host");
 		expect(usesBuildx(plan)).toBe(true);
 	});
 
