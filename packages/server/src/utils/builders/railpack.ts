@@ -8,6 +8,8 @@ import {
 } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import { planBuildArchitecture, planPlatformArgs } from "./build-platform";
+import type { DockerBuildOptions } from "./docker-file";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");
@@ -17,8 +19,12 @@ const calculateSecretsHash = (envVariables: string[]): string => {
 	return hash.digest("hex");
 };
 
-export const getRailpackCommand = (application: ApplicationNested) => {
+export const getRailpackCommand = (
+	application: ApplicationNested,
+	options: DockerBuildOptions = {},
+) => {
 	const { env, appName, cleanCache } = application;
+	const plan = planBuildArchitecture(application);
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariablesForShell(
 		env,
@@ -44,15 +50,23 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	const secretsHash = calculateSecretsHash(envVariables);
 
 	const cacheKey = cleanCache ? nanoid(10) : undefined;
-	// Build command.
+	const pushTags = options.pushTags ?? [];
+	if (plan.kind === "multi" && pushTags.length === 0) {
+		throw new Error("Multi-architecture builds require registry tags to push.");
+	}
 	// Use a unique builder name per build so concurrent deployments don't race
 	// on a shared "builder-containerd" instance (create/use/rm collisions).
-	const builderName = `railpack-${appName}-${nanoid(6)}`;
+	const ephemeralBuilder = `railpack-${appName}-${nanoid(6)}`;
+	const builderName = plan.builder ?? ephemeralBuilder;
+	const ownsEphemeralBuilder = plan.builder === null;
+	const quotedBuilder = quote([builderName]);
+	const multiArchArgs = pushTags.flatMap((tag) => ["-t", quote([tag])]);
 	const buildArgs = [
 		"buildx",
 		"build",
 		"--builder",
-		builderName,
+		quotedBuilder,
+		...planPlatformArgs(plan),
 		"--build-arg",
 		`secrets-hash=${secretsHash}`,
 		...(cacheKey ? ["--build-arg", `cache-key=${cacheKey}`] : []),
@@ -60,8 +74,9 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 		"-f",
 		`${buildAppDirectory}/railpack-plan.json`,
-		"--output",
-		`type=docker,name=${appName}`,
+		...(plan.kind === "multi"
+			? [...multiArchArgs, "--push"]
+			: ["--output", `type=docker,name=${appName}`]),
 	];
 
 	// Add secrets properly formatted
@@ -82,6 +97,13 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 	buildArgs.push(buildAppDirectory);
 
+	const createBuilder = ownsEphemeralBuilder
+		? `docker buildx create --name ${quotedBuilder} --driver docker-container || true`
+		: "";
+	const removeBuilder = ownsEphemeralBuilder
+		? `docker buildx rm ${quotedBuilder} || true`
+		: "";
+
 	const bashCommand = `
 
 # Ensure we have a builder with containerd (isolated per build)
@@ -96,12 +118,12 @@ else
 	SUDO_CMD=""
 fi
 $SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
-docker buildx create --name ${builderName} --driver docker-container || true
+${createBuilder}
 
 echo "Preparing Railpack build plan..." ;
 railpack ${prepareArgs.join(" ")} || {
 	echo "❌ Railpack prepare failed" ;
-	docker buildx rm ${builderName} || true
+	${removeBuilder}
 	exit 1;
 }
 echo "✅ Railpack prepare completed." ;
@@ -111,11 +133,11 @@ echo "Building with Railpack frontend..." ;
 ${exportEnvs.join("\n")}
 docker ${buildArgs.join(" ")} || {
 	echo "❌ Railpack build failed" ;
-	docker buildx rm ${builderName} || true
+	${removeBuilder}
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
-docker buildx rm ${builderName} || true
+${removeBuilder}
 `;
 
 	return bashCommand;

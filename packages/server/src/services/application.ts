@@ -432,6 +432,8 @@ export const deployPreviewApplication = async ({
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;
 		application.registry = null;
+		application.buildArchitecture = "host";
+		application.buildxBuilder = null;
 
 		let command = "set -e;";
 		if (application.sourceType === "github") {
@@ -551,6 +553,8 @@ export const rebuildPreviewApplication = async ({
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;
 		application.registry = null;
+		application.buildArchitecture = "host";
+		application.buildxBuilder = null;
 
 		const serverId = application.serverId;
 		let command = "set -e;";

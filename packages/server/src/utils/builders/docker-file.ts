@@ -8,9 +8,23 @@ import {
 	getDockerContextPath,
 } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import {
+	dockerfileBuildxBuilder,
+	ensureMultiarchBuilderCommand,
+	planBuildArchitecture,
+	planPlatformArgs,
+	usesBuildx,
+} from "./build-platform";
 import { createEnvFileCommand } from "./utils";
 
-export const getDockerCommand = (application: ApplicationNested) => {
+export type DockerBuildOptions = {
+	pushTags?: string[];
+};
+
+export const getDockerCommand = (
+	application: ApplicationNested,
+	options: DockerBuildOptions = {},
+) => {
 	const {
 		appName,
 		env,
@@ -22,6 +36,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		createEnvFile,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
+	const plan = planBuildArchitecture(application);
 
 	try {
 		const image = `${appName}`;
@@ -32,14 +47,32 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
 
-		const commandArgs = [
-			"build",
-			"-t",
-			image,
-			"-f",
-			dockerFilePath,
-			dockerContextPath,
-		];
+		if (
+			plan.kind === "multi" &&
+			(!options.pushTags || options.pushTags.length === 0)
+		) {
+			throw new Error(
+				"Multi-architecture builds require registry tags to push.",
+			);
+		}
+
+		const commandArgs = usesBuildx(plan) ? ["buildx", "build"] : ["build"];
+		const builder = dockerfileBuildxBuilder(plan);
+		if (builder) {
+			commandArgs.push("--builder", quote([builder]));
+		}
+		commandArgs.push(...planPlatformArgs(plan));
+
+		if (plan.kind === "multi") {
+			for (const tag of options.pushTags ?? []) {
+				commandArgs.push("-t", quote([tag]));
+			}
+			commandArgs.push("--push");
+		} else {
+			commandArgs.push("-t", image);
+		}
+
+		commandArgs.push("-f", dockerFilePath, dockerContextPath);
 
 		if (dockerBuildStage) {
 			commandArgs.push("--target", dockerBuildStage);
@@ -97,7 +130,7 @@ cd ${quote([dockerContextPath])} || {
   echo ${quote([`❌ The path ${dockerContextPath} does not exist`])} ;
   exit 1;
 }
-
+${ensureMultiarchBuilderCommand(plan)}
 ${joinedSecrets} docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;

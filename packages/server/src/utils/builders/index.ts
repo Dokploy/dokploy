@@ -2,7 +2,12 @@ import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
+import {
+	collectRegistryPushTargets,
+	getRegistryTag,
+	registryLoginCommands,
+	uploadImageRemoteCommand,
+} from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -13,7 +18,8 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
-import { getDockerCommand } from "./docker-file";
+import { planBuildArchitecture } from "./build-platform";
+import { type DockerBuildOptions, getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
 import { getPaketoCommand } from "./paketo";
@@ -41,36 +47,53 @@ export type ApplicationNested = InferResultType<
 
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	const application = await withResolvedVaultRefs(rawApplication);
+	const plan = planBuildArchitecture(application);
 	let command = "";
+	const buildOptions: DockerBuildOptions = {};
+
+	if (plan.kind === "multi") {
+		const targets = await collectRegistryPushTargets(application);
+		if (targets.length === 0) {
+			throw new Error(
+				"Multi-architecture builds require a registry. Docker cannot load a multi-arch image into the local daemon.",
+			);
+		}
+		buildOptions.pushTags = targets.map((target) => target.tag);
+		const logins = registryLoginCommands(targets);
+		if (logins) {
+			command += `${logins}\n`;
+		}
+	}
 
 	if (application.sourceType !== "docker") {
 		const { buildType } = application;
 		switch (buildType) {
 			case "nixpacks":
-				command = getNixpacksCommand(application);
+				command += getNixpacksCommand(application);
 				break;
 			case "heroku_buildpacks":
-				command = getHerokuCommand(application);
+				command += getHerokuCommand(application);
 				break;
 			case "paketo_buildpacks":
-				command = getPaketoCommand(application);
+				command += getPaketoCommand(application);
 				break;
 			case "static":
-				command = getStaticCommand(application);
+				command += getStaticCommand(application, buildOptions);
 				break;
 			case "dockerfile":
-				command = getDockerCommand(application);
+				command += getDockerCommand(application, buildOptions);
 				break;
 			case "railpack":
-				command = getRailpackCommand(application);
+				command += getRailpackCommand(application, buildOptions);
 				break;
 		}
 	}
 
 	if (
-		application.registry ||
-		application.buildRegistry ||
-		application.rollbackRegistry
+		plan.kind !== "multi" &&
+		(application.registry ||
+			application.buildRegistry ||
+			application.rollbackRegistry)
 	) {
 		command += await uploadImageRemoteCommand(application);
 	}

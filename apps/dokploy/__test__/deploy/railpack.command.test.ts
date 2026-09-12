@@ -76,6 +76,32 @@ describe("getRailpackCommand", () => {
 		);
 	});
 
+	it("adds --platform for a single architecture and keeps a local docker output", () => {
+		const command = getRailpackCommand(
+			createApplication({
+				buildArchitecture: "amd64",
+			}),
+		);
+
+		expect(command).toContain("--platform linux/amd64");
+		expect(command).toContain("--output type=docker,name=test-app");
+		expect(command).not.toContain("--push");
+	});
+
+	it("pushes a multi-arch image instead of loading into docker", () => {
+		const command = getRailpackCommand(
+			createApplication({
+				buildArchitecture: "multi",
+				registry: { registryId: "r1" },
+			} as Partial<ApplicationNested>),
+			{ pushTags: ["ghcr.io/acme/test-app:latest"] },
+		);
+
+		expect(command).toContain("--platform linux/amd64,linux/arm64");
+		expect(command).toContain("--push");
+		expect(command).not.toContain("--output type=docker");
+	});
+
 	it("changes secrets-hash when referenced project or environment values change", () => {
 		const firstCommand = getRailpackCommand(
 			createApplication({
