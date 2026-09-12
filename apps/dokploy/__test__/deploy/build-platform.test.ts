@@ -4,6 +4,7 @@ import {
 	DEFAULT_MULTIARCH_BUILDER,
 	dockerfileBuilderName,
 	ensureMultiarchBuilderCommand,
+	mergePersistedArchitecture,
 	planArchitecture,
 	planPlatformArgs,
 	usesBuildx,
@@ -131,6 +132,54 @@ describe("assertPersistedArchitecture", () => {
 				buildRegistryId: null,
 			}),
 		).toThrow(/cluster registry or a build registry/);
+	});
+
+	it("rejects a Cluster Settings save that drops the last registry while multi stays set", () => {
+		expect(() =>
+			assertPersistedArchitecture(
+				mergePersistedArchitecture(
+					{
+						buildType: "dockerfile",
+						buildArchitecture: "multi",
+						registryId: "cluster-registry",
+						buildRegistryId: null,
+					},
+					{ registryId: null },
+				),
+			),
+		).toThrow(/cluster registry or a build registry/);
+	});
+
+	it("rejects a pack-builder switch that leaves a pinned architecture in place", () => {
+		expect(() =>
+			assertPersistedArchitecture(
+				mergePersistedArchitecture(
+					{
+						buildType: "dockerfile",
+						buildArchitecture: "amd64",
+						registryId: null,
+						buildRegistryId: null,
+					},
+					{ buildType: "nixpacks" },
+				),
+			),
+		).toThrow(BuildArchitectureError);
+	});
+
+	it("allows a partial update that does not change architecture, build type, or registries", () => {
+		expect(() =>
+			assertPersistedArchitecture(
+				mergePersistedArchitecture(
+					{
+						buildType: "dockerfile",
+						buildArchitecture: "multi",
+						registryId: "cluster-registry",
+						buildRegistryId: null,
+					},
+					{},
+				),
+			),
+		).not.toThrow();
 	});
 });
 

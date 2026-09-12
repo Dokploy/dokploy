@@ -32,12 +32,30 @@ export const isPackBuildType = (
 	return (PACK_BUILD_TYPES as readonly string[]).includes(buildType);
 };
 
-export const assertPersistedArchitecture = (input: {
+export type PersistedArchitecture = {
 	buildType: string;
 	buildArchitecture: BuildArchitecture;
 	registryId: string | null | undefined;
 	buildRegistryId: string | null | undefined;
-}): void => {
+};
+
+export const mergePersistedArchitecture = (
+	current: PersistedArchitecture,
+	patch: Partial<PersistedArchitecture>,
+): PersistedArchitecture => ({
+	buildType: patch.buildType ?? current.buildType,
+	buildArchitecture: patch.buildArchitecture ?? current.buildArchitecture,
+	registryId:
+		patch.registryId === undefined ? current.registryId : patch.registryId,
+	buildRegistryId:
+		patch.buildRegistryId === undefined
+			? current.buildRegistryId
+			: patch.buildRegistryId,
+});
+
+export const assertPersistedArchitecture = (
+	input: PersistedArchitecture,
+): void => {
 	if (input.buildArchitecture === "host") {
 		return;
 	}

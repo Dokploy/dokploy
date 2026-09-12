@@ -45,6 +45,7 @@ import {
 	assertPersistedArchitecture,
 	BuildArchitectureError,
 	isPackBuildType,
+	mergePersistedArchitecture,
 } from "@dokploy/server/utils/builders/build-platform";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
@@ -784,19 +785,14 @@ export const applicationRouter = createTRPCRouter({
 
 			const current = await findApplicationById(input.applicationId);
 			try {
-				assertPersistedArchitecture({
-					buildType: input.buildType ?? current.buildType,
-					buildArchitecture:
-						input.buildArchitecture ?? current.buildArchitecture,
-					registryId:
-						input.registryId === undefined
-							? current.registryId
-							: input.registryId,
-					buildRegistryId:
-						input.buildRegistryId === undefined
-							? current.buildRegistryId
-							: input.buildRegistryId,
-				});
+				assertPersistedArchitecture(
+					mergePersistedArchitecture(current, {
+						buildType: input.buildType,
+						buildArchitecture: input.buildArchitecture,
+						registryId: input.registryId,
+						buildRegistryId: input.buildRegistryId,
+					}),
+				);
 			} catch (error) {
 				if (error instanceof BuildArchitectureError) {
 					throw new TRPCError({
