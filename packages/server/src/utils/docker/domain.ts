@@ -6,7 +6,7 @@ import { network, patch } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
-import { quote } from "shell-quote";
+import { parse as parseShell, quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
@@ -132,9 +132,107 @@ export const composeSpecificationUsesModels = (
 	return false;
 };
 
+const DOCKER_VALUE_LONG = new Set([
+	"config",
+	"context",
+	"host",
+	"log-level",
+	"tlscacert",
+	"tlscert",
+	"tlskey",
+]);
+const DOCKER_VALUE_SHORT = new Set(["c", "H", "l"]);
+const DOCKER_BOOL_LONG = new Set([
+	"debug",
+	"help",
+	"tls",
+	"tlsverify",
+	"version",
+]);
+const DOCKER_BOOL_SHORT = new Set(["D", "h", "v"]);
+
+const tokenizeDockerCommand = (command: string) => {
+	const tokens: string[] = [];
+	for (const entry of parseShell(command, {})) {
+		if (typeof entry === "string") {
+			tokens.push(entry);
+			continue;
+		}
+		if ("comment" in entry) continue;
+		if ("op" in entry) {
+			if (entry.op === "glob") {
+				tokens.push(entry.pattern);
+				continue;
+			}
+			if (entry.op === "&&") break;
+			return [];
+		}
+	}
+	return tokens;
+};
+
+const skipDockerGlobalOptions = (tokens: string[]) => {
+	let i = 0;
+	while (i < tokens.length) {
+		const token = tokens[i];
+		if (!token || token === "-") break;
+		if (token === "--") return i + 1;
+		if (!token.startsWith("-")) break;
+
+		if (token.startsWith("--")) {
+			const eq = token.indexOf("=");
+			const name = eq === -1 ? token.slice(2) : token.slice(2, eq);
+			if (DOCKER_BOOL_LONG.has(name)) {
+				i += 1;
+				continue;
+			}
+			if (DOCKER_VALUE_LONG.has(name)) {
+				if (eq !== -1) {
+					i += 1;
+					continue;
+				}
+				if (i + 1 >= tokens.length) return -1;
+				i += 2;
+				continue;
+			}
+			return -1;
+		}
+
+		let k = 1;
+		let consumeNextValue = false;
+		while (k < token.length) {
+			const flag = token[k];
+			if (!flag) break;
+			if (DOCKER_BOOL_SHORT.has(flag)) {
+				k += 1;
+				continue;
+			}
+			if (DOCKER_VALUE_SHORT.has(flag)) {
+				if (k + 1 < token.length) {
+					consumeNextValue = false;
+					k = token.length;
+					break;
+				}
+				consumeNextValue = true;
+				break;
+			}
+			return -1;
+		}
+		if (consumeNextValue) {
+			if (i + 1 >= tokens.length) return -1;
+			i += 2;
+			continue;
+		}
+		i += 1;
+	}
+	return i;
+};
+
 export const isStackDeployCommand = (command: string) => {
-	const [first, second] = command.trim().split(/\s+/);
-	return first === "stack" && second === "deploy";
+	const tokens = tokenizeDockerCommand(command);
+	const i = skipDockerGlobalOptions(tokens);
+	if (i < 0) return false;
+	return tokens[i] === "stack" && tokens[i + 1] === "deploy";
 };
 
 export const writeDomainsToCompose = async (
