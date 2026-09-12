@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import {
+	type applicationStatus,
 	applications,
 	backups,
 	compose,
@@ -47,10 +48,14 @@ type TypeQueryConfig = {
 	hasIcon: boolean;
 };
 
+export type OverviewServiceStatus =
+	(typeof applicationStatus.enumValues)[number];
+
 async function getServicesOfType(
 	config: TypeQueryConfig,
 	orgId: string,
 	accessedServices: string[] | null,
+	status?: OverviewServiceStatus,
 ): Promise<OverviewService[]> {
 	const table = config.table as typeof applications;
 	const idCol = (table as unknown as Record<string, unknown>)[
@@ -67,6 +72,7 @@ async function getServicesOfType(
 	const conditions = [
 		eq(projects.organizationId, orgId),
 		...(accessedServices !== null ? [inArray(idCol, accessedServices)] : []),
+		...(status ? [eq(statusCol, status)] : []),
 	];
 
 	const baseSelect = {
@@ -229,6 +235,7 @@ async function attachLastDeployAt(
 export const getAllServicesForOrganization = async (
 	orgId: string,
 	accessedServices: string[] | null,
+	status?: OverviewServiceStatus,
 ): Promise<OverviewService[]> => {
 	if (accessedServices !== null && accessedServices.length === 0) {
 		return [];
@@ -236,7 +243,7 @@ export const getAllServicesForOrganization = async (
 
 	const results = await Promise.all(
 		SERVICE_TYPE_CONFIGS.map((config) =>
-			getServicesOfType(config, orgId, accessedServices),
+			getServicesOfType(config, orgId, accessedServices, status),
 		),
 	);
 
