@@ -28,6 +28,7 @@ import {
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
 	removeDomainById,
+	scaleComposeService,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -66,6 +67,7 @@ import {
 	apiRandomizeCompose,
 	apiRedeployCompose,
 	apiSaveEnvironmentVariablesCompose,
+	apiScaleComposeService,
 	apiUpdateCompose,
 	compose as composeTable,
 	environments,
@@ -543,6 +545,26 @@ export const composeRouter = createTRPCRouter({
 				resourceName: composeForStart.name,
 			});
 			return true;
+		}),
+	scaleService: protectedProcedure
+		.input(apiScaleComposeService)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				deployment: ["create"],
+			});
+			const updated = await scaleComposeService(
+				input.composeId,
+				input.serviceName,
+				input.replicas,
+			);
+			const compose = await findComposeById(input.composeId);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "service",
+				resourceId: input.composeId,
+				resourceName: `${compose.name} (${input.serviceName} -> ${input.replicas} replicas)`,
+			});
+			return updated;
 		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindCompose)

@@ -132,6 +132,14 @@ export const compose = pgTable("compose", {
 			}>
 		>()
 		.default([]),
+	serviceScales: jsonb("serviceScales")
+		.$type<
+			Array<{
+				serviceName: string;
+				replicas: number;
+			}>
+		>()
+		.default([]),
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
@@ -205,6 +213,17 @@ const createSchema = createInsertSchema(compose, {
 				serviceName: z.string(),
 				networkIds: z.array(z.string()),
 				detachDokployNetwork: z.boolean(),
+			}),
+		)
+		.optional(),
+	serviceScales: z
+		.array(
+			z.object({
+				serviceName: z
+					.string()
+					.min(1)
+					.regex(/^[a-zA-Z0-9._-]+$/, "Invalid service name"),
+				replicas: z.number().int().min(0),
 			}),
 		)
 		.optional(),
@@ -285,3 +304,13 @@ export const apiRandomizeCompose = createSchema
 		suffix: z.string().optional(),
 		composeId: z.string().min(1),
 	});
+
+export const apiScaleComposeService = z.object({
+	composeId: z.string().min(1),
+	serviceName: z
+		.string()
+		.min(1)
+		.regex(/^[a-zA-Z0-9._-]+$/, "Invalid service name"),
+	replicas: z.number().int().min(0),
+});
+
