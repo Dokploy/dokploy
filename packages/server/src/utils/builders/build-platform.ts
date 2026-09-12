@@ -1,14 +1,9 @@
-import {
-	BUILD_ARCHITECTURES,
-	type BuildArchitecture,
-} from "@dokploy/server/db/schema";
+import type { BuildArchitecture } from "@dokploy/server/db/schema";
 import {
 	collectRegistryPushTargets,
 	registryLoginCommands,
 } from "../cluster/upload";
 import type { ApplicationNested } from ".";
-
-export { BUILD_ARCHITECTURES, type BuildArchitecture };
 
 export const BUILD_ARCHITECTURE_PLATFORMS = {
 	host: [] as const,
@@ -30,6 +25,11 @@ export const isPackBuildType = (
 ): buildType is (typeof PACK_BUILD_TYPES)[number] => {
 	return (PACK_BUILD_TYPES as readonly string[]).includes(buildType);
 };
+
+const PACK_NEEDS_HOST =
+	"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.";
+const MULTI_ARCH_NEEDS_REGISTRY =
+	"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.";
 
 export type PersistedArchitecture = {
 	buildType: string;
@@ -59,18 +59,14 @@ export const assertPersistedArchitecture = (
 		return;
 	}
 	if (isPackBuildType(input.buildType)) {
-		throw new BuildArchitectureError(
-			"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
-		);
+		throw new BuildArchitectureError(PACK_NEEDS_HOST);
 	}
 	if (
 		input.buildArchitecture === "multi" &&
 		!input.registryId &&
 		!input.buildRegistryId
 	) {
-		throw new BuildArchitectureError(
-			"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.",
-		);
+		throw new BuildArchitectureError(MULTI_ARCH_NEEDS_REGISTRY);
 	}
 };
 
@@ -92,17 +88,10 @@ export class BuildArchitectureError extends Error {
 }
 
 export type PlanBuildArchitectureInput = {
-	appName?: string;
-	buildArchitecture?: BuildArchitecture | null;
-	buildxBuilder?: string | null;
 	buildType: string;
 	sourceType: string;
-	registry: unknown;
-	buildRegistry: unknown;
-	rollbackRegistry?: unknown;
-	applicationId?: string;
-	rollbackActive?: boolean | null;
-	dockerImage?: string | null;
+	buildArchitecture?: BuildArchitecture | null;
+	buildxBuilder?: string | null;
 };
 
 export const parseBuildxBuilder = (
@@ -115,27 +104,19 @@ export const parseBuildxBuilder = (
 	return trimmed.length > 0 ? trimmed : null;
 };
 
-export const architectureForApplication = (
-	application: PlanBuildArchitectureInput,
-): BuildArchitecture => {
-	if (application.sourceType === "docker") {
-		return "host";
-	}
-	return application.buildArchitecture ?? "host";
-};
-
 export const planArchitecture = (
 	application: PlanBuildArchitectureInput,
 ): Pick<BuildPlan, "platforms" | "builder"> & {
 	architecture: BuildArchitecture;
 } => {
-	const architecture = architectureForApplication(application);
+	const architecture =
+		application.sourceType === "docker"
+			? "host"
+			: (application.buildArchitecture ?? "host");
 	const builder = parseBuildxBuilder(application.buildxBuilder);
 
 	if (architecture !== "host" && isPackBuildType(application.buildType)) {
-		throw new BuildArchitectureError(
-			"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
-		);
+		throw new BuildArchitectureError(PACK_NEEDS_HOST);
 	}
 
 	return {
@@ -160,9 +141,7 @@ export const resolveBuildPlan = async (
 	}
 
 	if (!application.registry && !application.buildRegistry) {
-		throw new BuildArchitectureError(
-			"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.",
-		);
+		throw new BuildArchitectureError(MULTI_ARCH_NEEDS_REGISTRY);
 	}
 
 	const targets = await collectRegistryPushTargets(application);
@@ -170,9 +149,7 @@ export const resolveBuildPlan = async (
 		(target) => target.kind === "cluster" || target.kind === "build",
 	);
 	if (runTargets.length === 0) {
-		throw new BuildArchitectureError(
-			"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.",
-		);
+		throw new BuildArchitectureError(MULTI_ARCH_NEEDS_REGISTRY);
 	}
 
 	return {
