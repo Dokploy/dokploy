@@ -1,5 +1,6 @@
 import { Rocket } from "lucide-react";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { ShowDeploymentsTable } from "@/components/dashboard/deployments/show-deployments-table";
 import { ShowQueueTable } from "@/components/dashboard/deployments/show-queue-table";
 import {
@@ -8,6 +9,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SUBTAB_VALUES = ["deployments", "queue"] as const;
@@ -25,6 +34,10 @@ export const ShowOverviewDeployments = () => {
 		isValidSubtab(router.query.subtab)
 			? router.query.subtab
 			: DEFAULT_SUBTAB;
+
+	const [globalFilter, setGlobalFilter] = useState("");
+	const [statusFilter, setStatusFilter] = useState<string>("all");
+	const [typeFilter, setTypeFilter] = useState<string>("all");
 
 	const setSubtab = (value: string) => {
 		if (!isValidSubtab(value)) return;
@@ -59,12 +72,51 @@ export const ShowOverviewDeployments = () => {
 						onValueChange={setSubtab}
 						className="w-full min-w-0"
 					>
-						<TabsList className="mt-2">
-							<TabsTrigger value="deployments">Deployments</TabsTrigger>
-							<TabsTrigger value="queue">Queue</TabsTrigger>
-						</TabsList>
+						{/* Responsive layout: Tabs on top and filters wrap below on mobile/tablet, inline single-row on lg+ */}
+						<div className="flex flex-col lg:flex-row lg:items-center gap-y-4 gap-x-3 mt-2">
+							<TabsList className="self-start shrink-0">
+								<TabsTrigger value="deployments">Deployments</TabsTrigger>
+								<TabsTrigger value="queue">Queue</TabsTrigger>
+							</TabsList>
+							{subtab === "deployments" && (
+								<div className="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:ml-auto">
+									<Input
+										placeholder="Search by name, project, environment, server..."
+										value={globalFilter}
+										onChange={(e) => setGlobalFilter(e.target.value)}
+										className="max-w-xs"
+									/>
+									<Select value={statusFilter} onValueChange={setStatusFilter}>
+										<SelectTrigger className="w-[140px]">
+											<SelectValue placeholder="Status" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="all">All statuses</SelectItem>
+											<SelectItem value="running">Running</SelectItem>
+											<SelectItem value="done">Done</SelectItem>
+											<SelectItem value="error">Error</SelectItem>
+											<SelectItem value="cancelled">Cancelled</SelectItem>
+										</SelectContent>
+									</Select>
+									<Select value={typeFilter} onValueChange={setTypeFilter}>
+										<SelectTrigger className="w-[140px]">
+											<SelectValue placeholder="Type" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="all">All types</SelectItem>
+											<SelectItem value="application">Application</SelectItem>
+											<SelectItem value="compose">Compose</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							)}
+						</div>
 						<TabsContent value="deployments" className="mt-0 min-w-0 pt-4">
-							<ShowDeploymentsTable />
+							<ShowDeploymentsTable
+								globalFilter={globalFilter}
+								statusFilter={statusFilter}
+								typeFilter={typeFilter}
+							/>
 						</TabsContent>
 						<TabsContent value="queue" className="mt-0 pt-4">
 							<ShowQueueTable />
