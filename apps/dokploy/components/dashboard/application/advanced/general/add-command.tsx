@@ -1,5 +1,4 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -20,25 +19,40 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
+import { CustomShellFields } from "./custom-shell-fields";
+import { SingleCommandFields } from "./single-command-fields";
 
 interface Props {
 	applicationId: string;
 }
 
-const AddRedirectSchema = z.object({
-	command: z.string(),
-	args: z
-		.array(
-			z.object({
-				value: z.string().min(1, "Argument cannot be empty"),
-			}),
-		)
-		.optional(),
-});
+const AddCommandSchema = z
+	.object({
+		commandMode: z.enum(["single", "custom"]),
+		command: z.string(),
+		customCommand: z.string().max(20000).optional(),
+		customShell: z.enum(["sh", "bash"]).optional(),
+		args: z
+			.array(
+				z.object({
+					value: z.string().min(1, "Argument cannot be empty"),
+				}),
+			)
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.commandMode === "custom" && !data.customCommand?.trim()) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["customCommand"],
+				message: "Enter a script",
+			});
+		}
+	});
 
-type AddCommand = z.infer<typeof AddRedirectSchema>;
+export type AddCommandForm = z.infer<typeof AddCommandSchema>;
 
 export const AddCommand = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery(
@@ -52,12 +66,15 @@ export const AddCommand = ({ applicationId }: Props) => {
 
 	const { mutateAsync, isPending } = api.application.update.useMutation();
 
-	const form = useForm<AddCommand>({
+	const form = useForm<AddCommandForm>({
 		defaultValues: {
+			commandMode: "single",
 			command: "",
+			customCommand: "",
+			customShell: "sh",
 			args: [],
 		},
-		resolver: zodResolver(AddRedirectSchema),
+		resolver: zodResolver(AddCommandSchema),
 	});
 
 	const { fields, append, remove } = useFieldArray({
@@ -65,20 +82,32 @@ export const AddCommand = ({ applicationId }: Props) => {
 		name: "args",
 	});
 
+	const commandMode = form.watch("commandMode");
+	const customCommand = form.watch("customCommand");
+
 	useEffect(() => {
 		if (data) {
 			form.reset({
+				commandMode: data?.customCommand ? "custom" : "single",
 				command: data?.command || "",
+				customCommand: data?.customCommand || "",
+				customShell: data?.customShell === "bash" ? "bash" : "sh",
 				args: data?.args?.map((arg) => ({ value: arg })) || [],
 			});
 		}
 	}, [data, form]);
 
-	const onSubmit = async (data: AddCommand) => {
+	const onSubmit = async (values: AddCommandForm) => {
 		await mutateAsync({
 			applicationId,
-			command: data?.command,
-			args: data?.args?.map((arg) => arg.value).filter(Boolean),
+			command: values?.command,
+			args: values?.args?.map((arg) => arg.value).filter(Boolean),
+			customCommand:
+				values.commandMode === "custom"
+					? values.customCommand?.trim() || null
+					: null,
+			customShell:
+				values.commandMode === "custom" ? (values.customShell ?? "sh") : null,
 		})
 			.then(async () => {
 				toast.success("Command Updated");
@@ -111,73 +140,54 @@ export const AddCommand = ({ applicationId }: Props) => {
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
-								name="command"
+								name="commandMode"
 								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Command</FormLabel>
+									<FormItem className="space-y-3">
+										<FormLabel>Mode</FormLabel>
 										<FormControl>
-											<Input placeholder="/bin/sh" {...field} />
+											<RadioGroup
+												onValueChange={field.onChange}
+												value={field.value}
+												className="flex flex-row gap-6"
+											>
+												<FormItem className="flex items-center space-x-2 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="single" />
+													</FormControl>
+													<FormLabel className="font-normal">Single</FormLabel>
+												</FormItem>
+												<FormItem className="flex items-center space-x-2 space-y-0">
+													<FormControl>
+														<RadioGroupItem value="custom" />
+													</FormControl>
+													<FormLabel className="font-normal">
+														Custom shell
+													</FormLabel>
+												</FormItem>
+											</RadioGroup>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
-
-							<div className="space-y-2">
-								<div className="flex items-center justify-between">
-									<FormLabel>Arguments (Args)</FormLabel>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={() => append({ value: "" })}
-									>
-										<Plus className="h-4 w-4 mr-1" />
-										Add Argument
-									</Button>
-								</div>
-
-								{fields.length === 0 && (
-									<p className="text-sm text-muted-foreground">
-										No arguments added yet. Click "Add Argument" to add one.
-									</p>
-								)}
-
-								{fields.map((field, index) => (
-									<FormField
-										key={field.id}
-										control={form.control}
-										name={`args.${index}.value`}
-										render={({ field }) => (
-											<FormItem>
-												<div className="flex gap-2">
-													<FormControl>
-														<Input
-															placeholder={
-																index === 0 ? "-c" : "echo Hello World"
-															}
-															{...field}
-														/>
-													</FormControl>
-													<Button
-														type="button"
-														variant="destructive"
-														size="icon"
-														onClick={() => remove(index)}
-													>
-														<Trash2 className="h-4 w-4" />
-													</Button>
-												</div>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								))}
-							</div>
+							{commandMode === "custom" ? (
+								<CustomShellFields control={form.control} />
+							) : (
+								<SingleCommandFields
+									control={form.control}
+									fields={fields}
+									append={append}
+									remove={remove}
+								/>
+							)}
 						</div>
 						<div className="flex justify-end">
-							<Button isLoading={isPending} type="submit" className="w-fit">
+							<Button
+								isLoading={isPending}
+								type="submit"
+								className="w-fit"
+								disabled={commandMode === "custom" && !customCommand?.trim()}
+							>
 								Save
 							</Button>
 						</div>
