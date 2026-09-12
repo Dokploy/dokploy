@@ -72,14 +72,14 @@ export const ShowOverviewDeployments = () => {
 						onValueChange={setSubtab}
 						className="w-full min-w-0"
 					>
-						{/* Responsive layout: Tabs on top and filters wrap below on mobile, inline single-row on md+ */}
-						<div className="flex flex-col md:flex-row md:items-center gap-y-4 gap-x-3 mt-2">
+						{/* Responsive layout: Tabs on top and filters wrap below on mobile/tablet, inline single-row on lg+ */}
+						<div className="flex flex-col lg:flex-row lg:items-center gap-y-4 gap-x-3 mt-2">
 							<TabsList className="self-start shrink-0">
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="queue">Queue</TabsTrigger>
 							</TabsList>
 							{subtab === "deployments" && (
-								<div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:ml-auto">
+								<div className="flex flex-wrap lg:flex-nowrap items-center gap-2 lg:ml-auto">
 									<Input
 										placeholder="Search by name, project, environment, server..."
 										value={globalFilter}
