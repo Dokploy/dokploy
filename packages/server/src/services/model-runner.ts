@@ -4,138 +4,109 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import semver from "semver";
+import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 
 const COMPOSE_MODELS_MIN_VERSION = "2.38.0";
-const ENGINE_UNREACHABLE = "Docker engine is unreachable";
+export const MODEL_RUNNER_PROBE_TIMEOUT_MS = 30_000;
 
 export interface ModelRunnerCapability {
 	checkedAt: string;
 	docker: {
+		/** True only after a successful, usable Engine info response. */
 		available: boolean;
 		version: string | null;
 		os: string | null;
 		arch: string | null;
 	};
 	compose: {
-		available: boolean;
+		/** Null means discovery could not establish availability. */
+		available: boolean | null;
 		version: string | null;
-		modelsSupported: boolean;
+		modelsSupported: boolean | null;
+		error?: string;
 	};
 	modelRunner: {
-		/**
-		 * True when the `model` CLI plugin is valid in this execution
-		 * environment (Dokploy container locally, SSH host remotely).
-		 * `docker inspect` uses the Engine socket, so `cliAvailable: false`
-		 * with `standaloneRunnerContainerStatus: "running"` is valid on
-		 * local Dokploy. A null container status does not mean Model Runner
-		 * cannot exist (e.g. Docker Desktop).
-		 */
-		cliAvailable: boolean;
+		/** CLI availability is independent of the Engine's runner container. */
+		cliAvailable: boolean | null;
 		cliVersion: string | null;
+		/** Null means no status was observed, not necessarily an absent runner. */
 		standaloneRunnerContainerStatus: string | null;
+		error?: string;
 	};
 	error?: string;
 }
 
-interface ProbeEnvelope {
-	dockerPresent?: boolean;
-	engineExit?: number;
-	engineBase64?: string;
-	pluginsExit?: number;
-	pluginsBase64?: string;
-	containerStatus?: string;
-}
-
-interface EngineProbe {
-	serverVersion?: string | null;
-	os?: string | null;
-	arch?: string | null;
-}
-
-interface DockerInfoPlugin {
-	Name?: string;
-	Version?: string;
-	Err?: unknown;
-}
-
-const emptyCapability = (
-	error?: unknown,
-	overrides: Partial<ModelRunnerCapability> = {},
-): ModelRunnerCapability => ({
-	checkedAt: new Date().toISOString(),
-	docker: {
-		available: false,
-		version: null,
-		os: null,
-		arch: null,
-	},
-	compose: {
-		available: false,
-		version: null,
-		modelsSupported: false,
-	},
-	modelRunner: {
-		cliAvailable: false,
-		cliVersion: null,
-		standaloneRunnerContainerStatus: null,
-	},
-	...(error !== undefined
-		? {
-				error:
-					error instanceof Error
-						? error.message
-						: typeof error === "string"
-							? error
-							: "Could not read model runner capability",
-			}
-		: {}),
-	...overrides,
+const envelopeSchema = z.object({
+	dockerPresent: z.boolean(),
+	engineExit: z.number().int(),
+	engineBase64: z.string(),
+	pluginsExit: z.number().int(),
+	pluginsBase64: z.string(),
+	containerStatus: z.string(),
+});
+const engineSchema = z.object({
+	serverVersion: z.string().trim().min(1),
+	os: z.string().nullish(),
+	arch: z.string().nullish(),
+});
+const pluginSchema = z.object({
+	Name: z.string().min(1),
+	Version: z.string().nullish(),
+	Err: z.unknown().optional(),
+});
+const metadataSchema = z.object({
+	plugins: z.array(pluginSchema).nullable(),
+	errors: z.array(z.string()).nullable(),
 });
 
-const nullIfEmpty = (value: string | null | undefined): string | null => {
-	const trimmed = value?.trim();
-	return trimmed ? trimmed : null;
-};
+const nullIfEmpty = (value: string | null | undefined): string | null =>
+	value?.trim() || null;
 
-const pluginHasErr = (plugin: DockerInfoPlugin): boolean => {
-	const err = plugin.Err;
-	if (err == null || err === "") return false;
-	return true;
-};
-
-const findPlugin = (
-	plugins: DockerInfoPlugin[] | null | undefined,
-	name: string,
-): DockerInfoPlugin | null => {
-	const plugin = plugins?.find((entry) => entry.Name === name);
-	if (!plugin || pluginHasErr(plugin)) return null;
-	return plugin;
-};
-
-export const composeModelsSupported = (version: string | null): boolean => {
-	if (!version) return false;
+export const composeModelsSupported = (
+	version: string | null,
+): boolean | null => {
+	if (!version) return null;
 	const parsed = semver.clean(version);
-	if (!parsed) return false;
-	return semver.gte(parsed, COMPOSE_MODELS_MIN_VERSION);
-};
-
-const b64Decode = (value?: string): string => {
-	if (!value) return "";
-	try {
-		return Buffer.from(value, "base64").toString("utf-8");
-	} catch {
-		return "";
-	}
+	return parsed ? semver.gte(parsed, COMPOSE_MODELS_MIN_VERSION) : null;
 };
 
 const parseJson = (text: string): unknown => {
 	try {
 		return JSON.parse(text);
 	} catch {
-		return null;
+		return undefined;
 	}
 };
+
+const readPlugin = (
+	plugins: z.infer<typeof pluginSchema>[] | null,
+	name: string,
+) => {
+	if (plugins === null) return { available: null, version: null };
+	const plugin = plugins.find((entry) => entry.Name === name);
+	if (!plugin) return { available: false, version: null };
+	if (plugin.Err != null && plugin.Err !== "") {
+		return {
+			available: false,
+			version: null,
+			error: `Docker ${name} CLI plugin is invalid`,
+		};
+	}
+	return { available: true, version: nullIfEmpty(plugin.Version) };
+};
+
+const emptyCapability = (error?: string): ModelRunnerCapability => ({
+	checkedAt: new Date().toISOString(),
+	docker: { available: false, version: null, os: null, arch: null },
+	compose: { available: null, version: null, modelsSupported: null },
+	modelRunner: {
+		cliAvailable: null,
+		cliVersion: null,
+		standaloneRunnerContainerStatus: null,
+	},
+	...(error ? { error } : {}),
+});
 
 /**
  * Read-only capability probe. Engine reachability and CLI plugin metadata are
@@ -158,7 +129,7 @@ if command -v docker >/dev/null 2>&1; then
 	engineOutput=$(docker info --format '{"serverVersion":{{json .ServerVersion}},"os":{{json .OSType}},"arch":{{json .Architecture}}}' 2>/dev/null)
 	engineExit=$?
 	engineB64=$(printf '%s' "$engineOutput" | base64 2>/dev/null | tr -d '\\n')
-	pluginsOutput=$(docker info --format '{{json .ClientInfo.Plugins}}' 2>/dev/null)
+	pluginsOutput=$(docker info --format '{"plugins":{{json .ClientInfo.Plugins}},"errors":{{json .ClientErrors}}}' 2>/dev/null)
 	pluginsExit=$?
 	pluginsB64=$(printf '%s' "$pluginsOutput" | base64 2>/dev/null | tr -d '\\n')
 	containerStatus=$(docker inspect -f '{{.State.Status}}' docker-model-runner 2>/dev/null | tr -d '\\n')
@@ -170,99 +141,81 @@ printf '{"dockerPresent":%s,"engineExit":%s,"engineBase64":"%s","pluginsExit":%s
 export const parseModelRunnerCapability = (
 	stdout: string,
 ): ModelRunnerCapability => {
-	let envelope: ProbeEnvelope;
-	try {
-		envelope = JSON.parse(stdout.trim());
-	} catch {
-		return emptyCapability(
-			new Error("Could not parse model runner probe output"),
-		);
-	}
-
-	const containerStatus = nullIfEmpty(envelope.containerStatus);
-
+	const parsed = envelopeSchema.safeParse(parseJson(stdout));
+	if (!parsed.success)
+		return emptyCapability("Could not parse model runner probe output");
+	const envelope = parsed.data;
+	const result = emptyCapability();
 	if (!envelope.dockerPresent) {
-		return emptyCapability(undefined, {
-			modelRunner: {
-				cliAvailable: false,
-				cliVersion: null,
-				standaloneRunnerContainerStatus: containerStatus,
-			},
-		});
+		result.compose = {
+			available: false,
+			version: null,
+			modelsSupported: false,
+		};
+		result.modelRunner.cliAvailable = false;
+		return result;
 	}
-
-	const engineExit = Number(envelope.engineExit ?? 0);
-	const pluginsExit = Number(envelope.pluginsExit ?? 0);
-	const engineText = b64Decode(envelope.engineBase64).trim();
-	const pluginsText = b64Decode(envelope.pluginsBase64).trim();
-
-	const engine =
-		engineExit === 0 && engineText
-			? (parseJson(engineText) as EngineProbe | null)
-			: null;
-	const pluginList =
-		pluginsExit === 0 && pluginsText
-			? (parseJson(pluginsText) as DockerInfoPlugin[] | null)
-			: null;
-	const plugins = capabilityFromPlugins(
-		Array.isArray(pluginList) ? pluginList : null,
+	const errors: string[] = [];
+	const engine = engineSchema.safeParse(
+		parseJson(Buffer.from(envelope.engineBase64, "base64").toString("utf8")),
 	);
-	plugins.modelRunner.standaloneRunnerContainerStatus = containerStatus;
-
-	if (engineExit !== 0) {
-		return emptyCapability(ENGINE_UNREACHABLE, plugins);
-	}
-
-	return {
-		checkedAt: new Date().toISOString(),
-		docker: {
+	if (envelope.engineExit === 0 && engine.success) {
+		result.docker = {
 			available: true,
-			version: nullIfEmpty(engine?.serverVersion ?? undefined),
-			os: nullIfEmpty(engine?.os ?? undefined),
-			arch: nullIfEmpty(engine?.arch ?? undefined),
-		},
-		compose: plugins.compose,
-		modelRunner: plugins.modelRunner,
+			version: engine.data.serverVersion,
+			os: nullIfEmpty(engine.data.os),
+			arch: nullIfEmpty(engine.data.arch),
+		};
+	} else {
+		errors.push("Could not read Docker Engine info");
+	}
+	const metadata = metadataSchema.safeParse(
+		parseJson(Buffer.from(envelope.pluginsBase64, "base64").toString("utf8")),
+	);
+	let plugins: z.infer<typeof pluginSchema>[] | null = null;
+	if (
+		envelope.pluginsExit !== 0 ||
+		(metadata.success && metadata.data.errors?.length)
+	) {
+		errors.push("Could not discover Docker CLI plugins");
+	} else if (!metadata.success) {
+		errors.push("Could not parse Docker CLI plugin metadata");
+	} else {
+		plugins = metadata.data.plugins ?? [];
+	}
+	const compose = readPlugin(plugins, "compose");
+	const model = readPlugin(plugins, "model");
+	result.compose = {
+		...compose,
+		modelsSupported:
+			compose.available === false
+				? false
+				: composeModelsSupported(compose.version),
 	};
-};
-
-const capabilityFromPlugins = (
-	plugins: DockerInfoPlugin[] | null,
-): Pick<ModelRunnerCapability, "compose" | "modelRunner"> => {
-	const composePlugin = findPlugin(plugins, "compose");
-	const modelPlugin = findPlugin(plugins, "model");
-	const composeVersion = nullIfEmpty(composePlugin?.Version);
-	return {
-		compose: {
-			available: !!composePlugin,
-			version: composeVersion,
-			modelsSupported: composeModelsSupported(composeVersion),
-		},
-		modelRunner: {
-			cliAvailable: !!modelPlugin,
-			cliVersion: nullIfEmpty(modelPlugin?.Version),
-			standaloneRunnerContainerStatus: null,
-		},
+	result.modelRunner = {
+		cliAvailable: model.available,
+		cliVersion: model.version,
+		standaloneRunnerContainerStatus: nullIfEmpty(envelope.containerStatus),
+		...(model.error ? { error: model.error } : {}),
 	};
+	if (errors.length) result.error = errors.join("; ");
+	return result;
 };
 
 export const getModelRunnerCapability = async (
 	serverId?: string,
 ): Promise<ModelRunnerCapability> => {
 	if (IS_CLOUD && !serverId) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Server is required",
-		});
+		throw new TRPCError({ code: "BAD_REQUEST", message: "Server is required" });
 	}
-
 	const script = buildModelRunnerScript();
 	try {
+		const options = { timeout: MODEL_RUNNER_PROBE_TIMEOUT_MS };
 		const result = serverId
-			? await execAsyncRemote(serverId, script)
-			: await execAsync(script);
+			? await execAsyncRemote(serverId, script, undefined, options)
+			: await execAsync(script, options);
 		return parseModelRunnerCapability(result.stdout);
-	} catch (error) {
-		return emptyCapability(error);
+	} catch {
+		return emptyCapability("Could not read model runner capability");
 	}
 };
