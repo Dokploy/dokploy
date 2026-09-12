@@ -21,6 +21,8 @@ const baseApp: ApplicationNested = {
 	giteaBuildPath: "",
 	giteaId: "",
 	args: [],
+	customCommand: null,
+	customShell: null,
 	rollbackRegistryId: "",
 	rollbackRegistry: null,
 	deployments: [],
