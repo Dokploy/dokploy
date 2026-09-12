@@ -1,12 +1,7 @@
-import {
-	applications,
-	compose,
-	deployments,
-	previewDeployments,
-	schedules,
-} from "@dokploy/server/db/schema";
+import { deployments, schedules } from "@dokploy/server/db/schema";
 import { eq, inArray, or } from "drizzle-orm";
 import { db } from "../../db/index";
+import { updateServiceStatusFromActiveDeployments } from "../../services/deployment";
 
 export const initCancelDeployments = async () => {
 	try {
@@ -62,18 +57,18 @@ export const initCancelDeployments = async () => {
 			),
 		];
 
+		// Recompute aggregate status for each affected service instead of blindly setting to "idle"
+		// This prevents hiding other active/queued deployments that weren't cancelled
 		if (applicationIds.length > 0) {
-			await db
-				.update(applications)
-				.set({ applicationStatus: "idle" })
-				.where(inArray(applications.applicationId, applicationIds));
+			for (const appId of applicationIds) {
+				await updateServiceStatusFromActiveDeployments("applicationId", appId);
+			}
 		}
 
 		if (composeIds.length > 0) {
-			await db
-				.update(compose)
-				.set({ composeStatus: "idle" })
-				.where(inArray(compose.composeId, composeIds));
+			for (const composeId of composeIds) {
+				await updateServiceStatusFromActiveDeployments("composeId", composeId);
+			}
 		}
 
 		const previewDeploymentIds = [
@@ -85,12 +80,12 @@ export const initCancelDeployments = async () => {
 		];
 
 		if (previewDeploymentIds.length > 0) {
-			await db
-				.update(previewDeployments)
-				.set({ previewStatus: "idle" })
-				.where(
-					inArray(previewDeployments.previewDeploymentId, previewDeploymentIds),
+			for (const previewId of previewDeploymentIds) {
+				await updateServiceStatusFromActiveDeployments(
+					"previewDeploymentId",
+					previewId,
 				);
+			}
 		}
 
 		console.log(`Cancelled ${result.length} deployments`);

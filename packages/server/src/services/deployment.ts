@@ -137,9 +137,41 @@ export const getActiveDeploymentStatus = async (
 			inArray(deployments.status, ["queued", "running"]),
 		),
 		columns: { status: true },
+		orderBy: [
+			// Prioritize "running" over "queued" to ensure accurate status reporting
+			sql`CASE WHEN ${deployments.status} = 'running' THEN 0 WHEN ${deployments.status} = 'queued' THEN 1 ELSE 2 END`,
+			desc(deployments.createdAt),
+		],
 	});
 	if (!remaining) return null;
 	return remaining.status === "running" ? "running" : "queued";
+};
+
+/**
+ * Recomputes and updates service status based on active/queued deployments.
+ * Used after cancelling queues or on startup cleanup to ensure status reflects reality.
+ */
+export const updateServiceStatusFromActiveDeployments = async (
+	serviceColumn: DeploymentServiceColumn,
+	serviceId: string,
+	fallbackStatus: "idle" | "done" | "error" = "idle",
+): Promise<void> => {
+	const activeStatus = await getActiveDeploymentStatus(
+		serviceColumn,
+		serviceId,
+	);
+	const targetStatus = activeStatus || fallbackStatus;
+
+	if (serviceColumn === "applicationId") {
+		const { updateApplicationStatus } = await import("./application");
+		await updateApplicationStatus(serviceId, targetStatus);
+	} else if (serviceColumn === "composeId") {
+		const { updateCompose } = await import("./compose");
+		await updateCompose(serviceId, { composeStatus: targetStatus });
+	} else if (serviceColumn === "previewDeploymentId") {
+		const { updatePreviewDeployment } = await import("./preview-deployment");
+		await updatePreviewDeployment(serviceId, { previewStatus: targetStatus });
+	}
 };
 
 export const cancelAllQueuedDeployments = async (

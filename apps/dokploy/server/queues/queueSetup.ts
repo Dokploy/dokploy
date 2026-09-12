@@ -8,11 +8,15 @@ import {
 	updateCompose,
 	updateDeploymentStatus,
 	updatePreviewDeployment,
+	updateServiceStatusFromActiveDeployments,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
+import { deployments } from "@dokploy/server/db/schema";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { eq } from "drizzle-orm";
 import { resolveBuildsConcurrency } from "./concurrency";
 import { processDeploymentJob } from "./deployments-queue";
 import { type InMemoryJob, InMemoryQueue } from "./in-memory-queue";
@@ -125,6 +129,12 @@ export const cleanQueuesByApplication = async (applicationId: string) => {
 				`Removed ${removed} waiting job(s) for application ${applicationId}`,
 			);
 		}
+
+		// Recompute aggregate status after cancelling queues
+		await updateServiceStatusFromActiveDeployments(
+			"applicationId",
+			applicationId,
+		);
 	});
 };
 
@@ -138,11 +148,77 @@ export const cleanQueuesByCompose = async (composeId: string) => {
 		if (removed > 0) {
 			console.log(`Removed ${removed} waiting job(s) for compose ${composeId}`);
 		}
+
+		// Recompute aggregate status after cancelling queues
+		await updateServiceStatusFromActiveDeployments("composeId", composeId);
 	});
 };
 
 export const cleanAllDeploymentQueue = async () => {
+	// Get all queued deployments before clearing
+	const queuedDeployments = await db.query.deployments.findMany({
+		where: eq(deployments.status, "queued"),
+		columns: {
+			deploymentId: true,
+			applicationId: true,
+			composeId: true,
+			previewDeploymentId: true,
+		},
+	});
+
+	// Clear in-memory queue
 	myQueue.clearWaiting();
+
+	// Update database records to cancelled
+	if (queuedDeployments.length > 0) {
+		await db
+			.update(deployments)
+			.set({
+				status: "cancelled",
+				finishedAt: new Date().toISOString(),
+			})
+			.where(eq(deployments.status, "queued"));
+
+		// Collect unique service IDs
+		const applicationIds = [
+			...new Set(
+				queuedDeployments
+					.map((d) => d.applicationId)
+					.filter((id): id is string => !!id),
+			),
+		];
+		const composeIds = [
+			...new Set(
+				queuedDeployments
+					.map((d) => d.composeId)
+					.filter((id): id is string => !!id),
+			),
+		];
+		const previewDeploymentIds = [
+			...new Set(
+				queuedDeployments
+					.map((d) => d.previewDeploymentId)
+					.filter((id): id is string => !!id),
+			),
+		];
+
+		// Recompute aggregate status for each affected service
+		for (const appId of applicationIds) {
+			await updateServiceStatusFromActiveDeployments("applicationId", appId);
+		}
+
+		for (const composeId of composeIds) {
+			await updateServiceStatusFromActiveDeployments("composeId", composeId);
+		}
+
+		for (const previewId of previewDeploymentIds) {
+			await updateServiceStatusFromActiveDeployments(
+				"previewDeploymentId",
+				previewId,
+			);
+		}
+	}
+
 	return true;
 };
 

@@ -330,9 +330,7 @@ export const deployCompose = async ({
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateCompose(composeId, {
-			composeStatus: "done",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
 
 		await sendBuildSuccessNotifications({
 			projectName: compose.environment.project.name,
@@ -360,9 +358,8 @@ export const deployCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
+
 		await sendBuildErrorNotifications({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
@@ -465,9 +462,7 @@ export const rebuildCompose = async ({
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateCompose(composeId, {
-			composeStatus: "done",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
 	} catch (error) {
 		let command = "";
 
@@ -485,9 +480,8 @@ export const rebuildCompose = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
+
 		throw error;
 	}
 

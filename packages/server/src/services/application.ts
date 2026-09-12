@@ -256,7 +256,7 @@ export const deployApplication = async ({
 
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateApplicationStatus(applicationId, "done");
+		// Note: Service status is updated by processDeploymentJob with proper locking
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -284,7 +284,7 @@ export const deployApplication = async ({
 			await execAsync(command);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateApplicationStatus(applicationId, "error");
+		// Note: Service status is updated by processDeploymentJob with proper locking
 
 		await sendBuildErrorNotifications({
 			projectName: application.environment.project.name,
@@ -356,7 +356,7 @@ export const rebuildApplication = async ({
 		}
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateApplicationStatus(applicationId, "done");
+		// Note: Service status is updated by processDeploymentJob with proper locking
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -507,9 +507,7 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "done",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
 	} catch (error) {
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
@@ -517,9 +515,8 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${comment}`,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "error",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
+
 		throw error;
 	}
 
@@ -636,9 +633,7 @@ export const rebuildPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "done",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
 	} catch (error) {
 		let command = "";
 
@@ -663,9 +658,8 @@ export const rebuildPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${comment}`,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "error",
-		});
+		// Note: Service status is updated by processDeploymentJob with proper locking
+
 		throw error;
 	}
 
