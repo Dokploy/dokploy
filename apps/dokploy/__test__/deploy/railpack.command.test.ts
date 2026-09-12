@@ -45,6 +45,7 @@ describe("getRailpackCommand", () => {
 		const command = getRailpackCommand(createApplication(), localPlan());
 
 		expect(command).toContain("--build-arg secrets-hash=");
+		expect(command).toContain("network=host");
 		expect(command).not.toContain("cache-key=");
 	});
 
@@ -113,6 +114,7 @@ describe("getRailpackCommand", () => {
 
 		expect(command).toContain("--platform linux/amd64,linux/arm64");
 		expect(command).toContain("--push");
+		expect(command).toContain("network=host");
 		expect(command).not.toContain("--output type=docker");
 	});
 

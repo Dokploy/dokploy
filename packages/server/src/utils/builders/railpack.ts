@@ -93,7 +93,7 @@ export const getRailpackCommand = (
 	buildArgs.push(buildAppDirectory);
 
 	const createBuilder = ownsEphemeralBuilder
-		? `docker buildx create --name ${quotedBuilder} --driver docker-container || true`
+		? `docker buildx create --name ${quotedBuilder} --driver docker-container --driver-opt network=host || true`
 		: "";
 	const removeBuilder = ownsEphemeralBuilder
 		? `docker buildx rm ${quotedBuilder} || true`
