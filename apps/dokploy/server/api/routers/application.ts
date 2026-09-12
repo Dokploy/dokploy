@@ -41,6 +41,12 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import {
+	assertPersistedArchitecture,
+	BuildArchitectureError,
+	isPackBuildType,
+	mergePersistedArchitecture,
+} from "@dokploy/server/utils/builders/build-platform";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -523,6 +529,9 @@ export const applicationRouter = createTRPCRouter({
 				herokuVersion: input.herokuVersion,
 				isStaticSpa: input.isStaticSpa,
 				railpackVersion: input.railpackVersion,
+				...(isPackBuildType(input.buildType)
+					? { buildArchitecture: "host" as const, buildxBuilder: null }
+					: {}),
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
@@ -772,6 +781,26 @@ export const applicationRouter = createTRPCRouter({
 						message: "You are not authorized to access this build server",
 					});
 				}
+			}
+
+			const current = await findApplicationById(input.applicationId);
+			try {
+				assertPersistedArchitecture(
+					mergePersistedArchitecture(current, {
+						buildType: input.buildType,
+						buildArchitecture: input.buildArchitecture,
+						registryId: input.registryId,
+						buildRegistryId: input.buildRegistryId,
+					}),
+				);
+			} catch (error) {
+				if (error instanceof BuildArchitectureError) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: error.message,
+					});
+				}
+				throw error;
 			}
 
 			const { applicationId, ...rest } = input;
