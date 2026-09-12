@@ -28,6 +28,10 @@ export * from "./services/github";
 export * from "./services/gitlab";
 export * from "./services/libsql";
 export * from "./services/mariadb";
+export {
+	getModelRunnerCapability,
+	type ModelRunnerCapability,
+} from "./services/model-runner";
 export * from "./services/mongo";
 export * from "./services/mount";
 export * from "./services/mysql";
@@ -51,6 +55,10 @@ export * from "./services/rollbacks";
 export * from "./services/schedule";
 export * from "./services/security";
 export * from "./services/server";
+export {
+	getServerHardware,
+	type ServerHardware,
+} from "./services/server-hardware";
 export * from "./services/server-health";
 export * from "./services/settings";
 export * from "./services/ssh-key";
