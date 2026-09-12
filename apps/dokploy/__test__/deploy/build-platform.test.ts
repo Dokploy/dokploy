@@ -1,13 +1,9 @@
 import {
 	assertPersistedArchitecture,
 	BuildArchitectureError,
-	DEFAULT_MULTIARCH_BUILDER,
-	dockerfileBuilderName,
-	ensureMultiarchBuilderCommand,
 	mergePersistedArchitecture,
 	planArchitecture,
 	planPlatformArgs,
-	usesBuildx,
 } from "@dokploy/server/utils/builders/build-platform";
 import { describe, expect, it } from "vitest";
 
@@ -180,41 +176,5 @@ describe("assertPersistedArchitecture", () => {
 				),
 			),
 		).not.toThrow();
-	});
-});
-
-describe("dockerfile builder selection", () => {
-	it("creates dokploy-multiarch only when pushing without a named builder", () => {
-		const plan = {
-			platforms: ["linux/amd64", "linux/arm64"] as const,
-			builder: null,
-			createDefaultBuilder: true,
-			output: {
-				mode: "push" as const,
-				tags: ["ghcr.io/acme/app:latest"],
-				logins: "",
-			},
-		};
-		expect(dockerfileBuilderName(plan)).toBe(DEFAULT_MULTIARCH_BUILDER);
-		expect(ensureMultiarchBuilderCommand(plan)).toContain(
-			DEFAULT_MULTIARCH_BUILDER,
-		);
-		expect(ensureMultiarchBuilderCommand(plan)).toContain("network=host");
-		expect(usesBuildx(plan)).toBe(true);
-	});
-
-	it("does not create the default builder when the user named one", () => {
-		const plan = {
-			platforms: ["linux/amd64", "linux/arm64"] as const,
-			builder: "farm",
-			createDefaultBuilder: false,
-			output: {
-				mode: "push" as const,
-				tags: ["ghcr.io/acme/app:latest"],
-				logins: "",
-			},
-		};
-		expect(dockerfileBuilderName(plan)).toBe("farm");
-		expect(ensureMultiarchBuilderCommand(plan)).toBe("");
 	});
 });

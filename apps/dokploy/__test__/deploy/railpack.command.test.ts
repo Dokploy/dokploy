@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 const localPlan = (overrides: Partial<BuildPlan> = {}): BuildPlan => ({
 	platforms: [],
 	builder: null,
-	createDefaultBuilder: false,
 	output: { mode: "local", image: "test-app" },
 	...overrides,
 });
@@ -104,7 +103,6 @@ describe("getRailpackCommand", () => {
 		const command = getRailpackCommand(createApplication(), {
 			platforms: ["linux/amd64", "linux/arm64"],
 			builder: null,
-			createDefaultBuilder: false,
 			output: {
 				mode: "push",
 				tags: ["ghcr.io/acme/test-app:latest"],

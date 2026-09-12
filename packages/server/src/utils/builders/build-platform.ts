@@ -2,7 +2,6 @@ import {
 	BUILD_ARCHITECTURES,
 	type BuildArchitecture,
 } from "@dokploy/server/db/schema";
-import { quote } from "shell-quote";
 import {
 	collectRegistryPushTargets,
 	registryLoginCommands,
@@ -82,7 +81,6 @@ export type BuildOutput =
 export type BuildPlan = {
 	platforms: readonly string[];
 	builder: string | null;
-	createDefaultBuilder: boolean;
 	output: BuildOutput;
 };
 
@@ -157,7 +155,6 @@ export const resolveBuildPlan = async (
 		return {
 			platforms,
 			builder,
-			createDefaultBuilder: false,
 			output: { mode: "local", image: localImage },
 		};
 	}
@@ -181,7 +178,6 @@ export const resolveBuildPlan = async (
 	return {
 		platforms,
 		builder,
-		createDefaultBuilder: builder === null,
 		output: {
 			mode: "push",
 			tags: targets.map((target) => target.tag),
@@ -197,25 +193,4 @@ export const planPlatformArgs = (
 		return [];
 	}
 	return ["--platform", plan.platforms.join(",")];
-};
-
-export const dockerfileBuilderName = (plan: BuildPlan): string | null => {
-	if (plan.builder) {
-		return plan.builder;
-	}
-	if (plan.createDefaultBuilder) {
-		return DEFAULT_MULTIARCH_BUILDER;
-	}
-	return null;
-};
-
-export const usesBuildx = (plan: BuildPlan): boolean => {
-	return plan.output.mode === "push" || plan.builder !== null;
-};
-
-export const ensureMultiarchBuilderCommand = (plan: BuildPlan): string => {
-	if (!plan.createDefaultBuilder) {
-		return "";
-	}
-	return `docker buildx inspect ${quote([DEFAULT_MULTIARCH_BUILDER])} >/dev/null 2>&1 || docker buildx create --name ${quote([DEFAULT_MULTIARCH_BUILDER])} --driver docker-container --driver-opt network=host\n`;
 };

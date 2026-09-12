@@ -63,7 +63,6 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 	${getStaticCommand(application, {
 		platforms: [],
 		builder: null,
-		createDefaultBuilder: false,
 		output: { mode: "local", image: application.appName },
 	})}
 				`;

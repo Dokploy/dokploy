@@ -10,10 +10,8 @@ import {
 import type { ApplicationNested } from ".";
 import {
 	type BuildPlan,
-	dockerfileBuilderName,
-	ensureMultiarchBuilderCommand,
+	DEFAULT_MULTIARCH_BUILDER,
 	planPlatformArgs,
-	usesBuildx,
 } from "./build-platform";
 import { createEnvFileCommand } from "./utils";
 
@@ -40,8 +38,11 @@ export const getDockerCommand = (
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
 
-		const commandArgs = usesBuildx(plan) ? ["buildx", "build"] : ["build"];
-		const builder = dockerfileBuilderName(plan);
+		const useBuildx = plan.output.mode === "push" || plan.builder !== null;
+		const builder =
+			plan.builder ??
+			(plan.output.mode === "push" ? DEFAULT_MULTIARCH_BUILDER : null);
+		const commandArgs = useBuildx ? ["buildx", "build"] : ["build"];
 		if (builder) {
 			commandArgs.push("--builder", quote([builder]));
 		}
@@ -54,7 +55,7 @@ export const getDockerCommand = (
 			commandArgs.push("--push");
 		} else {
 			commandArgs.push("-t", plan.output.image);
-			if (usesBuildx(plan)) {
+			if (useBuildx) {
 				commandArgs.push("--load");
 			}
 		}
@@ -111,13 +112,18 @@ export const getDockerCommand = (
 			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
+		const createDefaultBuilder =
+			plan.output.mode === "push" && !plan.builder
+				? `docker buildx inspect ${quote([DEFAULT_MULTIARCH_BUILDER])} >/dev/null 2>&1 || docker buildx create --name ${quote([DEFAULT_MULTIARCH_BUILDER])} --driver docker-container --driver-opt network=host\n`
+				: "";
+
 		command += `
 echo ${quote([`Building ${appName}`])} ;
 cd ${quote([dockerContextPath])} || {
   echo ${quote([`❌ The path ${dockerContextPath} does not exist`])} ;
   exit 1;
 }
-${ensureMultiarchBuilderCommand(plan)}
+${createDefaultBuilder}
 ${joinedSecrets} docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;

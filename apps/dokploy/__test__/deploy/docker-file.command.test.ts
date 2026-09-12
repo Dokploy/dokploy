@@ -32,7 +32,6 @@ const createApplication = (
 const localPlan = (overrides: Partial<BuildPlan> = {}): BuildPlan => ({
 	platforms: [],
 	builder: null,
-	createDefaultBuilder: false,
 	output: { mode: "local", image: "test-app" },
 	...overrides,
 });
@@ -125,7 +124,6 @@ describe("getDockerCommand", () => {
 		const command = getDockerCommand(createApplication(), {
 			platforms: ["linux/amd64", "linux/arm64"],
 			builder: null,
-			createDefaultBuilder: true,
 			output: {
 				mode: "push",
 				tags: ["ghcr.io/acme/test-app:latest"],
@@ -143,6 +141,22 @@ describe("getDockerCommand", () => {
 		expect(command).toContain("ghcr.io/acme/test-app");
 		expect(command).not.toContain("docker build -t test-app");
 		expect(command).not.toContain("--load");
+	});
+
+	it("uses a named builder for multi-arch and does not create dokploy-multiarch", () => {
+		const command = getDockerCommand(createApplication(), {
+			platforms: ["linux/amd64", "linux/arm64"],
+			builder: "farm",
+			output: {
+				mode: "push",
+				tags: ["ghcr.io/acme/test-app:latest"],
+				logins: "",
+			},
+		});
+
+		expect(command).toContain("--builder farm");
+		expect(command).not.toContain("dokploy-multiarch");
+		expect(command).toContain("--push");
 	});
 
 	it("quotes a user-supplied builder name so it cannot break out of the command", () => {
