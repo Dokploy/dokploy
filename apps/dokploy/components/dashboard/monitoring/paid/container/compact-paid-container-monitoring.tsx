@@ -34,31 +34,30 @@ interface ContainerMetric {
 
 interface Props {
 	appName: string;
-	baseUrl: string;
-	token: string;
-	label?: string;
+	serverId: string;
+	serviceId?: string;
 }
 
 export const CompactPaidContainerMonitoring = ({
 	appName,
-	baseUrl,
-	token,
-	label,
+	serverId,
+	serviceId,
 }: Props) => {
 	const [historicalData, setHistoricalData] = useState<ContainerMetric[]>([]);
 
-	const { data, isLoading, error } = api.user.getContainerMetrics.useQuery(
-		{
-			url: baseUrl,
-			token,
-			dataPoints: "200",
-			appName,
-		},
-		{
-			refetchInterval: 10000,
-			enabled: !!appName && !!baseUrl && !!token,
-		},
-	);
+	const { data, isLoading, error } =
+		api.user.getContainerMetricsByServer.useQuery(
+			{
+				serverId,
+				appName,
+				dataPoints: "200",
+				serviceId,
+			},
+			{
+				refetchInterval: 10000,
+				enabled: !!appName && !!serverId,
+			},
+		);
 
 	useEffect(() => {
 		if (!data) return;
@@ -68,7 +67,7 @@ export const CompactPaidContainerMonitoring = ({
 
 	if (isLoading && historicalData.length === 0) {
 		return (
-			<div className="rounded-xl bg-background p-6 flex items-center justify-center gap-2 text-muted-foreground min-h-[200px]">
+			<div className="flex items-center justify-center gap-2 text-muted-foreground min-h-[200px] rounded-lg border">
 				<Loader2 className="size-4 animate-spin" />
 				<span className="text-sm">Loading metrics...</span>
 			</div>
@@ -77,29 +76,24 @@ export const CompactPaidContainerMonitoring = ({
 
 	if (error) {
 		return (
-			<div className="rounded-xl bg-background p-6 text-sm text-muted-foreground">
-				Unable to fetch metrics for {label || appName}.
+			<div className="rounded-lg border p-6 text-sm text-muted-foreground">
+				Unable to fetch metrics for {appName}.
+			</div>
+		);
+	}
+
+	if (historicalData.length === 0) {
+		return (
+			<div className="rounded-lg border p-6 text-sm text-muted-foreground">
+				No metrics available yet for {appName}.
 			</div>
 		);
 	}
 
 	return (
-		<div className="rounded-xl bg-background flex flex-col gap-4">
-			{label && (
-				<div className="space-y-1">
-					<h2 className="text-base font-semibold tracking-tight">{label}</h2>
-					<p className="text-sm text-muted-foreground">
-						Watch the usage of your server in the current app
-					</p>
-				</div>
-			)}
-
-			{historicalData.length > 0 && (
-				<div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-					<ContainerCPUChart data={historicalData} />
-					<ContainerMemoryChart data={historicalData} />
-				</div>
-			)}
+		<div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+			<ContainerCPUChart data={historicalData} />
+			<ContainerMemoryChart data={historicalData} />
 		</div>
 	);
 };

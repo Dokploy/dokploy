@@ -4,7 +4,8 @@ export type Services = {
 	serverId?: string | null;
 	serverName?: string | null;
 	serverIp?: string | null;
-	metricsConfig?: any;
+	metricsPort?: number | null;
+	metricsConfigured?: boolean;
 	name: string;
 	appName?: string | null;
 	replicas?: number;
@@ -27,6 +28,24 @@ export type Services = {
 };
 
 type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
+
+type ServerMetrics = {
+	name?: string | null;
+	ipAddress?: string | null;
+	metricsConfig?: {
+		server?: {
+			port?: number | null;
+			configured?: boolean;
+		};
+	} | null;
+} | null;
+
+const serverFields = (server: ServerMetrics) => ({
+	serverName: server?.name || null,
+	serverIp: server?.ipAddress || null,
+	metricsPort: server?.metricsConfig?.server?.port ?? null,
+	metricsConfigured: !!server?.metricsConfig?.server?.configured,
+});
 
 export const extractServicesFromEnvironment = (
 	environment: Environment | undefined,
@@ -61,9 +80,7 @@ export const extractServicesFromEnvironment = (
 				status: item.applicationStatus,
 				description: item.description,
 				serverId: item.serverId,
-				serverName: item?.server?.name || null,
-				serverIp: item?.server?.ipAddress || null,
-				metricsConfig: item?.server?.metricsConfig,
+				...serverFields(item?.server as ServerMetrics),
 				lastDeployDate,
 				icon: item.icon || null,
 			};
@@ -80,9 +97,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-			serverIp: item?.server?.ipAddress || null,
-			metricsConfig: item?.server?.metricsConfig,
+			...serverFields(item?.server as ServerMetrics),
 		})) || [];
 
 	const postgres: Services[] =
@@ -96,9 +111,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-			serverIp: item?.server?.ipAddress || null,
-			metricsConfig: item?.server?.metricsConfig,
+			...serverFields(item?.server as ServerMetrics),
 		})) || [];
 
 	const mongo: Services[] =
@@ -112,9 +125,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-			serverIp: item?.server?.ipAddress || null,
-			metricsConfig: item?.server?.metricsConfig,
+			...serverFields(item?.server as ServerMetrics),
 		})) || [];
 
 	const redis: Services[] =
@@ -128,9 +139,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-			serverIp: item?.server?.ipAddress || null,
-			metricsConfig: item?.server?.metricsConfig,
+			...serverFields(item?.server as ServerMetrics),
 		})) || [];
 
 	const mysql: Services[] =
@@ -144,9 +153,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-			serverIp: item?.server?.ipAddress || null,
-			metricsConfig: item?.server?.metricsConfig,
+			...serverFields(item?.server as ServerMetrics),
 		})) || [];
 
 	const compose: Services[] =
@@ -175,9 +182,7 @@ export const extractServicesFromEnvironment = (
 				status: item.composeStatus,
 				description: item.description,
 				serverId: item.serverId,
-				serverName: item?.server?.name || null,
-				serverIp: item?.server?.ipAddress || null,
-				metricsConfig: item?.server?.metricsConfig,
+				...serverFields(item?.server as ServerMetrics),
 				lastDeployDate,
 				icon: item.icon || null,
 			};
@@ -194,9 +199,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-			serverIp: item?.server?.ipAddress || null,
-			metricsConfig: item?.server?.metricsConfig,
+			...serverFields(item?.server as ServerMetrics),
 		})) || [];
 
 	allServices.push(

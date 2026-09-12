@@ -46,13 +46,15 @@ const defaultData: DockerStats = {
 interface Props {
 	appName: string;
 	appType?: "application" | "stack" | "docker-compose";
-	label?: string;
+	serviceId?: string;
+	containerId?: string;
 }
 
 export const CompactContainerMonitoring = ({
 	appName,
 	appType = "application",
-	label,
+	serviceId,
+	containerId,
 }: Props) => {
 	const { data } = api.application.readAppMonitoring.useQuery(
 		{ appName },
@@ -79,7 +81,7 @@ export const CompactContainerMonitoring = ({
 			network: [],
 			disk: [],
 		});
-	}, [appName]);
+	}, [appName, containerId]);
 
 	useEffect(() => {
 		if (!data) return;
@@ -104,7 +106,17 @@ export const CompactContainerMonitoring = ({
 		if (!appName) return;
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
+		const params = new URLSearchParams({
+			appName,
+			appType,
+		});
+		if (serviceId) {
+			params.set("serviceId", serviceId);
+		}
+		if (containerId) {
+			params.set("containerId", containerId);
+		}
+		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?${params.toString()}`;
 		const ws = new WebSocket(wsUrl);
 
 		ws.onmessage = (e) => {
@@ -140,71 +152,60 @@ export const CompactContainerMonitoring = ({
 		};
 
 		return () => ws.close();
-	}, [appName, appType]);
+	}, [appName, appType, serviceId, containerId]);
 
 	return (
-		<div className="rounded-xl bg-background flex flex-col gap-4">
-			{label && (
-				<div className="space-y-1">
-					<h2 className="text-base font-semibold tracking-tight">{label}</h2>
-					<p className="text-sm text-muted-foreground">
-						Watch the usage of your server in the current app
-					</p>
-				</div>
-			)}
-
-			<div className="grid gap-6 lg:grid-cols-2">
-				<Card className="bg-background">
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-col gap-2 w-full">
-							<span className="text-sm text-muted-foreground">
-								Used: {String(currentData.cpu.value ?? "0%")}
-							</span>
-							<Progress
-								value={Number.parseInt(
-									String(currentData.cpu.value ?? "0%").replace("%", ""),
-									10,
-								)}
-								className="w-full"
-							/>
-							<DockerCpuChart accumulativeData={accumulativeData.cpu} />
-						</div>
-					</CardContent>
-				</Card>
-				<Card className="bg-background">
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-						<CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-col gap-2 w-full">
-							<span className="text-sm text-muted-foreground">
-								{`Used:  ${currentData.memory.value.used} / Limit: ${currentData.memory.value.total} `}
-							</span>
-							<Progress
-								value={
+		<div className="grid gap-6 lg:grid-cols-2">
+			<Card className="bg-background">
+				<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+					<CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-col gap-2 w-full">
+						<span className="text-sm text-muted-foreground">
+							Used: {String(currentData.cpu.value ?? "0%")}
+						</span>
+						<Progress
+							value={Number.parseInt(
+								String(currentData.cpu.value ?? "0%").replace("%", ""),
+								10,
+							)}
+							className="w-full"
+						/>
+						<DockerCpuChart accumulativeData={accumulativeData.cpu} />
+					</div>
+				</CardContent>
+			</Card>
+			<Card className="bg-background">
+				<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+					<CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-col gap-2 w-full">
+						<span className="text-sm text-muted-foreground">
+							{`Used:  ${currentData.memory.value.used} / Limit: ${currentData.memory.value.total} `}
+						</span>
+						<Progress
+							value={
+								// @ts-ignore
+								(convertMemoryToBytes(currentData.memory.value.used) /
 									// @ts-ignore
-									(convertMemoryToBytes(currentData.memory.value.used) /
-										// @ts-ignore
-										convertMemoryToBytes(currentData.memory.value.total)) *
-									100
-								}
-								className="w-full"
-							/>
-							<DockerMemoryChart
-								accumulativeData={accumulativeData.memory}
-								memoryLimitGB={
-									// @ts-ignore
-									convertMemoryToBytes(currentData.memory.value.total) /
-									1024 ** 3
-								}
-							/>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
+									convertMemoryToBytes(currentData.memory.value.total)) *
+								100
+							}
+							className="w-full"
+						/>
+						<DockerMemoryChart
+							accumulativeData={accumulativeData.memory}
+							memoryLimitGB={
+								// @ts-ignore
+								convertMemoryToBytes(currentData.memory.value.total) /
+								1024 ** 3
+							}
+						/>
+					</div>
+				</CardContent>
+			</Card>
 		</div>
 	);
 };
