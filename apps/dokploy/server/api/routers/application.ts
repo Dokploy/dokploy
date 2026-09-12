@@ -41,7 +41,11 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
-import { isPackBuildType } from "@dokploy/server/utils/builders/build-platform";
+import {
+	assertPersistedArchitecture,
+	BuildArchitectureError,
+	isPackBuildType,
+} from "@dokploy/server/utils/builders/build-platform";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -524,6 +528,9 @@ export const applicationRouter = createTRPCRouter({
 				herokuVersion: input.herokuVersion,
 				isStaticSpa: input.isStaticSpa,
 				railpackVersion: input.railpackVersion,
+				...(isPackBuildType(input.buildType)
+					? { buildArchitecture: "host" as const, buildxBuilder: null }
+					: {}),
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
@@ -775,33 +782,29 @@ export const applicationRouter = createTRPCRouter({
 				}
 			}
 
-			if (input.buildArchitecture && input.buildArchitecture !== "host") {
-				const current = await findApplicationById(input.applicationId);
-				const buildType = input.buildType ?? current.buildType;
-				if (isPackBuildType(buildType)) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
-					});
-				}
-				if (input.buildArchitecture === "multi") {
-					const registryId =
+			const current = await findApplicationById(input.applicationId);
+			try {
+				assertPersistedArchitecture({
+					buildType: input.buildType ?? current.buildType,
+					buildArchitecture:
+						input.buildArchitecture ?? current.buildArchitecture,
+					registryId:
 						input.registryId === undefined
 							? current.registryId
-							: input.registryId;
-					const buildRegistryId =
+							: input.registryId,
+					buildRegistryId:
 						input.buildRegistryId === undefined
 							? current.buildRegistryId
-							: input.buildRegistryId;
-					if (!registryId && !buildRegistryId) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message:
-								"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.",
-						});
-					}
+							: input.buildRegistryId,
+				});
+			} catch (error) {
+				if (error instanceof BuildArchitectureError) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: error.message,
+					});
 				}
+				throw error;
 			}
 
 			const { applicationId, ...rest } = input;

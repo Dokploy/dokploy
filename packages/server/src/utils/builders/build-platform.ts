@@ -32,6 +32,31 @@ export const isPackBuildType = (
 	return (PACK_BUILD_TYPES as readonly string[]).includes(buildType);
 };
 
+export const assertPersistedArchitecture = (input: {
+	buildType: string;
+	buildArchitecture: BuildArchitecture;
+	registryId: string | null | undefined;
+	buildRegistryId: string | null | undefined;
+}): void => {
+	if (input.buildArchitecture === "host") {
+		return;
+	}
+	if (isPackBuildType(input.buildType)) {
+		throw new BuildArchitectureError(
+			"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
+		);
+	}
+	if (
+		input.buildArchitecture === "multi" &&
+		!input.registryId &&
+		!input.buildRegistryId
+	) {
+		throw new BuildArchitectureError(
+			"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.",
+		);
+	}
+};
+
 export type BuildOutput =
 	| { mode: "local"; image: string }
 	| { mode: "push"; tags: string[]; logins: string };

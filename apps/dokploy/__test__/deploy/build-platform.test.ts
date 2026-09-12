@@ -1,4 +1,5 @@
 import {
+	assertPersistedArchitecture,
 	BuildArchitectureError,
 	DEFAULT_MULTIARCH_BUILDER,
 	dockerfileBuilderName,
@@ -95,6 +96,41 @@ describe("planArchitecture", () => {
 		});
 		expect(plan.architecture).toBe("host");
 		expect(plan.platforms).toEqual([]);
+	});
+});
+
+describe("assertPersistedArchitecture", () => {
+	it("allows host with any builder and no registry", () => {
+		expect(() =>
+			assertPersistedArchitecture({
+				buildType: "nixpacks",
+				buildArchitecture: "host",
+				registryId: null,
+				buildRegistryId: null,
+			}),
+		).not.toThrow();
+	});
+
+	it("rejects pack builders with a pinned architecture", () => {
+		expect(() =>
+			assertPersistedArchitecture({
+				buildType: "nixpacks",
+				buildArchitecture: "amd64",
+				registryId: "r1",
+				buildRegistryId: null,
+			}),
+		).toThrow(BuildArchitectureError);
+	});
+
+	it("rejects multi-arch after both run registries are cleared", () => {
+		expect(() =>
+			assertPersistedArchitecture({
+				buildType: "dockerfile",
+				buildArchitecture: "multi",
+				registryId: null,
+				buildRegistryId: null,
+			}),
+		).toThrow(/cluster registry or a build registry/);
 	});
 });
 
