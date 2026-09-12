@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { ssh, MockClient } = vi.hoisted(() => {
 	class MockStream {
+		signal = vi.fn();
 		close = vi.fn(() => {
 			this.closed = true;
 		});
@@ -27,12 +28,23 @@ const { ssh, MockClient } = vi.hoisted(() => {
 			return this;
 		}
 
+		stderrHandlers: Array<(...args: unknown[]) => void> = [];
 		stderr = {
-			on: (_event: string, _cb: (...args: unknown[]) => void) => this,
+			on: (_event: string, cb: (...args: unknown[]) => void) => {
+				this.stderrHandlers.push(cb);
+				return this;
+			},
 		};
+		emitStderr(data: string) {
+			for (const cb of this.stderrHandlers) cb(data);
+		}
 
 		emitClose(code: number) {
 			for (const cb of this.handlers.close ?? []) cb(code, null);
+		}
+
+		emitError(error: Error) {
+			for (const cb of this.handlers.error ?? []) cb(error);
 		}
 
 		emitData(data: string) {
@@ -45,6 +57,9 @@ const { ssh, MockClient } = vi.hoisted(() => {
 		destroyed = false;
 		execCommand = "";
 		execShouldFail: Error | null = null;
+		execShouldThrow: Error | null = null;
+		deferExec = false;
+		execCallback?: (err: Error | null, stream: MockStream) => void;
 		stream = new MockStream();
 		end = vi.fn(() => {
 			this.ended = true;
@@ -69,11 +84,17 @@ const { ssh, MockClient } = vi.hoisted(() => {
 		}
 
 		connect() {
+			if (ssh.connectError) throw ssh.connectError;
 			return this;
 		}
 
 		exec(command: string, cb: (err: Error | null, stream: MockStream) => void) {
 			this.execCommand = command;
+			if (this.execShouldThrow) throw this.execShouldThrow;
+			if (this.deferExec) {
+				this.execCallback = cb;
+				return;
+			}
 			if (this.execShouldFail) {
 				cb(this.execShouldFail, this.stream);
 				return;
@@ -90,7 +111,10 @@ const { ssh, MockClient } = vi.hoisted(() => {
 		}
 	}
 
-	const ssh = { instances: [] as MockClient[] };
+	const ssh = {
+		instances: [] as MockClient[],
+		connectError: null as Error | null,
+	};
 	return { ssh, MockClient };
 });
 
@@ -173,6 +197,7 @@ describe("execAsyncRemote timeout", () => {
 
 	beforeEach(() => {
 		ssh.instances.length = 0;
+		ssh.connectError = null;
 		vi.mocked(findServerById).mockReset();
 		vi.mocked(findServerById).mockResolvedValue(server as never);
 		vi.useFakeTimers();
@@ -212,9 +237,10 @@ describe("execAsyncRemote timeout", () => {
 		await flush();
 		const client = ssh.instances[0];
 		client?.emitReady();
-		expect(client?.execCommand).toBe("nvidia-smi");
+		expect(client?.execCommand).toContain("nvidia-smi");
 		await vi.advanceTimersByTimeAsync(1000);
 		await rejected;
+		expect(client?.stream.signal).toHaveBeenCalledWith("KILL");
 		expect(client?.stream.close).toHaveBeenCalledTimes(1);
 		expect(client?.end).toHaveBeenCalledTimes(1);
 		client?.stream.emitClose(0);
@@ -231,6 +257,7 @@ describe("execAsyncRemote timeout", () => {
 		client?.stream.emitClose(0);
 		await expect(pending).resolves.toEqual({ stdout: "", stderr: "" });
 		expect(vi.getTimerCount()).toBeLessThan(timersBeforeClose);
+		expect(vi.getTimerCount()).toBe(0);
 	});
 
 	it("resolves on success and does not reject later when the timer would have fired", async () => {
@@ -301,6 +328,103 @@ describe("execAsyncRemote timeout", () => {
 		await rejected;
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(client?.end).toHaveBeenCalled();
+	});
+
+	it("cleans timers and clients when connect throws synchronously", async () => {
+		ssh.connectError = new Error("invalid key");
+		await expect(startRemote()).rejects.toMatchObject({
+			message: "SSH connection failed",
+		});
+		expect(vi.getTimerCount()).toBe(0);
+		expect(ssh.instances[0]?.destroy).toHaveBeenCalledOnce();
+	});
+
+	it("cleans timers and clients when exec throws synchronously", async () => {
+		const pending = startRemote();
+		const rejected = expect(pending).rejects.toMatchObject({
+			message: "Remote command execution failed",
+		});
+		await flush();
+		const client = ssh.instances[0];
+		if (client) client.execShouldThrow = new Error("channel unavailable");
+		client?.emitReady();
+		await rejected;
+		expect(vi.getTimerCount()).toBe(0);
+		expect(client?.destroy).toHaveBeenCalledOnce();
+	});
+
+	it("closes a late channel even when its signal method throws", async () => {
+		const pending = startRemote();
+		const rejected = expect(pending).rejects.toBeInstanceOf(ExecError);
+		await flush();
+		const client = ssh.instances[0];
+		if (client) client.deferExec = true;
+		client?.emitReady();
+		await vi.advanceTimersByTimeAsync(1000);
+		await rejected;
+		client?.stream.signal.mockImplementation(() => {
+			throw new Error("closed transport");
+		});
+		if (client) client.execCallback?.(null, client.stream);
+		expect(client?.stream.close).toHaveBeenCalledOnce();
+		expect(client?.stream.destroy).toHaveBeenCalledOnce();
+		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	it("preserves both partial streams and ignores late output and errors", async () => {
+		const onData = vi.fn();
+		const pending = startRemote(onData);
+		const rejected = expect(pending).rejects.toMatchObject({
+			stdout: "out",
+			stderr: "err",
+		});
+		await flush();
+		const client = ssh.instances[0];
+		client?.emitReady();
+		client?.stream.emitData("out");
+		client?.stream.emitStderr("err");
+		await vi.advanceTimersByTimeAsync(1000);
+		await rejected;
+		client?.stream.emitData("late out");
+		client?.stream.emitStderr("late err");
+		client?.emitError(new Error("late error"));
+		client?.stream.emitError(new Error("late stream error"));
+		client?.stream.emitClose(0);
+		expect(onData.mock.calls).toEqual([["out"], ["err"]]);
+		expect(client?.end).toHaveBeenCalledTimes(1);
+		expect(client?.destroy).toHaveBeenCalledTimes(1);
+		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	it.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+		"does not wrap commands without a positive finite timeout: %s",
+		async (timeout) => {
+			const pending = execAsyncRemote(
+				"server-1",
+				"original command",
+				undefined,
+				{ timeout },
+			);
+			await flush();
+			const client = ssh.instances[0];
+			client?.emitReady();
+			expect(client?.execCommand).toBe("original command");
+			expect(vi.getTimerCount()).toBe(0);
+			client?.stream.emitClose(0);
+			await pending;
+			expect(client?.stream.signal).not.toHaveBeenCalled();
+		},
+	);
+
+	it("keeps a normal nonzero exit distinct from timeout", async () => {
+		const pending = startRemote();
+		const rejected = expect(pending).rejects.toMatchObject({ exitCode: 7 });
+		await flush();
+		const client = ssh.instances[0];
+		client?.emitReady();
+		client?.stream.emitClose(7);
+		await rejected;
+		expect(vi.getTimerCount()).toBe(0);
 	});
 
 	it("still delivers onData chunks if the command hangs afterward", async () => {

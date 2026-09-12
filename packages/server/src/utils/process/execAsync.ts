@@ -1,8 +1,9 @@
 import { type ChildProcess, exec, execFile, spawn } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
-import { Client } from "ssh2";
+import { Client, type ClientChannel } from "ssh2";
 import { ExecError } from "./ExecError";
+import { withRemoteDeadline } from "./remote-deadline";
 
 export class WriteFileRemoteError extends Error {
 	constructor(
@@ -129,7 +130,7 @@ export const execAsync = async (
 	options?: ExecAsyncOptions,
 ): Promise<{ stdout: string; stderr: string }> => {
 	const timeout = options?.timeout;
-	if (timeout != null && timeout > 0) {
+	if (timeout != null && Number.isFinite(timeout) && timeout > 0) {
 		return execAsyncTimed(command, { ...options, timeout });
 	}
 
@@ -271,12 +272,39 @@ export const execAsyncRemote = async (
 
 	let stdout = "";
 	let stderr = "";
-	const timeoutMs = options?.timeout;
+	const requestedTimeout = options?.timeout;
+	const timeoutMs =
+		requestedTimeout != null &&
+		Number.isFinite(requestedTimeout) &&
+		requestedTimeout > 0
+			? requestedTimeout
+			: undefined;
+	const started = Date.now();
 	return new Promise((resolve, reject) => {
 		const conn = new Client();
-		let stream: { close: () => void; destroy: () => void } | undefined;
+		let stream: ClientChannel | undefined;
 		let settled = false;
 		let timer: ReturnType<typeof setTimeout> | undefined;
+
+		const closeStream = (channel?: ClientChannel) => {
+			if (timeoutMs !== undefined) {
+				try {
+					channel?.signal("KILL");
+				} catch {
+					/* remote watchdog owns cleanup */
+				}
+			}
+			try {
+				channel?.close();
+			} catch {
+				/* already closed */
+			}
+			try {
+				channel?.destroy();
+			} catch {
+				/* already destroyed */
+			}
+		};
 
 		const settle = (
 			error?: ExecError,
@@ -289,16 +317,7 @@ export const execAsyncRemote = async (
 				timer = undefined;
 			}
 			if (error) {
-				try {
-					stream?.close();
-				} catch {
-					// already closed
-				}
-				try {
-					stream?.destroy();
-				} catch {
-					// already destroyed
-				}
+				closeStream(stream);
 				try {
 					conn.end();
 				} catch {
@@ -333,110 +352,158 @@ export const execAsyncRemote = async (
 			}, timeoutMs);
 		}
 
-		sleep(1000);
-		conn
-			.once("ready", () => {
-				if (settled) return;
-				conn.exec(command, (err, commandStream) => {
-					if (settled) {
-						try {
-							commandStream?.close();
-						} catch {
-							// already closed
-						}
-						return;
-					}
-					if (err) {
-						onData?.(err.message);
+		try {
+			conn
+				.once("ready", () => {
+					if (settled) return;
+					const remoteCommand =
+						timeoutMs === undefined
+							? command
+							: withRemoteDeadline(
+									command,
+									Math.max(1, timeoutMs - (Date.now() - started)),
+								);
+					try {
+						conn.exec(remoteCommand, (err, commandStream) => {
+							if (settled) {
+								closeStream(commandStream);
+								return;
+							}
+							if (err) {
+								onData?.(err.message);
+								settle(
+									new ExecError(
+										`Remote command execution failed: ${err.message}`,
+										{
+											command,
+											serverId,
+											originalError: err,
+										},
+									),
+								);
+								return;
+							}
+							stream = commandStream;
+							commandStream
+								.on("error", (error: Error) => {
+									if (settled) return;
+									settle(
+										new ExecError(
+											`Remote command stream failed: ${error.message}`,
+											{
+												command,
+												stdout,
+												stderr,
+												serverId,
+												originalError: error,
+											},
+										),
+									);
+								})
+								.on("close", (code: number, _signal: string) => {
+									if (code === 0) {
+										settle(undefined, { stdout, stderr });
+									} else {
+										settle(
+											new ExecError(
+												`Remote command failed with exit code ${code}`,
+												{
+													command,
+													stdout,
+													stderr,
+													exitCode: code,
+													serverId,
+												},
+											),
+										);
+									}
+								})
+								.on("data", (data: string) => {
+									if (settled) return;
+									stdout += data.toString();
+									onData?.(data.toString());
+								})
+								.stderr.on("data", (data) => {
+									if (settled) return;
+									stderr += data.toString();
+									onData?.(data.toString());
+								});
+						});
+					} catch (error) {
 						settle(
-							new ExecError(`Remote command execution failed: ${err.message}`, {
+							new ExecError("Remote command execution failed", {
+								command,
+								stdout,
+								stderr,
+								serverId,
+								originalError: error instanceof Error ? error : undefined,
+							}),
+						);
+					}
+				})
+				.on("error", (err) => {
+					if (settled) return;
+					if (err.level === "client-authentication") {
+						const technicalDetail = `Error: ${err.message} ${err.level}`;
+						const friendlyMessage = [
+							"",
+							"❌ Couldn't connect to your server — the SSH key was not accepted.",
+							"",
+							"This usually means the key doesn't match what's on the server, or the key format is invalid.",
+							"",
+							`Technical details: ${technicalDetail}`,
+							"",
+							"💡 Hints:",
+							"  • Check that the SSH key you added in Dokploy is the same one installed on the server (e.g. in ~/.ssh/authorized_keys).",
+							"  • Try generating a new SSH key in Dokploy and add only the public key to the server, then try again.",
+							"  • Make sure to follow the instructions on the Setup Server Button on the SSH Keys tab and then click on deployments tab and check the logs for more details.",
+						].join("\n");
+						onData?.(friendlyMessage);
+						settle(
+							new ExecError(
+								`Authentication failed: Invalid SSH private key. ${friendlyMessage}`,
+								{
+									command,
+									serverId,
+									originalError: err,
+								},
+							),
+						);
+					} else {
+						const errorMsg = `SSH connection error: ${err.message}`;
+						onData?.(errorMsg);
+						settle(
+							new ExecError(errorMsg, {
+								stdout,
+								stderr,
 								command,
 								serverId,
 								originalError: err,
 							}),
 						);
-						return;
 					}
-					stream = commandStream;
-					commandStream
-						.on("close", (code: number, _signal: string) => {
-							if (code === 0) {
-								settle(undefined, { stdout, stderr });
-							} else {
-								settle(
-									new ExecError(
-										`Remote command failed with exit code ${code}`,
-										{
-											command,
-											stdout,
-											stderr,
-											exitCode: code,
-											serverId,
-										},
-									),
-								);
-							}
-						})
-						.on("data", (data: string) => {
-							stdout += data.toString();
-							onData?.(data.toString());
-						})
-						.stderr.on("data", (data) => {
-							stderr += data.toString();
-							onData?.(data.toString());
-						});
+				})
+				.connect({
+					host: server.ipAddress,
+					port: server.port,
+					username: server.username,
+					privateKey: server.sshKey?.privateKey,
+					timeout: timeoutMs != null && timeoutMs > 0 ? timeoutMs : 99999,
+					...(timeoutMs != null && timeoutMs > 0
+						? { readyTimeout: timeoutMs }
+						: {}),
 				});
-			})
-			.on("error", (err) => {
-				if (settled) return;
-				if (err.level === "client-authentication") {
-					const technicalDetail = `Error: ${err.message} ${err.level}`;
-					const friendlyMessage = [
-						"",
-						"❌ Couldn't connect to your server — the SSH key was not accepted.",
-						"",
-						"This usually means the key doesn't match what's on the server, or the key format is invalid.",
-						"",
-						`Technical details: ${technicalDetail}`,
-						"",
-						"💡 Hints:",
-						"  • Check that the SSH key you added in Dokploy is the same one installed on the server (e.g. in ~/.ssh/authorized_keys).",
-						"  • Try generating a new SSH key in Dokploy and add only the public key to the server, then try again.",
-						"  • Make sure to follow the instructions on the Setup Server Button on the SSH Keys tab and then click on deployments tab and check the logs for more details.",
-					].join("\n");
-					onData?.(friendlyMessage);
-					settle(
-						new ExecError(
-							`Authentication failed: Invalid SSH private key. ${friendlyMessage}`,
-							{
-								command,
-								serverId,
-								originalError: err,
-							},
-						),
-					);
-				} else {
-					const errorMsg = `SSH connection error: ${err.message}`;
-					onData?.(errorMsg);
-					settle(
-						new ExecError(errorMsg, {
-							command,
-							serverId,
-							originalError: err,
-						}),
-					);
-				}
-			})
-			.connect({
-				host: server.ipAddress,
-				port: server.port,
-				username: server.username,
-				privateKey: server.sshKey?.privateKey,
-				timeout: timeoutMs != null && timeoutMs > 0 ? timeoutMs : 99999,
-				...(timeoutMs != null && timeoutMs > 0
-					? { readyTimeout: timeoutMs }
-					: {}),
-			});
+		} catch (error) {
+			settle(
+				new ExecError("SSH connection failed", {
+					command,
+					stdout,
+					stderr,
+					serverId,
+					originalError: error instanceof Error ? error : undefined,
+				}),
+			);
+		}
 	});
 };
 
