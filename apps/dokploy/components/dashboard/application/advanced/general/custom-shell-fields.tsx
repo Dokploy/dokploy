@@ -68,6 +68,9 @@ export const CustomShellFields = ({ control }: CustomShellFieldsProps) => {
 			<p className="text-sm text-muted-foreground">
 				Dokploy ignores Args in this mode. Stored args stay saved.
 			</p>
+			<p className="text-sm text-muted-foreground">
+				The image must include the selected shell.
+			</p>
 		</>
 	);
 };

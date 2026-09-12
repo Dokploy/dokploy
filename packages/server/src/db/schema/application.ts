@@ -555,4 +555,31 @@ export const apiUpdateApplication = createSchema
 	.extend({
 		applicationId: z.string().min(1),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true })
+	.superRefine((data, ctx) => {
+		if (data.customCommand !== undefined && data.customCommand !== null) {
+			const trimmed = data.customCommand.trim();
+			if (trimmed.length === 0) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["customCommand"],
+					message: "Enter a script",
+				});
+			} else if (trimmed.length > 20000) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["customCommand"],
+					message: "Script must be 20000 characters or less",
+				});
+			}
+		}
+		if (data.customShell !== undefined && data.customShell !== null) {
+			if (data.customCommand === undefined || data.customCommand === null) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["customCommand"],
+					message: "Enter a script",
+				});
+			}
+		}
+	});

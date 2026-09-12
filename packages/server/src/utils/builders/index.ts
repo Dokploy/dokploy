@@ -78,9 +78,10 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	return command;
 };
 
+// Custom wins over legacy command plus args when a script is present; legacy fields stay stored.
 export const buildCustomShellCommand = (
-	customCommand?: string | null,
-	customShell?: string | null,
+	customCommand: string | null | undefined,
+	customShell: "sh" | "bash" | null | undefined,
 ) => {
 	if (!customCommand?.trim()) {
 		return null;
@@ -102,7 +103,10 @@ export const buildContainerCommand = (
 ) => {
 	const { command, args, customCommand, customShell } = application;
 	return (
-		buildCustomShellCommand(customCommand, customShell) ?? {
+		buildCustomShellCommand(
+			customCommand,
+			customShell as "sh" | "bash" | null | undefined,
+		) ?? {
 			...(command && {
 				Command: command.split(" "),
 			}),

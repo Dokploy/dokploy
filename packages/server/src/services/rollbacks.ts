@@ -295,7 +295,10 @@ export const rollbackApplication = async (
 				Image: rollbackImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount],
-				...(buildCustomShellCommand(customCommand, customShell) ??
+				...(buildCustomShellCommand(
+					customCommand,
+					customShell as "sh" | "bash" | null | undefined,
+				) ??
 					(command
 						? {
 								Command: ["/bin/sh"],
