@@ -1,4 +1,4 @@
-import type { OverviewService } from "@dokploy/server/services/overview-shared";
+import { getOverviewServiceHref } from "@dokploy/server/services/overview-shared";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -24,14 +24,6 @@ interface Props {
 	isCollapsed: boolean;
 }
 
-// Application/compose keep deployment logs under their deployments tab; databases only have a general page.
-const serviceHref = (service: OverviewService) => {
-	const base = `/dashboard/project/${service.projectId}/environment/${service.environmentId}/services/${service.type}/${service.id}`;
-	return service.type === "application" || service.type === "compose"
-		? `${base}?tab=deployments`
-		: base;
-};
-
 export const ActiveDeployments = ({ isCollapsed }: Props) => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: active } = api.overview.services.useQuery(
@@ -46,6 +38,8 @@ export const ActiveDeployments = ({ isCollapsed }: Props) => {
 	if (!active || active.length === 0) {
 		return null;
 	}
+
+	const canReadDeployments = !!permissions?.deployment.read;
 
 	const label = `${active.length} Active ${active.length === 1 ? "Deployment" : "Deployments"}`;
 	const single = active.length === 1 ? active[0] : null;
@@ -62,7 +56,7 @@ export const ActiveDeployments = ({ isCollapsed }: Props) => {
 			asChild={!!single}
 		>
 			{single ? (
-				<Link href={serviceHref(single)}>
+				<Link href={getOverviewServiceHref(single, { canReadDeployments })}>
 					<ActiveDeploymentsIcon
 						count={active.length}
 						isCollapsed={isCollapsed}
@@ -108,7 +102,7 @@ export const ActiveDeployments = ({ isCollapsed }: Props) => {
 					{active.map((service) => (
 						<DropdownMenuItem key={service.id} asChild>
 							<Link
-								href={serviceHref(service)}
+								href={getOverviewServiceHref(service, { canReadDeployments })}
 								className="flex items-center gap-2 cursor-pointer"
 							>
 								<OverviewServiceIcon

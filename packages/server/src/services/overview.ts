@@ -10,6 +10,7 @@ import {
 	environments,
 	libsql,
 	mariadb,
+	member,
 	mongo,
 	mysql,
 	postgres,
@@ -19,7 +20,8 @@ import {
 	server as serverTable,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
-import { and, desc, eq, inArray, isNull, max, or } from "drizzle-orm";
+import { hasPermission } from "@dokploy/server/services/permission";
+import { and, desc, eq, inArray, isNull, max, or, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type {
 	OverviewBackup,
@@ -51,12 +53,7 @@ type TypeQueryConfig = {
 export type OverviewServiceStatus =
 	(typeof applicationStatus.enumValues)[number];
 
-async function getServicesOfType(
-	config: TypeQueryConfig,
-	orgId: string,
-	accessedServices: string[] | null,
-	status?: OverviewServiceStatus,
-): Promise<OverviewService[]> {
+function serviceTypeColumns(config: TypeQueryConfig) {
 	const table = config.table as typeof applications;
 	const idCol = (table as unknown as Record<string, unknown>)[
 		config.idColumn.name
@@ -64,16 +61,41 @@ async function getServicesOfType(
 	const statusCol = (table as unknown as Record<string, unknown>)[
 		config.statusColumn.name
 	] as typeof applications.applicationStatus;
+	return { table, idCol, statusCol };
+}
+
+function serviceTypeConditions(
+	config: TypeQueryConfig,
+	orgId: string,
+	accessedServices: string[] | null,
+	status?: OverviewServiceStatus,
+) {
+	const { idCol, statusCol } = serviceTypeColumns(config);
+	return [
+		eq(projects.organizationId, orgId),
+		...(accessedServices !== null ? [inArray(idCol, accessedServices)] : []),
+		...(status ? [eq(statusCol, status)] : []),
+	];
+}
+
+async function getServicesOfType(
+	config: TypeQueryConfig,
+	orgId: string,
+	accessedServices: string[] | null,
+	status?: OverviewServiceStatus,
+): Promise<OverviewService[]> {
+	const { table, idCol, statusCol } = serviceTypeColumns(config);
 	const iconCol = config.hasIcon
 		? ((table as unknown as Record<string, unknown>)
 				.icon as typeof applications.icon)
 		: null;
 
-	const conditions = [
-		eq(projects.organizationId, orgId),
-		...(accessedServices !== null ? [inArray(idCol, accessedServices)] : []),
-		...(status ? [eq(statusCol, status)] : []),
-	];
+	const conditions = serviceTypeConditions(
+		config,
+		orgId,
+		accessedServices,
+		status,
+	);
 
 	const baseSelect = {
 		id: idCol,
@@ -248,6 +270,86 @@ export const getAllServicesForOrganization = async (
 	);
 
 	return attachLastDeployAt(results.flat());
+};
+
+/**
+ * Count-only counterpart of getAllServicesForOrganization for the same scoping rules;
+ * skips the display/enrichment joins since callers only need the number.
+ */
+export const countServicesForOrganization = async (
+	orgId: string,
+	accessedServices: string[] | null,
+	status: OverviewServiceStatus,
+): Promise<number> => {
+	if (accessedServices !== null && accessedServices.length === 0) {
+		return 0;
+	}
+
+	const counts = await Promise.all(
+		SERVICE_TYPE_CONFIGS.map(async (config) => {
+			const { table } = serviceTypeColumns(config);
+			const [row] = await db
+				.select({ count: sql<number>`count(*)::int` })
+				.from(table)
+				.innerJoin(
+					environments,
+					eq(table.environmentId, environments.environmentId),
+				)
+				.innerJoin(projects, eq(environments.projectId, projects.projectId))
+				.where(
+					and(
+						...serviceTypeConditions(config, orgId, accessedServices, status),
+					),
+				);
+			return row?.count ?? 0;
+		}),
+	);
+
+	return counts.reduce((total, count) => total + count, 0);
+};
+
+/**
+ * Deploying-service count for every organization the user belongs to, each evaluated with that
+ * membership's own role, permissions and accessedServices. `organizationId` limits the lookup to
+ * one organization — API keys are scoped to a single organization and must not see the others.
+ */
+export const countActiveDeploymentsByOrganization = async (
+	userId: string,
+	organizationId: string | null,
+): Promise<Record<string, number>> => {
+	const memberships = await db.query.member.findMany({
+		where: organizationId
+			? and(
+					eq(member.userId, userId),
+					eq(member.organizationId, organizationId),
+				)
+			: eq(member.userId, userId),
+		columns: { organizationId: true, role: true, accessedServices: true },
+	});
+
+	const entries = await Promise.all(
+		memberships.map(async (membership) => {
+			const orgCtx = {
+				user: { id: userId },
+				session: { activeOrganizationId: membership.organizationId },
+			};
+			if (!(await hasPermission(orgCtx, { service: ["read"] }))) {
+				return [membership.organizationId, 0] as const;
+			}
+			const accessedServices =
+				membership.role !== "owner" && membership.role !== "admin"
+					? membership.accessedServices
+					: null;
+			const count = await countServicesForOrganization(
+				membership.organizationId,
+				accessedServices,
+				"running",
+			);
+			return [membership.organizationId, count] as const;
+		}),
+	);
+
+	return Object.fromEntries(entries);
 };
 
 type Owner = {

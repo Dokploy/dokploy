@@ -181,3 +181,18 @@ export const getBackupOverviewIcon = (
 	}
 	return { kind: "generic", type: "application" };
 };
+
+/**
+ * Link to a service from the overview. Application/compose keep deployment logs under their
+ * deployments tab, which is only rendered with deployment.read; databases only have a general page.
+ */
+export const getOverviewServiceHref = (
+	service: Pick<OverviewService, "type" | "id" | "projectId" | "environmentId">,
+	options: { canReadDeployments: boolean },
+): string => {
+	const base = `/dashboard/project/${service.projectId}/environment/${service.environmentId}/services/${service.type}/${service.id}`;
+	return options.canReadDeployments &&
+		(service.type === "application" || service.type === "compose")
+		? `${base}?tab=deployments`
+		: base;
+};
