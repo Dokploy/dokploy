@@ -41,6 +41,7 @@ import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
+import { isPackBuildType } from "@dokploy/server/utils/builders/build-platform";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -771,6 +772,35 @@ export const applicationRouter = createTRPCRouter({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this build server",
 					});
+				}
+			}
+
+			if (input.buildArchitecture && input.buildArchitecture !== "host") {
+				const current = await findApplicationById(input.applicationId);
+				const buildType = input.buildType ?? current.buildType;
+				if (isPackBuildType(buildType)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
+					});
+				}
+				if (input.buildArchitecture === "multi") {
+					const registryId =
+						input.registryId === undefined
+							? current.registryId
+							: input.registryId;
+					const buildRegistryId =
+						input.buildRegistryId === undefined
+							? current.buildRegistryId
+							: input.buildRegistryId;
+					if (!registryId && !buildRegistryId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Multi-architecture builds require a cluster registry or a build registry. Docker cannot load a multi-arch image into the local daemon.",
+						});
+					}
 				}
 			}
 

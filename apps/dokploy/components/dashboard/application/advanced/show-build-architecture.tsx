@@ -1,3 +1,4 @@
+import { isPackBuildType } from "@dokploy/server/utils/builders/build-platform";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Cpu } from "lucide-react";
 import { useEffect } from "react";
@@ -60,9 +61,8 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 	);
 	const { mutateAsync, isPending } = api.application.update.useMutation();
 
-	const hasRegistry = Boolean(
-		data?.registryId || data?.buildRegistryId || data?.rollbackRegistryId,
-	);
+	const hasRegistry = Boolean(data?.registryId || data?.buildRegistryId);
+	const packBuilder = isPackBuildType(data?.buildType ?? "");
 
 	const form = useForm<Schema>({
 		defaultValues: {
@@ -84,6 +84,13 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 	const architecture = form.watch("buildArchitecture");
 
 	const onSubmit = async (formData: Schema) => {
+		if (packBuilder && formData.buildArchitecture !== "host") {
+			form.setError("buildArchitecture", {
+				message:
+					"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
+			});
+			return;
+		}
 		if (formData.buildArchitecture === "multi" && !hasRegistry) {
 			form.setError("buildArchitecture", {
 				message:
@@ -127,6 +134,13 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 					a manifest list to a registry so each deploy server pulls the matching
 					image.
 				</AlertBlock>
+				{packBuilder ? (
+					<AlertBlock type="info">
+						Nixpacks, Heroku Buildpacks, and Paketo only support host native
+						builds. Switch the build type to Dockerfile, Railpack, or Static to
+						pin an architecture.
+					</AlertBlock>
+				) : null}
 				{architecture === "multi" && !hasRegistry ? (
 					<AlertBlock type="warning">
 						Select a registry in Cluster Settings or Build Server before saving
@@ -153,7 +167,11 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 										</FormControl>
 										<SelectContent>
 											{BUILD_ARCHITECTURES.map((value) => (
-												<SelectItem key={value} value={value}>
+												<SelectItem
+													key={value}
+													value={value}
+													disabled={packBuilder && value !== "host"}
+												>
 													{architectureLabels[value]}
 												</SelectItem>
 											))}
