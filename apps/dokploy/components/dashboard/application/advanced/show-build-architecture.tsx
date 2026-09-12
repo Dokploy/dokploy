@@ -1,7 +1,5 @@
-import { isPackBuildType } from "@dokploy/server/utils/builders/build-platform";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Cpu } from "lucide-react";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -62,24 +60,18 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 	const { mutateAsync, isPending } = api.application.update.useMutation();
 
 	const hasRegistry = Boolean(data?.registryId || data?.buildRegistryId);
-	const packBuilder = isPackBuildType(data?.buildType ?? "");
+	const packBuilder =
+		data?.buildType === "nixpacks" ||
+		data?.buildType === "heroku_buildpacks" ||
+		data?.buildType === "paketo_buildpacks";
 
 	const form = useForm<Schema>({
-		defaultValues: {
-			buildArchitecture: "host",
-			buildxBuilder: "",
+		values: {
+			buildArchitecture: data?.buildArchitecture || "host",
+			buildxBuilder: data?.buildxBuilder || "",
 		},
 		resolver: zodResolver(formSchema),
 	});
-
-	useEffect(() => {
-		if (data) {
-			form.reset({
-				buildArchitecture: data.buildArchitecture || "host",
-				buildxBuilder: data.buildxBuilder || "",
-			});
-		}
-	}, [form, data]);
 
 	const architecture = form.watch("buildArchitecture");
 
@@ -160,11 +152,9 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Architecture</FormLabel>
 									<Select onValueChange={field.onChange} value={field.value}>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Select architecture" />
-											</SelectTrigger>
-										</FormControl>
+										<SelectTrigger>
+											<SelectValue placeholder="Select architecture" />
+										</SelectTrigger>
 										<SelectContent>
 											{BUILD_ARCHITECTURES.map((value) => (
 												<SelectItem
