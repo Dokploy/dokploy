@@ -49,12 +49,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					name: true,
 					applicationId: true,
+					appName: true,
+					replicas: true,
 					createdAt: true,
 					applicationStatus: true,
 					description: true,
@@ -68,12 +72,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					mariadbId: true,
 					name: true,
+					appName: true,
+					replicas: true,
 					createdAt: true,
 					applicationStatus: true,
 					description: true,
@@ -86,12 +94,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					mongoId: true,
 					name: true,
+					appName: true,
+					replicas: true,
 					createdAt: true,
 					applicationStatus: true,
 					description: true,
@@ -104,12 +116,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					mysqlId: true,
 					name: true,
+					appName: true,
+					replicas: true,
 					createdAt: true,
 					applicationStatus: true,
 					description: true,
@@ -122,12 +138,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					postgresId: true,
 					name: true,
+					appName: true,
+					replicas: true,
 					description: true,
 					createdAt: true,
 					applicationStatus: true,
@@ -140,12 +160,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					redisId: true,
 					name: true,
+					appName: true,
+					replicas: true,
 					createdAt: true,
 					applicationStatus: true,
 					description: true,
@@ -158,12 +182,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					composeId: true,
 					name: true,
+					appName: true,
+					composeType: true,
 					createdAt: true,
 					composeStatus: true,
 					description: true,
@@ -177,12 +205,16 @@ export const findEnvironmentById = async (environmentId: string) => {
 						columns: {
 							name: true,
 							serverId: true,
+							ipAddress: true,
+							metricsConfig: true,
 						},
 					},
 				},
 				columns: {
 					libsqlId: true,
 					name: true,
+					appName: true,
+					replicas: true,
 					createdAt: true,
 					applicationStatus: true,
 					description: true,
@@ -199,6 +231,82 @@ export const findEnvironmentById = async (environmentId: string) => {
 		});
 	}
 	return environment;
+};
+
+/**
+ * Remove monitoring bearer tokens before returning environment payloads to
+ * clients. Keeps only non-secret metrics fields (port + configured flag).
+ */
+export const stripEnvironmentMetricsSecrets = <
+	T extends {
+		applications?: Array<{ server?: unknown }>;
+		mariadb?: Array<{ server?: unknown }>;
+		mongo?: Array<{ server?: unknown }>;
+		mysql?: Array<{ server?: unknown }>;
+		postgres?: Array<{ server?: unknown }>;
+		redis?: Array<{ server?: unknown }>;
+		compose?: Array<{ server?: unknown }>;
+		libsql?: Array<{ server?: unknown }>;
+	},
+>(
+	environment: T,
+): T => {
+	const stripServer = <
+		S extends {
+			metricsConfig?: {
+				server?: { port?: number; token?: string };
+			} | null;
+		} | null,
+	>(
+		server: S,
+	): S => {
+		if (!server) {
+			return server;
+		}
+
+		const port = server.metricsConfig?.server?.port ?? null;
+		const configured = !!server.metricsConfig?.server?.token;
+
+		// Drop the raw metricsConfig object entirely so tokens never leave the
+		// server. Clients only need port + a configured flag.
+		const { metricsConfig: _metricsConfig, ...rest } = server as S & {
+			metricsConfig?: unknown;
+		};
+
+		return {
+			...rest,
+			metricsConfig: {
+				server: {
+					port,
+					configured,
+				},
+			},
+		} as unknown as S;
+	};
+
+	const mapServices = <S extends { server?: unknown }>(services?: S[]) =>
+		services?.map((service) => ({
+			...service,
+			server: stripServer(
+				service.server as {
+					metricsConfig?: {
+						server?: { port?: number; token?: string };
+					} | null;
+				} | null,
+			),
+		}));
+
+	return {
+		...environment,
+		applications: mapServices(environment.applications),
+		mariadb: mapServices(environment.mariadb),
+		mongo: mapServices(environment.mongo),
+		mysql: mapServices(environment.mysql),
+		postgres: mapServices(environment.postgres),
+		redis: mapServices(environment.redis),
+		compose: mapServices(environment.compose),
+		libsql: mapServices(environment.libsql),
+	};
 };
 
 export const findEnvironmentsByProjectId = async (projectId: string) => {

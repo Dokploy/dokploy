@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { canAccessMonitoringOverWss } from "./authorize";
 
 type AppType = "application" | "stack" | "docker-compose";
 
@@ -94,6 +94,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			| "stack"
 			| "docker-compose";
 		const serviceId = url.searchParams.get("serviceId");
+		const containerId = url.searchParams.get("containerId");
 		const { user, session } = await validateRequest(req);
 
 		if (!appName) {
@@ -106,7 +107,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
+		if (!(await canAccessMonitoringOverWss(user, session, serviceId))) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
@@ -118,6 +119,42 @@ export const setupDockerStatsMonitoringSocketServer = (
 
 					await recordAdvancedStats(stat, appName);
 					const data = await getLastAdvancedStatsFile(appName);
+
+					ws.send(
+						JSON.stringify({
+							data,
+						}),
+					);
+					return;
+				}
+
+				if (containerId) {
+					const containers = await docker.listContainers({
+						filters: JSON.stringify({
+							id: [containerId],
+							status: ["running"],
+						}),
+					});
+					const container = containers[0];
+					if (!container || container?.State !== "running") {
+						ws.close(4000, "Container not running");
+						return;
+					}
+
+					const { stdout, stderr } = await execAsync(
+						`docker stats ${container.Id} --no-stream --format "{{json .}}"`,
+					);
+					if (stderr) {
+						console.error("Docker stats error:", stderr);
+						return;
+					}
+					const stat = JSON.parse(stdout.trim());
+
+					// Keep per-replica history under the container identity so
+					// multiple replicas of the same service do not overwrite each other.
+					const statsKey = container.Names?.[0]?.replace(/^\//, "") || appName;
+					await recordAdvancedStats(stat, statsKey);
+					const data = await getLastAdvancedStatsFile(statsKey);
 
 					ws.send(
 						JSON.stringify({
@@ -156,13 +193,13 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${container.Id} --no-stream --format "{{json .}}"`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
 					return;
 				}
-				const stat = JSON.parse(stdout);
+				const stat = JSON.parse(stdout.trim());
 
 				await recordAdvancedStats(stat, appName);
 				const data = await getLastAdvancedStatsFile(appName);
