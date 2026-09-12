@@ -76,13 +76,6 @@ export const ShowBuildArchitecture = ({ applicationId }: Props) => {
 	const architecture = form.watch("buildArchitecture");
 
 	const onSubmit = async (formData: Schema) => {
-		if (packBuilder && formData.buildArchitecture !== "host") {
-			form.setError("buildArchitecture", {
-				message:
-					"Nixpacks, Heroku Buildpacks, and Paketo Buildpacks only support Host native architecture.",
-			});
-			return;
-		}
 		if (formData.buildArchitecture === "multi" && !hasRegistry) {
 			form.setError("buildArchitecture", {
 				message:
