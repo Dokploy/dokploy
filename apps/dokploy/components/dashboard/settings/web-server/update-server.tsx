@@ -26,6 +26,11 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+	clearDismissedUpdateVersion,
+	dismissUpdateVersion,
+	isUpdateDismissed,
+} from "@/lib/update";
 import { api } from "@/utils/api";
 import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 import { UpdateWebServer } from "./update-webserver";
@@ -35,6 +40,7 @@ interface Props {
 	children?: React.ReactNode;
 	isOpen?: boolean;
 	onOpenChange?: (open: boolean) => void;
+	onDismiss?: () => void;
 }
 
 export const UpdateServer = ({
@@ -42,6 +48,7 @@ export const UpdateServer = ({
 	children,
 	isOpen: isOpenProp,
 	onOpenChange: onOpenChangeProp,
+	onDismiss,
 }: Props) => {
 	const [hasCheckedUpdate, setHasCheckedUpdate] = useState(!!updateData);
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
@@ -55,6 +62,20 @@ export const UpdateServer = ({
 		updateData?.latestVersion ?? "",
 	);
 	const [isOpenInternal, setIsOpenInternal] = useState(false);
+	const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
+
+	const isOpen = isOpenInternal || isOpenProp;
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("dismissedUpdateVersion");
+			setDismissedVersion(stored);
+		}
+	}, [isOpen, latestVersion]);
+
+	const isDismissed = Boolean(
+		latestVersion && isUpdateDismissed(latestVersion),
+	);
 
 	const handleCheckUpdates = async () => {
 		try {
@@ -81,7 +102,6 @@ export const UpdateServer = ({
 		}
 	};
 
-	const isOpen = isOpenInternal || isOpenProp;
 	const onOpenChange = (open: boolean) => {
 		setIsOpenInternal(open);
 		onOpenChangeProp?.(open);
@@ -241,7 +261,7 @@ export const UpdateServer = ({
 				)}
 
 				{isUpdateAvailable && (
-					<div className="rounded-lg bg-[#16254D] p-4 mb-8">
+					<div className="rounded-lg bg-[#16254D] p-4 mb-4">
 						<div className="flex gap-2">
 							<Info className="h-5 w-5 shrink-0 text-[#5B9DFF]" />
 							<div className="text-[#5B9DFF]">
@@ -259,13 +279,70 @@ export const UpdateServer = ({
 					</div>
 				)}
 
+				{isUpdateAvailable && isDismissed && (
+					<div className="rounded-lg bg-muted/60 border border-muted p-3 mb-4 text-xs text-muted-foreground flex items-center justify-between">
+						<span>
+							This update ({latestVersion}) is currently dismissed from the
+							sidebar.
+						</span>
+						<Button
+							variant="link"
+							size="sm"
+							className="h-auto p-0 text-xs text-primary"
+							onClick={() => {
+								clearDismissedUpdateVersion();
+								setDismissedVersion(null);
+								toast.success("Update notification restored");
+							}}
+						>
+							Restore notification
+						</Button>
+					</div>
+				)}
+
 				<div className="flex items-center justify-between pt-2">
 					<ToggleAutoCheckUpdates disabled={isPending} />
 				</div>
 
-				<div className="flex items-center justify-end mt-4">
+				<div className="flex items-center justify-between mt-4">
+					<div>
+						{isUpdateAvailable &&
+							latestVersion &&
+							(isDismissed ? (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-xs text-muted-foreground hover:text-foreground"
+									onClick={() => {
+										clearDismissedUpdateVersion();
+										setDismissedVersion(null);
+										toast.success("Update notification restored");
+									}}
+								>
+									Restore notification
+								</Button>
+							) : (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-xs text-muted-foreground hover:text-foreground"
+									onClick={() => {
+										dismissUpdateVersion(latestVersion);
+										setDismissedVersion(latestVersion);
+										toast.info(`Version ${latestVersion} dismissed`, {
+											description:
+												"You will be notified when a newer version is released.",
+										});
+										onDismiss?.();
+										onOpenChange(false);
+									}}
+								>
+									Dismiss update
+								</Button>
+							))}
+					</div>
 					<div className="flex items-center gap-2">
-						<Button variant="outline" onClick={() => onOpenChange?.(false)}>
+						<Button variant="outline" onClick={() => onOpenChange(false)}>
 							Cancel
 						</Button>
 						{isUpdateAvailable ? (

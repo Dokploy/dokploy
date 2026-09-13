@@ -1,6 +1,7 @@
 import type { IUpdateData } from "@dokploy/server/index";
 import { Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { isUpdateDismissed } from "@/lib/update";
 import { api } from "@/utils/api";
 import UpdateServer from "../dashboard/settings/web-server/update-server";
 import { Button } from "../ui/button";
@@ -53,6 +54,9 @@ export const UpdateServerButton = () => {
 				if (fetchedUpdateData?.updateAvailable) {
 					// Stop interval when update is available
 					clearUpdatesInterval();
+					if (isUpdateDismissed(fetchedUpdateData.latestVersion)) {
+						return;
+					}
 					setUpdateData(fetchedUpdateData);
 				}
 			} catch (error) {
@@ -71,14 +75,26 @@ export const UpdateServerButton = () => {
 		return () => {
 			clearUpdatesInterval();
 		};
-	}, []);
+	}, [isCloud, getUpdateData]);
 
-	return !isCloud && updateData.updateAvailable ? (
+	const isVisible =
+		!isCloud &&
+		updateData.updateAvailable &&
+		!isUpdateDismissed(updateData.latestVersion);
+
+	return isVisible ? (
 		<div className="border-t pt-4">
 			<UpdateServer
 				updateData={updateData}
 				isOpen={isOpen}
 				onOpenChange={setIsOpen}
+				onDismiss={() => {
+					setUpdateData((prev) => ({
+						...prev,
+						updateAvailable: false,
+					}));
+					setIsOpen(false);
+				}}
 			>
 				<TooltipProvider delayDuration={0}>
 					<Tooltip>
