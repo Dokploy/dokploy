@@ -1,4 +1,5 @@
 import {
+	assertDuplicateTargetServer,
 	createApplication,
 	createBackup,
 	createCompose,
@@ -16,6 +17,7 @@ import {
 	createRedis,
 	createSecurity,
 	deleteProject,
+	duplicateServerOverride,
 	findApplicationById,
 	findComposeById,
 	findEnvironmentById,
@@ -52,6 +54,7 @@ import {
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateProject,
+	apiDuplicateTargetServer,
 	apiFindOneProject,
 	apiRemoveProject,
 	apiUpdateProject,
@@ -862,6 +865,7 @@ export const projectRouter = createTRPCRouter({
 					)
 					.optional(),
 				duplicateInSameProject: z.boolean().default(false),
+				targetServer: apiDuplicateTargetServer.default({ kind: "keep" }),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -901,6 +905,8 @@ export const projectRouter = createTRPCRouter({
 					}
 				}
 
+				await assertDuplicateTargetServer(ctx.session, input.targetServer);
+
 				const targetProject = input.duplicateInSameProject
 					? sourceEnvironment
 					: await createProject(
@@ -938,6 +944,10 @@ export const projectRouter = createTRPCRouter({
 
 								const newApplication = await createApplication({
 									...application,
+									...(await duplicateServerOverride(
+										input.targetServer,
+										application,
+									)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${application.name} (copy)`
@@ -1015,6 +1025,10 @@ export const projectRouter = createTRPCRouter({
 
 								const newCompose = await createCompose({
 									...compose,
+									...(await duplicateServerOverride(
+										input.targetServer,
+										compose,
+									)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${compose.name} (copy)`
@@ -1053,6 +1067,10 @@ export const projectRouter = createTRPCRouter({
 
 								const newLibsql = await createLibsql({
 									...libsql,
+									...(await duplicateServerOverride(
+										input.targetServer,
+										libsql,
+									)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${libsql.name} (copy)`
@@ -1082,6 +1100,10 @@ export const projectRouter = createTRPCRouter({
 
 								const newMariadb = await createMariadb({
 									...mariadb,
+									...(await duplicateServerOverride(
+										input.targetServer,
+										mariadb,
+									)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${mariadb.name} (copy)`
@@ -1118,6 +1140,7 @@ export const projectRouter = createTRPCRouter({
 
 								const newMongo = await createMongo({
 									...mongo,
+									...(await duplicateServerOverride(input.targetServer, mongo)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${mongo.name} (copy)`
@@ -1154,6 +1177,7 @@ export const projectRouter = createTRPCRouter({
 
 								const newMysql = await createMysql({
 									...mysql,
+									...(await duplicateServerOverride(input.targetServer, mysql)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${mysql.name} (copy)`
@@ -1190,6 +1214,10 @@ export const projectRouter = createTRPCRouter({
 
 								const newPostgres = await createPostgres({
 									...postgres,
+									...(await duplicateServerOverride(
+										input.targetServer,
+										postgres,
+									)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${postgres.name} (copy)`
@@ -1226,6 +1254,7 @@ export const projectRouter = createTRPCRouter({
 
 								const newRedis = await createRedis({
 									...redis,
+									...(await duplicateServerOverride(input.targetServer, redis)),
 									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${redis.name} (copy)`
@@ -1261,7 +1290,10 @@ export const projectRouter = createTRPCRouter({
 					resourceType: "project",
 					resourceId: targetProject?.projectId || "",
 					resourceName: input.name,
-					metadata: { duplicatedFrom: input.sourceEnvironmentId },
+					metadata: {
+						duplicatedFrom: input.sourceEnvironmentId,
+						targetServer: input.targetServer,
+					},
 				});
 				return targetProject;
 			} catch (error) {
