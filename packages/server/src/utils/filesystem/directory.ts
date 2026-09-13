@@ -101,26 +101,35 @@ export const removeMonitoringDirectory = async (
 	}
 };
 
+export const getApplicationBuildPath = (application: Application): string => {
+	const { sourceType, customGitBuildPath } = application;
+	if (sourceType === "github") {
+		return application?.buildPath || "";
+	}
+	if (sourceType === "gitlab") {
+		return application?.gitlabBuildPath || "";
+	}
+	if (sourceType === "bitbucket") {
+		return application?.bitbucketBuildPath || "";
+	}
+	if (sourceType === "gitea") {
+		return application?.giteaBuildPath || "";
+	}
+	if (sourceType === "drop") {
+		return application?.dropBuildPath || "";
+	}
+	if (sourceType === "git") {
+		return customGitBuildPath || "";
+	}
+	return "";
+};
+
 export const getBuildAppDirectory = (application: Application) => {
 	const serverId = application.buildServerId || application.serverId;
 	const { APPLICATIONS_PATH } = paths(!!serverId);
-	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
-		application;
-	let buildPath = "";
+	const { appName, buildType, dockerfile } = application;
+	const buildPath = getApplicationBuildPath(application);
 
-	if (sourceType === "github") {
-		buildPath = application?.buildPath || "";
-	} else if (sourceType === "gitlab") {
-		buildPath = application?.gitlabBuildPath || "";
-	} else if (sourceType === "bitbucket") {
-		buildPath = application?.bitbucketBuildPath || "";
-	} else if (sourceType === "gitea") {
-		buildPath = application?.giteaBuildPath || "";
-	} else if (sourceType === "drop") {
-		buildPath = application?.dropBuildPath || "";
-	} else if (sourceType === "git") {
-		buildPath = customGitBuildPath || "";
-	}
 	if (buildType === "dockerfile") {
 		return path.join(
 			APPLICATIONS_PATH,
@@ -135,12 +144,16 @@ export const getBuildAppDirectory = (application: Application) => {
 };
 
 export const getDockerContextPath = (application: Application) => {
-	const { APPLICATIONS_PATH } = paths(!!application.serverId);
+	const serverId = application.buildServerId || application.serverId;
+	const { APPLICATIONS_PATH } = paths(!!serverId);
 	const { appName, dockerContextPath } = application;
+	const buildPath = getApplicationBuildPath(application);
 
-	if (!dockerContextPath) {
-		return null;
-	}
-
-	return path.join(APPLICATIONS_PATH, appName, "code", dockerContextPath);
+	return path.join(
+		APPLICATIONS_PATH,
+		appName,
+		"code",
+		buildPath ?? "",
+		dockerContextPath || ".",
+	);
 };
