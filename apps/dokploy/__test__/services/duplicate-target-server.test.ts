@@ -92,6 +92,10 @@ describe("duplicateServerOverride", () => {
 	});
 
 	it("targets a remote server and keeps networks available there", async () => {
+		mocks.resolveNetworkIds.mockResolvedValue({
+			kept: ["network-1"],
+			dropped: [],
+		});
 		await expect(
 			duplicateServerOverride(
 				{ kind: "remote", serverId: "server-2" },
@@ -99,7 +103,7 @@ describe("duplicateServerOverride", () => {
 			),
 		).resolves.toEqual({
 			serverId: "server-2",
-			networkIds: ["network-2"],
+			networkIds: ["network-1"],
 		});
 		expect(mocks.resolveNetworkIds).toHaveBeenCalledWith(
 			["network-1"],
@@ -125,6 +129,75 @@ describe("duplicateServerOverride", () => {
 			),
 		).resolves.toEqual({ serverId: "server-2" });
 		expect(mocks.resolveNetworkIds).not.toHaveBeenCalled();
+	});
+
+	it("filters compose service networks for the target server", async () => {
+		const serviceNetworks = [
+			{
+				serviceName: "web",
+				networkIds: ["network-1", "network-2"],
+				detachDokployNetwork: false,
+			},
+			{
+				serviceName: "worker",
+				networkIds: ["network-2", "network-3"],
+				detachDokployNetwork: true,
+			},
+		];
+
+		await expect(
+			duplicateServerOverride(
+				{ kind: "remote", serverId: "server-2" },
+				{ serverId: "server-1", serviceNetworks },
+			),
+		).resolves.toEqual({
+			serverId: "server-2",
+			serviceNetworks: [
+				{ ...serviceNetworks[0], networkIds: ["network-2"] },
+				{ ...serviceNetworks[1], networkIds: ["network-2"] },
+			],
+		});
+		expect(mocks.resolveNetworkIds).toHaveBeenCalledTimes(1);
+		expect(mocks.resolveNetworkIds).toHaveBeenCalledWith(
+			["network-1", "network-2", "network-3"],
+			"server-2",
+		);
+	});
+
+	it("filters network ids and service networks with one resolver call", async () => {
+		mocks.resolveNetworkIds.mockResolvedValue({
+			kept: ["network-2", "network-3"],
+			dropped: ["Network 1"],
+		});
+		const serviceNetworks = [
+			{
+				serviceName: "web",
+				networkIds: ["network-2", "network-3"],
+				detachDokployNetwork: false,
+			},
+		];
+
+		await expect(
+			duplicateServerOverride(
+				{ kind: "remote", serverId: "server-2" },
+				{
+					serverId: "server-1",
+					networkIds: ["network-1", "network-2"],
+					serviceNetworks,
+				},
+			),
+		).resolves.toEqual({
+			serverId: "server-2",
+			networkIds: ["network-2"],
+			serviceNetworks: [
+				{ ...serviceNetworks[0], networkIds: ["network-2", "network-3"] },
+			],
+		});
+		expect(mocks.resolveNetworkIds).toHaveBeenCalledTimes(1);
+		expect(mocks.resolveNetworkIds).toHaveBeenCalledWith(
+			["network-1", "network-2", "network-3"],
+			"server-2",
+		);
 	});
 });
 

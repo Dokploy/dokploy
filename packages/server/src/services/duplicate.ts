@@ -31,11 +31,18 @@ export interface DuplicateServiceInput {
 	renameAsCopy: boolean;
 }
 
+type ServiceNetwork = {
+	serviceName: string;
+	networkIds: string[];
+	detachDokployNetwork: boolean;
+};
+
 const duplicatePayload = async <
 	T extends {
 		name: string;
 		serverId?: string | null;
 		networkIds?: string[] | null;
+		serviceNetworks?: ServiceNetwork[] | null;
 	},
 >(
 	source: T,
@@ -86,8 +93,16 @@ export const assertDuplicateTargetServer = async (
 
 export const duplicateServerOverride = async (
 	target: DuplicateTargetServer,
-	source: { serverId?: string | null; networkIds?: string[] | null },
-): Promise<{ serverId?: string | null; networkIds?: string[] }> => {
+	source: {
+		serverId?: string | null;
+		networkIds?: string[] | null;
+		serviceNetworks?: ServiceNetwork[] | null;
+	},
+): Promise<{
+	serverId?: string | null;
+	networkIds?: string[];
+	serviceNetworks?: ServiceNetwork[];
+}> => {
 	if (target.kind === "keep") {
 		return {};
 	}
@@ -96,13 +111,29 @@ export const duplicateServerOverride = async (
 	if (serverId === (source.serverId ?? null)) {
 		return { serverId };
 	}
-	if (!Array.isArray(source.networkIds) || source.networkIds.length === 0) {
+	const serviceNetworks = source.serviceNetworks ?? [];
+	const allNetworkIds = [
+		...new Set([
+			...(source.networkIds ?? []),
+			...serviceNetworks.flatMap((entry) => entry.networkIds),
+		]),
+	];
+	if (allNetworkIds.length === 0) {
 		return { serverId };
 	}
 
+	const kept = new Set((await resolveNetworkIds(allNetworkIds, serverId)).kept);
 	return {
 		serverId,
-		networkIds: (await resolveNetworkIds(source.networkIds, serverId)).kept,
+		...(source.networkIds && {
+			networkIds: source.networkIds.filter((networkId) => kept.has(networkId)),
+		}),
+		...(source.serviceNetworks && {
+			serviceNetworks: serviceNetworks.map((entry) => ({
+				...entry,
+				networkIds: entry.networkIds.filter((networkId) => kept.has(networkId)),
+			})),
+		}),
 	};
 };
 
