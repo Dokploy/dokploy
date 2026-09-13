@@ -2,6 +2,7 @@ import { execFileSync, execSync } from "node:child_process";
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { parseModelRunnerCapability } from "@dokploy/server/services/model-runner";
 import {
 	ENGINE_INFO_ERROR,
 	getServerHardware,
@@ -939,6 +940,24 @@ describe("local Docker Engine failure", () => {
 			"Tesla T4",
 			"NVIDIA A100-SXM4-40GB",
 		]);
+	});
+
+	it("uses the same wording as the model runner Engine error", () => {
+		const modelRunner = parseModelRunnerCapability(
+			JSON.stringify({
+				dockerPresent: true,
+				engineExit: 1,
+				engineBase64: "",
+				pluginsExit: 0,
+				pluginsBase64: b64('{"plugins":[],"errors":null}'),
+				containerStatus: "",
+			}),
+		);
+		expect(modelRunner.error).toBe(ENGINE_INFO_ERROR);
+		expect(parseServerHardware(localEnvelope({ engineExit: 1 })).error).toBe(
+			modelRunner.error,
+			modelRunner.error,
+		);
 	});
 
 	it("keeps remote probes free of the Engine error", () => {
