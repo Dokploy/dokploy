@@ -86,6 +86,7 @@ export const serverSetup = async (
 						...server.metricsConfig.server,
 						token: token,
 						urlCallback: urlCallback,
+						cronJob: server.metricsConfig.server.cronJob || "0 0 * * *",
 					},
 					containers: server.metricsConfig.containers,
 				},

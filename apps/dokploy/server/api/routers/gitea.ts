@@ -1,5 +1,6 @@
 import {
 	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	createGitea,
 	findGiteaById,
 	getAccessibleGitProviderIds,
@@ -59,6 +60,16 @@ export const giteaRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const gitea = await findGiteaById(input.giteaId);
 			await assertGitProviderAccess(ctx.session, gitea.gitProvider);
+
+			if (!(await canViewGitProviderSecrets(ctx.session, gitea.gitProvider))) {
+				return {
+					...gitea,
+					clientSecret: null,
+					accessToken: null,
+					refreshToken: null,
+				};
+			}
+
 			return gitea;
 		}),
 

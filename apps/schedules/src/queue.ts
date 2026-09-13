@@ -66,9 +66,10 @@ export const removeJob = async (data: QueueJob) => {
 		return result;
 	}
 	if (data.type === "schedule") {
-		const { scheduleId, cronSchedule } = data;
+		const { scheduleId, cronSchedule, timezone } = data;
 		const result = await jobQueue.removeRepeatable(scheduleId, {
 			pattern: cronSchedule,
+			tz: timezone || "UTC",
 		});
 		return result;
 	}

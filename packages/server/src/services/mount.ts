@@ -262,18 +262,28 @@ export const updateFileMount = async (mountId: string) => {
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
 	const fullPath = path.join(basePath, mount.filePath);
+	const directory = path.dirname(fullPath);
 
 	try {
 		const serverId = await getServerId(mount);
 		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${quote([fullPath])}`;
+		const command = `
+			mkdir -p ${quote([directory])};
+			if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
+			echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
+		`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
-	} catch {
-		console.log("Error updating file mount");
+	} catch (error) {
+		console.log(`Error updating the file mount: ${error}`);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Error updating the mount ${error instanceof Error ? error.message : error}`,
+			cause: error,
+		});
 	}
 };
 

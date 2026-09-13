@@ -118,7 +118,9 @@ diskTotal=$(df -B1 / 2>/dev/null | awk 'NR==2{print $2}'); [ -z "$diskTotal" ] &
 diskUsed=$(df -B1 / 2>/dev/null | awk 'NR==2{print $3}'); [ -z "$diskUsed" ] && diskUsed=0
 
 networkCount=$(docker network ls -q 2>/dev/null | wc -l | tr -d ' ')
-daemonConfigB64=$(cat /etc/docker/daemon.json 2>/dev/null | base64 2>/dev/null | tr -d '\\n')
+# /etc/docker/daemon.json isn't mounted into the dokploy container (only docker.sock is), so read
+# the effective config over the socket instead of the file.
+daemonConfigB64=$(docker info --format '{{json .DefaultAddressPools}}' 2>/dev/null | base64 2>/dev/null | tr -d '\\n')
 
 daemonLogsToEpoch=$(date +%s 2>/dev/null); [ -z "$daemonLogsToEpoch" ] && daemonLogsToEpoch=0
 daemonLogsFromEpoch=$((daemonLogsToEpoch - ${sinceHours} * 3600))
@@ -319,11 +321,11 @@ export const getServerHealth = async (
 		.filter(Boolean);
 
 	let addressPools: unknown = null;
-	const daemonConfigText = b64Decode(parsed.daemonConfigBase64);
+	const daemonConfigText = b64Decode(parsed.daemonConfigBase64).trim();
 	if (daemonConfigText) {
 		try {
-			addressPools =
-				JSON.parse(daemonConfigText)?.["default-address-pools"] ?? null;
+			// `docker info` already returns the pools array (or `null`) directly, unlike daemon.json.
+			addressPools = JSON.parse(daemonConfigText) ?? null;
 		} catch {
 			addressPools = null;
 		}

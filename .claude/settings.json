@@ -1,0 +1,22 @@
+{
+	"worktree": {
+		"baseRef": "fresh"
+	},
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "EnterWorktree",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR/scripts/install-worktree-deps.sh\""
+					},
+					{
+						"type": "command",
+						"command": "\"$CLAUDE_PROJECT_DIR/scripts/assign-worktree-port.sh\""
+					}
+				]
+			}
+		]
+	}
+}

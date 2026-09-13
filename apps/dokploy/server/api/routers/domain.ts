@@ -7,6 +7,7 @@ import {
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
+	getServerIpCandidates,
 	getWebServerSettings,
 	manageDomain,
 	removeDomain,
@@ -248,10 +249,21 @@ export const domainRouter = createTRPCRouter({
 		.input(
 			z.object({
 				domain: z.string(),
-				serverIp: z.string().optional(),
+				serverId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			return validateDomain(input.domain, input.serverIp);
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
+
+			const expectedIps = await getServerIpCandidates(input.serverId);
+			return validateDomain(input.domain, expectedIps);
 		}),
 });

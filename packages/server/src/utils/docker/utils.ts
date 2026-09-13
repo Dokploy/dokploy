@@ -548,7 +548,7 @@ export const prepareEnvironmentVariablesForFile = (
 		const escapedValue = value
 			.replace(/\\/g, "\\\\")
 			.replace(/"/g, '\\"')
-			.replace(/\$/g, "\\$");
+			.replace(/\$(?!\{[A-Za-z_][A-Za-z0-9_]*(?::?[-+?][^{}]*)?\})/g, "\\$");
 		return `${key}="${escapedValue}"`;
 	});
 };
@@ -931,6 +931,57 @@ const getSwarmServiceContainerId = async (
 		return runningTask?.Status?.ContainerStatus?.ContainerID ?? null;
 	} catch {
 		return null;
+	}
+};
+
+export class ServiceConvergenceError extends Error {}
+
+export const waitForSwarmServiceConvergence = async (
+	appName: string,
+	serverId?: string | null,
+	options?: { timeoutMs?: number; intervalMs?: number },
+): Promise<void> => {
+	const timeoutMs = options?.timeoutMs ?? 45_000;
+	const intervalMs = options?.intervalMs ?? 2_000;
+	const remoteDocker = await getRemoteDocker(serverId);
+	const service = remoteDocker.getService(appName);
+	const deadline = Date.now() + timeoutMs;
+
+	let lastState = "unknown";
+	while (true) {
+		const info = await service.inspect();
+		const desiredTasksCount = info.Spec?.Mode?.Replicated?.Replicas ?? 1;
+
+		const tasks = await remoteDocker.listTasks({
+			filters: JSON.stringify({ service: [appName] }),
+		});
+		const currentTasks = tasks.filter(
+			(task) => task.DesiredState === "running",
+		);
+		const runningTasksCount = currentTasks.filter(
+			(task) => task.Status?.State === "running",
+		).length;
+
+		if (runningTasksCount >= desiredTasksCount) {
+			return;
+		}
+
+		const failedTask = currentTasks.find((task) =>
+			["failed", "rejected"].includes(task.Status?.State ?? ""),
+		);
+		lastState =
+			failedTask?.Status?.Err ??
+			failedTask?.Status?.State ??
+			currentTasks[0]?.Status?.State ??
+			lastState;
+
+		if (Date.now() >= deadline) {
+			throw new ServiceConvergenceError(
+				`Service ${appName} did not converge within ${timeoutMs}ms: ${runningTasksCount}/${desiredTasksCount} tasks running (last state: ${lastState})`,
+			);
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
 	}
 };
 
