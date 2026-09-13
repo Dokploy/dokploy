@@ -101,6 +101,24 @@ export const sendDiscordNotification = async (
 	}
 };
 
+export const escapeHtml = (text: string): string => {
+	return text
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+};
+
+export const formatTelegramErrorMessage = (
+	errorMessage: string,
+	maxLen = 3000,
+): string => {
+	const truncated =
+		errorMessage.length > maxLen
+			? `${errorMessage.substring(0, maxLen)}…`
+			: errorMessage;
+	return escapeHtml(truncated);
+};
+
 export const sendTelegramNotification = async (
 	connection: typeof telegram.$inferInsert,
 	messageText: string,
@@ -111,7 +129,7 @@ export const sendTelegramNotification = async (
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
-		await fetch(url, {
+		const response = await fetch(url, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -125,8 +143,17 @@ export const sendTelegramNotification = async (
 				},
 			}),
 		});
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(
+				`Failed to send telegram notification: ${response.status} ${errorText}`,
+			);
+		}
 	} catch (err) {
-		console.log(err);
+		console.log("error", err);
+		throw new Error(
+			`Failed to send telegram notification ${err instanceof Error ? err.message : "Unknown error"}`,
+		);
 	}
 };
 
