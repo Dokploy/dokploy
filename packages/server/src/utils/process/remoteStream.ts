@@ -109,10 +109,7 @@ export const pipeBetweenServers = async ({
 	from.stdout.pipe(to.stdin);
 
 	const targetExit = to.exit.then((code) => {
-		if (code !== 0) {
-			from.stdout.unpipe(to.stdin);
-			from.close();
-		}
+		if (code !== 0) from.close();
 		return code;
 	});
 
