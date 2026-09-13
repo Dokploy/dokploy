@@ -364,7 +364,10 @@ export const settingsRouter = createTRPCRouter({
 
 							await cleanupAll(server.serverId);
 
-							await sendDockerCleanupNotifications(server.organizationId);
+							await sendDockerCleanupNotifications(
+								server.organizationId,
+								`Docker cleanup for Server ${server.name} (${server.serverId})`,
+							);
 						});
 					}
 				} else {

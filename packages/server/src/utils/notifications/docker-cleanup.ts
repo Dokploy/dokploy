@@ -70,7 +70,7 @@ export const sendDockerCleanupNotifications = async (
 				if (email) {
 					await sendEmailNotification(
 						email,
-						"Docker cleanup for dokploy",
+						message,
 						template,
 					);
 				}
@@ -78,7 +78,7 @@ export const sendDockerCleanupNotifications = async (
 				if (resend) {
 					await sendResendNotification(
 						resend,
-						"Docker cleanup for dokploy",
+						message,
 						template,
 					);
 				}

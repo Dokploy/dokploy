@@ -9,6 +9,7 @@ import { removeJob, schedule } from "./backup";
 
 export const applyDockerCleanupSchedule = async (
 	serverId: string,
+	serverName: string,
 	organizationId: string,
 	enable: boolean,
 ) => {
@@ -22,7 +23,10 @@ export const applyDockerCleanupSchedule = async (
 		} else {
 			scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
 				await cleanupAll(serverId);
-				await sendDockerCleanupNotifications(organizationId);
+				await sendDockerCleanupNotifications(
+					organizationId,
+					`Docker cleanup for Server ${serverName} (${serverId})`,
+				);
 			});
 		}
 	} else {
