@@ -5,7 +5,7 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, lt, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -588,6 +588,157 @@ export const organizationRouter = createTRPCRouter({
 				metadata: { type: "setDefault" },
 			});
 			return { success: true };
+		}),
+	transferOwnership: withPermission("organization", "update")
+		.input(
+			z.object({
+				organizationId: z.string(),
+				newOwnerMemberId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, input.organizationId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			// Only the current owner can transfer ownership
+			if (org.ownerId !== ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the current organization owner can transfer ownership",
+				});
+			}
+
+			// Fetch target member
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.id, input.newOwnerMemberId),
+					eq(member.organizationId, input.organizationId),
+				),
+			});
+
+			if (!targetMember) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Target member not found in this organization",
+				});
+			}
+
+			if (targetMember.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You already own this organization",
+				});
+			}
+
+			// Update organization ownerId
+			await db
+				.update(organization)
+				.set({ ownerId: targetMember.userId })
+				.where(eq(organization.id, input.organizationId));
+
+			// Demote previous owner to admin
+			await db
+				.update(member)
+				.set({ role: "admin" })
+				.where(
+					and(
+						eq(member.organizationId, input.organizationId),
+						eq(member.userId, ctx.user.id),
+					),
+				);
+
+			// Promote target member to owner
+			await db
+				.update(member)
+				.set({ role: "owner" })
+				.where(eq(member.id, targetMember.id));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					previousOwnerId: ctx.user.id,
+					newOwnerUserId: targetMember.userId,
+				},
+			});
+
+			return { success: true };
+		}),
+	deleteExpiredInvitations: withPermission("member", "delete")
+		.mutation(async ({ ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const now = new Date();
+
+			const result = await db
+				.delete(invitation)
+				.where(
+					and(
+						eq(invitation.organizationId, orgId),
+						or(
+							eq(invitation.status, "canceled"),
+							lt(invitation.expiresAt, now),
+						),
+					),
+				)
+				.returning();
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: orgId,
+				metadata: { type: "deleteExpiredInvitations", count: result.length },
+			});
+
+			return { deletedCount: result.length };
+		}),
+	updateMemberTeam: withPermission("member", "update")
+		.input(
+			z.object({
+				memberId: z.string(),
+				teamId: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+			});
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to update this member's team",
+				});
+			}
+
+			const result = await db
+				.update(member)
+				.set({ teamId: input.teamId })
+				.where(eq(member.id, input.memberId))
+				.returning();
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.memberId,
+				metadata: { type: "updateMemberTeam", teamId: input.teamId },
+			});
+
+			return result[0];
 		}),
 	active: protectedProcedure.query(async ({ ctx }) => {
 		if (!ctx.session.activeOrganizationId) {
