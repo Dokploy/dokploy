@@ -130,11 +130,11 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 		const service = docker.getService(appName);
 		const inspect = await service.inspect();
 		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
+			version: Number.parseInt(inspect.Version.Index, 10),
 			...settings,
 			TaskTemplate: {
 				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+				ForceUpdate: (inspect.Spec.TaskTemplate.ForceUpdate ?? 0) + 1,
 			},
 		});
 	} catch {

@@ -153,7 +153,7 @@ const createSchema = createInsertSchema(mysql, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
-	stopGracePeriodSwarm: z.number().nullable(),
+	stopGracePeriodSwarm: z.coerce.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 	networkIds: z.array(z.string()).optional(),

@@ -381,7 +381,7 @@ const createSchema = createInsertSchema(applications, {
 	networkIds: z.array(z.string()).optional(),
 	detachDokployNetwork: z.boolean().optional(),
 	cleanCache: z.boolean().optional(),
-	stopGracePeriodSwarm: z.number().nullable(),
+	stopGracePeriodSwarm: z.coerce.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 	ulimitsSwarm: UlimitsSwarmSchema.nullable(),
 	enableSubmodules: z.boolean().optional(),

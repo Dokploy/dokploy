@@ -97,19 +97,73 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				StartPeriod: hc.StartPeriod,
 				Retries: hc.Retries,
 			});
+		} else if (data) {
+			form.reset({
+				Test: [],
+				Interval: undefined,
+				Timeout: undefined,
+				StartPeriod: undefined,
+				Retries: undefined,
+			});
 		}
 	}, [data, form]);
 
 	const onSubmit = async (formData: z.infer<typeof healthCheckFormSchema>) => {
 		setIsLoading(true);
 		try {
+			// Clean test commands, handling JSON array string or command wrapping
+			let cleanTest: string[] = (formData.Test || [])
+				.map((item: string) => (typeof item === "string" ? item.trim() : ""))
+				.filter(Boolean);
+
+			if (
+				cleanTest.length === 1 &&
+				cleanTest[0].startsWith("[") &&
+				cleanTest[0].endsWith("]")
+			) {
+				try {
+					const parsed = JSON.parse(cleanTest[0]);
+					if (Array.isArray(parsed)) {
+						cleanTest = parsed
+							.map((item) =>
+								typeof item === "string" ? item.trim() : String(item).trim(),
+							)
+							.filter(Boolean);
+					}
+				} catch {
+					// Keep as is
+				}
+			}
+
+			if (cleanTest.length > 0) {
+				const first = cleanTest[0];
+				if (first !== "NONE" && first !== "CMD" && first !== "CMD-SHELL") {
+					if (first.startsWith("CMD-SHELL ")) {
+						cleanTest = ["CMD-SHELL", first.slice(10).trim()];
+					} else if (first.startsWith("CMD ")) {
+						cleanTest = ["CMD", ...first.slice(4).trim().split(/\s+/)];
+					} else if (cleanTest.length === 1) {
+						cleanTest = ["CMD-SHELL", first];
+					} else {
+						cleanTest = ["CMD", ...cleanTest];
+					}
+				}
+			}
+
 			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue =
-				(formData.Test && formData.Test.length > 0) ||
+				cleanTest.length > 0 ||
 				formData.Interval !== undefined ||
 				formData.Timeout !== undefined ||
 				formData.StartPeriod !== undefined ||
 				formData.Retries !== undefined;
+
+			const payload = hasAnyValue
+				? {
+						...formData,
+						Test: cleanTest.length > 0 ? cleanTest : undefined,
+					}
+				: null;
 
 			await mutateAsync({
 				applicationId: id || "",
@@ -119,7 +173,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				mariadbId: id || "",
 				mongoId: id || "",
 				libsqlId: id || "",
-				healthCheckSwarm: hasAnyValue ? formData : null,
+				healthCheckSwarm: payload as any,
 			});
 
 			toast.success("Health check updated successfully");

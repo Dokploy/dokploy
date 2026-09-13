@@ -91,9 +91,9 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data?.command) {
+		if (data) {
 			form.reset({
-				...(type === "application" && data && "registryId" in data
+				...(type === "application" && "registryId" in data
 					? {
 							registryId: data?.registryId || "",
 						}
@@ -101,7 +101,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				replicas: data?.replicas || 1,
 			});
 		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
+	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
@@ -122,11 +122,11 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 			replicas: data?.replicas,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success("Cluster settings updated");
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error("Error updating cluster settings");
 			});
 	};
 

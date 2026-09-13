@@ -115,11 +115,11 @@ export const setupForwardAuth = async (options: SetupForwardAuthOptions) => {
 		const service = docker.getService(FORWARD_AUTH_SERVICE_NAME);
 		const inspect = await service.inspect();
 		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
+			version: Number.parseInt(inspect.Version.Index, 10),
 			...settings,
 			TaskTemplate: {
 				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+				ForceUpdate: (inspect.Spec.TaskTemplate.ForceUpdate ?? 0) + 1,
 			},
 		});
 		console.log("Forward Auth Updated ✅");

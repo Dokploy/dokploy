@@ -99,19 +99,19 @@ export type UlimitsSwarm = UlimitSwarm[];
 export const HealthCheckSwarmSchema = z
 	.object({
 		Test: z.array(z.string()).optional(),
-		Interval: z.number().optional(),
-		Timeout: z.number().optional(),
-		StartPeriod: z.number().optional(),
-		Retries: z.number().optional(),
+		Interval: z.coerce.number().optional(),
+		Timeout: z.coerce.number().optional(),
+		StartPeriod: z.coerce.number().optional(),
+		Retries: z.coerce.number().optional(),
 	})
 	.strict();
 
 export const RestartPolicySwarmSchema = z
 	.object({
 		Condition: z.string().optional(),
-		Delay: z.number().optional(),
-		MaxAttempts: z.number().optional(),
-		Window: z.number().optional(),
+		Delay: z.coerce.number().optional(),
+		MaxAttempts: z.coerce.number().optional(),
+		Window: z.coerce.number().optional(),
 	})
 	.strict();
 
@@ -134,19 +134,19 @@ export const PlacementSwarmSchema = z
 	.object({
 		Constraints: z.array(z.string()).optional(),
 		Preferences: z.array(PreferenceSchema).optional(),
-		MaxReplicas: z.number().optional(),
+		MaxReplicas: z.coerce.number().optional(),
 		Platforms: z.array(PlatformSchema).optional(),
 	})
 	.strict();
 
 export const UpdateConfigSwarmSchema = z
 	.object({
-		Parallelism: z.number(),
-		Delay: z.number().optional(),
+		Parallelism: z.coerce.number().optional(),
+		Delay: z.coerce.number().optional(),
 		FailureAction: z.string().optional(),
-		Monitor: z.number().optional(),
-		MaxFailureRatio: z.number().optional(),
-		Order: z.string(),
+		Monitor: z.coerce.number().optional(),
+		MaxFailureRatio: z.coerce.number().optional(),
+		Order: z.string().optional(),
 	})
 	.strict();
 

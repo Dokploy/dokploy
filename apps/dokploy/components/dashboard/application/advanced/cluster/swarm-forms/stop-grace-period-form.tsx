@@ -86,6 +86,13 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 	const onSubmit = async (formData: any) => {
 		setIsLoading(true);
 		try {
+			const parsedValue =
+				formData.value !== undefined &&
+				formData.value !== null &&
+				formData.value !== ""
+					? Number(formData.value)
+					: null;
+
 			await mutateAsync({
 				applicationId: id || "",
 				postgresId: id || "",
@@ -94,7 +101,7 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 				mariadbId: id || "",
 				mongoId: id || "",
 				libsqlId: id || "",
-				stopGracePeriodSwarm: formData.value,
+				stopGracePeriodSwarm: parsedValue,
 			});
 
 			toast.success("Stop grace period updated successfully");

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import type { HealthCheckSwarm } from "@dokploy/server/db/schema/shared";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
@@ -611,15 +612,85 @@ export const calculateResources = ({
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
-			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit) : undefined,
-			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit) : undefined,
+			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit, 10) : undefined,
+			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit, 10) : undefined,
 		},
 		Reservations: {
 			MemoryBytes: memoryReservation
-				? Number.parseInt(memoryReservation)
+				? Number.parseInt(memoryReservation, 10)
 				: undefined,
-			NanoCPUs: cpuReservation ? Number.parseInt(cpuReservation) : undefined,
+			NanoCPUs: cpuReservation
+				? Number.parseInt(cpuReservation, 10)
+				: undefined,
 		},
+	};
+};
+
+export const cleanHealthCheckSwarm = (
+	healthCheck?: HealthCheckSwarm | null,
+): HealthCheckSwarm | undefined => {
+	if (!healthCheck) return undefined;
+
+	let test = healthCheck.Test;
+	if (test) {
+		test = test
+			.map((t) => (typeof t === "string" ? t.trim() : ""))
+			.filter(Boolean);
+
+		if (test.length === 1 && test[0].startsWith("[") && test[0].endsWith("]")) {
+			try {
+				const parsed = JSON.parse(test[0]);
+				if (Array.isArray(parsed)) {
+					test = parsed
+						.map((t) => (typeof t === "string" ? t.trim() : String(t).trim()))
+						.filter(Boolean);
+				}
+			} catch {
+				// Not valid JSON array, keep original
+			}
+		}
+
+		if (test.length > 0) {
+			const first = test[0];
+			if (first !== "NONE" && first !== "CMD" && first !== "CMD-SHELL") {
+				if (first.startsWith("CMD-SHELL ")) {
+					test = ["CMD-SHELL", first.slice(10).trim()];
+				} else if (first.startsWith("CMD ")) {
+					test = ["CMD", ...first.slice(4).trim().split(/\s+/)];
+				} else if (test.length === 1) {
+					test = ["CMD-SHELL", first];
+				} else {
+					test = ["CMD", ...test];
+				}
+			}
+		}
+	}
+
+	const hasValidTest = Boolean(test && test.length > 0);
+	const hasOptions =
+		healthCheck.Interval !== undefined ||
+		healthCheck.Timeout !== undefined ||
+		healthCheck.StartPeriod !== undefined ||
+		healthCheck.Retries !== undefined;
+
+	if (!hasValidTest && !hasOptions) {
+		return undefined;
+	}
+
+	return {
+		...(hasValidTest && { Test: test }),
+		...(healthCheck.Interval !== undefined && {
+			Interval: Number(healthCheck.Interval),
+		}),
+		...(healthCheck.Timeout !== undefined && {
+			Timeout: Number(healthCheck.Timeout),
+		}),
+		...(healthCheck.StartPeriod !== undefined && {
+			StartPeriod: Number(healthCheck.StartPeriod),
+		}),
+		...(healthCheck.Retries !== undefined && {
+			Retries: Number(healthCheck.Retries),
+		}),
 	};
 };
 
@@ -642,10 +713,11 @@ export const generateConfigContainer = (
 	} = application;
 
 	const haveMounts = mounts && mounts.length > 0;
+	const cleanedHealthCheck = cleanHealthCheckSwarm(healthCheckSwarm);
 
 	return {
-		...(healthCheckSwarm && {
-			HealthCheck: healthCheckSwarm,
+		...(cleanedHealthCheck && {
+			HealthCheck: cleanedHealthCheck,
 		}),
 		...(restartPolicySwarm && {
 			RestartPolicy: restartPolicySwarm,
