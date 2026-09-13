@@ -32,6 +32,7 @@ export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
 	const exportEnvCommand = getExportEnvCommand(compose);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
+	const mountsCommand = getCreateMountsCommand(compose);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
@@ -54,6 +55,8 @@ Compose Type: ${composeType} ✅`;
 	set -e
 	{
 		echo "${logBox}";
+
+		${mountsCommand}
 
 		${newCompose}
 
@@ -202,4 +205,36 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 		.join(" ");
 
 	return exports ? `${exports}` : "";
+};
+
+export const getCreateMountsCommand = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const filesPath = join(COMPOSE_PATH, compose.appName, "files");
+
+	const fileMounts = (compose.mounts || []).filter(
+		(m) => m.type === "file" && m.filePath,
+	);
+
+	if (fileMounts.length === 0) {
+		return "";
+	}
+
+	let commands = `mkdir -p ${quote([filesPath])};\n`;
+
+	for (const mount of fileMounts) {
+		const cleanPath = (mount.filePath || "").trim().replace(/^[/\\]+/, "");
+		if (!cleanPath) continue;
+
+		const fullPath = join(filesPath, cleanPath);
+		const directory = dirname(fullPath);
+		const encodedContent = encodeBase64(mount.content || "");
+
+		commands += `
+			mkdir -p ${quote([directory])};
+			if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
+			echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
+		`;
+	}
+
+	return commands;
 };

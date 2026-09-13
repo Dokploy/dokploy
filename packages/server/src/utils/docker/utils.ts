@@ -611,14 +611,16 @@ export const calculateResources = ({
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
-			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit) : undefined,
-			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit) : undefined,
+			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit, 10) : undefined,
+			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit, 10) : undefined,
 		},
 		Reservations: {
 			MemoryBytes: memoryReservation
-				? Number.parseInt(memoryReservation)
+				? Number.parseInt(memoryReservation, 10)
 				: undefined,
-			NanoCPUs: cpuReservation ? Number.parseInt(cpuReservation) : undefined,
+			NanoCPUs: cpuReservation
+				? Number.parseInt(cpuReservation, 10)
+				: undefined,
 		},
 	};
 };
@@ -769,14 +771,21 @@ export const createFile = async (
 	content: string,
 ) => {
 	try {
-		const fullPath = path.join(outputPath, filePath);
-		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+		const cleanPath = filePath.trim().replace(/^[/\\]+/, "");
+		if (!cleanPath) {
+			return;
+		}
+		const fullPath = path.join(outputPath, cleanPath);
+		if (fullPath.endsWith(path.sep) || cleanPath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
 		}
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+		if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+			fs.rmSync(fullPath, { recursive: true, force: true });
+		}
 		fs.writeFileSync(fullPath, content || "");
 	} catch (error) {
 		throw error;
@@ -790,8 +799,12 @@ export const getCreateFileCommand = (
 	filePath: string,
 	content: string,
 ) => {
-	const fullPath = path.join(outputPath, filePath);
-	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+	const cleanPath = filePath.trim().replace(/^[/\\]+/, "");
+	if (!cleanPath) {
+		return "";
+	}
+	const fullPath = path.join(outputPath, cleanPath);
+	if (fullPath.endsWith(path.sep) || cleanPath.endsWith("/")) {
 		return `mkdir -p ${quote([fullPath])};`;
 	}
 
@@ -799,6 +812,7 @@ export const getCreateFileCommand = (
 	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${quote([directory])};
+		if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
 		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
