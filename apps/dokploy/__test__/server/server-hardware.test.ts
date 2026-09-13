@@ -956,7 +956,6 @@ describe("local Docker Engine failure", () => {
 		expect(modelRunner.error).toBe(ENGINE_INFO_ERROR);
 		expect(parseServerHardware(localEnvelope({ engineExit: 1 })).error).toBe(
 			modelRunner.error,
-			modelRunner.error,
 		);
 	});
 
