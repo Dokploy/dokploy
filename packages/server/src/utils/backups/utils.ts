@@ -1,4 +1,4 @@
-import { logger } from "@dokploy/server/lib/logger";
+import { logger } from "../../lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
@@ -280,6 +280,7 @@ export const getBackupCommand = (
 
 	return `
 	set -eo pipefail;
+	mkdir -p "$(dirname "${logPath}")";
 	echo "[$(date)] Starting backup process..." >> ${logPath};
 	echo "[$(date)] Executing backup command..." >> ${logPath};
 	CONTAINER_ID=$(${containerSearch});

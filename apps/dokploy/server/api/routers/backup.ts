@@ -116,33 +116,36 @@ export const backupRouter = createTRPCRouter({
 				const newBackup = await createBackup(input);
 				const backup = await findBackupById(newBackup.backupId);
 
-				if (IS_CLOUD && backup.enabled) {
-					const databaseType = backup.databaseType;
-					let serverId = "";
-					if (databaseType === "postgres" && backup.postgres?.serverId) {
-						serverId = backup.postgres.serverId;
-					} else if (databaseType === "mysql" && backup.mysql?.serverId) {
-						serverId = backup.mysql.serverId;
-					} else if (databaseType === "mongo" && backup.mongo?.serverId) {
-						serverId = backup.mongo.serverId;
-					} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
-						serverId = backup.mariadb.serverId;
-					} else if (databaseType === "libsql" && backup.libsql?.serverId) {
-						serverId = backup.libsql.serverId;
-					} else if (
-						backup.backupType === "compose" &&
-						backup.compose?.serverId
-					) {
-						serverId = backup.compose.serverId;
-					}
-					const server = await findServerById(serverId);
+				const databaseType = backup.databaseType;
+				let serverId = "";
+				if (databaseType === "postgres" && backup.postgres?.serverId) {
+					serverId = backup.postgres.serverId;
+				} else if (databaseType === "mysql" && backup.mysql?.serverId) {
+					serverId = backup.mysql.serverId;
+				} else if (databaseType === "mongo" && backup.mongo?.serverId) {
+					serverId = backup.mongo.serverId;
+				} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
+					serverId = backup.mariadb.serverId;
+				} else if (databaseType === "libsql" && backup.libsql?.serverId) {
+					serverId = backup.libsql.serverId;
+				} else if (
+					backup.backupType === "compose" &&
+					backup.compose?.serverId
+				) {
+					serverId = backup.compose.serverId;
+				}
 
+				if (serverId) {
+					const server = await findServerById(serverId);
 					if (server.serverStatus === "inactive") {
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "Server is inactive",
 						});
 					}
+				}
+
+				if (IS_CLOUD && backup.enabled) {
 					await schedule({
 						cronSchedule: backup.schedule,
 						backupId: backup.backupId,
@@ -158,6 +161,8 @@ export const backupRouter = createTRPCRouter({
 					resourceType: "backup",
 					resourceId: backup.backupId,
 				});
+
+				return newBackup;
 			} catch (error) {
 				console.error(error);
 				throw new TRPCError({
@@ -238,6 +243,8 @@ export const backupRouter = createTRPCRouter({
 					resourceType: "backup",
 					resourceId: backup.backupId,
 				});
+
+				return backup;
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Error updating this Backup";
@@ -301,6 +308,15 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const postgres = await findPostgresByBackupId(backup.backupId);
+				if (postgres?.serverId) {
+					const server = await findServerById(postgres.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+				}
 				await runPostgresBackup(postgres, backup);
 				await keepLatestNBackups(backup, postgres?.serverId);
 				await audit(ctx, {
@@ -332,6 +348,15 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const mysql = await findMySqlByBackupId(backup.backupId);
+				if (mysql?.serverId) {
+					const server = await findServerById(mysql.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+				}
 				await runMySqlBackup(mysql, backup);
 				await keepLatestNBackups(backup, mysql?.serverId);
 				await audit(ctx, {
@@ -359,6 +384,15 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const mariadb = await findMariadbByBackupId(backup.backupId);
+				if (mariadb?.serverId) {
+					const server = await findServerById(mariadb.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+				}
 				await runMariadbBackup(mariadb, backup);
 				await keepLatestNBackups(backup, mariadb?.serverId);
 				await audit(ctx, {
@@ -386,6 +420,15 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const compose = await findComposeByBackupId(backup.backupId);
+				if (compose?.serverId) {
+					const server = await findServerById(compose.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+				}
 				await runComposeBackup(compose, backup);
 				await keepLatestNBackups(backup, compose?.serverId);
 				await audit(ctx, {
@@ -413,6 +456,15 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const mongo = await findMongoByBackupId(backup.backupId);
+				if (mongo?.serverId) {
+					const server = await findServerById(mongo.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+				}
 				await runMongoBackup(mongo, backup);
 				await keepLatestNBackups(backup, mongo?.serverId);
 				await audit(ctx, {
@@ -440,6 +492,15 @@ export const backupRouter = createTRPCRouter({
 					});
 				}
 				const libsql = await findLibsqlByBackupId(backup.backupId);
+				if (libsql?.serverId) {
+					const server = await findServerById(libsql.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+				}
 				await runLibsqlBackup(libsql, backup);
 				await keepLatestNBackups(backup, libsql?.serverId);
 				await audit(ctx, {
