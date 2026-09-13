@@ -99,13 +99,15 @@ export const DuplicateProject = ({
 	const sourceServerIds = new Set(
 		selectedServices.map((service) => service.serverId ?? null),
 	);
-	const [sourceServerId] = sourceServerIds;
+	const sharedSourceServerId =
+		sourceServerIds.size === 1 ? [...sourceServerIds][0] : undefined;
 	const sharedSourceServerName =
-		sourceServerIds.size !== 1
+		sharedSourceServerId === undefined
 			? undefined
-			: sourceServerId === null
+			: sharedSourceServerId === null
 				? "Dokploy"
-				: servers?.find((server) => server.serverId === sourceServerId)?.name;
+				: servers?.find((server) => server.serverId === sharedSourceServerId)
+						?.name;
 
 	const { mutateAsync: duplicateProject, isPending } =
 		api.project.duplicate.useMutation({
@@ -354,19 +356,23 @@ export const DuplicateProject = ({
 											)}
 										</span>
 									</SelectItem>
-									{showLocalOption && (
+									{showLocalOption && sharedSourceServerId !== null && (
 										<SelectItem value="dokploy">Dokploy</SelectItem>
 									)}
-									{servers.map((server) => (
-										<SelectItem key={server.serverId} value={server.serverId}>
-											<span className="flex items-center gap-2 justify-between w-full">
-												<span>{server.name}</span>
-												<span className="text-muted-foreground text-xs self-center">
-													{server.ipAddress}
+									{servers
+										.filter(
+											(server) => server.serverId !== sharedSourceServerId,
+										)
+										.map((server) => (
+											<SelectItem key={server.serverId} value={server.serverId}>
+												<span className="flex items-center gap-2 justify-between w-full">
+													<span>{server.name}</span>
+													<span className="text-muted-foreground text-xs self-center">
+														{server.ipAddress}
+													</span>
 												</span>
-											</span>
-										</SelectItem>
-									))}
+											</SelectItem>
+										))}
 								</SelectContent>
 							</Select>
 							{targetServer !== "keep" && (
