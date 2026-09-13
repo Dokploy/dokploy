@@ -33,22 +33,12 @@ const caller = applicationRouter.createCaller({
 	user: { id: "user-1", email: "user@example.com", role: "owner" },
 } as Parameters<typeof applicationRouter.createCaller>[0]);
 
-describe("saving an application provider", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
-	it.each(["done", "running"])(
-		"keeps the %s application status when GitHub settings change",
-		async (status) => {
-			let savedStatus = status;
-			mockUpdateApplication.mockImplementation(async (_id, update) => {
-				if (update.applicationStatus !== undefined) {
-					savedStatus = update.applicationStatus;
-				}
-			});
-
-			await caller.saveGithubProvider({
+const providerChanges = [
+	{
+		name: "GitHub",
+		sourceType: "github",
+		save: () =>
+			caller.saveGithubProvider({
 				applicationId: "app-1",
 				repository: "example-repo",
 				owner: "example-owner",
@@ -58,16 +48,109 @@ describe("saving an application provider", () => {
 				watchPaths: ["src/**"],
 				triggerType: "push",
 				enableSubmodules: false,
-			});
+			}),
+	},
+	{
+		name: "GitLab",
+		sourceType: "gitlab",
+		save: () =>
+			caller.saveGitlabProvider({
+				applicationId: "app-1",
+				gitlabRepository: "example-repo",
+				gitlabOwner: "example-owner",
+				gitlabBranch: "main",
+				gitlabBuildPath: "/",
+				gitlabId: "provider-1",
+				gitlabProjectId: 1,
+				gitlabPathNamespace: "example-owner/example-repo",
+			}),
+	},
+	{
+		name: "Bitbucket",
+		sourceType: "bitbucket",
+		save: () =>
+			caller.saveBitbucketProvider({
+				applicationId: "app-1",
+				bitbucketRepository: "example-repo",
+				bitbucketRepositorySlug: "example-repo",
+				bitbucketOwner: "example-owner",
+				bitbucketBranch: "main",
+				bitbucketBuildPath: "/",
+				bitbucketId: "provider-1",
+			}),
+	},
+	{
+		name: "Gitea",
+		sourceType: "gitea",
+		save: () =>
+			caller.saveGiteaProvider({
+				applicationId: "app-1",
+				giteaRepository: "example-repo",
+				giteaOwner: "example-owner",
+				giteaBranch: "main",
+				giteaBuildPath: "/",
+				giteaId: "provider-1",
+			}),
+	},
+	{
+		name: "Docker",
+		sourceType: "docker",
+		save: () =>
+			caller.saveDockerProvider({
+				applicationId: "app-1",
+				dockerImage: "nginx:alpine",
+				username: "",
+				password: "",
+				registryUrl: "",
+			}),
+	},
+	{
+		name: "custom Git",
+		sourceType: "git",
+		save: () =>
+			caller.saveGitProvider({
+				applicationId: "app-1",
+				customGitUrl: "https://example.com/repo.git",
+				customGitBranch: "main",
+				customGitBuildPath: "/",
+				customGitSSHKeyId: "key-1",
+				watchPaths: ["src/**"],
+				enableSubmodules: false,
+			}),
+	},
+	{
+		name: "disconnect Git provider",
+		sourceType: "github",
+		save: () => caller.disconnectGitProvider({ applicationId: "app-1" }),
+	},
+];
 
-			expect(savedStatus).toBe(status);
-			expect(mockUpdateApplication).toHaveBeenCalledWith(
-				"app-1",
-				expect.objectContaining({
-					watchPaths: ["src/**"],
-					sourceType: "github",
-				}),
-			);
+describe("saving an application provider", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it.each(providerChanges)(
+		"keeps the status when $name settings change",
+		async ({ save, sourceType }) => {
+			for (const status of ["done", "running"]) {
+				mockUpdateApplication.mockClear();
+				let savedStatus = status;
+				mockUpdateApplication.mockImplementation(async (_id, update) => {
+					if (update.applicationStatus !== undefined) {
+						savedStatus = update.applicationStatus;
+					}
+				});
+
+				await save();
+
+				expect(savedStatus).toBe(status);
+				expect(mockUpdateApplication).toHaveBeenCalledTimes(1);
+				expect(mockUpdateApplication).toHaveBeenCalledWith(
+					"app-1",
+					expect.objectContaining({ sourceType }),
+				);
+			}
 		},
 	);
 });
