@@ -16,6 +16,7 @@ import {
 	getDockerDiskUsage,
 	getDokployImageTag,
 	getLogCleanupStatus,
+	getTraefikVersionInfo,
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -40,6 +41,7 @@ import {
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
+	updateTraefikToPinnedVersion,
 	updateWebServerSettings,
 	writeConfig,
 	writeMainConfig,
@@ -126,6 +128,29 @@ export const settingsRouter = createTRPCRouter({
 				action: "reload",
 				resourceType: "settings",
 				resourceName: "dokploy-traefik",
+			});
+			return true;
+		}),
+	getTraefikVersionInfo: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input }) => {
+			return await getTraefikVersionInfo(input?.serverId);
+		}),
+	updateTraefik: adminProcedure
+		.input(apiServerSchema)
+		.mutation(async ({ input, ctx }) => {
+			// Run in background so the request returns immediately; client polls /api/health.
+			// Avoids proxy timeouts (520) while Traefik is recreated.
+			void updateTraefikToPinnedVersion(input?.serverId).catch((err) => {
+				console.error(
+					"updateTraefik background updateTraefikToPinnedVersion:",
+					err,
+				);
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "traefik-version",
 			});
 			return true;
 		}),

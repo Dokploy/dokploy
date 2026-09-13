@@ -1,19 +1,17 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
 import { and, eq } from "drizzle-orm";
-
 import semver from "semver";
 import { db } from "../db";
 import { compose } from "../db/schema";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
+	TRAEFIK_VERSION,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import { prepareEnvironmentVariables } from "../utils/docker/utils";
+import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -499,4 +497,116 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 	} else {
 		await execAsync(commands);
 	}
+};
+
+export const readDockerResourceImage = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<string | null> => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service inspect ${resourceName} --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'`;
+	} else if (resourceType === "standalone") {
+		command = `docker container inspect ${resourceName} --format '{{.Config.Image}}'`;
+	} else {
+		return null;
+	}
+	try {
+		let result = "";
+		if (serverId) {
+			const { stdout } = await execAsyncRemote(serverId, command);
+			result = stdout.trim();
+		} else {
+			const { stdout } = await execAsync(command);
+			result = stdout.trim();
+		}
+		if (!result || result === "<no value>" || result === "null") {
+			return null;
+		}
+		return result;
+	} catch (error) {
+		console.error(
+			`Error reading docker resource image for ${resourceName}:`,
+			error,
+		);
+		return null;
+	}
+};
+
+export const parseTraefikVersion = (
+	imageString: string | null | undefined,
+): string | null => {
+	if (!imageString) {
+		return null;
+	}
+	const match = imageString.match(
+		/(?:^|\/)traefik:(?:v)?([0-9]+(?:\.[0-9]+)+(?:-[a-zA-Z0-9.]+)?)/,
+	);
+	if (match?.[1]) {
+		return match[1];
+	}
+	const genericMatch = imageString.match(/:v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/);
+	if (genericMatch?.[1]) {
+		return genericMatch[1];
+	}
+	return null;
+};
+
+export const isVersionOlder = (running: string, pinned: string): boolean => {
+	const parseParts = (v: string) => {
+		const clean = v.replace(/^v/, "").split("-")[0] || "";
+		return clean.split(".").map((n) => Number.parseInt(n, 10) || 0);
+	};
+	const [rMajor = 0, rMinor = 0, rPatch = 0] = parseParts(running);
+	const [pMajor = 0, pMinor = 0, pPatch = 0] = parseParts(pinned);
+
+	if (rMajor !== pMajor) return rMajor < pMajor;
+	if (rMinor !== pMinor) return rMinor < pMinor;
+	return rPatch < pPatch;
+};
+
+export interface TraefikVersionInfo {
+	pinnedVersion: string;
+	runningVersion: string | null;
+	runningImage: string | null;
+	isOutdated: boolean;
+}
+
+export const getTraefikVersionInfo = async (
+	serverId?: string,
+): Promise<TraefikVersionInfo> => {
+	const runningImage = await readDockerResourceImage(
+		"dokploy-traefik",
+		serverId,
+	);
+	const runningVersion = parseTraefikVersion(runningImage);
+	const pinnedVersion = TRAEFIK_VERSION;
+
+	let isOutdated = false;
+	if (runningVersion && pinnedVersion) {
+		isOutdated = isVersionOlder(runningVersion, pinnedVersion);
+	}
+
+	return {
+		pinnedVersion,
+		runningVersion,
+		runningImage,
+		isOutdated,
+	};
+};
+
+export const updateTraefikToPinnedVersion = async (serverId?: string) => {
+	const [env, ports] = await Promise.all([
+		readEnvironmentVariables("dokploy-traefik", serverId),
+		readPorts("dokploy-traefik", serverId),
+	]);
+
+	const preparedEnv = prepareEnvironmentVariables(env);
+
+	await writeTraefikSetup({
+		env: preparedEnv,
+		additionalPorts: ports,
+		serverId,
+	});
 };

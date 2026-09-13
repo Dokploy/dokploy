@@ -32,6 +32,14 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 			serverId,
 		});
 
+	const { data: traefikVersionInfo, refetch: refetchVersionInfo } =
+		api.settings.getTraefikVersionInfo.useQuery({
+			serverId,
+		});
+
+	const { mutateAsync: updateTraefik, isPending: updateTraefikIsLoading } =
+		api.settings.updateTraefik.useMutation();
+
 	const {
 		execute: executeWithHealthCheck,
 		isExecuting: isHealthCheckExecuting,
@@ -53,6 +61,18 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 		successMessage: "Traefik Reloaded",
 	});
 
+	const {
+		execute: executeUpdateWithHealthCheck,
+		isExecuting: isUpdateHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		pollInterval: 4000,
+		successMessage: "Traefik updated to latest pinned version",
+		onSuccess: () => {
+			refetchVersionInfo();
+		},
+	});
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
@@ -60,26 +80,92 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 				disabled={
 					reloadTraefikIsLoading ||
 					toggleDashboardIsLoading ||
+					updateTraefikIsLoading ||
 					isHealthCheckExecuting ||
-					isReloadHealthCheckExecuting
+					isReloadHealthCheckExecuting ||
+					isUpdateHealthCheckExecuting
 				}
 			>
 				<Button
 					isLoading={
 						reloadTraefikIsLoading ||
 						toggleDashboardIsLoading ||
+						updateTraefikIsLoading ||
 						isHealthCheckExecuting ||
-						isReloadHealthCheckExecuting
+						isReloadHealthCheckExecuting ||
+						isUpdateHealthCheckExecuting
 					}
 					variant="outline"
+					className="relative"
 				>
 					Traefik
+					{traefikVersionInfo?.isOutdated && (
+						<span className="ml-1.5 flex h-2 w-2 relative">
+							<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+							<span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+						</span>
+					)}
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="start">
-				<DropdownMenuLabel>Actions</DropdownMenuLabel>
+				<DropdownMenuLabel className="flex items-center justify-between">
+					<span>Actions</span>
+					{traefikVersionInfo?.runningVersion && (
+						<span className="text-[10px] text-muted-foreground font-normal">
+							v{traefikVersionInfo.runningVersion}
+						</span>
+					)}
+				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
+					{traefikVersionInfo?.isOutdated && (
+						<DialogAction
+							title={`Update Traefik to v${traefikVersionInfo.pinnedVersion}`}
+							description={
+								<div className="space-y-4">
+									<AlertBlock type="warning">
+										The Traefik container will be recreated with the updated
+										image traefik:v{traefikVersionInfo.pinnedVersion}. Existing
+										environment variables and port mappings will be preserved.
+										This may cause brief downtime (~5 seconds) while Traefik
+										restarts.
+									</AlertBlock>
+									<p>
+										Are you sure you want to update Traefik from{" "}
+										<span className="font-semibold text-foreground">
+											v{traefikVersionInfo.runningVersion ?? "unknown"}
+										</span>{" "}
+										to{" "}
+										<span className="font-semibold text-primary">
+											v{traefikVersionInfo.pinnedVersion}
+										</span>
+										?
+									</p>
+								</div>
+							}
+							onClick={async () => {
+								try {
+									await executeUpdateWithHealthCheck(() =>
+										updateTraefik({ serverId }),
+									);
+								} catch (error) {
+									const errorMessage =
+										(error as Error)?.message ||
+										"Failed to update Traefik. Please try again.";
+									toast.error(errorMessage);
+								}
+							}}
+							disabled={updateTraefikIsLoading || isUpdateHealthCheckExecuting}
+							type="default"
+						>
+							<DropdownMenuItem
+								onSelect={(e) => e.preventDefault()}
+								className="cursor-pointer text-amber-500 focus:text-amber-500 focus:bg-amber-500/10 font-medium"
+							>
+								<span>Update to v{traefikVersionInfo.pinnedVersion}</span>
+							</DropdownMenuItem>
+						</DialogAction>
+					)}
 					<DropdownMenuItem
 						onClick={async () => {
 							try {
