@@ -11,11 +11,13 @@ import {
 /**
  * Domain configuration
  */
-interface DomainConfig {
+export interface DomainConfig {
 	serviceName: string;
 	port: number;
 	path?: string;
 	host?: string;
+	active?: boolean;
+	enabled?: boolean;
 }
 
 /**
@@ -242,6 +244,12 @@ export function processDomains(
 
 	return template?.config?.domains?.map((domain: DomainConfig) => ({
 		...domain,
+		enabled:
+			domain.enabled !== undefined
+				? Boolean(domain.enabled)
+				: domain.active !== undefined
+					? Boolean(domain.active)
+					: true,
 		host: domain.host
 			? processValue(domain.host, variables, schema)
 			: generateRandomDomain(schema),
