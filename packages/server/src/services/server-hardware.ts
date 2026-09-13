@@ -1,4 +1,5 @@
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -9,6 +10,14 @@ import { buildHardwareScripts } from "./server-hardware-scripts";
 // Matches remoteStream SSH readyTimeout. Hardware commands are fast; this
 // bounds stalled docker/nvidia-smi/df/SSH so the API cannot wait forever.
 export const HARDWARE_PROBE_TIMEOUT_MS = 30_000;
+
+// Same wording as the model-runner probe so callers can match one string.
+export const ENGINE_INFO_ERROR = "Could not read Docker Engine info";
+
+export type GpuUnavailableReason =
+	| "nvidia-smi-not-found"
+	| "probe-failed"
+	| "invalid-output";
 
 export interface ServerHardwareGpu {
 	index: number;
@@ -42,6 +51,12 @@ export interface ServerHardware {
 	};
 	gpu: {
 		detection: "available" | "unavailable";
+		/**
+		 * Locally, nvidia-smi is only present when the Dokploy container itself
+		 * has GPU access (NVIDIA runtime with NVIDIA_VISIBLE_DEVICES, or --gpus);
+		 * "nvidia-smi-not-found" tells the UI which of the two to suggest.
+		 */
+		unavailableReason?: GpuUnavailableReason;
 		devices: ServerHardwareGpu[];
 	};
 	error?: string;
@@ -251,12 +266,23 @@ const gpuFromProbe = (
 	capCsv: string,
 ): ServerHardware["gpu"] => {
 	if (gpuExit !== 0) {
-		return { detection: "unavailable", devices: [] };
+		return {
+			detection: "unavailable",
+			unavailableReason:
+				gpuExit === 127 ? "nvidia-smi-not-found" : "probe-failed",
+			devices: [],
+		};
 	}
 	const devices = parseNvidiaGpuCsv(gpuCsv);
+	if (gpuCsv.trim() && devices.length === 0) {
+		return {
+			detection: "unavailable",
+			unavailableReason: "invalid-output",
+			devices: [],
+		};
+	}
 	return {
-		detection:
-			gpuCsv.trim() && devices.length === 0 ? "unavailable" : "available",
+		detection: "available",
 		devices:
 			capExit === 0 ? mergeComputeCapabilities(devices, capCsv) : devices,
 	};
@@ -267,7 +293,7 @@ export const parseServerHardware = (stdout: string): ServerHardware => {
 	try {
 		envelope = JSON.parse(stdout.trim());
 	} catch {
-		return emptyHardware(new Error("Could not parse server hardware output"));
+		return emptyHardware(new Error(PARSE_ERROR));
 	}
 
 	const gpu = gpuFromProbe(
@@ -279,11 +305,13 @@ export const parseServerHardware = (stdout: string): ServerHardware => {
 
 	if (envelope.kind === "local") {
 		const engineExit = parseExitCode(envelope.engineExit, 1);
-		const engine =
+		const engineJson =
 			engineExit === 0
-				? (parseJson(
-						b64Decode(envelope.engineBase64).trim(),
-					) as EngineInfo | null)
+				? parseJson(b64Decode(envelope.engineBase64).trim())
+				: null;
+		const engine =
+			engineJson && typeof engineJson === "object" && !Array.isArray(engineJson)
+				? (engineJson as EngineInfo)
 				: null;
 		return {
 			checkedAt: new Date().toISOString(),
@@ -297,6 +325,7 @@ export const parseServerHardware = (stdout: string): ServerHardware => {
 			},
 			disk: { totalBytes: null, availableBytes: null },
 			gpu,
+			...(engine ? {} : { error: ENGINE_INFO_ERROR }),
 		};
 	}
 
@@ -322,6 +351,64 @@ export const parseServerHardware = (stdout: string): ServerHardware => {
 	};
 };
 
+const PARSE_ERROR = "Could not parse server hardware output";
+
+// Executor messages can embed the probe script or its raw output; the API
+// only relays stable, script-free descriptions.
+const probeErrorMessage = (reason: unknown): string => {
+	if (reason instanceof ExecError) {
+		if (reason.message.includes("timed out"))
+			return `Hardware probe timed out after ${HARDWARE_PROBE_TIMEOUT_MS}ms`;
+		if (reason.exitCode != null)
+			return `Hardware probe exited with code ${reason.exitCode}`;
+		if (reason.message.includes(reason.command))
+			return "Hardware probe could not be executed";
+		return reason.message;
+	}
+	if (reason instanceof Error && reason.message) return reason.message;
+	return "Could not read server hardware";
+};
+
+const probeServerHardware = async (
+	serverId?: string,
+): Promise<ServerHardware> => {
+	const results = await Promise.allSettled(
+		buildHardwareScripts(Boolean(serverId)).map(async (script) => {
+			const result = serverId
+				? await execAsyncRemote(serverId, script, undefined, {
+						timeout: HARDWARE_PROBE_TIMEOUT_MS,
+					})
+				: await execAsync(script, { timeout: HARDWARE_PROBE_TIMEOUT_MS });
+			const parsed = parseJson(result.stdout);
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+				throw new Error(PARSE_ERROR);
+			}
+			return parsed;
+		}),
+	);
+	const fields = {};
+	const errors: string[] = [];
+	for (const result of results) {
+		if (result.status === "fulfilled") Object.assign(fields, result.value);
+		else errors.push(probeErrorMessage(result.reason));
+	}
+	const parsed = parseServerHardware(
+		JSON.stringify({ ...fields, kind: serverId ? "remote" : "local" }),
+	);
+	const messages = [
+		...new Set([...(parsed.error ? [parsed.error] : []), ...errors]),
+	];
+	return {
+		...parsed,
+		...(messages.length ? { error: messages.join("; ") } : {}),
+	};
+};
+
+// A remote probe opens one SSH session per script; concurrent requests for the
+// same host multiply that and trip sshd MaxStartups. Requests share the probe
+// already in flight instead of caching, so completed results are never reused.
+const inflight = new Map<string, Promise<ServerHardware>>();
+
 export const getServerHardware = async (
 	serverId?: string,
 ): Promise<ServerHardware> => {
@@ -332,35 +419,12 @@ export const getServerHardware = async (
 		});
 	}
 
-	const results = await Promise.allSettled(
-		buildHardwareScripts(Boolean(serverId)).map(async (script) => {
-			const result = serverId
-				? await execAsyncRemote(serverId, script, undefined, {
-						timeout: HARDWARE_PROBE_TIMEOUT_MS,
-					})
-				: await execAsync(script, { timeout: HARDWARE_PROBE_TIMEOUT_MS });
-			const parsed: unknown = JSON.parse(result.stdout);
-			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-				throw new Error("Could not parse server hardware output");
-			}
-			return parsed;
-		}),
-	);
-	const fields = {};
-	const errors: string[] = [];
-	for (const result of results) {
-		if (result.status === "fulfilled") Object.assign(fields, result.value);
-		else
-			errors.push(
-				result.reason instanceof Error
-					? result.reason.message
-					: "Could not read server hardware",
-			);
-	}
-	return {
-		...parseServerHardware(
-			JSON.stringify({ ...fields, kind: serverId ? "remote" : "local" }),
-		),
-		...(errors.length ? { error: [...new Set(errors)].join("; ") } : {}),
-	};
+	const key = serverId ? `server:${serverId}` : "local";
+	const pending = inflight.get(key);
+	if (pending) return pending;
+	const probe = probeServerHardware(serverId).finally(() => {
+		if (inflight.get(key) === probe) inflight.delete(key);
+	});
+	inflight.set(key, probe);
+	return probe;
 };

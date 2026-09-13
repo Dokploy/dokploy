@@ -400,24 +400,35 @@ export const execAsyncRemote = async (
 										),
 									);
 								})
-								.on("close", (code: number, _signal: string) => {
-									if (code === 0) {
-										settle(undefined, { stdout, stderr });
-									} else {
+								.on(
+									"close",
+									(code: number | null | undefined, signal?: string | null) => {
+										if (code === 0) {
+											settle(undefined, { stdout, stderr });
+											return;
+										}
+										const context = { command, stdout, stderr, serverId };
+										if (code == null) {
+											// The timed wrapper only dies by signal when its watchdog
+											// fires; a plain close means the transport went away.
+											// ssh2 reports "SIGKILL" for OpenSSH but bare names elsewhere.
+											const name = signal?.replace(/^SIG/, "");
+											const message = !name
+												? "Remote command closed without an exit status: SSH transport closed"
+												: timeoutMs !== undefined && name === "KILL"
+													? `Command execution timed out after ${timeoutMs}ms`
+													: `Remote command terminated by signal SIG${name}`;
+											settle(new ExecError(message, context));
+											return;
+										}
 										settle(
 											new ExecError(
 												`Remote command failed with exit code ${code}`,
-												{
-													command,
-													stdout,
-													stderr,
-													exitCode: code,
-													serverId,
-												},
+												{ ...context, exitCode: code },
 											),
 										);
-									}
-								})
+									},
+								)
 								.on("data", (data: string) => {
 									if (settled) return;
 									stdout += data.toString();

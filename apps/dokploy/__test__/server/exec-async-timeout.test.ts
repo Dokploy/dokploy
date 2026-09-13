@@ -39,8 +39,8 @@ const { ssh, MockClient } = vi.hoisted(() => {
 			for (const cb of this.stderrHandlers) cb(data);
 		}
 
-		emitClose(code: number) {
-			for (const cb of this.handlers.close ?? []) cb(code, null);
+		emitClose(code: number | null, signal: string | null = null) {
+			for (const cb of this.handlers.close ?? []) cb(code, signal);
 		}
 
 		emitError(error: Error) {
@@ -415,6 +415,70 @@ describe("execAsyncRemote timeout", () => {
 			expect(client?.stream.signal).not.toHaveBeenCalled();
 		},
 	);
+
+	it("reports a close without exit status as a transport loss, never 'exit code undefined'", async () => {
+		const pending = startRemote();
+		const rejected = expect(pending).rejects.toSatisfy(
+			(error: unknown) =>
+				error instanceof ExecError &&
+				error.message ===
+					"Remote command closed without an exit status: SSH transport closed" &&
+				error.exitCode === undefined &&
+				!error.message.includes("undefined"),
+		);
+		await flush();
+		const client = ssh.instances[0];
+		client?.emitReady();
+		client?.stream.emitData("partial");
+		client?.stream.emitClose(null);
+		await rejected;
+		await expect(pending).rejects.toMatchObject({ stdout: "partial" });
+		expect(vi.getTimerCount()).toBe(0);
+		expect(client?.end).toHaveBeenCalledTimes(1);
+	});
+
+	it.each(["KILL", "SIGKILL"])(
+		"treats a %s exit-signal under a deadline as the timeout",
+		async (signal) => {
+			const pending = startRemote();
+			const rejected = expect(pending).rejects.toMatchObject({
+				message: "Command execution timed out after 1000ms",
+			});
+			await flush();
+			const client = ssh.instances[0];
+			client?.emitReady();
+			client?.stream.emitClose(null, signal);
+			await rejected;
+			expect(vi.getTimerCount()).toBe(0);
+		},
+	);
+
+	it.each(["TERM", "SIGTERM"])(
+		"names other exit-signals under a deadline in SIG form: %s",
+		async (signal) => {
+			const pending = startRemote();
+			const rejected = expect(pending).rejects.toMatchObject({
+				message: "Remote command terminated by signal SIGTERM",
+			});
+			await flush();
+			const client = ssh.instances[0];
+			client?.emitReady();
+			client?.stream.emitClose(null, signal);
+			await rejected;
+		},
+	);
+
+	it("names a KILL exit-signal without a deadline instead of claiming a timeout", async () => {
+		const pending = execAsyncRemote("server-1", "nvidia-smi", undefined, {});
+		const rejected = expect(pending).rejects.toMatchObject({
+			message: "Remote command terminated by signal SIGKILL",
+		});
+		await flush();
+		const client = ssh.instances[0];
+		client?.emitReady();
+		client?.stream.emitClose(null, "SIGKILL");
+		await rejected;
+	});
 
 	it("keeps a normal nonzero exit distinct from timeout", async () => {
 		const pending = startRemote();

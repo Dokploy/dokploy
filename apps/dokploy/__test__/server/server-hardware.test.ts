@@ -2,7 +2,9 @@ import { execFileSync, execSync } from "node:child_process";
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { parseModelRunnerCapability } from "@dokploy/server/services/model-runner";
 import {
+	ENGINE_INFO_ERROR,
 	getServerHardware,
 	HARDWARE_PROBE_TIMEOUT_MS,
 	parseNvidiaGpuLine,
@@ -10,6 +12,7 @@ import {
 } from "@dokploy/server/services/server-hardware";
 import { buildHardwareScripts } from "@dokploy/server/services/server-hardware-scripts";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -38,6 +41,20 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
 	execAsync: vi.fn(),
 	execAsyncRemote: vi.fn(),
 }));
+
+vi.mock(
+	"@dokploy/server/services/server-hardware-scripts",
+	async (importOriginal) => {
+		const actual =
+			await importOriginal<
+				typeof import("@dokploy/server/services/server-hardware-scripts")
+			>();
+		return {
+			...actual,
+			buildHardwareScripts: vi.fn(actual.buildHardwareScripts),
+		};
+	},
+);
 
 const resolveBin = (name: string) =>
 	execSync(`command -v ${name}`, { encoding: "utf8" }).trim();
@@ -248,7 +265,11 @@ describe("parseServerHardware", () => {
 			availableBytes: null,
 		});
 		expect(result.disk).toEqual({ totalBytes: null, availableBytes: null });
-		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "probe-failed",
+			devices: [],
+		});
 	});
 
 	it("treats local nvidia-smi success as available, including zero rows", () => {
@@ -281,7 +302,11 @@ describe("parseServerHardware", () => {
 			}),
 		);
 		expect(result.cpu.count).toBe(2);
-		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "nvidia-smi-not-found",
+			devices: [],
+		});
 	});
 
 	it("ignores GPU stdout when the primary nvidia-smi exit is nonzero", () => {
@@ -293,7 +318,11 @@ describe("parseServerHardware", () => {
 			}),
 		);
 		expect(result.cpu.count).toBe(8);
-		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "probe-failed",
+			devices: [],
+		});
 	});
 
 	it("ignores Engine JSON when docker info exit is nonzero", () => {
@@ -305,6 +334,7 @@ describe("parseServerHardware", () => {
 		);
 		expect(result.cpu).toEqual({ count: null, arch: null });
 		expect(result.memory.totalBytes).toBeNull();
+		expect(result.error).toBe(ENGINE_INFO_ERROR);
 	});
 
 	it.each([0, -1, 1.5, "0", "-1", "foo", Number.NaN, Number.POSITIVE_INFINITY])(
@@ -544,7 +574,11 @@ describe("parseServerHardware", () => {
 		expect(result.cpu.count).toBe(4);
 		expect(result.memory.totalBytes).toBe(4096 * 1024);
 		expect(result.disk.totalBytes).toBe(10 * 1024);
-		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "probe-failed",
+			devices: [],
+		});
 		expect(result.error).toBeUndefined();
 	});
 
@@ -649,6 +683,7 @@ exit 1
 		);
 		expect(result.cpu).toEqual({ count: null, arch: null });
 		expect(result.memory.totalBytes).toBeNull();
+		expect(result.error).toBe(ENGINE_INFO_ERROR);
 	});
 
 	it("ignores nvidia-smi stdout when the inventory command exits nonzero", () => {
@@ -666,7 +701,11 @@ exit 1
 			runScript(buildLocalHardwareScript(), sandbox),
 		);
 		expect(result.cpu.count).toBe(4);
-		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "probe-failed",
+			devices: [],
+		});
 	});
 
 	it("reads remote host facts through the generated script", () => {
@@ -870,7 +909,367 @@ describe("getServerHardware", () => {
 		expect(result.cpu.count).toBeNull();
 		expect(result.memory.totalBytes).toBeNull();
 		expect(result.disk.totalBytes).toBeNull();
-		expect(result.gpu).toEqual({ detection: "unavailable", devices: [] });
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "probe-failed",
+			devices: [],
+		});
+	});
+});
+
+describe("local Docker Engine failure", () => {
+	beforeEach(() => {
+		cloud.enabled = false;
+		vi.mocked(execAsync).mockReset();
+		vi.mocked(execAsyncRemote).mockReset();
+	});
+
+	it.each([
+		["nonzero exit", { engineExit: 1, engine: { ncpu: 8 } }],
+		["empty output", { engineExit: 0 }],
+		["non-object JSON", { engineExit: 0, engine: 42 as never }],
+	])("reports %s explicitly while keeping GPU facts", (_name, engine) => {
+		const result = parseServerHardware(
+			localEnvelope({ ...engine, gpuExit: 0, gpuCsv: [t4, a100].join("\n") }),
+		);
+		expect(result.error).toBe(ENGINE_INFO_ERROR);
+		expect(result.cpu).toEqual({ count: null, arch: null });
+		expect(result.memory.totalBytes).toBeNull();
+		expect(result.gpu.detection).toBe("available");
+		expect(result.gpu.devices.map((d) => d.name)).toEqual([
+			"Tesla T4",
+			"NVIDIA A100-SXM4-40GB",
+		]);
+	});
+
+	it("uses the same wording as the model runner Engine error", () => {
+		const modelRunner = parseModelRunnerCapability(
+			JSON.stringify({
+				dockerPresent: true,
+				engineExit: 1,
+				engineBase64: "",
+				pluginsExit: 0,
+				pluginsBase64: b64('{"plugins":[],"errors":null}'),
+				containerStatus: "",
+			}),
+		);
+		expect(modelRunner.error).toBe(ENGINE_INFO_ERROR);
+		expect(parseServerHardware(localEnvelope({ engineExit: 1 })).error).toBe(
+			modelRunner.error,
+		);
+	});
+
+	it("keeps remote probes free of the Engine error", () => {
+		expect(
+			parseServerHardware(remoteEnvelope({ cpuCount: "2", arch: "x86_64" }))
+				.error,
+		).toBeUndefined();
+	});
+
+	it("succeeds through the generated script when docker is missing", () => {
+		const result = parseServerHardware(
+			runScript(buildLocalHardwareScript(), makeSandbox({})),
+		);
+		expect(result.error).toBe(ENGINE_INFO_ERROR);
+		expect(result.cpu).toEqual({ count: null, arch: null });
+		expect(result.gpu.unavailableReason).toBe("nvidia-smi-not-found");
+	});
+
+	it("returns the Engine error from getServerHardware without an executor error", async () => {
+		vi.mocked(execAsync).mockResolvedValue({
+			stdout: localEnvelope({ engineExit: 1, gpuExit: 0, gpuCsv: t4 }),
+			stderr: "",
+		});
+		const result = await getServerHardware();
+		expect(result.error).toBe(ENGINE_INFO_ERROR);
+		expect(result.gpu.devices).toHaveLength(1);
+	});
+
+	it("joins the Engine error with an executor failure once", async () => {
+		vi.mocked(execAsync).mockImplementation(async (command) => {
+			if (command.includes("docker info")) {
+				throw new Error("Command execution timed out after 30000ms");
+			}
+			return { stdout: localEnvelope({ gpuExit: 0, gpuCsv: t4 }), stderr: "" };
+		});
+		const result = await getServerHardware();
+		expect(result.error).toBe(
+			`${ENGINE_INFO_ERROR}; Command execution timed out after 30000ms`,
+		);
+		expect(result.gpu.devices).toHaveLength(1);
+	});
+});
+
+describe("gpu unavailable reasons", () => {
+	it.each([
+		[127, "nvidia-smi-not-found"],
+		[126, "probe-failed"],
+		[1, "probe-failed"],
+		[255, "probe-failed"],
+	] as const)("maps nvidia-smi exit %i to %s", (gpuExit, reason) => {
+		const result = parseServerHardware(
+			localEnvelope({
+				engine: { ncpu: 8, memTotal: 100, arch: "x86_64" },
+				gpuExit,
+				gpuCsv: t4,
+			}),
+		);
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: reason,
+			devices: [],
+		});
+		expect(result.cpu.count).toBe(8);
+		expect(result.error).toBeUndefined();
+	});
+
+	it("flags nonempty output that yields no GPU rows as invalid output", () => {
+		expect(
+			parseServerHardware(localEnvelope({ gpuExit: 0, gpuCsv: "malformed" }))
+				.gpu,
+		).toEqual({
+			detection: "unavailable",
+			unavailableReason: "invalid-output",
+			devices: [],
+		});
+	});
+
+	it("omits the reason when nvidia-smi succeeds with zero rows", () => {
+		expect(
+			parseServerHardware(localEnvelope({ gpuExit: 0, gpuCsv: "" })).gpu,
+		).toEqual({ detection: "available", devices: [] });
+	});
+
+	it("succeeds end to end on a host without nvidia-smi", async () => {
+		const actual = await vi.importActual<
+			typeof import("@dokploy/server/utils/process/execAsync")
+		>("@dokploy/server/utils/process/execAsync");
+		const sandbox = makeSandbox({
+			docker: `#!/bin/sh
+printf '%s' '{"ncpu":4,"memTotal":1,"arch":"x86_64"}'
+`,
+		});
+		vi.mocked(execAsync).mockImplementation((command, options) =>
+			actual.execAsync(command, {
+				...options,
+				env: { NODE_ENV: "test", PATH: sandbox },
+			}),
+		);
+		const result = await getServerHardware();
+		expect(result.error).toBeUndefined();
+		expect(result.cpu.count).toBe(4);
+		expect(result.gpu).toEqual({
+			detection: "unavailable",
+			unavailableReason: "nvidia-smi-not-found",
+			devices: [],
+		});
+	});
+
+	it("inventories several GPUs through an injected nvidia-smi", async () => {
+		const actual = await vi.importActual<
+			typeof import("@dokploy/server/utils/process/execAsync")
+		>("@dokploy/server/utils/process/execAsync");
+		const sandbox = makeSandbox({
+			docker: `#!/bin/sh
+printf '%s' '{"ncpu":4,"memTotal":1,"arch":"x86_64"}'
+`,
+			"nvidia-smi": `#!/bin/sh
+case "$*" in
+*compute_cap*) printf '%s\\n' '${t4Cap}' '${a100Cap}' '${commaCap}';;
+*) printf '%s\\n' '${t4}' '${a100}' '${commaName}';;
+esac
+`,
+		});
+		vi.mocked(execAsync).mockImplementation((command, options) =>
+			actual.execAsync(command, {
+				...options,
+				env: { NODE_ENV: "test", PATH: sandbox },
+			}),
+		);
+		const result = await getServerHardware();
+		expect(result.error).toBeUndefined();
+		expect(result.gpu.detection).toBe("available");
+		expect(result.gpu.unavailableReason).toBeUndefined();
+		expect(
+			result.gpu.devices.map((d) => [d.index, d.name, d.computeCapability]),
+		).toEqual([
+			[0, "Tesla T4", "7.5"],
+			[1, "NVIDIA A100-SXM4-40GB", "8.0"],
+			[2, "NVIDIA Graphics Device, 16GB", "8.9"],
+		]);
+	});
+});
+
+describe("error sanitization", () => {
+	const marker = "PRIVATE-PROBE-MARKER";
+
+	beforeEach(() => {
+		cloud.enabled = false;
+		vi.mocked(execAsync).mockReset();
+		vi.mocked(execAsyncRemote).mockReset();
+	});
+
+	it("never relays the probe script from a nonzero local exit", async () => {
+		vi.mocked(execAsync).mockImplementation(async (command) => {
+			throw new ExecError(
+				`Command execution failed: Command failed: ${command} ${marker}`,
+				{ command: `${command} ${marker}`, exitCode: 2, stderr: marker },
+			);
+		});
+		const result = await getServerHardware();
+		expect(result.error).toBe(
+			`${ENGINE_INFO_ERROR}; Hardware probe exited with code 2`,
+		);
+		expect(JSON.stringify(result)).not.toContain(marker);
+		expect(JSON.stringify(result)).not.toContain("docker info");
+	});
+
+	it("describes a spawn failure that echoes the command without the command", async () => {
+		vi.mocked(execAsync).mockImplementation(async (command) => {
+			throw new ExecError(`Command execution failed: ${command}`, {
+				command,
+			});
+		});
+		const result = await getServerHardware();
+		expect(result.error).toBe(
+			`${ENGINE_INFO_ERROR}; Hardware probe could not be executed`,
+		);
+		expect(JSON.stringify(result)).not.toContain("nvidia-smi");
+	});
+
+	it("normalizes executor timeouts and keeps transport messages", async () => {
+		vi.mocked(execAsyncRemote).mockImplementation(async (_id, command) => {
+			if (command.includes("df -Pk"))
+				throw new ExecError("Command execution timed out after 30000ms", {
+					command,
+					stdout: marker,
+				});
+			if (command.includes("uname"))
+				throw new ExecError("SSH connection error: read ECONNRESET", {
+					command,
+				});
+			return {
+				stdout: remoteEnvelope({ memTotalKb: "4096", cpuCount: "2" }),
+				stderr: "",
+			};
+		});
+		const result = await getServerHardware("remote-server");
+		expect(result.error).toBe(
+			"SSH connection error: read ECONNRESET; Hardware probe timed out after 30000ms",
+		);
+		expect(result.cpu.count).toBe(2);
+		expect(result.memory.totalBytes).toBe(4096 * 1024);
+		expect(JSON.stringify(result)).not.toContain(marker);
+	});
+
+	it("does not echo raw stdout when the envelope is not JSON", async () => {
+		vi.mocked(execAsync).mockResolvedValue({
+			stdout: `garbage ${marker}`,
+			stderr: "",
+		});
+		const result = await getServerHardware();
+		expect(result.error).toBe(
+			`${ENGINE_INFO_ERROR}; Could not parse server hardware output`,
+		);
+		expect(JSON.stringify(result)).not.toContain(marker);
+	});
+});
+
+describe("in-flight deduplication", () => {
+	const remoteStdout = (cpuCount = "2") =>
+		remoteEnvelope({ memTotalKb: "1000", cpuCount, arch: "x86_64" });
+
+	beforeEach(() => {
+		cloud.enabled = false;
+		vi.mocked(execAsync).mockReset();
+		vi.mocked(execAsyncRemote).mockReset();
+		vi.mocked(buildHardwareScripts).mockReset();
+	});
+
+	it("shares one probe across 20 simultaneous requests for one server", async () => {
+		let release: () => void = () => {};
+		const gate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		vi.mocked(execAsyncRemote).mockImplementation(async () => {
+			await gate;
+			return { stdout: remoteStdout(), stderr: "" };
+		});
+		const pending = Array.from({ length: 20 }, () =>
+			getServerHardware("server-a"),
+		);
+		expect(execAsyncRemote).toHaveBeenCalledTimes(6);
+		release();
+		const results = await Promise.all(pending);
+		expect(new Set(results).size).toBe(1);
+		expect(results[0]?.cpu.count).toBe(2);
+		expect(results[0]?.error).toBeUndefined();
+	});
+
+	it("keeps different servers and the local host independent", async () => {
+		vi.mocked(execAsyncRemote).mockImplementation(async (serverId) => ({
+			stdout: remoteStdout(serverId === "server-a" ? "2" : "4"),
+			stderr: "",
+		}));
+		vi.mocked(execAsync).mockResolvedValue({
+			stdout: localEnvelope({
+				engine: { ncpu: 8, memTotal: 100, arch: "x86_64" },
+			}),
+			stderr: "",
+		});
+		const [a, b, local] = await Promise.all([
+			getServerHardware("server-a"),
+			getServerHardware("server-b"),
+			getServerHardware(),
+		]);
+		expect(execAsyncRemote).toHaveBeenCalledTimes(12);
+		expect(execAsync).toHaveBeenCalledTimes(3);
+		expect(a.cpu.count).toBe(2);
+		expect(b.cpu.count).toBe(4);
+		expect(local.cpu.count).toBe(8);
+		expect(new Set([a, b, local]).size).toBe(3);
+	});
+
+	it("does not reuse a completed probe", async () => {
+		vi.mocked(execAsyncRemote).mockImplementation(async () => ({
+			stdout: remoteStdout(),
+			stderr: "",
+		}));
+		const first = await getServerHardware("server-a");
+		const second = await getServerHardware("server-a");
+		expect(second).not.toBe(first);
+		expect(execAsyncRemote).toHaveBeenCalledTimes(12);
+	});
+
+	it("drops a rejected probe so the next request retries", async () => {
+		vi.mocked(buildHardwareScripts).mockImplementationOnce(() => {
+			throw new Error("scripts unavailable");
+		});
+		vi.mocked(execAsyncRemote).mockImplementation(async () => ({
+			stdout: remoteStdout(),
+			stderr: "",
+		}));
+		const first = getServerHardware("server-a");
+		const second = getServerHardware("server-a");
+		await expect(first).rejects.toThrow("scripts unavailable");
+		await expect(second).rejects.toThrow("scripts unavailable");
+		expect(execAsyncRemote).not.toHaveBeenCalled();
+		await expect(getServerHardware("server-a")).resolves.toMatchObject({
+			cpu: { count: 2 },
+		});
+		expect(execAsyncRemote).toHaveBeenCalledTimes(6);
+	});
+
+	it("keeps error results uncached so a retry can succeed", async () => {
+		vi.mocked(execAsyncRemote)
+			.mockRejectedValueOnce(new Error("SSH connection error: read ECONNRESET"))
+			.mockImplementation(async () => ({ stdout: remoteStdout(), stderr: "" }));
+		const failed = await getServerHardware("server-a");
+		expect(failed.error).toBe("SSH connection error: read ECONNRESET");
+		const retried = await getServerHardware("server-a");
+		expect(retried.error).toBeUndefined();
+		expect(retried.cpu.count).toBe(2);
+		expect(execAsyncRemote).toHaveBeenCalledTimes(12);
 	});
 });
 
