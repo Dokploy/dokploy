@@ -68,19 +68,11 @@ export const sendDockerCleanupNotifications = async (
 				).catch();
 
 				if (email) {
-					await sendEmailNotification(
-						email,
-						message,
-						template,
-					);
+					await sendEmailNotification(email, message, template);
 				}
 
 				if (resend) {
-					await sendResendNotification(
-						resend,
-						message,
-						template,
-					);
+					await sendResendNotification(resend, message, template);
 				}
 			}
 
