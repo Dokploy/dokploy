@@ -108,6 +108,10 @@ export const DuplicateProject = ({
 				? "Dokploy"
 				: servers?.find((server) => server.serverId === sharedSourceServerId)
 						?.name;
+	const canTargetDokploy = showLocalOption && sharedSourceServerId !== null;
+	const targetServers = (servers ?? []).filter(
+		(server) => server.serverId !== sharedSourceServerId,
+	);
 
 	const { mutateAsync: duplicateProject, isPending } =
 		api.project.duplicate.useMutation({
@@ -338,7 +342,7 @@ export const DuplicateProject = ({
 						</>
 					)}
 
-					{servers && servers.length > 0 && (
+					{(canTargetDokploy || targetServers.length > 0) && (
 						<div className="grid gap-2">
 							<Label>Target Server</Label>
 							<Select value={targetServer} onValueChange={setTargetServer}>
@@ -356,23 +360,19 @@ export const DuplicateProject = ({
 											)}
 										</span>
 									</SelectItem>
-									{showLocalOption && sharedSourceServerId !== null && (
+									{canTargetDokploy && (
 										<SelectItem value="dokploy">Dokploy</SelectItem>
 									)}
-									{servers
-										.filter(
-											(server) => server.serverId !== sharedSourceServerId,
-										)
-										.map((server) => (
-											<SelectItem key={server.serverId} value={server.serverId}>
-												<span className="flex items-center gap-2 justify-between w-full">
-													<span>{server.name}</span>
-													<span className="text-muted-foreground text-xs self-center">
-														{server.ipAddress}
-													</span>
+									{targetServers.map((server) => (
+										<SelectItem key={server.serverId} value={server.serverId}>
+											<span className="flex items-center gap-2 justify-between w-full">
+												<span>{server.name}</span>
+												<span className="text-muted-foreground text-xs self-center">
+													{server.ipAddress}
 												</span>
-											</SelectItem>
-										))}
+											</span>
+										</SelectItem>
+									))}
 								</SelectContent>
 							</Select>
 							{targetServer !== "keep" && (
