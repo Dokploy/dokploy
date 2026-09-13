@@ -14,6 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
+import { removeProjectFromVaultAssignments } from "./vault-provider";
 
 export type Project = typeof projects.$inferSelect;
 
@@ -121,6 +122,8 @@ export const findProjectById = async (projectId: string) => {
 };
 
 export const deleteProject = async (projectId: string) => {
+	await removeProjectFromVaultAssignments(projectId);
+
 	const project = await db
 		.delete(projects)
 		.where(eq(projects.projectId, projectId))

@@ -63,6 +63,79 @@ const isUniqueNameViolation = (error: unknown) =>
 	error instanceof Error &&
 	error.message.includes("vault_provider_org_name_idx");
 
+export const removeProjectFromVaultAssignments = async (projectId: string) => {
+	const allProviders = await db.query.vaultProvider.findMany();
+	for (const provider of allProviders) {
+		const assignments = provider.assignments || [];
+		const hasProject = assignments.some((a) => a.projectId === projectId);
+		if (hasProject) {
+			const updatedAssignments = assignments.filter(
+				(a) => a.projectId !== projectId,
+			);
+			await db
+				.update(vaultProvider)
+				.set({ assignments: updatedAssignments })
+				.where(eq(vaultProvider.vaultProviderId, provider.vaultProviderId));
+		}
+	}
+};
+
+export const removeEnvironmentFromVaultAssignments = async (
+	environmentId: string,
+) => {
+	const allProviders = await db.query.vaultProvider.findMany();
+	for (const provider of allProviders) {
+		const assignments = provider.assignments || [];
+		let changed = false;
+		const updatedAssignments = assignments.map((a) => {
+			if (a.environmentIds?.includes(environmentId)) {
+				changed = true;
+				return {
+					...a,
+					environmentIds: a.environmentIds.filter((id) => id !== environmentId),
+				};
+			}
+			return a;
+		});
+		if (changed) {
+			await db
+				.update(vaultProvider)
+				.set({ assignments: updatedAssignments })
+				.where(eq(vaultProvider.vaultProviderId, provider.vaultProviderId));
+		}
+	}
+};
+
+export const sanitizeVaultAssignments = async (
+	assignments: VaultProviderAssignment[],
+	organizationId: string,
+): Promise<VaultProviderAssignment[]> => {
+	const orgProjects = await db.query.projects.findMany({
+		where: eq(projects.organizationId, organizationId),
+		with: { environments: true },
+	});
+	const validAssignments: VaultProviderAssignment[] = [];
+	for (const assignment of assignments) {
+		const project = orgProjects.find(
+			(p) => p.projectId === assignment.projectId,
+		);
+		if (!project) {
+			continue;
+		}
+		const validEnvironmentIds = new Set(
+			project.environments.map((e) => e.environmentId),
+		);
+		const sanitizedEnvironmentIds = (assignment.environmentIds || []).filter(
+			(envId) => validEnvironmentIds.has(envId),
+		);
+		validAssignments.push({
+			projectId: assignment.projectId,
+			environmentIds: sanitizedEnvironmentIds,
+		});
+	}
+	return validAssignments;
+};
+
 const validateAssignments = async (
 	assignments: VaultProviderAssignment[],
 	organizationId: string,
@@ -142,6 +215,19 @@ export const findVaultProviderById = async (vaultProviderId: string) => {
 			message: "Vault provider not found",
 		});
 	}
+	if (provider.assignments?.length) {
+		const sanitized = await sanitizeVaultAssignments(
+			provider.assignments,
+			provider.organizationId,
+		);
+		if (sanitized.length !== provider.assignments.length) {
+			await db
+				.update(vaultProvider)
+				.set({ assignments: sanitized })
+				.where(eq(vaultProvider.vaultProviderId, vaultProviderId));
+			provider.assignments = sanitized;
+		}
+	}
 	return provider;
 };
 
@@ -162,10 +248,26 @@ export const findVaultProviderInOrganization = async (
 export const findVaultProvidersByOrganizationId = async (
 	organizationId: string,
 ) => {
-	return await db.query.vaultProvider.findMany({
+	const providers = await db.query.vaultProvider.findMany({
 		where: eq(vaultProvider.organizationId, organizationId),
 		orderBy: (providers, { asc }) => [asc(providers.name)],
 	});
+	for (const provider of providers) {
+		if (provider.assignments?.length) {
+			const sanitized = await sanitizeVaultAssignments(
+				provider.assignments,
+				organizationId,
+			);
+			if (sanitized.length !== provider.assignments.length) {
+				await db
+					.update(vaultProvider)
+					.set({ assignments: sanitized })
+					.where(eq(vaultProvider.vaultProviderId, provider.vaultProviderId));
+				provider.assignments = sanitized;
+			}
+		}
+	}
+	return providers;
 };
 
 export const updateVaultProvider = async (
@@ -176,7 +278,11 @@ export const updateVaultProvider = async (
 ) => {
 	const existing = await findVaultProviderById(vaultProviderId);
 	const mergedConfig = mergeVaultProviderConfig(config, existing.config);
-	await validateAssignments(assignments, existing.organizationId);
+	const sanitizedAssignments = await sanitizeVaultAssignments(
+		assignments,
+		existing.organizationId,
+	);
+	await validateAssignments(sanitizedAssignments, existing.organizationId);
 
 	try {
 		const updated = await db
@@ -185,7 +291,7 @@ export const updateVaultProvider = async (
 				name,
 				providerType: mergedConfig.providerType,
 				config: mergedConfig,
-				assignments,
+				assignments: sanitizedAssignments,
 			})
 			.where(eq(vaultProvider.vaultProviderId, vaultProviderId))
 			.returning()

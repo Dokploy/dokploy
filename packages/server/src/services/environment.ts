@@ -7,6 +7,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import type { z } from "zod";
+import { removeEnvironmentFromVaultAssignments } from "./vault-provider";
 
 export type Environment = typeof environments.$inferSelect;
 
@@ -294,6 +295,7 @@ export const deleteEnvironment = async (environmentId: string) => {
 				"Cannot delete environment: it has active services. Delete all services first.",
 		});
 	}
+	await removeEnvironmentFromVaultAssignments(environmentId);
 	const deletedEnvironment = await db
 		.delete(environments)
 		.where(eq(environments.environmentId, environmentId))
