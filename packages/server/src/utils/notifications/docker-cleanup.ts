@@ -19,12 +19,25 @@ import {
 	sendTelegramNotification,
 } from "./utils";
 
+const escapeHtml = (value: string) =>
+	value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&#39;");
+
+const escapeDiscordMarkdown = (value: string) =>
+	value.replace(/[\\`*_{}[\]()<>#+\-.!|~]/g, "\\$&");
+
 export const sendDockerCleanupNotifications = async (
 	organizationId: string,
 	message = "Docker cleanup for dokploy",
 ) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
+	const discordMessage = escapeDiscordMarkdown(message);
+	const telegramMessage = escapeHtml(message);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.dockerCleanup, true),
@@ -101,7 +114,7 @@ export const sendDockerCleanupNotifications = async (
 						},
 						{
 							name: decorate("`📜`", "Message"),
-							value: `\`\`\`${message}\`\`\``,
+							value: `\`\`\`${discordMessage}\`\`\``,
 						},
 					],
 					timestamp: date.toISOString(),
@@ -135,7 +148,7 @@ export const sendDockerCleanupNotifications = async (
 			if (telegram) {
 				await sendTelegramNotification(
 					telegram,
-					`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+					`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${telegramMessage}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 				);
 			}
 
