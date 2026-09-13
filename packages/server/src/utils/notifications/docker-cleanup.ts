@@ -27,8 +27,15 @@ const escapeHtml = (value: string) =>
 		.replaceAll('"', "&quot;")
 		.replaceAll("'", "&#39;");
 
-const escapeDiscordMarkdown = (value: string) =>
+const escapeMarkdown = (value: string) =>
 	value.replace(/[\\`*_{}[\]()<>#+\-.!|~]/g, "\\$&");
+
+const escapeSlackMrkdwn = (value: string) =>
+	value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replace(/[\\`*_~]/g, "\\$&");
 
 export const sendDockerCleanupNotifications = async (
 	organizationId: string,
@@ -36,7 +43,8 @@ export const sendDockerCleanupNotifications = async (
 ) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
-	const discordMessage = escapeDiscordMarkdown(message);
+	const markdownMessage = escapeMarkdown(message);
+	const slackMessage = escapeSlackMrkdwn(message);
 	const telegramMessage = escapeHtml(message);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
@@ -163,7 +171,7 @@ export const sendDockerCleanupNotifications = async (
 							fields: [
 								{
 									title: "Message",
-									value: message,
+									value: slackMessage,
 								},
 								{
 									title: "Time",
@@ -178,7 +186,7 @@ export const sendDockerCleanupNotifications = async (
 
 			if (mattermost) {
 				await sendMattermostNotification(mattermost, {
-					text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					text: `**✅ Docker Cleanup**\n\n**Message:** ${markdownMessage}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -244,7 +252,7 @@ export const sendDockerCleanupNotifications = async (
 												},
 												{
 													tag: "markdown",
-													content: `**Cleanup Details:**\n${message}`,
+													content: `**Cleanup Details:**\n${markdownMessage}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
