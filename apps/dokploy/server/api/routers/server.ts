@@ -518,7 +518,7 @@ export const serverRouter = createTRPCRouter({
 
 				await applyDockerCleanupSchedule(
 					input.serverId,
-					currentServer.name,
+					input.name,
 					ctx.session.activeOrganizationId,
 					input.enableDockerCleanup,
 				);
