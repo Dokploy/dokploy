@@ -176,6 +176,15 @@ export const volumeBackupsRouter = createTRPCRouter({
 				});
 			}
 			const result = await removeVolumeBackup(input.volumeBackupId);
+			if (IS_CLOUD) {
+				await removeJob({
+					cronSchedule: vb.cronExpression,
+					volumeBackupId: vb.volumeBackupId,
+					type: "volume-backup",
+				});
+			} else {
+				removeVolumeBackupJob(vb.volumeBackupId);
+			}
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "volumeBackup",
