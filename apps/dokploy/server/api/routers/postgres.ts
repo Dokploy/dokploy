@@ -574,17 +574,26 @@ export const postgresRouter = createTRPCRouter({
 					),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const member = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			if (accessedServices.length === 0) return { items: [], total: 0 };
-			baseConditions.push(
-				sql`${postgresTable.postgresId} IN (${sql.join(
-					accessedServices.map((id) => sql`${id}`),
-					sql`, `,
-				)})`,
-			);
+			const isPrivileged =
+				ctx.user.role === "owner" ||
+				ctx.user.role === "admin" ||
+				member.role === "owner" ||
+				member.role === "admin";
+
+			if (!isPrivileged) {
+				const { accessedServices } = member;
+				if (accessedServices.length === 0) return { items: [], total: 0 };
+				baseConditions.push(
+					sql`${postgresTable.postgresId} IN (${sql.join(
+						accessedServices.map((id) => sql`${id}`),
+						sql`, `,
+					)})`,
+				);
+			}
 
 			const where = and(...baseConditions);
 			const [items, countResult] = await Promise.all([
