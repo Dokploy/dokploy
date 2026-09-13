@@ -59,6 +59,40 @@ export const recordAdvancedStats = async (
 	}
 };
 
+// Virtual devices that never represent physical/primary host disk I/O
+const virtualDiskPatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
+
+// Partition suffix patterns:
+// 1. nvme0n1p1 / mmcblk0p1 / md0p1 (p<digits> after a digit-bearing disk name)
+// 2. sda1 / vda1 / xvda1 (trailing digits after a letter-bearing disk name)
+const partitionSuffixPatterns = [/p\d+$/, /\d+$/];
+
+/**
+ * Decides whether a /proc/diskstats row should be included in host disk I/O metrics.
+ * Virtual devices (loop, ram, cdrom, floppy) are excluded, and partition rows are
+ * excluded whenever their parent disk is also present, because the parent disk's
+ * counters already sum all partition I/O in /proc/diskstats (counting both doubles every byte).
+ */
+export const shouldIncludeDiskStat = (
+	device: string,
+	allDevices: string[],
+): boolean => {
+	if (virtualDiskPatterns.some((pattern) => pattern.test(device))) {
+		return false;
+	}
+
+	for (const pattern of partitionSuffixPatterns) {
+		if (pattern.test(device)) {
+			const parent = device.replace(pattern, "");
+			if (parent && parent !== device && allDevices.includes(parent)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+};
+
 /**
  * Get host system statistics using node-os-utils
  * This is used when monitoring "dokploy" to show host stats instead of container stats
@@ -99,14 +133,11 @@ export const getHostSystemStats = async (): Promise<Container> => {
 	let blockWriteBytes = 0;
 	const diskStats = await osutils.disk.stats();
 	if (diskStats.success && diskStats.data.length > 0) {
-		// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
-		const excludePatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
+		const devices = diskStats.data
+			.map((stat) => stat.device)
+			.filter((device): device is string => !!device);
 		for (const stat of diskStats.data) {
-			// Skip virtual devices
-			if (
-				stat.device &&
-				excludePatterns.some((pattern) => pattern.test(stat.device))
-			) {
+			if (!stat.device || !shouldIncludeDiskStat(stat.device, devices)) {
 				continue;
 			}
 			// readBytes and writeBytes are DataSize objects with .toBytes() method
