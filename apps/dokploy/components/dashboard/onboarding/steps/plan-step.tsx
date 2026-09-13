@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { displayFont } from "../font";
 
-const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-);
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+	: null;
 
 interface Props {
 	onNext: () => void;
@@ -37,7 +37,12 @@ export const PlanStep = ({ onNext }: Props) => {
 		if (!productId) return;
 		setLoadingTier(tier);
 		try {
-			const stripe = await stripePromise;
+			const stripe = stripePromise ? await stripePromise : null;
+			if (!stripe) {
+				toast.error("Stripe is not configured");
+				setLoadingTier(null);
+				return;
+			}
 			const session = await createCheckoutSession({
 				tier,
 				productId,

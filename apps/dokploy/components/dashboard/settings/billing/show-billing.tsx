@@ -42,9 +42,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
-const stripePromise = loadStripe(
-	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-);
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+	: null;
 
 /** Precio legacy / Hobby: $4.50/mo primer servidor, $3.50 siguientes; anual $45.90 primero, $35.70 siguientes. */
 export const calculatePrice = (count: number, isAnnual = false) => {
@@ -147,7 +147,11 @@ export const ShowBilling = () => {
 		tier: "legacy" | "hobby" | "startup",
 		productId: string,
 	) => {
-		const stripe = await stripePromise;
+		const stripe = stripePromise ? await stripePromise : null;
+		if (!stripe) {
+			toast.error("Stripe is not configured");
+			return;
+		}
 		const serverQuantity =
 			tier === "startup"
 				? startupServerQuantity
