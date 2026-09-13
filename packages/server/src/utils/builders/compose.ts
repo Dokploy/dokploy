@@ -140,7 +140,18 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
 			: "";
 		const pullFlag = compose.pullImages ? " --pull always" : "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
+		// Layer any additional compose files the same way `docker compose -f a
+		// -f b` would: each is resolved relative to the same clone as the
+		// primary path so a preprod/staging override only needs to declare the
+		// handful of services it actually changes (build:/volumes:/profiles:),
+		// not duplicate the whole base file.
+		const additionalFileFlags = (compose.composePathAdditional ?? [])
+			.filter((additionalPath): additionalPath is string =>
+				Boolean(additionalPath?.trim()),
+			)
+			.map((additionalPath) => `-f ${quote([additionalPath])} `)
+			.join("");
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} ${additionalFileFlags}up -d --build --remove-orphans${pullFlag}`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}

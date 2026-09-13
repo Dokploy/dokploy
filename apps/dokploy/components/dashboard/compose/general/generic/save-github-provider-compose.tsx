@@ -63,6 +63,7 @@ const GithubProviderSchema = z.object({
 		.regex(VALID_BRANCH_REGEX, "Invalid branch name"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	composePathAdditional: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
 });
@@ -90,6 +91,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			githubId: "",
 			branch: "",
 			watchPaths: [],
+			composePathAdditional: [],
 			triggerType: "push",
 			enableSubmodules: false,
 		},
@@ -140,6 +142,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				composePath: data.composePath,
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
+				composePathAdditional: data.composePathAdditional || [],
 				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
@@ -157,6 +160,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			sourceType: "github",
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
+			composePathAdditional: data.composePathAdditional,
 			enableSubmodules: data.enableSubmodules,
 			triggerType: data.triggerType,
 		})
@@ -548,6 +552,92 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								)}
 							/>
 						)}
+						<FormField
+							control={form.control}
+							name="composePathAdditional"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Additional Compose Files</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger type="button">
+													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+														?
+													</div>
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Layered on top of Compose Path with <code>-f</code>,
+														same as{" "}
+														<code>docker compose -f a.yml -f b.yml up</code>.
+														Use this for a small environment-specific override
+														(e.g. build: instead of image:) instead of
+														duplicating the whole compose file.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex flex-wrap gap-2 mb-2">
+										{field.value?.map((path, index) => (
+											<Badge key={index} variant="secondary">
+												{path}
+												<button
+													type="button"
+													aria-label="Remove additional compose file"
+													className="inline-flex items-center focus-visible:ring-2"
+													onClick={() => {
+														const newPaths = [...(field.value || [])];
+														newPaths.splice(index, 1);
+														form.setValue("composePathAdditional", newPaths);
+													}}
+												>
+													<X className="ml-1 size-3 cursor-pointer" />
+												</button>
+											</Badge>
+										))}
+									</div>
+									<FormControl>
+										<div className="flex gap-2">
+											<Input
+												placeholder="e.g. docker-compose.preprod.yml"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														const input = e.currentTarget;
+														const value = input.value.trim();
+														if (value) {
+															const newPaths = [...(field.value || []), value];
+															form.setValue("composePathAdditional", newPaths);
+															input.value = "";
+														}
+													}
+												}}
+											/>
+											<Button
+												type="button"
+												variant="secondary"
+												onClick={() => {
+													const input = document.querySelector(
+														'input[placeholder="e.g. docker-compose.preprod.yml"]',
+													) as HTMLInputElement;
+													const value = input.value.trim();
+													if (value) {
+														const newPaths = [...(field.value || []), value];
+														form.setValue("composePathAdditional", newPaths);
+														input.value = "";
+													}
+												}}
+											>
+												Add
+											</Button>
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="enableSubmodules"

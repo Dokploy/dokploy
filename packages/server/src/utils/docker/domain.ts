@@ -60,45 +60,103 @@ export const getComposePath = (compose: Compose) => {
 	return join(COMPOSE_PATH, appName, "code", path);
 };
 
+// Additional compose files layered on top of the primary one (`-f a -f b`),
+// e.g. a per-environment override that only adds `build:`/`volumes:` on a
+// handful of services without duplicating the whole base file. Resolved the
+// same way as the primary compose path, relative to the cloned repo root.
+export const getAdditionalComposePaths = (compose: Compose) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const { appName, composePathAdditional } = compose;
+
+	return (composePathAdditional ?? [])
+		.filter((path): path is string => Boolean(path?.trim()))
+		.map((path) => join(COMPOSE_PATH, appName, "code", path));
+};
+
+// Shallow-merges `services` across compose specs the same way `docker compose
+// config` would for the purpose of service discovery (Domains picker,
+// collision checks): a service defined only in an additional file becomes
+// visible, and one present in both keeps the base definition extended with
+// whatever top-level keys the override adds. This is not a full replacement
+// for `docker compose config` (it does not resolve anchors/extends across
+// files), it only needs to answer "which service names exist".
+export const mergeComposeSpecifications = (
+	specs: (ComposeSpecification | null)[],
+): ComposeSpecification | null => {
+	const validSpecs = specs.filter(
+		(spec): spec is ComposeSpecification => spec !== null,
+	);
+	if (validSpecs.length === 0) {
+		return null;
+	}
+
+	const merged: ComposeSpecification = { ...validSpecs[0] };
+	merged.services = { ...(validSpecs[0]?.services ?? {}) };
+
+	for (const spec of validSpecs.slice(1)) {
+		for (const [serviceName, serviceDefinition] of Object.entries(
+			spec.services ?? {},
+		)) {
+			merged.services[serviceName] = {
+				...(merged.services[serviceName] ?? {}),
+				...serviceDefinition,
+			};
+		}
+	}
+
+	return merged;
+};
+
 export const loadDockerCompose = async (
 	compose: Compose,
 ): Promise<ComposeSpecification | null> => {
-	const path = getComposePath(compose);
-
-	if (existsSync(path)) {
+	const loadOne = (path: string): ComposeSpecification | null => {
+		if (!existsSync(path)) {
+			return null;
+		}
 		const yamlStr = readFileSync(path, "utf8");
-		const parsedConfig = parse(yamlStr, {
-			maxAliasCount: 10000,
-		}) as ComposeSpecification;
-		return parsedConfig;
+		return parse(yamlStr, { maxAliasCount: 10000 }) as ComposeSpecification;
+	};
+
+	const primary = loadOne(getComposePath(compose));
+	const additionalPaths = getAdditionalComposePaths(compose);
+	if (additionalPaths.length === 0) {
+		return primary;
 	}
-	return null;
+
+	return mergeComposeSpecifications([primary, ...additionalPaths.map(loadOne)]);
 };
 
 export const loadDockerComposeRemote = async (
 	compose: Compose,
 ): Promise<ComposeSpecification | null> => {
-	const path = getComposePath(compose);
-	try {
-		if (!compose.serverId) {
-			return null;
-		}
-		const { stdout, stderr } = await execAsyncRemote(
-			compose.serverId,
-			`cat ${path}`,
-		);
-
-		if (stderr) {
-			return null;
-		}
-		if (!stdout) return null;
-		const parsedConfig = parse(stdout, {
-			maxAliasCount: 10000,
-		}) as ComposeSpecification;
-		return parsedConfig;
-	} catch {
+	if (!compose.serverId) {
 		return null;
 	}
+
+	const loadOne = async (
+		path: string,
+	): Promise<ComposeSpecification | null> => {
+		try {
+			const { stdout, stderr } = await execAsyncRemote(
+				compose.serverId as string,
+				`cat ${path}`,
+			);
+			if (stderr || !stdout) return null;
+			return parse(stdout, { maxAliasCount: 10000 }) as ComposeSpecification;
+		} catch {
+			return null;
+		}
+	};
+
+	const primary = await loadOne(getComposePath(compose));
+	const additionalPaths = getAdditionalComposePaths(compose);
+	if (additionalPaths.length === 0) {
+		return primary;
+	}
+
+	const additional = await Promise.all(additionalPaths.map(loadOne));
+	return mergeComposeSpecifications([primary, ...additional]);
 };
 
 export const readComposeFile = async (compose: Compose) => {
