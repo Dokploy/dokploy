@@ -140,6 +140,7 @@ const t = initTRPC
  * @see https://trpc.io/docs/router
  */
 export const createTRPCRouter = t.router;
+export const createCallerFactory = t.createCallerFactory;
 
 /**
  * Public (unauthenticated) procedure

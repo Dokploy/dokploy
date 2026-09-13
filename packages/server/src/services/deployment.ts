@@ -95,6 +95,7 @@ export const findDeploymentById = async (deploymentId: string) => {
 				columns: { composeId: true, appName: true, name: true, serverId: true },
 			},
 			schedule: true,
+			rollback: true,
 		},
 	});
 	if (!deployment) {

@@ -233,3 +233,7 @@ export const apiFindAllByType = z.object({
 		"volumeBackup",
 	]),
 });
+
+export const apiFindOneDeployment = z.object({
+	deploymentId: z.string().min(1),
+});
