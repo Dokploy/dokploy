@@ -2,7 +2,7 @@ import {
 	type BackupScheduleList,
 	IS_CLOUD,
 	removeScheduleBackup,
-} from "@dokploy/server/index";
+} from "@dokploy/server";
 
 type QueueJob =
 	| {
@@ -36,6 +36,12 @@ export const schedule = async (job: QueueJob) => {
 			},
 			body: JSON.stringify(job),
 		});
+		if (!result.ok) {
+			const errorText = await result.text().catch(() => "");
+			throw new Error(
+				`Failed to create schedule job: ${result.statusText} ${errorText}`.trim(),
+			);
+		}
 		const data = await result.json();
 		return data;
 	} catch (error) {
@@ -53,6 +59,12 @@ export const removeJob = async (job: QueueJob) => {
 			},
 			body: JSON.stringify(job),
 		});
+		if (!result.ok) {
+			const errorText = await result.text().catch(() => "");
+			throw new Error(
+				`Failed to remove schedule job: ${result.statusText} ${errorText}`.trim(),
+			);
+		}
 		const data = await result.json();
 		return data;
 	} catch (error) {
@@ -70,6 +82,12 @@ export const updateJob = async (job: QueueJob) => {
 			},
 			body: JSON.stringify(job),
 		});
+		if (!result.ok) {
+			const errorText = await result.text().catch(() => "");
+			throw new Error(
+				`Failed to update schedule job: ${result.statusText} ${errorText}`.trim(),
+			);
+		}
 		const data = await result.json();
 		return data;
 	} catch (error) {
