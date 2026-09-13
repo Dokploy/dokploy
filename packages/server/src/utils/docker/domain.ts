@@ -8,7 +8,11 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { execAsyncRemote } from "../process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+	writeFileRemote,
+} from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -73,90 +77,121 @@ export const getAdditionalComposePaths = (compose: Compose) => {
 		.map((path) => join(COMPOSE_PATH, appName, "code", path));
 };
 
-// Shallow-merges `services` across compose specs the same way `docker compose
-// config` would for the purpose of service discovery (Domains picker,
-// collision checks): a service defined only in an additional file becomes
-// visible, and one present in both keeps the base definition extended with
-// whatever top-level keys the override adds. This is not a full replacement
-// for `docker compose config` (it does not resolve anchors/extends across
-// files), it only needs to answer "which service names exist".
-export const mergeComposeSpecifications = (
-	specs: (ComposeSpecification | null)[],
-): ComposeSpecification | null => {
-	const validSpecs = specs.filter(
-		(spec): spec is ComposeSpecification => spec !== null,
-	);
-	if (validSpecs.length === 0) {
+// Filters a list of absolute compose paths down to the ones that actually
+// exist, without opening one SSH connection per file: a single probe script
+// covers every path in one round trip. A missing additional file is treated
+// as "not configured yet" (skipped) by the caller; a missing primary file is
+// the caller's job to reject.
+const resolveExistingPaths = async (
+	compose: Compose,
+	candidatePaths: string[],
+): Promise<string[]> => {
+	if (compose.serverId) {
+		const probe = candidatePaths
+			.map((path) => `[ -f ${quote([path])} ] && echo EXISTS || echo MISSING`)
+			.join("\n");
+		const { stdout } = await execAsyncRemote(compose.serverId, probe);
+		const results = stdout
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		return candidatePaths.filter((_, i) => results[i] === "EXISTS");
+	}
+	return candidatePaths.filter((path) => existsSync(path));
+};
+
+// Resolves the primary compose file merged with every additional file using
+// Docker Compose's own merge engine (`docker compose ... config
+// --no-interpolate`) instead of a hand-rolled approximation: Compose deep-
+// merges nested maps (environment, labels, deploy...) and unions root-level
+// volumes/networks/configs/secrets across files, which a shallow per-service
+// spread cannot replicate without silently dropping data. `--no-interpolate`
+// keeps `${VAR}` references literal so env resolution still happens at
+// actual `docker compose up` time, not when this is computed. Requires
+// Docker Compose >= 2.20 (2023) wherever the merge runs. A missing primary
+// file returns null; any other failure (auth, malformed YAML...) propagates
+// as a thrown error instead of being treated as an empty spec.
+const mergeComposeFiles = async (
+	compose: Compose,
+	primaryPath: string,
+	additionalPaths: string[],
+): Promise<ComposeSpecification | null> => {
+	const candidates = [primaryPath, ...additionalPaths];
+	const existing = await resolveExistingPaths(compose, candidates);
+	if (!existing.includes(primaryPath)) {
 		return null;
 	}
 
-	const merged: ComposeSpecification = { ...validSpecs[0] };
-	merged.services = { ...(validSpecs[0]?.services ?? {}) };
+	const fileFlags = existing.map((path) => `-f ${quote([path])}`).join(" ");
+	const command = `docker compose ${fileFlags} config --no-interpolate`;
 
-	for (const spec of validSpecs.slice(1)) {
-		for (const [serviceName, serviceDefinition] of Object.entries(
-			spec.services ?? {},
-		)) {
-			merged.services[serviceName] = {
-				...(merged.services[serviceName] ?? {}),
-				...serviceDefinition,
-			};
-		}
+	const { stdout } = compose.serverId
+		? await execAsyncRemote(compose.serverId, command)
+		: await execAsync(command);
+
+	return parse(stdout, { maxAliasCount: 10000 }) as ComposeSpecification;
+};
+
+// Writes an unsaved compose patch to a temp file next to the primary so it
+// can be merged with the additional files by the same authoritative `docker
+// compose config` call the eventual on-disk primary would use, instead of
+// discarding the merge outright. Cleans up afterwards on a best-effort basis
+// (logged, not thrown: the merge result already succeeded by that point).
+const withPatchedPrimary = async <T>(
+	compose: Compose,
+	patchedSpec: ComposeSpecification,
+	run: (primaryPath: string) => Promise<T>,
+): Promise<T> => {
+	const tempPath = `${getComposePath(compose)}.patch-${Date.now()}-${Math.random().toString(36).slice(2)}.yml`;
+	const content = stringify(patchedSpec, { lineWidth: 1000 });
+
+	if (compose.serverId) {
+		await writeFileRemote(compose.serverId, tempPath, content);
+	} else {
+		fs.writeFileSync(tempPath, content, "utf8");
 	}
 
-	return merged;
+	try {
+		return await run(tempPath);
+	} finally {
+		try {
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, `rm -f ${quote([tempPath])}`);
+			} else {
+				fs.unlinkSync(tempPath);
+			}
+		} catch (cleanupError) {
+			console.error(
+				"Failed to remove temp patched compose file:",
+				cleanupError,
+			);
+		}
+	}
 };
 
 export const loadDockerCompose = async (
 	compose: Compose,
+	primaryPathOverride?: string,
 ): Promise<ComposeSpecification | null> => {
-	const loadOne = (path: string): ComposeSpecification | null => {
-		if (!existsSync(path)) {
-			return null;
-		}
-		const yamlStr = readFileSync(path, "utf8");
-		return parse(yamlStr, { maxAliasCount: 10000 }) as ComposeSpecification;
-	};
-
-	const primary = loadOne(getComposePath(compose));
-	const additionalPaths = getAdditionalComposePaths(compose);
-	if (additionalPaths.length === 0) {
-		return primary;
-	}
-
-	return mergeComposeSpecifications([primary, ...additionalPaths.map(loadOne)]);
+	return mergeComposeFiles(
+		compose,
+		primaryPathOverride ?? getComposePath(compose),
+		getAdditionalComposePaths(compose),
+	);
 };
 
 export const loadDockerComposeRemote = async (
 	compose: Compose,
+	primaryPathOverride?: string,
 ): Promise<ComposeSpecification | null> => {
 	if (!compose.serverId) {
 		return null;
 	}
-
-	const loadOne = async (
-		path: string,
-	): Promise<ComposeSpecification | null> => {
-		try {
-			const { stdout, stderr } = await execAsyncRemote(
-				compose.serverId as string,
-				`cat ${path}`,
-			);
-			if (stderr || !stdout) return null;
-			return parse(stdout, { maxAliasCount: 10000 }) as ComposeSpecification;
-		} catch {
-			return null;
-		}
-	};
-
-	const primary = await loadOne(getComposePath(compose));
-	const additionalPaths = getAdditionalComposePaths(compose);
-	if (additionalPaths.length === 0) {
-		return primary;
-	}
-
-	const additional = await Promise.all(additionalPaths.map(loadOne));
-	return mergeComposeSpecifications([primary, ...additional]);
+	return mergeComposeFiles(
+		compose,
+		primaryPathOverride ?? getComposePath(compose),
+		getAdditionalComposePaths(compose),
+	);
 };
 
 export const readComposeFile = async (compose: Compose) => {
@@ -266,17 +301,21 @@ export const addDomainToCompose = async (
 		result = parse(compose.composeFile, {
 			maxAliasCount: 10000,
 		}) as ComposeSpecification;
-	} else if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose);
 	} else {
-		result = await loadDockerCompose(compose);
+		const load = (primaryPathOverride?: string) =>
+			compose.serverId
+				? loadDockerComposeRemote(compose, primaryPathOverride)
+				: loadDockerCompose(compose, primaryPathOverride);
+
+		const patch = await applyComposeFilePatch(compose);
+		result = patch
+			? await withPatchedPrimary(compose, patch, load)
+			: await load();
 	}
 
 	if (!result) {
 		return null;
 	}
-
-	result = (await applyComposeFilePatch(compose)) ?? result;
 
 	if (compose.isolatedDeployment) {
 		const randomized = randomizeDeployableSpecificationFile(

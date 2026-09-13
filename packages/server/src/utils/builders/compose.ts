@@ -140,18 +140,15 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
 			: "";
 		const pullFlag = compose.pullImages ? " --pull always" : "";
-		// Layer any additional compose files the same way `docker compose -f a
-		// -f b` would: each is resolved relative to the same clone as the
-		// primary path so a preprod/staging override only needs to declare the
-		// handful of services it actually changes (build:/volumes:/profiles:),
-		// not duplicate the whole base file.
-		const additionalFileFlags = (compose.composePathAdditional ?? [])
-			.filter((additionalPath): additionalPath is string =>
-				Boolean(additionalPath?.trim()),
-			)
-			.map((additionalPath) => `-f ${quote([additionalPath])} `)
-			.join("");
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} ${additionalFileFlags}up -d --build --remove-orphans${pullFlag}`;
+		// Additional compose files (composePathAdditional) are NOT re-layered
+		// here: writeDomainsToCompose already merges them into the primary file
+		// on disk via the real `docker compose config` before this command
+		// runs (see utils/docker/domain.ts). Re-adding `-f` flags for them here
+		// would re-apply the override a second time on top of an already-
+		// merged primary, duplicating array-typed keys (ports/volumes) and
+		// breaking `randomize` (the merged primary has suffixed service names
+		// the un-suffixed additional file no longer matches).
+		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
