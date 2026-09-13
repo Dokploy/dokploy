@@ -59,7 +59,7 @@ const AddCommandSchema = z
 			}
 		} else {
 			data.args?.forEach((arg, i) => {
-				if (!arg.value.trim()) {
+				if (arg.value.length === 0) {
 					ctx.addIssue({
 						code: "custom",
 						path: ["args", i, "value"],

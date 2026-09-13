@@ -565,20 +565,11 @@ export const apiUpdateApplication = createSchema
 					path: ["customCommand"],
 					message: "Enter a script",
 				});
-			} else if (trimmed.length > 20000) {
+			} else if (data.customCommand.length > 20000) {
 				ctx.addIssue({
 					code: "custom",
 					path: ["customCommand"],
 					message: "Script must be 20000 characters or less",
-				});
-			}
-		}
-		if (data.customShell !== undefined && data.customShell !== null) {
-			if (data.customCommand === undefined || data.customCommand === null) {
-				ctx.addIssue({
-					code: "custom",
-					path: ["customCommand"],
-					message: "Enter a script",
 				});
 			}
 		}
