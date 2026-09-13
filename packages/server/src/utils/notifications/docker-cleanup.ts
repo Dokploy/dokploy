@@ -122,7 +122,7 @@ export const sendDockerCleanupNotifications = async (
 						},
 						{
 							name: decorate("`📜`", "Message"),
-							value: `\`\`\`${discordMessage}\`\`\``,
+							value: `\`\`\`${markdownMessage}\`\`\``,
 						},
 					],
 					timestamp: date.toISOString(),
