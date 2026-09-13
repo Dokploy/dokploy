@@ -123,6 +123,9 @@ export const isStackDeployCommand = (command: string): boolean =>
 export const STACK_COMPOSE_INPUT_ERROR =
 	"Custom Stack deployments must select exactly one Dokploy-managed Compose file. Use the configured Compose path with -c; alternate files, multiple files, CSV lists, stdin, absolute paths and parent traversal are not supported.";
 
+export const STACK_COMPOSE_PATH_ERROR =
+	"Stack deployments require the configured Compose path to be a relative path inside the repository without parent traversal, commas or quotes. Update the Compose path setting.";
+
 const isManagedPath = (selected: string, managed: string): boolean => {
 	if (
 		!selected ||
@@ -144,6 +147,10 @@ export const validateStackComposeInput = (
 	const tokens = tokenize(command);
 	const deploy = deploymentIndex(tokens);
 	if (deploy < 0) return;
+	// A generated default command can only fail on the configured path itself,
+	// so report that setting instead of blaming a custom command.
+	if (!isManagedPath(managedPath, managedPath))
+		throw new Error(STACK_COMPOSE_PATH_ERROR);
 	const files: string[] = [];
 	let index = deploy + 1;
 	while (index < tokens.length) {

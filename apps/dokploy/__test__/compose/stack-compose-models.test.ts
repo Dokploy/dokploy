@@ -14,6 +14,7 @@ import {
 	STACK_COMPOSE_MODELS_ERROR,
 	writeDomainsToCompose,
 } from "@dokploy/server/utils/docker/domain";
+import { STACK_COMPOSE_PATH_ERROR } from "@dokploy/server/utils/docker/stack-command";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import * as processUtils from "@dokploy/server/utils/process/execAsync";
 import {
@@ -213,6 +214,65 @@ describe("managed Stack command regressions", () => {
 				compose({ command: "stack deploy -- demo -c docker-compose.yml" }),
 			),
 		).rejects.toThrow(/exactly one.*managed Compose file/);
+	});
+});
+
+describe("configured Compose path policy", () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it.each([
+		"/etc/compose.yml",
+		"../outside.yml",
+		"sub/../docker-compose.yml",
+		"a,b.yml",
+		'quoted".yml',
+	])(
+		"blames the Compose path setting, not a custom command, for the generated default with %s",
+		async (composePath) => {
+			disk.reads.length = 0;
+			const record = compose({ sourceType: "github", composePath });
+			const command = createCommand(record as never);
+			expect(command.startsWith("stack deploy")).toBe(true);
+			await expect(writeDeploy(record)).rejects.toThrow(
+				STACK_COMPOSE_PATH_ERROR,
+			);
+			expect(disk.reads).toEqual([]);
+		},
+	);
+
+	it("reports the path setting even when a custom command selects it", async () => {
+		await expect(
+			writeDeploy(
+				compose({
+					sourceType: "github",
+					composePath: "../outside.yml",
+					command: "stack deploy -c ../outside.yml demo",
+				}),
+			),
+		).rejects.toThrow(STACK_COMPOSE_PATH_ERROR);
+	});
+
+	it("keeps the custom-command wording when the configured path is fine", async () => {
+		await expect(
+			writeDeploy(
+				compose({
+					sourceType: "github",
+					command: "stack deploy -c other.yml demo",
+				}),
+			),
+		).rejects.toThrow(/Custom Stack deployments/);
+	});
+
+	it("does not apply the Stack path policy to docker compose deployments", async () => {
+		await expect(
+			writeDeploy(
+				compose({
+					composeType: "docker-compose",
+					sourceType: "github",
+					composePath: "../outside.yml",
+				}),
+			),
+		).resolves.toContain("Compose file not found");
 	});
 });
 
