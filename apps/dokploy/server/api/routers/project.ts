@@ -915,6 +915,9 @@ export const projectRouter = createTRPCRouter({
 				});
 				return targetProject;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error duplicating the project: ${error instanceof Error ? error.message : error}`,
