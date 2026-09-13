@@ -17,6 +17,9 @@ interface MockDeployment {
 	logPath?: string;
 	applicationId?: string | null;
 	composeId?: string | null;
+	previewDeploymentId?: string | null;
+	backupId?: string | null;
+	volumeBackupId?: string | null;
 	serverId?: string | null;
 	scheduleId?: string | null;
 	application?: {
@@ -38,11 +41,6 @@ interface MockDeployment {
 		serverId?: string | null;
 		organizationId?: string | null;
 	} | null;
-	rollback?: {
-		rollbackId: string;
-		deploymentId: string;
-		createdAt: string;
-	} | null;
 }
 
 interface Context {
@@ -57,7 +55,7 @@ interface Context {
 	} | null;
 }
 
-// Logic under test: mirrors checkDeploymentAccess in apps/dokploy/server/api/routers/deployment.ts
+// Logic under test: mirrors production checkDeploymentAccess in apps/dokploy/server/api/routers/deployment.ts
 const checkDeploymentAccess = async (
 	ctx: Context,
 	deployment: MockDeployment,
@@ -82,14 +80,15 @@ const checkDeploymentAccess = async (
 	const serviceId =
 		deployment.applicationId ||
 		deployment.composeId ||
+		deployment.previewDeploymentId ||
+		deployment.backupId ||
+		deployment.volumeBackupId ||
 		deployment.schedule?.applicationId ||
 		deployment.schedule?.composeId;
 	if (serviceId) {
 		await deps.checkServicePermissionAndAccess(ctx, serviceId, permission);
 		return;
 	}
-
-	await deps.checkPermission(ctx, permission);
 
 	const serverId =
 		deployment.serverId ||
@@ -104,6 +103,7 @@ const checkDeploymentAccess = async (
 				message: "You don't have access to this deployment.",
 			});
 		}
+		await deps.checkPermission(ctx, permission);
 		return;
 	}
 
@@ -116,7 +116,14 @@ const checkDeploymentAccess = async (
 				message: "You don't have access to this deployment.",
 			});
 		}
+		await deps.checkPermission(ctx, permission);
+		return;
 	}
+
+	throw new TRPCError({
+		code: "UNAUTHORIZED",
+		message: "You don't have access to this deployment.",
+	});
 };
 
 const handleFindOneDeployment = async (
@@ -229,6 +236,57 @@ describe("deployment.one Procedure & Access Control (Issue #5168)", () => {
 		).rejects.toThrow("You don't have access to this service");
 	});
 
+	it("validates preview deployment via previewDeploymentId service check", async () => {
+		deps.findDeploymentById = vi.fn(async () => ({
+			...defaultDeployment,
+			applicationId: null,
+			previewDeploymentId: "preview-123",
+		}));
+
+		const result = await handleFindOneDeployment({ deploymentId: "dep-1" }, ctx, deps);
+
+		expect(result).toBeDefined();
+		expect(deps.checkServicePermissionAndAccess).toHaveBeenCalledWith(
+			ctx,
+			"preview-123",
+			{ deployment: ["read"] },
+		);
+	});
+
+	it("validates database backup deployment via backupId service check", async () => {
+		deps.findDeploymentById = vi.fn(async () => ({
+			...defaultDeployment,
+			applicationId: null,
+			backupId: "backup-456",
+		}));
+
+		const result = await handleFindOneDeployment({ deploymentId: "dep-1" }, ctx, deps);
+
+		expect(result).toBeDefined();
+		expect(deps.checkServicePermissionAndAccess).toHaveBeenCalledWith(
+			ctx,
+			"backup-456",
+			{ deployment: ["read"] },
+		);
+	});
+
+	it("validates volume backup deployment via volumeBackupId service check", async () => {
+		deps.findDeploymentById = vi.fn(async () => ({
+			...defaultDeployment,
+			applicationId: null,
+			volumeBackupId: "vol-backup-789",
+		}));
+
+		const result = await handleFindOneDeployment({ deploymentId: "dep-1" }, ctx, deps);
+
+		expect(result).toBeDefined();
+		expect(deps.checkServicePermissionAndAccess).toHaveBeenCalledWith(
+			ctx,
+			"vol-backup-789",
+			{ deployment: ["read"] },
+		);
+	});
+
 	it("returns schedule-triggered deployment when schedule is linked to an application", async () => {
 		deps.findDeploymentById = vi.fn(async () => ({
 			...defaultDeployment,
@@ -299,20 +357,22 @@ describe("deployment.one Procedure & Access Control (Issue #5168)", () => {
 		).rejects.toThrow("You don't have access to this deployment.");
 	});
 
-	it("returns rollback details attached to deployment", async () => {
+	it("fails closed and throws UNAUTHORIZED for unscoped deployments without parent resource", async () => {
 		deps.findDeploymentById = vi.fn(async () => ({
 			...defaultDeployment,
-			rollback: {
-				rollbackId: "rb-1",
-				deploymentId: "dep-1",
-				createdAt: "2026-04-01T00:00:00.000Z",
-			},
+			applicationId: null,
+			composeId: null,
+			previewDeploymentId: null,
+			backupId: null,
+			volumeBackupId: null,
+			serverId: null,
+			scheduleId: null,
+			schedule: null,
 		}));
 
-		const result = await handleFindOneDeployment({ deploymentId: "dep-1" }, ctx, deps);
-
-		expect(result.rollback).toBeDefined();
-		expect(result.rollback?.rollbackId).toBe("rb-1");
+		await expect(
+			handleFindOneDeployment({ deploymentId: "dep-1" }, ctx, deps),
+		).rejects.toThrow("You don't have access to this deployment.");
 	});
 
 	it("throws UNAUTHORIZED when session is missing", async () => {

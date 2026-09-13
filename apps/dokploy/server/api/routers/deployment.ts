@@ -36,22 +36,27 @@ import { myQueue } from "@/server/queues/queueSetup";
 import { fetchDeployApiJobs, type QueueJobRow } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
-const checkDeploymentAccess = async (
+export const checkDeploymentAccess = async (
 	ctx: any,
-	deployment: Awaited<ReturnType<typeof findDeploymentById>>,
+	deployment: Awaited<ReturnType<typeof findDeploymentById>> & {
+		previewDeploymentId?: string | null;
+		backupId?: string | null;
+		volumeBackupId?: string | null;
+	},
 	permission: { deployment: ("read" | "cancel")[] } = { deployment: ["read"] },
 ) => {
 	const serviceId =
 		deployment.applicationId ||
 		deployment.composeId ||
+		deployment.previewDeploymentId ||
+		deployment.backupId ||
+		deployment.volumeBackupId ||
 		deployment.schedule?.applicationId ||
 		deployment.schedule?.composeId;
 	if (serviceId) {
 		await checkServicePermissionAndAccess(ctx, serviceId, permission);
 		return;
 	}
-
-	await checkPermission(ctx, permission);
 
 	const serverId =
 		deployment.serverId ||
@@ -66,6 +71,7 @@ const checkDeploymentAccess = async (
 				message: "You don't have access to this deployment.",
 			});
 		}
+		await checkPermission(ctx, permission);
 		return;
 	}
 
@@ -78,7 +84,14 @@ const checkDeploymentAccess = async (
 				message: "You don't have access to this deployment.",
 			});
 		}
+		await checkPermission(ctx, permission);
+		return;
 	}
+
+	throw new TRPCError({
+		code: "UNAUTHORIZED",
+		message: "You don't have access to this deployment.",
+	});
 };
 
 export const deploymentRouter = createTRPCRouter({
