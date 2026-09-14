@@ -1,6 +1,10 @@
 import {
+	ACCOUNT_DELETION_CODE_TTL_MINUTES,
+	consumeAccountDeletionCode,
+	createAccountDeletionCode,
 	createApiKey,
 	createOrganizationUserWithCredentials,
+	findCredentialAccount,
 	findNotificationById,
 	findOrganizationById,
 	findPasskeysByUserId,
@@ -11,6 +15,7 @@ import {
 	IS_CLOUD,
 	removeUserById,
 	renderInvitationEmail,
+	sendAccountDeletionCodeEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
@@ -24,6 +29,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	organization,
 	session,
 	user,
 } from "@dokploy/server/db/schema";
@@ -38,6 +44,7 @@ import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
 import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
+import { deleteAccount } from "@/server/utils/account-deletion";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -62,6 +69,43 @@ const apiCreateApiKey = z.object({
 	refillAmount: z.number().optional(),
 	refillInterval: z.number().optional(),
 });
+
+const hasRootAccess = (ctx: {
+	user: { id: string };
+	session: { impersonatedBy?: string } | null;
+}) => {
+	const rootId = process.env.USER_ADMIN_ID;
+	if (!IS_CLOUD || !rootId) {
+		return false;
+	}
+	return rootId === ctx.user.id || ctx.session?.impersonatedBy === rootId;
+};
+
+const assertCanDeleteOwnAccount = async (ctx: {
+	user: { id: string };
+	session: { impersonatedBy?: string };
+}) => {
+	if (ctx.session.impersonatedBy) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Accounts cannot be deleted while impersonating",
+		});
+	}
+
+	if (!IS_CLOUD) {
+		const ownedOrganization = await db.query.organization.findFirst({
+			where: eq(organization.ownerId, ctx.user.id),
+			columns: { id: true },
+		});
+		if (ownedOrganization) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message:
+					"Transfer or delete the organizations you own before deleting your account",
+			});
+		}
+	}
+};
 
 export const userRouter = createTRPCRouter({
 	all: withPermission("member", "read").query(async ({ ctx }) => {
@@ -178,16 +222,7 @@ export const userRouter = createTRPCRouter({
 		return findPasskeysByUserId(ctx.user.id);
 	}),
 	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
-		if (!IS_CLOUD) {
-			return false;
-		}
-		if (
-			process.env.USER_ADMIN_ID === ctx.user.id ||
-			ctx.session?.impersonatedBy === process.env.USER_ADMIN_ID
-		) {
-			return true;
-		}
-		return false;
+		return hasRootAccess(ctx);
 	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
@@ -457,6 +492,97 @@ export const userRouter = createTRPCRouter({
 				resourceId: input.userId,
 			});
 			return result;
+		}),
+	hasPassword: protectedProcedure.query(async ({ ctx }) => {
+		const credential = await findCredentialAccount(ctx.user.id);
+		return !!credential?.password;
+	}),
+	requestAccountDeletionCode: protectedProcedure
+		.input(z.object({ password: z.string().optional() }))
+		.mutation(async ({ ctx, input }) => {
+			await assertCanDeleteOwnAccount(ctx);
+
+			const credential = await findCredentialAccount(ctx.user.id);
+			if (
+				credential?.password &&
+				!bcrypt.compareSync(input.password ?? "", credential.password)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The password is incorrect",
+				});
+			}
+
+			const code = await createAccountDeletionCode(ctx.user.id);
+			try {
+				await sendAccountDeletionCodeEmail({
+					email: ctx.user.email,
+					userName: ctx.user.name || ctx.user.email,
+					code,
+					expiresInMinutes: ACCOUNT_DELETION_CODE_TTL_MINUTES,
+				});
+			} catch (error) {
+				console.error(error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "The confirmation email could not be sent",
+				});
+			}
+
+			return { expiresInMinutes: ACCOUNT_DELETION_CODE_TTL_MINUTES };
+		}),
+	deleteAccount: protectedProcedure
+		.input(z.object({ code: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			await assertCanDeleteOwnAccount(ctx);
+
+			const { requestedAt } = await consumeAccountDeletionCode(
+				ctx.user.id,
+				input.code,
+			);
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "user",
+				resourceId: ctx.user.id,
+				metadata: { selfService: true },
+			});
+
+			return deleteAccount(ctx.user.id, ctx.user.id, { requestedAt });
+		}),
+	deleteAccountByEmail: protectedProcedure
+		.input(z.object({ email: z.string().email() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!hasRootAccess(ctx)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the root account can delete accounts by email",
+				});
+			}
+
+			const target = await db.query.user.findFirst({
+				where: eq(user.email, input.email.trim().toLowerCase()),
+				columns: { id: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No account found with that email",
+				});
+			}
+
+			if (target.id === process.env.USER_ADMIN_ID) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The root account cannot be deleted",
+				});
+			}
+
+			return deleteAccount(
+				target.id,
+				ctx.session.impersonatedBy ?? ctx.user.id,
+			);
 		}),
 	assignPermissions: withPermission("member", "update")
 		.input(apiAssignPermissions)

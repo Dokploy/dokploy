@@ -566,3 +566,13 @@ export const createApiKey = async (
 
 	return result;
 };
+
+export const findCredentialAccount = async (userId: string) => {
+	return db.query.account.findFirst({
+		where: and(
+			eq(account.userId, userId),
+			eq(account.providerId, "credential"),
+		),
+		columns: { id: true, password: true },
+	});
+};
