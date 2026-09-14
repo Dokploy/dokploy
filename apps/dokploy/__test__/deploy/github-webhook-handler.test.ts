@@ -443,6 +443,52 @@ describe("GitHub app webhook preview deployments", () => {
 		expect(res.status).toHaveBeenCalledWith(200);
 	});
 
+	it("creates one preview when deliveries for the same pull request race", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		let created: { previewDeploymentId: string } | undefined;
+		mocks.findPreviewDeploymentByApplicationId.mockImplementation(() =>
+			Promise.resolve(created),
+		);
+		mocks.createPreviewDeployment.mockImplementation(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 20));
+			created = { previewDeploymentId: "new-preview-id" };
+			return created;
+		});
+
+		await Promise.all(
+			["opened", "labeled", "labeled"].map((action) =>
+				handler(createPullRequestRequest(action), createResponse()),
+			),
+		);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not rebuild an existing preview on a label event", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue({
+			previewDeploymentId: "existing-preview-0",
+		});
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("labeled"), res);
+
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("creates a preview when a label event opts a pull request in", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("labeled"), res);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
 	it("falls back to the default limit when none is configured", async () => {
 		mocks.applicationsFindMany.mockResolvedValue([
 			createApplication({
