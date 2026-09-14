@@ -73,7 +73,8 @@ interface Props {
 		| "mongo"
 		| "mysql"
 		| "postgres"
-		| "redis";
+		| "redis"
+		| "objectstorage";
 }
 
 export const UpdateVolume = ({

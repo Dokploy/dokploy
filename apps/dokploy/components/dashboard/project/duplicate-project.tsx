@@ -34,6 +34,7 @@ export type Services = {
 		| "mariadb"
 		| "mongo"
 		| "mysql"
+		| "objectstorage"
 		| "postgres"
 		| "redis";
 	description?: string | null;

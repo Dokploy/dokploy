@@ -114,6 +114,7 @@ export const ShowHome = () => {
 		applications: 0,
 		compose: 0,
 		databases: 0,
+		objectStorage: 0,
 		services: 0,
 	};
 	const statusBreakdown = homeStats?.status ?? {
@@ -186,7 +187,7 @@ export const ShowHome = () => {
 						<StatCard
 							label="Services"
 							value={String(totals.services)}
-							delta={`${totals.applications} apps · ${totals.compose} compose · ${totals.databases} db`}
+							delta={`${totals.applications} apps · ${totals.compose} compose · ${totals.databases} db · ${totals.objectStorage} obj`}
 						/>
 						<StatCard
 							label="Deploys / 7d"

@@ -40,7 +40,8 @@ interface Props {
 		| "mongo"
 		| "mysql"
 		| "postgres"
-		| "redis";
+		| "redis"
+		| "objectstorage";
 	refetch: () => void;
 	children?: React.ReactNode;
 }

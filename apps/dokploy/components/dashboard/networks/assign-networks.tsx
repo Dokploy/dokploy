@@ -36,7 +36,8 @@ type ServiceType =
 	| "mariadb"
 	| "mongo"
 	| "redis"
-	| "libsql";
+	| "libsql"
+	| "objectstorage";
 
 interface Props {
 	id: string;
@@ -283,6 +284,10 @@ const useServiceNetworks = (id: string, type: ServiceType) => {
 		{ libsqlId: id },
 		{ enabled: type === "libsql" },
 	);
+	const objectstorage = api.objectstorage.one.useQuery(
+		{ objectStorageId: id },
+		{ enabled: type === "objectstorage" },
+	);
 	const applicationUpdate = api.application.update.useMutation();
 	const postgresUpdate = api.postgres.update.useMutation();
 	const mysqlUpdate = api.mysql.update.useMutation();
@@ -290,6 +295,7 @@ const useServiceNetworks = (id: string, type: ServiceType) => {
 	const mongoUpdate = api.mongo.update.useMutation();
 	const redisUpdate = api.redis.update.useMutation();
 	const libsqlUpdate = api.libsql.update.useMutation();
+	const objectstorageUpdate = api.objectstorage.update.useMutation();
 
 	const map = {
 		application: {
@@ -333,6 +339,12 @@ const useServiceNetworks = (id: string, type: ServiceType) => {
 			mutation: libsqlUpdate,
 			save: (payload: SavePayload) =>
 				libsqlUpdate.mutateAsync({ libsqlId: id, ...payload }),
+		},
+		objectstorage: {
+			query: objectstorage,
+			mutation: objectstorageUpdate,
+			save: (payload: SavePayload) =>
+				objectstorageUpdate.mutateAsync({ objectStorageId: id, ...payload }),
 		},
 	}[type];
 

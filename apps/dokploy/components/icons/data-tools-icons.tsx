@@ -211,6 +211,55 @@ export const LibsqlIcon = ({ className }: Props) => {
 	);
 };
 
+export const MinioIcon = ({ className }: Props) => {
+	return (
+		// biome-ignore lint/performance/noImgElement: provider logo
+		<img
+			src="/images/s3/minio.svg"
+			alt="MinIO"
+			className={cn(className, "object-contain")}
+		/>
+	);
+};
+
+export const GarageIcon = ({ className }: Props) => {
+	return (
+		// biome-ignore lint/performance/noImgElement: provider logo
+		<img
+			src="/images/s3/garage.svg"
+			alt="Garage"
+			className={cn(className, "object-contain")}
+		/>
+	);
+};
+
+export const AlarikIcon = ({ className }: Props) => {
+	return (
+		// biome-ignore lint/performance/noImgElement: provider logo
+		<img
+			src="/images/s3/alarik.png"
+			alt="Alarik"
+			className={cn(className, "object-contain")}
+		/>
+	);
+};
+
+export const ObjectStorageProviderIcon = ({
+	provider,
+	className,
+}: {
+	provider?: string | null;
+	className?: string;
+}) => {
+	if (provider === "garage") {
+		return <GarageIcon className={className} />;
+	}
+	if (provider === "alarik") {
+		return <AlarikIcon className={className} />;
+	}
+	return <MinioIcon className={className} />;
+};
+
 export const DB_ENGINE_ICONS = {
 	postgres: PostgresqlIcon,
 	mariadb: MariadbIcon,
@@ -218,6 +267,7 @@ export const DB_ENGINE_ICONS = {
 	mongo: MongodbIcon,
 	redis: RedisIcon,
 	libsql: LibsqlIcon,
+	objectstorage: MinioIcon,
 } as const;
 
 export const GitlabIcon = ({ className }: Props) => {
