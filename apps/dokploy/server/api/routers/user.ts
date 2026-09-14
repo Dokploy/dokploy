@@ -85,6 +85,13 @@ const assertCanDeleteOwnAccount = async (ctx: {
 	user: { id: string };
 	session: { impersonatedBy?: string };
 }) => {
+	if (!IS_CLOUD) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "This feature is only available in Dokploy Cloud",
+		});
+	}
+
 	if (ctx.session.impersonatedBy) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
@@ -92,18 +99,15 @@ const assertCanDeleteOwnAccount = async (ctx: {
 		});
 	}
 
-	if (!IS_CLOUD) {
-		const ownedOrganization = await db.query.organization.findFirst({
-			where: eq(organization.ownerId, ctx.user.id),
-			columns: { id: true },
+	const ownedOrganization = await db.query.organization.findFirst({
+		where: eq(organization.ownerId, ctx.user.id),
+		columns: { id: true },
+	});
+	if (!ownedOrganization) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only organization owners can delete their account",
 		});
-		if (ownedOrganization) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message:
-					"Transfer or delete the organizations you own before deleting your account",
-			});
-		}
 	}
 };
 

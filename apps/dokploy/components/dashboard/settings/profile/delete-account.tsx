@@ -44,11 +44,7 @@ export const DeleteAccount = () => {
 	const email = data?.user?.email ?? "";
 	const isBusy = requestCode.isPending || deleteAccount.isPending;
 
-	if (
-		!data ||
-		hasPassword === undefined ||
-		(!isCloud && data.role === "owner")
-	) {
+	if (!isCloud || !data || data.role !== "owner" || hasPassword === undefined) {
 		return null;
 	}
 
@@ -96,12 +92,10 @@ export const DeleteAccount = () => {
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-					{isCloud && (
-						<li>
-							Active subscriptions are cancelled immediately. Invoices already
-							issued are kept for accounting.
-						</li>
-					)}
+					<li>
+						Active subscriptions are cancelled immediately. Invoices already
+						issued are kept for accounting.
+					</li>
 					<li>
 						Every organization you own is deleted, including its projects,
 						services, environments, domains and server connections.
