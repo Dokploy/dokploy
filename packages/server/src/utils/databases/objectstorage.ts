@@ -157,7 +157,7 @@ export const buildObjectStorage = async (rawOs: ObjectStorageNested) => {
 		bindsMount.push({
 			Type: "bind" as const,
 			Source: configPath,
-			Target: "/garage/config/garage.toml",
+			Target: "/etc/garage.toml",
 		});
 	}
 

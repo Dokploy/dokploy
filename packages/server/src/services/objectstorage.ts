@@ -147,13 +147,13 @@ export const deployObjectStorage = async (
 		onData?.("Deployment completed successfully!");
 	} catch (error) {
 		console.error("Error deploying object storage:", error);
-		onData?.("Deployment failed. Check the server logs for details.");
+		onData?.(`Error: ${error}`);
 		await updateObjectStorageById(objectStorageId, {
 			applicationStatus: "error",
 		});
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
-			message: "Error on deploy object storage",
+			message: `Error on deploy object storage: ${String(error)}`,
 		});
 	}
 	return os;
