@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
@@ -7,12 +6,15 @@ import { paths } from "../../constants";
 import { resolveServiceNetworks } from "../../services/network";
 import {
 	calculateResources,
+	createFile,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
+	getCreateFileCommand,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 
@@ -98,14 +100,19 @@ export const buildObjectStorage = async (rawOs: ObjectStorageNested) => {
 			providerCommand || "/garage server --single-node --default-bucket";
 
 		const { APPLICATIONS_PATH } = paths(!!os.serverId);
-		const configDir = path.join(APPLICATIONS_PATH, appName, "files");
-		const configPath = path.join(configDir, "garage.toml");
-		await fs.mkdir(configDir, { recursive: true });
-		await fs.writeFile(
-			configPath,
-			generateGarageConfig(region || "us-east-1"),
-			"utf-8",
-		);
+		const configContent = generateGarageConfig(region || "us-east-1");
+		const configFilePath = path.join(appName, "files", "garage.toml");
+
+		if (os.serverId) {
+			const command = getCreateFileCommand(
+				APPLICATIONS_PATH,
+				configFilePath,
+				configContent,
+			);
+			await execAsyncRemote(os.serverId, command);
+		} else {
+			await createFile(APPLICATIONS_PATH, configFilePath, configContent);
+		}
 	} else if (provider === "alarik") {
 		const jwtSecret = crypto.randomBytes(32).toString("hex");
 		providerEnv = `ADMIN_USERNAME="${rootUser}"\nADMIN_PASSWORD="${rootPassword}"\nJWT="${jwtSecret}"\nALLOW_ACCOUNT_CREATION=true${

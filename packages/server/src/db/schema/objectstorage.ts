@@ -204,6 +204,7 @@ export const apiSaveExternalPortObjectStorage = createSchema
 	.pick({
 		objectStorageId: true,
 		externalPort: true,
+		consolePort: true,
 	})
 	.required();
 

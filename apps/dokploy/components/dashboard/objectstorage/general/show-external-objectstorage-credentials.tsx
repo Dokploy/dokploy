@@ -96,6 +96,7 @@ export const ShowExternalObjectStorageCredentials = ({
 	const onSubmit = async (values: DockerProvider) => {
 		await mutateAsync({
 			externalPort: values.externalPort,
+			consolePort: values.consolePort,
 			objectStorageId,
 		})
 			.then(async () => {

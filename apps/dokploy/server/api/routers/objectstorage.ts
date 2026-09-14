@@ -3,15 +3,12 @@ import {
 	createMount,
 	createObjectStorage,
 	deployObjectStorage,
-	execAsync,
-	execAsyncRemote,
 	findEnvironmentById,
 	findObjectStorageById,
 	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getObjectStorageMountPath,
-	getServiceContainer,
 	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -103,6 +100,16 @@ export const objectstorageRouter = createTRPCRouter({
 					type: "volume",
 				});
 
+				if (input.provider === "garage") {
+					await createMount({
+						serviceId: newObjectStorage.objectStorageId,
+						serviceType: "objectstorage",
+						volumeName: `${newObjectStorage.appName}-meta`,
+						mountPath: "/var/lib/garage/meta",
+						type: "volume",
+					});
+				}
+
 				await audit(ctx, {
 					action: "create",
 					resourceType: "service",
@@ -147,6 +154,16 @@ export const objectstorageRouter = createTRPCRouter({
 			});
 			const service = await findObjectStorageById(input.objectStorageId);
 
+			if (
+				service.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
+
 			if (service.serverId) {
 				await startServiceRemote(service.serverId, service.appName);
 			} else {
@@ -171,6 +188,15 @@ export const objectstorageRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 			if (objectStorage.serverId) {
 				await stopServiceRemote(objectStorage.serverId, objectStorage.appName);
 			} else {
@@ -195,6 +221,15 @@ export const objectstorageRouter = createTRPCRouter({
 				service: ["create"],
 			});
 			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 
 			if (input.externalPort) {
 				const portCheck = await checkPortInUse(
@@ -211,6 +246,7 @@ export const objectstorageRouter = createTRPCRouter({
 
 			await updateObjectStorageById(input.objectStorageId, {
 				externalPort: input.externalPort,
+				consolePort: input.consolePort,
 			});
 			await deployObjectStorage(input.objectStorageId);
 			await audit(ctx, {
@@ -228,6 +264,15 @@ export const objectstorageRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "service",
@@ -251,6 +296,17 @@ export const objectstorageRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.objectStorageId, {
 				deployment: ["create"],
 			});
+
+			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 
 			const queue: string[] = [];
 			let done = false;
@@ -283,6 +339,15 @@ export const objectstorageRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 			await updateObjectStorageById(input.objectStorageId, {
 				applicationStatus: input.applicationStatus,
 			});
@@ -337,6 +402,16 @@ export const objectstorageRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.objectStorageId, {
 				envVars: ["write"],
 			});
+			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 			const service = await updateObjectStorageById(input.objectStorageId, {
 				env: input.env,
 			});
@@ -362,6 +437,15 @@ export const objectstorageRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 			if (objectStorage.serverId) {
 				await stopServiceRemote(objectStorage.serverId, objectStorage.appName);
 			} else {
@@ -395,6 +479,17 @@ export const objectstorageRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const objectStorage = await findObjectStorageById(objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this Object Storage",
+				});
+			}
+
 			const service = await updateObjectStorageById(objectStorageId, {
 				...rest,
 			});
@@ -426,6 +521,17 @@ export const objectstorageRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
+
 			const updatedObjectStorage = await db
 				.update(objectstorageTable)
 				.set({
@@ -456,6 +562,17 @@ export const objectstorageRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.objectStorageId, {
 				deployment: ["create"],
 			});
+
+			const objectStorage = await findObjectStorageById(input.objectStorageId);
+			if (
+				objectStorage.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this Object Storage",
+				});
+			}
 
 			await rebuildDatabase(input.objectStorageId, "objectstorage");
 
