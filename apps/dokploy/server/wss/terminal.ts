@@ -56,7 +56,7 @@ export const getPublicIpWithFallback = async () => {
 
 export const getLocalServerIp = async () => {
 	try {
-		const command = `ip addr show | grep -E "inet (192\.168\.|10\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
+		const command = `ip addr show | grep -E "inet (192.168.|10.|172.1[6-9].|172.2[0-9].|172.3[0-1].)" | head -n1 | awk '{print $2}' | cut -d/ -f1`;
 		const { stdout } = await execAsync(command);
 		const ip = stdout.trim();
 		return (
@@ -232,7 +232,7 @@ export const setupTerminalWebSocketServer = (
 							}
 							stream.write(text);
 						} catch (error) {
-							// @ts-ignore
+							// @ts-expect-error
 							const errorMessage = error?.message as unknown as string;
 							ws.send(errorMessage);
 						}

@@ -78,12 +78,12 @@ export const ImpersonationBar = () => {
 			});
 
 			const filteredUsers = response.data?.users.filter(
-				// @ts-ignore
+				// @ts-expect-error
 				(user) => user.allowImpersonation && data?.user?.email !== user.email,
 			);
 
 			if (!response.error) {
-				// @ts-ignore
+				// @ts-expect-error
 				setUsers(filteredUsers || []);
 			}
 		} catch (error) {
