@@ -15,20 +15,20 @@ export const getShell = () => {
 };
 
 export const getPublicIpWithFallback = async () => {
-	// @ts-ignore
+	// @ts-expect-error
 	let ip = null;
 	try {
 		ip = await publicIpv4();
 	} catch (error) {
 		console.log(
 			"Error obtaining public IPv4 address, falling back to IPv6",
-			// @ts-ignore
+			// @ts-expect-error
 			error.message,
 		);
 		try {
 			ip = await publicIpv6();
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			console.error("Error obtaining public IPv6 address", error.message);
 			ip = null;
 		}
