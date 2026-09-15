@@ -43,8 +43,9 @@ const describeVanishedPaths = (error: ExecError) => {
  * files on the retry as well mean the source tree keeps churning - typically a
  * live database directory inside the copied path, e.g. a Postgres checkpoint
  * purging pg_logical/snapshots/*.snap - and those transient omissions are not
- * worth failing the whole backup for. Every vanished path is written to the log
- * so the omissions stay visible.
+ * worth failing the whole backup for. Each pass logs the first
+ * MAX_LOGGED_VANISHED_PATHS vanished paths plus a count of the rest, so the
+ * omissions stay visible without flooding the deployment log.
  */
 export const runRsyncWithVanishedRetry = async (
 	command: string,
