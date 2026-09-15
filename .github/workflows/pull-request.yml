@@ -41,6 +41,14 @@ jobs:
         if: matrix.job == 'test'
         run: echo "$HOME/.local/bin" >> $GITHUB_PATH
       
+      - name: Install rclone for SFTP integration tests
+        if: matrix.job == 'test'
+        run: |
+          curl -sSL -o /tmp/rclone.zip https://github.com/rclone/rclone/releases/download/v1.75.1/rclone-v1.75.1-linux-amd64.zip
+          unzip -o /tmp/rclone.zip -d /tmp
+          sudo mv /tmp/rclone-v1.75.1-linux-amd64/rclone /usr/local/bin/rclone
+          rclone version
+      
       - name: Initialize Docker Swarm
         if: matrix.job == 'test'
         run: |
