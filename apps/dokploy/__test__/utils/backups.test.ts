@@ -257,7 +257,7 @@ describe("getRclonePathAndFlags", () => {
 				"service/backup.tar",
 			);
 
-			expect(result.path).toBe(":ftp:backups/service/backup.tar");
+			expect(result.path).toBe(":ftp:/backups/service/backup.tar");
 			expect(result.flags).toContain("--ftp-host=storage.example.com");
 			expect(result.flags).toContain("--ftp-user=backup-user");
 			expect(result.flags).toContain(`--ftp-port=${defaultPort}`);
@@ -295,7 +295,7 @@ describe("getRclonePathAndFlags", () => {
 			"service/backup.tar",
 		);
 
-		expect(result.path).toBe(":sftp:backups/service/backup.tar");
+		expect(result.path).toBe(":sftp:/backups/service/backup.tar");
 		expect(result.flags).toContain("--sftp-host=storage.example.com");
 		expect(result.flags).toContain("--sftp-user=backup-user");
 		expect(result.flags).toContain("--sftp-port=22");
@@ -319,9 +319,88 @@ describe("getRclonePathAndFlags", () => {
 			),
 		).rejects.toThrow("SFTP destinations must verify the server host key");
 	});
-});
+});	describe("FTP/SFTP absolute vs home-relative remote paths", () => {
+		const sftpDestination = (bucket: string) =>
+			destination({
+				provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+				endpoint: "storage.example.com",
+				accessKey: "backup-user",
+				secretAccessKey: "",
+				region: "",
+				bucket,
+				additionalFlags: [
+					"--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts",
+				],
+			});
 
-describe("FTP TLS certificate verification", () => {
+		test("preserves an absolute base path with a child", async () => {
+			const result = await getRclonePathAndFlags(
+				sftpDestination("/backups/"),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(":sftp:/backups/service/backup.tar");
+		});
+
+		test("treats a slash-less base as home-relative", async () => {
+			const result = await getRclonePathAndFlags(
+				sftpDestination("backups"),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(":sftp:backups/service/backup.tar");
+		});
+
+		test("resolves an empty base home-relative", async () => {
+			const result = await getRclonePathAndFlags(
+				sftpDestination(""),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(":sftp:service/backup.tar");
+		});
+
+		test("resolves an empty child against an absolute base", async () => {
+			const result = await getRclonePathAndFlags(
+				sftpDestination("/backups/"),
+				"",
+			);
+			expect(result.path).toBe(":sftp:/backups");
+		});
+
+		test("resolves an empty base and child to the home directory", async () => {
+			const result = await getRclonePathAndFlags(sftpDestination(""), "");
+			expect(result.path).toBe(":sftp:");
+		});
+
+		test("resolves a root base with an empty child to the server root", async () => {
+			const result = await getRclonePathAndFlags(sftpDestination("/"), "");
+			expect(result.path).toBe(":sftp:/");
+		});
+
+		test("collapses repeated slashes but keeps the path absolute", async () => {
+			const result = await getRclonePathAndFlags(
+				sftpDestination("//backups///"),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(":sftp:/backups/service/backup.tar");
+		});
+
+		test("keeps absolute FTP base paths", async () => {
+			const result = await getRclonePathAndFlags(
+				destination({
+					provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+					endpoint: "storage.example.com",
+					accessKey: "backup-user",
+					secretAccessKey: "",
+					region: "",
+					bucket: "/backups",
+					additionalFlags: ["--ftp-tls"],
+				}),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(":ftp:/backups/service/backup.tar");
+		});
+	});
+
+	describe("FTP TLS certificate verification", () => {
 	const input = {
 		name: "FTP backups",
 		provider: RCLONE_DESTINATION_PROVIDERS.FTP,

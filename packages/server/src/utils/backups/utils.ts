@@ -115,6 +115,16 @@ const trimRclonePath = (value: string) =>
 const joinRclonePath = (...parts: string[]) =>
 	parts.map(trimRclonePath).filter(Boolean).join("/");
 
+// For FTP/SFTP, a leading "/" on the destination base path marks an absolute
+// path from the server root. rclone distinguishes ":sftp:/abs/path"
+// (absolute) from ":sftp:rel/path" (relative to the remote user's home
+// directory), so the base path's leading slash must be preserved instead of
+// being trimmed away.
+const buildFtpSftpRemotePath = (basePath: string, childPath: string) => {
+	const joined = joinRclonePath(basePath, childPath);
+	return basePath.trim().startsWith("/") ? `/${joined}` : joined;
+};
+
 export const assertSafeRclonePath = (value: string) => {
 	const normalizedSeparators = value.replace(/\\/g, "/");
 	if (/[\0\r\n]/.test(normalizedSeparators)) {
@@ -190,7 +200,7 @@ export const getRclonePathAndFlags = async (
 		}
 		return {
 			flags,
-			path: `:${backend}:${joinRclonePath(destination.bucket, path)}`,
+			path: `:${backend}:${buildFtpSftpRemotePath(destination.bucket, path)}`,
 		};
 	}
 
