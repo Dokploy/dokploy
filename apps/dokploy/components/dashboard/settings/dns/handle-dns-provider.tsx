@@ -33,11 +33,29 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 const providerLabels = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
+	porkbun: "Porkbun",
+	infomaniak: "Infomaniak",
+	ovh: "OVHcloud",
+} as const;
+
+const ovhEndpointLabels = {
+	"ovh-eu": "OVHcloud Europe",
+	"ovh-ca": "OVHcloud Canada",
+	"ovh-us": "OVHcloud US",
+	"kimsufi-eu": "Kimsufi Europe",
+	"kimsufi-ca": "Kimsufi Canada",
+	"soyoustart-eu": "So you Start Europe",
+	"soyoustart-ca": "So you Start Canada",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -49,10 +67,27 @@ const DnsProviderSchema = z.object({
 		.regex(/^[a-zA-Z0-9_-]+$/, {
 			message: "Only letters, numbers, dashes and underscores",
 		}),
-	providerType: z.enum(["cloudflare", "route53"]),
+	providerType: z.enum([
+		"cloudflare",
+		"route53",
+		"porkbun",
+		"infomaniak",
+		"ovh",
+	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
 	secretAccessKey: z.string(),
+	apiKey: z.string(),
+	secretApiKey: z.string(),
+	endpoint: z.enum(
+		Object.keys(ovhEndpointLabels) as [
+			keyof typeof ovhEndpointLabels,
+			...(keyof typeof ovhEndpointLabels)[],
+		],
+	),
+	applicationKey: z.string(),
+	applicationSecret: z.string(),
+	consumerKey: z.string(),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -63,6 +98,12 @@ const defaultValues: DnsProviderForm = {
 	apiToken: "",
 	accessKeyId: "",
 	secretAccessKey: "",
+	apiKey: "",
+	secretApiKey: "",
+	endpoint: "ovh-eu",
+	applicationKey: "",
+	applicationSecret: "",
+	consumerKey: "",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -77,6 +118,25 @@ const buildConfig = (data: DnsProviderForm) => {
 				providerType: "route53" as const,
 				accessKeyId: data.accessKeyId,
 				secretAccessKey: data.secretAccessKey,
+			};
+		case "porkbun":
+			return {
+				providerType: "porkbun" as const,
+				apiKey: data.apiKey,
+				secretApiKey: data.secretApiKey,
+			};
+		case "infomaniak":
+			return {
+				providerType: "infomaniak" as const,
+				apiToken: data.apiToken,
+			};
+		case "ovh":
+			return {
+				providerType: "ovh" as const,
+				endpoint: data.endpoint,
+				applicationKey: data.applicationKey,
+				applicationSecret: data.applicationSecret,
+				consumerKey: data.consumerKey,
 			};
 	}
 };
@@ -135,6 +195,19 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					accessKeyId: provider.config.accessKeyId,
 					secretAccessKey: provider.config.secretAccessKey,
 				}),
+				...(provider.config.providerType === "porkbun" && {
+					apiKey: provider.config.apiKey,
+					secretApiKey: provider.config.secretApiKey,
+				}),
+				...(provider.config.providerType === "infomaniak" && {
+					apiToken: provider.config.apiToken,
+				}),
+				...(provider.config.providerType === "ovh" && {
+					endpoint: provider.config.endpoint,
+					applicationKey: provider.config.applicationKey,
+					applicationSecret: provider.config.applicationSecret,
+					consumerKey: provider.config.consumerKey,
+				}),
 			});
 		} else if (!dnsProviderId) {
 			form.reset(defaultValues);
@@ -180,22 +253,30 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				{dnsProviderId ? (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="group hover:bg-blue-500/10"
-					>
-						<PenBoxIcon className="size-4 text-primary group-hover:text-blue-500" />
-					</Button>
-				) : (
-					<Button className="cursor-pointer space-x-3">
-						<PlusIcon className="h-4 w-4" />
+			{dnsProviderId ? (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DialogTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="text-muted-foreground"
+							>
+								<PenBoxIcon className="size-4" />
+								<span className="sr-only">Edit provider</span>
+							</Button>
+						</DialogTrigger>
+					</TooltipTrigger>
+					<TooltipContent>Edit provider</TooltipContent>
+				</Tooltip>
+			) : (
+				<DialogTrigger asChild>
+					<Button>
+						<PlusIcon className="size-4" />
 						Add Provider
 					</Button>
-				)}
-			</DialogTrigger>
+				</DialogTrigger>
+			)}
 			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
@@ -311,6 +392,154 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<code>route53:ListResourceRecordSets</code> and{" "}
 												<code>route53:ChangeResourceRecordSets</code> — avoid
 												root account credentials.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "porkbun" && (
+							<>
+								<FormField
+									control={form.control}
+									name="apiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Key</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="secretApiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret API Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Create API keys at porkbun.com/account/api and make sure
+												API access is enabled for the domains you want Dokploy
+												to manage.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "infomaniak" && (
+							<FormField
+								control={form.control}
+								name="apiToken"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Token</FormLabel>
+										<FormControl>
+											<Input type="password" {...field} />
+										</FormControl>
+										<FormDescription>
+											Create a token at manager.infomaniak.com with the{" "}
+											<code>domain:read</code>, <code>dns:read</code> and{" "}
+											<code>dns:write</code> scopes.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+
+						{providerType === "ovh" && (
+							<>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Endpoint</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select an endpoint" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{Object.entries(ovhEndpointLabels).map(
+														([value, label]) => (
+															<SelectItem key={value} value={value}>
+																{label}
+															</SelectItem>
+														),
+													)}
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="applicationKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Application Key</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="applicationSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Application Secret</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="consumerKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Consumer Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Create the three keys at once on
+												api.ovh.com/createToken, with exactly these five rights:
+												<br />
+												<code>GET /domain/zone</code>
+												<br />
+												<code>GET /domain/zone/*</code>
+												<br />
+												<code>POST /domain/zone/*</code>
+												<br />
+												<code>PUT /domain/zone/*</code>
+												<br />
+												<code>DELETE /domain/zone/*</code>
+												<br />
+												The first one lists your zones and has to be granted on
+												its own: OVH matches rights per exact path, so{" "}
+												<code>/domain/zone/*</code> does not cover it.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

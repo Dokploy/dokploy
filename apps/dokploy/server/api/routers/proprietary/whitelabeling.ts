@@ -14,6 +14,11 @@ import {
 	publicProcedure,
 } from "../../trpc";
 
+/** Invalidate the SSR branding caches in _document.tsx so the next request picks up fresh settings. */
+function clearBrandingSSRCache() {
+	globalThis.__SETTINGS_CACHE = null;
+}
+
 export const whitelabelingRouter = createTRPCRouter({
 	get: protectedProcedure.query(async ({ ctx }) => {
 		if (IS_CLOUD) {
@@ -47,6 +52,9 @@ export const whitelabelingRouter = createTRPCRouter({
 				whitelabelingConfig: input.whitelabelingConfig,
 			});
 
+			// Clear the cache so Next.js SSR applies changes immediately
+			clearBrandingSSRCache();
+
 			return { success: true };
 		}),
 
@@ -77,10 +85,13 @@ export const whitelabelingRouter = createTRPCRouter({
 				docsUrl: null,
 				errorPageTitle: null,
 				errorPageDescription: null,
-				metaTitle: null,
+				ogImageUrl: null,
 				footerText: null,
 			},
 		});
+
+		// Clear the cache so Next.js SSR applies changes immediately
+		clearBrandingSSRCache();
 
 		return { success: true };
 	}),

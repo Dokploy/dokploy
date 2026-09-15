@@ -7,7 +7,10 @@ import {
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildMariadb } from "@dokploy/server/utils/databases/mariadb";
-import { pullImage } from "@dokploy/server/utils/docker/utils";
+import {
+	pullImage,
+	waitForSwarmServiceConvergence,
+} from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
@@ -154,6 +157,7 @@ export const deployMariadb = async (
 		}
 
 		await buildMariadb(mariadb);
+		await waitForSwarmServiceConvergence(mariadb.appName, mariadb.serverId);
 		await updateMariadbById(mariadbId, {
 			applicationStatus: "done",
 		});
