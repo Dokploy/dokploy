@@ -14,7 +14,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
-import { execAsync } from "../process/execAsync";
+import { ExecError, execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
@@ -81,9 +81,26 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
 			await execAsync(cleanupCommand);
 
-			await execAsync(
-				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
-			);
+			// rsync exits with 24 ("some files vanished before they could be
+			// transferred") when a file disappears between building the file list
+			// and transferring it. That is a warning, not a failure: everything
+			// else was copied. It happens routinely when a compose stack keeps a
+			// live database directory under BASE_PATH, e.g. a Postgres checkpoint
+			// purging pg_logical/snapshots/*.snap. --ignore-errors does not cover
+			// this, it only applies to errors reported during --delete.
+			try {
+				await execAsync(
+					`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				);
+			} catch (error) {
+				if (error instanceof ExecError && error.exitCode === 24) {
+					writeStream.write(
+						"Some files vanished while copying the filesystem (rsync exit 24), continuing\n",
+					);
+				} else {
+					throw error;
+				}
+			}
 
 			writeStream.write("Copied filesystem to temp directory\n");
 
