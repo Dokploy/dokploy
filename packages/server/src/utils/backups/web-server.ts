@@ -14,8 +14,9 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
-import { ExecError, execAsync } from "../process/execAsync";
+import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
+import { runRsyncWithVanishedRetry } from "./rsync";
 import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 function formatBytes(bytes?: number) {
@@ -81,26 +82,14 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
 			await execAsync(cleanupCommand);
 
-			// rsync exits with 24 ("some files vanished before they could be
-			// transferred") when a file disappears between building the file list
-			// and transferring it. That is a warning, not a failure: everything
-			// else was copied. It happens routinely when a compose stack keeps a
-			// live database directory under BASE_PATH, e.g. a Postgres checkpoint
-			// purging pg_logical/snapshots/*.snap. --ignore-errors does not cover
-			// this, it only applies to errors reported during --delete.
-			try {
-				await execAsync(
-					`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
-				);
-			} catch (error) {
-				if (error instanceof ExecError && error.exitCode === 24) {
-					writeStream.write(
-						"Some files vanished while copying the filesystem (rsync exit 24), continuing\n",
-					);
-				} else {
-					throw error;
-				}
-			}
+			// BASE_PATH holds live data: a compose stack can keep a database
+			// directory there, e.g. a Postgres checkpoint purging
+			// pg_logical/snapshots/*.snap while this copy runs. Retry once and log
+			// the paths instead of failing the whole backup over vanished files.
+			await runRsyncWithVanishedRetry(
+				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				(message) => writeStream.write(message),
+			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
 
