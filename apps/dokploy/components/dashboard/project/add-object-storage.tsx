@@ -8,6 +8,7 @@ import {
 	AlarikIcon,
 	GarageIcon,
 	MinioIcon,
+	RustFSIcon,
 } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ const objectStorageSchema = z.object({
 		.regex(APP_NAME_REGEX, {
 			message: APP_NAME_MESSAGE,
 		}),
-	provider: z.enum(["minio", "garage", "alarik"]),
+	provider: z.enum(["minio", "garage", "alarik", "rustfs"]),
 	rootUser: z.string().min(1, "Root user required"),
 	rootPassword: z.string().min(1, "Root password required"),
 	bucket: z.string().optional(),
@@ -85,6 +86,10 @@ const providersMap = {
 	alarik: {
 		icon: <AlarikIcon className="h-10 w-10" />,
 		label: "Alarik",
+	},
+	rustfs: {
+		icon: <RustFSIcon className="h-10 w-10" />,
+		label: "RustFS",
 	},
 };
 
@@ -112,6 +117,12 @@ const providerDefaults: Record<
 	alarik: {
 		dockerImage: "ghcr.io/achtungsoftware/alarik:latest",
 		rootUser: "admin",
+		bucket: "dokploy",
+		region: "us-east-1",
+	},
+	rustfs: {
+		dockerImage: "rustfs/rustfs:latest",
+		rootUser: "rustfsadmin",
 		bucket: "dokploy",
 		region: "us-east-1",
 	},
@@ -272,7 +283,7 @@ export const AddObjectStorage = ({ environmentId, projectName }: Props) => {
 									{provider === "minio" && (
 										<AlertBlock type="warning">
 											MinIO was archived on April 25, 2026. It is recommended to
-											use Garage or Alarik instead.
+											use Garage, Alarik, or RustFS instead.
 										</AlertBlock>
 									)}
 									<FormMessage />

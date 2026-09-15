@@ -244,6 +244,17 @@ export const AlarikIcon = ({ className }: Props) => {
 	);
 };
 
+export const RustFSIcon = ({ className }: Props) => {
+	return (
+		// biome-ignore lint/performance/noImgElement: provider logo
+		<img
+			src="/images/s3/rustfs.svg"
+			alt="RustFS"
+			className={cn(className, "object-contain")}
+		/>
+	);
+};
+
 export const ObjectStorageProviderIcon = ({
 	provider,
 	className,
@@ -256,6 +267,9 @@ export const ObjectStorageProviderIcon = ({
 	}
 	if (provider === "alarik") {
 		return <AlarikIcon className={className} />;
+	}
+	if (provider === "rustfs") {
+		return <RustFSIcon className={className} />;
 	}
 	return <MinioIcon className={className} />;
 };

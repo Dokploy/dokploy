@@ -27,10 +27,12 @@ const INTERNAL_PORTS: Record<string, number> = {
 	minio: 9000,
 	garage: 3900,
 	alarik: 8080,
+	rustfs: 9000,
 };
 
 const CONSOLE_PORTS: Record<string, number> = {
 	minio: 9001,
+	rustfs: 9001,
 };
 
 function generateGarageConfig(region: string): string {
@@ -121,6 +123,11 @@ export const buildObjectStorage = async (rawOs: ObjectStorageNested) => {
 		providerCommand =
 			providerCommand ||
 			"Alarik serve --env production --hostname 0.0.0.0 --port 8080";
+	} else if (provider === "rustfs") {
+		providerEnv = `RUSTFS_ACCESS_KEY="${rootUser}"\nRUSTFS_SECRET_KEY="${rootPassword}"\nRUSTFS_REGION="${region || "us-east-1"}"${
+			env ? `\n${env}` : ""
+		}`;
+		providerCommand = providerCommand || "/usr/bin/rustfs /data";
 	}
 
 	const resolvedNetworks = await resolveServiceNetworks(os);

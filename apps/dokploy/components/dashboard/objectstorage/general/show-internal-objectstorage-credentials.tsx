@@ -8,6 +8,7 @@ const PROVIDER_DEFAULT_PORTS: Record<string, number> = {
 	minio: 9000,
 	garage: 3900,
 	alarik: 8080,
+	rustfs: 9000,
 };
 
 interface Props {

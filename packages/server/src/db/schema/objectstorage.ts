@@ -46,6 +46,7 @@ export const objectStorageProvider = pgEnum("objectStorageProvider", [
 	"minio",
 	"garage",
 	"alarik",
+	"rustfs",
 ]);
 
 export type ObjectStorageProvider =
@@ -152,7 +153,7 @@ const createSchema = createInsertSchema(objectstorage, {
 	createdAt: z.string(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
-	provider: z.enum(["minio", "garage", "alarik"]),
+	provider: z.enum(["minio", "garage", "alarik", "rustfs"]),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
 	placementSwarm: PlacementSwarmSchema.nullable(),

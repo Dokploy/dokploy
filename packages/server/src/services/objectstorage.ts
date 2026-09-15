@@ -29,6 +29,9 @@ export function getObjectStorageMountPath(provider: string): string {
 	if (provider === "alarik") {
 		return "/app/Storage";
 	}
+	if (provider === "rustfs") {
+		return "/data";
+	}
 	return "/data";
 }
 
