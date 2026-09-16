@@ -549,6 +549,7 @@ export const applicationRouter = createTRPCRouter({
 				githubId: input.githubId,
 				watchPaths: input.watchPaths,
 				triggerType: input.triggerType,
+				triggerTags: input.triggerTags,
 				enableSubmodules: input.enableSubmodules,
 			});
 			const application = await findApplicationById(input.applicationId);

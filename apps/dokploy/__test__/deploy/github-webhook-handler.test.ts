@@ -269,6 +269,90 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.json).toHaveBeenCalledWith({ message: "Deployed 1 apps" });
 	});
 
+	it.each([
+		["go", ["go-app"]],
+		["all", ["go-app", "node-one-app", "node-two-app"]],
+		["node-one", ["node-one-app"]],
+		["GO", []],
+		["go-v1", []],
+		["other", []],
+	])("routes tag %s to matching monorepo services", async (tag, expected) => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ applicationId: "go-app", triggerTags: ["all", "go"] },
+			{ applicationId: "node-one-app", triggerTags: ["all", "node-one"] },
+			{ applicationId: "node-two-app", triggerTags: ["all", "node-two"] },
+		]);
+		const res = createResponse();
+		await handler(createTagRequest(tag), res);
+		expect(
+			mocks.queueAdd.mock.calls.map((call) => call[1].applicationId),
+		).toEqual(expected);
+		expect(res.json).toHaveBeenCalledWith({
+			message: expected.length
+				? `Deployed ${expected.length} apps based on tag ${tag}`
+				: "No apps configured to deploy on this tag",
+		});
+	});
+
+	it.each([
+		["go-1", ["go-app"]],
+		["go-2", ["go-app"]],
+		["all-2026.09.17", ["go-app", "node-app", "compose-app"]],
+		["node-v1.2.3", ["node-app"]],
+		["GO-1", []],
+		["other-go-1", []],
+	])(
+		"routes versioned tag %s using wildcard patterns",
+		async (tag, expected) => {
+			mocks.applicationsFindMany.mockResolvedValue([
+				{ applicationId: "go-app", triggerTags: ["all-*", "go-*"] },
+				{ applicationId: "node-app", triggerTags: ["all-*", "node-*"] },
+			]);
+			mocks.composeFindMany.mockResolvedValue([
+				{ composeId: "compose-app", triggerTags: ["all-*", "compose-*"] },
+			]);
+			await handler(createTagRequest(tag), createResponse());
+			expect(
+				mocks.queueAdd.mock.calls.map(
+					(call) => call[1].applicationId || call[1].composeId,
+				),
+			).toEqual(expected);
+		},
+	);
+
+	it("preserves unfiltered services and filters compose services", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ applicationId: "legacy", triggerTags: null },
+			{ applicationId: "empty", triggerTags: [] },
+		]);
+		mocks.composeFindMany.mockResolvedValue([
+			{ composeId: "match", triggerTags: ["all", "go"] },
+			{ composeId: "skip", triggerTags: ["node"] },
+			{ composeId: "legacy-compose", triggerTags: null },
+			{ composeId: "empty-compose", triggerTags: [] },
+		]);
+		const res = createResponse();
+		await handler(createTagRequest("go"), res);
+		expect(
+			mocks.queueAdd.mock.calls.map(
+				(call) => call[1].applicationId || call[1].composeId,
+			),
+		).toEqual(["legacy", "empty", "match", "legacy-compose", "empty-compose"]);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 5 apps based on tag go",
+		});
+	});
+
+	it("does not deploy deleted tags", async () => {
+		const req = createTagRequest("all");
+		req.body.deleted = true;
+		const res = createResponse();
+		await handler(req, res);
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(mocks.applicationsFindMany).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
 	it("matches tag events using repository owner login fallback", async () => {
 		mocks.applicationsFindMany.mockImplementation(({ where }) => {
 			const matches =
