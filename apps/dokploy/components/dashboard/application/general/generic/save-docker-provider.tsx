@@ -88,15 +88,13 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Docker Image</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="registry.example.com/team/app:latest"
-											{...field}
-										/>
+										<Input placeholder="nginx:latest" {...field} />
 									</FormControl>
 									<FormDescription>
-										The full reference passed to <code>docker pull</code>. For a
-										private registry it must include the registry host — the
-										Registry URL below is not prepended to it.
+										The full reference passed to <code>docker pull</code>. An
+										image from a private registry must include its host, e.g.{" "}
+										<code>registry.example.com/team/app:latest</code> — the
+										Registry URL below is not added to the image name.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -110,6 +108,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							<FormItem>
 								<FormLabel>Registry URL</FormLabel>
 								<FormControl>
+									<Input placeholder="registry.example.com" {...field} />
 								</FormControl>
 								<FormMessage />
 							</FormItem>
