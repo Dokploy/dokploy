@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -87,8 +88,16 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Docker Image</FormLabel>
 									<FormControl>
-										<Input placeholder="node:16" {...field} />
+										<Input
+											placeholder="registry.example.com/team/app:latest"
+											{...field}
+										/>
 									</FormControl>
+									<FormDescription>
+										The full reference passed to <code>docker pull</code>. For a
+										private registry it must include the registry host — the
+										Registry URL below is not prepended to it.
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -101,8 +110,12 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							<FormItem>
 								<FormLabel>Registry URL</FormLabel>
 								<FormControl>
-									<Input placeholder="Registry URL" {...field} />
+									<Input placeholder="registry.example.com" {...field} />
 								</FormControl>
+								<FormDescription>
+									Host only, used to authenticate with <code>docker login</code>
+									. Leave empty for Docker Hub.
+								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
