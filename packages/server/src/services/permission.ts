@@ -10,6 +10,7 @@ import {
 	memberRole,
 	ownerRole,
 	statements,
+	userRole,
 } from "../lib/access-control";
 
 type Statements = typeof statements;
@@ -34,6 +35,7 @@ const staticRoles: Record<string, ReturnType<typeof ac.newRole>> = {
 	owner: ownerRole,
 	admin: adminRole,
 	member: memberRole,
+	user: userRole,
 };
 
 const resolveRole = async (
