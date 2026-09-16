@@ -110,12 +110,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							<FormItem>
 								<FormLabel>Registry URL</FormLabel>
 								<FormControl>
-									<Input placeholder="registry.example.com" {...field} />
 								</FormControl>
-								<FormDescription>
-									Host only, used to authenticate with <code>docker login</code>
-									. Leave empty for Docker Hub.
-								</FormDescription>
 								<FormMessage />
 							</FormItem>
 						)}
