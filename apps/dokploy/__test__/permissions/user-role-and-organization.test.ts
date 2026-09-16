@@ -50,4 +50,14 @@ describe("View-only user role tests", () => {
 		expect(perms.deployment.create).toBe(false);
 		expect(perms.project.create).toBe(false);
 	});
+
+	it("user role strictly forbids reading plaintext environment variables and secrets", async () => {
+		currentMember = mockMember("user");
+		const perms = await resolvePermissions(ctx);
+		expect(perms.envVars.read).toBe(false);
+		expect(perms.projectEnvVars.read).toBe(false);
+		expect(perms.environmentEnvVars.read).toBe(false);
+		await expect(checkPermission(ctx, { envVars: ["read"] })).rejects.toThrow();
+		await expect(checkPermission(ctx, { environmentEnvVars: ["read"] })).rejects.toThrow();
+	});
 });

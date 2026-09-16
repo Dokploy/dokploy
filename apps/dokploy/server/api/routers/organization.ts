@@ -213,10 +213,13 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
-			let updatedMetadata = org.metadata;
+			let updatedMetadata: string | undefined = undefined;
 			if (input.description !== undefined) {
+				const freshOrg = await db.query.organization.findFirst({
+					where: eq(organization.id, input.organizationId),
+				});
 				try {
-					const parsed = org.metadata ? JSON.parse(org.metadata) : {};
+					const parsed = freshOrg?.metadata ? JSON.parse(freshOrg.metadata) : {};
 					updatedMetadata = JSON.stringify({ ...parsed, description: input.description });
 				} catch {
 					updatedMetadata = JSON.stringify({ description: input.description });
@@ -228,7 +231,9 @@ export const organizationRouter = createTRPCRouter({
 				.set({
 					name: input.name,
 					logo: input.logo,
-					metadata: updatedMetadata,
+					...(updatedMetadata !== undefined && {
+						metadata: updatedMetadata,
+					}),
 					...(input.defaultRole !== undefined && {
 						defaultRole: input.defaultRole,
 					}),
