@@ -4,6 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "PORT=4000 tsx watch src/index.ts",
+		"dev:inngest": "npx --yes inngest-cli@1.9.0 dev -u http://localhost:4000/api/inngest --no-discovery",
 		"build": "rimraf dist && tsc --project tsconfig.json",
 		"start": "node dist/index.js",
 		"typecheck": "tsc --noEmit"

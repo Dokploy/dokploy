@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { useEnvCompletionSource } from "@/components/shared/env-autocomplete";
+import { VaultImportDialog } from "@/components/shared/vault-import-dialog";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -152,7 +153,16 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Environment variables</FormLabel>
+											<div className="flex items-center justify-between">
+												<FormLabel>Environment variables</FormLabel>
+												<VaultImportDialog
+													projectId={projectId}
+													currentEnv={field.value ?? ""}
+													onImport={(next) =>
+														form.setValue("env", next, { shouldDirty: true })
+													}
+												/>
+											</div>
 											<FormControl>
 												<CodeEditor
 													completionSource={completionSource}

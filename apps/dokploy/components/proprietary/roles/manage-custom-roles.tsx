@@ -173,7 +173,7 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 	vaultProvider: {
 		label: "Secrets Providers",
 		description:
-			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway) and where their secrets can be referenced",
+			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway, Phase) and where their secrets can be referenced",
 	},
 	dnsProvider: {
 		label: "DNS Providers",
@@ -605,7 +605,7 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 
 export const ManageCustomRoles = () => {
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto w-full">
+		<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 			<div className="rounded-xl bg-background shadow-md">
 				<CardHeader>
 					<CardTitle className="text-xl flex flex-row gap-2">
