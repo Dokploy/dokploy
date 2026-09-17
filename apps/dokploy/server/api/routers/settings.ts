@@ -19,6 +19,7 @@ import {
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
+	markOrganizationOwnerVerified,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -467,6 +468,9 @@ export const settingsRouter = createTRPCRouter({
 			await updateWebServerSettings({
 				enforceSSO: input.enforceSSO,
 			});
+			if (input.enforceSSO) {
+				await markOrganizationOwnerVerified(ctx.session.activeOrganizationId);
+			}
 
 			await audit(ctx, {
 				action: "update",

@@ -1,5 +1,6 @@
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { organization } from "@dokploy/server/db/schema";
+import { organization, user } from "@dokploy/server/db/schema";
 import { eq } from "drizzle-orm";
 
 export const getSSOProviders = async () => {
@@ -43,4 +44,15 @@ export const getOrganizationOwnerId = async (organizationId: string) => {
 	});
 	if (!org) return null;
 	return org.ownerId;
+};
+
+// better-auth won't link SSO to an unverified user; self-hosted owners never verify
+export const markOrganizationOwnerVerified = async (organizationId: string) => {
+	if (IS_CLOUD) return;
+	const ownerId = await getOrganizationOwnerId(organizationId);
+	if (!ownerId) return;
+	await db
+		.update(user)
+		.set({ emailVerified: true })
+		.where(eq(user.id, ownerId));
 };
