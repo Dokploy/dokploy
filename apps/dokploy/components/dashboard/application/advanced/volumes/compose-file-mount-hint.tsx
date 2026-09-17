@@ -1,5 +1,8 @@
 import { AlertBlock } from "@/components/shared/alert-block";
-import { getComposeFileMountSource } from "@/lib/compose-file-mount";
+import {
+	getComposeFileMountExample,
+	getComposeFileMountSource,
+} from "@/lib/compose-file-mount";
 import { api } from "@/utils/api";
 
 interface Props {
@@ -35,7 +38,7 @@ export const ComposeFileMountHint = ({ composeId, fileName }: Props) => {
 				</code>
 				<p>Example:</p>
 				<pre className="rounded bg-muted px-2 py-1 text-foreground whitespace-pre-wrap break-all">
-					{`volumes:\n  - ${source}:/path/in/container`}
+					{getComposeFileMountExample(source)}
 				</pre>
 			</div>
 		</AlertBlock>

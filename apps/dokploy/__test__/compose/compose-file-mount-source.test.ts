@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getComposeFileMountSource } from "@/lib/compose-file-mount";
+import { parse } from "yaml";
+import {
+	getComposeFileMountExample,
+	getComposeFileMountSource,
+} from "@/lib/compose-file-mount";
 
 describe("getComposeFileMountSource", () => {
 	it("resolves from the code dir for docker-compose", () => {
@@ -63,5 +67,18 @@ describe("getComposeFileMountSource", () => {
 				fileName: "/nginx.conf",
 			}),
 		).toBe("../files/nginx.conf");
+	});
+});
+
+describe("getComposeFileMountExample", () => {
+	it.each([
+		"../files/Caddyfile",
+		"../files/prod:config",
+		"../files/app #1.conf",
+		'../files/say "hi".txt',
+	])("keeps %s intact as the bind source", (source) => {
+		expect(parse(getComposeFileMountExample(source))).toEqual({
+			volumes: [{ type: "bind", source, target: "/path/in/container" }],
+		});
 	});
 });

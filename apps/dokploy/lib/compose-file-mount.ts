@@ -34,3 +34,13 @@ export const getComposeFileMountSource = ({
 
 	return `${"../".repeat(depth + 1)}files/${file}`;
 };
+
+// Long syntax with a quoted source: in the short `source:target` form a file
+// name containing ":" shifts the split, and " #" would start a YAML comment.
+export const getComposeFileMountExample = (source: string) =>
+	[
+		"volumes:",
+		"  - type: bind",
+		`    source: ${JSON.stringify(source)}`,
+		"    target: /path/in/container",
+	].join("\n");
