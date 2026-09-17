@@ -7,6 +7,9 @@ import { organization } from "./account";
 export const dnsProviderType = pgEnum("DnsProviderType", [
 	"cloudflare",
 	"route53",
+	"porkbun",
+	"infomaniak",
+	"ovh",
 ]);
 
 export const cloudflareDnsConfigSchema = z.object({
@@ -20,9 +23,41 @@ export const route53DnsConfigSchema = z.object({
 	secretAccessKey: z.string().trim().min(1),
 });
 
+export const porkbunDnsConfigSchema = z.object({
+	providerType: z.literal("porkbun"),
+	apiKey: z.string().trim().min(1),
+	secretApiKey: z.string().trim().min(1),
+});
+
+export const infomaniakDnsConfigSchema = z.object({
+	providerType: z.literal("infomaniak"),
+	apiToken: z.string().trim().min(1),
+});
+
+export const ovhApiEndpoints = [
+	"ovh-eu",
+	"ovh-ca",
+	"ovh-us",
+	"kimsufi-eu",
+	"kimsufi-ca",
+	"soyoustart-eu",
+	"soyoustart-ca",
+] as const;
+
+export const ovhDnsConfigSchema = z.object({
+	providerType: z.literal("ovh"),
+	endpoint: z.enum(ovhApiEndpoints).default("ovh-eu"),
+	applicationKey: z.string().trim().min(1),
+	applicationSecret: z.string().trim().min(1),
+	consumerKey: z.string().trim().min(1),
+});
+
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
 	cloudflareDnsConfigSchema,
 	route53DnsConfigSchema,
+	porkbunDnsConfigSchema,
+	infomaniakDnsConfigSchema,
+	ovhDnsConfigSchema,
 ]);
 
 export type DnsProviderConfig = z.infer<typeof dnsProviderConfigSchema>;
@@ -96,11 +131,28 @@ export const apiListDnsRecords = z.object({
 	zoneId: z.string().min(1),
 });
 
+export const dnsRecordTypes = [
+	"A",
+	"AAAA",
+	"CNAME",
+	"MX",
+	"TXT",
+	"NS",
+	"SRV",
+	"CAA",
+	"PTR",
+] as const;
+
+export type DnsRecordType = (typeof dnsRecordTypes)[number];
+
+export const proxiableDnsRecordTypes = ["A", "AAAA", "CNAME"] as const;
+
 const dnsRecordFieldsSchema = z.object({
-	type: z.enum(["A", "CNAME"]),
+	type: z.enum(dnsRecordTypes),
 	name: z.string().min(1),
 	content: z.string().min(1),
 	ttl: z.number().int().positive().optional(),
+	proxied: z.boolean().optional(),
 });
 
 export const apiCreateDnsRecord = dnsRecordFieldsSchema.extend({

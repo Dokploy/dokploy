@@ -8,11 +8,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
-	return (
-		<div className="flex flex-col gap-4 w-full">
-			<ShowDnsProviders />
-		</div>
-	);
+	return <ShowDnsProviders />;
 };
 
 export default Page;

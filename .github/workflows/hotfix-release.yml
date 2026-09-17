@@ -7,12 +7,16 @@ concurrency:
   group: hotfix-to-main
   cancel-in-progress: false
 
+# Push to main goes through HOTFIX_PUSH_TOKEN, not the workflow token.
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           token: ${{ secrets.HOTFIX_PUSH_TOKEN }}

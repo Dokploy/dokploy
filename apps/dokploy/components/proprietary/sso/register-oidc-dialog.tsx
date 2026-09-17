@@ -83,6 +83,11 @@ const azureMapping: ClaimMapping = {
 	image: "",
 };
 
+// id: "sub",
+// email: "preferred_username",
+// emailVerified: "email_verified",
+// name: "name",
+
 const genericMapping: ClaimMapping = {
 	id: "sub",
 	email: "email",
@@ -228,10 +233,9 @@ export function RegisterOidcDialog({
 			mapping: {
 				id: oidc?.mapping?.id ?? baseMapping.id,
 				email: oidc?.mapping?.email ?? baseMapping.email,
-				emailVerified:
-					oidc?.mapping?.emailVerified ?? baseMapping.emailVerified,
+				emailVerified: oidc?.mapping?.emailVerified ?? "",
 				name: oidc?.mapping?.name ?? baseMapping.name,
-				image: oidc?.mapping?.image ?? baseMapping.image,
+				image: oidc?.mapping?.image ?? "",
 			},
 		});
 	}, [data, open, form]);

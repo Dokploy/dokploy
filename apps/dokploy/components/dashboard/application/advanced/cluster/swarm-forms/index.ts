@@ -8,4 +8,3 @@ export { RestartPolicyForm } from "./restart-policy-form";
 export { RollbackConfigForm } from "./rollback-config-form";
 export { StopGracePeriodForm } from "./stop-grace-period-form";
 export { UpdateConfigForm } from "./update-config-form";
-export { filterEmptyValues, hasValues } from "./utils";

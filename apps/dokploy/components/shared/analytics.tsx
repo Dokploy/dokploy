@@ -1,3 +1,4 @@
+import { OpenPanelComponent } from "@openpanel/nextjs";
 import { useRouter } from "next/router";
 import Script from "next/script";
 import { useEffect } from "react";
@@ -5,9 +6,10 @@ import { GTM_ID, pushToDataLayer } from "@/lib/analytics";
 import { api } from "@/utils/api";
 
 /**
- * Loads Google Tag Manager and the HubSpot marketing tag on the cloud
- * version only, and translates tracking query params appended by the
- * auth/billing flows (?signup=..., ?subscription=new) into dataLayer events.
+ * Loads Google Tag Manager, the HubSpot marketing tag, and OpenPanel
+ * product analytics on the cloud version only, and translates tracking
+ * query params appended by the auth/billing flows (?signup=...,
+ * ?subscription=new) into dataLayer events.
  */
 export const Analytics = () => {
 	const router = useRouter();
@@ -40,6 +42,14 @@ export const Analytics = () => {
 
 	return (
 		<>
+			<OpenPanelComponent
+				apiUrl="https://openpanel.dokploy.com/api"
+				clientId="bf5a178b-7f28-4461-bf47-d63feff15922"
+				trackScreenViews={true}
+				trackOutgoingLinks={true}
+				trackAttributes={true}
+				globalProperties={{ site: "app" }}
+			/>
 			<Script id="analytics-init" strategy="afterInteractive">
 				{`
 					window.hsConversationsSettings = { loadImmediately: false };
