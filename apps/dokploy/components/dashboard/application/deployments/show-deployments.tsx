@@ -342,7 +342,7 @@ export const ShowDeployments = ({
 											)}
 											{/* Hash (from description) - shown in compact form */}
 											{deployment.description?.trim() && (
-												<span className="text-xs text-muted-foreground font-mono">
+												<span className="wrap-anywhere text-xs text-muted-foreground font-mono">
 													{deployment.description}
 												</span>
 											)}

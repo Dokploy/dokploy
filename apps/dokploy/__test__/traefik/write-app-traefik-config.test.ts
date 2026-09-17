@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	execAsyncRemote: vi.fn(),
+	writeFileRemote: vi.fn(),
 }));
 
 vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => {
@@ -16,6 +17,7 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => {
 	return {
 		...actual,
 		execAsyncRemote: mocks.execAsyncRemote,
+		writeFileRemote: mocks.writeFileRemote,
 	};
 });
 
@@ -91,7 +93,7 @@ describe("writeAppTraefikConfig", () => {
 	});
 
 	it("writes the remote file when routers/services are present", async () => {
-		mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
+		mocks.writeFileRemote.mockResolvedValue(undefined);
 
 		await writeAppTraefikConfig(
 			{
@@ -109,8 +111,11 @@ describe("writeAppTraefikConfig", () => {
 			"server-id",
 		);
 
-		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
-		const [, command] = mocks.execAsyncRemote.mock.calls[0] ?? [];
-		expect(command).toMatch(/^echo /);
+		expect(mocks.writeFileRemote).toHaveBeenCalledOnce();
+		const [serverId, remotePath, content] =
+			mocks.writeFileRemote.mock.calls[0] ?? [];
+		expect(serverId).toBe("server-id");
+		expect(remotePath).toContain("with-domain-app.yml");
+		expect(content).toContain("with-domain-app-router-1");
 	});
 });

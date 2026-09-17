@@ -73,6 +73,7 @@ export const user = pgTable("user", {
 	bookmarkedTemplates: text("bookmarkedTemplates")
 		.array()
 		.default(sql`ARRAY[]::text[]`),
+	onboardingCompletedAt: timestamp("onboardingCompletedAt"),
 });
 
 export const usersRelations = relations(user, ({ one, many }) => ({
@@ -97,6 +98,7 @@ const createSchema = createInsertSchema(user, {
 	bookmarkedTemplates: true,
 	isValidEnterpriseLicense: true,
 	isEnterpriseCloud: true,
+	onboardingCompletedAt: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
