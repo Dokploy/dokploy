@@ -21,6 +21,7 @@ export * from "./services/docker";
 export * from "./services/docker-image";
 export * from "./services/docker-volume";
 export * from "./services/domain";
+export * from "./services/duplicate";
 export * from "./services/environment";
 export * from "./services/git-provider";
 export * from "./services/gitea";
