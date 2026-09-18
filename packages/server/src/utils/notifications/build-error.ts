@@ -28,6 +28,15 @@ interface Props {
 	organizationId: string;
 }
 
+/**
+ * Truncates an error message for notification channels that have a length
+ * limit. Keeps the END of the message because build errors live at the bottom
+ * of the deployment log — truncating from the front would hide the actual
+ * error.
+ */
+export const truncateErrorMessage = (message: string, limit = 800): string =>
+	message.length > limit ? `...${message.slice(-limit)}` : message;
+
 export const sendBuildErrorNotifications = async ({
 	projectName,
 	applicationName,
@@ -108,8 +117,7 @@ export const sendBuildErrorNotifications = async ({
 				const decorate = (decoration: string, text: string) =>
 					`${discord.decoration ? decoration : ""} ${text}`.trim();
 
-				const limitCharacter = 800;
-				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				const truncatedErrorMessage = truncateErrorMessage(errorMessage);
 				await sendDiscordNotification(discord, {
 					title: decorate(">", "`⚠️` Build Failed"),
 					color: 0xed4245,
@@ -289,8 +297,7 @@ ${errorMessage}
 			}
 
 			if (lark) {
-				const limitCharacter = 800;
-				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				const truncatedErrorMessage = truncateErrorMessage(errorMessage);
 				await sendLarkNotification(lark, {
 					msg_type: "interactive",
 					card: {
@@ -409,8 +416,7 @@ ${errorMessage}
 			}
 
 			if (teams) {
-				const limitCharacter = 800;
-				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				const truncatedErrorMessage = truncateErrorMessage(errorMessage);
 				await sendTeamsNotification(teams, {
 					title: "⚠️ Build Failed",
 					facts: [
