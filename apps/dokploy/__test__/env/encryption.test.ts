@@ -49,6 +49,37 @@ describe("encryptValue / decryptValue", () => {
 	});
 });
 
+describe("migrating off the hardcoded legacy BETTER_AUTH_SECRET", () => {
+	afterEach(() => {
+		vi.unstubAllEnvs();
+		vi.resetModules();
+	});
+
+	const loadWithAuthSecret = async (secret: string) => {
+		vi.stubEnv("BETTER_AUTH_SECRET", secret);
+		vi.resetModules();
+		return await import("@dokploy/server/lib/encryption");
+	};
+
+	it("still decrypts values written under the legacy secret", async () => {
+		// Encrypted while the install was still on the hardcoded default
+		const legacyEncrypted = encryptValue("KEY=legacy-value");
+
+		const migrated = await loadWithAuthSecret("a-real-auth-secret");
+		expect(migrated.decryptValue(legacyEncrypted)).toBe("KEY=legacy-value");
+	});
+
+	it("encrypts new values with the new secret, not the legacy one", async () => {
+		const migrated = await loadWithAuthSecret("a-real-auth-secret");
+		const encrypted = migrated.encryptValue("KEY=post-migration");
+
+		// The legacy-derived key alone cannot read it, proving the write used
+		// the migrated secret
+		expect(() => decryptValue(encrypted)).toThrow(/BETTER_AUTH_SECRET/);
+		expect(migrated.decryptValue(encrypted)).toBe("KEY=post-migration");
+	});
+});
+
 describe("dedicated ENCRYPTION_KEY", () => {
 	afterEach(() => {
 		vi.unstubAllEnvs();
