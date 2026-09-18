@@ -78,6 +78,46 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	return command;
 };
 
+// Custom wins over legacy command plus args when a script is present; legacy fields stay stored.
+export const buildCustomShellCommand = (
+	customCommand: string | null | undefined,
+	customShell: "sh" | "bash" | null | undefined,
+) => {
+	if (!customCommand?.trim()) {
+		return null;
+	}
+	return {
+		Command: [
+			customShell === "bash" ? "bash" : "sh",
+			"-c",
+			customCommand.trim(),
+		],
+	};
+};
+
+export const buildContainerCommand = (
+	application: Pick<
+		ApplicationNested,
+		"command" | "args" | "customCommand" | "customShell"
+	>,
+) => {
+	const { command, args, customCommand, customShell } = application;
+	return (
+		buildCustomShellCommand(
+			customCommand,
+			customShell as "sh" | "bash" | null | undefined,
+		) ?? {
+			...(command && {
+				Command: command.split(" "),
+			}),
+			...(args &&
+				args.length > 0 && {
+					Args: args,
+				}),
+		}
+	);
+};
+
 export const mechanizeDockerContainer = async (
 	rawApplication: ApplicationNested,
 ) => {
@@ -90,8 +130,6 @@ export const mechanizeDockerContainer = async (
 		memoryLimit,
 		memoryReservation,
 		cpuReservation,
-		command,
-		args,
 		ports,
 	} = application;
 
@@ -142,13 +180,7 @@ export const mechanizeDockerContainer = async (
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
-				...(command && {
-					Command: command.split(" "),
-				}),
-				...(args &&
-					args.length > 0 && {
-						Args: args,
-					}),
+				...buildContainerCommand(application),
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
