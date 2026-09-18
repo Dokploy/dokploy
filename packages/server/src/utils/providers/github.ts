@@ -3,7 +3,10 @@ import { paths } from "@dokploy/server/constants";
 import type { apiFindGithubBranches } from "@dokploy/server/db/schema";
 import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
-import { createAppAuth } from "@octokit/auth-app";
+import {
+	createAppAuth,
+	type InstallationAccessTokenAuthentication,
+} from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import { quote } from "shell-quote";
@@ -92,17 +95,21 @@ export const authGithub = (githubProvider: Github): Octokit => {
 	return octokit;
 };
 
-export const getGithubToken = async (
+const getGithubInstallationAuthentication = async (
 	octokit: ReturnType<typeof authGithub>,
-) => {
-	const installation = (await octokit.auth({
+) =>
+	(await octokit.auth({
 		type: "installation",
-	})) as {
-		token: string;
-	};
+	})) as InstallationAccessTokenAuthentication;
 
-	return installation.token;
-};
+export const getGithubToken = async (octokit: ReturnType<typeof authGithub>) =>
+	(await getGithubInstallationAuthentication(octokit)).token;
+
+// The token response lists what the installation actually holds, which lags
+// behind the app manifest until the account owner accepts new permissions.
+export const getGithubInstallationPermissions = async (
+	octokit: ReturnType<typeof authGithub>,
+) => (await getGithubInstallationAuthentication(octokit)).permissions ?? {};
 
 /**
  * Check if a GitHub user has write/admin permissions on a repository
@@ -145,6 +152,68 @@ export const checkUserRepositoryPermissions = async (
 			permission: null,
 		};
 	}
+};
+
+const PASSING_CONCLUSIONS = ["success", "neutral", "skipped"];
+
+type CheckSuiteSummary = {
+	status: string | null;
+	conclusion: string | null;
+	latest_check_runs_count: number;
+};
+
+export const areCheckSuitesPassing = (suites: CheckSuiteSummary[]) => {
+	// GitHub opens a suite for every installed app allowed to report checks,
+	// even when the app never reports anything, and those stay queued forever.
+	const reporting = suites.filter((suite) => suite.latest_check_runs_count > 0);
+
+	return (
+		reporting.length > 0 &&
+		reporting.every(
+			(suite) =>
+				suite.status === "completed" &&
+				PASSING_CONCLUSIONS.includes(suite.conclusion ?? ""),
+		)
+	);
+};
+
+export const listCheckSuites = async (
+	githubProvider: Github,
+	owner: string,
+	repo: string,
+	ref: string,
+) => {
+	const octokit = authGithub(githubProvider);
+	return await octokit.paginate(octokit.rest.checks.listSuitesForRef, {
+		owner,
+		repo,
+		ref,
+		per_page: 100,
+	});
+};
+
+export const getChangedFiles = async (
+	githubProvider: Github,
+	owner: string,
+	repo: string,
+	base: string,
+	head: string,
+) => {
+	const octokit = authGithub(githubProvider);
+	// The first page of the comparison lists at most 300 files.
+	const { data } = await octokit.rest.repos.compareCommits({
+		owner,
+		repo,
+		base,
+		head,
+	});
+
+	// A push payload reports a rename as one removed and one added path.
+	return (data.files ?? []).flatMap((file) =>
+		file.previous_filename
+			? [file.filename, file.previous_filename]
+			: [file.filename],
+	);
 };
 
 export const haveGithubRequirements = (githubProvider: Github) => {
