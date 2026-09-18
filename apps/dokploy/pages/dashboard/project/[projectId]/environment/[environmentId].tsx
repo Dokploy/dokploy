@@ -33,6 +33,7 @@ import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddImport } from "@/components/dashboard/project/add-import";
+import { AddObjectStorage } from "@/components/dashboard/project/add-object-storage";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
@@ -41,8 +42,10 @@ import { ProjectEnvironment } from "@/components/dashboard/projects/project-envi
 import {
 	LibsqlIcon,
 	MariadbIcon,
+	MinioIcon,
 	MongodbIcon,
 	MysqlIcon,
+	ObjectStorageProviderIcon,
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
@@ -123,13 +126,15 @@ export type Services = {
 		| "mongo"
 		| "redis"
 		| "compose"
-		| "libsql";
+		| "libsql"
+		| "objectstorage";
 	description?: string | null;
 	id: string;
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
 	lastDeployDate?: Date | null;
 	icon?: string | null;
+	provider?: string | null;
 };
 
 type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
@@ -275,11 +280,25 @@ export const extractServicesFromEnvironment = (
 			serverName: item?.server?.name || null,
 		})) || [];
 
+	const objectstorage: Services[] =
+		environment.objectstorage?.map((item) => ({
+			name: item.name,
+			type: "objectstorage",
+			id: item.objectStorageId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+			serverName: item?.server?.name || null,
+			provider: item.provider,
+		})) || [];
+
 	allServices.push(
 		...applications,
 		...compose,
 		...libsql,
 		...mysql,
+		...objectstorage,
 		...redis,
 		...mongo,
 		...postgres,
@@ -408,6 +427,7 @@ const EnvironmentPage = (
 		((currentEnvironment.mariadb?.length || 0) === 0 &&
 			(currentEnvironment.mongo?.length || 0) === 0 &&
 			(currentEnvironment.mysql?.length || 0) === 0 &&
+			(currentEnvironment.objectstorage?.length || 0) === 0 &&
 			(currentEnvironment.postgres?.length || 0) === 0 &&
 			(currentEnvironment.redis?.length || 0) === 0 &&
 			(currentEnvironment.applications?.length || 0) === 0 &&
@@ -426,6 +446,11 @@ const EnvironmentPage = (
 		{ value: "redis", label: "Redis", icon: RedisIcon },
 		{ value: "compose", label: "Compose", icon: CircuitBoard },
 		{ value: "libsql", label: "Libsql", icon: LibsqlIcon },
+		{
+			value: "objectstorage",
+			label: "Object Storage",
+			icon: MinioIcon,
+		},
 	];
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -519,6 +544,14 @@ const EnvironmentPage = (
 		deploy: api.libsql.deploy.useMutation(),
 	};
 
+	const objectstorageActions = {
+		start: api.objectstorage.start.useMutation(),
+		stop: api.objectstorage.stop.useMutation(),
+		move: api.objectstorage.move.useMutation(),
+		delete: api.objectstorage.remove.useMutation(),
+		deploy: api.objectstorage.deploy.useMutation(),
+	};
+
 	const handleBulkStart = async () => {
 		let success = 0;
 		setIsBulkActionLoading(true);
@@ -553,6 +586,11 @@ const EnvironmentPage = (
 						break;
 					case "libsql":
 						await libsqlActions.start.mutateAsync({ libsqlId: serviceId });
+						break;
+					case "objectstorage":
+						await objectstorageActions.start.mutateAsync({
+							objectStorageId: serviceId,
+						});
 						break;
 				}
 				success++;
@@ -603,6 +641,11 @@ const EnvironmentPage = (
 						break;
 					case "libsql":
 						await libsqlActions.stop.mutateAsync({ libsqlId: serviceId });
+						break;
+					case "objectstorage":
+						await objectstorageActions.stop.mutateAsync({
+							objectStorageId: serviceId,
+						});
 						break;
 				}
 				success++;
@@ -686,6 +729,12 @@ const EnvironmentPage = (
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
+					case "objectstorage":
+						await objectstorageActions.move.mutateAsync({
+							objectStorageId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
 				}
 				await utils.environment.one.invalidate({
 					environmentId,
@@ -760,6 +809,11 @@ const EnvironmentPage = (
 							libsqlId: serviceId,
 						});
 						break;
+					case "objectstorage":
+						await objectstorageActions.delete.mutateAsync({
+							objectStorageId: serviceId,
+						});
+						break;
 				}
 				await utils.environment.one.invalidate({
 					environmentId,
@@ -831,6 +885,11 @@ const EnvironmentPage = (
 							libsqlId: serviceId,
 						});
 						break;
+					case "objectstorage":
+						await objectstorageActions.deploy.mutateAsync({
+							objectStorageId: serviceId,
+						});
+						break;
 				}
 				success++;
 			} catch (error) {
@@ -872,6 +931,10 @@ const EnvironmentPage = (
 				return redisActions;
 			case "mongo":
 				return mongoActions;
+			case "libsql":
+				return libsqlActions;
+			case "objectstorage":
+				return objectstorageActions;
 			default:
 				return null;
 		}
@@ -893,6 +956,10 @@ const EnvironmentPage = (
 				return "redisId";
 			case "mongo":
 				return "mongoId";
+			case "libsql":
+				return "libsqlId";
+			case "objectstorage":
+				return "objectStorageId";
 			default:
 				return null;
 		}
@@ -1083,6 +1150,10 @@ const EnvironmentPage = (
 													environmentId={environmentId}
 												/>
 												<AddDatabase
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
+												<AddObjectStorage
 													projectName={projectData?.name}
 													environmentId={environmentId}
 												/>
@@ -1715,6 +1786,12 @@ const EnvironmentPage = (
 																						))}
 																					{service.type === "libsql" && (
 																						<LibsqlIcon className="h-6 w-6" />
+																					)}
+																					{service.type === "objectstorage" && (
+																						<ObjectStorageProviderIcon
+																							provider={service.provider}
+																							className="h-7 w-7"
+																						/>
 																					)}
 																				</span>
 																			</div>

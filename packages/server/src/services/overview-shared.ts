@@ -8,7 +8,8 @@ export type OverviewServiceType =
 	| "mongo"
 	| "redis"
 	| "compose"
-	| "libsql";
+	| "libsql"
+	| "objectstorage";
 
 export interface OverviewService {
 	id: string;
@@ -73,6 +74,7 @@ export const DB_ENGINE_ICON_TYPES = new Set([
 	"mongo",
 	"redis",
 	"libsql",
+	"objectstorage",
 ]);
 
 export const getServiceOverviewIcon = (service: {

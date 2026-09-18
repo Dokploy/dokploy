@@ -61,7 +61,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		if (!selectedVariant) return;
 
 		const updatedEnvVariables = [...selectedVariant.envVariables];
-		// @ts-ignore
+		// @ts-expect-error
 		updatedEnvVariables[index] = {
 			...updatedEnvVariables[index],
 			[field]: value,
@@ -104,7 +104,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		if (!selectedVariant) return;
 
 		const updatedDomains = [...selectedVariant.domains];
-		// @ts-ignore
+		// @ts-expect-error
 		updatedDomains[index] = {
 			...updatedDomains[index],
 			[field]: value,

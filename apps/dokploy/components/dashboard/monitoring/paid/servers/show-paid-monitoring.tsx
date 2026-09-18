@@ -109,9 +109,9 @@ export const ShowPaidMonitoring = ({
 			uptime: metric.uptime,
 		}));
 
-		// @ts-ignore
+		// @ts-expect-error
 		setHistoricalData(formattedData);
-		// @ts-ignore
+		// @ts-expect-error
 		setMetrics(formattedData[formattedData.length - 1] || {});
 	}, [data]);
 

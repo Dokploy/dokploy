@@ -1,0 +1,1 @@
+ALTER TYPE "public"."objectStorageProvider" ADD VALUE 'rustfs';

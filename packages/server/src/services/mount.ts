@@ -54,6 +54,9 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 				...(input.serviceType === "redis" && {
 					redisId: serviceId,
 				}),
+				...(input.serviceType === "objectstorage" && {
+					objectStorageId: serviceId,
+				}),
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -128,6 +131,7 @@ export const findMountById = async (mountId: string) => {
 			mariadb: serviceWith,
 			mongo: serviceWith,
 			mysql: serviceWith,
+			objectstorage: serviceWith,
 			postgres: serviceWith,
 			redis: serviceWith,
 		},
@@ -167,6 +171,9 @@ export const findMountOrganizationId = async (mountId: string) => {
 	}
 	if (mount.redis) {
 		return mount.redis.environment.project.organizationId;
+	}
+	if (mount.objectstorage) {
+		return mount.objectstorage.environment.project.organizationId;
 	}
 
 	return null;
@@ -229,6 +236,9 @@ export const findMountsByApplicationId = async (
 			break;
 		case "redis":
 			sqlChunks.push(eq(mounts.redisId, serviceId));
+			break;
+		case "objectstorage":
+			sqlChunks.push(eq(mounts.objectStorageId, serviceId));
 			break;
 		case "compose":
 			sqlChunks.push(eq(mounts.composeId, serviceId));
@@ -343,6 +353,10 @@ export const getBaseFilesPath = async (mountId: string) => {
 		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.libsql.appName;
+	} else if (mount.serviceType === "objectstorage" && mount.objectstorage) {
+		const { APPLICATIONS_PATH } = paths(!!mount.objectstorage.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.objectstorage.appName;
 	}
 	directoryPath = path.join(absoluteBasePath, appName, "files");
 
@@ -374,6 +388,9 @@ export const getServerId = async (mount: MountNested) => {
 	}
 	if (mount.serviceType === "libsql" && mount?.libsql?.serverId) {
 		return mount.libsql.serverId;
+	}
+	if (mount.serviceType === "objectstorage" && mount?.objectstorage?.serverId) {
+		return mount.objectstorage.serverId;
 	}
 
 	return null;

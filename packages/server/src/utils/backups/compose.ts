@@ -68,7 +68,7 @@ export const runComposeBackup = async (
 			projectName: project.name,
 			databaseType: getDatabaseType(databaseType),
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,

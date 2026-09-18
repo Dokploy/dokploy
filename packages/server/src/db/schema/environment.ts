@@ -8,6 +8,7 @@ import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
+import { objectstorage } from "./objectstorage";
 import { postgres } from "./postgres";
 import { projects } from "./project";
 import { redis } from "./redis";
@@ -43,6 +44,7 @@ export const environmentRelations = relations(
 		mariadb: many(mariadb),
 		mongo: many(mongo),
 		mysql: many(mysql),
+		objectstorage: many(objectstorage),
 		postgres: many(postgres),
 		redis: many(redis),
 	}),
