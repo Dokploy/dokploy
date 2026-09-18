@@ -94,9 +94,11 @@ const processSubscription = async (
 	);
 	const plan = planFromPriceIds(priceIds);
 
-	// Claim the reminder before sending so concurrent replicas don't double-send.
+	// Marked before sending so a crash mid-send cannot resend on the next run.
+	// Stripe merges metadata, so only the claimed key travels; spreading the
+	// snapshot read at list time would rewrite concurrent changes.
 	await stripe.subscriptions.update(subscription.id, {
-		metadata: { ...subscription.metadata, [threshold.metadataKey]: "sent" },
+		metadata: { [threshold.metadataKey]: "sent" },
 	});
 
 	try {
@@ -109,7 +111,7 @@ const processSubscription = async (
 		});
 	} catch (error) {
 		await stripe.subscriptions.update(subscription.id, {
-			metadata: { ...subscription.metadata, [threshold.metadataKey]: "" },
+			metadata: { [threshold.metadataKey]: "" },
 		});
 		throw error;
 	}
