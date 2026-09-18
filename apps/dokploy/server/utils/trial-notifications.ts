@@ -117,7 +117,7 @@ const processSubscription = async (
 	return true;
 };
 
-export const processTrialExpirations = async () => {
+const processTrialExpirations = async () => {
 	const stripe = getStripeClient();
 	let sent = 0;
 	let scanned = 0;

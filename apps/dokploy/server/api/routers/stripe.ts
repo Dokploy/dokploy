@@ -28,34 +28,12 @@ import {
 	STARTUP_PRODUCT_ID,
 	WEBSITE_URL,
 } from "@/server/utils/stripe";
-import { processTrialExpirations } from "@/server/utils/trial-notifications";
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "../trpc";
-
-// These reach every trialing customer on the platform, so an org admin is not
-// enough; only the Dokploy Cloud root account may run them.
-const assertRootAccess = (ctx: {
-	user: { id: string };
-	session?: { impersonatedBy?: string | null } | null;
-}) => {
-	if (!IS_CLOUD) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "This feature is only available in Dokploy Cloud",
-		});
-	}
-	const rootId = process.env.USER_ADMIN_ID;
-	if (
-		!rootId ||
-		(ctx.user.id !== rootId && ctx.session?.impersonatedBy !== rootId)
-	) {
-		throw new TRPCError({ code: "FORBIDDEN", message: "Root access required" });
-	}
-};
 
 export const stripeRouter = createTRPCRouter({
 	/** Returns the current billing plan for the user's organization. Used to gate features like chat (Startup only). */
@@ -443,12 +421,6 @@ export const stripeRouter = createTRPCRouter({
 			});
 			return { ok: true };
 		}),
-
-	runTrialExpirationJob: adminProcedure.mutation(async ({ ctx }) => {
-		assertRootAccess(ctx);
-
-		return processTrialExpirations();
-	}),
 
 	getInvoices: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
