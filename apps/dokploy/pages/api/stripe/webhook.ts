@@ -176,7 +176,10 @@ export default async function handler(
 				break;
 			}
 
-			if (newSubscription.status === "active") {
+			if (
+				newSubscription.status === "active" ||
+				newSubscription.status === "trialing"
+			) {
 				const serversQuantity = getSubscriptionServersQuantity(
 					newSubscription?.items?.data ?? [],
 				);
@@ -209,15 +212,26 @@ export default async function handler(
 		case "invoice.payment_succeeded": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const subscription = await stripe.subscriptions.retrieve(
-				newInvoice.subscription as string,
-			);
+			const subscriptionId = getInvoiceSubscriptionId(newInvoice);
+			if (!subscriptionId) {
+				break;
+			}
+
+			const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
 			if (subscription.status !== "active") {
 				console.log(
 					`Skipping invoice.payment_succeeded for subscription ${subscription.id} with status ${subscription.status}`,
 				);
 				break;
+			}
+
+			const admin = await findUserByStripeCustomerId(
+				subscription.customer as string,
+			);
+
+			if (!admin) {
+				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
 			const serversQuantity = getSubscriptionServersQuantity(
@@ -233,18 +247,10 @@ export default async function handler(
 					),
 				);
 
-			const admin = await findUserByStripeCustomerId(
-				subscription.customer as string,
-			);
-
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
 			if (admin.isEnterpriseCloud) {
 				break;
 			}
-			const newServersQuantity = admin.serversQuantity;
-			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
+			await updateServersBasedOnQuantity(admin.id, serversQuantity);
 
 			if (admin.sendInvoiceNotifications) {
 				await sendInvoiceEmail(newInvoice, admin);
@@ -255,9 +261,12 @@ export default async function handler(
 		case "invoice.payment_failed": {
 			const newInvoice = event.data.object as Stripe.Invoice;
 
-			const subscription = await stripe.subscriptions.retrieve(
-				newInvoice.subscription as string,
-			);
+			const subscriptionId = getInvoiceSubscriptionId(newInvoice);
+			if (!subscriptionId) {
+				break;
+			}
+
+			const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 			if (subscription.status !== "active") {
 				const admin = await findUserByStripeCustomerId(
 					newInvoice.customer as string,
@@ -349,6 +358,12 @@ const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
 		where: eq(user.stripeCustomerId, stripeCustomerId),
 	});
 	return userResult;
+};
+
+const getInvoiceSubscriptionId = (invoice: Stripe.Invoice): string | null => {
+	const subscription = invoice.subscription;
+	if (typeof subscription === "string") return subscription;
+	return subscription?.id ?? null;
 };
 
 const activateServer = async (serverId: string) => {
