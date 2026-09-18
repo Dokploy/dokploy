@@ -65,6 +65,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+					"X-Pplx-Integration": "dokploy",
 				},
 			});
 		case "mistral":
