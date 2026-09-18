@@ -156,6 +156,8 @@ export const runCommand = async (scheduleId: string) => {
 					["-c", "./script.sh"],
 					async (data) => {
 						if (writeStream.writable) {
+							writeStream.write(data);
+
 							// we need to extract the PID and Schedule ID from the data
 							const pid = data?.match(/PID: (\d+)/)?.[1];
 
@@ -164,7 +166,6 @@ export const runCommand = async (scheduleId: string) => {
 									pid,
 								});
 							}
-							writeStream.write(data);
 						}
 					},
 					{
