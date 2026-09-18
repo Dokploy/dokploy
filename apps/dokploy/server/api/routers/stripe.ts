@@ -28,10 +28,7 @@ import {
 	STARTUP_PRODUCT_ID,
 	WEBSITE_URL,
 } from "@/server/utils/stripe";
-import {
-	processTrialExpirations,
-	sendTrialExpiringEmail,
-} from "@/server/utils/trial-notifications";
+import { processTrialExpirations } from "@/server/utils/trial-notifications";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -445,30 +442,6 @@ export const stripeRouter = createTRPCRouter({
 				sendInvoiceNotifications: input.enabled,
 			});
 			return { ok: true };
-		}),
-
-	sendTestTrialEmail: adminProcedure
-		.input(z.object({ daysRemaining: z.union([z.literal(1), z.literal(3)]) }))
-		.mutation(async ({ ctx, input }) => {
-			assertRootAccess(ctx);
-
-			const owner = await findUserById(ctx.user.ownerId);
-			const billingStatus = await getBillingStatus(owner.id);
-
-			await sendTrialExpiringEmail({
-				email: ctx.user.email,
-				firstName: owner.firstName,
-				planName: billingStatus.plan
-					? billingStatus.plan.charAt(0).toUpperCase() +
-						billingStatus.plan.slice(1)
-					: "Hobby",
-				daysRemaining: input.daysRemaining,
-				trialEndsAt:
-					billingStatus.trialEndsAt ??
-					new Date(Date.now() + input.daysRemaining * 24 * 60 * 60 * 1000),
-			});
-
-			return { sentTo: ctx.user.email };
 		}),
 
 	runTrialExpirationJob: adminProcedure.mutation(async ({ ctx }) => {

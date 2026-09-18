@@ -25,7 +25,7 @@ const PLAN_LABELS: Record<string, string> = {
 const daysUntil = (timestamp: number) =>
 	Math.ceil((timestamp * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
 
-export const sendTrialExpiringEmail = async ({
+const sendTrialExpiringEmail = async ({
 	email,
 	firstName,
 	planName,
