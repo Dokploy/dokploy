@@ -33,6 +33,7 @@ export const findPreviewDeploymentById = async (
 				columns: {
 					applicationId: true,
 					serverId: true,
+					buildServerId: true,
 				},
 			},
 		},
