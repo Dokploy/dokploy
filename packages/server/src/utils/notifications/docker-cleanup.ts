@@ -19,12 +19,33 @@ import {
 	sendTelegramNotification,
 } from "./utils";
 
+const escapeHtml = (value: string) =>
+	value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&#39;");
+
+const escapeMarkdown = (value: string) =>
+	value.replace(/[\\`*_{}[\]()<>#+\-.!|~]/g, "\\$&");
+
+const escapeSlackMrkdwn = (value: string) =>
+	value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replace(/[\\`*_~]/g, "\\$&");
+
 export const sendDockerCleanupNotifications = async (
 	organizationId: string,
 	message = "Docker cleanup for dokploy",
 ) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
+	const markdownMessage = escapeMarkdown(message);
+	const slackMessage = escapeSlackMrkdwn(message);
+	const telegramMessage = escapeHtml(message);
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.dockerCleanup, true),
@@ -68,19 +89,11 @@ export const sendDockerCleanupNotifications = async (
 				).catch();
 
 				if (email) {
-					await sendEmailNotification(
-						email,
-						"Docker cleanup for dokploy",
-						template,
-					);
+					await sendEmailNotification(email, message, template);
 				}
 
 				if (resend) {
-					await sendResendNotification(
-						resend,
-						"Docker cleanup for dokploy",
-						template,
-					);
+					await sendResendNotification(resend, message, template);
 				}
 			}
 
@@ -109,7 +122,7 @@ export const sendDockerCleanupNotifications = async (
 						},
 						{
 							name: decorate("`📜`", "Message"),
-							value: `\`\`\`${message}\`\`\``,
+							value: `\`\`\`${markdownMessage}\`\`\``,
 						},
 					],
 					timestamp: date.toISOString(),
@@ -143,7 +156,7 @@ export const sendDockerCleanupNotifications = async (
 			if (telegram) {
 				await sendTelegramNotification(
 					telegram,
-					`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+					`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${telegramMessage}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 				);
 			}
 
@@ -158,7 +171,7 @@ export const sendDockerCleanupNotifications = async (
 							fields: [
 								{
 									title: "Message",
-									value: message,
+									value: slackMessage,
 								},
 								{
 									title: "Time",
@@ -173,7 +186,7 @@ export const sendDockerCleanupNotifications = async (
 
 			if (mattermost) {
 				await sendMattermostNotification(mattermost, {
-					text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					text: `**✅ Docker Cleanup**\n\n**Message:** ${markdownMessage}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -239,7 +252,7 @@ export const sendDockerCleanupNotifications = async (
 												},
 												{
 													tag: "markdown",
-													content: `**Cleanup Details:**\n${message}`,
+													content: `**Cleanup Details:**\n${markdownMessage}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
