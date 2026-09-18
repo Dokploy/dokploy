@@ -33,6 +33,21 @@ import { assertVolumeBackupLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
+const cancelVolumeBackupJob = async (volumeBackup: {
+	volumeBackupId: string;
+	cronExpression: string;
+}) => {
+	if (IS_CLOUD) {
+		await removeJob({
+			cronSchedule: volumeBackup.cronExpression,
+			volumeBackupId: volumeBackup.volumeBackupId,
+			type: "volume-backup",
+		});
+	} else {
+		await removeVolumeBackupJob(volumeBackup.volumeBackupId);
+	}
+};
+
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
 		.input(
@@ -175,16 +190,10 @@ export const volumeBackupsRouter = createTRPCRouter({
 					volumeBackup: ["delete"],
 				});
 			}
-			const result = await removeVolumeBackup(input.volumeBackupId);
-			if (IS_CLOUD) {
-				await removeJob({
-					cronSchedule: vb.cronExpression,
-					volumeBackupId: vb.volumeBackupId,
-					type: "volume-backup",
-				});
-			} else {
-				removeVolumeBackupJob(vb.volumeBackupId);
+			if (vb.enabled) {
+				await cancelVolumeBackupJob(vb);
 			}
+			const result = await removeVolumeBackup(input.volumeBackupId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "volumeBackup",
@@ -222,26 +231,16 @@ export const volumeBackupsRouter = createTRPCRouter({
 				});
 			}
 
-			if (IS_CLOUD) {
-				if (updatedVolumeBackup.enabled) {
-					await updateJob({
-						cronSchedule: updatedVolumeBackup.cronExpression,
-						volumeBackupId: updatedVolumeBackup.volumeBackupId,
-						type: "volume-backup",
-					});
-				} else {
-					await removeJob({
-						cronSchedule: updatedVolumeBackup.cronExpression,
-						volumeBackupId: updatedVolumeBackup.volumeBackupId,
-						type: "volume-backup",
-					});
-				}
+			if (IS_CLOUD && updatedVolumeBackup.enabled) {
+				await updateJob({
+					cronSchedule: updatedVolumeBackup.cronExpression,
+					volumeBackupId: updatedVolumeBackup.volumeBackupId,
+					type: "volume-backup",
+				});
 			} else {
-				if (updatedVolumeBackup?.enabled) {
-					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
-					scheduleVolumeBackup(updatedVolumeBackup.volumeBackupId);
-				} else {
-					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
+				await cancelVolumeBackupJob(updatedVolumeBackup);
+				if (updatedVolumeBackup.enabled) {
+					await scheduleVolumeBackup(updatedVolumeBackup.volumeBackupId);
 				}
 			}
 			await audit(ctx, {
