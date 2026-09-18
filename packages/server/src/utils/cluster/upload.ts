@@ -8,6 +8,79 @@ import { createRollback } from "@dokploy/server/services/rollbacks";
 import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 
+export type RegistryPushTarget = {
+	kind: "cluster" | "build" | "rollback";
+	registry: Registry;
+	imageName: string;
+	tag: string;
+};
+
+export const collectRegistryPushTargets = async (
+	application: ApplicationNested,
+): Promise<RegistryPushTarget[]> => {
+	const registry = application.registry;
+	const buildRegistry = application.buildRegistry;
+	const rollbackRegistry = application.rollbackRegistry;
+	const { appName } = application;
+	const imageName =
+		application.sourceType === "docker"
+			? application.dockerImage || ""
+			: `${appName}:latest`;
+
+	const targets: RegistryPushTarget[] = [];
+
+	if (registry) {
+		const r = await findRegistryByIdWithCredentials(registry.registryId);
+		const tag = getRegistryTag(r, imageName);
+		if (tag) {
+			targets.push({ kind: "cluster", registry: r, imageName, tag });
+		}
+	}
+	if (buildRegistry) {
+		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
+		const tag = getRegistryTag(r, imageName);
+		if (tag) {
+			targets.push({ kind: "build", registry: r, imageName, tag });
+		}
+	}
+	if (rollbackRegistry && application.rollbackActive) {
+		const deployment = await findAllDeploymentsByApplicationId(
+			application.applicationId,
+		);
+		if (!deployment || !deployment[0]) {
+			throw new Error("Deployment not found");
+		}
+		const rollback = await createRollback({
+			appName: appName,
+			deploymentId: deployment[0].deploymentId,
+		});
+		const r = await findRegistryByIdWithCredentials(
+			rollbackRegistry.registryId,
+		);
+		const tag = getRegistryTag(r, rollback?.image || "");
+		if (tag) {
+			targets.push({ kind: "rollback", registry: r, imageName, tag });
+		}
+	}
+
+	return targets;
+};
+
+export const registryLoginCommands = (
+	targets: RegistryPushTarget[],
+): string => {
+	return targets
+		.map((target) => {
+			const loginCmd = safeDockerLoginCommand(
+				target.registry.registryUrl,
+				target.registry.username,
+				target.registry.password,
+			);
+			return `${loginCmd} || { echo "❌ DockerHub Failed" ; exit 1; }`;
+		})
+		.join("\n");
+};
+
 export const uploadImageRemoteCommand = async (
 	application: ApplicationNested,
 ) => {
@@ -19,56 +92,34 @@ export const uploadImageRemoteCommand = async (
 		throw new Error("No registry found");
 	}
 
-	const { appName } = application;
-	const imageName =
-		application.sourceType === "docker"
-			? application.dockerImage || ""
-			: `${appName}:latest`;
-
+	const targets = await collectRegistryPushTargets(application);
 	const commands: string[] = [];
-	if (registry) {
-		const r = await findRegistryByIdWithCredentials(registry.registryId);
-		const registryTag = getRegistryTag(r, imageName);
-		if (registryTag) {
-			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
-			commands.push(getRegistryCommands(r, imageName, registryTag));
-		}
-	}
-	if (buildRegistry) {
-		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
-		const buildRegistryTag = getRegistryTag(r, imageName);
-		if (buildRegistryTag) {
-			commands.push(`echo "🔑 [Enabled Build Registry]"`);
-			commands.push(getRegistryCommands(r, imageName, buildRegistryTag));
-			commands.push(
-				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
-			);
-			commands.push(
-				`echo "📊 Check the Logs tab to see when the container starts running."`,
-			);
-		}
-	}
-
-	if (rollbackRegistry && application.rollbackActive) {
-		const deployment = await findAllDeploymentsByApplicationId(
-			application.applicationId,
-		);
-		if (!deployment || !deployment[0]) {
-			throw new Error("Deployment not found");
-		}
-		const deploymentId = deployment[0].deploymentId;
-		const rollback = await createRollback({
-			appName: appName,
-			deploymentId: deploymentId,
-		});
-
-		const r = await findRegistryByIdWithCredentials(
-			rollbackRegistry.registryId,
-		);
-		const rollbackRegistryTag = getRegistryTag(r, rollback?.image || "");
-		if (rollbackRegistryTag) {
-			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
-			commands.push(getRegistryCommands(r, imageName, rollbackRegistryTag));
+	for (const target of targets) {
+		switch (target.kind) {
+			case "cluster":
+				commands.push(`echo "📦 [Enabled Registry Swarm]"`);
+				commands.push(
+					getRegistryCommands(target.registry, target.imageName, target.tag),
+				);
+				break;
+			case "build":
+				commands.push(`echo "🔑 [Enabled Build Registry]"`);
+				commands.push(
+					getRegistryCommands(target.registry, target.imageName, target.tag),
+				);
+				commands.push(
+					`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
+				);
+				commands.push(
+					`echo "📊 Check the Logs tab to see when the container starts running."`,
+				);
+				break;
+			case "rollback":
+				commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
+				commands.push(
+					getRegistryCommands(target.registry, target.imageName, target.tag),
+				);
+				break;
 		}
 	}
 	try {

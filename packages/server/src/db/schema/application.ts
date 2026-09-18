@@ -76,6 +76,13 @@ export const buildType = pgEnum("buildType", [
 	"railpack",
 ]);
 
+export const BUILD_ARCHITECTURES = ["host", "amd64", "arm64", "multi"] as const;
+export type BuildArchitecture = (typeof BUILD_ARCHITECTURES)[number];
+export const buildArchitecture = pgEnum(
+	"buildArchitecture",
+	BUILD_ARCHITECTURES,
+);
+
 export const applications = pgTable("application", {
 	applicationId: text("applicationId")
 		.notNull()
@@ -189,6 +196,10 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	buildArchitecture: buildArchitecture("buildArchitecture")
+		.notNull()
+		.default("host"),
+	buildxBuilder: text("buildxBuilder"),
 	railpackVersion: text("railpackVersion").default("0.15.4"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
@@ -352,6 +363,8 @@ const createSchema = createInsertSchema(applications, {
 		"static",
 		"railpack",
 	]),
+	buildArchitecture: z.enum(BUILD_ARCHITECTURES).optional(),
+	buildxBuilder: z.string().nullable().optional(),
 	railpackVersion: z.string().optional(),
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
