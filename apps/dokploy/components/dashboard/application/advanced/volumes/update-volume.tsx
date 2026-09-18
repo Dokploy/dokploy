@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { ComposeFileMountHint } from "./compose-file-mount-hint";
 
 const mountSchema = z.object({
 	mountPath: z.string().min(1, "Mount path required"),
@@ -289,6 +290,12 @@ PORT=3000
 											</FormItem>
 										)}
 									/>
+									{serviceType === "compose" && data?.composeId && (
+										<ComposeFileMountHint
+											composeId={data.composeId}
+											fileName={data.filePath ?? ""}
+										/>
+									)}
 								</>
 							)}
 							{serviceType !== "compose" && (
