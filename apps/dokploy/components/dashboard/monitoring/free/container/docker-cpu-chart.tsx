@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useId } from "react";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -22,6 +23,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export const DockerCpuChart = ({ accumulativeData }: Props) => {
+	const fillId = useId().replace(/:/g, "");
 	const transformedData = accumulativeData.map((item, index) => ({
 		name: `Point ${index + 1}`,
 		time: item.time,
@@ -35,7 +37,7 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
 			>
 				<defs>
-					<linearGradient id="fillCpu" x1="0" y1="0" x2="0" y2="1">
+					<linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
 						<stop
 							offset="5%"
 							stopColor="var(--color-usage)"
@@ -72,7 +74,7 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 					isAnimationActive={false}
 					dataKey="usage"
 					stroke="var(--color-usage)"
-					fill="url(#fillCpu)"
+					fill={`url(#${fillId})`}
 					strokeWidth={2}
 				/>
 				<ChartLegend content={<ChartLegendContent />} />
