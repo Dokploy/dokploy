@@ -1,20 +1,41 @@
 import { IS_CLOUD } from "@dokploy/server";
-import { db } from "@dokploy/server/db";
+import { db, dbUrl } from "@dokploy/server/db";
 import TrialExpiringEmail from "@dokploy/server/emails/emails/trial-expiring";
 import { sendEmail } from "@dokploy/server/verification/send-verification-email";
 import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
+import postgres from "postgres";
 import type Stripe from "stripe";
 import { user } from "@/server/db/schema";
 import { getStripeClient, planFromPriceIds } from "@/server/utils/billing";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 
 const REMINDER_THRESHOLDS = [
-	{ days: 3, metadataKey: "trialReminder3Sent" },
 	{ days: 1, metadataKey: "trialReminder1Sent" },
 ] as const;
+
+// Cloud runs several replicas and node-schedule fires on each one, so without
+// this every trial user would get one email per replica. Advisory locks live
+// in the connection rather than the schema, so no migration is needed.
+const ADVISORY_LOCK_KEY = 4820260918;
+
+const withAdvisoryLock = async <T>(run: () => Promise<T>) => {
+	const sql = postgres(dbUrl, { max: 1 });
+	try {
+		const [row] =
+			await sql`select pg_try_advisory_lock(${ADVISORY_LOCK_KEY}) as locked`;
+		if (!row?.locked) return null;
+		try {
+			return await run();
+		} finally {
+			await sql`select pg_advisory_unlock(${ADVISORY_LOCK_KEY})`;
+		}
+	} finally {
+		await sql.end({ timeout: 5 });
+	}
+};
 
 const PLAN_LABELS: Record<string, string> = {
 	hobby: "Hobby",
@@ -148,7 +169,14 @@ export const initTrialNotificationsCronJob = () => {
 
 	scheduleJob("trial-expiration-reminders", "0 14 * * *", async () => {
 		try {
-			await processTrialExpirations();
+			const result = await withAdvisoryLock(processTrialExpirations);
+			if (!result) {
+				console.log("Trial reminders: another replica holds the lock");
+				return;
+			}
+			console.log(
+				`Trial reminders: scanned ${result.scanned}, sent ${result.sent}`,
+			);
 		} catch (error) {
 			console.error(
 				"Trial reminder job failed:",
