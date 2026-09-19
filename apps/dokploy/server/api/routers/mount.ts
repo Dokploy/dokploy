@@ -12,12 +12,14 @@ import {
 	findPostgresById,
 	findRedisById,
 	getServiceContainer,
+	isDangerousBindMountPath,
 	updateMount,
 } from "@dokploy/server";
 import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
+	isPrivilegedOrgRole,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -73,6 +75,23 @@ async function getServiceOrganizationId(
 	}
 }
 
+async function assertSafeBindMountPath(
+	ctx: { session: { userId: string; activeOrganizationId: string } },
+	type: string | undefined,
+	hostPath: string | null | undefined,
+) {
+	if (type !== "bind" || !hostPath) return;
+	if (!isDangerousBindMountPath(hostPath)) return;
+
+	if (!(await isPrivilegedOrgRole(ctx.session))) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"This host path is reserved and can't be used in a bind mount. Only an organization owner or admin can do that.",
+		});
+	}
+}
+
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMount)
@@ -80,6 +99,7 @@ export const mountRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.serviceId, {
 				volume: ["create"],
 			});
+			await assertSafeBindMountPath(ctx, input.type, input.hostPath);
 			const mount = await createMount(input);
 			await audit(ctx, {
 				action: "create",
@@ -153,6 +173,11 @@ export const mountRouter = createTRPCRouter({
 					volume: ["create"],
 				});
 			}
+			await assertSafeBindMountPath(
+				ctx,
+				input.type ?? mount.type,
+				input.hostPath ?? mount.hostPath,
+			);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "mount",
