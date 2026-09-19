@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Loader2, MoreHorizontal, Users } from "lucide-react";
+import { Loader2, MoreHorizontal, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -42,6 +42,17 @@ export const ShowUsers = () => {
 
 	const utils = api.useUtils();
 	const { data: session } = api.user.session.useQuery();
+	const { data: activeOrg } = authClient.useActiveOrganization();
+	const { mutateAsync: cleanExpired, isPending: isCleaning } =
+		api.organization.cleanExpiredInvitations.useMutation({
+			onSuccess: () => {
+				toast.success("Expired invitations cleaned successfully");
+				utils.user.all.invalidate();
+			},
+			onError: (err) => {
+				toast.error(err.message);
+			},
+		});
 
 	const FREE_ROLES = ["owner", "admin", "member"];
 	const membersWithCustomRoles = data?.filter(
@@ -54,7 +65,7 @@ export const ShowUsers = () => {
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md ">
-					<CardHeader className="">
+					<CardHeader className="flex flex-row justify-between items-start">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Users className="size-6 text-muted-foreground self-center" />
 							Users
@@ -62,6 +73,20 @@ export const ShowUsers = () => {
 						<CardDescription>
 							Add your users to your Dokploy account.
 						</CardDescription>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isCleaning}
+							onClick={async () => {
+								// Only run the mutation if an active organization ID exists
+								if (activeOrg?.id) {
+									await cleanExpired({ organizationId: activeOrg.id });
+								}
+							}}
+						>
+							<Trash2 className="mr-2 h-4 w-4" />
+							Clean Expired
+						</Button>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (

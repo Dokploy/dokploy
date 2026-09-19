@@ -5,7 +5,7 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -22,6 +22,29 @@ import {
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 export const organizationRouter = createTRPCRouter({
+	cleanExpiredInvitations: protectedProcedure
+		.input(z.object({ organizationId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			// 1. Verify the user is an admin or owner
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the organization owner or admin can do this.",
+				});
+			}
+
+			// 2. Delete expired invitations using Drizzle ORM
+			await db
+				.delete(invitation)
+				.where(
+					and(
+						eq(invitation.organizationId, input.organizationId),
+						lt(invitation.expiresAt, new Date()),
+					),
+				);
+
+			return true;
+		}),
 	create: protectedProcedure
 		.input(
 			z.object({
@@ -36,7 +59,6 @@ export const organizationRouter = createTRPCRouter({
 					message: "Only the organization owner can create an organization",
 				});
 			}
-
 			if (IS_CLOUD) {
 				await assertOrganizationLimit(ctx.user.id);
 			}
