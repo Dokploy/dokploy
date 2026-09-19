@@ -343,6 +343,24 @@ describe("GitHub app webhook auto-deploy", () => {
 		});
 	});
 
+	it("keeps tag name when head_commit is absent", async () => {
+		const req = createTagRequest("go-3");
+		req.body.head_commit = null;
+		req.body.after = "tag-object-sha";
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ applicationId: "go-app", triggerTags: ["go-*"] },
+		]);
+		mocks.composeFindMany.mockResolvedValue([
+			{ composeId: "go-compose", triggerTags: ["go-*"] },
+		]);
+		await handler(req, createResponse());
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(2);
+		for (const [, job] of mocks.queueAdd.mock.calls) {
+			expect(job.titleLog).toBe("Tag created: go-3");
+			expect(job.descriptionLog).toBe("Tag: go-3");
+		}
+	});
+
 	it("does not deploy deleted tags", async () => {
 		const req = createTagRequest("all");
 		req.body.deleted = true;

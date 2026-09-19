@@ -35,6 +35,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { getDeploymentCommitDescription } from "../utils/deployment-description";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
@@ -360,7 +361,10 @@ export const deployCompose = async ({
 			if (commitInfo) {
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
-					description: `Commit: ${commitInfo.hash}`,
+					description: getDeploymentCommitDescription(
+						descriptionLog,
+						commitInfo.hash,
+					),
 				});
 			}
 		}

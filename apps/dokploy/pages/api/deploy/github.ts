@@ -121,7 +121,7 @@ export default async function handler(
 			const repository = githubBody?.repository?.name;
 			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
-			const deploymentHash = extractHash(req.headers, githubBody);
+			const deploymentDescription = `Tag: ${tagName}`;
 
 			// Find applications configured to deploy on tag
 			const apps = await db.query.applications.findMany({
@@ -142,7 +142,7 @@ export default async function handler(
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
-					descriptionLog: `Hash: ${deploymentHash}`,
+					descriptionLog: deploymentDescription,
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
@@ -186,7 +186,7 @@ export default async function handler(
 					titleLog: deploymentTitle,
 					type: "deploy",
 					applicationType: "compose",
-					descriptionLog: `Hash: ${deploymentHash}`,
+					descriptionLog: deploymentDescription,
 					server: !!composeApp.serverId,
 				};
 
