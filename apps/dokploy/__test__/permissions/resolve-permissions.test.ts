@@ -139,6 +139,12 @@ describe("free-tier resources for member", () => {
 		expect(perms.docker.read).toBe(false);
 	});
 
+	it("member cannot browse service container files by default", async () => {
+		memberToReturn = mockMemberData("member");
+		const perms = await resolvePermissions(ctx);
+		expect(perms.containerFilesystem.read).toBe(false);
+	});
+
 	it("member gets docker.read=true with canAccessToDocker", async () => {
 		memberToReturn = mockMemberData("member", { canAccessToDocker: true });
 		const perms = await resolvePermissions(ctx);
@@ -174,6 +180,7 @@ describe("free-tier resources for owner", () => {
 		expect(perms.service.read).toBe(true);
 		expect(perms.service.delete).toBe(true);
 		expect(perms.docker.read).toBe(true);
+		expect(perms.containerFilesystem.read).toBe(true);
 		expect(perms.traefikFiles.read).toBe(true);
 		expect(perms.traefikFiles.write).toBe(true);
 	});
