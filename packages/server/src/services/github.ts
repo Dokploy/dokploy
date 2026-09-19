@@ -8,7 +8,6 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { authGithub } from "../utils/providers/github";
-import { updatePreviewDeployment } from "./preview-deployment";
 
 export type Github = typeof github.$inferSelect;
 export const createGithub = async (
@@ -154,45 +153,44 @@ export const updateIssueComment = async ({
 	});
 };
 
-interface CommentCreate {
-	appName: string;
+interface IssueCommentCreate {
 	owner: string;
 	repository: string;
 	issue_number: string;
-	previewDomain: string;
+	body: string;
 	githubId: string;
-	previewDeploymentId: string;
 }
 
-export const createPreviewDeploymentComment = async ({
+/**
+ * Create a comment on a GitHub issue or pull request and return it, so callers
+ * decide themselves what to do with the comment id.
+ */
+export const createIssueComment = async ({
 	owner,
 	repository,
 	issue_number,
-	previewDomain,
-	appName,
+	body,
 	githubId,
-	previewDeploymentId,
-}: CommentCreate) => {
+}: IssueCommentCreate) => {
 	const github = await findGithubById(githubId);
 	const octokit = authGithub(github);
-
-	const runningComment = getIssueComment(
-		appName,
-		"initializing",
-		previewDomain,
-	);
 
 	const issue = await octokit.rest.issues.createComment({
 		owner: owner || "",
 		repo: repository || "",
 		issue_number: Number.parseInt(issue_number),
-		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
+		body,
 	});
 
-	return await updatePreviewDeployment(previewDeploymentId, {
-		pullRequestCommentId: `${issue.data.id}`,
-	}).then((response) => response[0]);
+	return issue.data;
 };
+
+/**
+ * Marker used to detect an already-posted "deployment blocked" notice, so
+ * subsequent pushes to the same pull request do not spam the thread.
+ */
+export const SECURITY_BLOCKED_COMMENT_MARKER =
+	"🚨 Preview Deployment Blocked - Security Protection";
 
 /**
  * Generate security notification message for blocked PR deployments
@@ -201,8 +199,13 @@ export const getSecurityBlockedMessage = (
 	prAuthor: string,
 	repositoryName: string,
 	permission: string | null,
+	/**
+	 * Access levels that would unblock the author. Gitea has no `maintain`
+	 * level, so providers pass their own list.
+	 */
+	requiredLevels = "`write`, `maintain`, or `admin`",
 ) => {
-	return `### 🚨 Preview Deployment Blocked - Security Protection
+	return `### ${SECURITY_BLOCKED_COMMENT_MARKER}
 
 **Your pull request was blocked from triggering preview deployments**
 
@@ -210,7 +213,7 @@ export const getSecurityBlockedMessage = (
 - **User**: \`${prAuthor}\`
 - **Repository**: \`${repositoryName}\`
 - **Permission Level**: \`${permission || "none"}\`
-- **Required Level**: \`write\`, \`maintain\`, or \`admin\`
+- **Required Level**: ${requiredLevels}
 
 #### How to resolve this:
 
@@ -267,9 +270,7 @@ export const hasExistingSecurityComment = async ({
 
 		// Check if any comment contains our security notification marker
 		const securityCommentExists = comments.some((comment) =>
-			comment.body?.includes(
-				"🚨 Preview Deployment Blocked - Security Protection",
-			),
+			comment.body?.includes(SECURITY_BLOCKED_COMMENT_MARKER),
 		);
 
 		return securityCommentExists;
