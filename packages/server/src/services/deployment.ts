@@ -374,7 +374,8 @@ export const createDeploymentBackup = async (
 			backup.postgres?.serverId ||
 			backup.mariadb?.serverId ||
 			backup.mysql?.serverId ||
-			backup.mongo?.serverId;
+			backup.mongo?.serverId ||
+			backup.libsql?.serverId;
 	} else if (backup.backupType === "compose") {
 		serverId = backup.compose?.serverId;
 	}

@@ -8,13 +8,8 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import {
-	getBackupCommand,
-	getBackupTimestamp,
-	getS3Credentials,
-	normalizeS3Path,
-} from "./utils";
+import { executeBackup } from "./executor";
+import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { environmentId, name, appName } = mysql;
@@ -33,20 +28,14 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const backupCommand = getBackupCommand(
+		await executeBackup({
 			backup,
-			rcloneFlags,
+			executionId: deployment.deploymentId,
+			logPath: deployment.logPath,
 			rcloneDestination,
-			deployment.logPath,
-		);
-
-		if (mysql.serverId) {
-			await execAsyncRemote(mysql.serverId, backupCommand);
-		} else {
-			await execAsync(backupCommand, {
-				shell: "/bin/bash",
-			});
-		}
+			rcloneFlags,
+			serverId: mysql.serverId,
+		});
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
@@ -63,8 +52,8 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage:
+				error instanceof Error ? error.message : "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});

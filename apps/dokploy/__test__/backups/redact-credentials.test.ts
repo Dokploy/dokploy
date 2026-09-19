@@ -47,4 +47,16 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("MYSECRET");
 		expect(redacted).toContain("[REDACTED]");
 	});
+
+	it("should redact shell-quoted and unquoted credential values", () => {
+		const cmd =
+			"rclone rcat --s3-access-key-id=plain-key --s3-secret-access-key='secret with spaces' --s3-access-key-id='key'\\''with-quote' :s3:bucket/file.gz";
+		const redacted = redactRcloneCredentials(cmd);
+
+		expect(redacted).not.toContain("plain-key");
+		expect(redacted).not.toContain("secret with spaces");
+		expect(redacted).not.toContain("with-quote");
+		expect(redacted).toContain('--s3-access-key-id="[REDACTED]"');
+		expect(redacted).toContain('--s3-secret-access-key="[REDACTED]"');
+	});
 });
