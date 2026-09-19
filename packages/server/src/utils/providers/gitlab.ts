@@ -204,6 +204,52 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 	}[];
 };
 
+export const getGitlabRepository = async (
+	gitlabId: string,
+	owner: string,
+	repository: string,
+) => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+	const path = `${owner}/${repository}`;
+	const response = await fetch(
+		`${baseUrl}/api/v4/projects/${encodeURIComponent(path)}`,
+		{
+			headers: {
+				Authorization: `Bearer ${gitlabProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: response.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				response.status === 404
+					? `Repository ${path} was not found or is not accessible`
+					: `Failed to look up repository: ${response.statusText}`,
+		});
+	}
+
+	const data = await response.json();
+	const pathWithNamespace = data.path_with_namespace as string;
+	const namespace = pathWithNamespace.slice(
+		0,
+		pathWithNamespace.length - String(data.path).length - 1,
+	);
+
+	return {
+		id: data.id as number,
+		name: data.name as string,
+		owner: namespace,
+		path: pathWithNamespace,
+		url: data.web_url as string,
+	};
+};
+
 export const getGitlabBranches = async (input: {
 	id?: number;
 	gitlabId?: string;
@@ -262,6 +308,35 @@ export const getGitlabBranches = async (input: {
 			id: string;
 		};
 	}[];
+};
+
+export const getGitlabBranch = async (
+	gitlabId: string,
+	projectId: number,
+	branch: string,
+) => {
+	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
+	const baseUrl = (
+		gitlabProvider.gitlabInternalUrl || gitlabProvider.gitlabUrl
+	).replace(/\/+$/, "");
+	const response = await fetch(
+		`${baseUrl}/api/v4/projects/${projectId}/repository/branches/${encodeURIComponent(branch)}`,
+		{ headers: { Authorization: `Bearer ${gitlabProvider.accessToken}` } },
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: response.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				response.status === 404
+					? `Branch ${branch} was not found`
+					: `Failed to look up branch: ${response.statusText}`,
+		});
+	}
+
+	const data = await response.json();
+	return { name: data.name as string };
 };
 
 export const testGitlabConnection = async (
