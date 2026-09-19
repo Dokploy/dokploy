@@ -4,11 +4,12 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { buildHardwareScripts } from "./server-hardware-scripts";
 
 // Matches remoteStream SSH readyTimeout. Hardware commands are fast; this
-// bounds stalled docker/nvidia-smi/df/SSH so the API cannot wait forever.
+// bounds stalled docker/nvidia-smi/SSH so the API cannot wait forever.
 export const HARDWARE_PROBE_TIMEOUT_MS = 30_000;
 
 // Same wording as the model-runner probe so callers can match one string.
@@ -32,23 +33,7 @@ export interface ServerHardwareGpu {
 
 export interface ServerHardware {
 	checkedAt: string;
-	cpu: {
-		count: number | null;
-		arch: string | null;
-	};
-	memory: {
-		totalBytes: number | null;
-		availableBytes: number | null;
-	};
-	/**
-	 * Remote values come from `df -Pk /` on the SSH host (root filesystem,
-	 * 1024-byte blocks). That is not Docker/model storage capacity. Local
-	 * values are always null.
-	 */
-	disk: {
-		totalBytes: number | null;
-		availableBytes: number | null;
-	};
+	readonly architecture: string | null;
 	gpu: {
 		detection: "available" | "unavailable";
 		/**
@@ -62,34 +47,22 @@ export interface ServerHardware {
 	error?: string;
 }
 
-interface HardwareEnvelope {
-	kind?: string;
-	engineExit?: number;
-	engineBase64?: string;
-	gpuExit?: number;
-	gpuBase64?: string;
-	capExit?: number;
-	capBase64?: string;
-	memTotalKb?: string;
-	memAvailKb?: string;
-	cpuCount?: string;
-	arch?: string;
-	diskTotalK?: string;
-	diskAvailK?: string;
-	diskExit?: number;
-}
+const envelopeSchema = z.object({
+	kind: z.unknown().optional(),
+	engineExit: z.unknown().optional(),
+	engineBase64: z.unknown().optional(),
+	gpuExit: z.unknown().optional(),
+	gpuBase64: z.unknown().optional(),
+	capExit: z.unknown().optional(),
+	capBase64: z.unknown().optional(),
+	arch: z.unknown().optional(),
+});
 
-interface EngineInfo {
-	ncpu?: number | null;
-	memTotal?: number | null;
-	arch?: string | null;
-}
+const engineSchema = z.object({ arch: z.unknown().optional() });
 
 const emptyHardware = (error?: unknown): ServerHardware => ({
 	checkedAt: new Date().toISOString(),
-	cpu: { count: null, arch: null },
-	memory: { totalBytes: null, availableBytes: null },
-	disk: { totalBytes: null, availableBytes: null },
+	architecture: null,
 	gpu: { detection: "unavailable", devices: [] },
 	...(error !== undefined
 		? {
@@ -132,18 +105,6 @@ const parseNonNegativeInt = (
 		: null;
 };
 
-const parsePositiveInt = (value: unknown): number | null => {
-	if (typeof value === "number") {
-		return Number.isInteger(value) &&
-			value > 0 &&
-			value <= Number.MAX_SAFE_INTEGER
-			? value
-			: null;
-	}
-	const n = parseNonNegativeInt(String(value ?? ""));
-	return n != null && n > 0 ? n : null;
-};
-
 const parseExitCode = (value: unknown, whenMissing: number): number => {
 	if (value === 0 || value === "0") return 0;
 	if (typeof value === "number") {
@@ -155,23 +116,8 @@ const parseExitCode = (value: unknown, whenMissing: number): number => {
 	return whenMissing;
 };
 
-const kbToBytes = (kb: string | null | undefined): number | null => {
-	const n = parseNonNegativeFinite(kb);
-	if (n == null) return null;
-	const bytes = Math.round(n * 1024);
-	return Number.isSafeInteger(bytes) ? bytes : null;
-};
-
-const positiveBytes = (value: number | null): number | null =>
-	value != null && value > 0 && Number.isSafeInteger(value) ? value : null;
-
-const engineMemTotalBytes = (value: unknown): number | null => {
-	if (typeof value !== "number" || !Number.isFinite(value)) return null;
-	return positiveBytes(Math.round(value));
-};
-
-const b64Decode = (value?: string): string => {
-	if (!value) return "";
+const b64Decode = (value: unknown): string => {
+	if (typeof value !== "string") return "";
 	try {
 		return Buffer.from(value, "base64").toString("utf-8");
 	} catch {
@@ -289,12 +235,9 @@ const gpuFromProbe = (
 };
 
 export const parseServerHardware = (stdout: string): ServerHardware => {
-	let envelope: HardwareEnvelope;
-	try {
-		envelope = JSON.parse(stdout.trim());
-	} catch {
-		return emptyHardware(new Error(PARSE_ERROR));
-	}
+	const decoded = envelopeSchema.safeParse(parseJson(stdout.trim()));
+	if (!decoded.success) return emptyHardware(new Error(PARSE_ERROR));
+	const envelope = decoded.data;
 
 	const gpu = gpuFromProbe(
 		parseExitCode(envelope.gpuExit, 1),
@@ -309,44 +252,20 @@ export const parseServerHardware = (stdout: string): ServerHardware => {
 			engineExit === 0
 				? parseJson(b64Decode(envelope.engineBase64).trim())
 				: null;
-		const engine =
-			engineJson && typeof engineJson === "object" && !Array.isArray(engineJson)
-				? (engineJson as EngineInfo)
-				: null;
+		const decodedEngine = engineSchema.safeParse(engineJson);
+		const engine = decodedEngine.success ? decodedEngine.data : null;
+
 		return {
 			checkedAt: new Date().toISOString(),
-			cpu: {
-				count: parsePositiveInt(engine?.ncpu),
-				arch: nullIfEmpty(engine?.arch ?? undefined),
-			},
-			memory: {
-				totalBytes: engineMemTotalBytes(engine?.memTotal),
-				availableBytes: null,
-			},
-			disk: { totalBytes: null, availableBytes: null },
+			architecture: nullIfEmpty(engine?.arch),
 			gpu,
 			...(engine ? {} : { error: ENGINE_INFO_ERROR }),
 		};
 	}
 
-	const diskExit = parseExitCode(envelope.diskExit, 0);
 	return {
 		checkedAt: new Date().toISOString(),
-		cpu: {
-			count: parsePositiveInt(envelope.cpuCount),
-			arch: nullIfEmpty(envelope.arch),
-		},
-		memory: {
-			totalBytes: positiveBytes(kbToBytes(envelope.memTotalKb)),
-			availableBytes: kbToBytes(envelope.memAvailKb),
-		},
-		disk:
-			diskExit === 0
-				? {
-						totalBytes: positiveBytes(kbToBytes(envelope.diskTotalK)),
-						availableBytes: kbToBytes(envelope.diskAvailK),
-					}
-				: { totalBytes: null, availableBytes: null },
+		architecture: nullIfEmpty(envelope.arch),
 		gpu,
 	};
 };
