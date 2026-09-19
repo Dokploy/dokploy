@@ -20,6 +20,7 @@ import {
 	organizationRole,
 	user,
 } from "@/server/db/schema";
+import { teardownVectorForOrganizationDeletion } from "@/server/utils/vector-resync";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -284,6 +285,8 @@ export const organizationRouter = createTRPCRouter({
 						"You must maintain at least one organization where you are the owner",
 				});
 			}
+
+			await teardownVectorForOrganizationDeletion(input.organizationId);
 
 			const result = await db
 				.delete(organization)

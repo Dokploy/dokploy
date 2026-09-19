@@ -27,6 +27,9 @@ export * from "./services/gitea";
 export * from "./services/github";
 export * from "./services/gitlab";
 export * from "./services/libsql";
+export * from "./services/log-management/providers/registry";
+export * from "./services/log-management/service";
+export * from "./services/log-management/types";
 export * from "./services/mariadb";
 export * from "./services/mongo";
 export * from "./services/mount";
@@ -68,6 +71,7 @@ export * from "./setup/server-setup";
 export * from "./setup/server-validate";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
+export * from "./setup/vector-setup";
 export * from "./templates/processors";
 export * from "./utils/access-log/handler";
 export {
