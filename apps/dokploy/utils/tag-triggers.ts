@@ -1,18 +1,14 @@
+import micromatch from "micromatch";
+
 /** Match the entire tag, treating only * as a wildcard (zero or more characters). */
 export function matchesTagPattern(tag: string, pattern: string): boolean {
-	const parts = pattern.split("*");
-	const prefix = parts[0] ?? "";
-	if (parts.length === 1) return tag === prefix;
-	if (!tag.startsWith(prefix)) return false;
-
-	let offset = prefix.length;
-	for (const part of parts.slice(1, -1)) {
-		const index = tag.indexOf(part, offset);
-		if (index === -1) return false;
-		offset = index + part.length;
-	}
-	const suffix = parts[parts.length - 1] ?? "";
-	return tag.endsWith(suffix) && tag.length - suffix.length >= offset;
+	// Keep non-star glob syntax literal to preserve the existing tag filter contract.
+	const glob = pattern.replace(/[\\?[\]{}()!+@|^$"]/g, "\\$&");
+	return micromatch.isMatch(tag, glob, {
+		bash: true, // A star can match slashes in Git tag names.
+		dot: true,
+		nonegate: true,
+	});
 }
 
 export function matchesTriggerTags(

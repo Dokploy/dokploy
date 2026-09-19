@@ -21,6 +21,17 @@ describe("tag trigger patterns", () => {
 		["v1.2", "v1.2", true],
 		["go-a", "go-[ab]", false],
 		["go-1", "go-?", false],
+		["release/go/v1", "*", true],
+		["release/v1.2", "release/*", true],
+		["go-v1.2", "go-*", true],
+		["go-(1)", "go-(1)", true],
+		["go-1", "go-(1)", false],
+		["go-1", "go-@(1|2)", false],
+		["go-1", "go-{1,2}", false],
+		["!go-1", "!go-*", true],
+		["node-1", "!go-*", false],
+		["go+1", "go+*", true],
+		["go1", "go+*", false],
 	])("matches %s against %s: %s", (tag, pattern, expected) => {
 		expect(matchesTagPattern(tag, pattern)).toBe(expected);
 	});
