@@ -64,6 +64,7 @@ const GithubProviderSchema = z.object({
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
+	triggerTags: z.string().default(""),
 	enableSubmodules: z.boolean().default(false),
 });
 
@@ -91,6 +92,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			branch: "",
 			watchPaths: [],
 			triggerType: "push",
+			triggerTags: "",
 			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
@@ -141,6 +143,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
+				triggerTags: data.triggerTags?.join(", ") || "",
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
@@ -159,6 +162,14 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
 			triggerType: data.triggerType,
+			triggerTags: [
+				...new Set(
+					data.triggerTags
+						.split(",")
+						.map((tag) => tag.trim())
+						.filter(Boolean),
+				),
+			],
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -460,6 +471,28 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{triggerType === "tag" && (
+							<FormField
+								control={form.control}
+								name="triggerTags"
+								render={({ field }) => (
+									<FormItem className="md:col-span-2">
+										<FormLabel>Tag patterns (optional)</FormLabel>
+										<FormControl>
+											<Input {...field} placeholder="all-*, go-*" />
+										</FormControl>
+										<p className="text-sm text-muted-foreground">
+											Separate names or patterns with commas. Use * to match any
+											characters. Matching is case-sensitive; leave empty to
+											deploy on any tag. Example: all-*, go-* matches go-1, go-2
+											or all-1. Use a new tag name for each release. Add all-*
+											to each service to deploy them together.
+										</p>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						{triggerType === "push" && (
 							<FormField
 								control={form.control}

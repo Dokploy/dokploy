@@ -99,6 +99,7 @@ export const compose = pgTable("compose", {
 		.default(false),
 	pullImages: boolean("pullImages").notNull().default(false),
 	triggerType: triggerType("triggerType").default("push"),
+	triggerTags: text("triggerTags").array(),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	icon: text("icon"),
 	environmentId: text("environmentId")
@@ -193,6 +194,7 @@ const createSchema = createInsertSchema(compose, {
 		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
+	triggerTags: z.array(z.string().trim().min(1)).optional(),
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
 	icon: z
 		.string()

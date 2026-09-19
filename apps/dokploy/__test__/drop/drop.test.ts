@@ -54,6 +54,7 @@ const baseApp: ApplicationNested = {
 	deployments: [],
 	enableSubmodules: false,
 	applicationStatus: "done",
+	triggerTags: null,
 	triggerType: "push",
 	appName: "",
 	autoDeploy: true,
