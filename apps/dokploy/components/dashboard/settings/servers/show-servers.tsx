@@ -56,8 +56,10 @@ const ServerDiskUsage = ({ serverId }: { serverId: string }) => {
 		>
 			<div className="min-w-0 flex-1 space-y-1">
 				<div className="flex items-center justify-between text-xs">
-					<span className="text-muted-foreground">Disk usage</span>
-					<span className="font-medium">
+					<span className="whitespace-nowrap text-muted-foreground">
+						Disk usage
+					</span>
+					<span className="whitespace-nowrap text-[11px] font-medium">
 						{error
 							? "Unavailable"
 							: data
