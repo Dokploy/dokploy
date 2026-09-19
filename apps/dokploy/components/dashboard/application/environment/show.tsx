@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -17,6 +17,12 @@ import {
 import { Secrets } from "@/components/ui/secrets";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import {
+	isSavedApplicationEnvironment,
+	mergeSavedApplicationEnvironment,
+	shouldIgnoreApplicationEnvironment,
+	type SavedApplicationEnvironmentState,
+} from "./cache";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
@@ -34,6 +40,8 @@ interface Props {
 export const ShowEnvironment = ({ applicationId }: Props) => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canWrite = permissions?.envVars.write ?? false;
+	const utils = api.useUtils();
+	const savedEnvironment = useRef<SavedApplicationEnvironmentState>();
 	const { mutateAsync, isPending } =
 		api.application.saveEnvironment.useMutation();
 
@@ -78,31 +86,56 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	// Skip reset while editing so background refetches don't wipe edits
 	useEffect(() => {
 		if (data && !isDirty) {
-			form.reset({
+			const nextEnvironment = {
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
 				buildSecrets: data.buildSecrets || "",
 				createEnvFile: data.createEnvFile ?? true,
-			});
+			};
+
+			if (
+				shouldIgnoreApplicationEnvironment(
+					applicationId,
+					data,
+					savedEnvironment.current,
+				)
+			) {
+				return;
+			}
+
+			savedEnvironment.current = undefined;
+			if (isSavedApplicationEnvironment(form.getValues(), nextEnvironment)) {
+				return;
+			}
+
+			form.reset(nextEnvironment);
 		}
 	}, [data, isDirty, form]);
 
 	const onSubmit = async (formData: EnvironmentSchema) => {
-		mutateAsync({
+		const nextEnvironment = {
 			env: formData.env,
 			buildArgs: formData.buildArgs,
 			buildSecrets: formData.buildSecrets,
 			createEnvFile: formData.createEnvFile,
-			applicationId,
-		})
-			.then(async () => {
-				toast.success("Environments Added");
-				form.reset(formData);
-				await refetch();
-			})
-			.catch(() => {
-				toast.error("Error adding environment");
+		};
+
+		try {
+			await utils.application.one.cancel({ applicationId });
+			await mutateAsync({
+				...nextEnvironment,
+				applicationId,
 			});
+			savedEnvironment.current = { ...nextEnvironment, applicationId };
+			utils.application.one.setData({ applicationId }, (application) =>
+				mergeSavedApplicationEnvironment(application, nextEnvironment),
+			);
+			form.reset(nextEnvironment);
+			toast.success("Environments Added");
+			await refetch({ cancelRefetch: false });
+		} catch {
+			toast.error("Error adding environment");
+		}
 	};
 
 	const handleCancel = () => {
