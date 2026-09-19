@@ -1,6 +1,6 @@
 {
-  "id": "92a9010e-bc5f-4c9f-b97e-f2867a602e90",
-  "prevId": "633b82a2-0321-4ef4-ae09-7a8861830873",
+  "id": "bf16a3c7-9d5d-4c2f-83ce-f87c7878dd23",
+  "prevId": "c9ad226a-7a8f-4c3b-8f04-fef6bccf9bfb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2690,6 +2690,13 @@
           "notNull": true,
           "default": false
         },
+        "pullImages": {
+          "name": "pullImages",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "triggerType": {
           "name": "triggerType",
           "type": "triggerType",
@@ -2756,6 +2763,18 @@
         },
         "serverId": {
           "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildRegistryId": {
+          "name": "buildRegistryId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2859,6 +2878,32 @@
             "serverId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "compose_buildServerId_server_serverId_fk": {
+          "name": "compose_buildServerId_server_serverId_fk",
+          "tableFrom": "compose",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "compose_buildRegistryId_registry_registryId_fk": {
+          "name": "compose_buildRegistryId_registry_registryId_fk",
+          "tableFrom": "compose",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "buildRegistryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -7983,6 +8028,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "domain_verified": {
+          "name": "domain_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -8351,6 +8403,12 @@
           "primaryKey": false,
           "notNull": false,
           "default": "ARRAY[]::text[]"
+        },
+        "onboardingCompletedAt": {
+          "name": "onboardingCompletedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -8797,7 +8855,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
@@ -8946,7 +9004,10 @@
       "schema": "public",
       "values": [
         "cloudflare",
-        "route53"
+        "route53",
+        "porkbun",
+        "infomaniak",
+        "ovh"
       ]
     },
     "public.domainType": {
@@ -9126,6 +9187,7 @@
         "hashicorp",
         "infisical",
         "aws",
+        "aws-parameter-store",
         "doppler",
         "azure",
         "scaleway",

@@ -293,20 +293,22 @@ export const createDeploymentCompose = async (
 	await removeLastTenDeployments(
 		deployment.composeId,
 		"compose",
-		compose.serverId,
+		compose.buildServerId || compose.serverId,
 	);
 	try {
-		const { LOGS_PATH } = paths(!!compose.serverId);
+		const logServerId = compose.buildServerId || compose.serverId;
+		const { LOGS_PATH } = paths(!!logServerId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
 
-		if (compose.serverId) {
-			const server = await findServerById(compose.serverId);
+		if (logServerId) {
+			const server = await findServerById(logServerId);
 
 			const command = `
 mkdir -p ${LOGS_PATH}/${compose.appName};
-echo "Initializing deployment\n" >> ${logFilePath};
+echo "Initializing deployment" >> ${logFilePath};
+echo "Building on ${compose.buildServerId ? "Build Server" : logServerId ? "Deploy Server" : "Dokploy Server"}" >> ${logFilePath};
 `;
 
 			await execAsyncRemote(server.serverId, command);
@@ -326,6 +328,9 @@ echo "Initializing deployment\n" >> ${logFilePath};
 				status: "running",
 				logPath: logFilePath,
 				startedAt: new Date().toISOString(),
+				...(compose.buildServerId && {
+					buildServerId: compose.buildServerId,
+				}),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -629,8 +634,9 @@ export const removeDeployment = async (deploymentId: string) => {
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
 			const command = `rm -f ${logPath};`;
-			if (deployment.serverId) {
-				await execAsyncRemote(deployment.serverId, command);
+			const logServerId = deployment.buildServerId || deployment.serverId;
+			if (logServerId) {
+				await execAsyncRemote(logServerId, command);
 			} else {
 				await execAsync(command);
 			}
@@ -781,10 +787,11 @@ export const removeDeploymentsByPreviewDeploymentId = async (
 
 export const removeDeploymentsByComposeId = async (compose: Compose) => {
 	const { appName } = compose;
-	const { LOGS_PATH } = paths(!!compose.serverId);
+	const logServerId = compose.buildServerId || compose.serverId;
+	const { LOGS_PATH } = paths(!!logServerId);
 	const logsPath = path.join(LOGS_PATH, appName);
-	if (compose.serverId) {
-		await execAsyncRemote(compose.serverId, `rm -rf ${logsPath}`);
+	if (logServerId) {
+		await execAsyncRemote(logServerId, `rm -rf ${logsPath}`);
 	} else {
 		await removeDirectoryIfExistsContent(logsPath);
 	}
@@ -845,6 +852,9 @@ const centralizedDeploymentsWith = {
 				},
 			},
 			server: {
+				columns: { serverId: true, name: true, serverType: true },
+			},
+			buildServer: {
 				columns: { serverId: true, name: true, serverType: true },
 			},
 		},
