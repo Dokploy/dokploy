@@ -25,15 +25,26 @@ export const organizationRouter = createTRPCRouter({
 	cleanExpiredInvitations: protectedProcedure
 		.input(z.object({ organizationId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			// 1. Verify the user is an admin or owner
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+			// 1. Verify caller is authorized for THIS specific organization
+			const userMembership = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (
+				!userMembership ||
+				(userMembership.role !== "admin" && userMembership.role !== "owner")
+			) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only the organization owner or admin can do this.",
+					message:
+						"Unauthorized: You must be an admin or owner of this organization.",
 				});
 			}
 
-			// 2. Delete expired invitations using Drizzle ORM
+			// 2. Delete expired invitations
 			await db
 				.delete(invitation)
 				.where(
@@ -42,6 +53,14 @@ export const organizationRouter = createTRPCRouter({
 						lt(invitation.expiresAt, new Date()),
 					),
 				);
+
+			// 3. Record in audit trail
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				metadata: { type: "cleanExpiredInvitations" },
+			});
 
 			return true;
 		}),

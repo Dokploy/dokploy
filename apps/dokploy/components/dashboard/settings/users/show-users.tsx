@@ -47,7 +47,7 @@ export const ShowUsers = () => {
 		api.organization.cleanExpiredInvitations.useMutation({
 			onSuccess: () => {
 				toast.success("Expired invitations cleaned successfully");
-				utils.user.all.invalidate();
+				utils.organization.allInvitations.invalidate();
 			},
 			onError: (err) => {
 				toast.error(err.message);
@@ -55,6 +55,9 @@ export const ShowUsers = () => {
 		});
 
 	const FREE_ROLES = ["owner", "admin", "member"];
+	const currentUserRole = data?.find(
+		(m) => m.user.id === session?.user?.id,
+	)?.role;
 	const membersWithCustomRoles = data?.filter(
 		(member) => !FREE_ROLES.includes(member.role),
 	);
@@ -73,20 +76,21 @@ export const ShowUsers = () => {
 						<CardDescription>
 							Add your users to your Dokploy account.
 						</CardDescription>
-						<Button
-							variant="outline"
-							size="sm"
-							disabled={isCleaning}
-							onClick={async () => {
-								// Only run the mutation if an active organization ID exists
-								if (activeOrg?.id) {
-									await cleanExpired({ organizationId: activeOrg.id });
-								}
-							}}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Clean Expired
-						</Button>
+						{(currentUserRole === "admin" || currentUserRole === "owner") && (
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={isCleaning}
+								onClick={async () => {
+									if (activeOrg?.id) {
+										await cleanExpired({ organizationId: activeOrg.id });
+									}
+								}}
+							>
+								<Trash2 className="mr-2 h-4 w-4" />
+								Clean Expired
+							</Button>
+						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
