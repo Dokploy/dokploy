@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { authorizeDockerOverWss } from "./authorize";
 
 type AppType = "application" | "stack" | "docker-compose";
 
@@ -106,7 +106,14 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
+		const authorized = await authorizeDockerOverWss(
+			user,
+			session,
+			null,
+			serviceId,
+			{ appName, appType },
+		);
+		if (!authorized) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
@@ -129,6 +136,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 
 				const filter = {
 					status: ["running"],
+					...(authorized.containerId && { id: [authorized.containerId] }),
 					...(appType === "application" && {
 						label: [`com.docker.swarm.service.name=${appName}`],
 					}),
@@ -156,7 +164,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${container.Id} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
@@ -173,7 +181,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 					}),
 				);
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error
 				ws.close(4000, `Error: ${error.message}`);
 			}
 		}, 1300);

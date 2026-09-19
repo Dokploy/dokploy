@@ -3,7 +3,7 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { authorizeDockerOverWss } from "./authorize";
 import {
 	getShell,
 	isValidContainerId,
@@ -36,7 +36,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
-		const containerId = url.searchParams.get("containerId");
+		let containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail") ?? "100";
 		const search = url.searchParams.get("search") ?? "";
 		const since = url.searchParams.get("since") ?? "all";
@@ -76,10 +76,18 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
+		const authorized = await authorizeDockerOverWss(
+			user,
+			session,
+			serverId,
+			serviceId,
+			{ containerId, runType },
+		);
+		if (!authorized?.containerId) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
+		containerId = authorized.containerId;
 
 		// Set up keep-alive ping mechanism to prevent timeout
 		// Send ping every 45 seconds to keep connection alive
@@ -190,14 +198,14 @@ export const setupDockerContainerLogsWebSocketServer = (
 						}
 						ptyProcess.write(command.toString());
 					} catch (error) {
-						// @ts-ignore
+						// @ts-expect-error
 						const errorMessage = error?.message as unknown as string;
 						ws.send(errorMessage);
 					}
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			const errorMessage = error?.message as unknown as string;
 
 			ws.send(errorMessage);

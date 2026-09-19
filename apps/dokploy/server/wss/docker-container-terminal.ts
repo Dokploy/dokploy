@@ -3,7 +3,7 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { authorizeDockerOverWss } from "./authorize";
 import {
 	isValidContainerId,
 	isValidShell,
@@ -35,7 +35,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
-		const containerId = url.searchParams.get("containerId");
+		let containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");
 		const serviceId = url.searchParams.get("serviceId");
@@ -70,10 +70,18 @@ export const setupDockerContainerTerminalWebSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
+		const authorized = await authorizeDockerOverWss(
+			user,
+			session,
+			serverId,
+			serviceId,
+			{ containerId },
+		);
+		if (!authorized?.containerId) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
+		containerId = authorized.containerId;
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
@@ -140,7 +148,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 									}
 									stream.write(text);
 								} catch (error) {
-									// @ts-ignore
+									// @ts-expect-error
 									const errorMessage = error?.message as unknown as string;
 									ws.send(errorMessage);
 								}
@@ -205,14 +213,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						}
 						ptyProcess.write(text);
 					} catch (error) {
-						// @ts-ignore
+						// @ts-expect-error
 						const errorMessage = error?.message as unknown as string;
 						ws.send(errorMessage);
 					}
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			const errorMessage = error?.message as unknown as string;
 
 			ws.send(errorMessage);

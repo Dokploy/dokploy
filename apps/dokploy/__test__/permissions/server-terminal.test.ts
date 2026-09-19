@@ -65,6 +65,21 @@ beforeEach(() => {
 });
 
 describe("server.terminal on custom roles", () => {
+	it.each([false, true])(
+		"SSH key management (%s) does not grant members a host shell",
+		async (enabled) => {
+			memberToReturn = {
+				...mockMemberData("member"),
+				canAccessToSSHKeys: enabled,
+			};
+			await expect(
+				checkPermission(ctx, { server: ["terminal"] }),
+			).rejects.toThrow();
+			const perms = await resolvePermissions(ctx);
+			expect(perms.sshKeys.read).toBe(enabled);
+			expect(perms.server.terminal).toBe(false);
+		},
+	);
 	it("a role with server.read alone cannot open a terminal", async () => {
 		withPermissions({ server: ["read"] });
 
