@@ -65,6 +65,12 @@ export interface ServerHealthResult {
 	error?: string;
 }
 
+export interface ServerDiskUsage {
+	totalBytes: number;
+	usedBytes: number;
+	usagePercent: number;
+}
+
 interface RawHealthOutput {
 	containerCount?: number | string;
 	serviceCount?: number | string;
@@ -383,5 +389,34 @@ export const getServerHealth = async (
 					}
 				: null,
 		reservation,
+	};
+};
+
+/** Read root filesystem usage with one local or SSH command. */
+export const getServerDiskUsage = async (
+	serverId?: string,
+): Promise<ServerDiskUsage> => {
+	const command = "df -kP / 2>/dev/null | awk 'NR==2 {print $2, $3}'";
+	const result = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+	const [totalKb = Number.NaN, usedKb = Number.NaN] = result.stdout
+		.trim()
+		.split(/\s+/)
+		.map(Number);
+
+	if (!Number.isFinite(totalKb) || totalKb <= 0 || !Number.isFinite(usedKb)) {
+		throw new Error("Unable to read disk usage");
+	}
+
+	const totalBytes = Math.round(totalKb * 1024);
+	const usedBytes = Math.min(
+		totalBytes,
+		Math.max(0, Math.round(usedKb * 1024)),
+	);
+	return {
+		totalBytes,
+		usedBytes,
+		usagePercent: Math.round((usedBytes / totalBytes) * 100),
 	};
 };
