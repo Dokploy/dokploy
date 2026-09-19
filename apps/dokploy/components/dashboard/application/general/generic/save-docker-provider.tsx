@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { ConfirmableProviderSave } from "./confirmable-provider-save";
 
 const DockerProviderSchema = z.object({
 	dockerImage: z.string().min(1, {
@@ -31,7 +31,8 @@ interface Props {
 }
 
 export const SaveDockerProvider = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const utils = api.useUtils();
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
 	const form = useForm<DockerProvider>({
@@ -65,7 +66,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Docker Provider Saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the Docker provider");
@@ -149,13 +150,17 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				</div>
 
 				<div className="flex flex-row justify-end">
-					<Button
-						type="submit"
-						className="w-fit"
+					<ConfirmableProviderSave
+						needsConfirmation={
+							data?.sourceType === "github" &&
+							data?.isPreviewDeploymentsActive === true
+						}
 						isLoading={form.formState.isSubmitting}
+						onValidate={() => form.trigger()}
+						onConfirm={form.handleSubmit(onSubmit)}
 					>
-						Save{" "}
-					</Button>
+						Save
+					</ConfirmableProviderSave>
 				</div>
 			</form>
 		</Form>
