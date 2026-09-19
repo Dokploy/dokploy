@@ -38,16 +38,20 @@ import { SetupServer } from "./setup-server";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
 
+const formatGigabytes = (bytes: number) =>
+	`${(bytes / 1024 ** 3).toFixed(1)} GB`;
+
 const ServerDiskUsage = ({ serverId }: { serverId: string }) => {
 	const { data, error, isFetching, refetch } = api.server.diskUsage.useQuery(
 		{ serverId },
 		{ refetchOnWindowFocus: false },
 	);
 	const usagePercent = data?.usagePercent ?? 0;
+	const freeBytes = data ? Math.max(0, data.totalBytes - data.usedBytes) : 0;
 
 	return (
 		<div
-			className="flex w-full items-center gap-2"
+			className="flex w-full items-center gap-2 pb-2"
 			data-testid="server-disk-usage"
 		>
 			<div className="min-w-0 flex-1 space-y-1">
@@ -57,13 +61,13 @@ const ServerDiskUsage = ({ serverId }: { serverId: string }) => {
 						{error
 							? "Unavailable"
 							: data
-								? `${data.usagePercent}% used`
+								? `${data.usagePercent}% used · ${formatGigabytes(freeBytes)} free`
 								: "Checking..."}
 					</span>
 				</div>
 				<Progress
 					value={usagePercent}
-					className="h-2"
+					className="h-3"
 					aria-label={`Disk usage: ${data?.usagePercent ?? 0}%`}
 				/>
 			</div>
