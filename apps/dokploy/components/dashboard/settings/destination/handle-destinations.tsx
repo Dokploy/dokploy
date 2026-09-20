@@ -1,6 +1,8 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isNonS3DestinationProvider,
+	validateRcloneDestinationConfig,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -37,30 +39,64 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import {
+	RCLONE_CONFIG_PLACEHOLDERS,
+	RCLONE_PROVIDER_HELP,
+	RCLONE_PROVIDERS,
+	S3_PROVIDERS,
+} from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-	additionalFlags: z
-		.array(
-			z.object({
-				value: z
-					.string()
-					.min(1, "Flag cannot be empty")
-					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
-			}),
-		)
-		.optional(),
-});
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		provider: z.string().min(1, "Provider is required"),
+		accessKeyId: z.string(),
+		secretAccessKey: z.string(),
+		bucket: z.string(),
+		region: z.string(),
+		endpoint: z.string(),
+		serverId: z.string().optional(),
+		rcloneConfig: z.string().optional(),
+		additionalFlags: z
+			.array(
+				z.object({
+					value: z
+						.string()
+						.min(1, "Flag cannot be empty")
+						.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+				}),
+			)
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (isNonS3DestinationProvider(data.provider)) {
+			const error = validateRcloneDestinationConfig(
+				data.provider,
+				data.rcloneConfig,
+			);
+			if (error) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["rcloneConfig"],
+					message: error,
+				});
+			}
+			return;
+		}
+		for (const [field, message] of [
+			["accessKeyId", "Access Key Id is required"],
+			["secretAccessKey", "Secret Access Key is required"],
+			["bucket", "Bucket is required"],
+			["endpoint", "Endpoint is required"],
+		] as const) {
+			if (!data[field].trim()) {
+				ctx.addIssue({ code: "custom", path: [field], message });
+			}
+		}
+	});
 
 type AddDestination = z.infer<typeof addDestination>;
 
@@ -103,10 +139,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			rcloneConfig: "",
 			additionalFlags: [],
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const provider = form.watch("provider");
+	const isNonS3 = isNonS3DestinationProvider(provider);
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -123,6 +163,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				bucket: destination.bucket,
 				region: destination.region,
 				endpoint: destination.endpoint,
+				rcloneConfig: destination.rcloneConfig ?? "",
 				additionalFlags:
 					destination.additionalFlags?.map((f) => ({ value: f })) ?? [],
 			});
@@ -132,14 +173,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
 
 	const onSubmit = async (data: AddDestination) => {
+		const nonS3 = isNonS3DestinationProvider(data.provider);
 		await mutateAsync({
 			provider: data.provider || "",
-			accessKey: data.accessKeyId,
+			accessKey: nonS3 ? "" : data.accessKeyId,
 			bucket: data.bucket,
-			endpoint: data.endpoint,
+			endpoint: nonS3 ? "" : data.endpoint,
 			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
+			region: nonS3 ? "" : data.region,
+			secretAccessKey: nonS3 ? "" : data.secretAccessKey,
+			rcloneConfig: nonS3 ? data.rcloneConfig : undefined,
 			destinationId: destinationId || "",
 			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
@@ -168,6 +211,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			"secretAccessKey",
 			"bucket",
 			"endpoint",
+			"rcloneConfig",
 			"additionalFlags",
 		]);
 
@@ -190,13 +234,17 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		}
 
 		const provider = form.getValues("provider");
-		const accessKey = form.getValues("accessKeyId");
-		const secretKey = form.getValues("secretAccessKey");
+		const nonS3 = isNonS3DestinationProvider(provider);
+		const accessKey = nonS3 ? "" : form.getValues("accessKeyId");
+		const secretKey = nonS3 ? "" : form.getValues("secretAccessKey");
 		const bucket = form.getValues("bucket");
-		const endpoint = form.getValues("endpoint");
-		const region = form.getValues("region");
+		const endpoint = nonS3 ? "" : form.getValues("endpoint");
+		const region = nonS3 ? "" : form.getValues("region");
+		const rcloneConfig = nonS3 ? form.getValues("rcloneConfig") : undefined;
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString = nonS3
+			? `rclone ls :${provider === "custom" ? "<backend>" : provider}:${bucket || "<path>"} --<backend>-<option>=<value>`
+			: `rclone ls :s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -206,6 +254,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			name: "Test",
 			region,
 			secretAccessKey: secretKey,
+			rcloneConfig,
 			serverId,
 			additionalFlags:
 				form.getValues("additionalFlags")?.map((f) => f.value) ?? [],
@@ -215,7 +264,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			})
 			.catch((e) => {
 				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+					description: `${e.message}\n\nTry manually: ${connectionString}`,
 				});
 			});
 	};
@@ -269,7 +318,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
+											<Input placeholder={"Backups destination"} {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -291,18 +340,32 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a provider" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
+													<SelectGroup>
+														<SelectLabel>S3 Compatible</SelectLabel>
+														{S3_PROVIDERS.map((s3Provider) => (
+															<SelectItem
+																key={s3Provider.key}
+																value={s3Provider.key}
+															>
+																{s3Provider.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
+													<SelectGroup>
+														<SelectLabel>Other providers (rclone)</SelectLabel>
+														{RCLONE_PROVIDERS.map((rcloneProvider) => (
+															<SelectItem
+																key={rcloneProvider.key}
+																value={rcloneProvider.key}
+															>
+																{rcloneProvider.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
 												</SelectContent>
 											</Select>
 										</FormControl>
@@ -312,82 +375,125 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							}}
 						/>
 
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{isNonS3 ? (
+							<>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Remote Path (Optional)</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"dokploy-backups"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rcloneConfig"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Rclone Config</FormLabel>
+											<FormControl>
+												<Textarea
+													rows={6}
+													placeholder={RCLONE_CONFIG_PLACEHOLDERS[provider]}
+													{...field}
+												/>
+											</FormControl>
+											<p className="text-xs text-muted-foreground">
+												One <code>key = value</code> option per line, like in
+												rclone.conf. {RCLONE_PROVIDER_HELP[provider]}
+											</p>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						) : (
+							<>
+								<FormField
+									control={form.control}
+									name="accessKeyId"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Access Key Id</FormLabel>
+												<FormControl>
+													<Input placeholder={"xcas41dasde"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Secret Access Key</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"asd123asdasw"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Bucket</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"dokploy-bucket"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Region</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"us-east-1"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"https://us.bucket.aws/s3"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 						<div className="flex flex-col gap-2">
 							<div className="flex items-center justify-between">
 								<FormLabel>Additional Flags (Optional)</FormLabel>

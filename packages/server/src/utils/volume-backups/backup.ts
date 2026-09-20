@@ -5,7 +5,8 @@ import { findDestinationById } from "@dokploy/server/services/destination";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	normalizeS3Path,
 } from "../backups/utils";
 
@@ -76,8 +77,8 @@ export const backupVolume = async (
 	const s3AppName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix || "")}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+	const rcloneFlags = getRcloneFlags(destination);
+	const rcloneDestination = getRcloneRemotePath(destination, bucketDestination);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
 	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
@@ -98,9 +99,9 @@ export const backupVolume = async (
   `;
 
 	const uploadCommand = `
-  echo "Starting upload to S3..."
+  echo "Starting upload to destination..."
   ${rcloneCommand}
-  echo "Upload to S3 done ✅"
+  echo "Upload to destination done ✅"
   echo "Cleaning up local backup file..."
   rm "${volumeBackupPath}/${backupFileName}"
   echo "Local backup file cleaned up ✅"

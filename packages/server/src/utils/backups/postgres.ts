@@ -12,7 +12,8 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	normalizeS3Path,
 } from "./utils";
 
@@ -34,8 +35,11 @@ export const runPostgresBackup = async (
 	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneDestination = getRcloneRemotePath(
+			destination,
+			bucketDestination,
+		);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,
@@ -66,7 +70,7 @@ export const runPostgresBackup = async (
 			projectName: project.name,
 			databaseType: "postgres",
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,

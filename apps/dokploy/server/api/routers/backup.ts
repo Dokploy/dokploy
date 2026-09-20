@@ -32,7 +32,8 @@ import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
-	getS3Credentials,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import {
@@ -497,8 +498,8 @@ export const backupRouter = createTRPCRouter({
 						});
 					}
 				}
-				const rcloneFlags = getS3Credentials(destination);
-				const bucketPath = `:s3:${destination.bucket}`;
+				const rcloneFlags = getRcloneFlags(destination);
+				const bucketPath = getRcloneRemotePath(destination);
 
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =
@@ -510,7 +511,9 @@ export const backupRouter = createTRPCRouter({
 						? input.search.slice(lastSlashIndex + 1)
 						: input.search;
 
-				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
+				const searchPath = baseDir
+					? getRcloneRemotePath(destination, baseDir)
+					: bucketPath;
 				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} ${quote([searchPath])} --no-mimetype --no-modtime 2>/dev/null`;
 
 				let stdout = "";

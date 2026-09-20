@@ -12,7 +12,8 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	normalizeS3Path,
 } from "./utils";
 
@@ -31,8 +32,11 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneDestination = getRcloneRemotePath(
+			destination,
+			bucketDestination,
+		);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,
@@ -63,7 +67,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,

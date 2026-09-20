@@ -1,3 +1,8 @@
+import {
+	isNonS3DestinationProvider,
+	parseRcloneConfig,
+	RCLONE_BACKEND_TYPE_REGEX,
+} from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -68,7 +73,79 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+type RcloneDestination = Pick<
+	Destination,
+	| "name"
+	| "provider"
+	| "bucket"
+	| "accessKey"
+	| "secretAccessKey"
+	| "region"
+	| "endpoint"
+	| "additionalFlags"
+> & { rcloneConfig?: string | null };
+
+export const getRcloneBackendType = (
+	destination: RcloneDestination,
+): string => {
+	const provider = destination.provider?.trim().toLowerCase();
+	if (!isNonS3DestinationProvider(provider) || provider === undefined) {
+		return "s3";
+	}
+	if (provider !== "custom") {
+		return provider;
+	}
+	const { config } = parseRcloneConfig(destination.rcloneConfig ?? "");
+	const type = config.type?.trim().toLowerCase();
+	if (!type || !RCLONE_BACKEND_TYPE_REGEX.test(type)) {
+		throw new Error(
+			`Invalid rclone backend type for destination "${destination.name}"`,
+		);
+	}
+	return type;
+};
+
+export const getRcloneFlags = (destination: RcloneDestination): string[] => {
+	const backend = getRcloneBackendType(destination);
+	if (backend === "s3") {
+		return getS3Credentials(destination);
+	}
+	const { config, error } = parseRcloneConfig(destination.rcloneConfig ?? "");
+	if (error) {
+		throw new Error(
+			`Invalid rclone config for destination "${destination.name}": ${error}`,
+		);
+	}
+	const rcloneFlags = Object.entries(config)
+		.filter(([key]) => key !== "type")
+		.map(
+			([key, value]) =>
+				`--${backend}-${key.replaceAll("_", "-")}=${quote([value])}`,
+		);
+	if (destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+	return rcloneFlags;
+};
+
+export const getRcloneRemotePath = (
+	destination: RcloneDestination,
+	remotePath = "",
+): string => {
+	const backend = getRcloneBackendType(destination);
+	const remote =
+		backend === "s3"
+			? `:s3:${destination.bucket}`
+			: `:${backend}:${(destination.bucket ?? "").trim().replace(/\/+$/, "")}`;
+	if (!remotePath) {
+		return remote;
+	}
+	return remote.endsWith(":")
+		? `${remote}${remotePath}`
+		: `${remote}/${remotePath}`;
+};
+
+export const getS3Credentials = (destination: RcloneDestination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
@@ -290,7 +367,7 @@ export const getBackupCommand = (
 	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting backup and upload to destination..." >> ${logPath};
 
 	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
@@ -299,7 +376,7 @@ export const getBackupCommand = (
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded to destination successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };

@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	validateRcloneDestinationConfig,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -17,6 +18,7 @@ export const destinations = pgTable("destination", {
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	provider: text("provider"),
+	rcloneConfig: text("rcloneConfig"),
 	accessKey: text("accessKey").notNull(),
 	secretAccessKey: text("secretAccessKey").notNull(),
 	bucket: text("bucket").notNull(),
@@ -54,6 +56,19 @@ const createSchema = createInsertSchema(destinations, {
 		.default([]),
 });
 
+const refineDestinationConfig = (
+	data: { provider: string | null; rcloneConfig?: string },
+	ctx: z.RefinementCtx,
+) => {
+	const message = validateRcloneDestinationConfig(
+		data.provider,
+		data.rcloneConfig,
+	);
+	if (message) {
+		ctx.addIssue({ code: "custom", path: ["rcloneConfig"], message });
+	}
+};
+
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
@@ -68,7 +83,9 @@ export const apiCreateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+		rcloneConfig: z.string().optional(),
+	})
+	.superRefine(refineDestinationConfig);
 
 export const apiFindOneDestination = z.object({
 	destinationId: z.string().min(1),
@@ -95,4 +112,6 @@ export const apiUpdateDestination = createSchema
 	.required()
 	.extend({
 		serverId: z.string().optional(),
-	});
+		rcloneConfig: z.string().optional(),
+	})
+	.superRefine(refineDestinationConfig);

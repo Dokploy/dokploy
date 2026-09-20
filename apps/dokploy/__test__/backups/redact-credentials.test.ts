@@ -48,3 +48,56 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).toContain("[REDACTED]");
 	});
 });
+
+describe("redactRcloneCredentials quoting styles", () => {
+	it("should redact single-quoted values (shell-quote output)", () => {
+		const cmd =
+			"rclone rcat --s3-access-key-id='AKIAIOSFODNN7EXAMPLE' --s3-secret-access-key='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' :s3:bucket/file.gz";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("AKIAIOSFODNN7EXAMPLE");
+		expect(redacted).not.toContain("wJalrXUtnFEMI");
+		expect(redacted).toContain('--s3-access-key-id="[REDACTED]"');
+	});
+
+	it("should redact bare (unquoted) values", () => {
+		const cmd =
+			"rclone rcat --sftp-pass=hunter2 --sftp-user=bob :sftp:/backups/file.gz";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("hunter2");
+		expect(redacted).toContain("--sftp-user=bob");
+	});
+});
+
+describe("redactRcloneCredentials non-s3 providers", () => {
+	it("should redact ftp pass flags", () => {
+		const cmd = "rclone ls --ftp-host=h --ftp-pass='my pw' :ftp:/backups";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("my pw");
+		expect(redacted).toContain("--ftp-host=h");
+		expect(redacted).toContain('--ftp-pass="[REDACTED]"');
+	});
+
+	it("should redact sftp key material flags", () => {
+		const cmd =
+			'rclone ls --sftp-host=h --sftp-key-pem="-----BEGIN KEY-----" --sftp-key-file=/home/u/id :sftp:/b';
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("BEGIN KEY");
+		expect(redacted).not.toContain("/home/u/id");
+	});
+
+	it("should redact oauth token and client secret flags", () => {
+		const cmd =
+			'rclone ls --drive-client-secret="gcs123" --drive-token=\'{"access_token":"ya29.tok"}\' --drive-scope=drive :drive:backups';
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("gcs123");
+		expect(redacted).not.toContain("ya29.tok");
+		expect(redacted).toContain("--drive-scope=drive");
+	});
+
+	it("should redact generic backend key flags", () => {
+		const cmd = "rclone ls --b2-account=acc --b2-key=masterkey :b2:backups";
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).not.toContain("masterkey");
+		expect(redacted).toContain("--b2-account=acc");
+	});
+});
