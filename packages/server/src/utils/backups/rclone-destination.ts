@@ -26,11 +26,11 @@ export interface ResolvedRcloneDestination {
 }
 
 const normalizeRcloneRemoteRoot = (remoteRoot: string) => {
-	const trimmed = remoteRoot.trim();
-	if (/^[^:]+:\\/+$/g.test(trimmed)) {
-		return trimmed.replace(/\\/+$/g, "/");
+	let normalized = remoteRoot.trim();
+	while (normalized.endsWith("/") && !normalized.endsWith(":/")) {
+		normalized = normalized.slice(0, -1);
 	}
-	return trimmed.replace(/\\/+$/g, "");
+	return normalized;
 };
 
 export const getRcloneDestination = (
