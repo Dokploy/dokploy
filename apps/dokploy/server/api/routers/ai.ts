@@ -193,11 +193,13 @@ export const aiRouter = createTRPCRouter({
 			return await saveAiSettings(ctx.session.activeOrganizationId, input);
 		}),
 
-	getAll: withPermission("ai", "read").query(async ({ ctx }) => {
-		return await getAiSettingsByOrganizationId(
-			ctx.session.activeOrganizationId,
-		);
-	}),
+	getAll: withAnyPermission("ai", ["read", "create", "update", "delete"]).query(
+		async ({ ctx }) => {
+			return await getAiSettingsByOrganizationId(
+				ctx.session.activeOrganizationId,
+			);
+		},
+	),
 
 	get: withPermission("ai", "read")
 		.input(z.object({ aiId: z.string() }))
