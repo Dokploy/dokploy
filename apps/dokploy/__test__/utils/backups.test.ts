@@ -273,6 +273,26 @@ describe("getRcloneFlags", () => {
 			),
 		).toThrow("Invalid rclone config");
 	});
+
+	test("builds s3 flags from rcloneConfig for custom s3 destinations", () => {
+		const destination = makeDestination({
+			provider: "custom",
+			accessKey: "",
+			secretAccessKey: "",
+			region: "",
+			endpoint: "",
+			rcloneConfig:
+				"type = s3\naccess_key_id = AKIA\nsecret_access_key = shh\nendpoint = https://minio.local",
+		});
+		expect(getRcloneFlags(destination)).toEqual([
+			"--s3-access-key-id=AKIA",
+			"--s3-secret-access-key=shh",
+			"--s3-endpoint=https\\://minio.local",
+		]);
+		expect(getRcloneRemotePath(destination, "file.dump")).toBe(
+			":s3:dokploy-bucket/file.dump",
+		);
+	});
 });
 
 describe("isNonS3DestinationProvider", () => {

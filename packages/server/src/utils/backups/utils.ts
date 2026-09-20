@@ -106,10 +106,10 @@ export const getRcloneBackendType = (
 };
 
 export const getRcloneFlags = (destination: RcloneDestination): string[] => {
-	const backend = getRcloneBackendType(destination);
-	if (backend === "s3") {
+	if (!isNonS3DestinationProvider(destination.provider)) {
 		return getS3Credentials(destination);
 	}
+	const backend = getRcloneBackendType(destination);
 	const { config, error } = parseRcloneConfig(destination.rcloneConfig ?? "");
 	if (error) {
 		throw new Error(

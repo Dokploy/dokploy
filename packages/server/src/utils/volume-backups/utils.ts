@@ -11,6 +11,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
+import { redactRcloneCredentials } from "../backups/redact";
 import {
 	getRcloneFlags,
 	getRcloneRemotePath,
@@ -105,7 +106,10 @@ const cleanupOldVolumeBackups = async (
 			await execAsync(fullCommand);
 		}
 	} catch (error) {
-		console.error("Volume backup retention error", error);
+		console.error(
+			"Volume backup retention error",
+			redactRcloneCredentials(String(error)),
+		);
 	}
 };
 
@@ -186,7 +190,9 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				serviceType: mappedServiceType,
 				type: "error",
 				organizationId,
-				errorMessage: error instanceof Error ? error.message : String(error),
+				errorMessage: redactRcloneCredentials(
+					error instanceof Error ? error.message : String(error),
+				),
 			});
 		} catch (notificationError) {
 			console.error(

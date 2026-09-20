@@ -7,10 +7,12 @@
  * as well as secret-bearing flags for rclone-backed destinations
  * (`--ftp-pass=`, `--sftp-key-pem=`, `--drive-token=`, ...).
  * Values may be double-quoted, single-quoted, or bare, matching the quoting
- * emitted by shell-quote on flag values.
+ * emitted by shell-quote on flag values. `\'` is its own alternative so the
+ * POSIX `'...'\''...'` concatenation (values containing an apostrophe) is
+ * consumed fully instead of stopping at the first closing quote.
  */
 const SECRET_FLAG_PATTERN =
-	/(--[\w-]*-(?:access-key-id|secret-access-key|client-secret|secret|token|pass|password\d*|key-pem|key-file|private-key|service-account-credentials|credentials|sas-key|account-key|shared-key|auth-token|bearer-token|key)=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\s'"])+/g;
+	/(--[\w-]*-(?:access-key-id|secret-access-key|client-secret|secret|token|pass|password\d*|key-pem|key-file|private-key|service-account-credentials|credentials|sas-key|account-key|shared-key|auth-token|bearer-token|key)=)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\\'|[^\s'"])+/g;
 
 export const redactRcloneCredentials = (command: string): string => {
 	return command.replace(SECRET_FLAG_PATTERN, '$1"[REDACTED]"');

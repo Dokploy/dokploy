@@ -9,6 +9,7 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
@@ -66,14 +67,16 @@ export const runComposeBackup = async (
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
-		console.log(error);
+		const safeErrorMessage = redactRcloneCredentials(
+			error instanceof Error ? error.message : String(error),
+		);
+		console.error(safeErrorMessage);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
 			databaseType: getDatabaseType(databaseType),
 			type: "error",
-			// @ts-expect-error
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: safeErrorMessage || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});

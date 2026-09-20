@@ -3,6 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { redactRcloneCredentials } from "../backups/redact";
 import { getRcloneFlags, getRcloneRemotePath } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
@@ -46,16 +47,11 @@ export const restoreMariadbBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring mariadb backup"
-			}`,
-		);
-		throw new Error(
+		const safeErrorMessage = redactRcloneCredentials(
 			error instanceof Error ? error.message : "Error restoring mariadb backup",
 		);
+		console.error(safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
+		throw new Error(safeErrorMessage);
 	}
 };

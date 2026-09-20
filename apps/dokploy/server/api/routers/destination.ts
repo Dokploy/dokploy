@@ -6,6 +6,7 @@ import {
 	getRcloneFlags,
 	getRcloneRemotePath,
 	IS_CLOUD,
+	redactRcloneCredentials,
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
@@ -76,10 +77,11 @@ export const destinationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
+					message: redactRcloneCredentials(
 						error instanceof Error
 							? error?.message
 							: "Error connecting to destination",
+					),
 					cause: error,
 				});
 			}

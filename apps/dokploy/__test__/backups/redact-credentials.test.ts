@@ -100,4 +100,14 @@ describe("redactRcloneCredentials non-s3 providers", () => {
 		expect(redacted).not.toContain("masterkey");
 		expect(redacted).toContain("--b2-account=acc");
 	});
+
+	it("fully redacts values with POSIX escaped apostrophes", () => {
+		// POSIX shell quoting of "it's"/"a'b" produces concatenated segments
+		// like 'it'\''s' which must be consumed as one token.
+		const cmd = `rclone ls --ftp-pass='it'\\''s' --drive-token='{"a":"b'\\''c"}' :ftp:/x`;
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).toBe(
+			`rclone ls --ftp-pass="[REDACTED]" --drive-token="[REDACTED]" :ftp:/x`,
+		);
+	});
 });

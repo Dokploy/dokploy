@@ -3,6 +3,7 @@ import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { redactRcloneCredentials } from "../backups/redact";
 import { getRcloneFlags, getRcloneRemotePath } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
@@ -89,14 +90,11 @@ export const restoreComposeBackup = async (
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring mongo backup"
-			}`,
+		const safeErrorMessage = redactRcloneCredentials(
+			error instanceof Error ? error.message : "Error restoring compose backup",
 		);
-		throw new Error(
-			error instanceof Error ? error.message : "Error restoring mongo backup",
-		);
+		console.error(safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
+		throw new Error(safeErrorMessage);
 	}
 };
