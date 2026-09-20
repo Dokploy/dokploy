@@ -3,10 +3,12 @@ import {
 	type apiCreateEnvironment,
 	type apiDuplicateEnvironment,
 	environments,
+	projects,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import type { z } from "zod";
+import { removeEnvironmentFromVaultAssignments } from "./vault-provider";
 
 export type Environment = typeof environments.$inferSelect;
 
@@ -294,13 +296,30 @@ export const deleteEnvironment = async (environmentId: string) => {
 				"Cannot delete environment: it has active services. Delete all services first.",
 		});
 	}
-	const deletedEnvironment = await db
-		.delete(environments)
-		.where(eq(environments.environmentId, environmentId))
-		.returning()
-		.then((value) => value[0]);
+	return await db.transaction(async (tx) => {
+		const project = await tx.query.projects.findFirst({
+			where: eq(projects.projectId, currentEnvironment.projectId),
+			columns: { organizationId: true },
+		});
+		if (!project) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Project not found",
+			});
+		}
 
-	return deletedEnvironment;
+		await removeEnvironmentFromVaultAssignments(
+			tx,
+			project.organizationId,
+			environmentId,
+		);
+
+		return await tx
+			.delete(environments)
+			.where(eq(environments.environmentId, environmentId))
+			.returning()
+			.then((value) => value[0]);
+	});
 };
 
 export const updateEnvironmentById = async (
