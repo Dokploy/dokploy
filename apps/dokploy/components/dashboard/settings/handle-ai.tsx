@@ -148,6 +148,7 @@ export const HandleAi = ({ aiId }: Props) => {
 		{
 			apiUrl: apiUrl ?? "",
 			apiKey: apiKey ?? "",
+			...(aiId ? { aiId } : {}),
 		},
 		{
 			enabled: !!apiUrl && (isLocalOllama || !!apiKey),
@@ -482,6 +483,7 @@ export const HandleAi = ({ aiId }: Props) => {
 								apiUrl={apiUrl}
 								apiKey={apiKey}
 								model={form.watch("model")}
+								aiId={aiId}
 							/>
 							<Button type="submit" isLoading={isPending}>
 								{aiId ? "Update" : "Create"}
@@ -498,10 +500,12 @@ function TestConnectionButton({
 	apiUrl,
 	apiKey,
 	model,
+	aiId,
 }: {
 	apiUrl: string;
 	apiKey: string;
 	model: string;
+	aiId?: string;
 }) {
 	const { mutate, isPending } = api.ai.testConnection.useMutation({
 		onSuccess: () => {
@@ -521,7 +525,9 @@ function TestConnectionButton({
 			type="button"
 			variant="outline"
 			disabled={isDisabled || isPending}
-			onClick={() => mutate({ apiUrl, apiKey, model })}
+			onClick={() =>
+				mutate({ apiUrl, apiKey, model, ...(aiId ? { aiId } : {}) })
+			}
 		>
 			{isPending ? (
 				<Loader2 className="mr-2 h-4 w-4 animate-spin" />
