@@ -13,6 +13,7 @@ import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -34,6 +35,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 
 	try {
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const rcloneDestination = getRcloneRemotePath(
 			destination,
 			bucketDestination,
@@ -46,10 +48,16 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		);
 
 		if (mysql.serverId) {
-			await execAsyncRemote(mysql.serverId, backupCommand);
+			await execAsyncRemote(
+				mysql.serverId,
+				backupCommand,
+				undefined,
+				rcloneEnv,
+			);
 		} else {
 			await execAsync(backupCommand, {
 				shell: "/bin/bash",
+				env: { ...process.env, ...rcloneEnv },
 			});
 		}
 		await sendDatabaseBackupNotifications({

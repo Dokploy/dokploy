@@ -1,6 +1,7 @@
 import {
 	createVolumeBackup,
 	findVolumeBackupById,
+	getRcloneEnv,
 	IS_CLOUD,
 	removeVolumeBackup,
 	removeVolumeBackupJob,
@@ -336,17 +337,28 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next("▶️ Executing restore...");
 						emit.next(""); // Empty line
 
+						const rcloneEnv = getRcloneEnv(destination);
+
 						// Execute the restore command with real-time output
 						if (input.serverId) {
 							emit.next(`🌐 Executing on remote server: ${input.serverId}`);
-							await execAsyncRemote(input.serverId, restoreCommand, (data) => {
-								emit.next(data);
-							});
+							await execAsyncRemote(
+								input.serverId,
+								restoreCommand,
+								(data) => {
+									emit.next(data);
+								},
+								rcloneEnv,
+							);
 						} else {
 							emit.next("🖥️ Executing on local server");
-							await execAsyncStream(restoreCommand, (data) => {
-								emit.next(data);
-							});
+							await execAsyncStream(
+								restoreCommand,
+								(data) => {
+									emit.next(data);
+								},
+								{ env: { ...process.env, ...rcloneEnv } },
+							);
 						}
 
 						emit.next("");

@@ -13,6 +13,7 @@ import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -33,6 +34,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	});
 	try {
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const rcloneDestination = getRcloneRemotePath(
 			destination,
 			bucketDestination,
@@ -45,10 +47,16 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		);
 
 		if (mongo.serverId) {
-			await execAsyncRemote(mongo.serverId, backupCommand);
+			await execAsyncRemote(
+				mongo.serverId,
+				backupCommand,
+				undefined,
+				rcloneEnv,
+			);
 		} else {
 			await execAsync(backupCommand, {
 				shell: "/bin/bash",
+				env: { ...process.env, ...rcloneEnv },
 			});
 		}
 

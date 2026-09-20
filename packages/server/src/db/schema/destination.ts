@@ -57,12 +57,13 @@ const createSchema = createInsertSchema(destinations, {
 });
 
 const refineDestinationConfig = (
-	data: { provider: string | null; rcloneConfig?: string },
+	data: { provider: string | null; rcloneConfig?: string; bucket?: string },
 	ctx: z.RefinementCtx,
 ) => {
 	const message = validateRcloneDestinationConfig(
 		data.provider,
 		data.rcloneConfig,
+		data.bucket,
 	);
 	if (message) {
 		ctx.addIssue({ code: "custom", path: ["rcloneConfig"], message });

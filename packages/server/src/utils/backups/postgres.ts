@@ -13,6 +13,7 @@ import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -37,6 +38,7 @@ export const runPostgresBackup = async (
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const rcloneDestination = getRcloneRemotePath(
 			destination,
 			bucketDestination,
@@ -48,10 +50,16 @@ export const runPostgresBackup = async (
 			deployment.logPath,
 		);
 		if (postgres.serverId) {
-			await execAsyncRemote(postgres.serverId, backupCommand);
+			await execAsyncRemote(
+				postgres.serverId,
+				backupCommand,
+				undefined,
+				rcloneEnv,
+			);
 		} else {
 			await execAsync(backupCommand, {
 				shell: "/bin/bash",
+				env: { ...process.env, ...rcloneEnv },
 			});
 		}
 

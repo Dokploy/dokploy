@@ -15,7 +15,7 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { redactRcloneCredentials } from "./redact";
+import { RCLONE_SECRET_OPTION_REGEX, redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
@@ -105,27 +105,84 @@ export const getRcloneBackendType = (
 	return type;
 };
 
-export const getRcloneFlags = (destination: RcloneDestination): string[] => {
-	if (!isNonS3DestinationProvider(destination.provider)) {
-		return getS3Credentials(destination);
+const rcloneEnvVarName = (flagName: string): string =>
+	`RCLONE_${flagName.toUpperCase().replaceAll("-", "_")}`;
+
+const splitAdditionalFlags = (flags?: string[] | null) => {
+	const plain: string[] = [];
+	const env: Record<string, string> = {};
+	for (const flag of flags ?? []) {
+		const separator = flag.indexOf("=");
+		const name = flag.slice(2, separator === -1 ? undefined : separator);
+		if (separator !== -1 && RCLONE_SECRET_OPTION_REGEX.test(name)) {
+			env[rcloneEnvVarName(name)] = flag.slice(separator + 1);
+		} else {
+			plain.push(flag);
+		}
 	}
-	const backend = getRcloneBackendType(destination);
+	return { plain, env };
+};
+
+const getParsedRcloneConfig = (destination: RcloneDestination) => {
 	const { config, error } = parseRcloneConfig(destination.rcloneConfig ?? "");
 	if (error) {
 		throw new Error(
 			`Invalid rclone config for destination "${destination.name}": ${error}`,
 		);
 	}
-	const rcloneFlags = Object.entries(config)
-		.filter(([key]) => key !== "type")
-		.map(
-			([key, value]) =>
-				`--${backend}-${key.replaceAll("_", "-")}=${quote([value])}`,
-		);
-	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
+	return config;
+};
+
+const rcloneFlagName = (backend: string, key: string) =>
+	`${backend}-${key.replaceAll("_", "-")}`;
+
+// Only non-secret options belong on the command line; credentials are routed
+// through getRcloneEnv so they never appear in logged commands or error text.
+export const getRcloneFlags = (destination: RcloneDestination): string[] => {
+	const { plain } = splitAdditionalFlags(destination.additionalFlags);
+	if (!isNonS3DestinationProvider(destination.provider)) {
+		return [...getS3Credentials(destination), ...plain];
 	}
-	return rcloneFlags;
+	const backend = getRcloneBackendType(destination);
+	const config = getParsedRcloneConfig(destination);
+	return [
+		...Object.entries(config)
+			.filter(([key]) => key !== "type")
+			.filter(
+				([key]) =>
+					!RCLONE_SECRET_OPTION_REGEX.test(rcloneFlagName(backend, key)),
+			)
+			.map(
+				([key, value]) => `--${rcloneFlagName(backend, key)}=${quote([value])}`,
+			),
+		...plain,
+	];
+};
+
+// Credential options become RCLONE_<BACKEND>_<OPTION> env vars, which rclone
+// reads exactly like the matching flag but keeps off the command line.
+export const getRcloneEnv = (
+	destination: RcloneDestination,
+): Record<string, string> => {
+	const { env: additional } = splitAdditionalFlags(destination.additionalFlags);
+	if (!isNonS3DestinationProvider(destination.provider)) {
+		return {
+			RCLONE_S3_ACCESS_KEY_ID: destination.accessKey,
+			RCLONE_S3_SECRET_ACCESS_KEY: destination.secretAccessKey,
+			...additional,
+		};
+	}
+	const backend = getRcloneBackendType(destination);
+	const config = getParsedRcloneConfig(destination);
+	const env: Record<string, string> = { ...additional };
+	for (const [key, value] of Object.entries(config)) {
+		if (key === "type") continue;
+		const flagName = rcloneFlagName(backend, key);
+		if (RCLONE_SECRET_OPTION_REGEX.test(flagName)) {
+			env[rcloneEnvVarName(flagName)] = value;
+		}
+	}
+	return env;
 };
 
 export const getRcloneRemotePath = (
@@ -145,12 +202,10 @@ export const getRcloneRemotePath = (
 		: `${remote}/${remotePath}`;
 };
 
+// Non-secret S3 options only; the access key pair goes through getRcloneEnv.
 export const getS3Credentials = (destination: RcloneDestination) => {
-	const { accessKey, secretAccessKey, region, endpoint, provider } =
-		destination;
+	const { region, endpoint, provider } = destination;
 	const rcloneFlags = [
-		`--s3-access-key-id=${quote([accessKey])}`,
-		`--s3-secret-access-key=${quote([secretAccessKey])}`,
 		`--s3-region=${quote([region])}`,
 		`--s3-endpoint=${quote([endpoint])}`,
 		"--s3-no-check-bucket",
@@ -159,10 +214,6 @@ export const getS3Credentials = (destination: RcloneDestination) => {
 
 	if (provider) {
 		rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
-	}
-
-	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
 	}
 
 	return rcloneFlags;

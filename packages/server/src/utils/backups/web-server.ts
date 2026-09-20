@@ -18,6 +18,7 @@ import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupTimestamp,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -47,6 +48,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 	try {
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const timestamp = getBackupTimestamp();
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
@@ -124,7 +126,9 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${zipPath}" "${remotePath}"`;
 			writeStream.write("Running command to upload backup to destination\n");
-			await execAsync(uploadCommand);
+			await execAsync(uploadCommand, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 			writeStream.write("Uploaded backup to destination ✅\n");
 			writeStream.end();
 			await sendDokployBackupNotifications({

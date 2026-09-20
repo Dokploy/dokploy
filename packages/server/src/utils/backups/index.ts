@@ -13,6 +13,7 @@ import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup"
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import {
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -148,18 +149,20 @@ export const keepLatestNBackups = async (
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
 		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" "${backupFilesPath}"`;
-		// when we pipe the above command with this one, we only get the list of files we want to delete
-		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
-		// this command deletes the files
-		// to test the deletion before actually deleting we can add --dry-run before "${backupFilesPath}{}"
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} "${backupFilesPath}{}"`;
+		// --files-from - reads the file list from stdin so names containing
+		// spaces or quotes are never re-parsed as shell arguments
+		// to test the deletion before actually deleting we can add --dry-run to the rclone delete
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} --files-from - "${backupFilesPath}"`;
 
-		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+		const rcloneCommand = `${rcloneList} | sort -r | tail -n +$((${backup.keepLatestCount}+1)) | ${rcloneDelete}`;
 
+		const rcloneEnv = getRcloneEnv(destination);
 		if (serverId) {
-			await execAsyncRemote(serverId, rcloneCommand);
+			await execAsyncRemote(serverId, rcloneCommand, undefined, rcloneEnv);
 		} else {
-			await execAsync(rcloneCommand);
+			await execAsync(rcloneCommand, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 	} catch (error) {
 		console.error(redactRcloneCredentials(String(error)));

@@ -13,6 +13,7 @@ import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -37,6 +38,7 @@ export const runLibsqlBackup = async (
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const rcloneDestination = getRcloneRemotePath(
 			destination,
 			bucketDestination,
@@ -48,10 +50,16 @@ export const runLibsqlBackup = async (
 			deployment.logPath,
 		);
 		if (libsql.serverId) {
-			await execAsyncRemote(libsql.serverId, backupCommand);
+			await execAsyncRemote(
+				libsql.serverId,
+				backupCommand,
+				undefined,
+				rcloneEnv,
+			);
 		} else {
 			await execAsync(backupCommand, {
 				shell: "/bin/bash",
+				env: { ...process.env, ...rcloneEnv },
 			});
 		}
 

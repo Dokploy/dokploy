@@ -64,6 +64,7 @@ export const parseRcloneConfig = (rawConfig: string) => {
 export const validateRcloneDestinationConfig = (
 	provider: string | null | undefined,
 	rcloneConfig: string | null | undefined,
+	bucket?: string | null,
 ): string | null => {
 	if (!isNonS3DestinationProvider(provider)) return null;
 	if (!rcloneConfig?.trim()) {
@@ -76,6 +77,11 @@ export const validateRcloneDestinationConfig = (
 	if (normalizedProvider === "custom") {
 		if (!configType || !RCLONE_BACKEND_TYPE_REGEX.test(configType)) {
 			return 'Custom destinations require a valid "type = <backend>" entry (e.g. type = dropbox)';
+		}
+		// S3 remotes resolve the bucket from the remote path, so a custom s3
+		// destination without a bucket would silently target the wrong bucket.
+		if (configType === "s3" && !bucket?.trim()) {
+			return 'A bucket is required in "Remote Path" when the custom backend type is s3';
 		}
 	} else if (configType && configType !== normalizedProvider) {
 		return `Config type "${config.type}" does not match the selected provider`;

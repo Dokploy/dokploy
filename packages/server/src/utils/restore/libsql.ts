@@ -5,6 +5,7 @@ import { quote } from "shell-quote";
 import type { z } from "zod";
 import { redactRcloneCredentials } from "../backups/redact";
 import {
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	getServiceContainerCommand,
@@ -21,6 +22,7 @@ export const restoreLibsqlBackup = async (
 		const { appName, serverId } = libsql;
 
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const backupPath = getRcloneRemotePath(destination, backupInput.backupFile);
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])}`;
@@ -34,9 +36,11 @@ export const restoreLibsqlBackup = async (
 		emit(`Restoring libsql from ${backupInput.backupFile}`);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, command, undefined, rcloneEnv);
 		} else {
-			await execAsync(command);
+			await execAsync(command, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		emit("Restore completed successfully!");

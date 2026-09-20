@@ -5,7 +5,11 @@ import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
 import { redactRcloneCredentials } from "../backups/redact";
-import { getRcloneFlags, getRcloneRemotePath } from "../backups/utils";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -18,6 +22,7 @@ export const restoreWebServerBackup = async (
 	}
 	try {
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const backupPath = getRcloneRemotePath(destination, backupFile);
 		const { BASE_PATH } = paths();
 
@@ -37,6 +42,7 @@ export const restoreWebServerBackup = async (
 			emit("Downloading backup from S3...");
 			await execAsync(
 				`rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${tempDir}/${backupFile}`])}`,
+				{ env: { ...process.env, ...rcloneEnv } },
 			);
 
 			// List files before extraction

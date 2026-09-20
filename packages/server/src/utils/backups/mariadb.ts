@@ -13,6 +13,7 @@ import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -36,6 +37,7 @@ export const runMariadbBackup = async (
 	});
 	try {
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const rcloneDestination = getRcloneRemotePath(
 			destination,
 			bucketDestination,
@@ -47,10 +49,16 @@ export const runMariadbBackup = async (
 			deployment.logPath,
 		);
 		if (mariadb.serverId) {
-			await execAsyncRemote(mariadb.serverId, backupCommand);
+			await execAsyncRemote(
+				mariadb.serverId,
+				backupCommand,
+				undefined,
+				rcloneEnv,
+			);
 		} else {
 			await execAsync(backupCommand, {
 				shell: "/bin/bash",
+				env: { ...process.env, ...rcloneEnv },
 			});
 		}
 

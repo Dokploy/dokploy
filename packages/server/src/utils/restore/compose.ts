@@ -4,7 +4,11 @@ import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { redactRcloneCredentials } from "../backups/redact";
-import { getRcloneFlags, getRcloneRemotePath } from "../backups/utils";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -26,6 +30,7 @@ export const restoreComposeBackup = async (
 		const { serverId, appName, composeType } = compose;
 
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const backupPath = getRcloneRemotePath(destination, backupInput.backupFile);
 		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
@@ -83,9 +88,11 @@ export const restoreComposeBackup = async (
 		);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, restoreCommand);
+			await execAsyncRemote(serverId, restoreCommand, undefined, rcloneEnv);
 		} else {
-			await execAsync(restoreCommand);
+			await execAsync(restoreCommand, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		emit("Restore completed successfully!");

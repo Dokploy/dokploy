@@ -33,6 +33,7 @@ import { checkServicePermissionAndAccess } from "@dokploy/server/services/permis
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -501,6 +502,7 @@ export const backupRouter = createTRPCRouter({
 					}
 				}
 				const rcloneFlags = getRcloneFlags(destination);
+				const rcloneEnv = getRcloneEnv(destination);
 				const bucketPath = getRcloneRemotePath(destination);
 
 				const lastSlashIndex = input.search.lastIndexOf("/");
@@ -521,10 +523,17 @@ export const backupRouter = createTRPCRouter({
 				let stdout = "";
 
 				if (input.serverId) {
-					const result = await execAsyncRemote(input.serverId, listCommand);
+					const result = await execAsyncRemote(
+						input.serverId,
+						listCommand,
+						undefined,
+						rcloneEnv,
+					);
 					stdout = result.stdout;
 				} else {
-					const result = await execAsync(listCommand);
+					const result = await execAsync(listCommand, {
+						env: { ...process.env, ...rcloneEnv },
+					});
 					stdout = result.stdout;
 				}
 

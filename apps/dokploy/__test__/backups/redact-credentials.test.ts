@@ -110,4 +110,23 @@ describe("redactRcloneCredentials non-s3 providers", () => {
 			`rclone ls --ftp-pass="[REDACTED]" --drive-token="[REDACTED]" :ftp:/x`,
 		);
 	});
+
+	it("redacts single-quoted values containing a backslash", () => {
+		// shell-quote emits 'trailing\' for a value ending in a backslash —
+		// the backslash is literal inside single quotes and must not stop
+		// the matcher at the quote.
+		const cmd = `rclone ls --ftp-pass='trailing\\' --sftp-user=bob :ftp:/x`;
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).toBe(
+			`rclone ls --ftp-pass="[REDACTED]" --sftp-user=bob :ftp:/x`,
+		);
+	});
+
+	it("redacts double-quoted values containing escaped quotes", () => {
+		const cmd = `rclone ls --drive-token="{\\"a\\":\\"sec\\"}" --drive-scope=drive :drive:/x`;
+		const redacted = redactRcloneCredentials(cmd);
+		expect(redacted).toBe(
+			`rclone ls --drive-token="[REDACTED]" --drive-scope=drive :drive:/x`,
+		);
+	});
 });

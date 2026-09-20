@@ -76,6 +76,7 @@ const addDestination = z
 			const error = validateRcloneDestinationConfig(
 				data.provider,
 				data.rcloneConfig,
+				data.bucket,
 			);
 			if (error) {
 				ctx.addIssue({

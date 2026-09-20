@@ -5,6 +5,7 @@ import {
 } from "@dokploy/server/db/validations/destination";
 import {
 	getRcloneBackendType,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	getS3Credentials,
@@ -214,7 +215,7 @@ describe("getRcloneFlags", () => {
 		expect(getRcloneFlags(destination)).toEqual(getS3Credentials(destination));
 	});
 
-	test("maps config entries to backend flags", () => {
+	test("maps non-secret config entries to backend flags", () => {
 		expect(
 			getRcloneFlags(
 				makeDestination({
@@ -227,9 +228,50 @@ describe("getRcloneFlags", () => {
 			"--sftp-host=sftp.example.com",
 			"--sftp-port=22",
 			"--sftp-user=bob",
-			"--sftp-pass=s3cret",
-			"--sftp-key-file=/keys/id",
 		]);
+	});
+
+	test("secret options become RCLONE_ env vars instead of flags", () => {
+		const destination = makeDestination({
+			provider: "sftp",
+			rcloneConfig:
+				"host = sftp.example.com\nport = 22\nuser = bob\npass = s3cret\nkey_file = /keys/id",
+		});
+		expect(getRcloneEnv(destination)).toEqual({
+			RCLONE_SFTP_PASS: "s3cret",
+			RCLONE_SFTP_KEY_FILE: "/keys/id",
+		});
+		for (const flag of getRcloneFlags(destination)) {
+			expect(flag).not.toContain("s3cret");
+			expect(flag).not.toContain("/keys/id");
+		}
+	});
+
+	test("s3 destinations expose credentials only via env", () => {
+		const destination = makeDestination({});
+		expect(getRcloneEnv(destination)).toEqual({
+			RCLONE_S3_ACCESS_KEY_ID: "AKIAIOSFODNN7EXAMPLE",
+			RCLONE_S3_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		});
+		for (const flag of getRcloneFlags(destination)) {
+			expect(flag).not.toContain("AKIAIOSFODNN7EXAMPLE");
+			expect(flag).not.toContain("wJalrXUtnFEMI");
+		}
+	});
+
+	test("secret additionalFlags become env vars", () => {
+		const destination = makeDestination({
+			provider: "ftp",
+			rcloneConfig: "host = h",
+			additionalFlags: ["--b2-application-key=masterkey", "--retries=3"],
+		});
+		expect(getRcloneEnv(destination)).toEqual({
+			RCLONE_B2_APPLICATION_KEY: "masterkey",
+		});
+		expect(getRcloneFlags(destination)).toContain("--retries=3");
+		expect(getRcloneFlags(destination)).not.toContain(
+			"--b2-application-key=masterkey",
+		);
 	});
 
 	test("shell-quotes config values that need it", () => {
@@ -237,21 +279,19 @@ describe("getRcloneFlags", () => {
 			getRcloneFlags(
 				makeDestination({
 					provider: "ftp",
-					rcloneConfig: 'host = h\npass = "my secret"',
+					rcloneConfig: 'host = "my host"',
 				}),
 			),
-		).toContain("--ftp-pass='\"my secret\"'");
+		).toContain("--ftp-host='\"my host\"'");
 	});
 
-	test("excludes the type key from flags", () => {
-		expect(
-			getRcloneFlags(
-				makeDestination({
-					provider: "custom",
-					rcloneConfig: "type = dropbox\ntoken = t",
-				}),
-			),
-		).toEqual(["--dropbox-token=t"]);
+	test("excludes the type key from flags and env", () => {
+		const destination = makeDestination({
+			provider: "custom",
+			rcloneConfig: "type = dropbox\ntoken = t\nclient_id = id1",
+		});
+		expect(getRcloneFlags(destination)).toEqual(["--dropbox-client-id=id1"]);
+		expect(getRcloneEnv(destination)).toEqual({ RCLONE_DROPBOX_TOKEN: "t" });
 	});
 
 	test("appends additionalFlags", () => {
@@ -285,10 +325,12 @@ describe("getRcloneFlags", () => {
 				"type = s3\naccess_key_id = AKIA\nsecret_access_key = shh\nendpoint = https://minio.local",
 		});
 		expect(getRcloneFlags(destination)).toEqual([
-			"--s3-access-key-id=AKIA",
-			"--s3-secret-access-key=shh",
 			"--s3-endpoint=https\\://minio.local",
 		]);
+		expect(getRcloneEnv(destination)).toEqual({
+			RCLONE_S3_ACCESS_KEY_ID: "AKIA",
+			RCLONE_S3_SECRET_ACCESS_KEY: "shh",
+		});
 		expect(getRcloneRemotePath(destination, "file.dump")).toBe(
 			":s3:dokploy-bucket/file.dump",
 		);
@@ -402,5 +444,26 @@ describe("validateRcloneDestinationConfig", () => {
 		expect(
 			validateRcloneDestinationConfig("custom", "type = not a type"),
 		).toContain("type = <backend>");
+	});
+
+	test("requires a bucket for custom s3 backends", () => {
+		const config = "type = s3\nendpoint = https://minio.local";
+		expect(validateRcloneDestinationConfig("custom", config, "")).toContain(
+			"bucket",
+		);
+		expect(validateRcloneDestinationConfig("custom", config, "  ")).toContain(
+			"bucket",
+		);
+		expect(
+			validateRcloneDestinationConfig("custom", config, "my-bucket"),
+		).toBeNull();
+		// non-s3 custom backends stay bucket-optional
+		expect(
+			validateRcloneDestinationConfig(
+				"custom",
+				"type = dropbox\ntoken = t",
+				"",
+			),
+		).toBeNull();
 	});
 });

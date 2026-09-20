@@ -4,7 +4,11 @@ import type { Mongo } from "@dokploy/server/services/mongo";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { redactRcloneCredentials } from "../backups/redact";
-import { getRcloneFlags, getRcloneRemotePath } from "../backups/utils";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -18,6 +22,7 @@ export const restoreMongoBackup = async (
 		const { appName, databasePassword, databaseUser, serverId } = mongo;
 
 		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
 		const backupPath = getRcloneRemotePath(destination, backupInput.backupFile);
 		const rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} ${quote([backupPath])}`;
 
@@ -40,9 +45,11 @@ export const restoreMongoBackup = async (
 		);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, command, undefined, rcloneEnv);
 		} else {
-			await execAsync(command);
+			await execAsync(command, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		emit("Restore completed successfully!");

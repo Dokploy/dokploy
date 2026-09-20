@@ -3,6 +3,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	IS_CLOUD,
@@ -59,6 +60,7 @@ export const destinationRouter = createTRPCRouter({
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
+				const rcloneEnv = getRcloneEnv(input);
 				const rcloneDestination = getRcloneRemotePath(input);
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 
@@ -70,9 +72,16 @@ export const destinationRouter = createTRPCRouter({
 				}
 
 				if (IS_CLOUD) {
-					await execAsyncRemote(input.serverId || "", rcloneCommand);
+					await execAsyncRemote(
+						input.serverId || "",
+						rcloneCommand,
+						undefined,
+						rcloneEnv,
+					);
 				} else {
-					await execAsync(rcloneCommand);
+					await execAsync(rcloneCommand, {
+						env: { ...process.env, ...rcloneEnv },
+					});
 				}
 			} catch (error) {
 				throw new TRPCError({

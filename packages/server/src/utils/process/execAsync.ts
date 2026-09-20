@@ -1,6 +1,8 @@
 import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
+import { nanoid } from "nanoid";
+import { quote } from "shell-quote";
 import { Client } from "ssh2";
 import { ExecError } from "./ExecError";
 
@@ -156,8 +158,21 @@ export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
 	onData?: (data: string) => void,
+	env?: Record<string, string>,
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
+	let wrappedCommand = command;
+	if (env && Object.keys(env).length > 0) {
+		// sshd only forwards env vars it is configured to AcceptEnv, so secrets
+		// are delivered over SFTP as a sourced env file instead of argv, which
+		// would otherwise leak them in remote `ps` output and error text.
+		const envPath = `/tmp/dokploy-env-${nanoid()}`;
+		const envContent = `${Object.entries(env)
+			.map(([key, value]) => `export ${key}=${quote([value])}`)
+			.join("\n")}\n`;
+		await writeFileRemote(serverId, envPath, envContent, { mode: 0o600 });
+		wrappedCommand = `(\n. ${quote([envPath])}\n${command}\n)\nstatus=$?\nrm -f ${quote([envPath])}\nexit $status\n`;
+	}
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
 
@@ -169,7 +184,7 @@ export const execAsyncRemote = async (
 		sleep(1000);
 		conn
 			.once("ready", () => {
-				conn.exec(command, (err, stream) => {
+				conn.exec(wrappedCommand, (err, stream) => {
 					if (err) {
 						onData?.(err.message);
 						reject(
@@ -266,6 +281,7 @@ export const writeFileRemote = async (
 	serverId: string,
 	remotePath: string,
 	content: string,
+	options?: { mode?: number },
 ): Promise<void> => {
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
@@ -286,19 +302,24 @@ export const writeFileRemote = async (
 						);
 						return;
 					}
-					sftp.writeFile(remotePath, content, (writeErr) => {
-						conn.end();
-						if (writeErr) {
-							reject(
-								new WriteFileRemoteError(
-									`Failed to write remote file ${remotePath}: ${writeErr.message}`,
-									{ remotePath, serverId, originalError: writeErr },
-								),
-							);
-							return;
-						}
-						resolve();
-					});
+					sftp.writeFile(
+						remotePath,
+						content,
+						options?.mode !== undefined ? { mode: options.mode } : {},
+						(writeErr) => {
+							conn.end();
+							if (writeErr) {
+								reject(
+									new WriteFileRemoteError(
+										`Failed to write remote file ${remotePath}: ${writeErr.message}`,
+										{ remotePath, serverId, originalError: writeErr },
+									),
+								);
+								return;
+							}
+							resolve();
+						},
+					);
 				});
 			})
 			.on("error", (err) => {

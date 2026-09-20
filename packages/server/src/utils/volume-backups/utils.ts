@@ -13,6 +13,7 @@ import {
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { redactRcloneCredentials } from "../backups/redact";
 import {
+	getRcloneEnv,
 	getRcloneFlags,
 	getRcloneRemotePath,
 	normalizeS3Path,
@@ -96,14 +97,18 @@ const cleanupOldVolumeBackups = async (
 			`${s3AppName}/${normalizeS3Path(prefix || "")}`,
 		);
 		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" "${backupFilesPath}"`;
-		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} "${backupFilesPath}{}"`;
-		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
+		// --files-from - reads the file list from stdin so names containing
+		// spaces or quotes are never re-parsed as shell arguments
+		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} --files-from - "${backupFilesPath}"`;
+		const fullCommand = `${listCommand} | sort -r | tail -n +$((${keepLatestCount}+1)) | ${deleteCommand}`;
 
+		const rcloneEnv = getRcloneEnv(destination);
 		if (serverId) {
-			await execAsyncRemote(serverId, fullCommand);
+			await execAsyncRemote(serverId, fullCommand, undefined, rcloneEnv);
 		} else {
-			await execAsync(fullCommand);
+			await execAsync(fullCommand, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 	} catch (error) {
 		console.error(
@@ -126,12 +131,16 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 	const organizationId = getOrganizationId(volumeBackup);
 	try {
 		const command = await backupVolume(volumeBackup);
+		const destination = await findDestinationById(volumeBackup.destinationId);
+		const rcloneEnv = getRcloneEnv(destination);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemote(serverId, commandWithLog, undefined, rcloneEnv);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsync(commandWithLog, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		if (volumeBackup.keepLatestCount && volumeBackup.keepLatestCount > 0) {
