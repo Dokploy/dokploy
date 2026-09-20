@@ -50,7 +50,7 @@ import { generatePassword } from "@/templates/utils";
 
 const resolveInputApiKey = (
 	input: { apiKey: string; apiUrl: string; aiId?: string },
-	ctx: { session: { activeOrganizationId: string } },
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
 ) =>
 	resolveAiApiKey({
 		apiKey: input.apiKey,
