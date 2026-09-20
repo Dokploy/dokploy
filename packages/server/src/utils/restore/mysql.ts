@@ -3,7 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { getRcloneDestination } from "../backups/rclone-destination";
+import {\n\tgetRcloneDestination,\n\tjoinRclonePath,\n} from "../backups/rclone-destination";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -17,8 +17,7 @@ export const restoreMySqlBackup = async (
 		const { appName, databaseRootPassword, serverId } = mysql;
 
 		const { flags: rcloneFlags, remoteRoot } = getRcloneDestination(destination);
-		const bucketPath = remoteRoot;
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const backupPath = joinRclonePath(remoteRoot, backupInput.backupFile);
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
