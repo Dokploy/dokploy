@@ -321,6 +321,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<SelectItem value={RCLONE_CONFIG_PROVIDER}>
 										Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
 									</SelectItem>
+													<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+														Generic rclone config
+													</SelectItem>
 												</SelectContent>
 											</Select>
 										</FormControl>
@@ -423,6 +426,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											{...field}
 										/>
 									</FormControl>
+									{isGenericRclone && (
+										<p className="text-xs text-muted-foreground">
+											Provision this config file and named remote at the same path on every host that executes backups or restores. Self-hosted connection tests run on the Dokploy host; cloud or remote resources use the selected resource server.
+										</p>
+									)}
 									<FormMessage />
 									{isGenericRclone && (
 										<p className="text-xs text-muted-foreground">
