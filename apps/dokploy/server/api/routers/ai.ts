@@ -195,9 +195,10 @@ export const aiRouter = createTRPCRouter({
 
 	getAll: withAnyPermission("ai", ["read", "create", "update", "delete"]).query(
 		async ({ ctx }) => {
-			return await getAiSettingsByOrganizationId(
+			const settings = await getAiSettingsByOrganizationId(
 				ctx.session.activeOrganizationId,
 			);
+			return settings.map(({ apiKey, ...rest }) => rest);
 		},
 	),
 
