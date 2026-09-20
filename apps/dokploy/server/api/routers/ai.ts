@@ -224,16 +224,17 @@ export const aiRouter = createTRPCRouter({
 	update: withPermission("ai", "update")
 		.input(apiUpdateAi)
 		.mutation(async ({ ctx, input }) => {
+			const existing = await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 			if (input.apiKey) {
-				const existing = await getAiSettingById(
-					input.aiId,
-					ctx.session.activeOrganizationId,
-				);
 				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
 			}
 			const result = await saveAiSettings(
 				ctx.session.activeOrganizationId,
 				input,
+				false,
 			);
 			await audit(ctx, {
 				action: "update",
