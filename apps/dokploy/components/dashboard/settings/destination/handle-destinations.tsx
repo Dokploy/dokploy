@@ -318,6 +318,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 															{s3Provider.name}
 														</SelectItem>
 													))}
+									<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+										Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
+									</SelectItem>
 												</SelectContent>
 											</Select>
 										</FormControl>
@@ -421,6 +424,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										/>
 									</FormControl>
 									<FormMessage />
+									{isGenericRclone && (
+										<p className="text-xs text-muted-foreground">
+											The rclone config path and named remote must exist on every execution host that can run this backup, including a selected resource server. Connection testing runs on the selected server when one is chosen; otherwise it runs in Dokploy&apos;s local execution environment.
+										</p>
+									)}
 								</FormItem>
 							)}
 						/>
