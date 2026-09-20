@@ -4,7 +4,7 @@ import { aiCustomProviderSchema } from "@dokploy/server/db/schema/ai";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText, Output } from "ai";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { findServerById } from "./server";
@@ -36,9 +36,12 @@ export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	return aiSettings;
 };
 
-export const getAiSettingById = async (aiId: string) => {
+export const getAiSettingById = async (
+	aiId: string,
+	organizationId: string,
+) => {
 	const aiSetting = await db.query.ai.findFirst({
-		where: eq(ai.aiId, aiId),
+		where: and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)),
 	});
 	if (!aiSetting) {
 		throw new TRPCError({
@@ -100,6 +103,18 @@ const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
 export const saveAiSettings = async (organizationId: string, settings: any) => {
 	const aiId = settings.aiId;
 
+	if (aiId) {
+		const existing = await db.query.ai.findFirst({
+			where: eq(ai.aiId, aiId),
+		});
+		if (existing && existing.organizationId !== organizationId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You do not have permission to modify this AI configuration",
+			});
+		}
+	}
+
 	if (settings.apiUrl) {
 		const customProviders = await getCustomAiProviders(organizationId);
 		if (customProviders.length > 0) {
@@ -132,8 +147,13 @@ export const saveAiSettings = async (organizationId: string, settings: any) => {
 		});
 };
 
-export const deleteAiSettings = async (aiId: string) => {
-	return db.delete(ai).where(eq(ai.aiId, aiId));
+export const deleteAiSettings = async (
+	aiId: string,
+	organizationId: string,
+) => {
+	return db
+		.delete(ai)
+		.where(and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)));
 };
 
 interface Props {
@@ -144,13 +164,13 @@ interface Props {
 }
 
 export const suggestVariants = async ({
-	organizationId: _organizationId,
+	organizationId,
 	aiId,
 	input,
 	serverId,
 }: Props) => {
 	try {
-		const aiSettings = await getAiSettingById(aiId);
+		const aiSettings = await getAiSettingById(aiId, organizationId);
 		if (!aiSettings || !aiSettings.isEnabled) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
