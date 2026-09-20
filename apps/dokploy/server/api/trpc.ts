@@ -14,7 +14,7 @@ import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import {
 	checkPermission,
-	hasPermission,
+	resolvePermissions,
 } from "@dokploy/server/services/permission";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
@@ -85,14 +85,14 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	return createInnerTRPCContext({
 		req,
 		res,
-		// @ts-ignore
+		// @ts-expect-error
 		session: session
 			? {
 					...session,
 					activeOrganizationId: session.activeOrganizationId || "",
 				}
 			: null,
-		// @ts-ignore
+		// @ts-expect-error
 		user: user
 			? {
 					...user,
@@ -272,11 +272,17 @@ export const withAnyPermission = <R extends Resource>(
 	actions: ActionOf<R>[],
 ) =>
 	protectedProcedure.use(async ({ ctx, next }) => {
-		for (const action of actions) {
-			if (await hasPermission(ctx, { [resource]: [action] } as any)) {
-				return next();
+		const permissions = await resolvePermissions(ctx);
+		const resourcePerms = permissions[resource];
+
+		if (resourcePerms) {
+			for (const action of actions) {
+				if ((resourcePerms as Record<string, boolean>)[action as string]) {
+					return next();
+				}
 			}
 		}
+
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "Permission denied",
