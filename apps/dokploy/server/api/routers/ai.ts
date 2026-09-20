@@ -15,6 +15,8 @@ import {
 	getAiSettingById,
 	getAiSettingsByOrganizationId,
 	getCustomAiProviders,
+	maskAiApiKey,
+	mergeAiApiKey,
 	saveAiSettings,
 	saveCustomAiProviders,
 	suggestVariants,
@@ -41,16 +43,18 @@ import {
 	withAnyPermission,
 	withPermission,
 } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
 	one: withAnyPermission("ai", ["read", "update"])
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ input, ctx }) => {
-			return await getAiSettingById(
+			const setting = await getAiSettingById(
 				input.aiId,
 				ctx.session.activeOrganizationId,
 			);
+			return maskAiApiKey(setting);
 		}),
 
 	getModels: withAnyPermission("ai", ["read", "create", "update"])
@@ -184,13 +188,39 @@ export const aiRouter = createTRPCRouter({
 	create: withPermission("ai", "create")
 		.input(apiCreateAi)
 		.mutation(async ({ ctx, input }) => {
-			return await saveAiSettings(ctx.session.activeOrganizationId, input);
+			const result = await saveAiSettings(
+				ctx.session.activeOrganizationId,
+				input,
+			);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "ai",
+				resourceName: input.name,
+			});
+			return result;
 		}),
 
 	update: withPermission("ai", "update")
 		.input(apiUpdateAi)
 		.mutation(async ({ ctx, input }) => {
-			return await saveAiSettings(ctx.session.activeOrganizationId, input);
+			if (input.apiKey) {
+				const existing = await getAiSettingById(
+					input.aiId,
+					ctx.session.activeOrganizationId,
+				);
+				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
+			}
+			const result = await saveAiSettings(
+				ctx.session.activeOrganizationId,
+				input,
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "ai",
+				resourceId: input.aiId,
+				resourceName: input.name,
+			});
+			return result;
 		}),
 
 	getAll: withAnyPermission("ai", ["read", "create", "update", "delete"]).query(
@@ -202,22 +232,21 @@ export const aiRouter = createTRPCRouter({
 		},
 	),
 
-	get: withPermission("ai", "read")
-		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input, ctx }) => {
-			return await getAiSettingById(
-				input.aiId,
-				ctx.session.activeOrganizationId,
-			);
-		}),
-
 	delete: withPermission("ai", "delete")
 		.input(z.object({ aiId: z.string() }))
 		.mutation(async ({ input, ctx }) => {
-			return await deleteAiSettings(
+			const setting = await getAiSettingById(
 				input.aiId,
 				ctx.session.activeOrganizationId,
 			);
+			await deleteAiSettings(input.aiId, ctx.session.activeOrganizationId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "ai",
+				resourceId: input.aiId,
+				resourceName: setting.name,
+			});
+			return true;
 		}),
 
 	getCustomProviders: withAnyPermission("ai", [
