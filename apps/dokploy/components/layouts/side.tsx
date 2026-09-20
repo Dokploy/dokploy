@@ -350,7 +350,7 @@ const MENU: Menu = {
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
-			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+			isEnabled: ({ permissions }) => !!permissions?.ai.read,
 		},
 		{
 			isSingle: true,

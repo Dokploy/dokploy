@@ -38,18 +38,18 @@ import { slugify } from "@/lib/slug";
 import {
 	adminProcedure,
 	createTRPCRouter,
-	protectedProcedure,
+	withPermission,
 } from "@/server/api/trpc";
 import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
-	one: adminProcedure
+	one: withPermission("ai", "read")
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ input }) => {
 			return await getAiSettingById(input.aiId);
 		}),
 
-	getModels: protectedProcedure
+	getModels: withPermission("ai", "read")
 		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
@@ -177,33 +177,37 @@ export const aiRouter = createTRPCRouter({
 				});
 			}
 		}),
-	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.session.activeOrganizationId, input);
-	}),
+	create: withPermission("ai", "create")
+		.input(apiCreateAi)
+		.mutation(async ({ ctx, input }) => {
+			return await saveAiSettings(ctx.session.activeOrganizationId, input);
+		}),
 
-	update: adminProcedure.input(apiUpdateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.session.activeOrganizationId, input);
-	}),
+	update: withPermission("ai", "update")
+		.input(apiUpdateAi)
+		.mutation(async ({ ctx, input }) => {
+			return await saveAiSettings(ctx.session.activeOrganizationId, input);
+		}),
 
-	getAll: adminProcedure.query(async ({ ctx }) => {
+	getAll: withPermission("ai", "read").query(async ({ ctx }) => {
 		return await getAiSettingsByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
 	}),
 
-	get: adminProcedure
+	get: withPermission("ai", "read")
 		.input(z.object({ aiId: z.string() }))
 		.query(async ({ input }) => {
 			return await getAiSettingById(input.aiId);
 		}),
 
-	delete: adminProcedure
+	delete: withPermission("ai", "delete")
 		.input(z.object({ aiId: z.string() }))
 		.mutation(async ({ input }) => {
 			return await deleteAiSettings(input.aiId);
 		}),
 
-	getCustomProviders: protectedProcedure.query(async ({ ctx }) => {
+	getCustomProviders: withPermission("ai", "read").query(async ({ ctx }) => {
 		return await getCustomAiProviders(ctx.session.activeOrganizationId);
 	}),
 
@@ -216,7 +220,7 @@ export const aiRouter = createTRPCRouter({
 			);
 		}),
 
-	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {
+	getEnabledProviders: withPermission("ai", "read").query(async ({ ctx }) => {
 		const settings = await getAiSettingsByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
@@ -225,7 +229,7 @@ export const aiRouter = createTRPCRouter({
 			.map((s) => ({ aiId: s.aiId, name: s.name, model: s.model }));
 	}),
 
-	analyzeLogs: protectedProcedure
+	analyzeLogs: withPermission("ai", "read")
 		.input(
 			z.object({
 				aiId: z.string().min(1),
@@ -283,7 +287,7 @@ ${input.logs}`,
 			}
 		}),
 
-	testConnection: protectedProcedure
+	testConnection: withPermission("ai", "create")
 		.input(
 			z.object({
 				apiUrl: z.string().min(1),
@@ -317,7 +321,7 @@ ${input.logs}`,
 			}
 		}),
 
-	suggest: protectedProcedure
+	suggest: withPermission("ai", "read")
 		.input(
 			z.object({
 				aiId: z.string(),
@@ -338,7 +342,7 @@ ${input.logs}`,
 				});
 			}
 		}),
-	deploy: protectedProcedure
+	deploy: withPermission("ai", "read")
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
 			const environment = await findEnvironmentById(input.environmentId);
