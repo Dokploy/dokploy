@@ -52,7 +52,14 @@ export const destinationRouter = createTRPCRouter({
 			try {
 				const { flags: rcloneFlags, remoteRoot } =
 					getRcloneDestination(input);
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([remoteRoot])}`;
+				const connectionTestFlags = [
+					...rcloneFlags,
+					"--retries 1",
+					"--low-level-retries 1",
+					"--timeout 10s",
+					"--contimeout 5s",
+				];
+				const rcloneCommand = `rclone ls ${connectionTestFlags.join(" ")} ${quote([remoteRoot])}`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
