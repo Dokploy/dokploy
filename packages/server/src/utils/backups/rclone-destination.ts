@@ -25,6 +25,14 @@ export interface ResolvedRcloneDestination {
 	remoteRoot: string;
 }
 
+const normalizeRcloneRemoteRoot = (remoteRoot: string) => {
+	const trimmed = remoteRoot.trim();
+	if (/^[^:]+:\\/+$/g.test(trimmed)) {
+		return trimmed.replace(/\\/+$/g, "/");
+	}
+	return trimmed.replace(/\\/+$/g, "");
+};
+
 export const getRcloneDestination = (
 	destination: RcloneDestinationInput,
 ): ResolvedRcloneDestination => {
@@ -47,7 +55,7 @@ export const getRcloneDestination = (
 
 		return {
 			flags,
-			remoteRoot: destination.bucket.replace(/\/+$/g, ""),
+			remoteRoot: normalizeRcloneRemoteRoot(destination.bucket),
 		};
 	}
 
@@ -58,7 +66,11 @@ export const getRcloneDestination = (
 };
 
 export const joinRclonePath = (remoteRoot: string, path = "") => {
-	const normalizedRoot = remoteRoot.replace(/\/+$/g, "");
+	const normalizedRoot = normalizeRcloneRemoteRoot(remoteRoot);
 	const normalizedPath = path.replace(/^\/+/, "");
-	return normalizedPath ? `${normalizedRoot}/${normalizedPath}` : normalizedRoot;
+	if (!normalizedPath) return normalizedRoot;
+	if (normalizedRoot.endsWith(":") || normalizedRoot.endsWith(":/")) {
+		return `${normalizedRoot}${normalizedPath}`;
+	}
+	return `${normalizedRoot}/${normalizedPath}`;
 };
