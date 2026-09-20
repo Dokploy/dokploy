@@ -38,18 +38,22 @@ import { slugify } from "@/lib/slug";
 import {
 	adminProcedure,
 	createTRPCRouter,
+	withAnyPermission,
 	withPermission,
 } from "@/server/api/trpc";
 import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
-	one: withPermission("ai", "read")
+	one: withAnyPermission("ai", ["read", "update"])
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ input, ctx }) => {
+			return await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 
-	getModels: withPermission("ai", "read")
+	getModels: withAnyPermission("ai", ["read", "create", "update"])
 		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
@@ -197,17 +201,27 @@ export const aiRouter = createTRPCRouter({
 
 	get: withPermission("ai", "read")
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ input, ctx }) => {
+			return await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 
 	delete: withPermission("ai", "delete")
 		.input(z.object({ aiId: z.string() }))
-		.mutation(async ({ input }) => {
-			return await deleteAiSettings(input.aiId);
+		.mutation(async ({ input, ctx }) => {
+			return await deleteAiSettings(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 
-	getCustomProviders: withPermission("ai", "read").query(async ({ ctx }) => {
+	getCustomProviders: withAnyPermission("ai", [
+		"read",
+		"create",
+		"update",
+	]).query(async ({ ctx }) => {
 		return await getCustomAiProviders(ctx.session.activeOrganizationId);
 	}),
 
@@ -239,18 +253,14 @@ export const aiRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const aiSettings = await getAiSettingById(input.aiId);
+				const aiSettings = await getAiSettingById(
+					input.aiId,
+					ctx.session.activeOrganizationId,
+				);
 				if (!aiSettings?.isEnabled) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "AI provider is not enabled",
-					});
-				}
-
-				if (aiSettings.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
 					});
 				}
 
@@ -287,7 +297,7 @@ ${input.logs}`,
 			}
 		}),
 
-	testConnection: withPermission("ai", "create")
+	testConnection: withAnyPermission("ai", ["create", "update"])
 		.input(
 			z.object({
 				apiUrl: z.string().min(1),
