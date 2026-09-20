@@ -26,6 +26,7 @@ import { createComposeByTemplate } from "@dokploy/server/services/compose";
 import {
 	addNewService,
 	checkServiceAccess,
+	hasPermission,
 } from "@dokploy/server/services/permission";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
@@ -46,6 +47,18 @@ import {
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import { generatePassword } from "@/templates/utils";
+
+const resolveInputApiKey = (
+	input: { apiKey: string; apiUrl: string; aiId?: string },
+	ctx: { session: { activeOrganizationId: string } },
+) =>
+	resolveAiApiKey({
+		apiKey: input.apiKey,
+		apiUrl: input.apiUrl,
+		aiId: input.aiId,
+		organizationId: ctx.session.activeOrganizationId,
+		authorize: () => hasPermission(ctx, { ai: ["update"] }),
+	});
 
 export const aiRouter = createTRPCRouter({
 	one: withAnyPermission("ai", ["read", "update"])
@@ -68,12 +81,7 @@ export const aiRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			try {
-				const apiKey = await resolveAiApiKey(
-					input.apiKey,
-					input.apiUrl,
-					input.aiId,
-					ctx.session.activeOrganizationId,
-				);
+				const apiKey = await resolveInputApiKey(input, ctx);
 				const providerName = getProviderName(input.apiUrl);
 				const headers = getProviderHeaders(input.apiUrl, apiKey);
 				let response = null;
@@ -353,12 +361,7 @@ ${input.logs}`,
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const apiKey = await resolveAiApiKey(
-					input.apiKey,
-					input.apiUrl,
-					input.aiId,
-					ctx.session.activeOrganizationId,
-				);
+				const apiKey = await resolveInputApiKey(input, ctx);
 				const provider = selectAIProvider({
 					apiUrl: input.apiUrl,
 					apiKey,
