@@ -3,6 +3,7 @@
 import { Link2, Loader2, Unlink } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import type { EnabledSocialProviders } from "@/components/auth/social-login";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -27,7 +28,11 @@ function providerLabel(providerId: string): string {
 	return providerId.charAt(0).toUpperCase() + providerId.slice(1);
 }
 
-export function LinkingAccount() {
+export function LinkingAccount({
+	providers,
+}: {
+	providers: EnabledSocialProviders;
+}) {
 	const [accounts, setAccounts] = useState<AccountItem[]>([]);
 	const [accountsLoading, setAccountsLoading] = useState(true);
 	const [linkingProvider, setLinkingProvider] = useState<SocialProvider | null>(
@@ -180,7 +185,7 @@ export function LinkingAccount() {
 						redirected to complete the flow.
 					</p>
 					<div className="flex flex-wrap gap-3">
-						{!linkedProviderIds.has("google") && (
+						{providers.google && !linkedProviderIds.has("google") && (
 							<Button
 								variant="outline"
 								type="button"
@@ -214,7 +219,7 @@ export function LinkingAccount() {
 								Link with Google
 							</Button>
 						)}
-						{!linkedProviderIds.has("github") && (
+						{providers.github && !linkedProviderIds.has("github") && (
 							<Button
 								variant="outline"
 								type="button"
