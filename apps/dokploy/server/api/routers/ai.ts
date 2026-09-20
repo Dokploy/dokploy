@@ -17,6 +17,7 @@ import {
 	getCustomAiProviders,
 	maskAiApiKey,
 	mergeAiApiKey,
+	resolveAiApiKey,
 	saveAiSettings,
 	saveCustomAiProviders,
 	suggestVariants,
@@ -58,11 +59,23 @@ export const aiRouter = createTRPCRouter({
 		}),
 
 	getModels: withAnyPermission("ai", ["read", "create", "update"])
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
-		.query(async ({ input }) => {
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				aiId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
 			try {
+				const apiKey = await resolveAiApiKey(
+					input.apiKey,
+					input.apiUrl,
+					input.aiId,
+					ctx.session.activeOrganizationId,
+				);
 				const providerName = getProviderName(input.apiUrl);
-				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const headers = getProviderHeaders(input.apiUrl, apiKey);
 				let response = null;
 				switch (providerName) {
 					case "ollama":
@@ -70,7 +83,7 @@ export const aiRouter = createTRPCRouter({
 						break;
 					case "gemini":
 						response = await fetch(
-							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
+							`${input.apiUrl}/models?key=${encodeURIComponent(apiKey)}`,
 							{ headers: {} },
 						);
 						break;
@@ -133,7 +146,7 @@ export const aiRouter = createTRPCRouter({
 							},
 						] as Model[];
 					default:
-						if (!input.apiKey)
+						if (!apiKey)
 							throw new TRPCError({
 								code: "BAD_REQUEST",
 								message: "API key must contain at least 1 character(s)",
@@ -335,13 +348,20 @@ ${input.logs}`,
 				apiUrl: z.string().min(1),
 				apiKey: z.string(),
 				model: z.string().min(1),
+				aiId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const apiKey = await resolveAiApiKey(
+					input.apiKey,
+					input.apiUrl,
+					input.aiId,
+					ctx.session.activeOrganizationId,
+				);
 				const provider = selectAIProvider({
 					apiUrl: input.apiUrl,
-					apiKey: input.apiKey,
+					apiKey,
 				});
 				const model = provider(input.model);
 				const result = await generateText({

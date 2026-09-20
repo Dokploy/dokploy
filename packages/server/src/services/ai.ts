@@ -108,7 +108,24 @@ export const saveCustomAiProviders = async (
 	return providers;
 };
 
-const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
+export const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
+
+export const resolveAiApiKey = async (
+	apiKey: string,
+	apiUrl: string,
+	aiId: string | undefined,
+	organizationId: string,
+): Promise<string> => {
+	if (apiKey !== AI_SECRET_MASK || !aiId) return apiKey;
+	const stored = await getAiSettingById(aiId, organizationId);
+	if (normalizeApiUrl(stored.apiUrl) !== normalizeApiUrl(apiUrl)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "API URL does not match the stored configuration",
+		});
+	}
+	return stored.apiKey;
+};
 
 export const saveAiSettings = async (organizationId: string, settings: any) => {
 	const aiId = settings.aiId;
