@@ -2,7 +2,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
 import { getS3Credentials } from "./utils";
 
-export const RCLONE_GENERIC_PROVIDER = "Rclone";
+export const RCLONE_GENERIC_PROVIDER = "RcloneConfig";
 
 const RCLONE_REMOTE_REGEX =
 	/^[a-zA-Z0-9][a-zA-Z0-9._-]*:(?:[a-zA-Z0-9._~/-]+)?$/;
