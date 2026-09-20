@@ -14,7 +14,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
-import { removeProjectFromVaultAssignments } from "./vault-provider";
+import {
+	lockVaultAssignmentScope,
+	removeProjectFromVaultAssignments,
+} from "./vault-provider";
 
 export type Project = typeof projects.$inferSelect;
 
@@ -129,6 +132,7 @@ export const deleteProject = async (projectId: string) => {
 		});
 		if (!existing) return undefined;
 
+		await lockVaultAssignmentScope(tx, existing.organizationId);
 		await removeProjectFromVaultAssignments(
 			tx,
 			existing.organizationId,
