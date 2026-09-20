@@ -110,15 +110,22 @@ export const saveCustomAiProviders = async (
 
 export const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
 
-export const resolveAiApiKey = async (
-	apiKey: string,
-	apiUrl: string,
-	aiId: string | undefined,
-	organizationId: string,
-): Promise<string> => {
-	if (apiKey !== AI_SECRET_MASK || !aiId) return apiKey;
-	const stored = await getAiSettingById(aiId, organizationId);
-	if (normalizeApiUrl(stored.apiUrl) !== normalizeApiUrl(apiUrl)) {
+export const resolveAiApiKey = async (opts: {
+	apiKey: string;
+	apiUrl: string;
+	aiId: string | undefined;
+	organizationId: string;
+	authorize: () => Promise<boolean>;
+}): Promise<string> => {
+	if (opts.apiKey !== AI_SECRET_MASK || !opts.aiId) return opts.apiKey;
+	if (!(await opts.authorize())) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
+	}
+	const stored = await getAiSettingById(opts.aiId, opts.organizationId);
+	if (normalizeApiUrl(stored.apiUrl) !== normalizeApiUrl(opts.apiUrl)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "API URL does not match the stored configuration",
