@@ -335,7 +335,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>{isGenericRclone ? "Access Key Id (not used)" : "Access Key Id"}</FormLabel>
 										<FormControl>
-											<Input placeholder={isGenericRclone ? "Not required" : "xcas41dasde"} disabled={isGenericRclone} {...field} />
+											<Input
+											placeholder={isGenericRclone ? "Not required" : "xcas41dasde"}
+											disabled={isGenericRclone}
+											{...field}
+										/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -348,10 +352,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>{isGenericRclone ? "Secret Access Key (not used)" : "Secret Access Key"}</FormLabel>
+										<FormLabel>
+											{isGenericRclone ? "Secret Access Key (not used)" : "Secret Access Key"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={isGenericRclone ? "Not required" : "asd123asdasw"} disabled={isGenericRclone} {...field} />
+										<Input
+										placeholder={isGenericRclone ? "Not required" : "asd123asdasw"}
+										disabled={isGenericRclone}
+										{...field}
+									/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -366,7 +376,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<FormLabel>{isGenericRclone ? "Rclone Remote" : "Bucket"}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={isGenericRclone ? "gdrive:dokploy-backups" : "dokploy-bucket"} {...field} />
+										<Input
+										placeholder={isGenericRclone ? "gdrive:dokploy-backups" : "dokploy-bucket"}
+										{...field}
+									/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -381,7 +394,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<FormLabel>{isGenericRclone ? "Region (not used)" : "Region"}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={isGenericRclone ? "Not required" : "us-east-1"} disabled={isGenericRclone} {...field} />
+										<Input
+										placeholder={isGenericRclone ? "Not required" : "us-east-1"}
+										disabled={isGenericRclone}
+										{...field}
+									/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -395,7 +412,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormLabel>{isGenericRclone ? "Rclone Config Path" : "Endpoint"}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={isGenericRclone ? "/etc/dokploy/rclone.conf" : "https://us.bucket.aws/s3"}
+											placeholder={
+											isGenericRclone
+												? "/etc/dokploy/rclone.conf"
+												: "https://us.bucket.aws/s3"
+										}
 											{...field}
 										/>
 									</FormControl>
