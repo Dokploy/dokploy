@@ -138,15 +138,7 @@ export const saveAiSettings = async (organizationId: string, settings: any) => {
 	const aiId = settings.aiId;
 
 	if (aiId) {
-		const existing = await db.query.ai.findFirst({
-			where: eq(ai.aiId, aiId),
-		});
-		if (existing && existing.organizationId !== organizationId) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "You do not have permission to modify this AI configuration",
-			});
-		}
+		await getAiSettingById(aiId, organizationId);
 	}
 
 	if (settings.apiUrl) {
