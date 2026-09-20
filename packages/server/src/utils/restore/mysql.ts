@@ -3,7 +3,10 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import {\n\tgetRcloneDestination,\n\tjoinRclonePath,\n} from "../backups/rclone-destination";
+import {
+	getRcloneDestination,
+	joinRclonePath,
+} from "../backups/rclone-destination";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
