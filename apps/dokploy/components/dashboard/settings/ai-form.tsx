@@ -18,7 +18,9 @@ import { HandleAiProviders } from "./handle-ai-providers";
 export const AiForm = () => {
 	const { data: aiConfigs, refetch, isPending } = api.ai.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } = api.ai.delete.useMutation();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: currentUser } = api.user.get.useQuery();
+
 	const isOrgAdmin =
 		currentUser?.role === "owner" || currentUser?.role === "admin";
 
@@ -36,7 +38,9 @@ export const AiForm = () => {
 						</div>
 						<div className="flex flex-row gap-2">
 							{isOrgAdmin && <HandleAiProviders />}
-							{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
+							{permissions?.ai.create && aiConfigs && aiConfigs?.length > 0 && (
+								<HandleAi />
+							)}
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -53,7 +57,7 @@ export const AiForm = () => {
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any AI configurations
 										</span>
-										<HandleAi />
+										{permissions?.ai.create && <HandleAi />}
 									</div>
 								) : (
 									<div className="flex flex-col gap-4 rounded-lg min-h-[25vh]">
@@ -70,33 +74,37 @@ export const AiForm = () => {
 														<CardDescription>{config.model}</CardDescription>
 													</div>
 													<div className="flex justify-between items-center">
-														<HandleAi aiId={config.aiId} />
-														<DialogAction
-															title="Delete AI"
-															description="Are you sure you want to delete this AI?"
-															type="destructive"
-															onClick={async () => {
-																await mutateAsync({
-																	aiId: config.aiId,
-																})
-																	.then(() => {
-																		toast.success("AI deleted successfully");
-																		refetch();
+														{permissions?.ai.update && (
+															<HandleAi aiId={config.aiId} />
+														)}
+														{permissions?.ai.delete && (
+															<DialogAction
+																title="Delete AI"
+																description="Are you sure you want to delete this AI?"
+																type="destructive"
+																onClick={async () => {
+																	await mutateAsync({
+																		aiId: config.aiId,
 																	})
-																	.catch(() => {
-																		toast.error("Error deleting AI");
-																	});
-															}}
-														>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="group hover:bg-red-500/10 "
-																isLoading={isRemoving}
+																		.then(() => {
+																			toast.success("AI deleted successfully");
+																			refetch();
+																		})
+																		.catch(() => {
+																			toast.error("Error deleting AI");
+																		});
+																}}
 															>
-																<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-															</Button>
-														</DialogAction>
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	className="group hover:bg-red-500/10 "
+																	isLoading={isRemoving}
+																>
+																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																</Button>
+															</DialogAction>
+														)}
 													</div>
 												</div>
 											</div>
