@@ -3,7 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { getRcloneDestination } from "../backups/rclone-destination";
+import {\n\tgetRcloneDestination,\n\tjoinRclonePath,\n} from "../backups/rclone-destination";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -17,9 +17,8 @@ export const restorePostgresBackup = async (
 		const { appName, databaseUser, serverId } = postgres;
 
 		const { flags: rcloneFlags, remoteRoot } = getRcloneDestination(destination);
-		const bucketPath = remoteRoot;
 
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const backupPath = joinRclonePath(remoteRoot, backupInput.backupFile);
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
