@@ -10,6 +10,16 @@ import { IS_CLOUD } from "../constants";
 import { findServerById } from "./server";
 import { getWebServerSettings } from "./web-server-settings";
 
+export const AI_SECRET_MASK = "********";
+
+export const maskAiApiKey = <T extends { apiKey: string }>(settings: T): T => ({
+	...settings,
+	apiKey: AI_SECRET_MASK,
+});
+
+export const mergeAiApiKey = (incoming: string, existing: string): string =>
+	incoming === AI_SECRET_MASK ? existing : incoming;
+
 interface SuggestionItem {
 	id: string;
 	name: string;
