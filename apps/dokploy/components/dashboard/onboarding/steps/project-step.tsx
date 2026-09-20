@@ -65,7 +65,7 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 				</span>
 				<h1 className={titleClassName}>Create your first project.</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					Projects group your apps, databases and environments together.
+					Projects group your apps, databases, and environments together.
 				</p>
 			</div>
 

@@ -105,13 +105,47 @@ export const ShowBilling = () => {
 		api.stripe.upgradeSubscription.useMutation();
 	const { mutateAsync: updateInvoiceNotifications } =
 		api.stripe.updateInvoiceNotifications.useMutation();
-	const { mutateAsync: startFreeTrial, isPending: isStartingTrial } =
+	const { mutateAsync: startFreeTrial } =
 		api.stripe.startFreeTrial.useMutation();
 	const utils = api.useUtils();
+	const [trialTier, setTrialTier] = useState<"hobby" | "startup" | null>(null);
+	const [switchingTrial, setSwitchingTrial] = useState(false);
 
-	const handleStartTrial = async () => {
+	const handleSwitchTrialPlan = async (tier: "hobby" | "startup") => {
+		const planName = tier === "startup" ? "Startup" : "Hobby";
+
+		const switchPlan = async () => {
+			await upgradeSubscription({
+				tier,
+				serverQuantity: tier === "startup" ? STARTUP_SERVERS_INCLUDED : 1,
+				isAnnual: false,
+			});
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+			await Promise.all([
+				utils.stripe.getBillingStatus.invalidate(),
+				utils.stripe.getProducts.invalidate(),
+				utils.user.get.invalidate(),
+				utils.server.count.invalidate(),
+			]);
+		};
+
+		setSwitchingTrial(true);
+		await toast
+			.promise(switchPlan(), {
+				loading: `Switching to ${planName}...`,
+				success: `Your trial is now on the ${planName} plan`,
+				error: (error) =>
+					error instanceof Error ? error.message : "Error switching plan",
+			})
+			.unwrap()
+			.catch(() => undefined);
+		setSwitchingTrial(false);
+	};
+
+	const handleStartTrial = async (tier: "hobby" | "startup") => {
+		setTrialTier(tier);
 		try {
-			await startFreeTrial();
+			await startFreeTrial({ tier });
 			await Promise.all([
 				utils.stripe.getBillingStatus.invalidate(),
 				utils.stripe.getProducts.invalidate(),
@@ -122,6 +156,8 @@ export const ShowBilling = () => {
 			toast.error(
 				error instanceof Error ? error.message : "Error starting trial",
 			);
+		} finally {
+			setTrialTier(null);
 		}
 	};
 
@@ -176,6 +212,17 @@ export const ShowBilling = () => {
 	});
 
 	const isEnterpriseCloud = admin?.user.isEnterpriseCloud ?? false;
+	const canStartTrial =
+		!isEnterpriseCloud &&
+		!!billingStatus &&
+		!billingStatus.plan &&
+		!billingStatus.isOnTrial &&
+		!billingStatus.hasUsedTrial;
+	/** Checkout would create a second subscription alongside a running trial. */
+	const canSubscribe =
+		!isEnterpriseCloud &&
+		(data?.subscriptions?.length ?? 0) === 0 &&
+		!billingStatus?.isOnTrial;
 	const maxServers = admin?.user.serversQuantity ?? 1;
 	const percentage = ((servers ?? 0) / maxServers) * 100;
 	const safePercentage = Math.min(percentage, 100);
@@ -296,67 +343,72 @@ export const ShowBilling = () => {
 																billingStatus.trialEndsAt
 																	? ` · ends ${new Date(billingStatus.trialEndsAt).toLocaleDateString()}`
 																	: ""
+															}${
+																billingStatus.hasPaymentMethod
+																	? " · billing starts automatically"
+																	: " · add a card to keep your servers"
 															}`
 														: "You're subscribed and billed automatically."}
 												</span>
 											</div>
 										</div>
-										{billingStatus.isOnTrial &&
-											admin?.user.stripeCustomerId && (
+										{admin?.user.stripeCustomerId && (
+											<div className="flex flex-wrap items-center gap-2">
+												{billingStatus.isOnTrial &&
+													useNewPricing &&
+													billingStatus.plan && (
+														<Button
+															size="sm"
+															variant="outline"
+															isLoading={switchingTrial}
+															onClick={() =>
+																handleSwitchTrialPlan(
+																	billingStatus.plan === "startup"
+																		? "hobby"
+																		: "startup",
+																)
+															}
+														>
+															{billingStatus.plan === "startup"
+																? "Switch to Hobby"
+																: "Switch to Startup"}
+														</Button>
+													)}
 												<Button
 													size="sm"
-													variant="outline"
+													variant={
+														billingStatus.isOnTrial &&
+														!billingStatus.hasPaymentMethod
+															? "default"
+															: "secondary"
+													}
 													onClick={async () => {
 														const session = await createCustomerPortalSession();
 														window.open(session.url);
 													}}
 												>
-													Add payment method
+													{billingStatus.isOnTrial &&
+													!billingStatus.hasPaymentMethod
+														? "Add payment method"
+														: "Manage Subscription"}
 												</Button>
-											)}
-									</div>
-								)}
-							{!isEnterpriseCloud &&
-								billingStatus &&
-								!billingStatus.plan &&
-								!billingStatus.isOnTrial &&
-								!billingStatus.hasUsedTrial && (
-									<div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 p-4 max-w-2xl">
-										<div className="flex items-center gap-3">
-											<Clock className="h-5 w-5 text-primary shrink-0" />
-											<div className="flex flex-col gap-1.5">
-												<span className="text-sm font-medium">
-													7-day free trial
-												</span>
-												<span className="text-sm text-muted-foreground">
-													No credit card required — cancel anytime.
-												</span>
-												<ul className="flex flex-col gap-1 mt-1">
-													{[
-														"Setup 1 server",
-														"Unlimited apps & databases",
-														"Community support",
-													].map((feature) => (
-														<li
-															key={feature}
-															className="flex items-center gap-2 text-sm text-muted-foreground"
-														>
-															<CheckIcon className="size-3.5 shrink-0" />
-															{feature}
-														</li>
-													))}
-												</ul>
 											</div>
-										</div>
-										<Button
-											size="sm"
-											isLoading={isStartingTrial}
-											onClick={handleStartTrial}
-										>
-											Start trial
-										</Button>
+										)}
 									</div>
 								)}
+							{canStartTrial && (
+								<div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 max-w-2xl">
+									<Clock className="h-5 w-5 text-primary shrink-0" />
+									<div className="flex flex-col">
+										<span className="text-sm font-medium">
+											7-day free trial on any plan
+										</span>
+										<span className="text-sm text-muted-foreground">
+											No credit card required — pick Hobby or Startup below.
+										</span>
+									</div>
+								</div>
+							)}
 							{(admin?.user.stripeSubscriptionId || isEnterpriseCloud) && (
 								<div className="space-y-2 flex flex-col">
 									<h3 className="text-lg font-medium">Servers Plan</h3>
@@ -933,68 +985,71 @@ export const ShowBilling = () => {
 												))}
 											</ul>
 											<div className="mt-6 flex flex-col gap-3">
-												<div className="flex items-center gap-2">
-													<span className="text-sm text-muted-foreground">
-														Servers:
-													</span>
-													<Button
-														disabled={hobbyServerQuantity <= 1}
-														variant="outline"
-														size="icon"
-														onClick={() =>
-															setHobbyServerQuantity((q) => Math.max(1, q - 1))
-														}
-													>
-														<MinusIcon className="h-4 w-4" />
-													</Button>
-													<NumberInput
-														value={hobbyServerQuantity}
-														onChange={(e) =>
-															setHobbyServerQuantity(
-																Math.max(
-																	1,
-																	Number(
-																		(e.target as HTMLInputElement).value,
-																	) || 1,
-																),
-															)
-														}
-														className="text-center"
-													/>
-													<Button
-														variant="outline"
-														size="icon"
-														onClick={() => setHobbyServerQuantity((q) => q + 1)}
-													>
-														<PlusIcon className="h-4 w-4" />
-													</Button>
-												</div>
-												<div className="flex flex-col gap-2 w-full">
-													{admin?.user.stripeCustomerId && (
+												{canSubscribe && (
+													<div className="flex items-center gap-2">
+														<span className="text-sm text-muted-foreground">
+															Servers:
+														</span>
 														<Button
-															variant="secondary"
-															className="w-full"
-															onClick={async () => {
-																const session =
-																	await createCustomerPortalSession();
-																window.open(session.url);
-															}}
+															disabled={hobbyServerQuantity <= 1}
+															variant="outline"
+															size="icon"
+															onClick={() =>
+																setHobbyServerQuantity((q) =>
+																	Math.max(1, q - 1),
+																)
+															}
 														>
-															Manage Subscription
+															<MinusIcon className="h-4 w-4" />
+														</Button>
+														<NumberInput
+															value={hobbyServerQuantity}
+															onChange={(e) =>
+																setHobbyServerQuantity(
+																	Math.max(
+																		1,
+																		Number(
+																			(e.target as HTMLInputElement).value,
+																		) || 1,
+																	),
+																)
+															}
+															className="text-center"
+														/>
+														<Button
+															variant="outline"
+															size="icon"
+															onClick={() =>
+																setHobbyServerQuantity((q) => q + 1)
+															}
+														>
+															<PlusIcon className="h-4 w-4" />
+														</Button>
+													</div>
+												)}
+												<div className="flex flex-col gap-2 w-full">
+													{canStartTrial && (
+														<Button
+															className="w-full"
+															isLoading={trialTier === "hobby"}
+															disabled={trialTier !== null}
+															onClick={() => handleStartTrial("hobby")}
+														>
+															Start 7-day free trial
 														</Button>
 													)}
-													{!isEnterpriseCloud &&
-														(data?.subscriptions?.length ?? 0) === 0 && (
-															<Button
-																className="w-full"
-																onClick={() =>
-																	handleCheckout("hobby", data!.hobbyProductId!)
-																}
-																disabled={hobbyServerQuantity < 1}
-															>
-																Get Started
-															</Button>
-														)}
+													{canSubscribe && (
+														<Button
+															className="w-full"
+															variant={canStartTrial ? "outline" : "default"}
+															onClick={() =>
+																handleCheckout("hobby", data!.hobbyProductId!)
+															}
+															disabled={hobbyServerQuantity < 1}
+														>
+															Get Started
+														</Button>
+													)}
 												</div>
 											</div>
 										</section>
@@ -1067,85 +1122,83 @@ export const ShowBilling = () => {
 												))}
 											</ul>
 											<div className="mt-6 flex flex-col gap-3">
-												<div className="flex flex-col gap-2">
-													<span className="text-sm font-medium text-foreground">
-														Servers (min. {STARTUP_SERVERS_INCLUDED} included)
-													</span>
-													<div className="flex items-center gap-2">
-														<Button
-															disabled={
-																startupServerQuantity <=
-																STARTUP_SERVERS_INCLUDED
-															}
-															variant="outline"
-															size="icon"
-															className="h-8 w-8"
-															onClick={() =>
-																setStartupServerQuantity((q) =>
-																	Math.max(STARTUP_SERVERS_INCLUDED, q - 1),
-																)
-															}
-														>
-															<MinusIcon className="h-4 w-4" />
-														</Button>
-														<NumberInput
-															value={startupServerQuantity}
-															onChange={(e) =>
-																setStartupServerQuantity(
-																	Math.max(
-																		STARTUP_SERVERS_INCLUDED,
-																		Number(
-																			(e.target as HTMLInputElement).value,
-																		) || STARTUP_SERVERS_INCLUDED,
-																	),
-																)
-															}
-															className="h-8 text-center"
-														/>
-														<Button
-															variant="outline"
-															size="icon"
-															className="h-8 w-8"
-															onClick={() =>
-																setStartupServerQuantity((q) => q + 1)
-															}
-														>
-															<PlusIcon className="h-4 w-4" />
-														</Button>
-													</div>
-												</div>
-												<div className="flex flex-col gap-2 w-full">
-													{admin?.user.stripeCustomerId && (
-														<Button
-															variant="secondary"
-															className="w-full"
-															onClick={async () => {
-																const session =
-																	await createCustomerPortalSession();
-																window.open(session.url);
-															}}
-														>
-															Manage Subscription
-														</Button>
-													)}
-													{!isEnterpriseCloud &&
-														(data?.subscriptions?.length ?? 0) === 0 && (
+												{canSubscribe && (
+													<div className="flex flex-col gap-2">
+														<span className="text-sm font-medium text-foreground">
+															Servers (min. {STARTUP_SERVERS_INCLUDED} included)
+														</span>
+														<div className="flex items-center gap-2">
 															<Button
-																className="w-full"
-																onClick={() =>
-																	handleCheckout(
-																		"startup",
-																		data!.startupProductId!,
-																	)
-																}
 																disabled={
-																	startupServerQuantity <
+																	startupServerQuantity <=
 																	STARTUP_SERVERS_INCLUDED
 																}
+																variant="outline"
+																size="icon"
+																className="h-8 w-8"
+																onClick={() =>
+																	setStartupServerQuantity((q) =>
+																		Math.max(STARTUP_SERVERS_INCLUDED, q - 1),
+																	)
+																}
 															>
-																Get Started
+																<MinusIcon className="h-4 w-4" />
 															</Button>
-														)}
+															<NumberInput
+																value={startupServerQuantity}
+																onChange={(e) =>
+																	setStartupServerQuantity(
+																		Math.max(
+																			STARTUP_SERVERS_INCLUDED,
+																			Number(
+																				(e.target as HTMLInputElement).value,
+																			) || STARTUP_SERVERS_INCLUDED,
+																		),
+																	)
+																}
+																className="h-8 text-center"
+															/>
+															<Button
+																variant="outline"
+																size="icon"
+																className="h-8 w-8"
+																onClick={() =>
+																	setStartupServerQuantity((q) => q + 1)
+																}
+															>
+																<PlusIcon className="h-4 w-4" />
+															</Button>
+														</div>
+													</div>
+												)}
+												<div className="flex flex-col gap-2 w-full">
+													{canStartTrial && (
+														<Button
+															className="w-full"
+															isLoading={trialTier === "startup"}
+															disabled={trialTier !== null}
+															onClick={() => handleStartTrial("startup")}
+														>
+															Start 7-day free trial
+														</Button>
+													)}
+													{canSubscribe && (
+														<Button
+															className="w-full"
+															variant={canStartTrial ? "outline" : "default"}
+															onClick={() =>
+																handleCheckout(
+																	"startup",
+																	data!.startupProductId!,
+																)
+															}
+															disabled={
+																startupServerQuantity < STARTUP_SERVERS_INCLUDED
+															}
+														>
+															Get Started
+														</Button>
+													)}
 												</div>
 											</div>
 										</section>
@@ -1337,31 +1390,17 @@ export const ShowBilling = () => {
 															</Button>
 														</div>
 														<div className="flex flex-col gap-2 mt-4 w-full">
-															{admin?.user.stripeCustomerId && (
+															{canSubscribe && (
 																<Button
-																	variant="secondary"
 																	className="w-full"
 																	onClick={async () => {
-																		const session =
-																			await createCustomerPortalSession();
-																		window.open(session.url);
+																		handleCheckout("legacy", product.id);
 																	}}
+																	disabled={hobbyServerQuantity < 1}
 																>
-																	Manage Subscription
+																	Subscribe
 																</Button>
 															)}
-															{!isEnterpriseCloud &&
-																(data?.subscriptions?.length ?? 0) === 0 && (
-																	<Button
-																		className="w-full"
-																		onClick={async () => {
-																			handleCheckout("legacy", product.id);
-																		}}
-																		disabled={hobbyServerQuantity < 1}
-																	>
-																		Subscribe
-																	</Button>
-																)}
 														</div>
 													</div>
 												</section>

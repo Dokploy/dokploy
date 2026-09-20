@@ -16,7 +16,7 @@ export const getStripeClient = () =>
 		apiVersion: "2024-09-30.acacia",
 	});
 
-const planFromPriceIds = (priceIds: string[]): BillingPlan | null => {
+export const planFromPriceIds = (priceIds: string[]): BillingPlan | null => {
 	if (
 		priceIds.some(
 			(id) =>
@@ -78,7 +78,11 @@ export const getCurrentPlan = async (
 };
 
 export const TRIAL_DURATION_DAYS = 7;
-export const TRIAL_SERVER_LIMIT = 1;
+export type TrialTier = "hobby" | "startup";
+export const TRIAL_SERVER_LIMITS: Record<TrialTier, number> = {
+	hobby: 1,
+	startup: 3,
+};
 
 export interface BillingStatus {
 	plan: BillingPlan | null;
@@ -87,6 +91,7 @@ export interface BillingStatus {
 	trialDaysRemaining: number | null;
 	hasUsedTrial: boolean;
 	hasActiveAccess: boolean;
+	hasPaymentMethod: boolean;
 }
 
 export const getBillingStatus = async (
@@ -100,6 +105,7 @@ export const getBillingStatus = async (
 			trialDaysRemaining: null,
 			hasUsedTrial: false,
 			hasActiveAccess: true,
+			hasPaymentMethod: true,
 		};
 	}
 
@@ -112,6 +118,7 @@ export const getBillingStatus = async (
 			trialDaysRemaining: null,
 			hasUsedTrial: false,
 			hasActiveAccess: false,
+			hasPaymentMethod: false,
 		};
 	}
 
@@ -119,7 +126,7 @@ export const getBillingStatus = async (
 	const subscriptions = await stripe.subscriptions.list({
 		customer: owner.stripeCustomerId,
 		status: "all",
-		expand: ["data.items.data.price"],
+		expand: ["data.items.data.price", "data.customer"],
 	});
 
 	const relevantSubs = subscriptions.data.filter(
@@ -133,6 +140,12 @@ export const getBillingStatus = async (
 	const trialingSub = subscriptions.data.find(
 		(sub) => sub.status === "trialing",
 	);
+
+	const currentSub = trialingSub ?? relevantSubs[0];
+	const customer = currentSub?.customer as Stripe.Customer | undefined;
+	const hasPaymentMethod =
+		!!currentSub?.default_payment_method ||
+		!!customer?.invoice_settings?.default_payment_method;
 	const trialEndsAt = trialingSub?.trial_end
 		? new Date(trialingSub.trial_end * 1000)
 		: null;
@@ -148,6 +161,7 @@ export const getBillingStatus = async (
 		isOnTrial: !!trialingSub,
 		trialEndsAt,
 		trialDaysRemaining,
+		hasPaymentMethod,
 		hasUsedTrial: subscriptions.data.length > 0,
 		hasActiveAccess: plan !== null || !!trialingSub,
 	};
