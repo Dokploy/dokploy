@@ -94,9 +94,9 @@ const cleanupOldVolumeBackups = async (
 			destination,
 			`${s3AppName}/${normalizeS3Path(prefix || "")}`,
 		);
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" ${backupFilesPath}`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" "${backupFilesPath}"`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} "${backupFilesPath}{}"`;
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
 
 		if (serverId) {
