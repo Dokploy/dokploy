@@ -1,5 +1,10 @@
 import { db } from "@dokploy/server/db";
-import { member, organizationRole } from "@dokploy/server/db/schema";
+import {
+	member,
+	organizationRole,
+	team,
+	teamMember,
+} from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -10,6 +15,7 @@ import {
 	memberRole,
 	ownerRole,
 	statements,
+	viewerRole,
 } from "../lib/access-control";
 
 type Statements = typeof statements;
@@ -34,6 +40,7 @@ const staticRoles: Record<string, ReturnType<typeof ac.newRole>> = {
 	owner: ownerRole,
 	admin: adminRole,
 	member: memberRole,
+	viewer: viewerRole,
 };
 
 const resolveRole = async (
@@ -104,7 +111,7 @@ export const checkPermission = async (
 		return;
 	}
 
-	if (memberRecord.role === "member") {
+	if (memberRecord.role === "member" || memberRecord.role === "viewer") {
 		const overrides = getLegacyOverrides(memberRecord);
 		const allGranted = Object.entries(permissions).every(
 			([resource, actions]) =>
@@ -173,6 +180,10 @@ const getLegacyOverrides = (
 			create: !!memberRecord.canAccessToGitProviders,
 			delete: !!memberRecord.canAccessToGitProviders,
 		},
+		deployment: {
+			create: !!memberRecord.canManageDeployments,
+			cancel: !!memberRecord.canManageDeployments,
+		},
 	};
 };
 
@@ -185,7 +196,9 @@ export const resolvePermissions = async (
 	const role = await resolveRole(memberRecord.role, organizationId);
 
 	const legacyOverrides =
-		memberRecord.role === "member" ? getLegacyOverrides(memberRecord) : {};
+		["member", "viewer"].includes(memberRecord.role)
+			? getLegacyOverrides(memberRecord)
+			: {};
 
 	const isPrivilegedRole =
 		memberRecord.role === "owner" || memberRecord.role === "admin";
@@ -432,5 +445,43 @@ export const findMemberByUserId = async (
 			message: "Permission denied",
 		});
 	}
-	return result;
+
+	const teamRows = await db
+		.select({ team })
+		.from(teamMember)
+		.innerJoin(team, eq(teamMember.teamId, team.id))
+		.where(and(eq(teamMember.userId, userId), eq(team.organizationId, organizationId)));
+	const teams = teamRows.map((row) => row.team);
+	const mergeIds = (own: string[], key: keyof (typeof teams)[number]) => [
+		...new Set([
+			...own,
+			...teams.flatMap((entry) => {
+				const value = entry[key];
+				return Array.isArray(value) ? (value as string[]) : [];
+			}),
+		]),
+	];
+	const anyTeam = (key: keyof (typeof teams)[number]) =>
+		teams.some((entry) => entry[key] === true);
+
+	return {
+		...result,
+		accessedProjects: mergeIds(result.accessedProjects, "accessedProjects"),
+		accessedEnvironments: mergeIds(result.accessedEnvironments, "accessedEnvironments"),
+		accessedServices: mergeIds(result.accessedServices, "accessedServices"),
+		accessedGitProviders: mergeIds(result.accessedGitProviders, "accessedGitProviders"),
+		accessedServers: mergeIds(result.accessedServers, "accessedServers"),
+		canCreateProjects: result.canCreateProjects || anyTeam("canCreateProjects"),
+		canAccessToSSHKeys: result.canAccessToSSHKeys || anyTeam("canAccessToSSHKeys"),
+		canCreateServices: result.canCreateServices || anyTeam("canCreateServices"),
+		canDeleteProjects: result.canDeleteProjects || anyTeam("canDeleteProjects"),
+		canDeleteServices: result.canDeleteServices || anyTeam("canDeleteServices"),
+		canAccessToDocker: result.canAccessToDocker || anyTeam("canAccessToDocker"),
+		canAccessToAPI: result.canAccessToAPI || anyTeam("canAccessToAPI"),
+		canAccessToGitProviders: result.canAccessToGitProviders || anyTeam("canAccessToGitProviders"),
+		canAccessToTraefikFiles: result.canAccessToTraefikFiles || anyTeam("canAccessToTraefikFiles"),
+		canDeleteEnvironments: result.canDeleteEnvironments || anyTeam("canDeleteEnvironments"),
+		canCreateEnvironments: result.canCreateEnvironments || anyTeam("canCreateEnvironments"),
+		canManageDeployments: result.canManageDeployments || anyTeam("canManageDeployments"),
+	};
 };
