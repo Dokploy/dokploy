@@ -1,8 +1,9 @@
 name: Fix Dokploy 5491 carrier
 on:
-  push:
+  pull_request:
     branches:
       - canary
+    types: [opened, synchronize, reopened]
 permissions:
   contents: write
 jobs:
@@ -12,39 +13,41 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: canary
-      - name: Apply one-shot carrier cleanup
+          fetch-depth: 0
+      - name: Apply carrier cleanup and remove transports
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+
           p = Path("apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx")
           s = p.read_text()
-          duplicate_provider = """					<SelectItem value={RCLONE_CONFIG_PROVIDER}>
-          						Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
-          					</SelectItem>
-          									<SelectItem value={RCLONE_CONFIG_PROVIDER}>
-          										Generic rclone config
-          									</SelectItem>"""
-          single_provider = """					<SelectItem value={RCLONE_CONFIG_PROVIDER}>
-          						Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
-          					</SelectItem>"""
-          first_guidance = """					{isGenericRclone && (
-          						<p className="text-xs text-muted-foreground">
-          							Provision this config file and named remote at the same path on every host that executes backups or restores. Self-hosted connection tests run on the Dokploy host; cloud or remote resources use the selected resource server.
-          						</p>
-          					)}
-          					<FormMessage />"""
-          if s.count(duplicate_provider) != 1:
-              raise SystemExit("provider duplicate shape moved")
-          if s.count(first_guidance) != 1:
-              raise SystemExit("guidance duplicate shape moved")
-          s = s.replace(duplicate_provider, single_provider, 1)
-          s = s.replace(first_guidance, "					<FormMessage />", 1)
+
+          option = re.compile(
+              r'\n\s*<SelectItem value=\{RCLONE_CONFIG_PROVIDER\}>\s*'
+              r'Generic rclone config\s*</SelectItem>'
+          )
+          s, option_count = option.subn("", s, count=1)
+          if option_count != 1:
+              raise SystemExit("expected exactly one duplicate Generic rclone option")
+
+          guidance = re.compile(
+              r'\n\s*\{isGenericRclone && \(\s*'
+              r'<p className="text-xs text-muted-foreground">\s*'
+              r'Provision this config file and named remote at the same path on every host that executes backups or restores\. '
+              r'Self-hosted connection tests run on the Dokploy host; cloud or remote resources use the selected resource server\.\s*'
+              r'</p>\s*\)\}'
+          )
+          s, guidance_count = guidance.subn("", s, count=1)
+          if guidance_count != 1:
+              raise SystemExit("expected exactly one duplicated execution-host guidance block")
+
           p.write_text(s)
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/fix-dokploy-5491.yml
-          git add apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+          rm -f .github/workflows/fix-dokploy-5491.yml .github/workflows/repair-dokploy-416.yml
+          git add -A apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx .github/workflows
           git commit -m "fix(backups): dedupe generic rclone destination UI"
           git push origin HEAD:canary
