@@ -12,7 +12,7 @@ import {
 	getCurrentPlan as getCurrentPlanForOrganization,
 	getStripeClient,
 	TRIAL_DURATION_DAYS,
-	TRIAL_SERVER_LIMIT,
+	TRIAL_SERVER_LIMITS,
 } from "@/server/utils/billing";
 import {
 	type BillingTier,
@@ -45,72 +45,82 @@ export const stripeRouter = createTRPCRouter({
 		return getBillingStatus(ctx.user.ownerId);
 	}),
 
-	startFreeTrial: adminProcedure.mutation(async ({ ctx }) => {
-		if (!IS_CLOUD) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "This feature is only available in Dokploy Cloud",
-			});
-		}
-
-		if (!HOBBY_PRICE_MONTHLY_ID) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Trials are not configured",
-			});
-		}
-
-		const owner = await findUserById(ctx.user.ownerId);
-		const billingStatus = await getBillingStatus(owner.id);
-
-		if (billingStatus.hasActiveAccess) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "You already have an active plan or trial",
-			});
-		}
-
-		if (billingStatus.hasUsedTrial) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "You have already used your free trial",
-			});
-		}
-
-		const stripe = getStripeClient();
-
-		let stripeCustomerId = owner.stripeCustomerId;
-		if (stripeCustomerId) {
-			const customer = await stripe.customers.retrieve(stripeCustomerId);
-			if (customer.deleted) {
-				stripeCustomerId = null;
+	startFreeTrial: adminProcedure
+		.input(z.object({ tier: z.enum(["hobby", "startup"]) }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
 			}
-		}
-		if (!stripeCustomerId) {
-			const customer = await stripe.customers.create({ email: owner.email });
-			stripeCustomerId = customer.id;
-		}
 
-		const subscription = await stripe.subscriptions.create({
-			customer: stripeCustomerId,
-			items: [{ price: HOBBY_PRICE_MONTHLY_ID, quantity: 1 }],
-			trial_period_days: TRIAL_DURATION_DAYS,
-			trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
-			metadata: { source: "onboarding_trial", adminId: owner.id },
-		});
+			const trialPriceId =
+				input.tier === "startup"
+					? STARTUP_BASE_PRICE_MONTHLY_ID
+					: HOBBY_PRICE_MONTHLY_ID;
+			if (!trialPriceId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Trials are not configured",
+				});
+			}
 
-		await updateUser(owner.id, {
-			stripeCustomerId,
-			stripeSubscriptionId: subscription.id,
-			serversQuantity: TRIAL_SERVER_LIMIT,
-		});
+			const owner = await findUserById(ctx.user.ownerId);
+			const billingStatus = await getBillingStatus(owner.id);
 
-		return {
-			trialEndsAt: subscription.trial_end
-				? new Date(subscription.trial_end * 1000)
-				: null,
-		};
-	}),
+			if (billingStatus.hasActiveAccess) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You already have an active plan or trial",
+				});
+			}
+
+			if (billingStatus.hasUsedTrial) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You have already used your free trial",
+				});
+			}
+
+			const stripe = getStripeClient();
+
+			let stripeCustomerId = owner.stripeCustomerId;
+			if (stripeCustomerId) {
+				const customer = await stripe.customers.retrieve(stripeCustomerId);
+				if (customer.deleted) {
+					stripeCustomerId = null;
+				}
+			}
+			if (!stripeCustomerId) {
+				const customer = await stripe.customers.create({ email: owner.email });
+				stripeCustomerId = customer.id;
+			}
+
+			const subscription = await stripe.subscriptions.create({
+				customer: stripeCustomerId,
+				items: [{ price: trialPriceId, quantity: 1 }],
+				trial_period_days: TRIAL_DURATION_DAYS,
+				trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+				metadata: {
+					source: "onboarding_trial",
+					adminId: owner.id,
+					tier: input.tier,
+				},
+			});
+
+			await updateUser(owner.id, {
+				stripeCustomerId,
+				stripeSubscriptionId: subscription.id,
+				serversQuantity: TRIAL_SERVER_LIMITS[input.tier],
+			});
+
+			return {
+				trialEndsAt: subscription.trial_end
+					? new Date(subscription.trial_end * 1000)
+					: null,
+			};
+		}),
 
 	getProducts: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
@@ -343,9 +353,15 @@ export const stripeRouter = createTRPCRouter({
 				});
 			}
 
+			const isTrialing = subscription.status === "trialing";
+			// Trials are capped at the plan's included servers; paid plans can scale.
+			const serverQuantity = isTrialing
+				? TRIAL_SERVER_LIMITS[input.tier]
+				: input.serverQuantity;
+
 			const newItems = getStripeItems(
 				input.tier as BillingTier,
-				input.serverQuantity,
+				serverQuantity,
 				input.isAnnual,
 			);
 			const currentItems = subscription.items.data;
@@ -371,7 +387,7 @@ export const stripeRouter = createTRPCRouter({
 
 			await stripe.subscriptions.update(owner.stripeSubscriptionId, {
 				items: updateItems,
-				proration_behavior: "create_prorations",
+				proration_behavior: isTrialing ? "none" : "create_prorations",
 			});
 
 			return { ok: true };

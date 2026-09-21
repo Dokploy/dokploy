@@ -16,17 +16,19 @@ jobs:
       contents: write
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
           token: ${{ secrets.HOTFIX_PUSH_TOKEN }}
 
       - name: Cherry-pick fix to main
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
-          SHA="${{ github.event.pull_request.merge_commit_sha }}"
+          SHA="$MERGE_SHA"
           if [ "$(git rev-list --parents -n1 "$SHA" | wc -w)" -gt 2 ]; then
             git cherry-pick -x -m 1 "$SHA"
           else
