@@ -1,0 +1,50 @@
+name: Fix Dokploy 5491 carrier
+on:
+  push:
+    branches:
+      - canary
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: canary
+      - name: Apply one-shot carrier cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx")
+          s = p.read_text()
+          duplicate_provider = """					<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+          						Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
+          					</SelectItem>
+          									<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+          										Generic rclone config
+          									</SelectItem>"""
+          single_provider = """					<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+          						Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
+          					</SelectItem>"""
+          first_guidance = """					{isGenericRclone && (
+          						<p className="text-xs text-muted-foreground">
+          							Provision this config file and named remote at the same path on every host that executes backups or restores. Self-hosted connection tests run on the Dokploy host; cloud or remote resources use the selected resource server.
+          						</p>
+          					)}
+          					<FormMessage />"""
+          if s.count(duplicate_provider) != 1:
+              raise SystemExit("provider duplicate shape moved")
+          if s.count(first_guidance) != 1:
+              raise SystemExit("guidance duplicate shape moved")
+          s = s.replace(duplicate_provider, single_provider, 1)
+          s = s.replace(first_guidance, "					<FormMessage />", 1)
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/fix-dokploy-5491.yml
+          git add apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+          git commit -m "fix(backups): dedupe generic rclone destination UI"
+          git push origin HEAD:canary
