@@ -446,14 +446,12 @@ export const organizationRouter = createTRPCRouter({
 		}),
 
 
-	teams: protectedProcedure.query(async ({ ctx }) => {
+	teams: withPermission("member", "read").query(async ({ ctx }) => {
 		const orgId = ctx.session.activeOrganizationId;
 		return await db.query.team.findMany({
 			where: eq(team.organizationId, orgId),
 			with: {
-				members: {
-					with: { user: true },
-				},
+				members: true,
 			},
 			orderBy: [desc(team.createdAt)],
 		});
@@ -609,12 +607,6 @@ export const organizationRouter = createTRPCRouter({
 				if (!targetTeam) {
 					throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
 				}
-				if (targetTeam.memberCount >= targetTeam.maxMembers) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Team member limit reached",
-					});
-				}
 			}
 
 			const currentMemberships = await db
@@ -639,6 +631,24 @@ export const organizationRouter = createTRPCRouter({
 						.where(eq(team.id, membership.teamId));
 				}
 				if (targetTeam) {
+					const [reservedTeam] = await tx
+						.update(team)
+						.set({ memberCount: sql`${team.memberCount} + 1` })
+						.where(
+							and(
+								eq(team.id, targetTeam.id),
+								sql`${team.memberCount} < ${team.maxMembers}`,
+							),
+						)
+						.returning({ id: team.id });
+
+					if (!reservedTeam) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Team member limit reached",
+						});
+					}
+
 					await tx.insert(teamMember).values({
 						id: nanoid(),
 						teamId: targetTeam.id,
@@ -646,10 +656,6 @@ export const organizationRouter = createTRPCRouter({
 						membershipKey: `${targetTeam.id}:${targetMember.userId}`,
 						createdAt: new Date(),
 					});
-					await tx
-						.update(team)
-						.set({ memberCount: sql`${team.memberCount} + 1` })
-						.where(eq(team.id, targetTeam.id));
 				}
 				await tx
 					.update(member)
@@ -811,6 +817,33 @@ export const organizationRouter = createTRPCRouter({
 					message: "Only the current organization owner can transfer ownership",
 				});
 			}
+			const currentOwner = await db.query.user.findFirst({
+				where: eq(user.id, ctx.user.id),
+			});
+			if (!currentOwner) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization owner not found",
+				});
+			}
+
+			const hasOwnerBoundEntitlements =
+				currentOwner.enablePaidFeatures ||
+				currentOwner.isValidEnterpriseLicense ||
+				currentOwner.licenseKey !== null ||
+				currentOwner.stripeCustomerId !== null ||
+				currentOwner.stripeSubscriptionId !== null ||
+				currentOwner.serversQuantity > 0 ||
+				currentOwner.isEnterpriseCloud;
+
+			if (hasOwnerBoundEntitlements) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Transfer or deactivate the current owner's billing and enterprise entitlements before transferring organization ownership",
+				});
+			}
+
 			const target = await db.query.member.findFirst({
 				where: and(eq(member.id, input.memberId), eq(member.organizationId, orgId)),
 				with: { user: true },
