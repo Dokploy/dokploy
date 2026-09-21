@@ -136,7 +136,12 @@ export const createDeployment = async (
 		const serverId = application.buildServerId || application.serverId;
 
 		const { LOGS_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
 
@@ -218,7 +223,12 @@ export const createDeploymentPreview = async (
 	try {
 		const appName = `${previewDeployment.appName}`;
 		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
@@ -297,7 +307,12 @@ export const createDeploymentCompose = async (
 	);
 	try {
 		const { LOGS_PATH } = paths(!!compose.serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${compose.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, compose.appName, fileName);
 
@@ -381,7 +396,12 @@ export const createDeploymentBackup = async (
 	await removeLastTenDeployments(deployment.backupId, "backup", serverId);
 	try {
 		const { LOGS_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${backup.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, backup.appName, fileName);
 
@@ -468,7 +488,12 @@ export const createDeploymentSchedule = async (
 		);
 	try {
 		const { SCHEDULES_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(SCHEDULES_PATH, schedule.appName, fileName);
 
@@ -546,7 +571,12 @@ export const createDeploymentVolumeBackup = async (
 	);
 	try {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${volumeBackup.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(
 			VOLUME_BACKUPS_PATH,
@@ -987,7 +1017,12 @@ export const createServerDeployment = async (
 
 		const server = await findServerById(deployment.serverId);
 		await removeLastFiveDeployments(deployment.serverId);
-		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const formattedDateTime = format(
+			new Date(),
+			process.platform === "win32"
+				? "yyyy-MM-dd-HH-mm-ss"
+				: "yyyy-MM-dd:HH:mm:ss",
+		);
 		const fileName = `${server.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, server.appName, fileName);
 		await fsPromises.mkdir(path.join(LOGS_PATH, server.appName), {
