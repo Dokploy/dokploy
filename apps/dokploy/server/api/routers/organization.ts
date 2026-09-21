@@ -5,7 +5,7 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -18,6 +18,8 @@ import {
 	member,
 	organization,
 	organizationRole,
+	team,
+	teamMember,
 	user,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
@@ -27,6 +29,7 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: z.string().max(500).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -132,6 +135,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: z.string().max(500).nullable().optional(),
 				defaultRole: z.string().min(1).nullable().optional(),
 			}),
 		)
@@ -183,7 +187,7 @@ export const organizationRouter = createTRPCRouter({
 					});
 				}
 
-				if (!["admin", "member"].includes(input.defaultRole)) {
+				if (!["admin", "member", "viewer"].includes(input.defaultRole)) {
 					const customRole = await db.query.organizationRole.findFirst({
 						where: and(
 							eq(organizationRole.organizationId, input.organizationId),
@@ -213,6 +217,9 @@ export const organizationRouter = createTRPCRouter({
 				.set({
 					name: input.name,
 					logo: input.logo,
+					...(input.description !== undefined && {
+						description: input.description,
+					}),
 					...(input.defaultRole !== undefined && {
 						defaultRole: input.defaultRole,
 					}),
@@ -302,11 +309,33 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				email: z.string().email(),
 				role: z.string().min(1),
+				teamId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const orgId = ctx.session.activeOrganizationId;
 			const email = input.email.toLowerCase();
+
+			if (input.teamId) {
+				const targetTeam = await db.query.team.findFirst({
+					where: and(
+						eq(team.id, input.teamId),
+						eq(team.organizationId, orgId),
+					),
+				});
+				if (!targetTeam) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Team not found in this organization",
+					});
+				}
+				if (targetTeam.memberCount >= targetTeam.maxMembers) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Team member limit reached",
+					});
+				}
+			}
 
 			if (IS_CLOUD) {
 				await assertMemberLimit(orgId);
@@ -358,7 +387,7 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			// If assigning a custom role, verify it exists
-			if (!["owner", "admin", "member"].includes(input.role)) {
+			if (!["owner", "admin", "member", "viewer"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(organizationRole.organizationId, orgId),
@@ -384,6 +413,7 @@ export const organizationRouter = createTRPCRouter({
 					status: "pending",
 					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
 					inviterId: ctx.user.id,
+					teamId: input.teamId,
 				})
 				.returning();
 
@@ -413,6 +443,230 @@ export const organizationRouter = createTRPCRouter({
 				metadata: { type: "inviteMember", role: input.role },
 			});
 			return created;
+		}),
+
+
+	teams: protectedProcedure.query(async ({ ctx }) => {
+		const orgId = ctx.session.activeOrganizationId;
+		return await db.query.team.findMany({
+			where: eq(team.organizationId, orgId),
+			with: {
+				members: {
+					with: { user: true },
+				},
+			},
+			orderBy: [desc(team.createdAt)],
+		});
+	}),
+	createTeam: withPermission("team", "create")
+		.input(
+			z.object({
+				name: z.string().min(1).max(100),
+				description: z.string().max(500).optional(),
+				maxMembers: z.number().int().min(1).max(500).default(50),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const existing = await db.query.team.findFirst({
+				where: and(
+					eq(team.organizationId, orgId),
+					eq(team.name, input.name),
+				),
+			});
+			if (existing) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "A team with this name already exists",
+				});
+			}
+			const [created] = await db
+				.insert(team)
+				.values({
+					name: input.name,
+					description: input.description,
+					maxMembers: input.maxMembers,
+					organizationId: orgId,
+				})
+				.returning();
+			await audit(ctx, {
+				action: "create",
+				resourceType: "organization",
+				resourceId: created?.id,
+				resourceName: input.name,
+				metadata: { type: "team" },
+			});
+			return created;
+		}),
+	updateTeam: withPermission("team", "update")
+		.input(
+			z.object({
+				teamId: z.string().min(1),
+				name: z.string().min(1).max(100).optional(),
+				description: z.string().max(500).nullable().optional(),
+				maxMembers: z.number().int().min(1).max(500).optional(),
+				accessedProjects: z.array(z.string()).optional(),
+				accessedEnvironments: z.array(z.string()).optional(),
+				accessedServices: z.array(z.string()).optional(),
+				accessedGitProviders: z.array(z.string()).optional(),
+				accessedServers: z.array(z.string()).optional(),
+				canCreateProjects: z.boolean().optional(),
+				canAccessToSSHKeys: z.boolean().optional(),
+				canCreateServices: z.boolean().optional(),
+				canDeleteProjects: z.boolean().optional(),
+				canDeleteServices: z.boolean().optional(),
+				canAccessToDocker: z.boolean().optional(),
+				canAccessToAPI: z.boolean().optional(),
+				canAccessToGitProviders: z.boolean().optional(),
+				canAccessToTraefikFiles: z.boolean().optional(),
+				canDeleteEnvironments: z.boolean().optional(),
+				canCreateEnvironments: z.boolean().optional(),
+				canManageDeployments: z.boolean().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const existing = await db.query.team.findFirst({
+				where: and(eq(team.id, input.teamId), eq(team.organizationId, orgId)),
+			});
+			if (!existing) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+			}
+			if (
+				input.maxMembers !== undefined &&
+				input.maxMembers < existing.memberCount
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Team limit cannot be lower than its current member count",
+				});
+			}
+			const { teamId, ...changes } = input;
+			const [updated] = await db
+				.update(team)
+				.set(changes)
+				.where(eq(team.id, teamId))
+				.returning();
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: teamId,
+				resourceName: updated?.name,
+				metadata: { type: "teamPermissions" },
+			});
+			return updated;
+		}),
+	deleteTeam: withPermission("team", "delete")
+		.input(z.object({ teamId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const existing = await db.query.team.findFirst({
+				where: and(eq(team.id, input.teamId), eq(team.organizationId, orgId)),
+			});
+			if (!existing) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+			}
+			await db.transaction(async (tx) => {
+				await tx
+					.update(member)
+					.set({ teamId: null })
+					.where(eq(member.teamId, input.teamId));
+				await tx.delete(team).where(eq(team.id, input.teamId));
+			});
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: input.teamId,
+				resourceName: existing.name,
+				metadata: { type: "team" },
+			});
+			return true;
+		}),
+	moveMemberToTeam: withPermission("team", "update")
+		.input(
+			z.object({
+				memberId: z.string().min(1),
+				teamId: z.string().min(1).nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.id, input.memberId),
+					eq(member.organizationId, orgId),
+				),
+			});
+			if (!targetMember) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			let targetTeam: typeof team.$inferSelect | undefined;
+			if (input.teamId) {
+				targetTeam = await db.query.team.findFirst({
+					where: and(eq(team.id, input.teamId), eq(team.organizationId, orgId)),
+				});
+				if (!targetTeam) {
+					throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+				}
+				if (targetTeam.memberCount >= targetTeam.maxMembers) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Team member limit reached",
+					});
+				}
+			}
+
+			const currentMemberships = await db
+				.select({ id: teamMember.id, teamId: teamMember.teamId })
+				.from(teamMember)
+				.innerJoin(team, eq(teamMember.teamId, team.id))
+				.where(
+					and(
+						eq(teamMember.userId, targetMember.userId),
+						eq(team.organizationId, orgId),
+					),
+				);
+
+			await db.transaction(async (tx) => {
+				for (const membership of currentMemberships) {
+					await tx
+						.delete(teamMember)
+						.where(eq(teamMember.id, membership.id));
+					await tx
+						.update(team)
+						.set({ memberCount: sql`GREATEST(${team.memberCount} - 1, 0)` })
+						.where(eq(team.id, membership.teamId));
+				}
+				if (targetTeam) {
+					await tx.insert(teamMember).values({
+						id: nanoid(),
+						teamId: targetTeam.id,
+						userId: targetMember.userId,
+						membershipKey: `${targetTeam.id}:${targetMember.userId}`,
+						createdAt: new Date(),
+					});
+					await tx
+						.update(team)
+						.set({ memberCount: sql`${team.memberCount} + 1` })
+						.where(eq(team.id, targetTeam.id));
+				}
+				await tx
+					.update(member)
+					.set({ teamId: targetTeam?.id ?? null })
+					.where(eq(member.id, targetMember.id));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "user",
+				resourceId: targetMember.userId,
+				metadata: {
+					type: "moveMemberToTeam",
+					teamId: targetTeam?.id ?? null,
+				},
+			});
+			return true;
 		}),
 
 	allInvitations: withPermission("member", "create").query(async ({ ctx }) => {
@@ -489,11 +743,12 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// Owner role is nontransferable - cannot change to or from owner
+			// Ownership changes use the dedicated transferOwnership endpoint so
+			// organization.ownerId and both membership roles update atomically.
 			if (target.role === "owner" || input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "The owner role is nontransferable",
+					message: "Use Transfer Ownership to change the owner",
 				});
 			}
 
@@ -508,7 +763,7 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			// If assigning a custom role (not admin/member), verify it exists
-			if (input.role !== "admin" && input.role !== "member") {
+			if (!["admin", "member", "viewer"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(
@@ -542,6 +797,68 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+
+	transferOwnership: protectedProcedure
+		.input(z.object({ memberId: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, orgId),
+			});
+			if (!org || org.ownerId !== ctx.user.id || ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the current organization owner can transfer ownership",
+				});
+			}
+			const target = await db.query.member.findFirst({
+				where: and(eq(member.id, input.memberId), eq(member.organizationId, orgId)),
+				with: { user: true },
+			});
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+			if (target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This user already owns the organization",
+				});
+			}
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(member)
+					.set({ role: "admin" })
+					.where(
+						and(
+							eq(member.userId, ctx.user.id),
+							eq(member.organizationId, orgId),
+						),
+					);
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, target.id));
+				await tx
+					.update(organization)
+					.set({ ownerId: target.userId })
+					.where(eq(organization.id, orgId));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: orgId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					fromUserId: ctx.user.id,
+					toUserId: target.userId,
+				},
+			});
+			return true;
+		}),
+
 	setDefault: protectedProcedure
 		.input(
 			z.object({
