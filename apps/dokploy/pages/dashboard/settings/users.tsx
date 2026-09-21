@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ManageTeams } from "@/components/dashboard/settings/users/manage-teams";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -20,6 +21,7 @@ const Page = () => {
 		<div className="flex flex-col gap-4 w-full">
 			<ShowUsers />
 			{canCreateMembers && <ShowInvitations />}
+			{isOwnerOrAdmin && <ManageTeams isOwner={auth?.role === "owner"} />}
 			{isOwnerOrAdmin && <ManageCustomRoles />}
 		</div>
 	);

@@ -128,6 +128,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 										</FormControl>
 										<SelectContent>
 											<SelectItem value="admin">Admin</SelectItem>
+											<SelectItem value="viewer">Viewer</SelectItem>
 											<SelectItem value="member">Member</SelectItem>
 											{customRoles?.map((customRole) => (
 												<SelectItem
@@ -142,8 +143,9 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 									<FormDescription>
 										<strong>Admin:</strong> Can manage users and settings.
 										<br />
-										<strong>Member:</strong> Limited permissions, can be
-										customized.
+										<strong>Viewer:</strong> Read-only access to assigned resources; deployment start/stop can be granted separately.
+										<br />
+										<strong>Member:</strong> Limited permissions, can be customized.
 										{customRoles && customRoles.length > 0 && (
 											<>
 												<br />
@@ -153,7 +155,7 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 										)}
 										<br />
 										<em className="text-muted-foreground text-xs">
-											Note: Owner role is nontransferable.
+											Ownership is transferred from the Teams & Ownership panel.
 										</em>
 									</FormDescription>
 									<FormMessage />

@@ -43,7 +43,7 @@ export const ShowUsers = () => {
 	const utils = api.useUtils();
 	const { data: session } = api.user.session.useQuery();
 
-	const FREE_ROLES = ["owner", "admin", "member"];
+	const FREE_ROLES = ["owner", "admin", "member", "viewer"];
 	const membersWithCustomRoles = data?.filter(
 		(member) => !FREE_ROLES.includes(member.role),
 	);

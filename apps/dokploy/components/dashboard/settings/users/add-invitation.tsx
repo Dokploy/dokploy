@@ -42,6 +42,7 @@ const addInvitation = z
 			.min(1, "Email is required")
 			.email({ message: "Invalid email" }),
 		role: z.string().min(1, "Role is required"),
+		teamId: z.string().optional(),
 		notificationId: z.string().optional(),
 		password: z.string().optional(),
 		confirmPassword: z.string().optional(),
@@ -106,6 +107,7 @@ export const AddInvitation = () => {
 	const { mutateAsync: createUserWithCredentials, isPending: isCreating } =
 		api.user.createUserWithCredentials.useMutation();
 	const { data: customRoles } = api.customRole.all.useQuery();
+	const { data: teams } = api.organization.teams.useQuery();
 	const { data: activeOrganization } = api.organization.active.useQuery();
 	const [error, setError] = useState<string | null>(null);
 
@@ -114,6 +116,7 @@ export const AddInvitation = () => {
 			mode: "invitation",
 			email: "",
 			role: "member",
+			teamId: undefined,
 			notificationId: "",
 			password: "",
 			confirmPassword: "",
@@ -159,6 +162,7 @@ export const AddInvitation = () => {
 				const result = await inviteMember({
 					email: data.email.toLowerCase(),
 					role: data.role,
+					teamId: data.teamId,
 				});
 
 				if (!isCloud && data.notificationId) {
@@ -285,6 +289,7 @@ export const AddInvitation = () => {
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
+												<SelectItem value="viewer">Viewer</SelectItem>
 												<SelectItem value="member">Member</SelectItem>
 												<SelectItem value="admin">Admin</SelectItem>
 												{customRoles?.map((role) => (
@@ -302,6 +307,43 @@ export const AddInvitation = () => {
 								);
 							}}
 						/>
+
+
+						{mode === "invitation" && teams && teams.length > 0 && (
+							<FormField
+								control={form.control}
+								name="teamId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Team</FormLabel>
+										<Select
+											value={field.value ?? "__none__"}
+											onValueChange={(value) =>
+												field.onChange(value === "__none__" ? undefined : value)
+											}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="No team" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												<SelectItem value="__none__">No team</SelectItem>
+												{teams.map((team) => (
+													<SelectItem key={team.id} value={team.id}>
+														{team.name} ({team.memberCount}/{team.maxMembers})
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<FormDescription>
+											Add the invited member to a team when the invitation is accepted.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						{!isCloud && mode === "invitation" && (
 							<FormField
