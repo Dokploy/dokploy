@@ -16,7 +16,7 @@ const Page = () => {
 
 	return (
 		<div className="w-full">
-			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
+			<div className="h-full rounded-xl w-full flex flex-col gap-4">
 				<ProfileForm />
 				{isCloud && <LinkingAccount />}
 				{permissions?.api.read && <ShowApiKeys />}

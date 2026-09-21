@@ -1,5 +1,5 @@
 {
-  "id": "afaa48ea-5d8a-4b04-9e2d-7201ab1c4994",
+  "id": "c9ad226a-7a8f-4c3b-8f04-fef6bccf9bfb",
   "prevId": "719d3b27-c42a-41e4-8b5d-b76b7d8de983",
   "version": "7",
   "dialect": "postgresql",
@@ -2690,6 +2690,13 @@
           "notNull": true,
           "default": false
         },
+        "pullImages": {
+          "name": "pullImages",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "triggerType": {
           "name": "triggerType",
           "type": "triggerType",
@@ -3138,13 +3145,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "destinationType": {
-          "name": "destinationType",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'s3'"
-        },
         "provider": {
           "name": "provider",
           "type": "text",
@@ -3155,7 +3155,7 @@
           "name": "accessKey",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "secretAccessKey": {
           "name": "secretAccessKey",
@@ -3173,13 +3173,13 @@
           "name": "region",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "endpoint": {
           "name": "endpoint",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "additionalFlags": {
           "name": "additionalFlags",
