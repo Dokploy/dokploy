@@ -1,0 +1,65 @@
+name: Repair Dokploy 416 review-fix artifacts
+
+on:
+  push:
+    branches:
+      - canary
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: canary
+          fetch-depth: 0
+      - name: Remove duplicate generic-rclone UI blocks
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx")
+          text = path.read_text()
+
+          duplicate_option = """\t\t\t\t\t\t\t\t\t<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+\t\t\t\t\t\t\t\t\t\tRclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
+\t\t\t\t\t\t\t\t\t</SelectItem>
+\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+\t\t\t\t\t\t\t\t\t\t\t\t\t\tGeneric rclone config
+\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>"""
+          single_option = """\t\t\t\t\t\t\t\t\t\t\t\t\t<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+\t\t\t\t\t\t\t\t\t\t\t\t\t\tRclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
+\t\t\t\t\t\t\t\t\t\t\t\t\t</SelectItem>"""
+
+          duplicate_guidance = """\t\t\t\t\t\t\t\t\t{isGenericRclone && (
+\t\t\t\t\t\t\t\t\t\t<p className="text-xs text-muted-foreground">
+\t\t\t\t\t\t\t\t\t\t\tProvision this config file and named remote at the same path on every host that executes backups or restores. Self-hosted connection tests run on the Dokploy host; cloud or remote resources use the selected resource server.
+\t\t\t\t\t\t\t\t\t\t</p>
+\t\t\t\t\t\t\t\t\t)}
+\t\t\t\t\t\t\t\t\t<FormMessage />
+\t\t\t\t\t\t\t\t\t{isGenericRclone && (
+\t\t\t\t\t\t\t\t\t\t<p className="text-xs text-muted-foreground">
+\t\t\t\t\t\t\t\t\t\t\tThe rclone config path and named remote must exist on every execution host that can run this backup, including a selected resource server. Connection testing runs on the selected server when one is chosen; otherwise it runs in Dokploy&apos;s local execution environment.
+\t\t\t\t\t\t\t\t\t\t</p>
+\t\t\t\t\t\t\t\t\t)}"""
+          single_guidance = """\t\t\t\t\t\t\t\t\t{isGenericRclone && (
+\t\t\t\t\t\t\t\t\t\t<p className="text-xs text-muted-foreground">
+\t\t\t\t\t\t\t\t\t\t\tThe rclone config path and named remote must exist at the same path on every execution host that can run this backup or restore. Connection testing runs on the selected server when one is chosen; otherwise it runs in Dokploy&apos;s local execution environment.
+\t\t\t\t\t\t\t\t\t\t</p>
+\t\t\t\t\t\t\t\t\t)}
+\t\t\t\t\t\t\t\t\t<FormMessage />"""
+
+          text = text.replace(duplicate_option, single_option)
+          text = text.replace(duplicate_guidance, single_guidance)
+          path.write_text(text)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/repair-dokploy-416.yml
+          git add apps/dokploy/components/dashboard/settings/destination/handle-destinations.tsx
+          git commit -m "fix(backups): deduplicate rclone destination UI"
+          git push origin HEAD:canary
