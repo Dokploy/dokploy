@@ -29,7 +29,13 @@ import {
 	sendVerificationEmail,
 } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
-import { ac, adminRole, memberRole, ownerRole } from "./access-control";
+import {
+	ac,
+	adminRole,
+	memberRole,
+	ownerRole,
+	viewerRole,
+} from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
 
 const resolveTrustedOrigins = async () => {
@@ -484,6 +490,20 @@ const createBetterAuth = () =>
 					owner: ownerRole,
 					admin: adminRole,
 					member: memberRole,
+					viewer: viewerRole,
+				},
+				teams: {
+					enabled: true,
+					maximumTeams: 50,
+					maximumMembersPerTeam: async ({ teamId }) => {
+						if (!teamId) return 50;
+						const configured = await db.query.team.findFirst({
+							where: eq(schema.team.id, teamId),
+							columns: { maxMembers: true },
+						});
+						return configured?.maxMembers ?? 50;
+					},
+					allowRemovingAllTeams: true,
 				},
 				dynamicAccessControl: {
 					enabled: true,
