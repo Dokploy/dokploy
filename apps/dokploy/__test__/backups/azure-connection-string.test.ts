@@ -1,7 +1,9 @@
 import {
+	azureStorageAccountLabel,
+	looksLikeMissingStorageTarget,
 	parseAzureConnectionString,
 	parseAzureSasUrl,
-} from "@dokploy/server/utils/backups/azure";
+} from "@dokploy/server/db/validations/destination";
 import { describe, expect, it } from "vitest";
 
 describe("Azure Connection String & SAS URL Parser", () => {
@@ -66,5 +68,36 @@ describe("Azure Connection String & SAS URL Parser", () => {
 		const { accountName, containerName } = parseAzureSasUrl(sasUrl);
 		expect(accountName).toBe("mystorageaccount");
 		expect(containerName).toBeUndefined();
+	});
+});
+
+describe("Azure destination helpers", () => {
+	it("labels SAS destinations from the URL hostname when accessKey is empty", () => {
+		const sasUrl =
+			"https://mystorageaccount.blob.core.windows.net/mybackups?sv=2022-11-02&sig=sig123";
+		expect(
+			azureStorageAccountLabel({ accessKey: "", secretAccessKey: sasUrl }),
+		).toBe("mystorageaccount");
+	});
+
+	it("falls back to a generic label when the account cannot be inferred", () => {
+		expect(
+			azureStorageAccountLabel({
+				accessKey: "",
+				secretAccessKey: "not-a-url",
+			}),
+		).toBe("this storage account");
+	});
+
+	it("matches rclone directory-not-found and Azure ContainerNotFound errors", () => {
+		expect(
+			looksLikeMissingStorageTarget("Failed to ls: directory not found"),
+		).toBe(true);
+		expect(
+			looksLikeMissingStorageTarget(
+				"RESPONSE 404: ERROR CODE: ContainerNotFound",
+			),
+		).toBe(true);
+		expect(looksLikeMissingStorageTarget("authentication failed")).toBe(false);
 	});
 });

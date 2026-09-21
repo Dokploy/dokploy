@@ -16,8 +16,8 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const { rcloneFlags, remoteBase } = getDestinationRemote(destination);
-		const backupPath = `${remoteBase}/${backupFile}`;
+		const { rcloneFlags, getRemotePath } = getDestinationRemote(destination);
+		const backupPath = getRemotePath(backupFile);
 		const { BASE_PATH } = paths();
 
 		// Create a temporary directory outside of BASE_PATH

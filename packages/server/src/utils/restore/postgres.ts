@@ -16,8 +16,8 @@ export const restorePostgresBackup = async (
 	try {
 		const { appName, databaseUser, serverId } = postgres;
 
-		const { rcloneFlags, remoteBase } = getDestinationRemote(destination);
-		const backupPath = `${remoteBase}/${backupInput.backupFile}`;
+		const { rcloneFlags, getRemotePath } = getDestinationRemote(destination);
+		const backupPath = getRemotePath(backupInput.backupFile);
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 

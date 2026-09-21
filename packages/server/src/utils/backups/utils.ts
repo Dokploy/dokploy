@@ -1,3 +1,8 @@
+import {
+	isAzureDestinationType,
+	isAzureSasProvider,
+	STORAGE_ACCOUNT_NAME_REQUIRED,
+} from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -88,29 +93,22 @@ export const getDestinationRemote = (
 		destinationType?: string | null;
 	},
 ): DestinationRemote => {
-	const destinationType =
-		destination.destinationType === "az_bs" ||
-		destination.destinationType === "azure_blob"
-			? "azure_blob"
-			: "s3";
+	const destinationType = isAzureDestinationType(destination.destinationType)
+		? "azure_blob"
+		: "s3";
 
 	if (destinationType === "azure_blob") {
 		const rcloneFlags: string[] = [];
-		const isSas =
-			destination.provider === "sas_url" ||
-			destination.secretAccessKey.startsWith("http://") ||
-			destination.secretAccessKey.startsWith("https://");
 
-		if (isSas) {
+		if (isAzureSasProvider(destination.provider)) {
 			rcloneFlags.push(
 				`--azureblob-sas-url=${quote([destination.secretAccessKey])}`,
 			);
 		} else {
-			if (destination.accessKey) {
-				rcloneFlags.push(
-					`--azureblob-account=${quote([destination.accessKey])}`,
-				);
+			if (!destination.accessKey?.trim()) {
+				throw new Error(STORAGE_ACCOUNT_NAME_REQUIRED);
 			}
+			rcloneFlags.push(`--azureblob-account=${quote([destination.accessKey])}`);
 			rcloneFlags.push(
 				`--azureblob-key=${quote([destination.secretAccessKey])}`,
 			);

@@ -10,6 +10,11 @@ import {
 	updateDestinationById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	azureStorageAccountLabel,
+	isAzureDestinationType,
+	looksLikeMissingStorageTarget,
+} from "@dokploy/server/db/validations/destination";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
@@ -74,7 +79,7 @@ export const destinationRouter = createTRPCRouter({
 					await execAsync(rcloneCommand);
 				}
 			} catch (error) {
-				const isAzure = input.destinationType === "azure_blob";
+				const isAzure = isAzureDestinationType(input.destinationType);
 				let message =
 					error instanceof Error
 						? redactRcloneCredentials(error.message)
@@ -82,10 +87,10 @@ export const destinationRouter = createTRPCRouter({
 
 				if (
 					error instanceof Error &&
-					error.message.includes("directory not found")
+					looksLikeMissingStorageTarget(error.message)
 				) {
 					message = isAzure
-						? `Container "${input.bucket}" was not found in storage account "${input.accessKey || input.name}". Please make sure the container exists in Azure.`
+						? `Container "${input.bucket}" was not found in storage account "${azureStorageAccountLabel(input)}". Please make sure the container exists in Azure.`
 						: `Bucket "${input.bucket}" was not found. Please make sure the bucket exists in your storage provider.`;
 				}
 

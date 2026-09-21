@@ -1,7 +1,12 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isAzureAccountKeyProvider,
+	isAzureDestinationType,
+	isAzureSasProvider,
 	parseAzureConnectionString,
+	parseAzureSasUrl,
+	STORAGE_ACCOUNT_NAME_REQUIRED,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import {
@@ -97,21 +102,25 @@ const destinationFormSchema = z
 				});
 			}
 		} else if (data.destinationType === "azure_blob") {
-			if (data.provider !== "account_key" && data.provider !== "sas_url") {
+			if (
+				!isAzureAccountKeyProvider(data.provider) &&
+				!isAzureSasProvider(data.provider)
+			) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					message: "Provider must be either 'account_key' or 'sas_url'",
 					path: ["provider"],
 				});
 			}
-			if (data.provider === "account_key") {
-				if (!data.accessKeyId || data.accessKeyId.trim().length === 0) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Storage Account Name is required when using Account Key",
-						path: ["accessKeyId"],
-					});
-				}
+			if (
+				isAzureAccountKeyProvider(data.provider) &&
+				(!data.accessKeyId || data.accessKeyId.trim().length === 0)
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: STORAGE_ACCOUNT_NAME_REQUIRED,
+					path: ["accessKeyId"],
+				});
 			}
 		}
 	});
@@ -167,7 +176,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	});
 
 	const destinationType = form.watch("destinationType");
-	const isAzure = destinationType === "azure_blob";
+	const isAzure = isAzureDestinationType(destinationType);
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -176,9 +185,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	useEffect(() => {
 		if (destination) {
-			const isDestAzure =
-				destination.destinationType === "azure_blob" ||
-				destination.destinationType === "az_bs";
+			const isDestAzure = isAzureDestinationType(destination.destinationType);
 
 			form.reset({
 				destinationType: isDestAzure ? "azure_blob" : "s3",
@@ -234,12 +241,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		await mutateAsync({
 			destinationType: data.destinationType,
 			name: data.name,
-			provider:
-				data.destinationType === "azure_blob"
-					? data.provider === "sas_url"
-						? "sas_url"
-						: "account_key"
-					: data.provider || "AWS",
+			provider: isAzureDestinationType(data.destinationType)
+				? isAzureSasProvider(data.provider)
+					? "sas_url"
+					: "account_key"
+				: data.provider || "AWS",
 			accessKey: data.accessKeyId || "",
 			secretAccessKey: data.secretAccessKey,
 			bucket: data.bucket,
@@ -268,10 +274,17 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const handleTestConnection = async (serverId?: string) => {
 		const triggerFields: Array<keyof DestinationFormData> = isAzure
-			? ["name", "bucket", "secretAccessKey"]
-			: ["provider", "accessKeyId", "secretAccessKey", "bucket", "endpoint"];
+			? ["name", "bucket", "secretAccessKey", "additionalFlags"]
+			: [
+					"provider",
+					"accessKeyId",
+					"secretAccessKey",
+					"bucket",
+					"endpoint",
+					"additionalFlags",
+				];
 
-		if (isAzure && form.getValues("provider") === "account_key") {
+		if (isAzure && isAzureAccountKeyProvider(form.getValues("provider"))) {
 			triggerFields.push("accessKeyId");
 		}
 
@@ -299,12 +312,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 		await testConnection({
 			destinationType: currentVals.destinationType,
-			provider:
-				currentVals.destinationType === "azure_blob"
-					? currentVals.provider === "sas_url"
-						? "sas_url"
-						: "account_key"
-					: currentVals.provider || "AWS",
+			provider: isAzureDestinationType(currentVals.destinationType)
+				? isAzureSasProvider(currentVals.provider)
+					? "sas_url"
+					: "account_key"
+				: currentVals.provider || "AWS",
 			accessKey: currentVals.accessKeyId || "",
 			secretAccessKey: currentVals.secretAccessKey,
 			bucket: currentVals.bucket,
@@ -375,8 +387,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										form.setValue("destinationType", "s3");
 										const currentProvider = form.getValues("provider");
 										if (
-											currentProvider === "account_key" ||
-											currentProvider === "sas_url"
+											isAzureAccountKeyProvider(currentProvider) ||
+											isAzureSasProvider(currentProvider)
 										) {
 											form.setValue("provider", "AWS");
 										}
@@ -397,8 +409,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										form.setValue("destinationType", "azure_blob");
 										const currentProvider = form.getValues("provider");
 										if (
-											currentProvider !== "account_key" &&
-											currentProvider !== "sas_url"
+											!isAzureAccountKeyProvider(currentProvider) &&
+											!isAzureSasProvider(currentProvider)
 										) {
 											form.setValue("provider", "account_key");
 										}
@@ -416,7 +428,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							</div>
 						</div>
 
-						{/* Common: Destination Name */}
 						<FormField
 							control={form.control}
 							name="name"
@@ -438,7 +449,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							)}
 						/>
 
-						{/* AZURE BLOB STORAGE FIELDS */}
 						{isAzure ? (
 							<>
 								<FormField
@@ -471,7 +481,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									)}
 								/>
 
-								{form.watch("provider") === "account_key" && (
+								{isAzureAccountKeyProvider(form.watch("provider")) && (
 									<div className="flex flex-col gap-1.5 p-3 rounded-lg border border-dashed bg-muted/40">
 										<div className="flex items-center justify-between">
 											<span className="text-xs font-medium text-foreground">
@@ -492,7 +502,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									</div>
 								)}
 
-								{form.watch("provider") === "account_key" ? (
+								{isAzureAccountKeyProvider(form.watch("provider")) ? (
 									<>
 										<FormField
 											control={form.control}
@@ -556,6 +566,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 													<Input
 														placeholder="https://mystorageaccount.blob.core.windows.net/?sv=...&sig=..."
 														{...field}
+														onChange={(e) => {
+															field.onChange(e);
+															const parsed = parseAzureSasUrl(e.target.value);
+															if (parsed.containerName) {
+																form.setValue("bucket", parsed.containerName, {
+																	shouldValidate: true,
+																});
+															}
+														}}
 													/>
 												</FormControl>
 												<FormDescription className="text-xs">
@@ -608,7 +627,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								/>
 							</>
 						) : (
-							/* S3-COMPATIBLE STORAGE FIELDS */
 							<>
 								<FormField
 									control={form.control}

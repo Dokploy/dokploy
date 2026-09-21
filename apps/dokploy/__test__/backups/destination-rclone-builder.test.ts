@@ -160,5 +160,44 @@ describe("getDestinationRemote", () => {
 			const { remoteBase } = getDestinationRemote(destination);
 			expect(remoteBase).toBe(":azureblob:test-container");
 		});
+
+		it("throws when account_key mode is missing the storage account name", () => {
+			const destination = {
+				destinationType: "azure_blob" as const,
+				name: "Azure Incomplete",
+				provider: "account_key",
+				accessKey: "",
+				secretAccessKey: "dGVzdGtleQ==",
+				bucket: "mycontainer",
+				region: "",
+				endpoint: "",
+				additionalFlags: [],
+			};
+
+			expect(() => getDestinationRemote(destination)).toThrow(
+				"Storage Account Name is required when using Account Key",
+			);
+		});
+
+		it("does not treat an https secret as SAS when provider is account_key", () => {
+			const destination = {
+				destinationType: "azure_blob" as const,
+				name: "Azure Account Key",
+				provider: "account_key",
+				accessKey: "myazureaccount",
+				secretAccessKey:
+					"https://myaccount.blob.core.windows.net/mycontainer?sv=2022-11-02&sig=test",
+				bucket: "mycontainer",
+				region: "",
+				endpoint: "",
+				additionalFlags: [],
+			};
+
+			const { rcloneFlags } = getDestinationRemote(destination);
+			const flagsStr = rcloneFlags.join(" ");
+			expect(flagsStr).toContain("--azureblob-account=myazureaccount");
+			expect(flagsStr).toContain("--azureblob-key=");
+			expect(flagsStr).not.toContain("--azureblob-sas-url=");
+		});
 	});
 });

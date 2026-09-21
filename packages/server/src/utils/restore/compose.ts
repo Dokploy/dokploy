@@ -24,8 +24,8 @@ export const restoreComposeBackup = async (
 		}
 		const { serverId, appName, composeType } = compose;
 
-		const { rcloneFlags, remoteBase } = getDestinationRemote(destination);
-		const backupPath = `${remoteBase}/${backupInput.backupFile}`;
+		const { rcloneFlags, getRemotePath } = getDestinationRemote(destination);
+		const backupPath = getRemotePath(backupInput.backupFile);
 		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
 		if (backupInput.metadata?.mongo) {

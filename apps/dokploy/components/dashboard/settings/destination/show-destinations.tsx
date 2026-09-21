@@ -1,3 +1,4 @@
+import { isAzureDestinationType } from "@dokploy/server/db/validations/destination";
 import {
 	Cloud,
 	Database,
@@ -60,9 +61,7 @@ export const ShowDestinations = () => {
 
 		setTestingDestinationId(destination.destinationId);
 		try {
-			const isAzure =
-				destination.destinationType === "azure_blob" ||
-				destination.destinationType === "az_bs";
+			const isAzure = isAzureDestinationType(destination.destinationType);
 
 			await testConnection({
 				destinationType: isAzure ? "azure_blob" : "s3",
@@ -125,9 +124,9 @@ export const ShowDestinations = () => {
 									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-3 rounded-lg">
 											{data?.map((destination, index) => {
-												const isAzure =
-													destination.destinationType === "azure_blob" ||
-													destination.destinationType === "az_bs";
+												const isAzure = isAzureDestinationType(
+													destination.destinationType,
+												);
 												const isTesting =
 													testingDestinationId === destination.destinationId;
 

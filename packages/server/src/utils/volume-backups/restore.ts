@@ -19,8 +19,8 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const { rcloneFlags, remoteBase } = getDestinationRemote(destination);
-	const backupPath = `${remoteBase}/${backupFileName}`;
+	const { rcloneFlags, getRemotePath } = getDestinationRemote(destination);
+	const backupPath = getRemotePath(backupFileName);
 
 	// Command to download backup file from S3
 	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${volumeBackupPath}/${backupFileName}`])}`;

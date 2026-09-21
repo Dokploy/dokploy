@@ -1,4 +1,5 @@
 import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
+import { quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
 
 describe("redactRcloneCredentials (#4621)", () => {
@@ -95,5 +96,21 @@ describe("redactRcloneCredentials (#4621)", () => {
 		expect(redacted).not.toContain("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY");
 		expect(redacted).toContain('--s3-access-key-id="[REDACTED]"');
 		expect(redacted).toContain('--s3-secret-access-key="[REDACTED]"');
+	});
+
+	it("should redact secrets that contain both single and double quotes (shell-quote)", () => {
+		const mixedSecret = `abc'def"ghiLEAKED`;
+		const quoted = quote([mixedSecret]);
+		const azureCmd = `rclone rcat --azureblob-key=${quoted} :azureblob:container/file.sql.gz`;
+		const azureRedacted = redactRcloneCredentials(azureCmd);
+		expect(azureRedacted).not.toContain("ghiLEAKED");
+		expect(azureRedacted).not.toContain(mixedSecret);
+		expect(azureRedacted).toContain('--azureblob-key="[REDACTED]"');
+
+		const s3Cmd = `rclone rcat --s3-secret-access-key=${quoted} :s3:bucket/file.gz`;
+		const s3Redacted = redactRcloneCredentials(s3Cmd);
+		expect(s3Redacted).not.toContain("ghiLEAKED");
+		expect(s3Redacted).not.toContain(mixedSecret);
+		expect(s3Redacted).toContain('--s3-secret-access-key="[REDACTED]"');
 	});
 });

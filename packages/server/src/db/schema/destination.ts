@@ -5,6 +5,10 @@ import { z } from "zod";
 import {
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	AZURE_AUTH_PROVIDERS,
+	isAzureAccountKeyProvider,
+	normalizeDestinationInput,
+	STORAGE_ACCOUNT_NAME_REQUIRED,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -41,7 +45,7 @@ export const destinationsRelations = relations(
 );
 
 export const s3DestinationSchema = z.object({
-	destinationType: z.literal("s3").default("s3"),
+	destinationType: z.literal("s3"),
 	name: z.string().min(1, "Name is required"),
 	provider: z.string().min(1, "Provider is required"),
 	accessKey: z.string().min(1, "Access Key Id is required"),
@@ -55,90 +59,53 @@ export const s3DestinationSchema = z.object({
 	serverId: z.string().optional(),
 });
 
-export const azureBlobDestinationSchema = z
-	.object({
-		destinationType: z.literal("azure_blob").default("azure_blob"),
-		name: z.string().min(1, "Name is required"),
-		provider: z.enum(["account_key", "sas_url"]).default("account_key"),
-		accessKey: z.string().optional().default(""),
-		secretAccessKey: z.string().min(1, "Account Key or SAS URL is required"),
-		bucket: z.string().min(1, "Container name is required"),
-		region: z.string().optional().default(""),
-		endpoint: z.string().optional().default(""),
-		additionalFlags: z
-			.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
-			.default([]),
-		serverId: z.string().optional(),
-	})
-	.refine(
-		(data) => {
-			if (data.provider === "account_key") {
-				return !!data.accessKey && data.accessKey.trim().length > 0;
-			}
-			return true;
-		},
-		{
-			message: "Storage Account Name is required when using Account Key",
-			path: ["accessKey"],
-		},
-	);
+const azureBlobDestinationObjectSchema = z.object({
+	destinationType: z.literal("azure_blob"),
+	name: z.string().min(1, "Name is required"),
+	provider: z.enum(AZURE_AUTH_PROVIDERS).default("account_key"),
+	accessKey: z.string().optional().default(""),
+	secretAccessKey: z.string().min(1, "Account Key or SAS URL is required"),
+	bucket: z.string().min(1, "Container name is required"),
+	region: z.string().optional().default(""),
+	endpoint: z.string().optional().default(""),
+	additionalFlags: z
+		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
+		.default([]),
+	serverId: z.string().optional(),
+});
 
-export const destinationSchema = z
-	.object({
-		name: z.string().min(1, "Name is required"),
-		destinationType: z.preprocess(
-			(val) => (val === "az_bs" ? "azure_blob" : val),
-			z.enum(["s3", "azure_blob"]).default("s3"),
-		),
-		provider: z.string().min(1, "Provider is required").default("AWS"),
-		accessKey: z.string().optional().default(""),
-		secretAccessKey: z
-			.string()
-			.min(1, "Secret Access Key / Account Key / SAS URL is required"),
-		bucket: z.string().min(1, "Bucket / Container is required"),
-		region: z.string().optional().default(""),
-		endpoint: z.string().optional().default(""),
-		additionalFlags: z
-			.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
-			.default([]),
-		serverId: z.string().optional(),
-	})
-	.superRefine((data, ctx) => {
-		if (data.destinationType === "s3") {
-			if (!data.accessKey || data.accessKey.trim().length === 0) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Access Key Id is required for S3",
-					path: ["accessKey"],
-				});
+const requireAzureAccountName = (
+	data: { provider: string; accessKey?: string },
+	ctx: z.RefinementCtx,
+) => {
+	if (
+		isAzureAccountKeyProvider(data.provider) &&
+		(!data.accessKey || data.accessKey.trim().length === 0)
+	) {
+		ctx.addIssue({
+			code: "custom",
+			message: STORAGE_ACCOUNT_NAME_REQUIRED,
+			path: ["accessKey"],
+		});
+	}
+};
+
+export const azureBlobDestinationSchema =
+	azureBlobDestinationObjectSchema.superRefine(requireAzureAccountName);
+
+export const destinationSchema = z.preprocess(
+	normalizeDestinationInput,
+	z
+		.discriminatedUnion("destinationType", [
+			s3DestinationSchema,
+			azureBlobDestinationObjectSchema,
+		])
+		.superRefine((data, ctx) => {
+			if (data.destinationType === "azure_blob") {
+				requireAzureAccountName(data, ctx);
 			}
-			if (!data.endpoint || data.endpoint.trim().length === 0) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Endpoint is required for S3",
-					path: ["endpoint"],
-				});
-			}
-		} else if (data.destinationType === "azure_blob") {
-			if (data.provider !== "account_key" && data.provider !== "sas_url") {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Provider must be either 'account_key' or 'sas_url'",
-					path: ["provider"],
-				});
-			}
-			if (
-				data.provider === "account_key" &&
-				(!data.accessKey || data.accessKey.trim().length === 0)
-			) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Storage Account Name is required when using Account Key",
-					path: ["accessKey"],
-				});
-			}
-		}
-	});
+		}),
+);
 
 export const apiCreateDestination = destinationSchema;
 
@@ -150,6 +117,20 @@ export const apiRemoveDestination = z.object({
 	destinationId: z.string().min(1),
 });
 
-export const apiUpdateDestination = destinationSchema.extend({
-	destinationId: z.string().min(1),
-});
+export const apiUpdateDestination = z.preprocess(
+	normalizeDestinationInput,
+	z
+		.discriminatedUnion("destinationType", [
+			s3DestinationSchema.extend({
+				destinationId: z.string().min(1),
+			}),
+			azureBlobDestinationObjectSchema.extend({
+				destinationId: z.string().min(1),
+			}),
+		])
+		.superRefine((data, ctx) => {
+			if (data.destinationType === "azure_blob") {
+				requireAzureAccountName(data, ctx);
+			}
+		}),
+);
