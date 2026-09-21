@@ -318,11 +318,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 															{s3Provider.name}
 														</SelectItem>
 													))}
-									<SelectItem value={RCLONE_CONFIG_PROVIDER}>
-										Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
-									</SelectItem>
 													<SelectItem value={RCLONE_CONFIG_PROVIDER}>
-														Generic rclone config
+														Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
 													</SelectItem>
 												</SelectContent>
 											</Select>
