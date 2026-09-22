@@ -116,7 +116,8 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							<div className="flex flex-col gap-4">
 								{previewDeployments?.map((deployment) => {
 									const deploymentUrl = `${deployment.domain?.https ? "https" : "http"}://${deployment.domain?.host}${deployment.domain?.path || "/"}`;
-									const status = deployment.previewStatus;
+									const status =
+										deployment.deployments[0]?.status ?? deployment.previewStatus;
 									return (
 										<div
 											key={deployment.previewDeploymentId}
@@ -141,7 +142,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 													</div>
 													<Badge variant="outline" className="gap-2">
 														<StatusTooltip
-															status={deployment.previewStatus}
+															status={status}
 															className="size-2"
 														/>
 														<DateTooltip date={deployment.createdAt} />
@@ -228,7 +229,8 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 																variant="outline"
 																size="sm"
 																isLoading={
-																	status === "running" || status === "queued"
+																	deployment.previewStatus === "running" ||
+																	deployment.previewStatus === "queued"
 																}
 																className="gap-2"
 															>
