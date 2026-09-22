@@ -29,6 +29,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 	let client: ReturnType<typeof postgres>;
 	let database: ReturnType<typeof drizzle<typeof schema>>;
 	let lifecycle: typeof import("@dokploy/server/services/deployment-lifecycle");
+	let deploymentQueue: typeof import("@/server/queues/queueSetup");
 	let deploymentService: typeof import("@dokploy/server/services/deployment");
 	let logDirectory: string | undefined;
 	let executeDeployment: typeof import("@dokploy/server/queues/execute-deployment").executeDeployment;
@@ -50,6 +51,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		vi.doMock("@dokploy/server/db", () => ({ db: database }));
 		lifecycle = await import("@dokploy/server/services/deployment-lifecycle");
 		deploymentService = await import("@dokploy/server/services/deployment");
+		deploymentQueue = await import("@/server/queues/queueSetup");
 		({ executeDeployment } = await import(
 			"@dokploy/server/queues/execute-deployment"
 		));
@@ -109,7 +111,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 	}, 30_000);
 
 	beforeEach(async () => {
-		await lifecycle.cancelQueuedDeployments();
+		await deploymentQueue.cleanAllDeploymentQueue();
 	});
 
 	afterAll(async () => {
@@ -157,6 +159,69 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 			status: "done",
 		});
 		expect(done?.finishedAt).toBeTruthy();
+	});
+
+	it("cleans only the requested service from persisted and in-memory queues", async () => {
+		const application = await deploymentQueue.enqueueDeployment(job());
+		const preview = await deploymentQueue.enqueueDeployment({
+			...job(),
+			applicationType: "application-preview",
+			applicationId,
+			previewDeploymentId,
+		});
+		const compose = await deploymentQueue.enqueueDeployment({
+			...job(),
+			applicationType: "compose",
+			composeId,
+		});
+		await deploymentQueue.cleanQueuesByApplication(applicationId);
+		expect(
+			(await deploymentQueue.getDeploymentJobs())
+				.map(({ data }) => data.deploymentId)
+				.sort(),
+		).toEqual([preview.deploymentId, compose.deploymentId].sort());
+		expect(
+			await database.query.deployments.findFirst({
+				where: eq(schema.deployments.deploymentId, application.deploymentId),
+			}),
+		).toMatchObject({ status: "cancelled" });
+		expect(
+			await database.query.previewDeployments.findFirst({
+				where: eq(
+					schema.previewDeployments.previewDeploymentId,
+					previewDeploymentId,
+				),
+			}),
+		).toMatchObject({ previewStatus: "queued" });
+	});
+
+	it("records dispatch failures and leaves no waiting attempt behind", async () => {
+		const queue = globalThis.__dokployDeploymentQueue;
+		if (!queue) throw new Error("Self-hosted queue is missing");
+		const add = vi
+			.spyOn(queue, "add")
+			.mockRejectedValueOnce(new Error("Queue closed"));
+		try {
+			await expect(deploymentQueue.enqueueDeployment(job())).rejects.toThrow(
+				"Queue closed",
+			);
+			expect(
+				await database.query.applications.findFirst({
+					where: eq(schema.applications.applicationId, applicationId),
+				}),
+			).toMatchObject({ applicationStatus: "error" });
+			const attempts = await database.query.deployments.findMany({
+				where: eq(schema.deployments.applicationId, applicationId),
+			});
+			expect(attempts.some((attempt) => attempt.status === "queued")).toBe(
+				false,
+			);
+			expect(
+				attempts.find((attempt) => attempt.errorMessage === "Queue closed"),
+			).toMatchObject({ status: "error", startedAt: null });
+		} finally {
+			add.mockRestore();
+		}
 	});
 
 	it("never reclaims cancelled attempts or overwrites their terminal state", async () => {
@@ -236,6 +301,62 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 				}),
 			).toMatchObject({ status: "cancelled", logPath: "", startedAt: null });
 		}
+	});
+
+	it("recovers interrupted attempts without cancelling remote scheduled work", async () => {
+		const queued = await lifecycle.queueDeployment(job());
+		const preview = await lifecycle.queueDeployment({
+			...job(),
+			applicationType: "application-preview",
+			applicationId,
+			previewDeploymentId,
+		});
+		await lifecycle.claimQueuedDeployment(preview.deploymentId, preview);
+		const scheduleId = randomUUID();
+		await database
+			.insert(schema.schedules)
+			.values({
+				scheduleId,
+				name: "Remote schedule",
+				applicationId,
+				cronExpression: "* * * * *",
+				command: "true",
+				scheduleType: "application",
+			});
+		const [scheduled] = await database
+			.insert(schema.deployments)
+			.values({
+				scheduleId,
+				title: "Scheduled command",
+				status: "running",
+				logPath: "",
+			})
+			.returning();
+		if (!scheduled) throw new Error("Missing scheduled attempt");
+		const { initCancelDeployments } = await import(
+			"@dokploy/server/utils/startup/cancel-deployments"
+		);
+		await initCancelDeployments();
+		for (const attempt of [queued, preview]) {
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, attempt.deploymentId),
+				}),
+			).toMatchObject({ status: "cancelled" });
+		}
+		expect(
+			await database.query.previewDeployments.findFirst({
+				where: eq(
+					schema.previewDeployments.previewDeploymentId,
+					previewDeploymentId,
+				),
+			}),
+		).toMatchObject({ previewStatus: "idle" });
+		expect(
+			await database.query.deployments.findFirst({
+				where: eq(schema.deployments.deploymentId, scheduled.deploymentId),
+			}),
+		).toMatchObject({ status: "running" });
 	});
 
 	it("serializes concurrent completion and enqueue without losing the active status", async () => {

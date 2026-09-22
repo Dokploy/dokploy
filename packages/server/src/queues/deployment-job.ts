@@ -7,24 +7,33 @@ const deploymentOptions = {
 	type: z.enum(["deploy", "redeploy"]),
 };
 
+const applicationTarget = z.object({
+	applicationType: z.literal("application"),
+	applicationId: z.string().min(1),
+});
+const composeTarget = z.object({
+	applicationType: z.literal("compose"),
+	composeId: z.string().min(1),
+});
+const previewTarget = z.object({
+	applicationType: z.literal("application-preview"),
+	applicationId: z.string().min(1),
+	previewDeploymentId: z.string().min(1),
+});
+export const deploymentTargetSchema = z.discriminatedUnion("applicationType", [
+	applicationTarget,
+	composeTarget,
+	previewTarget,
+]);
+export type DeploymentTarget = z.infer<typeof deploymentTargetSchema>;
+
 export const deploymentJobSchema = z.discriminatedUnion("applicationType", [
-	z.object({
+	applicationTarget.extend(deploymentOptions),
+	composeTarget.extend({
 		...deploymentOptions,
-		applicationType: z.literal("application"),
-		applicationId: z.string().min(1),
-	}),
-	z.object({
-		...deploymentOptions,
-		applicationType: z.literal("compose"),
-		composeId: z.string().min(1),
 		freshVolumes: z.boolean().optional(),
 	}),
-	z.object({
-		...deploymentOptions,
-		applicationType: z.literal("application-preview"),
-		applicationId: z.string().min(1),
-		previewDeploymentId: z.string().min(1),
-	}),
+	previewTarget.extend(deploymentOptions),
 ]);
 
 export type DeploymentJob = z.infer<typeof deploymentJobSchema>;
