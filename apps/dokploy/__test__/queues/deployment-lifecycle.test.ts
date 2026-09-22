@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import * as schema from "@dokploy/server/db/schema";
 import type { DeploymentJob } from "@dokploy/server/queues/deployment-job";
@@ -28,6 +29,8 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 	let client: ReturnType<typeof postgres>;
 	let database: ReturnType<typeof drizzle<typeof schema>>;
 	let lifecycle: typeof import("@dokploy/server/services/deployment-lifecycle");
+	let deploymentService: typeof import("@dokploy/server/services/deployment");
+	let logDirectory: string | undefined;
 
 	const job = (id: string = applicationId): DeploymentJob => ({
 		applicationType: "application",
@@ -45,6 +48,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		// Replace the suite-wide DB stub with real PostgreSQL for this module.
 		vi.doMock("@dokploy/server/db", () => ({ db: database }));
 		lifecycle = await import("@dokploy/server/services/deployment-lifecycle");
+		deploymentService = await import("@dokploy/server/services/deployment");
 		await database.insert(schema.user).values({
 			id: userId,
 			email: `${userId}@example.test`,
@@ -108,6 +112,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		if (database)
 			await database.delete(schema.user).where(eq(schema.user.id, userId));
 		if (client) await client.end();
+		if (logDirectory) await rm(logDirectory, { recursive: true, force: true });
 		vi.doUnmock("@dokploy/server/db");
 	});
 
@@ -120,9 +125,15 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 			finishedAt: null,
 			logPath: "",
 		});
-		const running = await lifecycle.claimQueuedDeployment(
-			first.deploymentId,
-			first,
+		const running = await deploymentService.createDeployment({
+			applicationId,
+			title: "Deployment",
+			deploymentId: first.deploymentId,
+		});
+		if (!running) throw new Error("Deployment was not claimed");
+		logDirectory = path.dirname(running.logPath);
+		expect(await readFile(running.logPath, "utf8")).toContain(
+			"Initializing deployment",
 		);
 		expect(running).toMatchObject({
 			deploymentId: first.deploymentId,

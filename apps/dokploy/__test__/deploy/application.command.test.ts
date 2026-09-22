@@ -2,6 +2,7 @@ import * as adminService from "@dokploy/server/services/admin";
 import * as applicationService from "@dokploy/server/services/application";
 import { deployApplication } from "@dokploy/server/services/application";
 import * as deploymentService from "@dokploy/server/services/deployment";
+import * as lifecycle from "@dokploy/server/services/deployment-lifecycle";
 import * as builders from "@dokploy/server/utils/builders";
 import * as notifications from "@dokploy/server/utils/notifications/build-success";
 import * as execProcess from "@dokploy/server/utils/process/execAsync";
@@ -59,9 +60,12 @@ vi.mock("@dokploy/server/services/admin", () => ({
 	getDokployUrl: vi.fn(),
 }));
 
+vi.mock("@dokploy/server/services/deployment-lifecycle", () => ({
+	finishDeployment: vi.fn(),
+}));
+
 vi.mock("@dokploy/server/services/deployment", () => ({
 	createDeployment: vi.fn(),
-	updateDeploymentStatus: vi.fn(),
 	updateDeployment: vi.fn(),
 }));
 
@@ -162,9 +166,7 @@ describe("deployApplication - Command Generation Tests", () => {
 		vi.mocked(builders.mechanizeDockerContainer).mockResolvedValue(
 			undefined as any,
 		);
-		vi.mocked(deploymentService.updateDeploymentStatus).mockResolvedValue(
-			undefined as any,
-		);
+		vi.mocked(lifecycle.finishDeployment).mockResolvedValue(undefined);
 		vi.mocked(applicationService.updateApplicationStatus).mockResolvedValue(
 			{} as any,
 		);

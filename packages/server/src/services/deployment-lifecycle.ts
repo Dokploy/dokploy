@@ -108,16 +108,18 @@ const withDeploymentOwner = async <T>(
 		return result;
 	});
 
+const getJobOwner = (job: DeploymentJob): DeploymentOwner => ({
+	applicationId:
+		job.applicationType === "application" ? job.applicationId : null,
+	composeId: job.applicationType === "compose" ? job.composeId : null,
+	previewDeploymentId:
+		job.applicationType === "application-preview"
+			? job.previewDeploymentId
+			: null,
+});
+
 export const queueDeployment = async (job: DeploymentJob) => {
-	const owner: DeploymentOwner = {
-		applicationId:
-			job.applicationType === "application" ? job.applicationId : null,
-		composeId: job.applicationType === "compose" ? job.composeId : null,
-		previewDeploymentId:
-			job.applicationType === "application-preview"
-				? job.previewDeploymentId
-				: null,
-	};
+	const owner = getJobOwner(job);
 	return withDeploymentOwner(
 		owner,
 		async (tx) => {
@@ -189,6 +191,14 @@ export const claimQueuedDeployment = (
 		undefined,
 		service.condition,
 	);
+};
+
+export const startDeployment = async (
+	job: DeploymentJob,
+	deploymentId?: string,
+) => {
+	const id = deploymentId ?? (await queueDeployment(job)).deploymentId;
+	return claimQueuedDeployment(id, getJobOwner(job));
 };
 
 export const finishDeployment = (
