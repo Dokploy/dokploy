@@ -73,7 +73,7 @@ if (queue) {
 	});
 }
 
-const cleanDeploymentQueue = async (target?: DeploymentTarget) => {
+export const cleanDeploymentQueue = async (target?: DeploymentTarget) => {
 	const cancelled = new Set(await cancelQueuedDeployments(target));
 	queue?.removeWaiting((data) => cancelled.has(data.deploymentId));
 };

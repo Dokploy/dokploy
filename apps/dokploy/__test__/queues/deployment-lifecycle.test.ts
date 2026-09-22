@@ -174,6 +174,10 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 			applicationType: "compose",
 			composeId,
 		});
+		expect(
+			await deploymentService.removeDeployment(application.deploymentId),
+		).toBeNull();
+
 		await deploymentQueue.cleanQueuesByApplication(applicationId);
 		expect(
 			(await deploymentQueue.getDeploymentJobs())
@@ -193,6 +197,20 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 				),
 			}),
 		).toMatchObject({ previewStatus: "queued" });
+		const later = await deploymentQueue.enqueueDeployment(job());
+		await deploymentQueue.cleanDeploymentQueue({
+			applicationType: "application-preview",
+			applicationId,
+			previewDeploymentId,
+		});
+		expect(
+			(await deploymentQueue.getDeploymentJobs())
+				.map(({ data }) => data.deploymentId)
+				.sort(),
+		).toEqual([later.deploymentId, compose.deploymentId].sort());
+		expect(
+			await deploymentService.removeDeployment(application.deploymentId),
+		).toMatchObject({ status: "cancelled" });
 	});
 
 	it("records dispatch failures and leaves no waiting attempt behind", async () => {

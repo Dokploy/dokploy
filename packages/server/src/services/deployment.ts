@@ -516,7 +516,12 @@ export const removeDeployment = async (deploymentId: string) => {
 	try {
 		const deployment = await db
 			.delete(deployments)
-			.where(eq(deployments.deploymentId, deploymentId))
+			.where(
+				and(
+					eq(deployments.deploymentId, deploymentId),
+					inArray(deployments.status, ["done", "error", "cancelled"]),
+				),
+			)
 			.returning()
 			.then((result) => result[0]);
 
