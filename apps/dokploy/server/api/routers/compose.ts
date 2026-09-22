@@ -74,10 +74,10 @@ import {
 } from "@/server/db/schema";
 import {
 	cleanQueuesByCompose,
+	enqueueDeployment,
 	killDockerBuild,
-	myQueue,
 } from "@/server/queues/queueSetup";
-import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { cancelDeployment } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -426,31 +426,11 @@ export const composeRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "compose",
 				descriptionLog: input.description || "",
-				server: !!compose.serverId,
 				serverId: compose.serverId ?? undefined,
 				freshVolumes: input.freshVolumes,
 			};
 
-			if (IS_CLOUD && compose.serverId) {
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "deploy",
-					resourceType: "compose",
-					resourceId: input.composeId,
-					resourceName: compose.name,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "compose",
@@ -476,30 +456,11 @@ export const composeRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "compose",
 				descriptionLog: input.description || "",
-				server: !!compose.serverId,
 				serverId: compose.serverId ?? undefined,
 				freshVolumes: input.freshVolumes,
 			};
-			if (IS_CLOUD && compose.serverId) {
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "deploy",
-					resourceType: "compose",
-					resourceId: input.composeId,
-					resourceName: compose.name,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+
+			await enqueueDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "compose",

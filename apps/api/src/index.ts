@@ -1,3 +1,4 @@
+import { executeDeployment } from "@dokploy/server";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
@@ -5,13 +6,8 @@ import { zValidator } from "@hono/zod-validator";
 import { Inngest } from "inngest";
 import { serve as serveInngest } from "inngest/hono";
 import { logger } from "./logger.js";
-import {
-	cancelDeploymentSchema,
-	type DeployJob,
-	deployJobSchema,
-} from "./schema.js";
+import { cancelDeploymentSchema, deployJobSchema } from "./schema.js";
 import { fetchDeploymentJobs } from "./service.js";
-import { deploy } from "./utils.js";
 
 const app = new Hono();
 
@@ -43,13 +39,14 @@ export const deploymentFunction = inngest.createFunction(
 	{ event: "deployment/requested" },
 
 	async ({ event, step }) => {
-		const jobData = event.data as DeployJob;
+		const jobData = deployJobSchema.parse(event.data);
 
 		return await step.run("execute-deployment", async () => {
 			logger.info("Deploying started");
 
 			try {
-				const result = await deploy(jobData);
+				const result = await executeDeployment(jobData);
+				if (!result) return false;
 				logger.info("Deployment finished", result);
 
 				// Send success event

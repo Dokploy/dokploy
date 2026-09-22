@@ -3,7 +3,6 @@ import { z } from "zod";
 const deploymentOptions = {
 	titleLog: z.string().default(""),
 	descriptionLog: z.string().default(""),
-	server: z.boolean().optional(),
 	serverId: z.string().min(1).optional(),
 	type: z.enum(["deploy", "redeploy"]),
 };
