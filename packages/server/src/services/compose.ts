@@ -37,11 +37,8 @@ import { quote } from "shell-quote";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
-import {
-	createDeploymentCompose,
-	updateDeployment,
-	updateDeploymentStatus,
-} from "./deployment";
+import { createDeploymentCompose, updateDeployment } from "./deployment";
+import { finishDeployment } from "./deployment-lifecycle";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
@@ -226,11 +223,13 @@ export const updateCompose = async (
 };
 
 export const deployCompose = async ({
+	deploymentId,
 	composeId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
 	freshVolumes = false,
 }: {
+	deploymentId?: string;
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
@@ -242,10 +241,12 @@ export const deployCompose = async ({
 		compose.environment.projectId
 	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
+		deploymentId,
 		composeId: composeId,
 		title: titleLog,
 		description: descriptionLog,
 	});
+	if (!deployment) return false;
 
 	try {
 		const entity = {
@@ -307,10 +308,7 @@ export const deployCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateCompose(composeId, {
-			composeStatus: "done",
-		});
+		await finishDeployment(deployment.deploymentId, "done");
 
 		await sendBuildSuccessNotifications({
 			projectName: compose.environment.project.name,
@@ -337,15 +335,12 @@ export const deployCompose = async ({
 		} else {
 			await execAsync(command);
 		}
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
+		await finishDeployment(deployment.deploymentId, "error");
 		await sendBuildErrorNotifications({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
@@ -368,11 +363,13 @@ export const deployCompose = async ({
 };
 
 export const rebuildCompose = async ({
+	deploymentId,
 	composeId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
 	freshVolumes = false,
 }: {
+	deploymentId?: string;
 	composeId: string;
 	titleLog: string;
 	descriptionLog: string;
@@ -381,10 +378,12 @@ export const rebuildCompose = async ({
 	const compose = await findComposeById(composeId);
 
 	const deployment = await createDeploymentCompose({
+		deploymentId,
 		composeId: composeId,
 		title: titleLog,
 		description: descriptionLog,
 	});
+	if (!deployment) return false;
 
 	try {
 		let command = "set -e;";
@@ -433,10 +432,7 @@ export const rebuildCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateCompose(composeId, {
-			composeStatus: "done",
-		});
+		await finishDeployment(deployment.deploymentId, "done");
 	} catch (error) {
 		let command = "";
 
@@ -453,10 +449,7 @@ export const rebuildCompose = async ({
 		} else {
 			await execAsync(command);
 		}
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
+		await finishDeployment(deployment.deploymentId, "error");
 		throw error;
 	}
 
