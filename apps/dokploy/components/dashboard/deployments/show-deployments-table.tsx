@@ -1,6 +1,6 @@
-import type { DeploymentStatus } from "@dokploy/server/db/schema";
+"use client";
 
-("use client");
+import type { DeploymentStatus } from "@dokploy/server/db/schema";
 
 import {
 	flexRender,
