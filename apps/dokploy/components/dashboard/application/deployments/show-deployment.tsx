@@ -1,5 +1,6 @@
+import type { DeploymentStatus } from "@dokploy/server/db/schema";
 import copy from "copy-to-clipboard";
-import { Check, Copy, Loader2 } from "lucide-react";
+import { Check, Clock3, Copy, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnalyzeLogs } from "@/components/dashboard/docker/logs/analyze-logs";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
+	status?: DeploymentStatus | null;
 	logPath: string | null;
 	open: boolean;
 	onClose: () => void;
@@ -23,6 +25,7 @@ interface Props {
 	errorMessage?: string;
 }
 export const ShowDeployment = ({
+	status,
 	logPath,
 	open,
 	onClose,
@@ -52,9 +55,8 @@ export const ShowDeployment = ({
 	};
 
 	useEffect(() => {
-		if (!open || !logPath) return;
-
 		setData("");
+		if (!open || !logPath) return;
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
 		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
@@ -79,7 +81,7 @@ export const ShowDeployment = ({
 				wsRef.current = null;
 			}
 		};
-	}, [logPath, open]);
+	}, [logPath, open, serverId]);
 
 	useEffect(() => {
 		const logs = parseLogs(data);
@@ -174,7 +176,7 @@ export const ShowDeployment = ({
 									id="show-extra-logs"
 									checked={showExtraLogs}
 									onCheckedChange={(checked) =>
-										setShowExtraLogs(checked as boolean)
+										setShowExtraLogs(checked === true)
 									}
 								/>
 								<label
@@ -194,7 +196,16 @@ export const ShowDeployment = ({
 					className="h-[720px] overflow-y-auto space-y-0 border p-4 bg-background rounded custom-logs-scrollbar"
 				>
 					{" "}
-					{filteredLogs.length > 0 ? (
+					{status === "queued" ? (
+						<div className="flex h-full items-center justify-center gap-2 text-muted-foreground">
+							<Clock3 className="size-5" /> Waiting for a deployment slot. Logs
+							will appear when the build starts.
+						</div>
+					) : status === "cancelled" && !logPath ? (
+						<p className="flex h-full items-center justify-center text-muted-foreground">
+							Cancelled before the build started.
+						</p>
+					) : filteredLogs.length > 0 ? (
 						filteredLogs.map((log: LogLine, index: number) => (
 							<TerminalLine
 								key={`${log.rawTimestamp ?? ""}-${index}`}
@@ -214,7 +225,13 @@ export const ShowDeployment = ({
 								))
 							) : (
 								<div className="flex justify-center items-center h-full text-muted-foreground">
-									<Loader2 className="h-6 w-6 animate-spin" />
+									{status === "done" ||
+									status === "error" ||
+									status === "cancelled" ? (
+										"No deployment logs available."
+									) : (
+										<Loader2 className="h-6 w-6 animate-spin" />
+									)}
 								</div>
 							)}
 						</>

@@ -2,38 +2,32 @@ import { formatDistanceToNow } from "date-fns";
 import { ArrowRight, Rocket, Server } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+import { statusColors } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { api } from "@/utils/api";
+import { api, type RouterOutputs } from "@/utils/api";
 
-type DeploymentStatus = "idle" | "running" | "done" | "error";
-
-const statusDotClass: Record<string, string> = {
-	done: "bg-emerald-500",
-	running: "bg-amber-500",
-	error: "bg-red-500",
-	idle: "bg-muted-foreground/40",
-};
-
-function getServiceInfo(d: any) {
+function getServiceInfo(
+	d: RouterOutputs["deployment"]["allCentralized"][number],
+) {
 	const app = d.application;
 	const comp = d.compose;
 	const serverName: string =
 		d.server?.name ?? app?.server?.name ?? comp?.server?.name ?? "Dokploy";
 	if (app?.environment?.project && app.environment) {
 		return {
-			name: app.name as string,
-			environment: app.environment.name as string,
-			projectName: app.environment.project.name as string,
+			name: app.name,
+			environment: app.environment.name,
+			projectName: app.environment.project.name,
 			serverName,
 			href: `/dashboard/project/${app.environment.project.projectId}/environment/${app.environment.environmentId}/services/application/${app.applicationId}`,
 		};
 	}
 	if (comp?.environment?.project && comp.environment) {
 		return {
-			name: comp.name as string,
-			environment: comp.environment.name as string,
-			projectName: comp.environment.project.name as string,
+			name: comp.name,
+			environment: comp.environment.name,
+			projectName: comp.environment.project.name,
 			serverName,
 			href: `/dashboard/project/${comp.environment.project.projectId}/environment/${comp.environment.environmentId}/services/compose/${comp.composeId}`,
 		};
@@ -117,6 +111,7 @@ export const ShowHome = () => {
 		services: 0,
 	};
 	const statusBreakdown = homeStats?.status ?? {
+		queued: 0,
 		running: 0,
 		error: 0,
 		idle: 0,
@@ -197,6 +192,11 @@ export const ShowHome = () => {
 							label="Status"
 							items={[
 								{
+									dotClass: "bg-blue-500",
+									label: "queued",
+									count: statusBreakdown.queued,
+								},
+								{
 									dotClass: "bg-emerald-500",
 									label: "running",
 									count: statusBreakdown.running,
@@ -245,7 +245,7 @@ export const ShowHome = () => {
 								{recentDeployments.map((d) => {
 									const info = getServiceInfo(d);
 									if (!info) return null;
-									const status = (d.status ?? "idle") as DeploymentStatus;
+									const status = d.status ?? "idle";
 									return (
 										<li key={d.deploymentId}>
 											<Link
@@ -253,7 +253,7 @@ export const ShowHome = () => {
 												className="flex items-center gap-4 px-5 py-4 hover:bg-muted/40 transition-colors"
 											>
 												<span
-													className={`size-2 rounded-full shrink-0 ${statusDotClass[status] ?? statusDotClass.idle}`}
+													className={`size-2 rounded-full shrink-0 ${statusColors[status]}`}
 													aria-hidden
 												/>
 												<div className="flex flex-col min-w-0 flex-1">

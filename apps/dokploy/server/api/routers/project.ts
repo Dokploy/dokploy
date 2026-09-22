@@ -32,6 +32,7 @@ import {
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import type { ApplicationStatus } from "@dokploy/server/db/schema";
 import {
 	addNewEnvironment,
 	addNewProject,
@@ -538,7 +539,7 @@ export const projectRouter = createTRPCRouter({
 					compose: 0,
 					databases: 0,
 					services: 0,
-					status: { running: 0, error: 0, idle: 0 },
+					status: { queued: 0, running: 0, error: 0, idle: 0 },
 				};
 			}
 		}
@@ -614,9 +615,10 @@ export const projectRouter = createTRPCRouter({
 		let composeCount = 0;
 		let databasesCount = 0;
 		let environmentsCount = 0;
-		const status = { running: 0, error: 0, idle: 0 };
-		const bump = (s?: string | null) => {
-			if (s === "done") status.running++;
+		const status = { queued: 0, running: 0, error: 0, idle: 0 };
+		const bump = (s?: ApplicationStatus | null) => {
+			if (s === "queued") status.queued++;
+			else if (s === "done") status.running++;
 			else if (s === "error") status.error++;
 			else status.idle++;
 		};
