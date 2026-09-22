@@ -183,8 +183,8 @@ export const deployApplication = async ({
 }: {
 	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -303,8 +303,8 @@ export const rebuildApplication = async ({
 }: {
 	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -373,8 +373,8 @@ export const deployPreviewApplication = async ({
 }: {
 	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
@@ -492,8 +492,8 @@ export const rebuildPreviewApplication = async ({
 }: {
 	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);

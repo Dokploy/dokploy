@@ -231,8 +231,8 @@ export const deployCompose = async ({
 }: {
 	deploymentId?: string;
 	composeId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 	freshVolumes?: boolean;
 }): Promise<boolean> => {
 	const compose = await findComposeById(composeId);
@@ -372,8 +372,8 @@ export const rebuildCompose = async ({
 }: {
 	deploymentId?: string;
 	composeId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 	freshVolumes?: boolean;
 }): Promise<boolean> => {
 	const compose = await findComposeById(composeId);

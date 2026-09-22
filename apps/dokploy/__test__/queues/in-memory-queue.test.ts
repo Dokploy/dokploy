@@ -14,8 +14,6 @@ const appJob = (
 ): QueuedDeploymentJob => ({
 	deploymentId: randomUUID(),
 	applicationId,
-	titleLog: "deploy",
-	descriptionLog: "",
 	type: "deploy",
 	applicationType: "application",
 	serverId,
@@ -27,8 +25,6 @@ const composeJob = (
 ): QueuedDeploymentJob => ({
 	deploymentId: randomUUID(),
 	composeId,
-	titleLog: "deploy",
-	descriptionLog: "",
 	type: "deploy",
 	applicationType: "compose",
 	serverId,
