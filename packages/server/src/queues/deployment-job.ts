@@ -38,8 +38,12 @@ export const deploymentJobSchema = z.discriminatedUnion("applicationType", [
 
 export type DeploymentJob = z.infer<typeof deploymentJobSchema>;
 
+export const deploymentAttemptSchema = z.object({
+	deploymentId: z.string().min(1),
+});
+
 export const queuedDeploymentJobSchema = deploymentJobSchema.and(
-	z.object({ deploymentId: z.string().min(1) }),
+	deploymentAttemptSchema,
 );
 
 export type QueuedDeploymentJob = z.infer<typeof queuedDeploymentJobSchema>;

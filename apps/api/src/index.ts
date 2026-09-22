@@ -1,4 +1,4 @@
-import { executeDeployment } from "@dokploy/server";
+import { deploymentAttemptSchema, executeDeployment } from "@dokploy/server";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
@@ -6,7 +6,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Inngest } from "inngest";
 import { serve as serveInngest } from "inngest/hono";
 import { logger } from "./logger.js";
-import { cancelDeploymentSchema, deployJobSchema } from "./schema.js";
+import { deployJobSchema } from "./schema.js";
 import { fetchDeploymentJobs } from "./service.js";
 
 const app = new Hono();
@@ -31,8 +31,7 @@ export const deploymentFunction = inngest.createFunction(
 		cancelOn: [
 			{
 				event: "deployment/cancelled",
-				if: "async.data.applicationId == event.data.applicationId || async.data.composeId == event.data.composeId",
-				timeout: "1h", // Allow cancellation for up to 1 hour
+				match: "data.deploymentId",
 			},
 		],
 	},
@@ -129,7 +128,7 @@ app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
 
 app.post(
 	"/cancel-deployment",
-	zValidator("json", cancelDeploymentSchema),
+	zValidator("json", deploymentAttemptSchema),
 	async (c) => {
 		const data = c.req.valid("json");
 		logger.info("Received cancel deployment request", data);
@@ -142,19 +141,11 @@ app.post(
 				data,
 			});
 
-			const identifier =
-				data.applicationType === "application"
-					? `applicationId: ${data.applicationId}`
-					: `composeId: ${data.composeId}`;
-
-			logger.info("Deployment cancellation event sent", {
-				...data,
-				identifier,
-			});
+			logger.info("Deployment cancellation event sent", data);
 
 			return c.json({
 				message: "Deployment cancellation requested",
-				applicationType: data.applicationType,
+				deploymentId: data.deploymentId,
 			});
 		} catch (error) {
 			logger.error("Failed to send deployment cancellation event", error);

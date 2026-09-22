@@ -62,7 +62,7 @@ vi.mock("@dokploy/server/services/admin", () => ({
 }));
 
 vi.mock("@dokploy/server/services/deployment-lifecycle", () => ({
-	finishDeployment: vi.fn(),
+	finishDeployment: vi.fn().mockResolvedValue({ status: "done" }),
 }));
 
 vi.mock("@dokploy/server/services/deployment", () => ({
@@ -202,7 +202,6 @@ describe(
 			vi.mocked(deploymentService.createDeployment).mockResolvedValue(
 				currentDeployment as any,
 			);
-			vi.mocked(lifecycle.finishDeployment).mockResolvedValue(undefined);
 			vi.mocked(applicationService.updateApplicationStatus).mockResolvedValue(
 				{} as any,
 			);

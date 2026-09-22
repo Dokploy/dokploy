@@ -236,7 +236,8 @@ export const deployApplication = async ({
 		}
 
 		await mechanizeDockerContainer(application);
-		await finishDeployment(deployment.deploymentId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -329,7 +330,8 @@ export const rebuildApplication = async ({
 			await execAsync(commandWithLog);
 		}
 		await mechanizeDockerContainer(application);
-		await finishDeployment(deployment.deploymentId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -467,7 +469,8 @@ export const deployPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
-		await finishDeployment(deployment.deploymentId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 	} catch (error) {
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
@@ -579,7 +582,8 @@ export const rebuildPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
-		await finishDeployment(deployment.deploymentId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 	} catch (error) {
 		let command = "";
 

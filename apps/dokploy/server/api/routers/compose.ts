@@ -32,7 +32,6 @@ import {
 	startCompose,
 	stopCompose,
 	updateCompose,
-	updateDeploymentStatus,
 } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
@@ -1024,21 +1023,14 @@ export const composeRouter = createTRPCRouter({
 
 			if (IS_CLOUD && compose.serverId) {
 				try {
-					await updateCompose(input.composeId, {
-						composeStatus: "idle",
-					});
-
-					if (compose.deployments[0]) {
-						await updateDeploymentStatus(
-							compose.deployments[0].deploymentId,
-							"done",
-						);
+					for (const deployment of compose.deployments) {
+						if (
+							deployment.status === "queued" ||
+							deployment.status === "running"
+						) {
+							await cancelDeployment(deployment.deploymentId);
+						}
 					}
-
-					await cancelDeployment({
-						composeId: input.composeId,
-						applicationType: "compose",
-					});
 
 					await audit(ctx, {
 						action: "stop",
