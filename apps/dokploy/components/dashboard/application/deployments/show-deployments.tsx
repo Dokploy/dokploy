@@ -124,28 +124,17 @@ export const ShowDeployments = ({
 		return `${truncated}...`;
 	};
 
-	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
+	// Queued attempts can be newer than the running build.
 	const stuckDeployment = useMemo(() => {
 		if (!isCloud || !deployments || deployments.length === 0) return null;
 
 		const now = Date.now();
-		const NINE_MINUTES = 10 * 60 * 1000; // 9 minutes in milliseconds
-
-		// Get the most recent deployment (first in the list since they're sorted by date)
-		const mostRecentDeployment = deployments[0];
-
-		if (
-			!mostRecentDeployment ||
-			mostRecentDeployment.status !== "running" ||
-			!mostRecentDeployment.startedAt
-		) {
-			return null;
-		}
-
-		const startTime = new Date(mostRecentDeployment.startedAt).getTime();
-		const elapsed = now - startTime;
-
-		return elapsed > NINE_MINUTES ? mostRecentDeployment : null;
+		return deployments.find(
+			(deployment) =>
+				deployment.status === "running" &&
+				deployment.startedAt &&
+				now - new Date(deployment.startedAt).getTime() > 10 * 60 * 1000,
+		);
 	}, [isCloud, deployments]);
 	useEffect(() => {
 		setUrl(document.location.origin);
