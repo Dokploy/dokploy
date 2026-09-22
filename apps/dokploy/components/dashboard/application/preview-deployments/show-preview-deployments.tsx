@@ -117,7 +117,8 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 								{previewDeployments?.map((deployment) => {
 									const deploymentUrl = `${deployment.domain?.https ? "https" : "http"}://${deployment.domain?.host}${deployment.domain?.path || "/"}`;
 									const status =
-										deployment.deployments[0]?.status ?? deployment.previewStatus;
+										deployment.deployments[0]?.status ??
+										deployment.previewStatus;
 									return (
 										<div
 											key={deployment.previewDeploymentId}
@@ -141,10 +142,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 														</div>
 													</div>
 													<Badge variant="outline" className="gap-2">
-														<StatusTooltip
-															status={status}
-															className="size-2"
-														/>
+														<StatusTooltip status={status} className="size-2" />
 														<DateTooltip date={deployment.createdAt} />
 													</Badge>
 												</div>
