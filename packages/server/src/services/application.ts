@@ -270,8 +270,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-expect-error
-			errorMessage: error?.message || "Error building",
+			errorMessage: error instanceof Error ? error.message : "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 		});
