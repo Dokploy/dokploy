@@ -2,13 +2,17 @@ import { relations } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
+	index,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
+	timestamp,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import type { DeploymentExecution } from "../../queues/deployment-job";
 import { applications } from "./application";
 import { backups } from "./backups";
 import { compose } from "./compose";
@@ -77,6 +81,22 @@ export const deployments = pgTable("deployment", {
 		onDelete: "cascade",
 	}),
 });
+
+// Pending cloud delivery is committed with its deployment attempt and removed
+// only after Inngest accepts it, or the attempt leaves the queued state.
+export const deploymentDispatches = pgTable(
+	"deployment_dispatch",
+	{
+		deploymentId: text("deploymentId")
+			.primaryKey()
+			.references(() => deployments.deploymentId, { onDelete: "cascade" }),
+		job: jsonb("job").$type<DeploymentExecution>().notNull(),
+		createdAt: timestamp("createdAt", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [index("deployment_dispatch_created_at_idx").on(table.createdAt)],
+);
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	application: one(applications, {

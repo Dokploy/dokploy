@@ -76,7 +76,6 @@ import {
 	enqueueDeployment,
 	killDockerBuild,
 } from "@/server/queues/queueSetup";
-import { cancelDeployment } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -1022,35 +1021,23 @@ export const composeRouter = createTRPCRouter({
 			const compose = await findComposeById(input.composeId);
 
 			if (IS_CLOUD && compose.serverId) {
-				try {
-					for (const deployment of compose.deployments) {
-						if (
-							deployment.status === "queued" ||
-							deployment.status === "running"
-						) {
-							await cancelDeployment(deployment.deploymentId);
-						}
-					}
-
-					await audit(ctx, {
-						action: "stop",
-						resourceType: "compose",
-						resourceId: input.composeId,
-						resourceName: compose.name,
-					});
-					return {
-						success: true,
-						message: "Deployment cancellation requested",
-					};
-				} catch (error) {
+				if (
+					compose.deployments.some((attempt) => attempt.status === "running")
+				) {
 					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
+						code: "CONFLICT",
 						message:
-							error instanceof Error
-								? error.message
-								: "Failed to cancel deployment",
+							"Running builds cannot be cancelled. Use Cancel queued deployments to clear waiting attempts.",
 					});
 				}
+				await cleanQueuesByCompose(input.composeId);
+				await audit(ctx, {
+					action: "cancel",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					resourceName: compose.name,
+				});
+				return { success: true, message: "Queued deployments cancelled" };
 			}
 
 			throw new TRPCError({

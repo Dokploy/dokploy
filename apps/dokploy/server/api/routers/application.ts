@@ -77,7 +77,6 @@ import {
 	enqueueDeployment,
 	killDockerBuild,
 } from "@/server/queues/queueSetup";
-import { cancelDeployment } from "@/server/utils/deploy";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -977,35 +976,25 @@ export const applicationRouter = createTRPCRouter({
 			const application = await findApplicationById(input.applicationId);
 
 			if (IS_CLOUD && application.serverId) {
-				try {
-					for (const deployment of application.deployments) {
-						if (
-							deployment.status === "queued" ||
-							deployment.status === "running"
-						) {
-							await cancelDeployment(deployment.deploymentId);
-						}
-					}
-
-					await audit(ctx, {
-						action: "stop",
-						resourceType: "application",
-						resourceId: application.applicationId,
-						resourceName: application.appName,
-					});
-					return {
-						success: true,
-						message: "Deployment cancellation requested",
-					};
-				} catch (error) {
+				if (
+					application.deployments.some(
+						(attempt) => attempt.status === "running",
+					)
+				) {
 					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
+						code: "CONFLICT",
 						message:
-							error instanceof Error
-								? error.message
-								: "Failed to cancel deployment",
+							"Running builds cannot be cancelled. Use Cancel queued deployments to clear waiting attempts.",
 					});
 				}
+				await cleanQueuesByApplication(input.applicationId);
+				await audit(ctx, {
+					action: "cancel",
+					resourceType: "application",
+					resourceId: application.applicationId,
+					resourceName: application.appName,
+				});
+				return { success: true, message: "Queued deployments cancelled" };
 			}
 
 			throw new TRPCError({
