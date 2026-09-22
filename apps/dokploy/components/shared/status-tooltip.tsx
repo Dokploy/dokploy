@@ -1,3 +1,7 @@
+import type {
+	ApplicationStatus,
+	DeploymentStatus,
+} from "@dokploy/server/db/schema";
 import {
 	Tooltip,
 	TooltipContent,
@@ -7,14 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface Props {
-	status:
-		| "running"
-		| "error"
-		| "done"
-		| "idle"
-		| "cancelled"
-		| undefined
-		| null;
+	status: ApplicationStatus | DeploymentStatus | null | undefined;
 	className?: string;
 }
 
@@ -23,6 +20,11 @@ export const StatusTooltip = ({ status, className }: Props) => {
 		<TooltipProvider delayDuration={0}>
 			<Tooltip>
 				<TooltipTrigger>
+					{status === "queued" && (
+						<div
+							className={cn("size-3.5 rounded-full bg-blue-500", className)}
+						/>
+					)}
 					{status === "idle" && (
 						<div
 							className={cn(
@@ -57,6 +59,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 				</TooltipTrigger>
 				<TooltipContent align="center">
 					<span>
+						{status === "queued" && "Queued"}
 						{status === "idle" && "Idle"}
 						{status === "error" && "Error"}
 						{status === "done" && "Done"}

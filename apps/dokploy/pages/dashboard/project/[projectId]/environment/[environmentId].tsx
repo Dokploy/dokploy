@@ -1,4 +1,5 @@
 import type { findEnvironmentById } from "@dokploy/server";
+import type { ApplicationStatus } from "@dokploy/server/db/schema";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
@@ -127,7 +128,7 @@ export type Services = {
 	description?: string | null;
 	id: string;
 	createdAt: string;
-	status?: "idle" | "running" | "done" | "error";
+	status?: ApplicationStatus;
 	lastDeployDate?: Date | null;
 	icon?: string | null;
 };
