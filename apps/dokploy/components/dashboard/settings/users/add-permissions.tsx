@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from "@dokploy/server/db/schema";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -52,7 +53,7 @@ export type Services = {
 	description?: string | null;
 	id: string;
 	createdAt: string;
-	status?: "idle" | "running" | "done" | "error";
+	status?: ApplicationStatus;
 };
 
 export const extractServices = (data: Environment | undefined) => {

@@ -135,7 +135,7 @@ const createSchema = createInsertSchema(postgres, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(applicationStatus.enumValues),
 	externalPort: z.number(),
 	createdAt: z.string(),
 	description: z.string().optional(),

@@ -1,5 +1,5 @@
 {
-  "id": "e2f2cd03-52dd-457a-8854-1ef6d0b5d168",
+  "id": "25fefa10-2a25-44bf-ac08-2b75e90b7b4d",
   "prevId": "c9ad226a-7a8f-4c3b-8f04-fef6bccf9bfb",
   "version": "7",
   "dialect": "postgresql",
@@ -7676,13 +7676,6 @@
           "notNull": true,
           "default": false
         },
-        "telemetryProviderIds": {
-          "name": "telemetryProviderIds",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
         "buildsConcurrency": {
           "name": "buildsConcurrency",
           "type": "integer",
@@ -8184,101 +8177,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.telemetryProvider": {
-      "name": "telemetryProvider",
-      "schema": "",
-      "columns": {
-        "telemetryProviderId": {
-          "name": "telemetryProviderId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "providerType": {
-          "name": "providerType",
-          "type": "TelemetryProviderType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "signals": {
-          "name": "signals",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "apiKey": {
-          "name": "apiKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "apiSecret": {
-          "name": "apiSecret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "extraConfig": {
-          "name": "extraConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "enabled": {
-          "name": "enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "telemetryProvider_organizationId_organization_id_fk": {
-          "name": "telemetryProvider_organizationId_organization_id_fk",
-          "tableFrom": "telemetryProvider",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -8907,19 +8805,6 @@
           "notNull": false,
           "default": "'0 0 * * *'"
         },
-        "telemetryProviderIds": {
-          "name": "telemetryProviderIds",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY[]::text[]"
-        },
-        "vectorAgentOrganizationId": {
-          "name": "vectorAgentOrganizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "metricsConfig": {
           "name": "metricsConfig",
           "type": "jsonb",
@@ -8992,21 +8877,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "webServerSettings_vectorAgentOrganizationId_organization_id_fk": {
-          "name": "webServerSettings_vectorAgentOrganizationId_organization_id_fk",
-          "tableFrom": "webServerSettings",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "vectorAgentOrganizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -9084,6 +8955,7 @@
       "name": "deploymentStatus",
       "schema": "public",
       "values": [
+        "queued",
         "running",
         "done",
         "error",
@@ -9240,6 +9112,7 @@
       "name": "applicationStatus",
       "schema": "public",
       "values": [
+        "queued",
         "idle",
         "running",
         "done",
@@ -9269,21 +9142,6 @@
       "values": [
         "push",
         "tag"
-      ]
-    },
-    "public.TelemetryProviderType": {
-      "name": "TelemetryProviderType",
-      "schema": "public",
-      "values": [
-        "loki",
-        "datadog",
-        "betterstack",
-        "elasticsearch",
-        "splunk_hec",
-        "aws_cloudwatch",
-        "prometheus_remote_write",
-        "new_relic",
-        "influxdb"
       ]
     },
     "public.VaultProviderType": {
