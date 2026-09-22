@@ -167,7 +167,9 @@ export const ShowDeployments = ({
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
-					{(type === "application" || type === "compose") && (
+					{(type === "application" ||
+						type === "compose" ||
+						type === "previewDeployment") && (
 						<CancelQueues id={id} type={type} />
 					)}
 					{type === "application" && (

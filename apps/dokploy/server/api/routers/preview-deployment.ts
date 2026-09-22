@@ -9,7 +9,10 @@ import { checkServicePermissionAndAccess } from "@dokploy/server/services/permis
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { apiFindAllByApplication } from "@/server/db/schema";
-import { enqueueDeployment } from "@/server/queues/queueSetup";
+import {
+	cleanDeploymentQueue,
+	enqueueDeployment,
+} from "@/server/queues/queueSetup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const previewDeploymentRouter = createTRPCRouter({
@@ -54,6 +57,27 @@ export const previewDeploymentRouter = createTRPCRouter({
 				resourceId: input.previewDeploymentId,
 			});
 			return true;
+		}),
+
+	cleanQueues: protectedProcedure
+		.input(z.object({ previewDeploymentId: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const preview = await findPreviewDeploymentById(
+				input.previewDeploymentId,
+			);
+			await checkServicePermissionAndAccess(ctx, preview.applicationId, {
+				deployment: ["cancel"],
+			});
+			await cleanDeploymentQueue({
+				applicationType: "application-preview",
+				applicationId: preview.applicationId,
+				previewDeploymentId: preview.previewDeploymentId,
+			});
+			await audit(ctx, {
+				action: "cancel",
+				resourceType: "previewDeployment",
+				resourceId: preview.previewDeploymentId,
+			});
 		}),
 
 	redeploy: protectedProcedure
