@@ -29,3 +29,9 @@ export const deploymentJobSchema = z.discriminatedUnion("applicationType", [
 ]);
 
 export type DeploymentJob = z.infer<typeof deploymentJobSchema>;
+
+export const queuedDeploymentJobSchema = deploymentJobSchema.and(
+	z.object({ deploymentId: z.string().min(1) }),
+);
+
+export type QueuedDeploymentJob = z.infer<typeof queuedDeploymentJobSchema>;

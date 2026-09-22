@@ -7,7 +7,10 @@ import {
 	previewDeployments,
 } from "@dokploy/server/db/schema";
 import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
-import type { DeploymentJob } from "../queues/deployment-job";
+import type {
+	DeploymentJob,
+	QueuedDeploymentJob,
+} from "../queues/deployment-job";
 
 type Deployment = typeof deployments.$inferSelect;
 type DeploymentOwner = Pick<
@@ -232,3 +235,12 @@ export const cancelQueuedDeployments = async (condition?: SQL) => {
 
 export const cancelStaleDeployment = (deploymentId: string) =>
 	transitionDeployment(deploymentId, ["queued", "running"], "cancelled");
+
+export const failDeploymentJob = (job: QueuedDeploymentJob, error: unknown) =>
+	transitionDeployment(
+		job.deploymentId,
+		["queued", "running"],
+		"error",
+		error instanceof Error ? error.message : String(error),
+		getOwner(getJobOwner(job))?.condition,
+	);
