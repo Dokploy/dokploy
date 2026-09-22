@@ -1,8 +1,6 @@
 import { z } from "zod";
 
 const deploymentOptions = {
-	titleLog: z.string().default(""),
-	descriptionLog: z.string().default(""),
 	serverId: z.string().min(1).optional(),
 	type: z.enum(["deploy", "redeploy"]),
 };
@@ -27,22 +25,34 @@ export const deploymentTargetSchema = z.discriminatedUnion("applicationType", [
 ]);
 export type DeploymentTarget = z.infer<typeof deploymentTargetSchema>;
 
-export const deploymentJobSchema = z.discriminatedUnion("applicationType", [
-	applicationTarget.extend(deploymentOptions),
-	composeTarget.extend({
-		...deploymentOptions,
-		freshVolumes: z.boolean().optional(),
-	}),
-	previewTarget.extend(deploymentOptions),
-]);
+export const deploymentExecutionSchema = z.discriminatedUnion(
+	"applicationType",
+	[
+		applicationTarget.extend(deploymentOptions),
+		composeTarget.extend({
+			...deploymentOptions,
+			freshVolumes: z.boolean().optional(),
+		}),
+		previewTarget.extend(deploymentOptions),
+	],
+);
 
+export type DeploymentExecution = z.infer<typeof deploymentExecutionSchema>;
+
+// Display metadata belongs to the persisted attempt, not the queue event.
+export const deploymentJobSchema = deploymentExecutionSchema.and(
+	z.object({
+		titleLog: z.string().default(""),
+		descriptionLog: z.string().default(""),
+	}),
+);
 export type DeploymentJob = z.infer<typeof deploymentJobSchema>;
 
 export const deploymentAttemptSchema = z.object({
 	deploymentId: z.string().min(1),
 });
 
-export const queuedDeploymentJobSchema = deploymentJobSchema.and(
+export const queuedDeploymentJobSchema = deploymentExecutionSchema.and(
 	deploymentAttemptSchema,
 );
 
