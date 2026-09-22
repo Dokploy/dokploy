@@ -25,7 +25,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api, type RouterOutputs } from "@/utils/api";
+import { api } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
 import { ClearDeployments } from "./clear-deployments";
@@ -60,9 +60,7 @@ export const ShowDeployments = ({
 	refreshToken,
 	serverId,
 }: Props) => {
-	const [activeLog, setActiveLog] = useState<
-		RouterOutputs["deployment"]["all"][number] | null
-	>(null);
+	const [activeLogId, setActiveLogId] = useState<string | null>(null);
 	const [removingDeploymentIds, setRemovingDeploymentIds] = useState<
 		Set<string>
 	>(new Set());
@@ -77,6 +75,10 @@ export const ShowDeployments = ({
 				refetchInterval: 1000,
 			},
 		);
+
+	const activeLog = deployments?.find(
+		(deployment) => deployment.deploymentId === activeLogId,
+	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -286,7 +288,9 @@ export const ShowDeployments = ({
 								deployment.deploymentId,
 							);
 							const canDelete =
-								deployment.status === "done" || deployment.status === "error";
+								deployment.status === "done" ||
+								deployment.status === "error" ||
+								deployment.status === "cancelled";
 
 							return (
 								<div
@@ -398,7 +402,7 @@ export const ShowDeployments = ({
 											)}
 											<Button
 												onClick={() => {
-													setActiveLog(deployment);
+													setActiveLogId(deployment.deploymentId);
 												}}
 												className="w-full sm:w-auto"
 											>
@@ -502,8 +506,9 @@ export const ShowDeployments = ({
 				)}
 				<ShowDeployment
 					serverId={activeLog?.buildServerId || serverId}
-					open={Boolean(activeLog && activeLog.logPath !== null)}
-					onClose={() => setActiveLog(null)}
+					open={Boolean(activeLog)}
+					status={activeLog?.status}
+					onClose={() => setActiveLogId(null)}
 					logPath={activeLog?.logPath || ""}
 					errorMessage={activeLog?.errorMessage || ""}
 				/>

@@ -1,4 +1,6 @@
-"use client";
+import type { DeploymentStatus } from "@dokploy/server/db/schema";
+
+("use client");
 
 import {
 	flexRender,
@@ -22,7 +24,7 @@ import {
 	Server,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { type ComponentProps, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,21 +48,13 @@ import { api } from "@/utils/api";
 type DeploymentRow =
 	inferRouterOutputs<AppRouter>["deployment"]["allCentralized"][number];
 
-const statusVariants: Record<
-	string,
-	| "default"
-	| "secondary"
-	| "destructive"
-	| "outline"
-	| "yellow"
-	| "green"
-	| "red"
-> = {
+const statusVariants = {
+	queued: "blue",
 	running: "yellow",
 	done: "green",
 	error: "red",
 	cancelled: "outline",
-};
+} satisfies Record<DeploymentStatus, ComponentProps<typeof Badge>["variant"]>;
 
 function getServiceInfo(d: DeploymentRow) {
 	const app = d.application;

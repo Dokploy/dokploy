@@ -20,43 +20,36 @@ interface Props {
 }
 
 export const CancelQueues = ({ id, type }: Props) => {
-	const { mutateAsync, isPending } =
-		type === "application"
-			? api.application.cleanQueues.useMutation()
-			: api.compose.cleanQueues.useMutation();
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-
-	if (isCloud) {
-		return null;
-	}
+	const application = api.application.cleanQueues.useMutation();
+	const compose = api.compose.cleanQueues.useMutation();
+	const isPending = application.isPending || compose.isPending;
 
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="destructive" className="w-fit" isLoading={isPending}>
-					Cancel Queues
+					Cancel queued deployments
 					<Ban className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>
-						Are you sure to cancel the incoming deployments?
-					</AlertDialogTitle>
+					<AlertDialogTitle>Cancel queued deployments?</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will cancel all the incoming deployments
+						This cancels deployments currently waiting for this service. Running
+						builds continue.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
-							await mutateAsync({
-								applicationId: id || "",
-								composeId: id || "",
-							})
+							await (type === "application"
+								? application.mutateAsync({ applicationId: id })
+								: compose.mutateAsync({ composeId: id })
+							)
 								.then(() => {
-									toast.success("Queues are being cleaned");
+									toast.success("Queued deployments cancelled");
 								})
 								.catch((err) => {
 									toast.error(err.message);
