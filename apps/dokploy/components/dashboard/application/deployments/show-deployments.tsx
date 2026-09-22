@@ -89,16 +89,6 @@ export const ShowDeployments = ({
 	const { mutateAsync: removeDeployment } =
 		api.deployment.removeDeployment.useMutation();
 
-	// Cancel deployment mutations
-	const {
-		mutateAsync: cancelApplicationDeployment,
-		isPending: isCancellingApp,
-	} = api.application.cancelDeployment.useMutation();
-	const {
-		mutateAsync: cancelComposeDeployment,
-		isPending: isCancellingCompose,
-	} = api.compose.cancelDeployment.useMutation();
-
 	const [url, setUrl] = React.useState("");
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
 		new Set(),
@@ -182,39 +172,18 @@ export const ShowDeployments = ({
 									Build appears to be stuck
 								</div>
 								<p className="text-sm">
-									Hey! Looks like the build has been running for more than 10
-									minutes. Would you like to cancel this deployment?
+									This build has been running for more than 10 minutes. Check
+									its logs before starting another deployment. Cancelling queued
+									deployments does not stop this running build.
 								</p>
 							</div>
 							<Button
-								variant="destructive"
+								variant="outline"
 								size="sm"
 								className="w-fit"
-								isLoading={
-									type === "application" ? isCancellingApp : isCancellingCompose
-								}
-								onClick={async () => {
-									try {
-										if (type === "application") {
-											await cancelApplicationDeployment({
-												applicationId: id,
-											});
-										} else if (type === "compose") {
-											await cancelComposeDeployment({
-												composeId: id,
-											});
-										}
-										toast.success("Deployment cancellation requested");
-									} catch (error) {
-										toast.error(
-											error instanceof Error
-												? error.message
-												: "Failed to cancel deployment",
-										);
-									}
-								}}
+								onClick={() => setActiveLogId(stuckDeployment.deploymentId)}
 							>
-								Cancel Deployment
+								View running build logs
 							</Button>
 						</div>
 					</AlertBlock>
