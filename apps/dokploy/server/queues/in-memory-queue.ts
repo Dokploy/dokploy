@@ -1,4 +1,4 @@
-import type { DeploymentJob } from "@dokploy/server";
+import type { QueuedDeploymentJob } from "@dokploy/server";
 
 /**
  * In-memory deployment queue for self-hosted instances.
@@ -29,7 +29,7 @@ export type JobState = "waiting" | "active";
 export interface InMemoryJob {
 	id: string;
 	name: string;
-	data: DeploymentJob;
+	data: QueuedDeploymentJob;
 	timestamp: number;
 	processedOn?: number;
 	finishedOn?: number;
@@ -41,11 +41,11 @@ export interface InMemoryJob {
 type Processor = (job: InMemoryJob) => Promise<void>;
 
 /** Resolve the partition key (serverId) a job belongs to. */
-export const getPartition = (data: DeploymentJob): string =>
+export const getPartition = (data: QueuedDeploymentJob): string =>
 	data.serverId ?? LOCAL_PARTITION;
 
 /** Resolve the FIFO group a job belongs to (the service being deployed). */
-export const getGroup = (data: DeploymentJob): string => {
+export const getGroup = (data: QueuedDeploymentJob): string => {
 	if (data.applicationType === "compose") {
 		return `compose:${data.composeId}`;
 	}
@@ -55,7 +55,7 @@ export const getGroup = (data: DeploymentJob): string => {
 interface InternalJob {
 	id: string;
 	name: string;
-	data: DeploymentJob;
+	data: QueuedDeploymentJob;
 	timestamp: number;
 	processedOn?: number;
 	finishedOn?: number;
@@ -87,7 +87,6 @@ export class InMemoryQueue {
 	private partitions = new Map<string, Partition>();
 	private processor: Processor | null = null;
 	private running = false;
-	private seq = 0;
 	private readonly resolveConcurrency: InMemoryQueueOptions["resolveConcurrency"];
 	private readonly now: () => number;
 
@@ -123,8 +122,8 @@ export class InMemoryQueue {
 		return Promise.resolve();
 	}
 
-	async add(data: DeploymentJob): Promise<{ id: string }> {
-		const id = `job-${++this.seq}`;
+	async add(data: QueuedDeploymentJob): Promise<{ id: string }> {
+		const id = data.deploymentId;
 		const partitionKey = getPartition(data);
 		const job: InternalJob = {
 			id,
@@ -180,7 +179,7 @@ export class InMemoryQueue {
 	}
 
 	/** Remove waiting jobs matching a predicate. Active jobs are not affected. */
-	removeWaiting(predicate: (data: DeploymentJob) => boolean): number {
+	removeWaiting(predicate: (data: QueuedDeploymentJob) => boolean): number {
 		let removed = 0;
 		for (const partition of this.partitions.values()) {
 			partition.waiting = partition.waiting.filter((job) => {

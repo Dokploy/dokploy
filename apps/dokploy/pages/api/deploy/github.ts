@@ -6,7 +6,6 @@ import {
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
-	IS_CLOUD,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
@@ -15,8 +14,7 @@ import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applications, compose, github } from "@/server/db/schema";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
+import { enqueueDeployment } from "@/server/queues/queueSetup";
 import {
 	extractCommitMessage,
 	extractHash,
@@ -143,24 +141,15 @@ export default async function handler(
 					descriptionLog: `Hash: ${deploymentHash}`,
 					type: "deploy",
 					applicationType: "application",
-					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 				};
 
-				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
+				await enqueueDeployment(jobData).catch((error: unknown) => {
+					console.error("Failed to enqueue deployment", {
+						job: jobData,
+						error,
 					});
-					continue;
-				}
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
+				});
 			}
 
 			// Find compose apps configured to deploy on tag
@@ -182,25 +171,15 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
-					server: !!composeApp.serverId,
+					serverId: composeApp.serverId ?? undefined,
 				};
 
-				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
+				await enqueueDeployment(jobData).catch((error: unknown) => {
+					console.error("Failed to enqueue deployment", {
+						job: jobData,
+						error,
 					});
-					continue;
-				}
-
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
+				});
 			}
 
 			const totalApps = apps.length + composeApps.length;
@@ -256,7 +235,7 @@ export default async function handler(
 					descriptionLog: `Hash: ${deploymentHash}`,
 					type: "deploy",
 					applicationType: "application",
-					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -268,21 +247,12 @@ export default async function handler(
 					continue;
 				}
 
-				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
+				await enqueueDeployment(jobData).catch((error: unknown) => {
+					console.error("Failed to enqueue deployment", {
+						job: jobData,
+						error,
 					});
-					continue;
-				}
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
+				});
 			}
 
 			const composeApps = await db.query.compose.findMany({
@@ -304,7 +274,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
-					server: !!composeApp.serverId,
+					serverId: composeApp.serverId ?? undefined,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -315,22 +285,13 @@ export default async function handler(
 				if (!shouldDeployPaths) {
 					continue;
 				}
-				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
-					deploy(jobData).catch((error) => {
-						console.error("Background deployment failed:", error);
-					});
-					continue;
-				}
 
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
+				await enqueueDeployment(jobData).catch((error: unknown) => {
+					console.error("Failed to enqueue deployment", {
+						job: jobData,
+						error,
+					});
+				});
 			}
 
 			const totalApps = apps.length + composeApps.length;
@@ -525,26 +486,17 @@ export default async function handler(
 					descriptionLog: `Hash: ${deploymentHash}`,
 					type: "deploy",
 					applicationType: "application-preview",
-					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 					previewDeploymentId,
 				};
 
 				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
+					await enqueueDeployment(jobData).catch((error: unknown) => {
+						console.error("Failed to enqueue deployment", {
+							job: jobData,
+							error,
 						});
-						continue;
-					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
-					);
+					});
 				}
 			}
 			return res.status(200).json({ message: "Apps Deployed" });

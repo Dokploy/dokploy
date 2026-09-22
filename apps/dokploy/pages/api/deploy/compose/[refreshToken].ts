@@ -1,10 +1,9 @@
-import { type DeploymentJob, IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { type DeploymentJob, shouldDeploy } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { compose } from "@/server/db/schema";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
+import { enqueueDeployment } from "@/server/queues/queueSetup";
 import {
 	extractBranchName,
 	extractCommitMessage,
@@ -196,24 +195,10 @@ export default async function handler(
 				type: "deploy",
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
-				server: !!composeResult.serverId,
+				serverId: composeResult.serverId ?? undefined,
 			};
 
-			if (IS_CLOUD && composeResult.serverId) {
-				jobData.serverId = composeResult.serverId;
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-			} else {
-				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
-				);
-			}
+			await enqueueDeployment(jobData);
 		} catch (error) {
 			logWebhookError("Error deploying Compose:", error);
 			res.status(400).json({ message: "Error deploying Compose" });

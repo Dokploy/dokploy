@@ -1,26 +1,21 @@
-import { type DeploymentJob, findServerById } from "@dokploy/server";
+import { findServerById, type QueuedDeploymentJob } from "@dokploy/server";
 
-export const deploy = async (jobData: DeploymentJob) => {
-	try {
-		const server = await findServerById(jobData.serverId as string);
-		if (server.serverStatus === "inactive") {
-			throw new Error("Server is inactive");
-		}
-
-		const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
-			},
-			body: JSON.stringify(jobData),
-		});
-
-		const data = await result.json();
-		return data;
-	} catch (error) {
-		throw error;
-	}
+export const deploy = async (jobData: QueuedDeploymentJob) => {
+	if (!jobData.serverId) throw new Error("Cloud deployments require a server");
+	const server = await findServerById(jobData.serverId);
+	if (server.serverStatus === "inactive") throw new Error("Server is inactive");
+	const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-API-Key": process.env.API_KEY || "NO-DEFINED",
+		},
+		body: JSON.stringify(jobData),
+	});
+	if (!result.ok)
+		throw new Error(
+			`Deployment service rejected the request (${result.status})`,
+		);
 };
 
 type CancelDeploymentData =
