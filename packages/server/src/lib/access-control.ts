@@ -166,8 +166,7 @@ export const adminRole = ac.newRole({
  * but cannot create, delete, or access admin resources.
  * Enterprise resources are not available to the base member role.
  */
-export const memberRole = ac.newRole({
-	organization: [],
+export const memberRole = ac.newRole({	organization: [],
 	member: [],
 	invitation: [],
 	team: [],
@@ -203,4 +202,46 @@ export const memberRole = ac.newRole({
 	// Members need provider/secret names for env editor autocomplete; values are never exposed
 	vaultProvider: ["read"],
 	dnsProvider: [],
+});
+
+/**
+ * Viewer role — strict view-only access for assigned scopes (issue #1413).
+ * Viewers can only read services/environments/domains they are granted
+ * access to. They cannot create, update, delete, deploy, or access
+ * organization management, servers, registries, or secrets.
+ */
+export const viewerRole = ac.newRole({
+	organization: [],
+	member: [],
+	invitation: [],
+	team: [],
+	ac: ["read"],
+	project: [],
+	service: ["read"],
+	environment: ["read"],
+	docker: [],
+	sshKeys: [],
+	gitProviders: [],
+	traefikFiles: [],
+	api: [],
+	volume: ["read"],
+	deployment: ["read"],
+	envVars: [],
+	projectEnvVars: [],
+	environmentEnvVars: [],
+	server: [],
+	registry: [],
+	certificate: [],
+	backup: ["read"],
+	volumeBackup: ["read"],
+	schedule: ["read"],
+	domain: ["read"],
+	destination: [],
+	notification: [],
+	tag: ["read"],
+	auditLog: [],
+	vaultProvider: [],
+	dnsProvider: [],
+	logs: ["read"],
+	monitoring: ["read"],
 });
