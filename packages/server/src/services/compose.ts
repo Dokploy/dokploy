@@ -234,7 +234,7 @@ export const deployCompose = async ({
 	titleLog: string;
 	descriptionLog: string;
 	freshVolumes?: boolean;
-}) => {
+}): Promise<boolean> => {
 	const compose = await findComposeById(composeId);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
@@ -360,6 +360,7 @@ export const deployCompose = async ({
 			}
 		}
 	}
+	return true;
 };
 
 export const rebuildCompose = async ({
@@ -374,7 +375,7 @@ export const rebuildCompose = async ({
 	titleLog: string;
 	descriptionLog: string;
 	freshVolumes?: boolean;
-}) => {
+}): Promise<boolean> => {
 	const compose = await findComposeById(composeId);
 
 	const deployment = await createDeploymentCompose({
