@@ -1,3 +1,4 @@
+import type { DeploymentJob } from "@dokploy/server";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
 	getGroup,
@@ -5,7 +6,6 @@ import {
 	InMemoryQueue,
 	LOCAL_PARTITION,
 } from "../../server/queues/in-memory-queue";
-import type { DeploymentJob } from "../../server/queues/queue-types";
 
 const appJob = (applicationId: string, serverId?: string): DeploymentJob => ({
 	applicationId,

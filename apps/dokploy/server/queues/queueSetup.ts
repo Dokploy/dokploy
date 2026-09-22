@@ -1,4 +1,4 @@
-import { IS_CLOUD } from "@dokploy/server";
+import { type DeploymentJob, IS_CLOUD } from "@dokploy/server";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -6,7 +6,6 @@ import {
 import { resolveBuildsConcurrency } from "./concurrency";
 import { processDeploymentJob } from "./deployments-queue";
 import { type InMemoryJob, InMemoryQueue } from "./in-memory-queue";
-import type { DeploymentJob } from "./queue-types";
 
 /**
  * Deployment queue.
