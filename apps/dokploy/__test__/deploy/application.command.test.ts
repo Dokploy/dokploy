@@ -2,7 +2,6 @@ import * as adminService from "@dokploy/server/services/admin";
 import * as applicationService from "@dokploy/server/services/application";
 import { deployApplication } from "@dokploy/server/services/application";
 import * as deploymentService from "@dokploy/server/services/deployment";
-import * as lifecycle from "@dokploy/server/services/deployment-lifecycle";
 import * as builders from "@dokploy/server/utils/builders";
 import * as notifications from "@dokploy/server/utils/notifications/build-success";
 import * as execProcess from "@dokploy/server/utils/process/execAsync";
