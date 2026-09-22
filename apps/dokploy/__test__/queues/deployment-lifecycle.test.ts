@@ -31,6 +31,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 	let lifecycle: typeof import("@dokploy/server/services/deployment-lifecycle");
 	let deploymentService: typeof import("@dokploy/server/services/deployment");
 	let logDirectory: string | undefined;
+	let executeDeployment: typeof import("@dokploy/server/queues/execute-deployment").executeDeployment;
 
 	const job = (id: string = applicationId): DeploymentJob => ({
 		applicationType: "application",
@@ -49,6 +50,9 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		vi.doMock("@dokploy/server/db", () => ({ db: database }));
 		lifecycle = await import("@dokploy/server/services/deployment-lifecycle");
 		deploymentService = await import("@dokploy/server/services/deployment");
+		({ executeDeployment } = await import(
+			"@dokploy/server/queues/execute-deployment"
+		));
 		await database.insert(schema.user).values({
 			id: userId,
 			email: `${userId}@example.test`,
@@ -203,6 +207,34 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 			await blocker`rollback`;
 			blocker.release();
 			await cancelling;
+		}
+	});
+
+	it("skips cancelled jobs in the shared worker for every service type", async () => {
+		const requests: DeploymentJob[] = [
+			job(),
+			{ ...job(), applicationType: "compose", composeId },
+			{
+				...job(),
+				applicationType: "application-preview",
+				applicationId,
+				previewDeploymentId,
+			},
+		];
+		for (const request of requests) {
+			const queued = await lifecycle.queueDeployment(request);
+			await lifecycle.cancelQueuedDeployments();
+			expect(
+				await executeDeployment({
+					...request,
+					deploymentId: queued.deploymentId,
+				}),
+			).toBe(false);
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, queued.deploymentId),
+				}),
+			).toMatchObject({ status: "cancelled", logPath: "", startedAt: null });
 		}
 	});
 
