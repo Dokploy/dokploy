@@ -13,6 +13,18 @@ jobs:
     strategy:
       matrix:
         job: [build, test, typecheck]
+    services:
+      postgres:
+        image: ${{ matrix.job == 'test' && 'postgres:17' || '' }}
+        env:
+          POSTGRES_USER: dokploy
+          POSTGRES_PASSWORD: dokploy
+          POSTGRES_DB: deployment_lifecycle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dokploy -d deployment_lifecycle"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,3 +63,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm server:build
       - run: pnpm ${{ matrix.job }}
+        env:
+          TEST_DATABASE_URL: postgres://dokploy:dokploy@localhost:5432/deployment_lifecycle
