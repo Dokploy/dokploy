@@ -61,7 +61,7 @@ vi.mock("@dokploy/server/services/admin", () => ({
 }));
 
 vi.mock("@dokploy/server/services/deployment-lifecycle", () => ({
-	finishDeployment: vi.fn(),
+	finishDeployment: vi.fn().mockResolvedValue({ status: "done" }),
 }));
 
 vi.mock("@dokploy/server/services/deployment", () => ({
@@ -166,7 +166,6 @@ describe("deployApplication - Command Generation Tests", () => {
 		vi.mocked(builders.mechanizeDockerContainer).mockResolvedValue(
 			undefined as any,
 		);
-		vi.mocked(lifecycle.finishDeployment).mockResolvedValue(undefined);
 		vi.mocked(applicationService.updateApplicationStatus).mockResolvedValue(
 			{} as any,
 		);

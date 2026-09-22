@@ -313,16 +313,14 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		});
 		await lifecycle.claimQueuedDeployment(preview.deploymentId, preview);
 		const scheduleId = randomUUID();
-		await database
-			.insert(schema.schedules)
-			.values({
-				scheduleId,
-				name: "Remote schedule",
-				applicationId,
-				cronExpression: "* * * * *",
-				command: "true",
-				scheduleType: "application",
-			});
+		await database.insert(schema.schedules).values({
+			scheduleId,
+			name: "Remote schedule",
+			applicationId,
+			cronExpression: "* * * * *",
+			command: "true",
+			scheduleType: "application",
+		});
 		const [scheduled] = await database
 			.insert(schema.deployments)
 			.values({
@@ -357,6 +355,70 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 				where: eq(schema.deployments.deploymentId, scheduled.deploymentId),
 			}),
 		).toMatchObject({ status: "running" });
+	});
+
+	it("persists cloud transport failures and cancels only the requested attempt", async () => {
+		const serverId = randomUUID();
+		await database.insert(schema.server).values({
+			serverId,
+			name: "Cloud target",
+			ipAddress: "127.0.0.1",
+			port: 22,
+			createdAt: new Date().toISOString(),
+			organizationId: userId,
+		});
+		vi.resetModules();
+		vi.stubEnv("IS_CLOUD", "true");
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		vi.stubGlobal("fetch", fetch);
+		try {
+			const cloudQueue = await import("@/server/queues/queueSetup");
+			fetch.mockResolvedValueOnce(new Response("Unavailable", { status: 503 }));
+			await expect(
+				cloudQueue.enqueueDeployment({ ...job(), serverId }),
+			).rejects.toThrow("503");
+			expect(
+				await database.query.applications.findFirst({
+					where: eq(schema.applications.applicationId, applicationId),
+				}),
+			).toMatchObject({ applicationStatus: "error" });
+			fetch.mockResolvedValue(new Response("{}", { status: 200 }));
+			const first = await cloudQueue.enqueueDeployment({ ...job(), serverId });
+			const sibling = await cloudQueue.enqueueDeployment({
+				...job(),
+				serverId,
+			});
+			const { cancelDeployment } = await import("@/server/utils/deploy");
+			await cancelDeployment(first.deploymentId);
+			expect(fetch).toHaveBeenLastCalledWith(
+				expect.stringContaining("/cancel-deployment"),
+				expect.objectContaining({
+					body: JSON.stringify({ deploymentId: first.deploymentId }),
+				}),
+			);
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, first.deploymentId),
+				}),
+			).toMatchObject({ status: "cancelled" });
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, sibling.deploymentId),
+				}),
+			).toMatchObject({ status: "queued" });
+			await lifecycle.claimQueuedDeployment(sibling.deploymentId, sibling);
+			await lifecycle.finishDeployment(sibling.deploymentId, "done");
+			await cancelDeployment(sibling.deploymentId);
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, sibling.deploymentId),
+				}),
+			).toMatchObject({ status: "done" });
+		} finally {
+			vi.unstubAllGlobals();
+			vi.unstubAllEnvs();
+			vi.resetModules();
+		}
 	});
 
 	it("serializes concurrent completion and enqueue without losing the active status", async () => {

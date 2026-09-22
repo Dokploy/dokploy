@@ -308,7 +308,8 @@ export const deployCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
-		await finishDeployment(deployment.deploymentId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 
 		await sendBuildSuccessNotifications({
 			projectName: compose.environment.project.name,
@@ -432,7 +433,8 @@ export const rebuildCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
-		await finishDeployment(deployment.deploymentId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 	} catch (error) {
 		let command = "";
 
