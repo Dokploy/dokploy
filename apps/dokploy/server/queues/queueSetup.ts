@@ -1,5 +1,7 @@
 import {
+	cancelQueuedDeployments,
 	type DeploymentJob,
+	type DeploymentTarget,
 	executeDeployment,
 	failQueuedDeployment,
 	IS_CLOUD,
@@ -71,23 +73,19 @@ if (queue) {
 	});
 }
 
-export const cleanQueuesByApplication = async (applicationId: string) => {
-	queue?.removeWaiting(
-		(data) =>
-			data.applicationType === "application" &&
-			data.applicationId === applicationId,
-	);
+const cleanDeploymentQueue = async (target?: DeploymentTarget) => {
+	const cancelled = new Set(await cancelQueuedDeployments(target));
+	queue?.removeWaiting((data) => cancelled.has(data.deploymentId));
 };
 
-export const cleanQueuesByCompose = async (composeId: string) => {
-	queue?.removeWaiting(
-		(data) =>
-			data.applicationType === "compose" && data.composeId === composeId,
-	);
-};
+export const cleanQueuesByApplication = (applicationId: string) =>
+	cleanDeploymentQueue({ applicationType: "application", applicationId });
+
+export const cleanQueuesByCompose = (composeId: string) =>
+	cleanDeploymentQueue({ applicationType: "compose", composeId });
 
 export const cleanAllDeploymentQueue = async () => {
-	queue?.clearWaiting();
+	await cleanDeploymentQueue();
 	return true;
 };
 

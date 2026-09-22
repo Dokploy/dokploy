@@ -348,14 +348,12 @@ export const applicationRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
+			await cleanQueuesByApplication(input.applicationId);
+
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
-
-			if (!IS_CLOUD) {
-				await cleanQueuesByApplication(input.applicationId);
-			}
 
 			const cleanupOperations = [
 				async () => await deleteAllMiddlewares(application),

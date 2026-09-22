@@ -248,14 +248,12 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
+			await cleanQueuesByCompose(input.composeId);
+
 			const result = await db
 				.delete(composeTable)
 				.where(eq(composeTable.composeId, input.composeId))
 				.returning();
-
-			if (!IS_CLOUD) {
-				await cleanQueuesByCompose(input.composeId);
-			}
 
 			const cleanupOperations = [
 				async () => await removeCompose(composeResult, input.deleteVolumes),
@@ -281,7 +279,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
-				deployment: ["create"],
+				deployment: ["cancel"],
 			});
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };

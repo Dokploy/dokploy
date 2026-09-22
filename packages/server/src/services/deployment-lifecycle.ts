@@ -9,6 +9,7 @@ import {
 import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
 import type {
 	DeploymentJob,
+	DeploymentTarget,
 	QueuedDeploymentJob,
 } from "../queues/deployment-job";
 
@@ -111,7 +112,7 @@ const withDeploymentOwner = async <T>(
 		return result;
 	});
 
-const getJobOwner = (job: DeploymentJob): DeploymentOwner => ({
+const getJobOwner = (job: DeploymentTarget): DeploymentOwner => ({
 	applicationId:
 		job.applicationType === "application" ? job.applicationId : null,
 	composeId: job.applicationType === "compose" ? job.composeId : null,
@@ -218,7 +219,10 @@ export const failQueuedDeployment = (deploymentId: string, error: unknown) =>
 		error instanceof Error ? error.message : String(error),
 	);
 
-export const cancelQueuedDeployments = async (condition?: SQL) => {
+export const cancelQueuedDeployments = async (target?: DeploymentTarget) => {
+	const condition = target
+		? getOwner(getJobOwner(target))?.condition
+		: undefined;
 	// Cancel only this snapshot. Enqueues after it must survive queue cleanup.
 	const queued = await db.query.deployments.findMany({
 		where: and(eq(deployments.status, "queued"), condition),
