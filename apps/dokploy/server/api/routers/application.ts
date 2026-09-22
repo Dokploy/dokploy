@@ -2,6 +2,7 @@ import {
 	clearOldDeployments,
 	createApplication,
 	createDomain,
+	type DeploymentJob,
 	deleteAllMiddlewares,
 	findApplicationById,
 	findEnvironmentById,
@@ -72,7 +73,6 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByApplication,
 	killDockerBuild,

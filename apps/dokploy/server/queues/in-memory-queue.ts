@@ -1,4 +1,4 @@
-import type { DeploymentJob } from "./queue-types";
+import type { DeploymentJob } from "@dokploy/server";
 
 /**
  * In-memory deployment queue for self-hosted instances.

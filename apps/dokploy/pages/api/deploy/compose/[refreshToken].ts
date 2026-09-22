@@ -1,9 +1,8 @@
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { type DeploymentJob, IS_CLOUD, shouldDeploy } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { compose } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {

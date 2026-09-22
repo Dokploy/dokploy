@@ -8,6 +8,7 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
+	type DeploymentJob,
 	deleteMount,
 	execAsync,
 	execAsyncRemote,
@@ -71,7 +72,6 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
 	killDockerBuild,
