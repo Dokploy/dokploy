@@ -1,4 +1,9 @@
-import { deploymentAttemptSchema, executeDeployment } from "@dokploy/server";
+import {
+	cancelStaleDeployment,
+	deploymentAttemptSchema,
+	executeDeployment,
+	failDeploymentJob,
+} from "@dokploy/server";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
@@ -28,6 +33,10 @@ export const deploymentFunction = inngest.createFunction(
 			},
 		],
 		retries: 0,
+		onFailure: async ({ event, error }) => {
+			const job = deployJobSchema.parse(event.data.event.data);
+			await failDeploymentJob(job, error);
+		},
 		cancelOn: [
 			{
 				event: "deployment/cancelled",
@@ -75,6 +84,18 @@ export const deploymentFunction = inngest.createFunction(
 				throw error;
 			}
 		});
+	},
+);
+
+export const cancelledDeploymentFunction = inngest.createFunction(
+	{ id: "record-cancelled-deployment" },
+	{
+		event: "inngest/function.cancelled",
+		if: "event.data.function_id == 'dokploy-deployments-deploy-application'",
+	},
+	async ({ event }) => {
+		const job = deployJobSchema.parse(event.data.event.data);
+		await cancelStaleDeployment(job.deploymentId);
 	},
 );
 
@@ -193,7 +214,7 @@ app.on(
 	"/api/inngest",
 	serveInngest({
 		client: inngest,
-		functions: [deploymentFunction],
+		functions: [deploymentFunction, cancelledDeploymentFunction],
 	}),
 );
 
