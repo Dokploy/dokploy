@@ -35,15 +35,12 @@ export const startDeploymentWorker = async () => {
 };
 
 export const enqueueDeployment = async (job: DeploymentJob) => {
+	if (IS_CLOUD) return deploy(job);
 	const deployment = await queueDeployment(job);
 	const queued = { ...job, deploymentId: deployment.deploymentId };
 	try {
-		if (IS_CLOUD) {
-			await deploy(queued);
-		} else {
-			if (!queue) throw new Error("Deployment queue is unavailable");
-			await queue.add(queued);
-		}
+		if (!queue) throw new Error("Deployment queue is unavailable");
+		await queue.add(queued);
 		return deployment;
 	} catch (error) {
 		await failQueuedDeployment(deployment.deploymentId, error);

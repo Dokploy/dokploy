@@ -1,5 +1,5 @@
 {
-  "id": "25fefa10-2a25-44bf-ac08-2b75e90b7b4d",
+  "id": "f6c9e2d5-ca26-4adf-9137-344214bb3e54",
   "prevId": "c9ad226a-7a8f-4c3b-8f04-fef6bccf9bfb",
   "version": "7",
   "dialect": "postgresql",
@@ -2864,6 +2864,68 @@
           ],
           "columnsTo": [
             "serverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.deployment_dispatch": {
+      "name": "deployment_dispatch",
+      "schema": "",
+      "columns": {
+        "deploymentId": {
+          "name": "deploymentId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "job": {
+          "name": "job",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "deployment_dispatch_created_at_idx": {
+          "name": "deployment_dispatch_created_at_idx",
+          "columns": [
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "deployment_dispatch_deploymentId_deployment_deploymentId_fk": {
+          "name": "deployment_dispatch_deploymentId_deployment_deploymentId_fk",
+          "tableFrom": "deployment_dispatch",
+          "tableTo": "deployment",
+          "columnsFrom": [
+            "deploymentId"
+          ],
+          "columnsTo": [
+            "deploymentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"

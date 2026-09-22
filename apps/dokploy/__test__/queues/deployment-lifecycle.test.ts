@@ -375,7 +375,7 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		).toMatchObject({ status: "running" });
 	});
 
-	it("persists cloud transport failures and cancels only the requested attempt", async () => {
+	it("retains cloud delivery across transport failures and only cancels queued attempts", async () => {
 		const serverId = randomUUID();
 		await database.insert(schema.server).values({
 			serverId,
@@ -392,28 +392,31 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 		try {
 			const cloudQueue = await import("@/server/queues/queueSetup");
 			fetch.mockResolvedValueOnce(new Response("Unavailable", { status: 503 }));
-			await expect(
-				cloudQueue.enqueueDeployment({ ...job(), serverId }),
-			).rejects.toThrow("503");
+			const delayed = await cloudQueue.enqueueDeployment({
+				...job(),
+				serverId,
+			});
 			expect(
-				await database.query.applications.findFirst({
-					where: eq(schema.applications.applicationId, applicationId),
+				await lifecycle.findPendingDeploymentDispatches(delayed.deploymentId),
+			).toMatchObject([
+				{ deploymentId: delayed.deploymentId, job: { serverId } },
+			]);
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, delayed.deploymentId),
 				}),
-			).toMatchObject({ applicationStatus: "error" });
+			).toMatchObject({ status: "queued", startedAt: null });
+			await lifecycle.cancelQueuedDeployment(delayed.deploymentId);
+			expect(
+				await lifecycle.findPendingDeploymentDispatches(delayed.deploymentId),
+			).toEqual([]);
 			fetch.mockResolvedValue(new Response("{}", { status: 200 }));
 			const first = await cloudQueue.enqueueDeployment({ ...job(), serverId });
 			const sibling = await cloudQueue.enqueueDeployment({
 				...job(),
 				serverId,
 			});
-			const { cancelDeployment } = await import("@/server/utils/deploy");
-			await cancelDeployment(first.deploymentId);
-			expect(fetch).toHaveBeenLastCalledWith(
-				expect.stringContaining("/cancel-deployment"),
-				expect.objectContaining({
-					body: JSON.stringify({ deploymentId: first.deploymentId }),
-				}),
-			);
+			await lifecycle.cancelQueuedDeployment(first.deploymentId);
 			expect(
 				await database.query.deployments.findFirst({
 					where: eq(schema.deployments.deploymentId, first.deploymentId),
@@ -425,8 +428,15 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 				}),
 			).toMatchObject({ status: "queued" });
 			await lifecycle.claimQueuedDeployment(sibling.deploymentId, sibling);
+			expect(
+				await lifecycle.cancelQueuedDeployment(sibling.deploymentId),
+			).toBeUndefined();
+			expect(
+				await database.query.deployments.findFirst({
+					where: eq(schema.deployments.deploymentId, sibling.deploymentId),
+				}),
+			).toMatchObject({ status: "running", finishedAt: null });
 			await lifecycle.finishDeployment(sibling.deploymentId, "done");
-			await cancelDeployment(sibling.deploymentId);
 			expect(
 				await database.query.deployments.findFirst({
 					where: eq(schema.deployments.deploymentId, sibling.deploymentId),
@@ -437,6 +447,43 @@ describe.skipIf(!databaseUrl)("persisted deployment lifecycle", () => {
 			vi.unstubAllEnvs();
 			vi.resetModules();
 		}
+	});
+
+	it("recovers committed delivery intents without claiming an attempt twice", async () => {
+		const request = { ...job(), serverId: "cloud-target" };
+		const attempt = await lifecycle.queueDeployment(request, "inngest");
+		// No dispatch happened: a newly loaded dispatcher can recover the full job.
+		expect(
+			await lifecycle.findPendingDeploymentDispatches(attempt.deploymentId),
+		).toMatchObject([
+			{
+				deploymentId: attempt.deploymentId,
+				job: {
+					applicationId,
+					applicationType: "application",
+					serverId: "cloud-target",
+					type: "deploy",
+				},
+			},
+		]);
+		const later = await lifecycle.queueDeployment(request, "inngest");
+		await lifecycle.acknowledgeDeploymentDispatches([attempt.deploymentId]);
+		expect(
+			await lifecycle.findPendingDeploymentDispatches(later.deploymentId),
+		).toHaveLength(1);
+		const claims = await Promise.all([
+			lifecycle.claimQueuedDeployment(attempt.deploymentId, attempt),
+			lifecycle.claimQueuedDeployment(attempt.deploymentId, attempt),
+		]);
+		expect(claims.filter(Boolean)).toHaveLength(1);
+		await lifecycle.finishDeployment(attempt.deploymentId, "done");
+		expect(
+			await lifecycle.claimQueuedDeployment(attempt.deploymentId, attempt),
+		).toBeUndefined();
+		await lifecycle.cancelQueuedDeployment(later.deploymentId);
+		expect(
+			await lifecycle.findPendingDeploymentDispatches(later.deploymentId),
+		).toEqual([]);
 	});
 
 	it("serializes concurrent completion and enqueue without losing the active status", async () => {

@@ -3,14 +3,16 @@ import {
 	type ApplicationStatus,
 	applications,
 	compose,
+	deploymentDispatches,
 	deployments,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
-import { and, eq, inArray, type SQL, sql } from "drizzle-orm";
-import type {
-	DeploymentJob,
-	DeploymentTarget,
-	QueuedDeploymentJob,
+import { and, asc, eq, inArray, type SQL, sql } from "drizzle-orm";
+import {
+	type DeploymentJob,
+	type DeploymentTarget,
+	deploymentExecutionSchema,
+	type QueuedDeploymentJob,
 } from "../queues/deployment-job";
 
 type Deployment = typeof deployments.$inferSelect;
@@ -122,7 +124,13 @@ const getJobOwner = (job: DeploymentTarget): DeploymentOwner => ({
 			: null,
 });
 
-export const queueDeployment = async (job: DeploymentJob) => {
+export const queueDeployment = async (
+	job: DeploymentJob,
+	delivery: "memory" | "inngest" = "memory",
+) => {
+	if (delivery === "inngest" && !job.serverId) {
+		throw new Error("Cloud deployments require a server");
+	}
 	const owner = getJobOwner(job);
 	return withDeploymentOwner(
 		owner,
@@ -138,6 +146,12 @@ export const queueDeployment = async (job: DeploymentJob) => {
 				})
 				.returning();
 			if (!deployment) throw new Error("Failed to create queued deployment");
+			if (delivery === "inngest") {
+				await tx.insert(deploymentDispatches).values({
+					deploymentId: deployment.deploymentId,
+					job: deploymentExecutionSchema.parse(job),
+				});
+			}
 			return deployment;
 		},
 		"queued",
@@ -176,6 +190,11 @@ const transitionDeployment = async (
 					),
 				)
 				.returning();
+			if (updated) {
+				await tx
+					.delete(deploymentDispatches)
+					.where(eq(deploymentDispatches.deploymentId, deploymentId));
+			}
 			return updated;
 		},
 		status === "cancelled" ? "idle" : status,
@@ -219,6 +238,9 @@ export const failQueuedDeployment = (deploymentId: string, error: unknown) =>
 		error instanceof Error ? error.message : String(error),
 	);
 
+export const cancelQueuedDeployment = (deploymentId: string) =>
+	transitionDeployment(deploymentId, ["queued"], "cancelled");
+
 export const cancelQueuedDeployments = async (target?: DeploymentTarget) => {
 	const condition = target
 		? getOwner(getJobOwner(target))?.condition
@@ -230,7 +252,7 @@ export const cancelQueuedDeployments = async (target?: DeploymentTarget) => {
 	});
 	const cancelled: string[] = [];
 	for (const { deploymentId } of queued) {
-		if (await transitionDeployment(deploymentId, ["queued"], "cancelled")) {
+		if (await cancelQueuedDeployment(deploymentId)) {
 			cancelled.push(deploymentId);
 		}
 	}
@@ -248,3 +270,20 @@ export const failDeploymentJob = (job: QueuedDeploymentJob, error: unknown) =>
 		error instanceof Error ? error.message : String(error),
 		getOwner(getJobOwner(job))?.condition,
 	);
+
+export const findPendingDeploymentDispatches = (deploymentId?: string) =>
+	db
+		.select()
+		.from(deploymentDispatches)
+		.where(
+			deploymentId
+				? eq(deploymentDispatches.deploymentId, deploymentId)
+				: undefined,
+		)
+		.orderBy(asc(deploymentDispatches.createdAt))
+		.limit(100);
+
+export const acknowledgeDeploymentDispatches = (deploymentIds: string[]) =>
+	db
+		.delete(deploymentDispatches)
+		.where(inArray(deploymentDispatches.deploymentId, deploymentIds));

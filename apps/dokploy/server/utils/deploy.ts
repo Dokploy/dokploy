@@ -1,41 +1,35 @@
 import {
-	cancelStaleDeployment,
+	type DeploymentJob,
 	findServerById,
-	type QueuedDeploymentJob,
+	queueDeployment,
 } from "@dokploy/server";
 
-export const deploy = async (jobData: QueuedDeploymentJob) => {
-	if (!jobData.serverId) throw new Error("Cloud deployments require a server");
-	const server = await findServerById(jobData.serverId);
+export const deploy = async (job: DeploymentJob) => {
+	if (!job.serverId) throw new Error("Cloud deployments require a server");
+	const server = await findServerById(job.serverId);
 	if (server.serverStatus === "inactive") throw new Error("Server is inactive");
-	const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-API-Key": process.env.API_KEY || "NO-DEFINED",
-		},
-		body: JSON.stringify(jobData),
-	});
-	if (!result.ok)
-		throw new Error(
-			`Deployment service rejected the request (${result.status})`,
+	const deployment = await queueDeployment(job, "inngest");
+	try {
+		const result = await fetch(`${process.env.SERVER_URL}/deploy`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
+			},
+			body: JSON.stringify({ deploymentId: deployment.deploymentId }),
+			signal: AbortSignal.timeout(10_000),
+		});
+		if (!result.ok)
+			throw new Error(`Deployment service returned ${result.status}`);
+	} catch (error) {
+		// The API's scheduled dispatcher will retry the committed delivery.
+		console.error(
+			"Deployment remains queued for delivery",
+			deployment.deploymentId,
+			error,
 		);
-};
-
-export const cancelDeployment = async (deploymentId: string) => {
-	const result = await fetch(`${process.env.SERVER_URL}/cancel-deployment`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-API-Key": process.env.API_KEY || "NO-DEFINED",
-		},
-		body: JSON.stringify({ deploymentId }),
-	});
-	if (!result.ok)
-		throw new Error(
-			`Deployment service rejected cancellation (${result.status})`,
-		);
-	await cancelStaleDeployment(deploymentId);
+	}
+	return deployment;
 };
 
 export type QueueJobRow = {
