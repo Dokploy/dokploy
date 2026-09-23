@@ -5,7 +5,6 @@ import {
 	ScrollText,
 	Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { logProviderIcons } from "@/components/icons/log-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -145,7 +144,6 @@ export const ShowLogProviders = () => {
 	const { data, isPending, refetch } = api.logProvider.all.useQuery();
 	const { data: availableTypes } = api.logProvider.availableTypes.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: webServerSettings } =
 		api.settings.getWebServerSettings.useQuery();
 	const { data: servers } = api.server.all.useQuery();
@@ -171,7 +169,7 @@ export const ShowLogProviders = () => {
 							Log Management
 						</CardTitle>
 						<CardDescription>
-							{`Ship container logs to an external provider${providerListLabel}. Needs at least one provider here and the toggle enabled on each server's settings.`}
+							{`Ship container logs to an external provider${providerListLabel}. Needs at least one provider here and Log Management turned on for the servers below.`}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -180,20 +178,9 @@ export const ShowLogProviders = () => {
 								<AlertTriangle className="size-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
 								<div className="flex flex-col gap-2 text-sm">
 									<span className="text-yellow-700 dark:text-yellow-400">
-										Nothing will ship yet — no server has Log Management turned
-										on.
+										Nothing will ship yet — turn on Log Management for at least
+										one server below.
 									</span>
-									<Button asChild variant="outline" size="sm" className="w-fit">
-										<Link
-											href={
-												isCloud
-													? "/dashboard/settings/servers"
-													: "/dashboard/settings/server"
-											}
-										>
-											{isCloud ? "Go to Servers" : "Go to Web Server settings"}
-										</Link>
-									</Button>
 								</div>
 							</div>
 						)}
