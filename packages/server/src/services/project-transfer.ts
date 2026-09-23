@@ -493,20 +493,25 @@ const addServerLinkedResources = async (
 	const serverIds = [...dependencies.servers];
 	if (serverIds.length === 0) return;
 
-	const [serverRows, certificateRows, networkRows] = await Promise.all([
-		database
-			.select({ serverId: server.serverId, sshKeyId: server.sshKeyId })
-			.from(server)
-			.where(inArray(server.serverId, serverIds)),
-		database
-			.select({ certificateId: certificates.certificateId })
-			.from(certificates)
-			.where(inArray(certificates.serverId, serverIds)),
-		database
-			.select({ networkId: network.networkId })
-			.from(network)
-			.where(inArray(network.serverId, serverIds)),
-	]);
+	const [serverRows, certificateRows, networkRows, scheduleRows] =
+		await Promise.all([
+			database
+				.select({ serverId: server.serverId, sshKeyId: server.sshKeyId })
+				.from(server)
+				.where(inArray(server.serverId, serverIds)),
+			database
+				.select({ certificateId: certificates.certificateId })
+				.from(certificates)
+				.where(inArray(certificates.serverId, serverIds)),
+			database
+				.select({ networkId: network.networkId })
+				.from(network)
+				.where(inArray(network.serverId, serverIds)),
+			database
+				.select({ scheduleId: schedules.scheduleId })
+				.from(schedules)
+				.where(inArray(schedules.serverId, serverIds)),
+		]);
 
 	for (const row of serverRows) {
 		if (row.sshKeyId) dependencies.sshKeys.add(row.sshKeyId);
@@ -514,6 +519,7 @@ const addServerLinkedResources = async (
 	for (const row of certificateRows)
 		dependencies.certificates.add(row.certificateId);
 	for (const row of networkRows) dependencies.networks.add(row.networkId);
+	for (const row of scheduleRows) dependencies.schedules.add(row.scheduleId);
 };
 
 const loadProjectState = async (
