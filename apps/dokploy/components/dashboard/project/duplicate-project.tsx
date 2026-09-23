@@ -1,7 +1,9 @@
+import type { DuplicateTargetServer } from "@dokploy/server/db/schema";
 import { Copy, Loader2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -23,6 +25,18 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+
+const getDuplicateTargetServer = (
+	targetServer: string,
+): DuplicateTargetServer => {
+	if (targetServer === "keep") {
+		return { kind: "keep" };
+	}
+	if (targetServer === "dokploy") {
+		return { kind: "dokploy" };
+	}
+	return { kind: "remote", serverId: targetServer };
+};
 
 export type Services = {
 	serverId?: string | null;
@@ -61,8 +75,15 @@ export const DuplicateProject = ({
 		useState<string>("");
 	const [selectedTargetEnvironment, setSelectedTargetEnvironment] =
 		useState<string>("");
+	const [targetServer, setTargetServer] = useState("keep");
 	const utils = api.useUtils();
 	const router = useRouter();
+
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
+	const { data: servers } = api.server.withSSHKey.useQuery();
+	const showLocalOption = !isCloud && !webServerSettings?.remoteServersOnly;
 
 	// Queries for project and environment selection
 	const { data: allProjects } = api.project.all.useQuery();
@@ -74,6 +95,22 @@ export const DuplicateProject = ({
 
 	const selectedServices = services.filter((service) =>
 		selectedServiceIds.includes(service.id),
+	);
+	const sourceServerIds = new Set(
+		selectedServices.map((service) => service.serverId ?? null),
+	);
+	const sharedSourceServerId =
+		sourceServerIds.size === 1 ? [...sourceServerIds][0] : undefined;
+	const sharedSourceServerName =
+		sharedSourceServerId === undefined
+			? undefined
+			: sharedSourceServerId === null
+				? "Dokploy"
+				: servers?.find((server) => server.serverId === sharedSourceServerId)
+						?.name;
+	const canTargetDokploy = showLocalOption && sharedSourceServerId !== null;
+	const targetServers = (servers ?? []).filter(
+		(server) => server.serverId !== sharedSourceServerId,
 	);
 
 	const { mutateAsync: duplicateProject, isPending } =
@@ -148,6 +185,7 @@ export const DuplicateProject = ({
 				type: service.type,
 			})),
 			duplicateInSameProject: duplicateType === "existing-environment",
+			targetServer: getDuplicateTargetServer(targetServer),
 		});
 	};
 
@@ -163,6 +201,7 @@ export const DuplicateProject = ({
 					setDuplicateType("new-project");
 					setSelectedTargetProject("");
 					setSelectedTargetEnvironment("");
+					setTargetServer("keep");
 				}
 			}}
 		>
@@ -301,6 +340,48 @@ export const DuplicateProject = ({
 								</>
 							)}
 						</>
+					)}
+
+					{(canTargetDokploy || targetServers.length > 0) && (
+						<div className="grid gap-2">
+							<Label>Target Server</Label>
+							<Select value={targetServer} onValueChange={setTargetServer}>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="keep">
+										<span className="flex items-center gap-2 justify-between w-full">
+											<span>Keep current server</span>
+											{sharedSourceServerName && (
+												<span className="text-muted-foreground text-xs self-center">
+													{sharedSourceServerName}
+												</span>
+											)}
+										</span>
+									</SelectItem>
+									{canTargetDokploy && (
+										<SelectItem value="dokploy">Dokploy</SelectItem>
+									)}
+									{targetServers.map((server) => (
+										<SelectItem key={server.serverId} value={server.serverId}>
+											<span className="flex items-center gap-2 justify-between w-full">
+												<span>{server.name}</span>
+												<span className="text-muted-foreground text-xs self-center">
+													{server.ipAddress}
+												</span>
+											</span>
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{targetServer !== "keep" && (
+								<AlertBlock type="warning">
+									Networks that only exist on the current server are detached
+									from the copies.
+								</AlertBlock>
+							)}
+						</div>
 					)}
 
 					<div className="grid gap-2">
