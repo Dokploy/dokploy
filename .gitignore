@@ -47,3 +47,5 @@ yarn-error.log*
 
 .playwright-*
 .credentials
+.cursor/handoff.md
+.env.production
