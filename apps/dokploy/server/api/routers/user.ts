@@ -4,7 +4,9 @@ import {
 	findNotificationById,
 	findOrganizationById,
 	findPasskeysByUserId,
+	findServerById,
 	findUserById,
+	getAccessibleServerIds,
 	getDokployUrl,
 	getUserByToken,
 	getWebServerSettings,
@@ -22,12 +24,21 @@ import {
 	apiFindOneToken,
 	apikey,
 	apiUpdateUser,
+	applications,
+	compose,
 	invitation,
+	libsql,
+	mariadb,
 	member,
+	mongo,
+	mysql,
+	postgres,
+	redis,
 	session,
 	user,
 } from "@dokploy/server/db/schema";
 import {
+	findMemberByUserId,
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
@@ -62,6 +73,51 @@ const apiCreateApiKey = z.object({
 	refillAmount: z.number().optional(),
 	refillInterval: z.number().optional(),
 });
+
+const findServiceServerId = async (serviceId: string) => {
+	const lookups = await Promise.all([
+		db.query.applications.findFirst({
+			where: eq(applications.applicationId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.compose.findFirst({
+			where: eq(compose.composeId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.postgres.findFirst({
+			where: eq(postgres.postgresId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.mysql.findFirst({
+			where: eq(mysql.mysqlId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.mariadb.findFirst({
+			where: eq(mariadb.mariadbId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.mongo.findFirst({
+			where: eq(mongo.mongoId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.redis.findFirst({
+			where: eq(redis.redisId, serviceId),
+			columns: { serverId: true },
+		}),
+		db.query.libsql.findFirst({
+			where: eq(libsql.libsqlId, serviceId),
+			columns: { serverId: true },
+		}),
+	]);
+
+	for (const row of lookups) {
+		if (row) {
+			return row.serverId ?? null;
+		}
+	}
+
+	return undefined;
+};
 
 export const userRouter = createTRPCRouter({
 	all: withPermission("member", "read").query(async ({ ctx }) => {
@@ -548,6 +604,104 @@ export const userRouter = createTRPCRouter({
 				const response = await fetch(url.toString(), {
 					headers: {
 						Authorization: `Bearer ${input.token}`,
+					},
+				});
+				if (!response.ok) {
+					throw new Error(
+						`Error ${response.status}: ${response.statusText}. Please verify that the application "${input.appName}" is running and this service is included in the monitoring configuration.`,
+					);
+				}
+
+				const data = await response.json();
+				if (!Array.isArray(data) || data.length === 0) {
+					throw new Error(
+						[
+							`No monitoring data available for "${input.appName}". This could be because:`,
+							"",
+							"1. The container was recently started - wait a few minutes for data to be collected",
+							"2. The container is not running - verify its status",
+							"3. The service is not included in your monitoring configuration",
+						].join("\n"),
+					);
+				}
+				return data as {
+					containerId: string;
+					containerName: string;
+					containerImage: string;
+					containerLabels: string;
+					containerCommand: string;
+					containerCreated: string;
+				}[];
+			} catch (error) {
+				throw error;
+			}
+		}),
+
+	getContainerMetricsByServer: withPermission("monitoring", "read")
+		.input(
+			z.object({
+				serverId: z.string().min(1),
+				appName: z.string(),
+				dataPoints: z.string(),
+				serviceId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			try {
+				if (!input.appName) {
+					throw new Error(
+						[
+							"No Application Selected:",
+							"",
+							"Make Sure to select an application to monitor.",
+						].join("\n"),
+					);
+				}
+
+				const accessible = await getAccessibleServerIds(ctx.session);
+				let canAccessServer = accessible.has(input.serverId);
+
+				if (!canAccessServer && input.serviceId) {
+					const memberRecord = await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+					const hasService =
+						memberRecord.role === "owner" ||
+						memberRecord.role === "admin" ||
+						memberRecord.accessedServices.includes(input.serviceId);
+
+					if (hasService) {
+						const serviceServerId = await findServiceServerId(input.serviceId);
+						canAccessServer = serviceServerId === input.serverId;
+					}
+				}
+
+				if (!canAccessServer) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+
+				const server = await findServerById(input.serverId);
+				const token = server.metricsConfig?.server?.token;
+				const port = server.metricsConfig?.server?.port || 4500;
+
+				if (!token || !server.ipAddress) {
+					throw new Error(
+						"Monitoring is not configured on this remote server.",
+					);
+				}
+
+				const url = new URL(
+					`http://${server.ipAddress}:${port}/metrics/containers`,
+				);
+				url.searchParams.append("limit", input.dataPoints);
+				url.searchParams.append("appName", input.appName);
+				const response = await fetch(url.toString(), {
+					headers: {
+						Authorization: `Bearer ${token}`,
 					},
 				});
 				if (!response.ok) {
