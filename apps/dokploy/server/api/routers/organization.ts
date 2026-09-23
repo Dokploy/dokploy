@@ -1,12 +1,18 @@
 import { db } from "@dokploy/server/db";
 import {
+	findNotificationById,
+	getDokployUrl,
 	hasValidLicense,
 	IS_CLOUD,
+	renderInvitationEmail,
+	sendEmailNotification,
 	sendInvitationEmail,
+	sendResendNotification,
 } from "@dokploy/server/index";
 import {
 	filterExpiredInvitations,
 	normalizeInviteEmails,
+	validateInvitationCutoff,
 	validateOwnershipTransfer,
 	validateTeamCapacity,
 } from "@dokploy/server/services/organization-teams";
@@ -387,20 +393,6 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
-			const [created] = await db
-				.insert(invitation)
-				.values({
-					id: nanoid(),
-					organizationId: orgId,
-					email,
-					role: input.role as any,
-					status: "pending",
-					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-					inviterId: ctx.user.id,
-					teamId: null,
-				})
-				.returning();
-
 			if (input.teamId) {
 				const destination = await assertTeamExistsInOrg(orgId, input.teamId);
 				const assigned = await db.query.member.findMany({
@@ -420,20 +412,29 @@ export const organizationRouter = createTRPCRouter({
 					validateTeamCapacity(
 						assigned.length + pendingForTeam.length,
 						destination?.maxMembers,
-						0,
+						1,
 					);
 				} catch (error) {
-					await db.delete(invitation).where(eq(invitation.id, created.id));
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: (error as Error).message,
 					});
 				}
-				await db
-					.update(invitation)
-					.set({ teamId: input.teamId })
-					.where(eq(invitation.id, created.id));
 			}
+
+			const [created] = await db
+				.insert(invitation)
+				.values({
+					id: nanoid(),
+					organizationId: orgId,
+					email,
+					role: input.role as any,
+					status: "pending",
+					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+					inviterId: ctx.user.id,
+					teamId: input.teamId ?? null,
+				})
+				.returning();
 
 			if (IS_CLOUD && created) {
 				const host =
@@ -669,6 +670,7 @@ export const organizationRouter = createTRPCRouter({
 				emails: z.array(z.string().min(1)).min(1).max(100),
 				role: z.string().min(1),
 				teamId: z.string().min(1).nullable().optional(),
+				notificationId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -702,38 +704,7 @@ export const organizationRouter = createTRPCRouter({
 					});
 				}
 			}
-			const destination = await assertTeamExistsInOrg(orgId, input.teamId);
-			if (destination) {
-				const assigned = await db.query.member.findMany({
-					where: and(
-						eq(member.organizationId, orgId),
-						eq(member.teamId, destination.id),
-					),
-				});
-				const pendingForTeam = await db.query.invitation.findMany({
-					where: and(
-						eq(invitation.organizationId, orgId),
-						eq(invitation.teamId, destination.id),
-						eq(invitation.status, "pending"),
-					),
-				});
-				try {
-					validateTeamCapacity(
-						assigned.length + pendingForTeam.length,
-						destination.maxMembers,
-						emails.length,
-					);
-				} catch (error) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: (error as Error).message,
-					});
-				}
-			}
-			if (IS_CLOUD) {
-				await assertMemberLimit(orgId);
-			}
-			const created: typeof invitation.$inferSelect[] = [];
+			const candidateEmails: string[] = [];
 			for (const email of emails) {
 				const existingUser = await db.query.user.findFirst({
 					where: eq(user.email, email),
@@ -754,7 +725,73 @@ export const organizationRouter = createTRPCRouter({
 						eq(invitation.status, "pending"),
 					),
 				});
-				if (existingInvitation) continue;
+				if (!existingInvitation) candidateEmails.push(email);
+			}
+			const destination = await assertTeamExistsInOrg(orgId, input.teamId);
+			if (destination) {
+				const assigned = await db.query.member.findMany({
+					where: and(
+						eq(member.organizationId, orgId),
+						eq(member.teamId, destination.id),
+					),
+				});
+				const pendingForTeam = await db.query.invitation.findMany({
+					where: and(
+						eq(invitation.organizationId, orgId),
+						eq(invitation.teamId, destination.id),
+						eq(invitation.status, "pending"),
+					),
+				});
+				try {
+					validateTeamCapacity(
+						assigned.length + pendingForTeam.length,
+						destination.maxMembers,
+						candidateEmails.length,
+					);
+				} catch (error) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: (error as Error).message,
+					});
+				}
+			}
+			if (IS_CLOUD) {
+				await assertMemberLimit(orgId);
+			}
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, orgId),
+				columns: { name: true },
+			});
+			const notification = !IS_CLOUD
+				? input.notificationId
+					? await findNotificationById(input.notificationId)
+					: null
+				: null;
+			if (notification && notification.organizationId !== orgId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Notification not found",
+				});
+			}
+			if (!IS_CLOUD && !notification) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "An email notification provider is required",
+				});
+			}
+			if (notification && !notification.email && !notification.resend) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The selected notification must use Email or Resend",
+				});
+			}
+			const host = IS_CLOUD
+				? process.env.NODE_ENV === "development"
+					? "http://localhost:3000"
+					: "https://app.dokploy.com"
+				: await getDokployUrl();
+			const created: (typeof invitation.$inferSelect)[] = [];
+			for (const email of candidateEmails) {
 				const [row] = await db
 					.insert(invitation)
 					.values({
@@ -768,7 +805,41 @@ export const organizationRouter = createTRPCRouter({
 						teamId: input.teamId ?? null,
 					})
 					.returning();
-				if (row) created.push(row);
+				if (!row) continue;
+				const inviteLink = `${host}/invitation?token=${row.id}`;
+				try {
+					if (IS_CLOUD) {
+						await sendInvitationEmail({
+							email,
+							inviteLink,
+							organizationName: org?.name || "organization",
+						});
+					} else {
+						const subject = `You've been invited to join ${org?.name || "organization"} on Dokploy`;
+						const html = await renderInvitationEmail({
+							email,
+							inviteLink,
+							organizationName: org?.name || "organization",
+						});
+						if (notification?.email) {
+							await sendEmailNotification(
+								{ ...notification.email, toAddresses: [email] },
+								subject,
+								html,
+							);
+						} else if (notification?.resend) {
+							await sendResendNotification(
+								{ ...notification.resend, toAddresses: [email] },
+								subject,
+								html,
+							);
+						}
+					}
+				} catch (error) {
+					await db.delete(invitation).where(eq(invitation.id, row.id));
+					throw error;
+				}
+				created.push(row);
 			}
 			await audit(ctx, {
 				action: "create",
@@ -810,7 +881,15 @@ export const organizationRouter = createTRPCRouter({
 		.input(z.object({ before: z.coerce.date().optional() }).optional())
 		.mutation(async ({ ctx, input }) => {
 			const orgId = ctx.session.activeOrganizationId;
-			const cutoff = input?.before ?? new Date();
+			let cutoff: Date;
+			try {
+				cutoff = validateInvitationCutoff(input?.before);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: (error as Error).message,
+				});
+			}
 			const deleted = await db
 				.delete(invitation)
 				.where(

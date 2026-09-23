@@ -6,6 +6,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { network } from "./network";
@@ -147,7 +148,10 @@ export const team = pgTable(
 	},
 	(table) => [
 		index("team_organizationId_idx").on(table.organizationId),
-		index("team_name_idx").on(table.organizationId, table.name),
+		uniqueIndex("team_organization_name_unique").on(
+			table.organizationId,
+			table.name,
+		),
 	],
 );
 

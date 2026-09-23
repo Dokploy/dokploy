@@ -1,11 +1,7 @@
 import { db } from "@dokploy/server/db";
+import { invitation, member, team, user } from "@dokploy/server/db/schema";
 import {
-	invitation,
-	member,
-	team,
-	user,
-} from "@dokploy/server/db/schema";
-import {
+	isUniqueConstraintError,
 	sanitizeTeamName,
 	validateTeamCapacity,
 } from "@dokploy/server/services/organization-teams";
@@ -53,17 +49,28 @@ export const teamRouter = createTRPCRouter({
 					message: `Team "${name}" already exists`,
 				});
 			}
-			const [created] = await db
-				.insert(team)
-				.values({
-					id: nanoid(),
-					organizationId: orgId,
-					name,
-					description: input.description ?? null,
-					maxMembers: input.maxMembers ?? null,
-					accessedServers: input.accessedServers ?? [],
-				})
-				.returning();
+			let created: typeof team.$inferSelect | undefined;
+			try {
+				[created] = await db
+					.insert(team)
+					.values({
+						id: nanoid(),
+						organizationId: orgId,
+						name,
+						description: input.description ?? null,
+						maxMembers: input.maxMembers ?? null,
+						accessedServers: input.accessedServers ?? [],
+					})
+					.returning();
+			} catch (error) {
+				if (isUniqueConstraintError(error)) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Team "${name}" already exists`,
+					});
+				}
+				throw error;
+			}
 			await audit(ctx, {
 				action: "create",
 				resourceType: "team",
@@ -81,11 +88,24 @@ export const teamRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const orgId = ctx.session.activeOrganizationId;
+			const name =
+				input.name === undefined ? undefined : sanitizeTeamName(input.name);
 			const current = await db.query.team.findFirst({
 				where: eq(team.id, input.teamId),
 			});
 			if (!current || current.organizationId !== orgId) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+			}
+			if (name !== undefined && name !== current.name) {
+				const existing = await db.query.team.findFirst({
+					where: and(eq(team.organizationId, orgId), eq(team.name, name)),
+				});
+				if (existing) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Team "${name}" already exists`,
+					});
+				}
 			}
 			if (input.maxMembers !== undefined && input.maxMembers !== null) {
 				const assigned = await db.query.member.findMany({
@@ -96,24 +116,33 @@ export const teamRouter = createTRPCRouter({
 				});
 				validateTeamCapacity(assigned.length, input.maxMembers, 0);
 			}
-			const [updated] = await db
-				.update(team)
-				.set({
-					...(input.name !== undefined && {
-						name: sanitizeTeamName(input.name),
-					}),
-					...(input.description !== undefined && {
-						description: input.description,
-					}),
-					...(input.maxMembers !== undefined && {
-						maxMembers: input.maxMembers,
-					}),
-					...(input.accessedServers !== undefined && {
-						accessedServers: input.accessedServers,
-					}),
-				})
-				.where(eq(team.id, input.teamId))
-				.returning();
+			let updated: typeof team.$inferSelect | undefined;
+			try {
+				[updated] = await db
+					.update(team)
+					.set({
+						...(name !== undefined && { name }),
+						...(input.description !== undefined && {
+							description: input.description,
+						}),
+						...(input.maxMembers !== undefined && {
+							maxMembers: input.maxMembers,
+						}),
+						...(input.accessedServers !== undefined && {
+							accessedServers: input.accessedServers,
+						}),
+					})
+					.where(eq(team.id, input.teamId))
+					.returning();
+			} catch (error) {
+				if (isUniqueConstraintError(error)) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Team "${name}" already exists`,
+					});
+				}
+				throw error;
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "team",
@@ -230,7 +259,10 @@ export const teamRouter = createTRPCRouter({
 				.from(member)
 				.innerJoin(user, eq(member.userId, user.id))
 				.where(
-					and(eq(member.organizationId, orgId), eq(member.teamId, input.teamId)),
+					and(
+						eq(member.organizationId, orgId),
+						eq(member.teamId, input.teamId),
+					),
 				);
 		}),
 

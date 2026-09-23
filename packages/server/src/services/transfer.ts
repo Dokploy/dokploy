@@ -61,6 +61,7 @@ import {
 } from "./postgres";
 import { deployRedis, findRedisById, updateRedisById } from "./redis";
 import { findServerById } from "./server";
+import { stopComposeBeforeTransfer } from "./transfer-safety";
 
 export type TransferServiceInput = z.infer<typeof apiTransferService> & {
 	organizationId: string;
@@ -241,11 +242,7 @@ const listBindMounts = (service: TransferableService) => [
 
 const stopOnSource = async (service: TransferableService, log: Logger) => {
 	if (isCompose(service)) {
-		try {
-			await stopCompose(service.composeId);
-		} catch (error) {
-			log(`  Could not stop compose: ${errorMessage(error)}`);
-		}
+		await stopComposeBeforeTransfer(stopCompose, service.composeId, log);
 		return;
 	}
 	await runOn(

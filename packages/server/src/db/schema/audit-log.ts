@@ -88,6 +88,7 @@ export type AuditResourceType =
 	| "swarm"
 	| "previewDeployment"
 	| "organization"
+	| "team"
 	| "cluster"
 	| "mount"
 	| "application"

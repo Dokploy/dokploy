@@ -1,16 +1,18 @@
-import { describe, expect, it } from "vitest";
 import { viewerRole } from "@dokploy/server/lib/access-control";
 import {
-	STATIC_ROLES,
 	filterExpiredInvitations,
+	isUniqueConstraintError,
 	isViewerRole,
 	normalizeInviteEmails,
 	resolveMemberServers,
+	STATIC_ROLES,
 	sanitizeTeamName,
+	validateInvitationCutoff,
 	validateOwnershipTransfer,
 	validateRoleTransition,
 	validateTeamCapacity,
 } from "@dokploy/server/services/organization-teams";
+import { describe, expect, it } from "vitest";
 
 describe("static roles include view-only viewer (issue #1413)", () => {
 	it("registers viewer as a static role", () => {
@@ -32,7 +34,9 @@ describe("static roles include view-only viewer (issue #1413)", () => {
 
 	it("viewer keeps read access to assigned scopes", () => {
 		expect(viewerRole.authorize({ deployment: ["read"] }).success).toBe(true);
-		expect(viewerRole.authorize({ deployment: ["create"] }).success).toBe(false);
+		expect(viewerRole.authorize({ deployment: ["create"] }).success).toBe(
+			false,
+		);
 		expect(viewerRole.authorize({ domain: ["read"] }).success).toBe(true);
 		expect(viewerRole.authorize({ logs: ["read"] }).success).toBe(true);
 	});
@@ -157,9 +161,10 @@ describe("validateRoleTransition", () => {
 
 describe("normalizeInviteEmails (team-based bulk invitations)", () => {
 	it("lowercases, trims, and dedupes", () => {
-		expect(
-			normalizeInviteEmails(["A@x.com", " a@x.com ", "B@x.com"]),
-		).toEqual(["a@x.com", "b@x.com"]);
+		expect(normalizeInviteEmails(["A@x.com", " a@x.com ", "B@x.com"])).toEqual([
+			"a@x.com",
+			"b@x.com",
+		]);
 	});
 
 	it("rejects invalid and empty lists", () => {
@@ -180,11 +185,31 @@ describe("filterExpiredInvitations", () => {
 	it("returns only pending invitations past expiry", () => {
 		const now = new Date("2026-01-01T00:00:00Z");
 		const rows = [
-			{ id: "a", status: "pending", expiresAt: new Date("2025-12-31T00:00:00Z") },
-			{ id: "b", status: "pending", expiresAt: new Date("2026-02-01T00:00:00Z") },
-			{ id: "c", status: "accepted", expiresAt: new Date("2025-01-01T00:00:00Z") },
+			{
+				id: "a",
+				status: "pending",
+				expiresAt: new Date("2025-12-31T00:00:00Z"),
+			},
+			{
+				id: "b",
+				status: "pending",
+				expiresAt: new Date("2026-02-01T00:00:00Z"),
+			},
+			{
+				id: "c",
+				status: "accepted",
+				expiresAt: new Date("2025-01-01T00:00:00Z"),
+			},
 		];
 		expect(filterExpiredInvitations(rows, now).map((r) => r.id)).toEqual(["a"]);
+	});
+
+	it("rejects a future purge cutoff", () => {
+		const now = new Date("2026-01-01T00:00:00Z");
+		expect(() =>
+			validateInvitationCutoff(new Date("2026-01-02T00:00:00Z"), now),
+		).toThrow("cannot be in the future");
+		expect(validateInvitationCutoff(undefined, now)).toBe(now);
 	});
 });
 
@@ -209,6 +234,12 @@ describe("sanitizeTeamName + resolveMemberServers", () => {
 		expect(sanitizeTeamName("  Frontend  ")).toBe("Frontend");
 		expect(() => sanitizeTeamName("   ")).toThrow();
 		expect(() => sanitizeTeamName("x".repeat(101))).toThrow();
+	});
+
+	it("recognizes direct and wrapped unique constraint errors", () => {
+		expect(isUniqueConstraintError({ code: "23505" })).toBe(true);
+		expect(isUniqueConstraintError({ cause: { code: "23505" } })).toBe(true);
+		expect(isUniqueConstraintError({ code: "22001" })).toBe(false);
 	});
 
 	it("unions member and team servers for team-wide access", () => {

@@ -99,8 +99,20 @@ export const filterExpiredInvitations = <T extends InvitationLike>(
 	now: Date = new Date(),
 ): T[] => {
 	return invitations.filter(
-		(inv) => inv.status === "pending" && inv.expiresAt.getTime() <= now.getTime(),
+		(inv) =>
+			inv.status === "pending" && inv.expiresAt.getTime() <= now.getTime(),
 	);
+};
+
+export const validateInvitationCutoff = (
+	before: Date | undefined,
+	now: Date = new Date(),
+): Date => {
+	const cutoff = before ?? now;
+	if (cutoff.getTime() > now.getTime()) {
+		throw new Error("Invitation cleanup cutoff cannot be in the future");
+	}
+	return cutoff;
 };
 
 export const validateTeamCapacity = (
@@ -125,6 +137,12 @@ export const sanitizeTeamName = (name: string): string => {
 		throw new Error("Team name must be between 1 and 100 characters");
 	}
 	return trimmed;
+};
+
+export const isUniqueConstraintError = (error: unknown): boolean => {
+	if (!error || typeof error !== "object") return false;
+	if ("code" in error && error.code === "23505") return true;
+	return "cause" in error && isUniqueConstraintError(error.cause);
 };
 
 export const resolveMemberServers = (

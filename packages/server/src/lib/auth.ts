@@ -17,6 +17,7 @@ import {
 	getTrustedProviders,
 	getUserByToken,
 } from "../services/admin";
+import { assignAcceptedInvitationTeam } from "../services/invitation-team";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
 import {
@@ -29,7 +30,13 @@ import {
 	sendVerificationEmail,
 } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
-import { ac, adminRole, memberRole, ownerRole, viewerRole } from "./access-control";
+import {
+	ac,
+	adminRole,
+	memberRole,
+	ownerRole,
+	viewerRole,
+} from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
 
 const resolveTrustedOrigins = async () => {
@@ -489,6 +496,11 @@ const createBetterAuth = () =>
 				dynamicAccessControl: {
 					enabled: true,
 					maximumRolesPerOrganization: 10,
+				},
+				organizationHooks: {
+					afterAcceptInvitation: async ({ invitation, member }) => {
+						await assignAcceptedInvitationTeam(invitation.id, member.id);
+					},
 				},
 			}),
 			// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)
