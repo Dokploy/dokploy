@@ -9,7 +9,6 @@ const baseInput = {
 	targetOrganizationId: "target-org",
 	projectFound: true,
 	targetFound: true,
-	serviceCount: 0,
 };
 
 describe("project transfer preflight", () => {
@@ -17,15 +16,27 @@ describe("project transfer preflight", () => {
 		expect(getProjectTransferBlockers(baseInput)).toEqual([]);
 	});
 
-	it("blocks service-bearing projects until their dependencies can migrate", () => {
+	it("blocks resources that are shared with another project", () => {
 		expect(
-			getProjectTransferBlockers({ ...baseInput, serviceCount: 2 }),
+			getProjectTransferBlockers({
+				...baseInput,
+				resourceBlockers: [
+					{
+						code: "SHARED_RESOURCE",
+						message:
+							"Some servers are shared with other projects and cannot be transferred automatically.",
+						resourceKind: "servers",
+						resourceIds: ["server-1"],
+					},
+				],
+			}),
 		).toEqual([
 			{
-				code: "SERVICES_REQUIRE_MIGRATION",
+				code: "SHARED_RESOURCE",
 				message:
-					"This project contains services that reference organization-owned infrastructure. Migrate those dependencies before transferring the project.",
-				resourceCount: 2,
+					"Some servers are shared with other projects and cannot be transferred automatically.",
+				resourceKind: "servers",
+				resourceIds: ["server-1"],
 			},
 		]);
 	});

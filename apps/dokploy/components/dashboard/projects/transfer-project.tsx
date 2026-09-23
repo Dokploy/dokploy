@@ -67,8 +67,8 @@ export const TransferProject = ({ projectId }: { projectId: string }) => {
 					<DialogTitle>Transfer project</DialogTitle>
 					<DialogDescription>
 						Transfer ownership of this project and its environments to another
-						organization. Services with organization-owned infrastructure must
-						be migrated first.
+						organization. Exclusively referenced infrastructure moves with the
+						project; shared infrastructure must be separated first.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -102,6 +102,18 @@ export const TransferProject = ({ projectId }: { projectId: string }) => {
 								{plan.environmentCount} environment(s), {plan.serviceCount}{" "}
 								service(s), {plan.tagNames.length} tag(s)
 							</div>
+							{plan.dependencies.length > 0 && (
+								<div className="grid gap-1 text-muted-foreground">
+									<div className="font-medium text-foreground">
+										Resources included in this transfer
+									</div>
+									{plan.dependencies.map((dependency) => (
+										<div key={dependency.kind}>
+											{dependency.count} {dependency.kind}
+										</div>
+									))}
+								</div>
+							)}
 							{plan.blockers.length > 0 && (
 								<div className="grid gap-2 rounded-lg bg-yellow-50 p-3 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200">
 									<div className="flex items-center gap-2 font-medium">
@@ -118,7 +130,8 @@ export const TransferProject = ({ projectId }: { projectId: string }) => {
 							{plan.canTransfer && (
 								<div className="rounded-lg bg-muted p-3">
 									This transfer is safe to execute. Project environment
-									variables, environments, and tags will move with the project.
+									variables, environments, tags, and exclusively referenced
+									infrastructure will move with the project.
 								</div>
 							)}
 						</div>
