@@ -2,6 +2,7 @@ import type { LogProviderType } from "@dokploy/server/services/log-management/ty
 import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { logProviderIcons } from "@/components/icons/log-provider-icons";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -219,7 +220,7 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
 						{logProviderId ? "Edit Log Provider" : "Add a Log Provider"}
@@ -240,7 +241,7 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 						</span>
 					</div>
 				)}
-				<div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-4">
+				<div className="flex flex-col w-full gap-4">
 					<div className="flex flex-col gap-2">
 						<Label>Name</Label>
 						<Input
@@ -260,24 +261,28 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 								<SelectValue placeholder="Select a provider" />
 							</SelectTrigger>
 							<SelectContent>
-								{availableTypes?.map((type) => (
-									<SelectItem key={type.type} value={type.type}>
-										{type.label}
-									</SelectItem>
-								))}
+								{availableTypes?.map((type) => {
+									const ProviderIcon =
+										logProviderIcons[
+											type.type as keyof typeof logProviderIcons
+										];
+									return (
+										<SelectItem key={type.type} value={type.type}>
+											<div className="flex flex-row items-center gap-2">
+												{ProviderIcon && (
+													<ProviderIcon className="size-4 shrink-0" />
+												)}
+												{type.label}
+											</div>
+										</SelectItem>
+									);
+								})}
 							</SelectContent>
 						</Select>
 					</div>
 
 					{selectedType?.credentialFields.map((field) => (
-						<div
-							key={field.key}
-							className={
-								field.type === "url" || field.fullWidth
-									? "flex flex-col gap-2 col-span-2"
-									: "flex flex-col gap-2"
-							}
-						>
+						<div key={field.key} className="flex flex-col gap-2">
 							<Label>
 								{field.label}
 								{!field.required && " (Optional)"}
@@ -308,7 +313,7 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 						</div>
 					))}
 
-					<div className="flex flex-row items-center gap-2 col-span-2">
+					<div className="flex flex-row items-center gap-2">
 						<Switch checked={enabled} onCheckedChange={setEnabled} />
 						<Label>Enabled</Label>
 					</div>

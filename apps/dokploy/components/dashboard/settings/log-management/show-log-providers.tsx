@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { logProviderIcons } from "@/components/icons/log-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,10 +48,14 @@ const LogProviderRow = ({
 	const { mutateAsync: testConnectionById, isPending: isTesting } =
 		api.logProvider.testConnectionById.useMutation();
 
+	const ProviderIcon =
+		logProviderIcons[provider.providerType as keyof typeof logProviderIcons];
+
 	return (
 		<div className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg">
 			<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
-				<div className="flex items-center justify-between">
+				<div className="flex flex-row items-center gap-3">
+					{ProviderIcon && <ProviderIcon className="size-7 shrink-0" />}
 					<div className="flex gap-2 flex-col">
 						<span className="text-sm font-medium flex items-center gap-2">
 							{index + 1}. {provider.name}
