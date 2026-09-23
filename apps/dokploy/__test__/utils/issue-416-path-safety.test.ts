@@ -1,4 +1,7 @@
-import { apiCreateDestination } from "@dokploy/server/db/schema/destination";
+import {
+	apiCreateDestination,
+	apiUpdateDestination,
+} from "@dokploy/server/db/schema/destination";
 import { RCLONE_DESTINATION_PROVIDERS } from "@dokploy/server/db/validations/destination";
 import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
@@ -113,6 +116,128 @@ describe("issue #416 credential redaction", () => {
 	});
 });
 
+const unsafeDestinationBuckets = [
+	"/absolute",
+	"..",
+	".",
+	"../outside",
+	"safe/../outside",
+	"safe/./outside",
+	"safe\\..\\outside",
+	"safe\\outside",
+	"safe%2f..%2foutside",
+	"safe/%2e%2e/outside",
+	"safe/%252e%252e%252foutside",
+	"safe/%2e%2e%5coutside",
+	"safe/%5coutside",
+	"safe/%255coutside",
+	"bucket\0next",
+	"bucket\rnext",
+	"bucket\nnext",
+];
+
+const destinationSchemaInput = (
+	bucket: string,
+	provider: string = RCLONE_DESTINATION_PROVIDERS.GOOGLE_DRIVE,
+) => ({
+	name: "Destination safety",
+	provider,
+	accessKey:
+		provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+		provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+			? "backup-user"
+			: "",
+	secretAccessKey: "",
+	bucket,
+	region:
+		provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+		provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+			? "22"
+			: "",
+	endpoint:
+		provider === RCLONE_DESTINATION_PROVIDERS.GOOGLE_DRIVE ||
+		provider === RCLONE_DESTINATION_PROVIDERS.ONEDRIVE ||
+		provider === RCLONE_DESTINATION_PROVIDERS.REMOTE
+			? "team-drive"
+			: "storage.example.com",
+	additionalFlags:
+		provider === RCLONE_DESTINATION_PROVIDERS.FTP
+			? ["--ftp-explicit-tls"]
+			: provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+				? ["--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts"]
+				: [],
+});
+
+const destinationRuntimeCases = [
+	{
+		provider: "AWS",
+		endpoint: "s3.example.com",
+		region: "us-east-1",
+	},
+	{
+		provider: RCLONE_DESTINATION_PROVIDERS.GOOGLE_DRIVE,
+		endpoint: "team-drive",
+		region: "",
+	},
+	{
+		provider: RCLONE_DESTINATION_PROVIDERS.ONEDRIVE,
+		endpoint: "team-drive",
+		region: "",
+	},
+	{
+		provider: RCLONE_DESTINATION_PROVIDERS.REMOTE,
+		endpoint: "team-drive",
+		region: "",
+	},
+	{
+		provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+		endpoint: "storage.example.com",
+		region: "21",
+		accessKey: "backup-user",
+		additionalFlags: ["--ftp-explicit-tls"],
+	},
+	{
+		provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
+		endpoint: "storage.example.com",
+		region: "22",
+		accessKey: "backup-user",
+		additionalFlags: ["--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts"],
+	},
+];
+
+describe("issue #416 destination base path safety", () => {
+	test.each(unsafeDestinationBuckets)(
+		"rejects unsafe bucket in create and update schemas: %s",
+		(bucket) => {
+			const input = destinationSchemaInput(bucket);
+
+			expect(apiCreateDestination.safeParse(input).success).toBe(false);
+			expect(
+				apiUpdateDestination.safeParse({
+					...input,
+					destinationId: "destination-id",
+				}).success,
+			).toBe(false);
+		},
+	);
+
+	test.each(destinationRuntimeCases)(
+		"rejects unsafe bucket before building a $provider target",
+		async ({ provider, ...overrides }) => {
+			for (const bucket of unsafeDestinationBuckets) {
+				await expect(
+					getRclonePathAndFlags(
+						destination({
+							provider,
+							...overrides,
+							bucket,
+						}),
+					),
+				).rejects.toThrow("Invalid rclone path");
+			}
+		},
+	);
+});
 
 describe("issue #416 volume name and backup path shell safety", () => {
 	test("accepts valid docker volume names", () => {

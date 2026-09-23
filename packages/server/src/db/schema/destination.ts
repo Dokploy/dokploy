@@ -59,6 +59,7 @@ const validateDestination = (
 	data: {
 		provider?: string | null;
 		accessKey?: string;
+		bucket?: string;
 		region?: string;
 		endpoint?: string;
 		additionalFlags?: string[] | null;

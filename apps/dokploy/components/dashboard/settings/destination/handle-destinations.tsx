@@ -68,10 +68,12 @@ const addDestination = z
 			.optional(),
 	})
 	.superRefine((data, ctx) => {
-		const additionalFlags = data.additionalFlags?.map((flag) => flag.value) ?? [];
+		const additionalFlags =
+			data.additionalFlags?.map((flag) => flag.value) ?? [];
 		for (const issue of getDestinationValidationIssues({
 			provider: data.provider,
 			accessKey: data.accessKeyId,
+			bucket: data.bucket,
 			region: data.region,
 			endpoint: data.endpoint,
 			additionalFlags,

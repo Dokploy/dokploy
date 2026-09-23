@@ -3,6 +3,8 @@ import {
 	ADDITIONAL_FLAG_REGEX,
 	getDestinationValidationIssues,
 	getFtpTlsState,
+	getRcloneBasePathValidationError,
+	getRclonePathValidationError,
 	isNamedRcloneDestinationProvider,
 	isRcloneDestinationProvider,
 	RCLONE_DESTINATION_PROVIDERS,
@@ -115,25 +117,9 @@ const trimRclonePath = (value: string) =>
 const joinRclonePath = (...parts: string[]) =>
 	parts.map(trimRclonePath).filter(Boolean).join("/");
 
-// For FTP/SFTP, a leading "/" on the destination base path marks an absolute
-// path from the server root. rclone distinguishes ":sftp:/abs/path"
-// (absolute) from ":sftp:rel/path" (relative to the remote user's home
-// directory), so the base path's leading slash must be preserved instead of
-// being trimmed away.
-const buildFtpSftpRemotePath = (basePath: string, childPath: string) => {
-	const joined = joinRclonePath(basePath, childPath);
-	return basePath.trim().startsWith("/") ? `/${joined}` : joined;
-};
-
 export const assertSafeRclonePath = (value: string) => {
-	const normalizedSeparators = value.replace(/\\/g, "/");
-	if (/[\0\r\n]/.test(normalizedSeparators)) {
-		throw new Error("Invalid rclone path");
-	}
-	const segments = normalizedSeparators.split("/");
-	if (segments.some((segment) => segment === "." || segment === "..")) {
-		throw new Error("Invalid rclone path");
-	}
+	const issue = getRclonePathValidationError(value, true);
+	if (issue) throw new Error(issue);
 };
 
 const obscureRclonePassword = async (password: string) => {
@@ -149,6 +135,8 @@ export const getRclonePathAndFlags = async (
 	path = "",
 ): Promise<{ flags: string[]; path: string }> => {
 	assertSafeRclonePath(path);
+	const basePathIssue = getRcloneBasePathValidationError(destination.bucket);
+	if (basePathIssue) throw new Error(basePathIssue);
 	const provider = destination.provider;
 	const additionalFlags = getValidatedAdditionalFlags(destination);
 
@@ -200,7 +188,7 @@ export const getRclonePathAndFlags = async (
 		}
 		return {
 			flags,
-			path: `:${backend}:${buildFtpSftpRemotePath(destination.bucket, path)}`,
+			path: `:${backend}:${joinRclonePath(destination.bucket, path)}`,
 		};
 	}
 

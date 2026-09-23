@@ -41,6 +41,64 @@ export const FTP_CERTIFICATE_VERIFICATION_REQUIRED_ERROR =
 	"FTP TLS certificate verification cannot be disabled.";
 export const SFTP_HOST_KEY_REQUIRED_ERROR =
 	"SFTP destinations must verify the server host key. Add --sftp-known-hosts-file=/path/to/known_hosts.";
+export const RCLONE_PATH_ERROR = "Invalid rclone path";
+
+const hasRcloneControlCharacters = (value: string) =>
+	Array.from(value).some((character) => {
+		const code = character.charCodeAt(0);
+		return code <= 0x1f || code === 0x7f;
+	});
+const RCLONE_WINDOWS_DRIVE_PATH = /^[a-zA-Z]:/;
+
+const decodeRclonePath = (value: string) => {
+	let decoded = value;
+	for (let index = 0; index < 8; index += 1) {
+		if (!/%[0-9a-f]{2}/i.test(decoded)) return decoded;
+		try {
+			decoded = decodeURIComponent(decoded);
+		} catch {
+			return null;
+		}
+	}
+	return decoded;
+};
+
+export const getRclonePathValidationError = (
+	value: string,
+	allowAbsolute: boolean,
+) => {
+	if (value.includes("\\")) return RCLONE_PATH_ERROR;
+	const normalized = value;
+	if (hasRcloneControlCharacters(normalized)) {
+		return RCLONE_PATH_ERROR;
+	}
+
+	const decoded = decodeRclonePath(normalized);
+	if (decoded === null) return RCLONE_PATH_ERROR;
+	if (decoded.includes("\\")) return RCLONE_PATH_ERROR;
+
+	const canonical = decoded.trim();
+	if (hasRcloneControlCharacters(canonical)) {
+		return RCLONE_PATH_ERROR;
+	}
+	if (
+		(!allowAbsolute && canonical.startsWith("/")) ||
+		RCLONE_WINDOWS_DRIVE_PATH.test(canonical)
+	) {
+		return RCLONE_PATH_ERROR;
+	}
+	if (
+		canonical.split("/").some((segment) => segment === "." || segment === "..")
+	) {
+		return RCLONE_PATH_ERROR;
+	}
+	return undefined;
+};
+
+export const getRcloneBasePathValidationError = (value: unknown) => {
+	if (typeof value !== "string") return RCLONE_PATH_ERROR;
+	return getRclonePathValidationError(value, false);
+};
 
 const parseBooleanFlagValue = (
 	flag: string,
@@ -108,6 +166,7 @@ export const hasSftpHostKeyVerification = (
 type DestinationValidationField =
 	| "endpoint"
 	| "accessKey"
+	| "bucket"
 	| "region"
 	| "additionalFlags";
 
@@ -119,6 +178,7 @@ export interface DestinationValidationIssue {
 export interface DestinationValidationInput {
 	provider?: string | null;
 	accessKey?: string;
+	bucket?: string;
 	region?: string;
 	endpoint?: string;
 	additionalFlags?: readonly string[] | null;
@@ -130,6 +190,11 @@ export const getDestinationValidationIssues = (
 	const issues: DestinationValidationIssue[] = [];
 	const provider = data.provider;
 	const flags = data.additionalFlags ?? [];
+
+	const bucketIssue = getRcloneBasePathValidationError(data.bucket);
+	if (bucketIssue) {
+		issues.push({ field: "bucket", message: bucketIssue });
+	}
 
 	if (isNamedRcloneDestinationProvider(provider)) {
 		if (!RCLONE_REMOTE_NAME_REGEX.test(data.endpoint?.trim() || "")) {
@@ -164,10 +229,16 @@ export const getDestinationValidationIssues = (
 	if (provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
 		const { implicitTlsEnabled, explicitTlsEnabled } = getFtpTlsState(flags);
 		if (!implicitTlsEnabled && !explicitTlsEnabled) {
-			issues.push({ field: "additionalFlags", message: FTP_TLS_REQUIRED_ERROR });
+			issues.push({
+				field: "additionalFlags",
+				message: FTP_TLS_REQUIRED_ERROR,
+			});
 		}
 		if (implicitTlsEnabled && explicitTlsEnabled) {
-			issues.push({ field: "additionalFlags", message: FTP_TLS_CONFLICT_ERROR });
+			issues.push({
+				field: "additionalFlags",
+				message: FTP_TLS_CONFLICT_ERROR,
+			});
 		}
 		if (hasDisabledFtpCertificateVerification(flags)) {
 			issues.push({
@@ -176,7 +247,10 @@ export const getDestinationValidationIssues = (
 			});
 		}
 	} else if (!hasSftpHostKeyVerification(flags)) {
-		issues.push({ field: "additionalFlags", message: SFTP_HOST_KEY_REQUIRED_ERROR });
+		issues.push({
+			field: "additionalFlags",
+			message: SFTP_HOST_KEY_REQUIRED_ERROR,
+		});
 	}
 
 	return issues;
