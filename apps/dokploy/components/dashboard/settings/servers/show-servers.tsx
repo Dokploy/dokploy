@@ -5,6 +5,7 @@ import {
 	KeyIcon,
 	Loader2,
 	Network,
+	RefreshCw,
 	ServerIcon,
 	Terminal,
 	Trash2,
@@ -21,6 +22,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
 	Tooltip,
 	TooltipContent,
@@ -35,6 +37,55 @@ import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
+
+const formatGigabytes = (bytes: number) =>
+	`${(bytes / 1024 ** 3).toFixed(1)} GB`;
+
+const ServerDiskUsage = ({ serverId }: { serverId: string }) => {
+	const { data, error, isFetching, refetch } = api.server.diskUsage.useQuery(
+		{ serverId },
+		{ refetchOnWindowFocus: false },
+	);
+	const usagePercent = data?.usagePercent ?? 0;
+	const freeBytes = data ? Math.max(0, data.totalBytes - data.usedBytes) : 0;
+
+	return (
+		<div
+			className="flex w-full items-center gap-2 pb-2"
+			data-testid="server-disk-usage"
+		>
+			<div className="min-w-0 flex-1 space-y-1">
+				<div className="flex items-center justify-between text-[11px]">
+					<span className="whitespace-nowrap text-muted-foreground">
+						Disk usage
+					</span>
+					<span className="whitespace-nowrap text-[10px] font-medium">
+						{error
+							? "Unavailable"
+							: data
+								? `${data.usagePercent}% used · ${formatGigabytes(freeBytes)} free`
+								: "Checking..."}
+					</span>
+				</div>
+				<Progress
+					value={usagePercent}
+					className="h-3"
+					aria-label={`Disk usage: ${data?.usagePercent ?? 0}%`}
+				/>
+			</div>
+			<Button
+				variant="ghost"
+				size="icon"
+				className="size-7 shrink-0"
+				aria-label="Refresh disk usage"
+				disabled={isFetching}
+				onClick={() => refetch()}
+			>
+				<RefreshCw className={`size-3.5 ${isFetching ? "animate-spin" : ""}`} />
+			</Button>
+		</div>
+	);
+};
 
 export const ShowServers = () => {
 	const router = useRouter();
@@ -218,10 +269,12 @@ export const ShowServers = () => {
 																			)}
 																		</span>
 																	</div>
-
 																	{/* Compact Actions */}
 																	{isActive && (
 																		<div className="flex items-center  gap-2 pt-3 border-t mt-auto flex-wrap">
+																			<ServerDiskUsage
+																				serverId={server.serverId}
+																			/>
 																			<div className="flex items-center gap-2 w-full">
 																				<Tooltip>
 																					<TooltipTrigger asChild>
