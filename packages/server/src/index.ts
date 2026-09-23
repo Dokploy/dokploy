@@ -51,6 +51,10 @@ export * from "./services/rollbacks";
 export * from "./services/schedule";
 export * from "./services/security";
 export * from "./services/server";
+export {
+	getServerHardware,
+	type ServerHardware,
+} from "./services/server-hardware";
 export * from "./services/server-health";
 export * from "./services/settings";
 export * from "./services/ssh-key";
