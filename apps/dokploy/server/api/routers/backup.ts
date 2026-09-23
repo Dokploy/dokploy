@@ -57,6 +57,11 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import type { RcloneFile } from "@/server/api/utils/backup-files";
+import {
+	listRcloneFiles,
+	resolveBackupAccess,
+} from "@/server/api/utils/backup-files";
 import { assertDatabaseBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateBackup,
@@ -66,18 +71,6 @@ import {
 	apiUpdateBackup,
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
-
-interface RcloneFile {
-	Path: string;
-	Name: string;
-	Size: number;
-	IsDir: boolean;
-	Tier?: string;
-	Hashes?: {
-		MD5?: string;
-		SHA1?: string;
-	};
-}
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -561,6 +554,16 @@ export const backupRouter = createTRPCRouter({
 					cause: error,
 				});
 			}
+		}),
+
+	listBackupFilesByBackupId: withPermission("backup", "read")
+		.input(z.object({ backupId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const { destination, folder } = await resolveBackupAccess(
+				ctx,
+				input.backupId,
+			);
+			return await listRcloneFiles(destination, folder);
 		}),
 
 	restoreBackupWithLogs: protectedProcedure
