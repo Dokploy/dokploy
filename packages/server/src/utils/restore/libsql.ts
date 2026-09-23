@@ -3,7 +3,13 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Libsql } from "@dokploy/server/services/libsql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { getS3Credentials, getServiceContainerCommand } from "../backups/utils";
+import { redactRcloneCredentials } from "../backups/redact";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+	getServiceContainerCommand,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 export const restoreLibsqlBackup = async (
@@ -15,10 +21,9 @@ export const restoreLibsqlBackup = async (
 	try {
 		const { appName, serverId } = libsql;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
+		const backupPath = getRcloneRemotePath(destination, backupInput.backupFile);
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])}`;
 
@@ -31,17 +36,21 @@ export const restoreLibsqlBackup = async (
 		emit(`Restoring libsql from ${backupInput.backupFile}`);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, command, undefined, rcloneEnv);
 		} else {
-			await execAsync(command);
+			await execAsync(command, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		emit("Restore completed successfully!");
 	} catch (error) {
 		emit(
-			`Error: ${
-				error instanceof Error ? error.message : "Error restoring libsql backup"
-			}`,
+			`Error: ${redactRcloneCredentials(
+				error instanceof Error
+					? error.message
+					: "Error restoring libsql backup",
+			)}`,
 		);
 		throw error;
 	}

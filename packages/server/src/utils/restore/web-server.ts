@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
-import { getS3Credentials } from "../backups/utils";
+import { redactRcloneCredentials } from "../backups/redact";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -16,9 +21,9 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
+		const backupPath = getRcloneRemotePath(destination, backupFile);
 		const { BASE_PATH } = paths();
 
 		// Create a temporary directory outside of BASE_PATH
@@ -37,6 +42,7 @@ export const restoreWebServerBackup = async (
 			emit("Downloading backup from S3...");
 			await execAsync(
 				`rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${tempDir}/${backupFile}`])}`,
+				{ env: { ...process.env, ...rcloneEnv } },
 			);
 
 			// List files before extraction
@@ -143,14 +149,13 @@ export const restoreWebServerBackup = async (
 			await execAsync(`rm -rf ${tempDir}`);
 		}
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring web server backup"
-			}`,
+		const safeErrorMessage = redactRcloneCredentials(
+			error instanceof Error
+				? error.message
+				: "Error restoring web server backup",
 		);
+		console.error(safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
 		throw error;
 	}
 };

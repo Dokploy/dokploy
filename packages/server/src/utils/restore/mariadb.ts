@@ -3,7 +3,12 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import { redactRcloneCredentials } from "../backups/redact";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -16,9 +21,9 @@ export const restoreMariadbBackup = async (
 	try {
 		const { appName, serverId, databaseUser, databasePassword } = mariadb;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
+		const backupPath = getRcloneRemotePath(destination, backupInput.backupFile);
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
@@ -40,23 +45,20 @@ export const restoreMariadbBackup = async (
 		);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, command, undefined, rcloneEnv);
 		} else {
-			await execAsync(command);
+			await execAsync(command, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		emit("Restore completed successfully!");
 	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring mariadb backup"
-			}`,
-		);
-		throw new Error(
+		const safeErrorMessage = redactRcloneCredentials(
 			error instanceof Error ? error.message : "Error restoring mariadb backup",
 		);
+		console.error(safeErrorMessage);
+		emit(`Error: ${safeErrorMessage}`);
+		throw new Error(safeErrorMessage);
 	}
 };

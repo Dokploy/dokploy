@@ -1,3 +1,5 @@
+import { redactRcloneCredentials } from "../backups/redact";
+
 export interface ExecErrorDetails {
 	command: string;
 	stdout?: string;
@@ -16,11 +18,16 @@ export class ExecError extends Error {
 	public readonly serverId?: string | null;
 
 	constructor(message: string, details: ExecErrorDetails) {
-		super(message);
+		// Rclone credential flags can appear in captured output; never store them raw
+		super(redactRcloneCredentials(message));
 		this.name = "ExecError";
-		this.command = details.command;
-		this.stdout = details.stdout;
-		this.stderr = details.stderr;
+		this.command = redactRcloneCredentials(details.command);
+		this.stdout = details.stdout
+			? redactRcloneCredentials(details.stdout)
+			: details.stdout;
+		this.stderr = details.stderr
+			? redactRcloneCredentials(details.stderr)
+			: details.stderr;
 		this.exitCode = details.exitCode;
 		this.originalError = details.originalError;
 		this.serverId = details.serverId;

@@ -3,7 +3,11 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	IS_CLOUD,
+	redactRcloneCredentials,
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
@@ -48,35 +52,16 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
 			try {
 				const rcloneFlags = [
-					`--s3-access-key-id=${quote([accessKey])}`,
-					`--s3-secret-access-key=${quote([secretAccessKey])}`,
-					`--s3-region=${quote([region])}`,
-					`--s3-endpoint=${quote([endpoint])}`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
+					...getRcloneFlags(input),
 					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
+				const rcloneEnv = getRcloneEnv(input);
+				const rcloneDestination = getRcloneRemotePath(input);
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 
 				if (IS_CLOUD && !input.serverId) {
@@ -87,17 +72,25 @@ export const destinationRouter = createTRPCRouter({
 				}
 
 				if (IS_CLOUD) {
-					await execAsyncRemote(input.serverId || "", rcloneCommand);
+					await execAsyncRemote(
+						input.serverId || "",
+						rcloneCommand,
+						undefined,
+						rcloneEnv,
+					);
 				} else {
-					await execAsync(rcloneCommand);
+					await execAsync(rcloneCommand, {
+						env: { ...process.env, ...rcloneEnv },
+					});
 				}
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
+					message: redactRcloneCredentials(
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
+					),
 					cause: error,
 				});
 			}
@@ -175,7 +168,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error updating the destination",
 					cause: error,
 				});
 			}

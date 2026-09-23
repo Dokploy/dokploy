@@ -31,8 +31,11 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
+import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import {
-	getS3Credentials,
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import {
@@ -310,10 +313,11 @@ export const backupRouter = createTRPCRouter({
 				});
 				return true;
 			} catch (error) {
-				const message =
+				const message = redactRcloneCredentials(
 					error instanceof Error
 						? error.message
-						: "Error running manual Postgres backup ";
+						: "Error running manual Postgres backup ",
+				);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message,
@@ -497,8 +501,9 @@ export const backupRouter = createTRPCRouter({
 						});
 					}
 				}
-				const rcloneFlags = getS3Credentials(destination);
-				const bucketPath = `:s3:${destination.bucket}`;
+				const rcloneFlags = getRcloneFlags(destination);
+				const rcloneEnv = getRcloneEnv(destination);
+				const bucketPath = getRcloneRemotePath(destination);
 
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =
@@ -510,16 +515,25 @@ export const backupRouter = createTRPCRouter({
 						? input.search.slice(lastSlashIndex + 1)
 						: input.search;
 
-				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
+				const searchPath = baseDir
+					? getRcloneRemotePath(destination, baseDir)
+					: bucketPath;
 				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} ${quote([searchPath])} --no-mimetype --no-modtime 2>/dev/null`;
 
 				let stdout = "";
 
 				if (input.serverId) {
-					const result = await execAsyncRemote(input.serverId, listCommand);
+					const result = await execAsyncRemote(
+						input.serverId,
+						listCommand,
+						undefined,
+						rcloneEnv,
+					);
 					stdout = result.stdout;
 				} else {
-					const result = await execAsync(listCommand);
+					const result = await execAsync(listCommand, {
+						env: { ...process.env, ...rcloneEnv },
+					});
 					stdout = result.stdout;
 				}
 
@@ -554,10 +568,11 @@ export const backupRouter = createTRPCRouter({
 				console.error("Error in listBackupFiles:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message:
+					message: redactRcloneCredentials(
 						error instanceof Error
 							? error.message
 							: "Error listing backup files",
+					),
 					cause: error,
 				});
 			}
@@ -611,7 +626,7 @@ export const backupRouter = createTRPCRouter({
 			runRestore()
 				.catch((error) => {
 					onLog(
-						`Error: ${error instanceof Error ? error.message : String(error)}`,
+						`Error: ${redactRcloneCredentials(error instanceof Error ? error.message : String(error))}`,
 					);
 				})
 				.finally(() => {

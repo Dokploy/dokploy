@@ -11,7 +11,13 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import { redactRcloneCredentials } from "../backups/redact";
+import {
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
+	normalizeS3Path,
+} from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
 
@@ -84,21 +90,31 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const rcloneFlags = getRcloneFlags(destination);
 		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
-		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
-		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
+		const backupFilesPath = getRcloneRemotePath(
+			destination,
+			`${s3AppName}/${normalizeS3Path(prefix || "")}`,
+		);
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include "${volumeName}-*.tar" "${backupFilesPath}"`;
+		// --files-from - reads the file list from stdin so names containing
+		// spaces or quotes are never re-parsed as shell arguments
+		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} --files-from - "${backupFilesPath}"`;
+		const fullCommand = `${listCommand} | sort -r | tail -n +$((${keepLatestCount}+1)) | ${deleteCommand}`;
 
+		const rcloneEnv = getRcloneEnv(destination);
 		if (serverId) {
-			await execAsyncRemote(serverId, fullCommand);
+			await execAsyncRemote(serverId, fullCommand, undefined, rcloneEnv);
 		} else {
-			await execAsync(fullCommand);
+			await execAsync(fullCommand, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 	} catch (error) {
-		console.error("Volume backup retention error", error);
+		console.error(
+			"Volume backup retention error",
+			redactRcloneCredentials(String(error)),
+		);
 	}
 };
 
@@ -115,12 +131,16 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 	const organizationId = getOrganizationId(volumeBackup);
 	try {
 		const command = await backupVolume(volumeBackup);
+		const destination = await findDestinationById(volumeBackup.destinationId);
+		const rcloneEnv = getRcloneEnv(destination);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemote(serverId, commandWithLog, undefined, rcloneEnv);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsync(commandWithLog, {
+				env: { ...process.env, ...rcloneEnv },
+			});
 		}
 
 		if (volumeBackup.keepLatestCount && volumeBackup.keepLatestCount > 0) {
@@ -179,7 +199,9 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				serviceType: mappedServiceType,
 				type: "error",
 				organizationId,
-				errorMessage: error instanceof Error ? error.message : String(error),
+				errorMessage: redactRcloneCredentials(
+					error instanceof Error ? error.message : String(error),
+				),
 			});
 		} catch (notificationError) {
 			console.error(

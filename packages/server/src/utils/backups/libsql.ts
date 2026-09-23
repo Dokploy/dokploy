@@ -9,10 +9,13 @@ import type { Libsql } from "@dokploy/server/services/libsql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneEnv,
+	getRcloneFlags,
+	getRcloneRemotePath,
 	normalizeS3Path,
 } from "./utils";
 
@@ -34,8 +37,12 @@ export const runLibsqlBackup = async (
 	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rcloneFlags = getRcloneFlags(destination);
+		const rcloneEnv = getRcloneEnv(destination);
+		const rcloneDestination = getRcloneRemotePath(
+			destination,
+			bucketDestination,
+		);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,
@@ -43,10 +50,16 @@ export const runLibsqlBackup = async (
 			deployment.logPath,
 		);
 		if (libsql.serverId) {
-			await execAsyncRemote(libsql.serverId, backupCommand);
+			await execAsyncRemote(
+				libsql.serverId,
+				backupCommand,
+				undefined,
+				rcloneEnv,
+			);
 		} else {
 			await execAsync(backupCommand, {
 				shell: "/bin/bash",
+				env: { ...process.env, ...rcloneEnv },
 			});
 		}
 
@@ -61,13 +74,15 @@ export const runLibsqlBackup = async (
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
+		const safeErrorMessage = redactRcloneCredentials(
+			error instanceof Error ? error.message : String(error),
+		);
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
 			databaseType: "libsql",
 			type: "error",
-			// @ts-ignore
-			errorMessage: error?.message || "Error message not provided",
+			errorMessage: safeErrorMessage || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,
 		});

@@ -131,3 +131,50 @@ export const S3_PROVIDERS: Array<{
 		name: "Any other S3 compatible provider",
 	},
 ];
+
+export const RCLONE_PROVIDERS: Array<{
+	key: string;
+	name: string;
+}> = [
+	{
+		key: "drive",
+		name: "Google Drive",
+	},
+	{
+		key: "onedrive",
+		name: "OneDrive",
+	},
+	{
+		key: "ftp",
+		name: "FTP",
+	},
+	{
+		key: "sftp",
+		name: "SFTP",
+	},
+	{
+		key: "custom",
+		name: "Custom (rclone)",
+	},
+];
+
+export const RCLONE_CONFIG_PLACEHOLDERS: Record<string, string> = {
+	drive:
+		'client_id = <google oauth client id>\nclient_secret = <google oauth client secret>\nscope = drive\ntoken = {"access_token":"...","refresh_token":"...","token_type":"Bearer","expiry":"..."}',
+	onedrive:
+		'client_id = <app client id>\nclient_secret = <app client secret>\ntoken = {"access_token":"...","refresh_token":"...","token_type":"Bearer","expiry":"..."}',
+	ftp: "host = ftp.example.com\nport = 21\nuser = myuser\npass = mypassword",
+	sftp: "host = sftp.example.com\nport = 22\nuser = myuser\npass = mypassword\n# or key_file = /path/to/id_ed25519",
+	custom: "type = <rclone backend>\n<option> = <value>",
+};
+
+export const RCLONE_PROVIDER_HELP: Record<string, string> = {
+	drive:
+		'Run "rclone authorize drive" on a machine with a browser and paste the token JSON it prints. Custom client_id/secret: https://rclone.org/drive/#making-your-own-client-id',
+	onedrive:
+		'Run "rclone authorize onedrive" on a machine with a browser and paste the token JSON it prints: https://rclone.org/onedrive/',
+	ftp: "Any rclone option works here (https://rclone.org/ftp/).",
+	sftp: "Any rclone option works here (https://rclone.org/sftp/).",
+	custom:
+		"Any rclone backend is supported; set its type and options (https://rclone.org/overview/).",
+};
