@@ -65,7 +65,10 @@ export const apiRemoveProject = createSchema
 // 	})
 // 	.required();
 
-export const apiUpdateProject = createSchema.partial().extend({
-	projectId: z.string().min(1),
-});
+export const apiUpdateProject = createSchema
+	.omit({ organizationId: true })
+	.partial()
+	.extend({
+		projectId: z.string().min(1),
+	});
 // .omit({ serverId: true });

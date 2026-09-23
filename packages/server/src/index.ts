@@ -40,6 +40,7 @@ export * from "./services/port";
 export * from "./services/postgres";
 export * from "./services/preview-deployment";
 export * from "./services/project";
+export * from "./services/project-transfer";
 export * from "./services/proprietary/forward-auth";
 export * from "./services/proprietary/license-key";
 export * from "./services/proprietary/sso";
