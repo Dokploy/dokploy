@@ -60,7 +60,11 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 		exit 1;
 	}
 	docker rm ${buildContainerId}
-	${getStaticCommand(application)}
+	${getStaticCommand(application, {
+		platforms: [],
+		builder: null,
+		output: { mode: "local", image: application.appName },
+	})}
 				`;
 	}
 
