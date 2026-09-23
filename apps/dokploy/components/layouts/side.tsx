@@ -107,6 +107,7 @@ import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
 import { TimeBadge } from "../ui/time-badge";
+import { ActiveDeployments } from "./active-deployments";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
@@ -597,6 +598,11 @@ function SidebarLogo() {
 	>(null);
 	const [organizationSelectorOpen, setOrganizationSelectorOpen] =
 		useState(false);
+	const { data: activeDeploymentsByOrg } =
+		api.overview.activeDeploymentsByOrganization.useQuery(undefined, {
+			enabled: organizationSelectorOpen,
+			refetchInterval: 5000,
+		});
 
 	useEffect(() => {
 		if (activeOrganization) {
@@ -717,6 +723,16 @@ function SidebarLogo() {
 																/>
 															</div>
 															<span className="truncate">{org.name}</span>
+															{!!activeDeploymentsByOrg?.[org.id] && (
+																<Badge
+																	variant="yellow"
+																	className="shrink-0 gap-1"
+																	title={`${activeDeploymentsByOrg[org.id]} active ${activeDeploymentsByOrg[org.id] === 1 ? "deployment" : "deployments"}`}
+																>
+																	<Loader2 className="animate-spin" />
+																	{activeDeploymentsByOrg[org.id]}
+																</Badge>
+															)}
 														</div>
 
 														<div
@@ -827,6 +843,8 @@ function SidebarLogo() {
 							</PopoverContent>
 						</Popover>
 					</SidebarMenuItem>
+
+					<ActiveDeployments isCollapsed={isCollapsed} />
 
 					{/* Notification Bell */}
 					<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
