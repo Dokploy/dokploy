@@ -28,4 +28,4 @@ function CollapsibleContent({
 	);
 }
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent };
+export { Collapsible, CollapsibleContent, CollapsibleTrigger };

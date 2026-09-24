@@ -189,6 +189,25 @@ export const findEnvironmentById = async (environmentId: string) => {
 					serverId: true,
 				},
 			},
+			objectstorage: {
+				with: {
+					server: {
+						columns: {
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+				columns: {
+					objectStorageId: true,
+					name: true,
+					createdAt: true,
+					applicationStatus: true,
+					description: true,
+					serverId: true,
+					provider: true,
+				},
+			},
 			project: true,
 		},
 	});
@@ -252,6 +271,14 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 				columns: { ...serviceColumns, libsqlId: true },
 				with: { server: { columns: { name: true } } },
 			},
+			objectstorage: {
+				columns: {
+					...serviceColumns,
+					objectStorageId: true,
+					provider: true,
+				},
+				with: { server: { columns: { name: true } } },
+			},
 			project: true,
 		},
 		columns: {
@@ -274,6 +301,7 @@ const environmentHasServices = (
 		(env.mariadb?.length ?? 0) > 0 ||
 		(env.mongo?.length ?? 0) > 0 ||
 		(env.mysql?.length ?? 0) > 0 ||
+		(env.objectstorage?.length ?? 0) > 0 ||
 		(env.postgres?.length ?? 0) > 0 ||
 		(env.redis?.length ?? 0) > 0
 	);
@@ -354,6 +382,7 @@ interface EnvironmentWithServices {
 	mariadb: { mariadbId: string }[];
 	mongo: { mongoId: string }[];
 	mysql: { mysqlId: string }[];
+	objectstorage: { objectStorageId: string }[];
 	postgres: { postgresId: string }[];
 	redis: { redisId: string }[];
 }
@@ -380,6 +409,9 @@ export const filterEnvironmentServices = <T extends EnvironmentWithServices>(
 	),
 	mysql: environment.mysql.filter((db) =>
 		accessedServices.includes(db.mysqlId),
+	),
+	objectstorage: environment.objectstorage.filter((db) =>
+		accessedServices.includes(db.objectStorageId),
 	),
 	postgres: environment.postgres.filter((db) =>
 		accessedServices.includes(db.postgresId),

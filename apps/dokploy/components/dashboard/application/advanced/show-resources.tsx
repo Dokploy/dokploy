@@ -95,7 +95,8 @@ export type ServiceType =
 	| "mongo"
 	| "mysql"
 	| "postgres"
-	| "redis";
+	| "redis"
+	| "objectstorage";
 
 interface Props {
 	id: string;
@@ -116,6 +117,11 @@ export const ShowResources = ({ id, type }: Props) => {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		objectstorage: () =>
+			api.objectstorage.one.useQuery(
+				{ objectStorageId: id },
+				{ enabled: !!id },
+			),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -129,6 +135,7 @@ export const ShowResources = ({ id, type }: Props) => {
 		mysql: () => api.mysql.update.useMutation(),
 		postgres: () => api.postgres.update.useMutation(),
 		redis: () => api.redis.update.useMutation(),
+		objectstorage: () => api.objectstorage.update.useMutation(),
 	};
 
 	const { mutateAsync, isPending } = mutationMap[type]
@@ -172,6 +179,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			mysqlId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
+			objectStorageId: id || "",
 			cpuLimit: formData.cpuLimit || null,
 			cpuReservation: formData.cpuReservation || null,
 			memoryLimit: formData.memoryLimit || null,

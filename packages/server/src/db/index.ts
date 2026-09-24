@@ -4,8 +4,8 @@ import postgres from "postgres";
 import { dbUrl } from "./constants";
 import * as schema from "./schema";
 
-export { and, eq };
 export * from "./schema";
+export { and, eq };
 
 type Database = PostgresJsDatabase<typeof schema>;
 

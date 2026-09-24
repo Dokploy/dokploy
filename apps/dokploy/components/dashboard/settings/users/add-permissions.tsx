@@ -48,7 +48,8 @@ export type Services = {
 		| "mongo"
 		| "redis"
 		| "compose"
-		| "libsql";
+		| "libsql"
+		| "objectstorage";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -150,6 +151,18 @@ export const extractServices = (data: Environment | undefined) => {
 			serverId: item.serverId,
 		})) || [];
 
+	const objectstorage: Services[] =
+		data?.objectstorage?.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "objectstorage" as const,
+			id: item.objectStorageId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
 	applications.push(
 		...mysql,
 		...redis,
@@ -158,6 +171,7 @@ export const extractServices = (data: Environment | undefined) => {
 		...mariadb,
 		...compose,
 		...libsql,
+		...objectstorage,
 	);
 
 	applications.sort((a, b) => {

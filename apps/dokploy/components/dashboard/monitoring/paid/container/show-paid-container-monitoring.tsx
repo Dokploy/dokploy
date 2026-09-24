@@ -96,9 +96,9 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 	useEffect(() => {
 		if (!data) return;
 
-		// @ts-ignore
+		// @ts-expect-error
 		setHistoricalData(data);
-		// @ts-ignore
+		// @ts-expect-error
 		setMetrics(data[data.length - 1]);
 	}, [data]);
 

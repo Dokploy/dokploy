@@ -59,6 +59,7 @@ const TYPE_LABELS = {
 	redis: "Redis",
 	compose: "Compose",
 	libsql: "Libsql",
+	objectstorage: "Object Storage",
 } satisfies Record<OverviewServiceType, string>;
 
 const STATUS_OPTIONS = ["running", "idle", "done", "error"];

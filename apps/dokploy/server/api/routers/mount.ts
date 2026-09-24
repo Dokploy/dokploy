@@ -9,6 +9,7 @@ import {
 	findMountById,
 	findMountsByApplicationId,
 	findMySqlById,
+	findObjectStorageById,
 	findPostgresById,
 	findRedisById,
 	getServiceContainer,
@@ -68,6 +69,10 @@ async function getServiceOrganizationId(
 			const libsql = await findLibsqlById(serviceId);
 			return libsql?.environment?.project?.organizationId ?? null;
 		}
+		case "objectstorage": {
+			const objectStorage = await findObjectStorageById(serviceId);
+			return objectStorage?.environment?.project?.organizationId ?? null;
+		}
 		default:
 			return null;
 	}
@@ -101,7 +106,8 @@ export const mountRouter = createTRPCRouter({
 				mount.mysqlId ||
 				mount.redisId ||
 				mount.libsqlId ||
-				mount.composeId;
+				mount.composeId ||
+				mount.objectStorageId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					volume: ["delete"],
@@ -127,7 +133,8 @@ export const mountRouter = createTRPCRouter({
 				mount.mysqlId ||
 				mount.redisId ||
 				mount.libsqlId ||
-				mount.composeId;
+				mount.composeId ||
+				mount.objectStorageId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					volume: ["read"],
@@ -147,7 +154,8 @@ export const mountRouter = createTRPCRouter({
 				mount.mysqlId ||
 				mount.redisId ||
 				mount.libsqlId ||
-				mount.composeId;
+				mount.composeId ||
+				mount.objectStorageId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					volume: ["create"],

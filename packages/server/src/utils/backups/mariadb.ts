@@ -65,7 +65,7 @@ export const runMariadbBackup = async (
 			projectName: project.name,
 			databaseType: "mariadb",
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,

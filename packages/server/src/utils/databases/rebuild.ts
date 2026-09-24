@@ -4,6 +4,7 @@ import {
 	mariadb,
 	mongo,
 	mysql,
+	objectstorage,
 	postgres,
 	redis,
 } from "@dokploy/server/db/schema";
@@ -11,6 +12,7 @@ import { deployLibsql } from "@dokploy/server/services/libsql";
 import { deployMariadb } from "@dokploy/server/services/mariadb";
 import { deployMongo } from "@dokploy/server/services/mongo";
 import { deployMySql } from "@dokploy/server/services/mysql";
+import { deployObjectStorage } from "@dokploy/server/services/objectstorage";
 import { deployPostgres } from "@dokploy/server/services/postgres";
 import { deployRedis } from "@dokploy/server/services/redis";
 import { eq } from "drizzle-orm";
@@ -24,7 +26,8 @@ type DatabaseType =
 	| "mongo"
 	| "mysql"
 	| "postgres"
-	| "redis";
+	| "redis"
+	| "objectstorage";
 
 export const rebuildDatabase = async (
 	databaseId: string,
@@ -62,6 +65,8 @@ export const rebuildDatabase = async (
 		await deployPostgres(databaseId);
 	} else if (type === "redis") {
 		await deployRedis(databaseId);
+	} else if (type === "objectstorage") {
+		await deployObjectStorage(databaseId);
 	}
 };
 
@@ -109,6 +114,14 @@ const findDatabaseById = async (databaseId: string, type: DatabaseType) => {
 	if (type === "redis") {
 		return await db.query.redis.findFirst({
 			where: eq(redis.redisId, databaseId),
+			with: {
+				mounts: true,
+			},
+		});
+	}
+	if (type === "objectstorage") {
+		return await db.query.objectstorage.findFirst({
+			where: eq(objectstorage.objectStorageId, databaseId),
 			with: {
 				mounts: true,
 			},

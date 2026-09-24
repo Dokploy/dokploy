@@ -318,7 +318,7 @@ services:
     container_name: supabase-kong
     image: kong:2.8.1
     restart: unless-stopped
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    entrypoint: bash -c 'eval "echo "$$(cat ~/temp.yml)"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
     ports:
       - \${KONG_HTTP_PORT}:8000/tcp
       - \${KONG_HTTPS_PORT}:8443/tcp
@@ -684,7 +684,7 @@ services:
     container_name: supabase-kong
     image: kong:2.8.1
     restart: unless-stopped
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    entrypoint: bash -c 'eval "echo "$$(cat ~/temp.yml)"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
     ports:
       - \${KONG_HTTP_PORT}:8000/tcp
       - \${KONG_HTTPS_PORT}:8443/tcp
