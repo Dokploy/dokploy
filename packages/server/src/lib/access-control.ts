@@ -204,3 +204,18 @@ export const memberRole = ac.newRole({
 	vaultProvider: ["read"],
 	dnsProvider: [],
 });
+
+/**
+ * View-only user role (viewer) — read-only access without project or deployment creation permissions.
+ */
+export const userRole = ac.newRole({
+	organization: [], member: [], invitation: [], team: [], ac: ["read"],
+	project: [], service: ["read"], environment: ["read"], docker: [],
+	sshKeys: [], gitProviders: [], traefikFiles: [], api: [],
+	volume: ["read"], deployment: ["read"], envVars: [],
+	projectEnvVars: [], environmentEnvVars: [],
+	backup: ["read"], volumeBackup: ["read"], schedule: ["read"],
+	domain: ["read"], logs: ["read"], monitoring: ["read"],
+	server: [], registry: [], certificate: [], destination: [],
+	notification: [], tag: ["read"], auditLog: [], vaultProvider: ["read"], dnsProvider: [],
+});
