@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	integer,
@@ -10,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { organization } from "./account";
 import { certificateType } from "./shared";
 
 export const webServerSettings = pgTable("webServerSettings", {
@@ -26,6 +27,14 @@ export const webServerSettings = pgTable("webServerSettings", {
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
+	logProviderIds: text("logProviderIds")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	logManagementOrganizationId: text("logManagementOrganizationId").references(
+		() => organization.id,
+		{ onDelete: "set null" },
+	),
 	// Metrics Configuration
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{

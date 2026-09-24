@@ -66,6 +66,7 @@ void app.prepare().then(async () => {
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
+		} else if (IS_CLOUD) {
 		}
 		await initEnterpriseBackupCronJobs();
 

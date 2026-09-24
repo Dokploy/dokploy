@@ -96,6 +96,7 @@ const RESOURCE_LABELS: Record<string, string> = {
 	settings: "Settings",
 	session: "Session",
 	network: "Network",
+	logProvider: "Log Provider",
 };
 
 function MetadataCell({ metadata }: { metadata: string | null }) {
