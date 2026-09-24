@@ -1,9 +1,10 @@
 import {
+	assertLogProvidersBelongToOrg,
+	assertServerBelongsToOrg,
 	claimWebServerLogManagement,
 	createLogProvider,
 	findLogProviderById,
 	findLogProvidersByOrganization,
-	findServerById,
 	getLogManagementServerStatus,
 	logProviderAdapters,
 	removeLogProvider,
@@ -25,44 +26,6 @@ import {
 	apiUpdateLogProvider,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
-
-const assertServerBelongsToOrg = async (
-	serverId: string | undefined,
-	organizationId: string,
-) => {
-	if (!serverId) return;
-	const server = await findServerById(serverId);
-	if (server.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not authorized to access this server",
-		});
-	}
-};
-
-const assertLogProvidersBelongToOrg = async (
-	logProviderIds: string[],
-	organizationId: string,
-) => {
-	const providers = await findLogProvidersByOrganization(organizationId);
-	const byId = new Map(providers.map((p) => [p.logProviderId, p]));
-	for (const id of logProviderIds) {
-		if (!byId.has(id)) {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message:
-					"One of the selected log providers is not in this organization",
-			});
-		}
-	}
-	if (!logProviderIds.some((id) => byId.get(id)?.enabled)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message:
-				"Select at least one enabled log provider — a disabled one ships nothing.",
-		});
-	}
-};
 
 export const logProviderRouter = createTRPCRouter({
 	create: withPermission("logProvider", "create")

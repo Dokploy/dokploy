@@ -3,6 +3,7 @@ import {
 	type apiCreateLogProvider,
 	logProvider,
 } from "@dokploy/server/db/schema";
+import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -266,4 +267,42 @@ export const sanitizeLogProvider = <
 ) => {
 	const { endpoint, apiKey, apiSecret, ...rest } = provider;
 	return rest;
+};
+
+export const assertServerBelongsToOrg = async (
+	serverId: string | undefined,
+	organizationId: string,
+) => {
+	if (!serverId) return;
+	const server = await findServerById(serverId);
+	if (server.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
+
+export const assertLogProvidersBelongToOrg = async (
+	logProviderIds: string[],
+	organizationId: string,
+) => {
+	const providers = await findLogProvidersByOrganization(organizationId);
+	const byId = new Map(providers.map((p) => [p.logProviderId, p]));
+	for (const id of logProviderIds) {
+		if (!byId.has(id)) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message:
+					"One of the selected log providers is not in this organization",
+			});
+		}
+	}
+	if (!logProviderIds.some((id) => byId.get(id)?.enabled)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Select at least one enabled log provider — a disabled one ships nothing.",
+		});
+	}
 };
