@@ -16,6 +16,7 @@ import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
+import { runRsyncWithVanishedRetry } from "./rsync";
 import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
 
 function formatBytes(bytes?: number) {
@@ -81,8 +82,13 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
 			await execAsync(cleanupCommand);
 
-			await execAsync(
+			// BASE_PATH holds live data: a compose stack can keep a database
+			// directory there, e.g. a Postgres checkpoint purging
+			// pg_logical/snapshots/*.snap while this copy runs. Retry once and log
+			// the paths instead of failing the whole backup over vanished files.
+			await runRsyncWithVanishedRetry(
 				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				(message) => writeStream.write(message),
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
