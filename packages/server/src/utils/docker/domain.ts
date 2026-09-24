@@ -17,6 +17,7 @@ import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
+import { buildDokployLabels } from "./dokploy-labels";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
@@ -111,7 +112,7 @@ export const readComposeFile = async (compose: Compose) => {
 };
 
 export const writeDomainsToCompose = async (
-	compose: Compose,
+	compose: ComposeWithMetadata,
 	domains: Domain[],
 ) => {
 	try {
@@ -196,8 +197,66 @@ const removeDomainLabels = (
 	return labels;
 };
 
+type ComposeWithMetadata = Compose & {
+	environment?: {
+		environmentId: string;
+		name: string;
+		projectId: string;
+		project?: { name: string; organizationId: string };
+	};
+};
+
+const applyDokployLabelsToCompose = (
+	result: ComposeSpecification,
+	compose: ComposeWithMetadata,
+) => {
+	const { environment } = compose;
+	if (!environment?.project) return;
+
+	for (const [serviceName, service] of Object.entries(result.services ?? {})) {
+		if (!service) continue;
+		const dokployLabels = buildDokployLabels({
+			organizationId: environment.project.organizationId,
+			projectId: environment.projectId,
+			projectName: environment.project.name,
+			environmentId: environment.environmentId,
+			environmentName: environment.name,
+			applicationId: compose.composeId,
+			applicationName: compose.name,
+			serviceName,
+		});
+
+		if (compose.composeType === "docker-compose") {
+			service.labels = mergeDokployLabels(service.labels, dokployLabels);
+			continue;
+		}
+		if (!service.deploy) {
+			service.deploy = {};
+		}
+		service.deploy.labels = mergeDokployLabels(
+			service.deploy.labels,
+			dokployLabels,
+		);
+	}
+};
+
+const mergeDokployLabels = (
+	current: DefinitionsService["labels"],
+	dokployLabels: Record<string, string>,
+): DefinitionsService["labels"] => {
+	if (current && !Array.isArray(current)) {
+		return { ...current, ...dokployLabels };
+	}
+	const entries = Object.entries(dokployLabels);
+	const keys = new Set(entries.map(([key]) => key));
+	const kept = (current ?? []).filter(
+		(label) => !keys.has(label.slice(0, label.indexOf("="))),
+	);
+	return [...kept, ...entries.map(([key, value]) => `${key}=${value}`)];
+};
+
 export const addDomainToCompose = async (
-	compose: Compose,
+	compose: ComposeWithMetadata,
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
@@ -325,6 +384,8 @@ export const addDomainToCompose = async (
 			);
 		}
 	}
+
+	applyDokployLabelsToCompose(result, compose);
 
 	const injectedNetworkNames = await applyServiceNetworks(result, compose);
 

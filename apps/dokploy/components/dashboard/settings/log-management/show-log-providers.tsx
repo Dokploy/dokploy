@@ -1,10 +1,4 @@
-import {
-	AlertTriangle,
-	CheckCircle2,
-	Loader2,
-	ScrollText,
-	Trash2,
-} from "lucide-react";
+import { Loader2, ScrollText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { logProviderIcons } from "@/components/icons/log-provider-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -44,9 +38,6 @@ const LogProviderRow = ({
 }: LogProviderRowProps) => {
 	const { mutateAsync, isPending: isRemoving } =
 		api.logProvider.remove.useMutation();
-	const { mutateAsync: testConnectionById, isPending: isTesting } =
-		api.logProvider.testConnectionById.useMutation();
-
 	const ProviderIcon =
 		logProviderIcons[provider.providerType as keyof typeof logProviderIcons];
 
@@ -68,35 +59,6 @@ const LogProviderRow = ({
 
 				<div className="flex flex-row gap-1">
 					{canEdit && (
-						<Button
-							variant="ghost"
-							size="sm"
-							isLoading={isTesting}
-							onClick={async () => {
-								await testConnectionById({
-									logProviderId: provider.logProviderId,
-								})
-									.then((result) => {
-										if (result.warning) {
-											toast.message(result.warning);
-										} else {
-											toast.success("Connection tested successfully");
-										}
-									})
-									.catch((error) => {
-										toast.error(
-											error instanceof Error
-												? error.message
-												: "Connection test failed",
-										);
-									});
-							}}
-						>
-							<CheckCircle2 className="size-4" />
-							Test
-						</Button>
-					)}
-					{canEdit && (
 						<HandleLogProvider logProviderId={provider.logProviderId} />
 					)}
 
@@ -109,13 +71,8 @@ const LogProviderRow = ({
 								await mutateAsync({
 									logProviderId: provider.logProviderId,
 								})
-									.then((result) => {
+									.then(() => {
 										toast.success("Log provider deleted successfully");
-										if (result.syncErrors && result.syncErrors.length > 0) {
-											toast.error(
-												`Failed to sync ${result.syncErrors.length} server(s) — they may still be shipping with the old config`,
-											);
-										}
 										onDeleted();
 									})
 									.catch(() => {
@@ -144,20 +101,9 @@ export const ShowLogProviders = () => {
 	const { data, isPending, refetch } = api.logProvider.all.useQuery();
 	const { data: availableTypes } = api.logProvider.availableTypes.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const { data: webServerSettings } =
-		api.settings.getWebServerSettings.useQuery();
-	const { data: servers } = api.server.all.useQuery();
 	const providerListLabel = availableTypes?.length
 		? ` (${availableTypes.map((t) => t.label).join(", ")})`
 		: "";
-
-	const hasAnyProvider = (data?.length ?? 0) > 0;
-	const knowsAboutServers = servers !== undefined;
-	const hasActiveTarget =
-		!!webServerSettings?.enableLogManagement ||
-		!!servers?.some((s) => s.enableLogManagement);
-	const showNoActiveTargetBanner =
-		hasAnyProvider && knowsAboutServers && !hasActiveTarget;
 
 	return (
 		<div className="w-full">
@@ -169,21 +115,10 @@ export const ShowLogProviders = () => {
 							Log Management
 						</CardTitle>
 						<CardDescription>
-							{`Ship container logs to an external provider${providerListLabel}. Needs at least one provider here and Log Management turned on for the servers below.`}
+							{`Ship container logs to an external provider${providerListLabel}. Add one here, then deploy the Vector agent on the servers below.`}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
-						{showNoActiveTargetBanner && (
-							<div className="flex items-start gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 mb-4">
-								<AlertTriangle className="size-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-								<div className="flex flex-col gap-2 text-sm">
-									<span className="text-yellow-700 dark:text-yellow-400">
-										Nothing will ship yet — turn on Log Management for at least
-										one server below.
-									</span>
-								</div>
-							</div>
-						)}
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>

@@ -13,8 +13,6 @@ export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
 
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 
-export const VECTOR_RESYNC_CRON_JOB = "*/15 * * * *";
-
 // Body size limits for the OpenAPI catch-all route (pages/api/[...trpc].ts).
 const parseByteSize = (envVar: string, fallback: number): number => {
 	const raw = process.env[envVar];

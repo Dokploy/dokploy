@@ -126,13 +126,10 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			enableDockerCleanup: data.enableDockerCleanup,
 			serverId: serverId || "",
 		})
-			.then(async (data) => {
+			.then(async () => {
 				await utils.server.all.invalidate();
 				refetchServer();
 				toast.success(serverId ? "Server Updated" : "Server Created");
-				if ("vectorAgentWarning" in data && data.vectorAgentWarning) {
-					toast.error(data.vectorAgentWarning);
-				}
 				setIsOpen(false);
 			})
 			.catch(() => {

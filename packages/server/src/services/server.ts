@@ -7,7 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Server = typeof server.$inferSelect;
@@ -93,17 +93,41 @@ export const findServersWithLogManagementEnabled = async (
 	return await db.query.server.findMany({
 		where: and(
 			eq(server.organizationId, organizationId),
-			eq(server.enableLogManagement, true),
+			sql`array_length(${server.logProviderIds}, 1) > 0`,
 		),
 		columns: { serverId: true },
 	});
 };
 
-export const findAllServersWithLogManagementEnabled = async () => {
+export const findServersByOrganizationForLogManagement = async (
+	organizationId: string,
+) => {
 	return await db.query.server.findMany({
-		where: eq(server.enableLogManagement, true),
-		columns: { serverId: true, organizationId: true },
+		where: and(
+			eq(server.organizationId, organizationId),
+			isNotNull(server.sshKeyId),
+			eq(server.serverType, "deploy"),
+		),
+		columns: {
+			serverId: true,
+			name: true,
+			ipAddress: true,
+			logProviderIds: true,
+		},
+		orderBy: [desc(server.createdAt)],
 	});
+};
+
+export const updateServerLogProviders = async (
+	serverId: string,
+	logProviderIds: string[],
+) => {
+	const [updated] = await db
+		.update(server)
+		.set({ logProviderIds })
+		.where(eq(server.serverId, serverId))
+		.returning();
+	return updated ?? null;
 };
 
 export const deleteServer = async (serverId: string) => {

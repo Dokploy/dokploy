@@ -25,7 +25,7 @@ const baseSettings: WebServerSettings = {
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
-	enableLogManagement: false,
+	logProviderIds: [],
 	logManagementOrganizationId: null,
 	buildsConcurrency: 1,
 	logCleanupCron: null,

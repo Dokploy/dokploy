@@ -117,6 +117,7 @@ export const elasticsearchAdapter: LogProviderAdapter = {
 			type: "elasticsearch",
 			inputs: [inputId],
 			endpoints: [normalizeEndpointUrl(config.endpoint ?? "")],
+			api_version: "v8",
 			...(typeof index === "string" && index.length > 0
 				? { bulk: { index } }
 				: {}),

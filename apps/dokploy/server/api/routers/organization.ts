@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import {
+	deleteOrganization,
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
@@ -20,7 +21,6 @@ import {
 	organizationRole,
 	user,
 } from "@/server/db/schema";
-import { teardownVectorForOrganizationDeletion } from "@/server/utils/vector-resync";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -286,11 +286,7 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			await teardownVectorForOrganizationDeletion(input.organizationId);
-
-			const result = await db
-				.delete(organization)
-				.where(eq(organization.id, input.organizationId));
+			const result = await deleteOrganization(input.organizationId);
 
 			await audit(ctx, {
 				action: "delete",

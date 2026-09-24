@@ -179,16 +179,11 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 			...(logProviderId ? { logProviderId } : {}),
 			...payload,
 		} as any)
-			.then((result: any) => {
+			.then(() => {
 				utils.logProvider.all.invalidate();
 				toast.success(
 					logProviderId ? "Log provider updated" : "Log provider added",
 				);
-				if (result?.syncErrors && result.syncErrors.length > 0) {
-					toast.error(
-						`Failed to sync ${result.syncErrors.length} server(s) — they may still be shipping with the old config`,
-					);
-				}
 				setIsOpen(false);
 			})
 			.catch(() => {

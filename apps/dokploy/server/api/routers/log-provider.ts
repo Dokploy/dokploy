@@ -1,14 +1,21 @@
 import {
+	claimWebServerLogManagement,
 	createLogProvider,
 	findLogProviderById,
 	findLogProvidersByOrganization,
+	findServerById,
+	getLogManagementServerStatus,
 	logProviderAdapters,
 	removeLogProvider,
+	removeVectorAgent,
 	sanitizeLogProvider,
+	setupVectorAgent,
 	testLogProviderConnection,
 	updateLogProvider,
+	updateServerLogProviders,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateLogProvider,
@@ -17,8 +24,45 @@ import {
 	apiTestLogProvider,
 	apiUpdateLogProvider,
 } from "@/server/db/schema";
-import { safeSyncVectorAgentsForOrganization } from "@/server/utils/vector-resync";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+
+const assertServerBelongsToOrg = async (
+	serverId: string | undefined,
+	organizationId: string,
+) => {
+	if (!serverId) return;
+	const server = await findServerById(serverId);
+	if (server.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+};
+
+const assertLogProvidersBelongToOrg = async (
+	logProviderIds: string[],
+	organizationId: string,
+) => {
+	const providers = await findLogProvidersByOrganization(organizationId);
+	const byId = new Map(providers.map((p) => [p.logProviderId, p]));
+	for (const id of logProviderIds) {
+		if (!byId.has(id)) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message:
+					"One of the selected log providers is not in this organization",
+			});
+		}
+	}
+	if (!logProviderIds.some((id) => byId.get(id)?.enabled)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Select at least one enabled log provider — a disabled one ships nothing.",
+		});
+	}
+};
 
 export const logProviderRouter = createTRPCRouter({
 	create: withPermission("logProvider", "create")
@@ -34,10 +78,7 @@ export const logProviderRouter = createTRPCRouter({
 				resourceId: provider.logProviderId,
 				resourceName: provider.name,
 			});
-			const syncErrors = await safeSyncVectorAgentsForOrganization(
-				ctx.session.activeOrganizationId,
-			);
-			return { ...sanitizeLogProvider(provider), syncErrors };
+			return sanitizeLogProvider(provider);
 		}),
 	update: withPermission("logProvider", "create")
 		.input(apiUpdateLogProvider)
@@ -57,10 +98,7 @@ export const logProviderRouter = createTRPCRouter({
 				resourceId: logProviderId,
 				resourceName: provider.name,
 			});
-			const syncErrors = await safeSyncVectorAgentsForOrganization(
-				ctx.session.activeOrganizationId,
-			);
-			return { ...sanitizeLogProvider(updated), syncErrors };
+			return sanitizeLogProvider(updated);
 		}),
 	remove: withPermission("logProvider", "delete")
 		.input(apiRemoveLogProvider)
@@ -79,10 +117,7 @@ export const logProviderRouter = createTRPCRouter({
 				resourceId: provider.logProviderId,
 				resourceName: provider.name,
 			});
-			const syncErrors = await safeSyncVectorAgentsForOrganization(
-				ctx.session.activeOrganizationId,
-			);
-			return { ...sanitizeLogProvider(removed), syncErrors };
+			return sanitizeLogProvider(removed);
 		}),
 	all: withPermission("logProvider", "read").query(async ({ ctx }) => {
 		return await findLogProvidersByOrganization(
@@ -129,6 +164,68 @@ export const logProviderRouter = createTRPCRouter({
 			return await testLogProviderConnection({
 				logProviderId: input.logProviderId,
 			});
+		}),
+	serverStatus: withPermission("logProvider", "read").query(({ ctx }) =>
+		getLogManagementServerStatus(ctx.session.activeOrganizationId),
+	),
+	deployOnServer: withPermission("logProvider", "create")
+		.input(
+			z.object({
+				serverId: z.string().nullable().optional(),
+				logProviderIds: z.array(z.string()).min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+			const serverId = input.serverId ?? undefined;
+			await assertServerBelongsToOrg(serverId, organizationId);
+			await assertLogProvidersBelongToOrg(input.logProviderIds, organizationId);
+
+			if (serverId) {
+				await updateServerLogProviders(serverId, input.logProviderIds);
+			} else {
+				const claimed = await claimWebServerLogManagement(
+					organizationId,
+					input.logProviderIds,
+				);
+				if (!claimed) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The local Vector agent is already claimed by another organization",
+					});
+				}
+			}
+
+			await setupVectorAgent(organizationId, serverId, input.logProviderIds);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "server",
+				resourceId: input.serverId ?? "local",
+				resourceName: "log-management",
+			});
+			return { installed: true };
+		}),
+	removeOnServer: withPermission("logProvider", "create")
+		.input(z.object({ serverId: z.string().nullable().optional() }))
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+			const serverId = input.serverId ?? undefined;
+			await assertServerBelongsToOrg(serverId, organizationId);
+
+			await removeVectorAgent(serverId);
+			if (serverId) {
+				await updateServerLogProviders(serverId, []);
+			} else {
+				await claimWebServerLogManagement(organizationId, []);
+			}
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "server",
+				resourceId: input.serverId ?? "local",
+				resourceName: "log-management",
+			});
+			return { installed: false };
 		}),
 	availableTypes: protectedProcedure.query(() => {
 		return Object.values(logProviderAdapters).map((adapter) => ({

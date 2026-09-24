@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
 	boolean,
 	integer,
@@ -27,7 +27,10 @@ export const webServerSettings = pgTable("webServerSettings", {
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
-	enableLogManagement: boolean("enableLogManagement").notNull().default(false),
+	logProviderIds: text("logProviderIds")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 	logManagementOrganizationId: text("logManagementOrganizationId").references(
 		() => organization.id,
 		{ onDelete: "set null" },

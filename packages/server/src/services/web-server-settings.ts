@@ -45,7 +45,7 @@ export const updateWebServerSettings = async (
 
 export const claimWebServerLogManagement = async (
 	organizationId: string,
-	enableLogManagement: boolean,
+	logProviderIds: string[],
 ) => {
 	const current = await getWebServerSettings();
 	if (!current) {
@@ -55,8 +55,9 @@ export const claimWebServerLogManagement = async (
 	const [updated] = await db
 		.update(webServerSettings)
 		.set({
-			enableLogManagement,
-			logManagementOrganizationId: enableLogManagement ? organizationId : null,
+			logProviderIds,
+			logManagementOrganizationId:
+				logProviderIds.length > 0 ? organizationId : null,
 			updatedAt: new Date(),
 		})
 		.where(
