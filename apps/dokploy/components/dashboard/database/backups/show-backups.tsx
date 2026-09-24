@@ -143,7 +143,7 @@ export const ShowBackups = ({
 								href="/dashboard/settings/destinations"
 								className="text-foreground"
 							>
-								S3 Destinations
+								Backup Destinations
 							</Link>{" "}
 							to do so.
 						</span>

@@ -1380,6 +1380,13 @@
       "when": 1788995453103,
       "tag": "0196_worthless_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 197,
+      "version": "7",
+      "when": 1788995454000,
+      "tag": "0197_windy_jack_power",
+      "breakpoints": true
     }
   ]
 }

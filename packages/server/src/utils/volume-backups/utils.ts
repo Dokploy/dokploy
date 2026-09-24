@@ -11,7 +11,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import { getDestinationRemote, normalizeS3Path } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
 
@@ -84,9 +84,11 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
+		const { rcloneFlags, getRemotePath } = getDestinationRemote(destination);
 		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
+		const backupFilesPath = getRemotePath(
+			`${s3AppName}/${normalizeS3Path(prefix || "")}`,
+		);
 		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
 		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
