@@ -6,6 +6,7 @@ export * from "./db/validations/domain";
 export * from "./db/validations/index";
 export * from "./lib/auth";
 export * from "./lib/logger";
+export * from "./monitoring/project-stats";
 export * from "./monitoring/utils";
 export * from "./services/admin";
 export * from "./services/application";
