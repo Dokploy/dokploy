@@ -126,6 +126,12 @@ const createBetterAuth = () =>
 					...(await resolveTrustedOrigins()),
 				].filter(Boolean);
 
+				if (ctx.path === "/admin/remove-user") {
+					throw new APIError("FORBIDDEN", {
+						message: "Use the account deletion flow to remove users",
+					});
+				}
+
 				const isBlockedAuthPath =
 					ctx.path.startsWith("/sign-in/email") ||
 					ctx.path.startsWith("/sign-in/social") ||
