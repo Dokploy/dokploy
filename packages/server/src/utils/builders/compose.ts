@@ -122,6 +122,32 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
+// Shared by deploy and start so relative paths (e.g. file mounts referenced as
+// ../files/<name>) resolve against the same base in both flows.
+const getComposeFileFlags = (
+	compose: Pick<ComposeNested, "sourceType" | "composePath" | "createEnvFile">,
+	projectPath?: string,
+) => {
+	const path =
+		compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const projectDirectoryFlag = projectPath
+		? `--project-directory ${quote([projectPath])} `
+		: "";
+	const envFileFlag = compose.createEnvFile
+		? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+		: "";
+	return `${projectDirectoryFlag}${envFileFlag}-f ${quote([path])}`;
+};
+
+export const createStartCommand = (
+	compose: Pick<
+		ComposeNested,
+		"appName" | "sourceType" | "composePath" | "createEnvFile"
+	>,
+	projectPath?: string,
+) =>
+	`docker compose -p ${quote([compose.appName])} ${getComposeFileFlags(compose, projectPath)} up -d`;
+
 export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	const { composeType, appName, sourceType } = compose;
 	if (compose.command) {
@@ -133,14 +159,8 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		const projectDirectoryFlag = projectPath
-			? `--project-directory ${quote([projectPath])} `
-			: "";
-		const envFileFlag = compose.createEnvFile
-			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
-			: "";
 		const pullFlag = compose.pullImages ? " --pull always" : "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
+		command = `compose -p ${quote([appName])} ${getComposeFileFlags(compose, projectPath)} up -d --build --remove-orphans${pullFlag}`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
 	}
