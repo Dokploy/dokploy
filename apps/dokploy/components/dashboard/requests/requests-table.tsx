@@ -353,7 +353,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							Details of the request log entry.
 						</SheetDescription>
 					</SheetHeader>
-					<ScrollArea className="grow mt-4 pr-4">
+					<ScrollArea className="grow min-h-0 mt-4 pr-4">
 						<div className="border rounded-md">
 							<Table>
 								<TableBody>
