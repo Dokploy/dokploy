@@ -10,6 +10,17 @@ const nextConfig = {
 		ignoreBuildErrors: true,
 	},
 	transpilePackages: ["@dokploy/server"],
+	experimental: { cpus: Number(process.env.DOKPLOY_BUILD_CPUS || 0) || undefined },
+	serverExternalPackages: ["@1password/sdk", "@1password/sdk-core"],
+	webpack(config, { isServer }) {
+		if (isServer) {
+			config.externals.push({
+				"@1password/sdk": "commonjs @1password/sdk",
+				"@1password/sdk-core": "commonjs @1password/sdk-core",
+			});
+		}
+		return config;
+	},
 	async headers() {
 		return [
 			{
