@@ -6,6 +6,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
+import { migrateRestoredLegacyTwoFactorSecrets } from "./legacy-two-factor";
 
 export const restoreWebServerBackup = async (
 	destination: Destination,
@@ -135,6 +136,11 @@ export const restoreWebServerBackup = async (
 			await execAsync(
 				`docker exec ${postgresContainerId} rm /tmp/database.sql`,
 			);
+
+			emit("Migrating restored 2FA secrets...");
+			const migratedTwoFactorRecords =
+				await migrateRestoredLegacyTwoFactorSecrets();
+			emit(`Migrated ${migratedTwoFactorRecords} legacy 2FA record(s).`);
 
 			emit("Restore completed successfully!");
 		} finally {
