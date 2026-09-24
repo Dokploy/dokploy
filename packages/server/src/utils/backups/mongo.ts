@@ -9,10 +9,10 @@ import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRcloneDestination, joinRclonePath } from "./rclone-destination";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
 
@@ -30,8 +30,8 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		description: "MongoDB Backup",
 	});
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const { flags: rcloneFlags, remoteRoot } = getRcloneDestination(destination);
+		const rcloneDestination = joinRclonePath(remoteRoot, bucketDestination);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,

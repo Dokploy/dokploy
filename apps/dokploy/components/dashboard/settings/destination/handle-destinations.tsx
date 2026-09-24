@@ -41,11 +41,13 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { S3_PROVIDERS } from "./constants";
 
+const RCLONE_CONFIG_PROVIDER = "RcloneConfig";
+
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
 	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
+	accessKeyId: z.string(),
+	secretAccessKey: z.string(),
 	bucket: z.string().min(1, "Bucket is required"),
 	region: z.string(),
 	endpoint: z.string().min(1, "Endpoint is required"),
@@ -60,6 +62,14 @@ const addDestination = z.object({
 			}),
 		)
 		.optional(),
+}).superRefine((data, ctx) => {
+	if (data.provider === RCLONE_CONFIG_PROVIDER) return;
+	if (!data.accessKeyId) {
+		ctx.addIssue({ code: "custom", path: ["accessKeyId"], message: "Access Key Id is required" });
+	}
+	if (!data.secretAccessKey) {
+		ctx.addIssue({ code: "custom", path: ["secretAccessKey"], message: "Secret Access Key is required" });
+	}
 });
 
 type AddDestination = z.infer<typeof addDestination>;
@@ -112,6 +122,8 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		control: form.control,
 		name: "additionalFlags",
 	});
+	const isGenericRclone =
+		form.watch("provider") === RCLONE_CONFIG_PROVIDER;
 
 	useEffect(() => {
 		if (destination) {
@@ -134,12 +146,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
 			provider: data.provider || "",
-			accessKey: data.accessKeyId,
+			accessKey: data.provider === RCLONE_CONFIG_PROVIDER ? "" : data.accessKeyId,
 			bucket: data.bucket,
 			endpoint: data.endpoint,
 			name: data.name,
-			region: data.region,
-			secretAccessKey: data.secretAccessKey,
+			region: data.provider === RCLONE_CONFIG_PROVIDER ? "" : data.region,
+			secretAccessKey:
+				data.provider === RCLONE_CONFIG_PROVIDER ? "" : data.secretAccessKey,
 			destinationId: destinationId || "",
 			additionalFlags: data.additionalFlags?.map((f) => f.value) ?? [],
 		})
@@ -190,13 +203,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		}
 
 		const provider = form.getValues("provider");
-		const accessKey = form.getValues("accessKeyId");
-		const secretKey = form.getValues("secretAccessKey");
+		const accessKey = isGenericRclone ? "" : form.getValues("accessKeyId");
+		const secretKey = isGenericRclone ? "" : form.getValues("secretAccessKey");
 		const bucket = form.getValues("bucket");
 		const endpoint = form.getValues("endpoint");
-		const region = form.getValues("region");
+		const region = isGenericRclone ? "" : form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString = isGenericRclone
+			? `--config=${endpoint} ${bucket}`
+			: `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -291,7 +306,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a backup provider" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -303,6 +318,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 															{s3Provider.name}
 														</SelectItem>
 													))}
+													<SelectItem value={RCLONE_CONFIG_PROVIDER}>
+														Rclone config (Google Drive, OneDrive, FTP, SFTP, etc.)
+													</SelectItem>
 												</SelectContent>
 											</Select>
 										</FormControl>
@@ -318,9 +336,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>{isGenericRclone ? "Access Key Id (not used)" : "Access Key Id"}</FormLabel>
 										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
+											<Input
+											placeholder={isGenericRclone ? "Not required" : "xcas41dasde"}
+											disabled={isGenericRclone}
+											{...field}
+										/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -333,10 +355,16 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{isGenericRclone ? "Secret Access Key (not used)" : "Secret Access Key"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Input
+										placeholder={isGenericRclone ? "Not required" : "asd123asdasw"}
+										disabled={isGenericRclone}
+										{...field}
+									/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -348,10 +376,13 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>{isGenericRclone ? "Rclone Remote" : "Bucket"}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+										placeholder={isGenericRclone ? "gdrive:dokploy-backups" : "dokploy-bucket"}
+										{...field}
+									/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -363,10 +394,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>{isGenericRclone ? "Region (not used)" : "Region"}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
+										<Input
+										placeholder={isGenericRclone ? "Not required" : "us-east-1"}
+										disabled={isGenericRclone}
+										{...field}
+									/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -377,14 +412,23 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>{isGenericRclone ? "Rclone Config Path" : "Endpoint"}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+											isGenericRclone
+												? "/etc/dokploy/rclone.conf"
+												: "https://us.bucket.aws/s3"
+										}
 											{...field}
 										/>
 									</FormControl>
 									<FormMessage />
+									{isGenericRclone && (
+										<p className="text-xs text-muted-foreground">
+											The rclone config path and named remote must exist on every execution host that can run this backup, including a selected resource server. Connection testing runs on the selected server when one is chosen; otherwise it runs in Dokploy&apos;s local execution environment.
+										</p>
+									)}
 								</FormItem>
 							)}
 						/>

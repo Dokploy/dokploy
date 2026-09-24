@@ -11,8 +11,9 @@ import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRcloneDestination, joinRclonePath } from "./rclone-destination";
 import { redactRcloneCredentials } from "./redact";
-import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
+import { normalizeS3Path, scheduleBackup } from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -134,9 +135,12 @@ export const keepLatestNBackups = async (
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
-		const rcloneFlags = getS3Credentials(destination);
+		const { flags: rcloneFlags, remoteRoot } = getRcloneDestination(destination);
 		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+		const backupFilesPath = joinRclonePath(
+			remoteRoot,
+			`${appName}/${normalizeS3Path(backup.prefix)}`,
+		);
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
 		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;

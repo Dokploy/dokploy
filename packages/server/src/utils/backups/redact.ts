@@ -1,12 +1,13 @@
 /**
- * Redacts S3 credentials from rclone command strings.
+ * Redacts credentials from rclone command strings before they reach logs.
  *
- * Used to prevent credential leakage in structured logs and error output.
- * Matches the flag format produced by `getS3Credentials()`:
- *   --s3-access-key-id="VALUE"  and  --s3-secret-access-key="VALUE"
+ * In addition to Dokploy's S3 flags, generic rclone destinations can carry
+ * provider-specific password, pass, secret, or token flags. Keep their values out of
+ * structured logs and error output regardless of quoting style.
  */
 export const redactRcloneCredentials = (command: string): string => {
-	return command
-		.replace(/(--s3-access-key-id=)"[^"]*"/g, '$1"[REDACTED]"')
-		.replace(/(--s3-secret-access-key=)"[^"]*"/g, '$1"[REDACTED]"');
+	return command.replace(
+		/(--(?:s3-access-key-id|s3-secret-access-key|(?:[a-zA-Z0-9-]*(?:password|secret|token)[a-zA-Z0-9-]*|[a-zA-Z0-9-]+-pass(?:-[a-zA-Z0-9-]+)?))=)(?:"[^"]*"|'[^']*'|[^\s]+)/gi,
+		'$1"[REDACTED]"',
+	);
 };

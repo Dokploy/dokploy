@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { quote } from "shell-quote";
-import { getS3Credentials } from "../backups/utils";
+import {
+	getRcloneDestination,
+	joinRclonePath,
+} from "../backups/rclone-destination";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -16,9 +19,8 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const { flags: rcloneFlags, remoteRoot } = getRcloneDestination(destination);
+		const backupPath = joinRclonePath(remoteRoot, backupFile);
 		const { BASE_PATH } = paths();
 
 		// Create a temporary directory outside of BASE_PATH
@@ -33,8 +35,8 @@ export const restoreWebServerBackup = async (
 			emit("Creating temporary directory...");
 			await execAsync(`mkdir -p ${tempDir}`);
 
-			// Download backup from S3
-			emit("Downloading backup from S3...");
+			// Download backup from configured destination
+			emit("Downloading backup from configured destination...");
 			await execAsync(
 				`rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${tempDir}/${backupFile}`])}`,
 			);

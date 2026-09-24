@@ -290,7 +290,7 @@ export const getBackupCommand = (
 	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting backup and upload to configured destination..." >> ${logPath};
 
 	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
@@ -299,7 +299,7 @@ export const getBackupCommand = (
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded to configured destination successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
