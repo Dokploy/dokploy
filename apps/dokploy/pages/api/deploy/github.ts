@@ -17,6 +17,7 @@ import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { matchesTriggerTags } from "@/utils/tag-triggers";
 import {
 	extractCommitMessage,
 	extractHash,
@@ -109,12 +110,18 @@ export default async function handler(
 		req.headers["x-github-event"] === "push" &&
 		githubBody?.ref?.startsWith("refs/tags/")
 	) {
+		if (githubBody.deleted) {
+			res
+				.status(200)
+				.json({ message: "Tag deletion does not trigger deployment" });
+			return;
+		}
 		try {
 			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
 			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
-			const deploymentHash = extractHash(req.headers, githubBody);
+			const deploymentDescription = `Tag: ${tagName}`;
 
 			// Find applications configured to deploy on tag
 			const apps = await db.query.applications.findMany({
@@ -128,11 +135,14 @@ export default async function handler(
 				),
 			});
 
-			for (const app of apps) {
+			const matchingApps = apps.filter((app) =>
+				matchesTriggerTags(tagName, app.triggerTags),
+			);
+			for (const app of matchingApps) {
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
-					descriptionLog: `Hash: ${deploymentHash}`,
+					descriptionLog: deploymentDescription,
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
@@ -167,13 +177,16 @@ export default async function handler(
 				),
 			});
 
-			for (const composeApp of composeApps) {
+			const matchingComposeApps = composeApps.filter((app) =>
+				matchesTriggerTags(tagName, app.triggerTags),
+			);
+			for (const composeApp of matchingComposeApps) {
 				const jobData: DeploymentJob = {
 					composeId: composeApp.composeId as string,
 					titleLog: deploymentTitle,
 					type: "deploy",
 					applicationType: "compose",
-					descriptionLog: `Hash: ${deploymentHash}`,
+					descriptionLog: deploymentDescription,
 					server: !!composeApp.serverId,
 				};
 
@@ -195,12 +208,12 @@ export default async function handler(
 				);
 			}
 
-			const totalApps = apps.length + composeApps.length;
+			const totalApps = matchingApps.length + matchingComposeApps.length;
 
 			if (totalApps === 0) {
 				res
 					.status(200)
-					.json({ message: "No apps configured to deploy on tag" });
+					.json({ message: "No apps configured to deploy on this tag" });
 				return;
 			}
 
