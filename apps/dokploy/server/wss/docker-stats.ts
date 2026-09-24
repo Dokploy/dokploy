@@ -9,7 +9,7 @@ import {
 	validateRequest,
 } from "@dokploy/server";
 import { quote } from "shell-quote";
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
 
 type AppType = "application" | "stack" | "docker-compose";
@@ -81,6 +81,10 @@ export const setupDockerStatsMonitoringSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
+		let intervalId: ReturnType<typeof setInterval> | undefined;
+		ws.on("close", () => {
+			clearInterval(intervalId);
+		});
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 
 		if (IS_CLOUD) {
@@ -95,6 +99,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			| "docker-compose";
 		const serviceId = url.searchParams.get("serviceId");
 		const { user, session } = await validateRequest(req);
+		if (ws.readyState !== WebSocket.OPEN) return;
 
 		if (!appName) {
 			ws.close(4000, "appName no provided");
@@ -110,14 +115,18 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close(4003, "Not authorized");
 			return;
 		}
-		const intervalId = setInterval(async () => {
+		if (ws.readyState !== WebSocket.OPEN) return;
+		intervalId = setInterval(async () => {
+			if (ws.readyState !== WebSocket.OPEN) return;
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
 				if (appName === "dokploy") {
 					const stat = await getHostSystemStats();
+					if (ws.readyState !== WebSocket.OPEN) return;
 
 					await recordAdvancedStats(stat, appName);
 					const data = await getLastAdvancedStatsFile(appName);
+					if (ws.readyState !== WebSocket.OPEN) return;
 
 					ws.send(
 						JSON.stringify({
@@ -145,6 +154,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 				});
 
 				const container = containers[0];
+				if (ws.readyState !== WebSocket.OPEN) return;
 				if (!container || container?.State !== "running") {
 					const remoteNode = await findRemoteSwarmNode(appName, appType);
 					ws.close(
@@ -156,16 +166,18 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${container.Id} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
 					return;
 				}
 				const stat = JSON.parse(stdout);
+				if (ws.readyState !== WebSocket.OPEN) return;
 
 				await recordAdvancedStats(stat, appName);
 				const data = await getLastAdvancedStatsFile(appName);
+				if (ws.readyState !== WebSocket.OPEN) return;
 
 				ws.send(
 					JSON.stringify({
@@ -173,13 +185,9 @@ export const setupDockerStatsMonitoringSocketServer = (
 					}),
 				);
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error
 				ws.close(4000, `Error: ${error.message}`);
 			}
 		}, 1300);
-
-		ws.on("close", () => {
-			clearInterval(intervalId);
-		});
 	});
 };
