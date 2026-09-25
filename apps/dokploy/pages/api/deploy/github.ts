@@ -1,11 +1,14 @@
 import {
+	areCheckSuitesPassing,
 	checkUserRepositoryPermissions,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
+	getChangedFiles,
 	IS_CLOUD,
+	listCheckSuites,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
@@ -77,11 +80,12 @@ export default async function handler(
 
 	if (
 		req.headers["x-github-event"] !== "push" &&
-		req.headers["x-github-event"] !== "pull_request"
+		req.headers["x-github-event"] !== "pull_request" &&
+		req.headers["x-github-event"] !== "check_suite"
 	) {
-		res
-			.status(400)
-			.json({ message: "We only accept push events or pull_request events" });
+		res.status(400).json({
+			message: "We only accept push, pull_request or check_suite events",
+		});
 		return;
 	}
 
@@ -102,6 +106,177 @@ export default async function handler(
 			message: "Deployment skipped: commit message contains skip keyword",
 		});
 		return;
+	}
+
+	if (req.headers["x-github-event"] === "check_suite") {
+		const action = githubBody?.action;
+		if (action !== "completed") {
+			res.status(200).json({ message: `Ignored check_suite action ${action}` });
+			return;
+		}
+
+		const checkSuite = githubBody?.check_suite;
+		const branchName = checkSuite?.head_branch;
+		const headSha = checkSuite?.head_sha;
+		// Tags and pull requests from forks carry no branch.
+		if (!branchName || !headSha) {
+			res.status(200).json({ message: "Ignored check_suite without a branch" });
+			return;
+		}
+
+		try {
+			const repository = githubBody?.repository?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
+			const deploymentTitle = extractCommitMessage(req.headers, req.body);
+			const deploymentHash = extractHash(req.headers, req.body);
+
+			const apps = await db.query.applications.findMany({
+				where: and(
+					eq(applications.sourceType, "github"),
+					eq(applications.autoDeploy, true),
+					eq(applications.triggerType, "push"),
+					eq(applications.waitForChecks, true),
+					eq(applications.branch, branchName),
+					eq(applications.repository, repository),
+					eq(applications.owner, owner),
+					eq(applications.githubId, githubResult.githubId),
+				),
+			});
+
+			const composeApps = await db.query.compose.findMany({
+				where: and(
+					eq(compose.sourceType, "github"),
+					eq(compose.autoDeploy, true),
+					eq(compose.triggerType, "push"),
+					eq(compose.waitForChecks, true),
+					eq(compose.branch, branchName),
+					eq(compose.repository, repository),
+					eq(compose.owner, owner),
+					eq(compose.githubId, githubResult.githubId),
+				),
+			});
+
+			if (apps.length + composeApps.length === 0) {
+				res.status(200).json({ message: "No apps waiting for checks" });
+				return;
+			}
+
+			const suites = await listCheckSuites(
+				githubResult,
+				owner,
+				repository,
+				`heads/${branchName}`,
+			);
+
+			// Listing by branch resolves to its current tip, so a newer push shows
+			// up as another head_sha. That commit gets its own check_suite events.
+			if (suites.some((suite) => suite.head_sha !== headSha)) {
+				res
+					.status(200)
+					.json({ message: "Commit is no longer the head of the branch" });
+				return;
+			}
+
+			if (!areCheckSuitesPassing(suites)) {
+				res.status(200).json({ message: "Checks have not all passed yet" });
+				return;
+			}
+
+			// check_suite payloads carry no file list, so one compare call serves
+			// every service with watch paths. A branch without a previous commit
+			// deploys unfiltered.
+			const watchPathsInUse = [...apps, ...composeApps].some(
+				(service) => service.watchPaths?.length,
+			);
+			const previousSha = checkSuite?.before;
+			const changedFiles =
+				watchPathsInUse && previousSha && !/^0+$/.test(previousSha)
+					? await getChangedFiles(
+							githubResult,
+							owner,
+							repository,
+							previousSha,
+							headSha,
+						)
+					: undefined;
+			const matchesWatchPaths = (watchPaths: string[] | null) =>
+				changedFiles === undefined || shouldDeploy(watchPaths, changedFiles);
+
+			let deployed = 0;
+
+			for (const app of apps) {
+				if (!matchesWatchPaths(app.watchPaths)) {
+					continue;
+				}
+
+				const jobData: DeploymentJob = {
+					applicationId: app.applicationId as string,
+					titleLog: deploymentTitle,
+					descriptionLog: `Hash: ${deploymentHash}`,
+					type: "deploy",
+					applicationType: "application",
+					server: !!app.serverId,
+				};
+				deployed++;
+
+				if (IS_CLOUD && app.serverId) {
+					jobData.serverId = app.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+			}
+
+			for (const composeApp of composeApps) {
+				if (!matchesWatchPaths(composeApp.watchPaths)) {
+					continue;
+				}
+
+				const jobData: DeploymentJob = {
+					composeId: composeApp.composeId as string,
+					titleLog: deploymentTitle,
+					type: "deploy",
+					applicationType: "compose",
+					descriptionLog: `Hash: ${deploymentHash}`,
+					server: !!composeApp.serverId,
+				};
+				deployed++;
+
+				if (IS_CLOUD && composeApp.serverId) {
+					jobData.serverId = composeApp.serverId;
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+			}
+
+			res.status(200).json({
+				message: `Deployed ${deployed} apps after checks passed`,
+			});
+			return;
+		} catch (error) {
+			logWebhookError("Error deploying after checks passed:", error);
+			res.status(400).json({ message: "Error deploying after checks passed" });
+			return;
+		}
 	}
 
 	// Handle tag creation event
@@ -223,6 +398,7 @@ export default async function handler(
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
 			const owner = getGithubRepositoryOwner(githubBody);
+			let waiting = 0;
 			const normalizedCommits = githubBody?.commits?.flatMap((commit: any) => [
 				...(commit.added || []),
 				...(commit.modified || []),
@@ -242,6 +418,12 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
+				// Deployed from check_suite.completed instead.
+				if (app.waitForChecks) {
+					waiting++;
+					continue;
+				}
+
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
@@ -290,6 +472,11 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
+				if (composeApp.waitForChecks) {
+					waiting++;
+					continue;
+				}
+
 				const jobData: DeploymentJob = {
 					composeId: composeApp.composeId as string,
 					titleLog: deploymentTitle,
@@ -332,7 +519,11 @@ export default async function handler(
 				res.status(200).json({ message: "No apps to deploy" });
 				return;
 			}
-			res.status(200).json({ message: `Deployed ${totalApps} apps` });
+			const waitingMessage =
+				waiting > 0 ? `, ${waiting} waiting for checks` : "";
+			res.status(200).json({
+				message: `Deployed ${totalApps - waiting} apps${waitingMessage}`,
+			});
 		} catch (error) {
 			logWebhookError("Error deploying Application:", error);
 			res.status(400).json({ message: "Error deploying Application" });
