@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { getDeploymentWindowBounds } from "../../../../packages/server/src/services/deployment-window";
-import { getScopedServerServiceCount } from "../../components/dashboard/home/home-logic";
+import {
+	getScopedServerServiceCount,
+	getVisibleServers,
+	MAX_VISIBLE_SERVERS,
+} from "../../components/dashboard/home/home-logic";
+
+describe("home dashboard server preview", () => {
+	it("caps the server list while preserving the total for summary counts", () => {
+		const servers = Array.from(
+			{ length: MAX_VISIBLE_SERVERS + 2 },
+			(_, i) => i,
+		);
+
+		expect(getVisibleServers(servers)).toEqual(
+			servers.slice(0, MAX_VISIBLE_SERVERS),
+		);
+		expect(getVisibleServers(undefined)).toEqual([]);
+	});
+});
 
 describe("home dashboard service scoping", () => {
 	it("does not fall back to an unscoped server total", () => {

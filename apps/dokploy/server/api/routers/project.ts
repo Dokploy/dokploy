@@ -529,7 +529,6 @@ export const projectRouter = createTRPCRouter({
 			databases: 0,
 			services: 0,
 			status: { running: 0, error: 0, idle: 0 },
-			dokployHostServices: 0,
 			servicesByServerId: {} as Record<string, number>,
 			recentProjects: [] as {
 				projectId: string;
@@ -690,7 +689,6 @@ export const projectRouter = createTRPCRouter({
 		let composeCount = 0;
 		let databasesCount = 0;
 		let environmentsCount = 0;
-		let dokployHostServices = 0;
 		const servicesByServerId: Record<string, number> = {};
 		const status = { running: 0, error: 0, idle: 0 };
 		const erroredServices: (typeof empty)["erroredServices"] = [];
@@ -702,10 +700,7 @@ export const projectRouter = createTRPCRouter({
 		};
 
 		const bumpServer = (serverId?: string | null) => {
-			if (!serverId) {
-				dokployHostServices++;
-				return;
-			}
+			if (!serverId) return;
 			servicesByServerId[serverId] = (servicesByServerId[serverId] ?? 0) + 1;
 		};
 
@@ -886,7 +881,6 @@ export const projectRouter = createTRPCRouter({
 			databases: databasesCount,
 			services: applicationsCount + composeCount + databasesCount,
 			status,
-			dokployHostServices,
 			servicesByServerId,
 			recentProjects,
 			erroredServices,

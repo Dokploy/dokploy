@@ -1,23 +1,22 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import { formatDistanceToNow } from "date-fns";
 import {
-	Activity,
 	AlertTriangle,
 	ArrowRight,
 	Boxes,
-	CheckCircle2,
 	Folder,
 	HardDrive,
 	Loader2,
 	type LucideIcon,
-	Monitor,
 	Rocket,
 	Server,
-	XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
-import { getScopedServerServiceCount } from "@/components/dashboard/home/home-logic";
+import {
+	getScopedServerServiceCount,
+	getVisibleServers,
+} from "@/components/dashboard/home/home-logic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -303,9 +302,6 @@ export const ShowHome = () => {
 
 	const canReadDeployments = !!permissions?.deployment.read;
 	const canReadServers = !!permissions?.server.read;
-	const canReadDocker = !!permissions?.docker.read;
-	const canReadMonitoring = !!permissions?.monitoring.read;
-	const isAdmin = auth?.role === "owner" || auth?.role === "admin";
 
 	const { data: deploySummary, isLoading: deployLoading } =
 		api.deployment.homeSummary.useQuery(undefined, {
@@ -319,19 +315,6 @@ export const ShowHome = () => {
 			enabled: hasOrg && canReadServers,
 		},
 	);
-
-	const { data: queue, isLoading: queueLoading } =
-		api.deployment.queueList.useQuery(undefined, {
-			enabled: hasOrg && canReadDeployments,
-			refetchInterval: 10000,
-		});
-
-	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
-	const { data: infraHealth, isLoading: healthLoading } =
-		api.settings.checkInfrastructureHealth.useQuery(undefined, {
-			enabled: hasOrg && !!isAdmin && isCloud === false,
-			retry: false,
-		});
 
 	const firstName = auth?.user?.firstName?.trim();
 	const loadingStats =
@@ -357,8 +340,8 @@ export const ShowHome = () => {
 	const recentDeployments = deploySummary?.recent ?? [];
 	const erroredServices = homeStats?.erroredServices ?? [];
 	const recentProjects = homeStats?.recentProjects ?? [];
-	const dokployHostServices = homeStats?.dokployHostServices ?? 0;
 	const servicesByServerId = homeStats?.servicesByServerId ?? {};
+	const visibleServers = getVisibleServers(servers);
 
 	const serverSummary = useMemo(() => {
 		if (!servers) return { total: 0, active: 0, inactive: 0, services: 0 };
@@ -376,7 +359,7 @@ export const ShowHome = () => {
 	const attentionCount =
 		erroredServices.length + (canReadDeployments ? failedDeploys.length : 0);
 	const showAttention = !loadingStats && attentionCount > 0;
-	const showServerSummary = !isCloud || canReadServers;
+	const showServerSummary = canReadServers;
 
 	if (!orgLoading && !hasOrg) {
 		return (
@@ -552,14 +535,8 @@ export const ShowHome = () => {
 							<SectionHeader
 								icon={HardDrive}
 								title="Server summary"
-								href={
-									canReadServers
-										? "/dashboard/settings/servers"
-										: !isCloud
-											? "/dashboard/settings/server"
-											: undefined
-								}
-								linkLabel={canReadServers ? "manage servers →" : "web server →"}
+								href="/dashboard/settings/servers"
+								linkLabel="manage servers →"
 							/>
 							{(statsLoading || (canReadServers && serversLoading)) && (
 								<div className="flex items-center justify-center gap-2 min-h-[140px] text-sm text-muted-foreground">
@@ -569,7 +546,7 @@ export const ShowHome = () => {
 							)}
 							{!statsLoading && !(canReadServers && serversLoading) && (
 								<div className="flex flex-col gap-4 p-4">
-									<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+									<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
 										<div className="rounded-lg border p-3 flex flex-col gap-1">
 											<span className="text-[11px] uppercase tracking-wider text-muted-foreground">
 												Hosts
@@ -581,17 +558,6 @@ export const ShowHome = () => {
 												{isCloud
 													? "remote only"
 													: `${serverSummary.total} remote`}
-											</span>
-										</div>
-										<div className="rounded-lg border p-3 flex flex-col gap-1">
-											<span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-												On Dokploy
-											</span>
-											<span className="text-2xl font-semibold tabular-nums">
-												{isCloud ? "—" : dokployHostServices}
-											</span>
-											<span className="text-xs text-muted-foreground">
-												{isCloud ? "cloud host" : "local services"}
 											</span>
 										</div>
 										<div className="rounded-lg border p-3 flex flex-col gap-1">
@@ -608,91 +574,29 @@ export const ShowHome = () => {
 													: ""}
 											</span>
 										</div>
-										<div className="rounded-lg border p-3 flex flex-col gap-1">
-											<span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-												Version
-											</span>
-											<span className="text-2xl font-semibold tabular-nums truncate">
-												{dokployVersion ?? "—"}
-											</span>
-											<span className="text-xs text-muted-foreground">
-												Dokploy
-											</span>
-										</div>
 									</div>
-
-									{!isCloud && isAdmin && (
-										<div className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2.5">
-											<span className="text-xs font-medium text-muted-foreground mr-1">
-												Infrastructure
-											</span>
-											{healthLoading ? (
-												<span className="text-xs text-muted-foreground flex items-center gap-1.5">
-													<Loader2 className="size-3 animate-spin" />
-													Checking…
-												</span>
-											) : infraHealth ? (
-												(
-													[
-														["Postgres", infraHealth.postgres],
-														["Traefik", infraHealth.traefik],
-													] as const
-												).map(([name, service]) => (
-													<span
-														key={name}
-														className="inline-flex items-center gap-1.5 text-xs"
-													>
-														{service.status === "healthy" ? (
-															<CheckCircle2 className="size-3.5 text-emerald-500" />
-														) : (
-															<XCircle className="size-3.5 text-destructive" />
-														)}
-														{name}
-													</span>
-												))
-											) : (
-												<span className="text-xs text-muted-foreground">
-													Unavailable
-												</span>
-											)}
-										</div>
-									)}
 
 									<ul className="divide-y rounded-lg border">
 										{!isCloud && (
-											<li>
-												<Link
-													href={
-														canReadMonitoring
-															? "/dashboard/monitoring"
-															: "/dashboard/settings/server"
-													}
-													className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
-												>
-													<span className="flex size-8 items-center justify-center rounded-md bg-muted shrink-0">
-														<Server className="size-4 text-muted-foreground" />
+											<li className="flex items-center gap-3 px-4 py-3">
+												<span className="flex size-8 items-center justify-center rounded-md bg-muted shrink-0">
+													<Server className="size-4 text-muted-foreground" />
+												</span>
+												<div className="flex flex-col min-w-0 flex-1">
+													<span className="text-sm font-medium truncate">
+														Dokploy host
 													</span>
-													<div className="flex flex-col min-w-0 flex-1">
-														<span className="text-sm font-medium truncate">
-															Dokploy host
-														</span>
-														<span className="text-xs text-muted-foreground truncate">
-															Local web server
-														</span>
-													</div>
-													<span className="text-xs text-muted-foreground tabular-nums hidden sm:inline">
-														{dokployHostServices}{" "}
-														{dokployHostServices === 1 ? "service" : "services"}
+													<span className="text-xs text-muted-foreground truncate">
+														Local web server
 													</span>
-													<Badge variant="green" className="shrink-0">
-														local
-													</Badge>
-													<ArrowRight className="size-3.5 text-muted-foreground shrink-0" />
-												</Link>
+												</div>
+												<Badge variant="green" className="shrink-0">
+													local
+												</Badge>
 											</li>
 										)}
 										{canReadServers &&
-											servers?.map((server) => {
+											visibleServers.map((server) => {
 												const serviceCount = getScopedServerServiceCount(
 													server.serverId,
 													servicesByServerId,
@@ -700,10 +604,7 @@ export const ShowHome = () => {
 												const inactive = server.serverStatus === "inactive";
 												return (
 													<li key={server.serverId}>
-														<Link
-															href="/dashboard/settings/servers"
-															className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors"
-														>
+														<div className="flex items-center gap-3 px-4 py-3">
 															<span className="flex size-8 items-center justify-center rounded-md bg-muted shrink-0">
 																<Server className="size-4 text-muted-foreground" />
 															</span>
@@ -728,11 +629,23 @@ export const ShowHome = () => {
 															>
 																{server.serverStatus ?? "active"}
 															</Badge>
-															<ArrowRight className="size-3.5 text-muted-foreground shrink-0" />
-														</Link>
+														</div>
 													</li>
 												);
 											})}
+										{canReadServers &&
+											serverSummary.total > visibleServers.length && (
+												<li className="px-4 py-3 text-sm text-muted-foreground">
+													Showing {visibleServers.length} of{" "}
+													{serverSummary.total} remote servers.{" "}
+													<Link
+														href="/dashboard/settings/servers"
+														className="text-foreground underline-offset-4 hover:underline"
+													>
+														View all servers
+													</Link>
+												</li>
+											)}
 										{canReadServers && serverSummary.total === 0 && (
 											<li className="px-4 py-3 text-sm text-muted-foreground">
 												No remote servers yet.{" "}
@@ -751,92 +664,35 @@ export const ShowHome = () => {
 						</div>
 					)}
 
-					<div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-						<div className="rounded-xl border bg-background xl:col-span-2">
-							<SectionHeader
+					<div className="rounded-xl border bg-background">
+						<SectionHeader
+							icon={Rocket}
+							title="Recent deployments"
+							href={canReadDeployments ? "/dashboard/deployments" : undefined}
+						/>
+						{canReadDeployments && (deployStats?.running ?? 0) > 0 && (
+							<div className="px-5 py-2 border-b bg-muted/30">
+								<Badge variant="yellow">
+									{deployStats?.running} currently deploying
+								</Badge>
+							</div>
+						)}
+						{permissionsLoading || (canReadDeployments && deployLoading) ? (
+							<div className="flex items-center justify-center gap-2 min-h-[280px] text-sm text-muted-foreground">
+								<Loader2 className="size-4 animate-spin" />
+								Loading deployments…
+							</div>
+						) : !canReadDeployments ? (
+							<EmptyBlock
 								icon={Rocket}
-								title="Recent deployments"
-								href={canReadDeployments ? "/dashboard/deployments" : undefined}
+								message="You do not have permission to view deployments."
 							/>
-							{canReadDeployments && (deployStats?.running ?? 0) > 0 && (
-								<div className="px-5 py-2 border-b bg-muted/30">
-									<Badge variant="yellow">
-										{deployStats?.running} currently deploying
-									</Badge>
-								</div>
-							)}
-							{permissionsLoading || (canReadDeployments && deployLoading) ? (
-								<div className="flex items-center justify-center gap-2 min-h-[280px] text-sm text-muted-foreground">
-									<Loader2 className="size-4 animate-spin" />
-									Loading deployments…
-								</div>
-							) : !canReadDeployments ? (
-								<EmptyBlock
-									icon={Rocket}
-									message="You do not have permission to view deployments."
-								/>
-							) : (
-								<DeploymentList
-									items={recentDeployments}
-									emptyMessage="No deployments yet."
-								/>
-							)}
-						</div>
-
-						<div className="flex flex-col gap-4">
-							{canReadDeployments && (
-								<div className="rounded-xl border bg-background">
-									<SectionHeader
-										icon={Activity}
-										title="Deploy queue"
-										href="/dashboard/deployments"
-										linkLabel="open queue →"
-									/>
-									{queueLoading ? (
-										<div className="flex items-center justify-center gap-2 min-h-[120px] text-sm text-muted-foreground">
-											<Loader2 className="size-4 animate-spin" />
-										</div>
-									) : (
-										<div className="px-5 py-5 flex flex-col gap-2">
-											<span className="text-3xl font-semibold tracking-tight tabular-nums">
-												{queue?.length ?? 0}
-											</span>
-											<span className="text-xs text-muted-foreground">
-												{(queue?.length ?? 0) === 1
-													? "job in queue"
-													: "jobs in queue"}
-											</span>
-										</div>
-									)}
-								</div>
-							)}
-
-							{!isCloud && canReadMonitoring && (
-								<div className="rounded-xl border bg-background flex-1">
-									<SectionHeader
-										icon={Monitor}
-										title="Monitoring"
-										href="/dashboard/monitoring"
-										linkLabel="open →"
-									/>
-									<div className="px-5 py-4 flex flex-col gap-3">
-										<p className="text-sm text-muted-foreground">
-											Host and container CPU, memory, and disk metrics.
-										</p>
-										<div className="flex flex-wrap gap-2">
-											<Badge variant="blank">
-												{dokployHostServices} on host
-											</Badge>
-											{serverSummary.total > 0 && (
-												<Badge variant="blank">
-													{serverSummary.total} remotes
-												</Badge>
-											)}
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
+						) : (
+							<DeploymentList
+								items={recentDeployments}
+								emptyMessage="No deployments yet."
+							/>
+						)}
 					</div>
 
 					<div className="rounded-xl border bg-background">
@@ -896,33 +752,6 @@ export const ShowHome = () => {
 							</div>
 						)}
 					</div>
-
-					{(canReadDocker ||
-						canReadServers ||
-						(!isCloud && canReadMonitoring)) && (
-						<div className="flex flex-wrap gap-2">
-							{!isCloud && canReadMonitoring && (
-								<Button asChild variant="outline" size="sm">
-									<Link href="/dashboard/monitoring">Monitoring</Link>
-								</Button>
-							)}
-							{canReadServers && (
-								<Button asChild variant="outline" size="sm">
-									<Link href="/dashboard/settings/servers">Servers</Link>
-								</Button>
-							)}
-							{canReadDocker && (
-								<Button asChild variant="outline" size="sm">
-									<Link href="/dashboard/docker">Docker</Link>
-								</Button>
-							)}
-							{canReadDeployments && (
-								<Button asChild variant="outline" size="sm">
-									<Link href="/dashboard/deployments">All deployments</Link>
-								</Button>
-							)}
-						</div>
-					)}
 				</div>
 			</Card>
 		</div>
