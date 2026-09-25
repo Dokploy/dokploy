@@ -3,11 +3,14 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findDestinationById,
+	findServerById,
+	getRclonePathAndFlags,
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
@@ -47,37 +50,19 @@ export const destinationRouter = createTRPCRouter({
 		}),
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
-		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const { flags, path } = await getRclonePathAndFlags(
+					input as Parameters<typeof getRclonePathAndFlags>[0],
+				);
 				const rcloneFlags = [
-					`--s3-access-key-id=${quote([accessKey])}`,
-					`--s3-secret-access-key=${quote([secretAccessKey])}`,
-					`--s3-region=${quote([region])}`,
-					`--s3-endpoint=${quote([endpoint])}`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
+					...flags,
 					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
+				const rcloneCommand = `rclone lsd ${rcloneFlags.join(" ")} ${quote([path])}`;
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -86,19 +71,27 @@ export const destinationRouter = createTRPCRouter({
 					});
 				}
 
-				if (IS_CLOUD) {
-					await execAsyncRemote(input.serverId || "", rcloneCommand);
+				if (input.serverId) {
+					const server = await findServerById(input.serverId);
+					if (server.organizationId !== ctx.session.activeOrganizationId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not allowed to use this server",
+						});
+					}
+					await execAsyncRemote(input.serverId, rcloneCommand);
 				} else {
 					await execAsync(rcloneCommand);
 				}
 			} catch (error) {
+				const safeMessage =
+					error instanceof Error
+						? redactRcloneCredentials(error.message)
+						: "Error connecting to destination";
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						error instanceof Error
-							? error?.message
-							: "Error connecting to bucket",
-					cause: error,
+					code: error instanceof TRPCError ? error.code : "BAD_REQUEST",
+					message: safeMessage,
+					cause: new Error(safeMessage),
 				});
 			}
 		}),
@@ -174,8 +167,8 @@ export const destinationRouter = createTRPCRouter({
 					code: "BAD_REQUEST",
 					message:
 						error instanceof Error
-							? error?.message
-							: "Error connecting to bucket",
+							? redactRcloneCredentials(error.message)
+							: "Error updating destination",
 					cause: error,
 				});
 			}
