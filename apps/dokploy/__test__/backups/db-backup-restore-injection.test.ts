@@ -99,8 +99,22 @@ describe("database backup/restore command injection", () => {
 		// Values live in -e assignments, never inline in the pg_dump text.
 		expect(cmd).toContain("-e DB_NAME=my-db_prod");
 		expect(cmd).toContain("-e DB_USER=app_user");
+		expect(cmd).toContain("-e DB_PORT=5432");
 		expect(cmd).toContain(
-			'pg_dump -Fc --no-acl --no-owner -h localhost -U "$DB_USER"',
+			'pg_dump -Fc --no-acl --no-owner -h localhost -p "$DB_PORT" -U "$DB_USER"',
+		);
+	});
+
+	it("uses a custom PostgreSQL port", () => {
+		const cmd = getPostgresBackupCommand("app", "app_user", 5544);
+
+		expect(cmd).toContain("-e DB_PORT=5544");
+		expect(cmd).toContain('-p "$DB_PORT"');
+	});
+
+	it.each([0, 65536, 5432.5])("rejects invalid PostgreSQL port %s", (port) => {
+		expect(() => getPostgresBackupCommand("app", "app_user", port)).toThrow(
+			"PostgreSQL port must be an integer between 1 and 65535",
 		);
 	});
 });
