@@ -1,6 +1,12 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
-import { CheckCircle2, CopyIcon, Loader2, XCircle } from "lucide-react";
+import {
+	CheckCircle2,
+	CopyIcon,
+	InfoIcon,
+	Loader2,
+	XCircle,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -200,9 +206,19 @@ export const ServerStep = ({ onNext, plainTitle }: Props) => {
 				</span>
 				<h1 className={titleClassName}>Connect a server.</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					Dokploy deploys to servers you own — buy one from any VPS provider
+					Dokploy deploys to servers you own. Buy one from any VPS provider
 					(Hetzner, DigitalOcean, Hostinger...) and paste its IP below.
 				</p>
+				<div className="flex items-start gap-2.5 rounded-lg border p-3 max-w-md">
+					<InfoIcon className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+					<div className="flex flex-col gap-0.5">
+						<span className="text-sm font-medium">Requirements</span>
+						<span className="text-sm text-muted-foreground">
+							To ensure a smooth experience with Dokploy, your server should
+							have at least 1GB of RAM and 30GB of disk space.
+						</span>
+					</div>
+				</div>
 			</div>
 
 			{!createdServerId ? (
@@ -287,7 +303,7 @@ export const ServerStep = ({ onNext, plainTitle }: Props) => {
 						{isSettingUp ? (
 							<div className="flex items-center justify-center gap-3 py-4 text-sm text-muted-foreground">
 								<Loader2 className="size-4 animate-spin shrink-0" />
-								Setting up your server — installing Docker and dependencies...
+								Setting up your server – installing Docker and dependencies…
 							</div>
 						) : isValidating && !validation ? (
 							<div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
@@ -311,7 +327,7 @@ export const ServerStep = ({ onNext, plainTitle }: Props) => {
 					</div>
 					{!isReady && !isSettingUp && (
 						<AlertBlock type="info">
-							Setup usually takes a minute after the server boots — this checks
+							Setup runs after the server boots and this page checks for it
 							automatically. You can retry setup, or use "Skip for now" above to
 							continue and come back to this later.
 						</AlertBlock>
