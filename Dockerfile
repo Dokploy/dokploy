@@ -18,7 +18,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 ENV NODE_ENV=production
 RUN pnpm --filter=@dokploy/server build
-RUN DOKPLOY_BUILD_CPUS=1 NODE_OPTIONS=--max-old-space-size=3072 pnpm --filter=./apps/dokploy run build
+RUN pnpm --filter=./apps/dokploy run build
 
 RUN pnpm --filter=./apps/dokploy --prod deploy --legacy /prod/dokploy
 
