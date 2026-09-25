@@ -1,10 +1,12 @@
 import { apiCreateDestination } from "@dokploy/server/db/schema/destination";
 import { RCLONE_DESTINATION_PROVIDERS } from "@dokploy/server/db/validations/destination";
 import {
+	getBackupCommand,
 	getRclonePathAndFlags,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import { normalizeVolumeBackupFilePath } from "@dokploy/server/utils/volume-backups/restore";
+import { quote } from "shell-quote";
 import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
@@ -230,11 +232,15 @@ describe("getRclonePathAndFlags", () => {
 		).rejects.toThrow("Invalid rclone remote name");
 	});
 
-	test("rejects unsafe stored additional flags at runtime", async () => {
+	test.each([
+		"--transfers=2;touch /tmp/pwned",
+		"--transfers=$(touch /tmp/pwned)",
+		"--transfers='quoted'",
+		"--transfers=`touch /tmp/pwned`",
+		"--transfers=2\ntouch /tmp/pwned",
+	])("rejects unsafe stored additional flag %s at runtime", async (flag) => {
 		await expect(
-			getRclonePathAndFlags(
-				destination({ additionalFlags: ["--transfers=2;touch /tmp/pwned"] }),
-			),
+			getRclonePathAndFlags(destination({ additionalFlags: [flag] })),
 		).rejects.toThrow("Invalid flag format");
 	});
 
@@ -320,7 +326,7 @@ describe("getRclonePathAndFlags", () => {
 		).rejects.toThrow("SFTP destinations must verify the server host key");
 	});
 });
-describe("FTP/SFTP destination base path validation", () => {
+describe("FTP/SFTP provider-aware destination base paths", () => {
 	const sftpDestination = (bucket: string) =>
 		destination({
 			provider: RCLONE_DESTINATION_PROVIDERS.SFTP,
@@ -332,24 +338,47 @@ describe("FTP/SFTP destination base path validation", () => {
 			additionalFlags: ["--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts"],
 		});
 
-	test.each(["/backups/", "/", "//backups///", "\\backups"])(
-		"rejects an absolute SFTP base path %s",
-		async (bucket) => {
-			await expect(
-				getRclonePathAndFlags(sftpDestination(bucket), "service/backup.tar"),
-			).rejects.toThrow("Invalid rclone path");
-		},
-	);
+	const ftpDestination = (bucket: string) =>
+		destination({
+			provider: RCLONE_DESTINATION_PROVIDERS.FTP,
+			endpoint: "storage.example.com",
+			accessKey: "backup-user",
+			secretAccessKey: "",
+			region: "",
+			bucket,
+			additionalFlags: ["--ftp-tls"],
+		});
 
-	test("treats a slash-less base as home-relative", async () => {
+	test("preserves an absolute SFTP base with a child", async () => {
 		const result = await getRclonePathAndFlags(
-			sftpDestination("backups"),
+			sftpDestination("/backups/"),
 			"service/backup.tar",
 		);
-		expect(result.path).toBe(":sftp:backups/service/backup.tar");
+		expect(result.path).toBe(":sftp:/backups/service/backup.tar");
 	});
 
-	test("resolves an empty base home-relative", async () => {
+	test("preserves the SFTP root base", async () => {
+		const result = await getRclonePathAndFlags(
+			sftpDestination("/"),
+			"service/backup.tar",
+		);
+		expect(result.path).toBe(":sftp:/service/backup.tar");
+	});
+
+	test("keeps an empty child against an absolute SFTP base", async () => {
+		const result = await getRclonePathAndFlags(
+			sftpDestination("/backups/"),
+			"",
+		);
+		expect(result.path).toBe(":sftp:/backups");
+	});
+
+	test("keeps an empty SFTP base and child home-relative", async () => {
+		const result = await getRclonePathAndFlags(sftpDestination(""), "");
+		expect(result.path).toBe(":sftp:");
+	});
+
+	test("resolves an empty SFTP base with a child home-relative", async () => {
 		const result = await getRclonePathAndFlags(
 			sftpDestination(""),
 			"service/backup.tar",
@@ -357,26 +386,66 @@ describe("FTP/SFTP destination base path validation", () => {
 		expect(result.path).toBe(":sftp:service/backup.tar");
 	});
 
-	test("resolves an empty base and child to the home directory", async () => {
-		const result = await getRclonePathAndFlags(sftpDestination(""), "");
-		expect(result.path).toBe(":sftp:");
+	test("keeps a relative SFTP base home-relative", async () => {
+		const result = await getRclonePathAndFlags(
+			sftpDestination("backups"),
+			"service/backup.tar",
+		);
+		expect(result.path).toBe(":sftp:backups/service/backup.tar");
 	});
 
-	test("rejects an absolute FTP base path", async () => {
+	test("collapses repeated SFTP separators without losing the root marker", async () => {
+		const result = await getRclonePathAndFlags(
+			sftpDestination("//backups///"),
+			"service/backup.tar",
+		);
+		expect(result.path).toBe(":sftp:/backups/service/backup.tar");
+	});
+
+	test("preserves an absolute FTP base", async () => {
+		const result = await getRclonePathAndFlags(
+			ftpDestination("/backups"),
+			"service/backup.tar",
+		);
+		expect(result.path).toBe(":ftp:/backups/service/backup.tar");
+	});
+
+	test.each([
+		"../outside",
+		"safe/../outside",
+		"safe/./outside",
+		"safe\\..\\outside",
+		"safe/%2e%2e/outside",
+		"safe/%252e%252e%252foutside",
+		"bucket\0next",
+		"bucket\rnext",
+		"bucket\nnext",
+		"bucket%ZZ",
+		":sftp:/backups",
+		"s3://bucket",
+	])("rejects an unsafe SFTP base %s", async (bucket) => {
 		await expect(
-			getRclonePathAndFlags(
-				destination({
-					provider: RCLONE_DESTINATION_PROVIDERS.FTP,
-					endpoint: "storage.example.com",
-					accessKey: "backup-user",
-					secretAccessKey: "",
-					region: "",
-					bucket: "/backups",
-					additionalFlags: ["--ftp-tls"],
-				}),
-				"service/backup.tar",
-			),
+			getRclonePathAndFlags(sftpDestination(bucket), "service/backup.tar"),
 		).rejects.toThrow("Invalid rclone path");
+	});
+
+	test("quotes a path containing shell metacharacters", async () => {
+		const result = await getRclonePathAndFlags(
+			sftpDestination("/backups/"),
+			"service/backup'; touch /tmp/pwned",
+		);
+		const command = getBackupCommand(
+			{
+				backupType: "database",
+				databaseType: "postgres",
+				database: "app",
+				postgres: { appName: "app", databaseUser: "app" },
+			} as any,
+			result.flags,
+			result.path,
+			"/tmp/dokploy-backup.log",
+		);
+		expect(command).toContain(quote([result.path]));
 	});
 });
 

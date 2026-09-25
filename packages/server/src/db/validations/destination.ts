@@ -29,6 +29,12 @@ export const isNamedRcloneDestinationProvider = (
 	provider === RCLONE_DESTINATION_PROVIDERS.ONEDRIVE ||
 	provider === RCLONE_DESTINATION_PROVIDERS.REMOTE;
 
+export const isFileTransferRcloneDestinationProvider = (
+	provider: string | null | undefined,
+) =>
+	provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+	provider === RCLONE_DESTINATION_PROVIDERS.SFTP;
+
 export const RCLONE_REMOTE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 export const RCLONE_REMOTE_NAME_ERROR =
 	"Invalid rclone remote name. Use only letters, numbers, dots, underscores, and dashes";
@@ -45,59 +51,131 @@ export const RCLONE_PATH_ERROR = "Invalid rclone path";
 
 const hasRcloneControlCharacters = (value: string) =>
 	Array.from(value).some((character) => {
-		const code = character.charCodeAt(0);
-		return code <= 0x1f || code === 0x7f;
+		const code = character.codePointAt(0) ?? 0;
+		return code <= 0x1f || (code >= 0x7f && code <= 0x9f);
 	});
 const RCLONE_WINDOWS_DRIVE_PATH = /^[a-zA-Z]:/;
+const RCLONE_REMOTE_PREFIX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+const RCLONE_PERCENT_ESCAPE = /%[0-9a-f]{2}/i;
+const RCLONE_MALFORMED_PERCENT_ESCAPE = /%(?![0-9a-f]{2})/i;
 
 const decodeRclonePath = (value: string) => {
+	if (RCLONE_MALFORMED_PERCENT_ESCAPE.test(value)) return null;
+
 	let decoded = value;
 	for (let index = 0; index < 8; index += 1) {
-		if (!/%[0-9a-f]{2}/i.test(decoded)) return decoded;
+		if (!RCLONE_PERCENT_ESCAPE.test(decoded)) return decoded;
 		try {
 			decoded = decodeURIComponent(decoded);
 		} catch {
 			return null;
 		}
 	}
-	return decoded;
+	return RCLONE_PERCENT_ESCAPE.test(decoded) ? null : decoded;
+};
+
+export type RclonePathKind = "base" | "child";
+
+export interface RclonePathNormalizationOptions {
+	provider?: string | null;
+	kind?: RclonePathKind;
+	allowAbsolute?: boolean;
+}
+
+export const normalizeRcloneDestinationPath = (
+	value: unknown,
+	options: RclonePathNormalizationOptions = {},
+): string => {
+	if (typeof value !== "string") throw new Error(RCLONE_PATH_ERROR);
+	if (value.includes("\\") || hasRcloneControlCharacters(value)) {
+		throw new Error(RCLONE_PATH_ERROR);
+	}
+
+	const decoded = decodeRclonePath(value);
+	if (
+		decoded === null ||
+		decoded.includes("\\") ||
+		hasRcloneControlCharacters(decoded)
+	) {
+		throw new Error(RCLONE_PATH_ERROR);
+	}
+
+	const canonical = value.trim();
+	const decodedCanonical = decoded.trim();
+	if (
+		hasRcloneControlCharacters(canonical) ||
+		hasRcloneControlCharacters(decodedCanonical) ||
+		RCLONE_WINDOWS_DRIVE_PATH.test(canonical) ||
+		RCLONE_WINDOWS_DRIVE_PATH.test(decodedCanonical) ||
+		RCLONE_REMOTE_PREFIX.test(canonical) ||
+		RCLONE_REMOTE_PREFIX.test(decodedCanonical) ||
+		canonical.startsWith(":") ||
+		decodedCanonical.startsWith(":")
+	) {
+		throw new Error(RCLONE_PATH_ERROR);
+	}
+
+	const decodedSegments = decodedCanonical.split("/");
+	if (
+		decodedSegments.some((segment) => {
+			const trimmedSegment = segment.trim();
+			return trimmedSegment === "." || trimmedSegment === "..";
+		})
+	) {
+		throw new Error(RCLONE_PATH_ERROR);
+	}
+
+	const kind = options.kind ?? "base";
+	const allowAbsolute =
+		options.allowAbsolute ??
+		(kind === "base" &&
+			isFileTransferRcloneDestinationProvider(options.provider));
+	const isAbsolute = canonical.startsWith("/");
+	if (isAbsolute && kind === "base" && !allowAbsolute) {
+		throw new Error(RCLONE_PATH_ERROR);
+	}
+
+	const segments = canonical.split("/").filter(Boolean);
+	if (segments.length === 0) {
+		return isAbsolute && allowAbsolute ? "/" : "";
+	}
+	return isAbsolute && allowAbsolute
+		? `/${segments.join("/")}`
+		: segments.join("/");
 };
 
 export const getRclonePathValidationError = (
-	value: string,
+	value: unknown,
 	allowAbsolute: boolean,
+	provider?: string | null,
 ) => {
-	if (value.includes("\\")) return RCLONE_PATH_ERROR;
-	const normalized = value;
-	if (hasRcloneControlCharacters(normalized)) {
-		return RCLONE_PATH_ERROR;
-	}
-
-	const decoded = decodeRclonePath(normalized);
-	if (decoded === null) return RCLONE_PATH_ERROR;
-	if (decoded.includes("\\")) return RCLONE_PATH_ERROR;
-
-	const canonical = decoded.trim();
-	if (hasRcloneControlCharacters(canonical)) {
-		return RCLONE_PATH_ERROR;
-	}
-	if (
-		(!allowAbsolute && canonical.startsWith("/")) ||
-		RCLONE_WINDOWS_DRIVE_PATH.test(canonical)
-	) {
-		return RCLONE_PATH_ERROR;
-	}
-	if (
-		canonical.split("/").some((segment) => segment === "." || segment === "..")
-	) {
+	try {
+		normalizeRcloneDestinationPath(value, {
+			provider,
+			kind: "base",
+			allowAbsolute,
+		});
+	} catch {
 		return RCLONE_PATH_ERROR;
 	}
 	return undefined;
 };
 
-export const getRcloneBasePathValidationError = (value: unknown) => {
-	if (typeof value !== "string") return RCLONE_PATH_ERROR;
-	return getRclonePathValidationError(value, false);
+export const getRcloneBasePathValidationError = (
+	value: unknown,
+	provider?: string | null,
+) =>
+	getRclonePathValidationError(
+		value,
+		isFileTransferRcloneDestinationProvider(provider),
+		provider,
+	);
+
+export const getAdditionalFlagValidationError = (value: unknown) => {
+	if (typeof value !== "string" || !ADDITIONAL_FLAG_REGEX.test(value)) {
+		return ADDITIONAL_FLAG_ERROR;
+	}
+	return undefined;
 };
 
 const parseBooleanFlagValue = (
@@ -177,27 +255,41 @@ export interface DestinationValidationIssue {
 
 export interface DestinationValidationInput {
 	provider?: string | null;
-	accessKey?: string;
-	bucket?: string;
-	region?: string;
-	endpoint?: string;
-	additionalFlags?: readonly string[] | null;
+	accessKey?: unknown;
+	bucket?: unknown;
+	region?: unknown;
+	endpoint?: unknown;
+	additionalFlags?: readonly unknown[] | null;
 }
+
+const getTrimmedString = (value: unknown) =>
+	typeof value === "string" ? value.trim() : "";
 
 export const getDestinationValidationIssues = (
 	data: DestinationValidationInput,
 ): DestinationValidationIssue[] => {
 	const issues: DestinationValidationIssue[] = [];
 	const provider = data.provider;
-	const flags = data.additionalFlags ?? [];
+	const rawFlags = data.additionalFlags;
+	const flags = Array.isArray(rawFlags) ? rawFlags : [];
 
-	const bucketIssue = getRcloneBasePathValidationError(data.bucket);
+	if (rawFlags !== undefined && rawFlags !== null && !Array.isArray(rawFlags)) {
+		issues.push({ field: "additionalFlags", message: ADDITIONAL_FLAG_ERROR });
+	}
+	for (const flag of flags) {
+		const flagIssue = getAdditionalFlagValidationError(flag);
+		if (flagIssue) {
+			issues.push({ field: "additionalFlags", message: flagIssue });
+		}
+	}
+
+	const bucketIssue = getRcloneBasePathValidationError(data.bucket, provider);
 	if (bucketIssue) {
 		issues.push({ field: "bucket", message: bucketIssue });
 	}
 
 	if (isNamedRcloneDestinationProvider(provider)) {
-		if (!RCLONE_REMOTE_NAME_REGEX.test(data.endpoint?.trim() || "")) {
+		if (!RCLONE_REMOTE_NAME_REGEX.test(getTrimmedString(data.endpoint))) {
 			issues.push({ field: "endpoint", message: RCLONE_REMOTE_NAME_ERROR });
 		}
 		return issues;
@@ -210,14 +302,15 @@ export const getDestinationValidationIssues = (
 		return issues;
 	}
 
-	if (!data.endpoint?.trim()) {
+	if (!getTrimmedString(data.endpoint)) {
 		issues.push({ field: "endpoint", message: "Host is required" });
 	}
-	if (!data.accessKey?.trim()) {
+	if (!getTrimmedString(data.accessKey)) {
 		issues.push({ field: "accessKey", message: "Username is required" });
 	}
-	if (data.region?.trim()) {
-		const port = Number(data.region);
+	const region = getTrimmedString(data.region);
+	if (region) {
+		const port = Number(region);
 		if (!Number.isInteger(port) || port < 1 || port > 65535) {
 			issues.push({
 				field: "region",

@@ -117,7 +117,6 @@ describe("issue #416 credential redaction", () => {
 });
 
 const unsafeDestinationBuckets = [
-	"/absolute",
 	"..",
 	".",
 	"../outside",
@@ -131,6 +130,7 @@ const unsafeDestinationBuckets = [
 	"safe/%2e%2e%5coutside",
 	"safe/%5coutside",
 	"safe/%255coutside",
+	"safe/%ZZ",
 	"bucket\0next",
 	"bucket\rnext",
 	"bucket\nnext",
@@ -218,6 +218,66 @@ describe("issue #416 destination base path safety", () => {
 					destinationId: "destination-id",
 				}).success,
 			).toBe(false);
+		},
+	);
+
+	test.each([
+		RCLONE_DESTINATION_PROVIDERS.GOOGLE_DRIVE,
+		RCLONE_DESTINATION_PROVIDERS.ONEDRIVE,
+		RCLONE_DESTINATION_PROVIDERS.REMOTE,
+		"AWS",
+	])(
+		"rejects an absolute base for object-style provider %s",
+		async (provider) => {
+			const input = destinationSchemaInput("/absolute", provider);
+			expect(apiCreateDestination.safeParse(input).success).toBe(false);
+			await expect(
+				getRclonePathAndFlags(
+					destination({
+						provider,
+						endpoint: provider === "AWS" ? "s3.example.com" : "team-drive",
+						bucket: "/absolute",
+					}),
+					"service/backup.tar",
+				),
+			).rejects.toThrow("Invalid rclone path");
+		},
+	);
+
+	test.each([
+		RCLONE_DESTINATION_PROVIDERS.FTP,
+		RCLONE_DESTINATION_PROVIDERS.SFTP,
+	])(
+		"accepts an absolute base for file-transfer provider %s",
+		async (provider) => {
+			const input = destinationSchemaInput("/backups/", provider);
+			expect(apiCreateDestination.safeParse(input).success).toBe(true);
+			expect(
+				apiUpdateDestination.safeParse({
+					...input,
+					destinationId: "destination-id",
+				}).success,
+			).toBe(true);
+
+			const result = await getRclonePathAndFlags(
+				destination({
+					provider,
+					endpoint: "storage.example.com",
+					accessKey: "backup-user",
+					region: provider === RCLONE_DESTINATION_PROVIDERS.FTP ? "21" : "22",
+					additionalFlags:
+						provider === RCLONE_DESTINATION_PROVIDERS.FTP
+							? ["--ftp-explicit-tls"]
+							: ["--sftp-known-hosts-file=/etc/ssh/ssh_known_hosts"],
+					bucket: "/backups/",
+				}),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(
+				provider === RCLONE_DESTINATION_PROVIDERS.FTP
+					? ":ftp:/backups/service/backup.tar"
+					: ":sftp:/backups/service/backup.tar",
+			);
 		},
 	);
 

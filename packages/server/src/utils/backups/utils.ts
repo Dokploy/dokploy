@@ -1,12 +1,11 @@
 import {
 	ADDITIONAL_FLAG_ERROR,
-	ADDITIONAL_FLAG_REGEX,
+	getAdditionalFlagValidationError,
 	getDestinationValidationIssues,
 	getFtpTlsState,
-	getRcloneBasePathValidationError,
 	getRclonePathValidationError,
 	isNamedRcloneDestinationProvider,
-	isRcloneDestinationProvider,
+	normalizeRcloneDestinationPath,
 	RCLONE_DESTINATION_PROVIDERS,
 } from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
@@ -82,12 +81,12 @@ export const normalizeS3Path = (prefix: string) => {
 
 const getValidatedAdditionalFlags = (destination: Destination): string[] => {
 	const flags = destination.additionalFlags ?? [];
-	for (const flag of flags) {
-		if (!ADDITIONAL_FLAG_REGEX.test(flag)) {
-			throw new Error(ADDITIONAL_FLAG_ERROR);
-		}
-	}
-	return flags;
+	if (!Array.isArray(flags)) throw new Error(ADDITIONAL_FLAG_ERROR);
+	return flags.map((flag) => {
+		const issue = getAdditionalFlagValidationError(flag);
+		if (issue) throw new Error(issue);
+		return flag;
+	});
 };
 
 export const getS3Credentials = (destination: Destination) => {
@@ -111,13 +110,17 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
-const trimRclonePath = (value: string) =>
-	value.trim().replace(/^\/+|\/+$/g, "");
+const joinRclonePath = (...parts: string[]) => {
+	const nonEmptyParts = parts.filter(Boolean);
+	const basePath = nonEmptyParts[0];
+	if (!basePath) return "";
+	const childPaths = nonEmptyParts.slice(1);
+	return childPaths.length === 0
+		? basePath
+		: `${basePath}${basePath.endsWith("/") ? "" : "/"}${childPaths.join("/")}`;
+};
 
-const joinRclonePath = (...parts: string[]) =>
-	parts.map(trimRclonePath).filter(Boolean).join("/");
-
-export const assertSafeRclonePath = (value: string) => {
+export const assertSafeRclonePath = (value: unknown) => {
 	const issue = getRclonePathValidationError(value, true);
 	if (issue) throw new Error(issue);
 };
@@ -134,19 +137,22 @@ export const getRclonePathAndFlags = async (
 	destination: Destination,
 	path = "",
 ): Promise<{ flags: string[]; path: string }> => {
-	assertSafeRclonePath(path);
-	const basePathIssue = getRcloneBasePathValidationError(destination.bucket);
-	if (basePathIssue) throw new Error(basePathIssue);
 	const provider = destination.provider;
-	const additionalFlags = getValidatedAdditionalFlags(destination);
+	const childPath = normalizeRcloneDestinationPath(path, {
+		provider,
+		kind: "child",
+	});
+	const [validationIssue] = getDestinationValidationIssues(destination);
+	if (validationIssue) throw new Error(validationIssue.message);
 
-	if (isRcloneDestinationProvider(provider)) {
-		const [issue] = getDestinationValidationIssues(destination);
-		if (issue) throw new Error(issue.message);
-	}
+	const additionalFlags = getValidatedAdditionalFlags(destination);
+	const basePath = normalizeRcloneDestinationPath(destination.bucket, {
+		provider,
+		kind: "base",
+	});
+	const remotePath = joinRclonePath(basePath, childPath);
 
 	if (isNamedRcloneDestinationProvider(provider)) {
-		const remotePath = joinRclonePath(destination.bucket, path);
 		return {
 			flags: additionalFlags,
 			path: `${destination.endpoint.trim()}:${remotePath}`,
@@ -188,13 +194,13 @@ export const getRclonePathAndFlags = async (
 		}
 		return {
 			flags,
-			path: `:${backend}:${joinRclonePath(destination.bucket, path)}`,
+			path: `:${backend}:${remotePath}`,
 		};
 	}
 
 	return {
 		flags: getS3Credentials(destination),
-		path: `:s3:${joinRclonePath(destination.bucket, path)}`,
+		path: `:s3:${remotePath}`,
 	};
 };
 
