@@ -1,11 +1,23 @@
 import { db } from "@dokploy/server/db";
 import {
+	findNotificationById,
+	getDokployUrl,
 	hasValidLicense,
 	IS_CLOUD,
+	renderInvitationEmail,
+	sendEmailNotification,
 	sendInvitationEmail,
+	sendResendNotification,
 } from "@dokploy/server/index";
+import {
+	filterExpiredInvitations,
+	normalizeInviteEmails,
+	validateInvitationCutoff,
+	validateOwnershipTransfer,
+	validateTeamCapacity,
+} from "@dokploy/server/services/organization-teams";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, lt } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -21,12 +33,14 @@ import {
 	user,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import { assertTeamExistsInOrg } from "./team";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
 			z.object({
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: z.string().max(500).nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -132,6 +146,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: z.string().max(500).nullable().optional(),
 				defaultRole: z.string().min(1).nullable().optional(),
 			}),
 		)
@@ -183,7 +198,7 @@ export const organizationRouter = createTRPCRouter({
 					});
 				}
 
-				if (!["admin", "member"].includes(input.defaultRole)) {
+				if (!["admin", "member", "viewer"].includes(input.defaultRole)) {
 					const customRole = await db.query.organizationRole.findFirst({
 						where: and(
 							eq(organizationRole.organizationId, input.organizationId),
@@ -213,6 +228,9 @@ export const organizationRouter = createTRPCRouter({
 				.set({
 					name: input.name,
 					logo: input.logo,
+					...(input.description !== undefined && {
+						description: input.description,
+					}),
 					...(input.defaultRole !== undefined && {
 						defaultRole: input.defaultRole,
 					}),
@@ -302,6 +320,7 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				email: z.string().email(),
 				role: z.string().min(1),
+				teamId: z.string().min(1).nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -358,7 +377,7 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			// If assigning a custom role, verify it exists
-			if (!["owner", "admin", "member"].includes(input.role)) {
+			if (!["owner", "admin", "member", "viewer"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(organizationRole.organizationId, orgId),
@@ -374,6 +393,35 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
+			if (input.teamId) {
+				const destination = await assertTeamExistsInOrg(orgId, input.teamId);
+				const assigned = await db.query.member.findMany({
+					where: and(
+						eq(member.organizationId, orgId),
+						eq(member.teamId, input.teamId),
+					),
+				});
+				const pendingForTeam = await db.query.invitation.findMany({
+					where: and(
+						eq(invitation.organizationId, orgId),
+						eq(invitation.teamId, input.teamId),
+						eq(invitation.status, "pending"),
+					),
+				});
+				try {
+					validateTeamCapacity(
+						assigned.length + pendingForTeam.length,
+						destination?.maxMembers,
+						1,
+					);
+				} catch (error) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: (error as Error).message,
+					});
+				}
+			}
+
 			const [created] = await db
 				.insert(invitation)
 				.values({
@@ -384,6 +432,7 @@ export const organizationRouter = createTRPCRouter({
 					status: "pending",
 					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
 					inviterId: ctx.user.id,
+					teamId: input.teamId ?? null,
 				})
 				.returning();
 
@@ -507,8 +556,12 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// If assigning a custom role (not admin/member), verify it exists
-			if (input.role !== "admin" && input.role !== "member") {
+			// If assigning a custom role (not admin/member/viewer), verify it exists
+			if (
+				input.role !== "admin" &&
+				input.role !== "member" &&
+				input.role !== "viewer"
+			) {
 				const customRole = await db.query.organizationRole.findFirst({
 					where: and(
 						eq(
@@ -541,6 +594,313 @@ export const organizationRouter = createTRPCRouter({
 				metadata: { before: target.role, after: input.role },
 			});
 			return true;
+		}),
+	transferOwnership: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().min(1),
+				targetUserId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, input.organizationId),
+			});
+			if (!org) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Not found" });
+			}
+			const actorMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, input.targetUserId),
+				),
+			});
+			try {
+				validateOwnershipTransfer({
+					organizationOwnerId: org.ownerId,
+					actorUserId: ctx.user.id,
+					actorRole: actorMember?.role ?? "",
+					targetUserId: input.targetUserId,
+					targetRole: targetMember?.role ?? null,
+				});
+			} catch (error) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: (error as Error).message,
+				});
+			}
+			await db.transaction(async (tx) => {
+				await tx
+					.update(organization)
+					.set({ ownerId: input.targetUserId })
+					.where(eq(organization.id, input.organizationId));
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, targetMember!.id));
+				if (actorMember) {
+					await tx
+						.update(member)
+						.set({ role: "admin" })
+						.where(eq(member.id, actorMember.id));
+				}
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					from: ctx.user.id,
+					to: input.targetUserId,
+				},
+			});
+			return { success: true };
+		}),
+	inviteManyMembers: withPermission("member", "create")
+		.input(
+			z.object({
+				emails: z.array(z.string().min(1)).min(1).max(100),
+				role: z.string().min(1),
+				teamId: z.string().min(1).nullable().optional(),
+				notificationId: z.string().min(1).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			let emails: string[];
+			try {
+				emails = normalizeInviteEmails(input.emails);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: (error as Error).message,
+				});
+			}
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot invite a user with the owner role",
+				});
+			}
+			if (!["admin", "member", "viewer"].includes(input.role)) {
+				const customRole = await db.query.organizationRole.findFirst({
+					where: and(
+						eq(organizationRole.organizationId, orgId),
+						eq(organizationRole.role, input.role),
+					),
+				});
+				if (!customRole) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Role "${input.role}" not found`,
+					});
+				}
+			}
+			const candidateEmails: string[] = [];
+			for (const email of emails) {
+				const existingUser = await db.query.user.findFirst({
+					where: eq(user.email, email),
+				});
+				if (existingUser) {
+					const existingMember = await db.query.member.findFirst({
+						where: and(
+							eq(member.organizationId, orgId),
+							eq(member.userId, existingUser.id),
+						),
+					});
+					if (existingMember) continue;
+				}
+				const existingInvitation = await db.query.invitation.findFirst({
+					where: and(
+						eq(invitation.organizationId, orgId),
+						eq(invitation.email, email),
+						eq(invitation.status, "pending"),
+					),
+				});
+				if (!existingInvitation) candidateEmails.push(email);
+			}
+			const destination = await assertTeamExistsInOrg(orgId, input.teamId);
+			if (destination) {
+				const assigned = await db.query.member.findMany({
+					where: and(
+						eq(member.organizationId, orgId),
+						eq(member.teamId, destination.id),
+					),
+				});
+				const pendingForTeam = await db.query.invitation.findMany({
+					where: and(
+						eq(invitation.organizationId, orgId),
+						eq(invitation.teamId, destination.id),
+						eq(invitation.status, "pending"),
+					),
+				});
+				try {
+					validateTeamCapacity(
+						assigned.length + pendingForTeam.length,
+						destination.maxMembers,
+						candidateEmails.length,
+					);
+				} catch (error) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: (error as Error).message,
+					});
+				}
+			}
+			if (IS_CLOUD) {
+				await assertMemberLimit(orgId);
+			}
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, orgId),
+				columns: { name: true },
+			});
+			const notification = !IS_CLOUD
+				? input.notificationId
+					? await findNotificationById(input.notificationId)
+					: null
+				: null;
+			if (notification && notification.organizationId !== orgId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Notification not found",
+				});
+			}
+			if (!IS_CLOUD && !notification) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "An email notification provider is required",
+				});
+			}
+			if (notification && !notification.email && !notification.resend) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The selected notification must use Email or Resend",
+				});
+			}
+			const host = IS_CLOUD
+				? process.env.NODE_ENV === "development"
+					? "http://localhost:3000"
+					: "https://app.dokploy.com"
+				: await getDokployUrl();
+			const created: (typeof invitation.$inferSelect)[] = [];
+			for (const email of candidateEmails) {
+				const [row] = await db
+					.insert(invitation)
+					.values({
+						id: nanoid(),
+						organizationId: orgId,
+						email,
+						role: input.role as any,
+						status: "pending",
+						expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+						inviterId: ctx.user.id,
+						teamId: input.teamId ?? null,
+					})
+					.returning();
+				if (!row) continue;
+				const inviteLink = `${host}/invitation?token=${row.id}`;
+				try {
+					if (IS_CLOUD) {
+						await sendInvitationEmail({
+							email,
+							inviteLink,
+							organizationName: org?.name || "organization",
+						});
+					} else {
+						const subject = `You've been invited to join ${org?.name || "organization"} on Dokploy`;
+						const html = await renderInvitationEmail({
+							email,
+							inviteLink,
+							organizationName: org?.name || "organization",
+						});
+						if (notification?.email) {
+							await sendEmailNotification(
+								{ ...notification.email, toAddresses: [email] },
+								subject,
+								html,
+							);
+						} else if (notification?.resend) {
+							await sendResendNotification(
+								{ ...notification.resend, toAddresses: [email] },
+								subject,
+								html,
+							);
+						}
+					}
+				} catch (error) {
+					await db.delete(invitation).where(eq(invitation.id, row.id));
+					throw error;
+				}
+				created.push(row);
+			}
+			await audit(ctx, {
+				action: "create",
+				resourceType: "organization",
+				resourceId: orgId,
+				resourceName: `${created.length} invitation(s)`,
+				metadata: {
+					type: "inviteManyMembers",
+					role: input.role,
+					teamId: input.teamId ?? null,
+				},
+			});
+			return created;
+		}),
+	deleteExpiredInvitations: withPermission("member", "create").mutation(
+		async ({ ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const pending = await db.query.invitation.findMany({
+				where: and(
+					eq(invitation.organizationId, orgId),
+					eq(invitation.status, "pending"),
+				),
+			});
+			const expired = filterExpiredInvitations(pending);
+			for (const inv of expired) {
+				await db.delete(invitation).where(eq(invitation.id, inv.id));
+			}
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: orgId,
+				resourceName: `${expired.length} expired invitation(s)`,
+				metadata: { type: "deleteExpiredInvitations" },
+			});
+			return { deleted: expired.length };
+		},
+	),
+	purgeExpiredInvitations: withPermission("member", "create")
+		.input(z.object({ before: z.coerce.date().optional() }).optional())
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			let cutoff: Date;
+			try {
+				cutoff = validateInvitationCutoff(input?.before);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: (error as Error).message,
+				});
+			}
+			const deleted = await db
+				.delete(invitation)
+				.where(
+					and(
+						eq(invitation.organizationId, orgId),
+						eq(invitation.status, "pending"),
+						lt(invitation.expiresAt, cutoff),
+					),
+				)
+				.returning({ id: invitation.id });
+			return { deleted: deleted.length };
 		}),
 	setDefault: protectedProcedure
 		.input(

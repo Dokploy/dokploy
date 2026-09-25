@@ -6,6 +6,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { network } from "./network";
@@ -64,6 +65,7 @@ export const organization = pgTable("organization", {
 	name: text("name").notNull(),
 	slug: text("slug").unique(),
 	logo: text("logo"),
+	description: text("description"),
 	createdAt: timestamp("created_at").notNull(),
 	metadata: text("metadata"),
 	defaultRole: text("default_role"),
@@ -115,8 +117,51 @@ export const organizationRelations = relations(
 		members: many(member),
 		ssoProviders: many(ssoProvider),
 		roles: many(organizationRole),
+		teams: many(team),
 	}),
 );
+
+/**
+ * Teams group members inside an organization (issue #1413).
+ * A team has an optional description, an optional member cap
+ * (`maxMembers`), and an optional set of remote servers shared with
+ * every team member (`accessedServers`) for team-wide access control.
+ */
+export const team = pgTable(
+	"team",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		description: text("description"),
+		maxMembers: integer("max_members"),
+		accessedServers: text("accessed_servers")
+			.array()
+			.notNull()
+			.default(sql`ARRAY[]::text[]`),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("team_organizationId_idx").on(table.organizationId),
+		uniqueIndex("team_organization_name_unique").on(
+			table.organizationId,
+			table.name,
+		),
+	],
+);
+
+export const teamRelations = relations(team, ({ one, many }) => ({
+	organization: one(organization, {
+		fields: [team.organizationId],
+		references: [organization.id],
+	}),
+	members: many(member),
+}));
 
 export const member = pgTable("member", {
 	id: text("id")
@@ -130,7 +175,7 @@ export const member = pgTable("member", {
 		.references(() => user.id, { onDelete: "cascade" }),
 	role: text("role")
 		.notNull()
-		.$type<"owner" | "member" | "admin" | (string & {})>(),
+		.$type<"owner" | "member" | "admin" | "viewer" | (string & {})>(),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	isDefault: boolean("is_default").notNull().default(false),
@@ -193,7 +238,9 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	email: text("email").notNull(),
-	role: text("role").$type<"owner" | "member" | "admin" | (string & {})>(),
+	role: text("role").$type<
+		"owner" | "member" | "admin" | "viewer" | (string & {})
+	>(),
 	status: text("status").notNull(),
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")
