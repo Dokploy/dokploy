@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const execAsync = vi.hoisted(() => vi.fn());
 const migrateRestoredLegacyTwoFactorSecrets = vi.hoisted(() => vi.fn());
+const restoreSteps = vi.hoisted(() => [] as string[]);
 
 vi.mock("node:fs/promises", async (importOriginal) => ({
 	...(await importOriginal<typeof import("node:fs/promises")>()),
@@ -26,10 +27,20 @@ const destination = { bucket: "test-bucket" } as Parameters<
 
 describe("web server restore 2FA migration", () => {
 	beforeEach(() => {
+		restoreSteps.length = 0;
 		execAsync.mockReset();
 		migrateRestoredLegacyTwoFactorSecrets.mockReset();
-		migrateRestoredLegacyTwoFactorSecrets.mockResolvedValue(1);
+		migrateRestoredLegacyTwoFactorSecrets.mockImplementation(async () => {
+			restoreSteps.push("two-factor");
+			return 1;
+		});
 		execAsync.mockImplementation(async (command: string) => {
+			if (command.includes("pg_restore")) {
+				restoreSteps.push("restore");
+			}
+			if (command.includes("dist/migration.mjs")) {
+				restoreSteps.push("migrations");
+			}
 			if (
 				command.includes(
 					"ls /tmp/dokploy-restore-two-factor-test/database.sql.gz",
@@ -61,6 +72,7 @@ describe("web server restore 2FA migration", () => {
 			),
 		).toBe(true);
 		expect(migrateRestoredLegacyTwoFactorSecrets).toHaveBeenCalledOnce();
+		expect(restoreSteps).toEqual(["restore", "migrations", "two-factor"]);
 		expect(logs.indexOf("Migrating restored 2FA secrets...")).toBeLessThan(
 			logs.indexOf("Restore completed successfully!"),
 		);
