@@ -1,4 +1,5 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { hasPermission } from "@dokploy/server/services/permission";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -16,7 +17,11 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 const Home = () => {
-	const { data } = api.project.onboardingStatus.useQuery();
+	const { data: activeOrganization } = api.organization.active.useQuery();
+	const hasActiveOrganization = Boolean(activeOrganization);
+	const { data } = api.project.onboardingStatus.useQuery(undefined, {
+		enabled: hasActiveOrganization,
+	});
 	const utils = api.useUtils();
 	const { mutateAsync: completeOnboarding } =
 		api.project.completeOnboarding.useMutation();
@@ -77,9 +82,42 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		transformer: superjson,
 	});
 
-	await helpers.settings.isCloud.prefetch();
-	await helpers.user.get.prefetch();
-	await helpers.project.onboardingStatus.prefetch();
+	const activeOrganizationId = session?.activeOrganizationId;
+
+	const prefetchTasks: Promise<unknown>[] = [
+		helpers.settings.isCloud.prefetch(),
+		helpers.user.get.prefetch(),
+		helpers.organization.active.prefetch(),
+	];
+
+	// Org-scoped queries require an active membership; skipping them avoids
+	// UNAUTHORIZED during SSR when the user has no organization selected.
+	if (activeOrganizationId) {
+		const permissionCtx = {
+			user: { id: user.id },
+			session: { activeOrganizationId },
+		};
+
+		const [canReadDeployments, canReadServers] = await Promise.all([
+			hasPermission(permissionCtx, { deployment: ["read"] }),
+			hasPermission(permissionCtx, { server: ["read"] }),
+		]);
+
+		prefetchTasks.push(
+			helpers.project.onboardingStatus.prefetch(),
+			helpers.user.getPermissions.prefetch(),
+			helpers.project.homeStats.prefetch(),
+		);
+
+		if (canReadDeployments) {
+			prefetchTasks.push(helpers.deployment.homeSummary.prefetch());
+		}
+		if (canReadServers) {
+			prefetchTasks.push(helpers.server.all.prefetch());
+		}
+	}
+
+	await Promise.all(prefetchTasks);
 
 	return {
 		props: {
