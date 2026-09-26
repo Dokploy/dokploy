@@ -18,9 +18,14 @@ const PRIVATE_KEY_BLOCK =
 
 const BASE64_DECODE_PIPE = /echo "[A-Za-z0-9+/=]+"\s*\|\s*base64 -d/g;
 
-// A flag/assignment value may be double-quoted, single-quoted, or a bare token —
-// shell-quote leaves simple values bare and quotes the rest.
-const QUOTED_OR_BARE = `("[^"]*"|'[^']*'|\\S+)`;
+// A flag/assignment value is a shell word as produced by shell-quote: bare,
+// 'single' quoted or "double" quoted, where a double-quoted word may contain
+// backslash-escaped quotes (`"say \"hi\" it's"`) and a bare word may contain
+// backslash escapes. The trailing `["'\\]` alternative consumes a stray,
+// unbalanced quote or backslash so a malformed value is still redacted rather
+// than left behind.
+const SHELL_WORD = String.raw`(?:[^\s'"\\]|\\.|'[^']*'|"(?:[^"\\]|\\.)*"|["'\\])+`;
+const QUOTED_OR_BARE = `(${SHELL_WORD})`;
 
 // Long-option flags whose value is a credential (rclone S3 / SFTP / FTP, plus a
 // generic --password). Matched as `--flag=VALUE` or `--flag VALUE`.
