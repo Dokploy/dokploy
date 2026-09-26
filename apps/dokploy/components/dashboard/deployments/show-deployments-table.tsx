@@ -1,10 +1,8 @@
 "use client";
 
 import {
-	type ColumnFiltersState,
 	flexRender,
 	getCoreRowModel,
-	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
 	type PaginationState,
@@ -27,7 +25,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -97,14 +94,21 @@ function getServiceInfo(d: DeploymentRow) {
 	return null;
 }
 
-export function ShowDeploymentsTable() {
+interface ShowDeploymentsTableProps {
+	globalFilter: string;
+	statusFilter: string;
+	typeFilter: string;
+}
+
+export function ShowDeploymentsTable({
+	globalFilter,
+	statusFilter,
+	typeFilter,
+}: ShowDeploymentsTableProps) {
 	const [sorting, setSorting] = useState<SortingState>([
 		{ id: "createdAt", desc: true },
 	]);
-	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-	const [globalFilter, setGlobalFilter] = useState("");
-	const [statusFilter, setStatusFilter] = useState<string>("all");
-	const [typeFilter, setTypeFilter] = useState<string>("all");
+
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: 50,
@@ -446,177 +450,140 @@ export function ShowDeploymentsTable() {
 		columns,
 		state: {
 			sorting,
-			columnFilters,
-			globalFilter,
 			pagination,
 		},
 		onSortingChange: setSorting,
-		onColumnFiltersChange: setColumnFilters,
-		onGlobalFilterChange: setGlobalFilter,
 		onPaginationChange: setPagination,
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
 	});
 
 	return (
-		<div className="space-y-2">
-			<div className="flex flex-wrap items-center gap-2">
-				<Input
-					placeholder="Search by name, project, environment, server..."
-					value={globalFilter}
-					onChange={(e) => setGlobalFilter(e.target.value)}
-					className="max-w-xs"
-				/>
-				<Select value={statusFilter} onValueChange={setStatusFilter}>
-					<SelectTrigger className="w-[140px]">
-						<SelectValue placeholder="Status" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All statuses</SelectItem>
-						<SelectItem value="running">Running</SelectItem>
-						<SelectItem value="done">Done</SelectItem>
-						<SelectItem value="error">Error</SelectItem>
-						<SelectItem value="cancelled">Cancelled</SelectItem>
-					</SelectContent>
-				</Select>
-				<Select value={typeFilter} onValueChange={setTypeFilter}>
-					<SelectTrigger className="w-[140px]">
-						<SelectValue placeholder="Type" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All types</SelectItem>
-						<SelectItem value="application">Application</SelectItem>
-						<SelectItem value="compose">Compose</SelectItem>
-					</SelectContent>
-				</Select>
-			</div>
-			<div className="px-0">
-				{isLoading ? (
-					<div className="flex gap-4 w-full items-center justify-center min-h-[45vh] text-muted-foreground">
-						<Loader2 className="size-4 animate-spin" />
-						<span>Loading deployments...</span>
-					</div>
-				) : (
-					<>
-						<div className="rounded-md border overflow-x-auto">
-							<Table>
-								<TableHeader>
-									{table.getHeaderGroups().map((headerGroup) => (
-										<TableRow key={headerGroup.id}>
-											{headerGroup.headers.map((header) => (
-												<TableHead key={header.id}>
-													{header.isPlaceholder
-														? null
-														: flexRender(
-																header.column.columnDef.header,
-																header.getContext(),
-															)}
-												</TableHead>
+		<div className="px-0">
+			{isLoading ? (
+				<div className="flex gap-4 w-full items-center justify-center min-h-[45vh] text-muted-foreground">
+					<Loader2 className="size-4 animate-spin" />
+					<span>Loading deployments...</span>
+				</div>
+			) : (
+				<>
+					<div className="rounded-md border overflow-x-auto">
+						<Table>
+							<TableHeader>
+								{table.getHeaderGroups().map((headerGroup) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map((header) => (
+											<TableHead key={header.id}>
+												{header.isPlaceholder
+													? null
+													: flexRender(
+															header.column.columnDef.header,
+															header.getContext(),
+														)}
+											</TableHead>
+										))}
+									</TableRow>
+								))}
+							</TableHeader>
+							<TableBody>
+								{table.getRowModel().rows?.length ? (
+									table.getRowModel().rows.map((row) => (
+										<TableRow key={row.id}>
+											{row.getVisibleCells().map((cell) => (
+												<TableCell key={cell.id}>
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext(),
+													)}
+												</TableCell>
 											))}
 										</TableRow>
+									))
+								) : (
+									<TableRow>
+										<TableCell
+											colSpan={columns.length}
+											className=" text-center"
+										>
+											<div className="flex flex-col min-h-[45vh] items-center justify-center gap-2 text-muted-foreground">
+												<Rocket className="size-8" />
+												<p className="font-medium">No deployments found</p>
+												<p className="text-sm">
+													Deployments from applications and compose will appear
+													here.
+												</p>
+											</div>
+										</TableCell>
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
+					</div>
+					<div className="flex flex-col gap-4 px-4 py-4 border-t sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex items-center gap-2 flex-wrap">
+							<span className="text-sm text-muted-foreground whitespace-nowrap">
+								Rows per page
+							</span>
+							<Select
+								value={String(pagination.pageSize)}
+								onValueChange={(value) => {
+									setPagination((p) => ({
+										...p,
+										pageSize: Number(value),
+										pageIndex: 0,
+									}));
+								}}
+							>
+								<SelectTrigger className="h-8 w-[70px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent side="top">
+									{[10, 25, 50, 100].map((size) => (
+										<SelectItem key={size} value={String(size)}>
+											{size}
+										</SelectItem>
 									))}
-								</TableHeader>
-								<TableBody>
-									{table.getRowModel().rows?.length ? (
-										table.getRowModel().rows.map((row) => (
-											<TableRow key={row.id}>
-												{row.getVisibleCells().map((cell) => (
-													<TableCell key={cell.id}>
-														{flexRender(
-															cell.column.columnDef.cell,
-															cell.getContext(),
-														)}
-													</TableCell>
-												))}
-											</TableRow>
-										))
-									) : (
-										<TableRow>
-											<TableCell
-												colSpan={columns.length}
-												className=" text-center"
-											>
-												<div className="flex flex-col min-h-[45vh] items-center justify-center gap-2 text-muted-foreground">
-													<Rocket className="size-8" />
-													<p className="font-medium">No deployments found</p>
-													<p className="text-sm">
-														Deployments from applications and compose will
-														appear here.
-													</p>
-												</div>
-											</TableCell>
-										</TableRow>
-									)}
-								</TableBody>
-							</Table>
+								</SelectContent>
+							</Select>
+							<span className="text-sm text-muted-foreground whitespace-nowrap">
+								Showing{" "}
+								{filteredData.length === 0
+									? 0
+									: pagination.pageIndex * pagination.pageSize + 1}{" "}
+								to{" "}
+								{Math.min(
+									(pagination.pageIndex + 1) * pagination.pageSize,
+									filteredData.length,
+								)}{" "}
+								of {filteredData.length} entries
+							</span>
 						</div>
-						<div className="flex flex-col gap-4 px-4 py-4 border-t sm:flex-row sm:items-center sm:justify-between">
-							<div className="flex items-center gap-2 flex-wrap">
-								<span className="text-sm text-muted-foreground whitespace-nowrap">
-									Rows per page
-								</span>
-								<Select
-									value={String(pagination.pageSize)}
-									onValueChange={(value) => {
-										setPagination((p) => ({
-											...p,
-											pageSize: Number(value),
-											pageIndex: 0,
-										}));
-									}}
-								>
-									<SelectTrigger className="h-8 w-[70px]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent side="top">
-										{[10, 25, 50, 100].map((size) => (
-											<SelectItem key={size} value={String(size)}>
-												{size}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-								<span className="text-sm text-muted-foreground whitespace-nowrap">
-									Showing{" "}
-									{filteredData.length === 0
-										? 0
-										: pagination.pageIndex * pagination.pageSize + 1}{" "}
-									to{" "}
-									{Math.min(
-										(pagination.pageIndex + 1) * pagination.pageSize,
-										filteredData.length,
-									)}{" "}
-									of {filteredData.length} entries
-								</span>
-							</div>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-8"
-									onClick={() => table.previousPage()}
-									disabled={!table.getCanPreviousPage()}
-								>
-									<ChevronLeft className="size-4" />
-									Previous
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-8"
-									onClick={() => table.nextPage()}
-									disabled={!table.getCanNextPage()}
-								>
-									Next
-									<ChevronRight className="size-4" />
-								</Button>
-							</div>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8"
+								onClick={() => table.previousPage()}
+								disabled={!table.getCanPreviousPage()}
+							>
+								<ChevronLeft className="size-4" />
+								Previous
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8"
+								onClick={() => table.nextPage()}
+								disabled={!table.getCanNextPage()}
+							>
+								Next
+								<ChevronRight className="size-4" />
+							</Button>
 						</div>
-					</>
-				)}
-			</div>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }
