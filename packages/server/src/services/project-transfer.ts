@@ -30,7 +30,8 @@ import {
 	vaultProvider,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or, type SQL, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 
 const privilegedOrganizationRoles = new Set(["owner", "admin"]);
@@ -121,6 +122,13 @@ type ProjectTransferState = {
 	dependencyIds: DependencyIds;
 };
 
+type ServiceReferenceScope = {
+	projectId?: string;
+	excludeProjectId?: string;
+	dependencies?: DependencyIds;
+	serviceIds?: ReadonlySet<string>;
+};
+
 type ProviderMap = Map<string, string>;
 
 const emptyDependencyIds = (): DependencyIds => ({
@@ -163,9 +171,142 @@ const providerMap = async (database: DatabaseLike): Promise<ProviderMap> => {
 	);
 };
 
+const sqlTextArray = (ids: ReadonlySet<string>) =>
+	sql`ARRAY[${sql.join(
+		[...ids].map((id) => sql`${id}`),
+		sql`, `,
+	)}]::text[]`;
+
+const arrayOverlaps = (
+	column: AnyPgColumn,
+	ids: ReadonlySet<string>,
+): SQL | undefined =>
+	ids.size > 0 ? sql`${column} && ${sqlTextArray(ids)}` : undefined;
+
+const scalarIn = (
+	column: AnyPgColumn,
+	ids: ReadonlySet<string>,
+): SQL | undefined => (ids.size > 0 ? inArray(column, [...ids]) : undefined);
+
+const anyCondition = (conditions: (SQL | undefined)[]) => {
+	const present = conditions.filter(
+		(condition): condition is SQL => !!condition,
+	);
+	return present.length === 0 ? sql`false` : (or(...present) ?? sql`false`);
+};
+
 const loadServiceReferences = async (
 	database: DatabaseLike,
+	scope?: ServiceReferenceScope,
 ): Promise<ServiceReference[]> => {
+	const providers = await providerMap(database);
+	const providerChildIds = new Set(
+		[...providers.entries()]
+			.filter(([, providerId]) =>
+				scope?.dependencies?.gitProviders.has(providerId),
+			)
+			.map(([childId]) => childId),
+	);
+	const projectFilter = scope?.projectId
+		? eq(projects.projectId, scope.projectId)
+		: scope?.excludeProjectId
+			? ne(projects.projectId, scope.excludeProjectId)
+			: sql`true`;
+	const dependencies = scope?.dependencies;
+	const serviceIds = scope?.serviceIds;
+	const scopedFilter = (conditions: (SQL | undefined)[]) => {
+		if (dependencies === undefined && serviceIds === undefined) {
+			return sql`true`;
+		}
+		return anyCondition(conditions);
+	};
+	const applicationFilter = scopedFilter([
+		...(dependencies
+			? [
+					scalarIn(applications.serverId, dependencies.servers),
+					scalarIn(applications.buildServerId, dependencies.servers),
+					scalarIn(applications.registryId, dependencies.registries),
+					scalarIn(applications.buildRegistryId, dependencies.registries),
+					scalarIn(applications.rollbackRegistryId, dependencies.registries),
+					scalarIn(applications.customGitSSHKeyId, dependencies.sshKeys),
+					scalarIn(applications.githubId, providerChildIds),
+					scalarIn(applications.gitlabId, providerChildIds),
+					scalarIn(applications.bitbucketId, providerChildIds),
+					scalarIn(applications.giteaId, providerChildIds),
+					arrayOverlaps(applications.networkIds, dependencies.networks),
+				]
+			: []),
+		serviceIds ? scalarIn(applications.applicationId, serviceIds) : undefined,
+	]);
+	const composeFilter = scopedFilter([
+		...(dependencies
+			? [
+					scalarIn(compose.serverId, dependencies.servers),
+					scalarIn(compose.customGitSSHKeyId, dependencies.sshKeys),
+					scalarIn(compose.githubId, providerChildIds),
+					scalarIn(compose.gitlabId, providerChildIds),
+					scalarIn(compose.bitbucketId, providerChildIds),
+					scalarIn(compose.giteaId, providerChildIds),
+				]
+			: []),
+		serviceIds ? scalarIn(compose.composeId, serviceIds) : undefined,
+	]);
+	const databaseFilters = {
+		libsql: scopedFilter([
+			...(dependencies
+				? [
+						scalarIn(libsql.serverId, dependencies.servers),
+						arrayOverlaps(libsql.networkIds, dependencies.networks),
+					]
+				: []),
+			serviceIds ? scalarIn(libsql.libsqlId, serviceIds) : undefined,
+		]),
+		mariadb: scopedFilter([
+			...(dependencies
+				? [
+						scalarIn(mariadb.serverId, dependencies.servers),
+						arrayOverlaps(mariadb.networkIds, dependencies.networks),
+					]
+				: []),
+			serviceIds ? scalarIn(mariadb.mariadbId, serviceIds) : undefined,
+		]),
+		mongo: scopedFilter([
+			...(dependencies
+				? [
+						scalarIn(mongo.serverId, dependencies.servers),
+						arrayOverlaps(mongo.networkIds, dependencies.networks),
+					]
+				: []),
+			serviceIds ? scalarIn(mongo.mongoId, serviceIds) : undefined,
+		]),
+		mysql: scopedFilter([
+			...(dependencies
+				? [
+						scalarIn(mysql.serverId, dependencies.servers),
+						arrayOverlaps(mysql.networkIds, dependencies.networks),
+					]
+				: []),
+			serviceIds ? scalarIn(mysql.mysqlId, serviceIds) : undefined,
+		]),
+		postgres: scopedFilter([
+			...(dependencies
+				? [
+						scalarIn(postgres.serverId, dependencies.servers),
+						arrayOverlaps(postgres.networkIds, dependencies.networks),
+					]
+				: []),
+			serviceIds ? scalarIn(postgres.postgresId, serviceIds) : undefined,
+		]),
+		redis: scopedFilter([
+			...(dependencies
+				? [
+						scalarIn(redis.serverId, dependencies.servers),
+						arrayOverlaps(redis.networkIds, dependencies.networks),
+					]
+				: []),
+			serviceIds ? scalarIn(redis.redisId, serviceIds) : undefined,
+		]),
+	};
 	const [
 		applicationRows,
 		composeRows,
@@ -197,7 +338,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(applications.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, applicationFilter)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -215,7 +357,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(compose.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, composeFilter)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -228,7 +371,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(libsql.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, databaseFilters.libsql)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -241,7 +385,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(mariadb.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, databaseFilters.mariadb)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -254,7 +399,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(mongo.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, databaseFilters.mongo)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -267,7 +413,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(mysql.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, databaseFilters.mysql)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -280,7 +427,8 @@ const loadServiceReferences = async (
 				environments,
 				eq(postgres.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, databaseFilters.postgres)),
 		database
 			.select({
 				projectId: projects.projectId,
@@ -293,10 +441,10 @@ const loadServiceReferences = async (
 				environments,
 				eq(redis.environmentId, environments.environmentId),
 			)
-			.innerJoin(projects, eq(environments.projectId, projects.projectId)),
+			.innerJoin(projects, eq(environments.projectId, projects.projectId))
+			.where(and(projectFilter, databaseFilters.redis)),
 	]);
 
-	const providers = await providerMap(database);
 	const result: ServiceReference[] = [];
 
 	for (const row of applicationRows) {
@@ -549,7 +697,7 @@ const loadProjectState = async (
 			.from(projectTags)
 			.innerJoin(tags, eq(projectTags.tagId, tags.tagId))
 			.where(eq(projectTags.projectId, projectId)),
-		loadServiceReferences(database),
+		loadServiceReferences(database, { projectId }),
 	]);
 
 	const dependencyIds = collectServiceDependencies(references, projectId);
@@ -616,52 +764,6 @@ const sharedLinkedResources = async (
 		if (ids.size > 0) shared.set(kind, ids);
 	};
 
-	add(
-		"servers",
-		idsUsedOutsideProject(
-			state.serviceReferences,
-			projectId,
-			"servers",
-			state.dependencyIds.servers,
-		),
-	);
-	add(
-		"registries",
-		idsUsedOutsideProject(
-			state.serviceReferences,
-			projectId,
-			"registries",
-			state.dependencyIds.registries,
-		),
-	);
-	add(
-		"sshKeys",
-		idsUsedOutsideProject(
-			state.serviceReferences,
-			projectId,
-			"sshKeys",
-			state.dependencyIds.sshKeys,
-		),
-	);
-	add(
-		"gitProviders",
-		idsUsedOutsideProject(
-			state.serviceReferences,
-			projectId,
-			"gitProviders",
-			state.dependencyIds.gitProviders,
-		),
-	);
-	add(
-		"networks",
-		idsUsedOutsideProject(
-			state.serviceReferences,
-			projectId,
-			"networks",
-			state.dependencyIds.networks,
-		),
-	);
-
 	const [
 		serverRows,
 		providerRows,
@@ -691,7 +793,12 @@ const sharedLinkedResources = async (
 				applicationId: schedules.applicationId,
 				composeId: schedules.composeId,
 			})
-			.from(schedules),
+			.from(schedules)
+			.where(
+				state.dependencyIds.schedules.size > 0
+					? inArray(schedules.scheduleId, [...state.dependencyIds.schedules])
+					: sql`false`,
+			),
 		database
 			.select({
 				destinationId: backups.destinationId,
@@ -699,7 +806,14 @@ const sharedLinkedResources = async (
 					string[]
 				>`array_remove(array[${backups.postgresId}, ${backups.mariadbId}, ${backups.mysqlId}, ${backups.mongoId}, ${backups.libsqlId}, ${backups.composeId}]::text[], null)`,
 			})
-			.from(backups),
+			.from(backups)
+			.where(
+				state.dependencyIds.destinations.size > 0
+					? inArray(backups.destinationId, [
+							...state.dependencyIds.destinations,
+						])
+					: sql`false`,
+			),
 		database
 			.select({
 				destinationId: volumeBackups.destinationId,
@@ -707,7 +821,14 @@ const sharedLinkedResources = async (
 					string[]
 				>`array_remove(array[${volumeBackups.applicationId}, ${volumeBackups.postgresId}, ${volumeBackups.mariadbId}, ${volumeBackups.mongoId}, ${volumeBackups.mysqlId}, ${volumeBackups.redisId}, ${volumeBackups.libsqlId}, ${volumeBackups.composeId}]::text[], null)`,
 			})
-			.from(volumeBackups),
+			.from(volumeBackups)
+			.where(
+				state.dependencyIds.destinations.size > 0
+					? inArray(volumeBackups.destinationId, [
+							...state.dependencyIds.destinations,
+						])
+					: sql`false`,
+			),
 		database
 			.select({
 				vaultProviderId: vaultProvider.vaultProviderId,
@@ -715,6 +836,62 @@ const sharedLinkedResources = async (
 			})
 			.from(vaultProvider),
 	]);
+
+	const destinationServiceIds = new Set(
+		[...backupRows, ...volumeBackupRows].flatMap((row) => row.serviceIds),
+	);
+	const externalServiceReferences = await loadServiceReferences(database, {
+		excludeProjectId: projectId,
+		dependencies: state.dependencyIds,
+		serviceIds: destinationServiceIds,
+	});
+	const references = [...state.serviceReferences, ...externalServiceReferences];
+
+	add(
+		"servers",
+		idsUsedOutsideProject(
+			references,
+			projectId,
+			"servers",
+			state.dependencyIds.servers,
+		),
+	);
+	add(
+		"registries",
+		idsUsedOutsideProject(
+			references,
+			projectId,
+			"registries",
+			state.dependencyIds.registries,
+		),
+	);
+	add(
+		"sshKeys",
+		idsUsedOutsideProject(
+			references,
+			projectId,
+			"sshKeys",
+			state.dependencyIds.sshKeys,
+		),
+	);
+	add(
+		"gitProviders",
+		idsUsedOutsideProject(
+			references,
+			projectId,
+			"gitProviders",
+			state.dependencyIds.gitProviders,
+		),
+	);
+	add(
+		"networks",
+		idsUsedOutsideProject(
+			references,
+			projectId,
+			"networks",
+			state.dependencyIds.networks,
+		),
+	);
 
 	const otherServerKeys = new Set(
 		serverRows
@@ -739,13 +916,11 @@ const sharedLinkedResources = async (
 	);
 
 	const serviceProjectIds = new Map(
-		state.serviceReferences.map((reference) => [
-			reference.serviceId,
-			reference.projectId,
-		]),
+		references.map((reference) => [reference.serviceId, reference.projectId]),
 	);
 	const destinationShared = new Set<string>();
 	for (const row of [...backupRows, ...volumeBackupRows]) {
+		if (!state.dependencyIds.destinations.has(row.destinationId)) continue;
 		const projectsUsingDestination = row.serviceIds
 			.map((serviceId) => serviceProjectIds.get(serviceId))
 			.filter(nonEmpty);
@@ -897,7 +1072,10 @@ const ownershipBlockers = (
 			owners.networks.map((row) => [row.id, row.organizationId]),
 		),
 		schedules: new Map(
-			owners.schedules.map((row) => [row.id, row.organizationId ?? ""]),
+			owners.schedules.map((row) => [
+				row.id,
+				row.organizationId ?? sourceOrganizationId,
+			]),
 		),
 		destinations: new Map(
 			owners.destinations.map((row) => [row.id, row.organizationId]),
@@ -1274,6 +1452,27 @@ const cleanupSourceAccess = async (
 		.where(eq(member.organizationId, sourceOrganizationId));
 };
 
+const lockTransferScope = async (
+	tx: DatabaseLike,
+	state: ProjectTransferState,
+) => {
+	if (state.environmentIds.length > 0) {
+		await tx
+			.select({ environmentId: environments.environmentId })
+			.from(environments)
+			.where(inArray(environments.environmentId, state.environmentIds))
+			.for("update");
+	}
+
+	if (state.dependencyIds.servers.size > 0) {
+		await tx
+			.select({ serverId: server.serverId })
+			.from(server)
+			.where(inArray(server.serverId, [...state.dependencyIds.servers]))
+			.for("update");
+	}
+};
+
 export const transferProject = async ({
 	projectId,
 	sourceOrganizationId,
@@ -1318,13 +1517,34 @@ export const transferProject = async ({
 			);
 		}
 
+		const initialData = await getProjectPlanData(
+			tx,
+			projectId,
+			sourceOrganizationId,
+			targetOrganizationId,
+		);
+		if (!initialData) {
+			throw new ProjectTransferError(
+				"PROJECT_NOT_FOUND",
+				"The project changed before the transfer could be completed.",
+			);
+		}
+
+		await lockTransferScope(tx, initialData.state);
+
 		const freshData = await getProjectPlanData(
 			tx,
 			projectId,
 			sourceOrganizationId,
 			targetOrganizationId,
 		);
-		if (!freshData || freshData.blockers.length > 0) {
+		if (!freshData) {
+			throw new ProjectTransferError(
+				"PROJECT_NOT_FOUND",
+				"The project changed before the transfer could be completed.",
+			);
+		}
+		if (freshData.blockers.length > 0) {
 			throw new ProjectTransferError(
 				"TRANSFER_BLOCKED",
 				"Project dependencies changed while the transfer was being prepared.",
@@ -1381,10 +1601,13 @@ export const transferProject = async ({
 				.set({ organizationId: targetOrganizationId })
 				.where(
 					and(
-						eq(schedules.organizationId, sourceOrganizationId),
 						inArray(schedules.scheduleId, [
 							...freshData.state.dependencyIds.schedules,
 						]),
+						or(
+							eq(schedules.organizationId, sourceOrganizationId),
+							isNull(schedules.organizationId),
+						),
 					),
 				);
 		}
