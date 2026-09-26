@@ -66,6 +66,7 @@ export const organization = pgTable("organization", {
 	logo: text("logo"),
 	createdAt: timestamp("created_at").notNull(),
 	metadata: text("metadata"),
+	description: text("description"),
 	defaultRole: text("default_role"),
 	ownerId: text("owner_id")
 		.notNull()
@@ -102,6 +103,66 @@ export const organizationRoleRelations = relations(
 	}),
 );
 
+export const team = pgTable(
+	"team",
+	{
+		id: text("id").primaryKey().$defaultFn(() => nanoid()),
+		name: text("name").notNull(),
+		description: text("description"),
+		memberCount: integer("member_count").notNull().default(0),
+		maxMembers: integer("max_members").notNull().default(50),
+		organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
+		canCreateProjects: boolean("can_create_projects").notNull().default(false),
+		canAccessToSSHKeys: boolean("can_access_to_ssh_keys").notNull().default(false),
+		canCreateServices: boolean("can_create_services").notNull().default(false),
+		canDeleteProjects: boolean("can_delete_projects").notNull().default(false),
+		canDeleteServices: boolean("can_delete_services").notNull().default(false),
+		canAccessToDocker: boolean("can_access_to_docker").notNull().default(false),
+		canAccessToAPI: boolean("can_access_to_api").notNull().default(false),
+		canAccessToGitProviders: boolean("can_access_to_git_providers").notNull().default(false),
+		canAccessToTraefikFiles: boolean("can_access_to_traefik_files").notNull().default(false),
+		canDeleteEnvironments: boolean("can_delete_environments").notNull().default(false),
+		canCreateEnvironments: boolean("can_create_environments").notNull().default(false),
+		canManageDeployments: boolean("can_manage_deployments").notNull().default(false),
+		accessedProjects: text("accessed_projects").array().notNull().default(sql`ARRAY[]::text[]`),
+		accessedEnvironments: text("accessed_environments").array().notNull().default(sql`ARRAY[]::text[]`),
+		accessedServices: text("accessed_services").array().notNull().default(sql`ARRAY[]::text[]`),
+		accessedGitProviders: text("accessed_git_providers").array().notNull().default(sql`ARRAY[]::text[]`),
+		accessedServers: text("accessed_servers").array().notNull().default(sql`ARRAY[]::text[]`),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("team_organizationId_idx").on(table.organizationId),
+		index("team_name_idx").on(table.name),
+	],
+);
+
+export const teamMember = pgTable(
+	"team_member",
+	{
+		id: text("id").primaryKey().$defaultFn(() => nanoid()),
+		teamId: text("team_id").notNull().references(() => team.id, { onDelete: "cascade" }),
+		userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+		membershipKey: text("membership_key").unique(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("teamMember_teamId_idx").on(table.teamId),
+		index("teamMember_userId_idx").on(table.userId),
+	],
+);
+
+export const teamRelations = relations(team, ({ one, many }) => ({
+	organization: one(organization, { fields: [team.organizationId], references: [organization.id] }),
+	members: many(teamMember),
+}));
+
+export const teamMemberRelations = relations(teamMember, ({ one }) => ({
+	team: one(team, { fields: [teamMember.teamId], references: [team.id] }),
+	user: one(user, { fields: [teamMember.userId], references: [user.id] }),
+}));
+
 export const organizationRelations = relations(
 	organization,
 	({ one, many }) => ({
@@ -115,6 +176,7 @@ export const organizationRelations = relations(
 		members: many(member),
 		ssoProviders: many(ssoProvider),
 		roles: many(organizationRole),
+		teams: many(team),
 	}),
 );
 
@@ -152,6 +214,9 @@ export const member = pgTable("member", {
 		.notNull()
 		.default(false),
 	canCreateEnvironments: boolean("canCreateEnvironments")
+		.notNull()
+		.default(false),
+	canManageDeployments: boolean("canManageDeployments")
 		.notNull()
 		.default(false),
 	accessedProjects: text("accesedProjects")

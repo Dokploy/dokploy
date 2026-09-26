@@ -204,3 +204,45 @@ export const memberRole = ac.newRole({
 	vaultProvider: ["read"],
 	dnsProvider: [],
 });
+
+
+/**
+ * Viewer role — read-only access scoped by the member/team access lists.
+ * Owners/admins can optionally grant deployment start/stop via the legacy
+ * canManageDeployments override without granting broader write access.
+ */
+export const viewerRole = ac.newRole({
+	organization: [],
+	member: [],
+	invitation: [],
+	team: [],
+	ac: ["read"],
+	project: [],
+	service: ["read"],
+	environment: ["read"],
+	docker: ["read"],
+	sshKeys: ["read"],
+	gitProviders: ["read"],
+	traefikFiles: [],
+	api: [],
+	volume: ["read"],
+	deployment: ["read"],
+	envVars: ["read"],
+	projectEnvVars: ["read"],
+	environmentEnvVars: ["read"],
+	server: ["read"],
+	registry: ["read"],
+	certificate: ["read"],
+	backup: ["read"],
+	volumeBackup: ["read"],
+	schedule: ["read"],
+	domain: ["read"],
+	destination: ["read"],
+	notification: ["read"],
+	tag: ["read"],
+	logs: ["read"],
+	monitoring: ["read"],
+	auditLog: [],
+	vaultProvider: ["read"],
+	dnsProvider: ["read"],
+});

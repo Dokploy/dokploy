@@ -35,6 +35,7 @@ const organizationSchema = z.object({
 		message: "Organization name is required",
 	}),
 	logo: z.string().optional(),
+	description: z.string().max(500).optional(),
 });
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>;
@@ -79,6 +80,7 @@ export function AddOrganization({
 		defaultValues: {
 			name: "",
 			logo: "",
+			description: "",
 		},
 	});
 
@@ -89,6 +91,7 @@ export function AddOrganization({
 			form.reset({
 				name: organization.name,
 				logo: organization.logo || "",
+				description: organization.description || "",
 			});
 			setUploadedFileName(null);
 		}
@@ -99,6 +102,7 @@ export function AddOrganization({
 		await mutateAsync({
 			name: values.name,
 			logo: values.logo,
+			description: values.description,
 			organizationId: organizationId ?? "",
 		})
 			.then(() => {
@@ -243,7 +247,7 @@ export function AddOrganization({
 					</DialogTitle>
 					<DialogDescription>
 						{organizationId
-							? "Update the organization name and logo"
+							? "Update the organization name, description, and logo"
 							: "Create a new organization to manage your projects."}
 					</DialogDescription>
 				</DialogHeader>
@@ -268,6 +272,23 @@ export function AddOrganization({
 										/>
 									</FormControl>
 									<FormMessage className="" />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="description"
+							render={({ field }) => (
+								<FormItem className="items-center gap-4">
+									<FormLabel className="text-right">Description</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="What this organization manages"
+											{...field}
+											className="col-span-3"
+										/>
+									</FormControl>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
