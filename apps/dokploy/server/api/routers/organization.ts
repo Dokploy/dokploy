@@ -637,6 +637,7 @@ export const organizationRouter = createTRPCRouter({
 						.where(
 							and(
 								eq(team.id, targetTeam.id),
+								eq(team.organizationId, orgId),
 								sql`${team.memberCount} < ${team.maxMembers}`,
 							),
 						)
@@ -829,6 +830,7 @@ export const organizationRouter = createTRPCRouter({
 
 			const hasOwnerBoundEntitlements =
 				currentOwner.enablePaidFeatures ||
+				currentOwner.enableEnterpriseFeatures ||
 				currentOwner.isValidEnterpriseLicense ||
 				currentOwner.licenseKey !== null ||
 				currentOwner.stripeCustomerId !== null ||
@@ -838,7 +840,7 @@ export const organizationRouter = createTRPCRouter({
 
 			if (hasOwnerBoundEntitlements) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: "PRECONDITION_FAILED",
 					message:
 						"Transfer or deactivate the current owner's billing and enterprise entitlements before transferring organization ownership",
 				});
