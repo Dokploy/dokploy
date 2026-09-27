@@ -39,8 +39,8 @@ export const WelcomeStep = ({ onNext }: Props) => {
 					Let's get your first app <em className="not-italic">live</em>.
 				</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					A few steps — pick a plan, connect a server, ship something. You'll
-					have a working URL by the end.
+					It just takes a few steps: pick a plan, connect a server, ship
+					something. You'll have a working URL by the end.
 				</p>
 			</div>
 
