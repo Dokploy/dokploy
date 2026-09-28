@@ -1,5 +1,5 @@
 module.exports = {
-  schema: "./packages/server/src/db/schema.ts",
+  schema: "./packages/server/src/db/schema/org-teams.ts",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
