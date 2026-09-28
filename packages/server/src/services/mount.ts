@@ -18,6 +18,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 
 export type Mount = typeof mounts.$inferSelect;
@@ -106,81 +107,29 @@ export const createFileMount = async (mountId: string) => {
 };
 
 export const findMountById = async (mountId: string) => {
+	const serviceWith = {
+		columns: { serverId: true, appName: true },
+		with: {
+			environment: {
+				columns: {},
+				with: {
+					project: { columns: { organizationId: true } },
+				},
+			},
+		},
+	} as const;
+
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			compose: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			libsql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mariadb: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mongo: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mysql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			postgres: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			redis: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
+			application: serviceWith,
+			compose: serviceWith,
+			libsql: serviceWith,
+			mariadb: serviceWith,
+			mongo: serviceWith,
+			mysql: serviceWith,
+			postgres: serviceWith,
+			redis: serviceWith,
 		},
 	});
 	if (!mount) {
@@ -313,18 +262,28 @@ export const updateFileMount = async (mountId: string) => {
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
 	const fullPath = path.join(basePath, mount.filePath);
+	const directory = path.dirname(fullPath);
 
 	try {
 		const serverId = await getServerId(mount);
 		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
+		const command = `
+			mkdir -p ${quote([directory])};
+			if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
+			echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
+		`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
-	} catch {
-		console.log("Error updating file mount");
+	} catch (error) {
+		console.log(`Error updating the file mount: ${error}`);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Error updating the mount ${error instanceof Error ? error.message : error}`,
+			cause: error,
+		});
 	}
 };
 
@@ -337,7 +296,7 @@ export const deleteFileMount = async (mountId: string) => {
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${fullPath}`;
+			const command = `rm -rf ${quote([fullPath])}`;
 			await execAsyncRemote(serverId, command);
 		} else {
 			await removeFileOrDirectory(fullPath);

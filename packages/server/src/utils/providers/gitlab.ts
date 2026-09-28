@@ -8,6 +8,7 @@ import {
 } from "@dokploy/server/services/gitlab";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 
 export const refreshGitlabToken = async (gitlabProviderId: string) => {
@@ -43,7 +44,9 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 
 	const data = await response.json();
 
-	const expiresAt = Math.floor(Date.now() / 1000) + data.expires_in;
+	const expiresAt = data.expires_in
+		? Math.floor(Date.now() / 1000) + data.expires_in
+		: null;
 
 	await updateGitlab(gitlabProviderId, {
 		accessToken: data.access_token,
@@ -151,8 +154,8 @@ export const cloneGitlabRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
 	const cloneUrl = getGitlabCloneUrl(gitlab, repoClone);
-	command += `echo "Cloning Repo ${repoClone} to ${outputPath}: ✅";`;
-	command += `git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
+	command += `git clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 

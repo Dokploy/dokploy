@@ -236,7 +236,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 										<Button
 											variant="outline"
 											className={cn(
-												"w-full sm:w-[200px] justify-between !bg-input",
+												"w-full sm:w-[200px] justify-between bg-input!",
 											)}
 										>
 											{isLoadingTags
@@ -296,7 +296,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									variant={showBookmarksOnly ? "default" : "outline"}
 									size="icon"
 									onClick={() => setShowBookmarksOnly(!showBookmarksOnly)}
-									className="h-9 w-9 flex-shrink-0"
+									className="h-9 w-9 shrink-0"
 									disabled={isLoadingBookmarks}
 								>
 									<Bookmark
@@ -311,7 +311,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									onClick={() =>
 										setViewMode(viewMode === "detailed" ? "icon" : "detailed")
 									}
-									className="h-9 w-9 flex-shrink-0"
+									className="h-9 w-9 shrink-0"
 								>
 									{viewMode === "detailed" ? (
 										<LayoutGrid className="size-4" />
@@ -398,7 +398,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 											<Button
 												variant="ghost"
 												size="icon"
-												className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background"
+												className="h-8 w-8 bg-background/80 backdrop-blur-xs hover:bg-background"
 												onClick={(e) => handleToggleBookmark(e, template.id)}
 											>
 												<Bookmark
@@ -451,7 +451,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 
 										{/* Template Content */}
 										{viewMode === "detailed" && (
-											<ScrollArea className="flex-1 p-6">
+											<ScrollArea className="min-h-0 flex-1 p-6">
 												<div className="text-sm text-muted-foreground">
 													{template?.description}
 												</div>
@@ -534,7 +534,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																			</Label>
 																		</TooltipTrigger>
 																		<TooltipContent
-																			className="z-[999] w-[300px]"
+																			className="z-999 w-[300px]"
 																			align="start"
 																			side="top"
 																		>

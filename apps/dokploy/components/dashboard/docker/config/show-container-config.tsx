@@ -44,7 +44,7 @@ export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 overflow-y-auto text-sm bg-card max-h-[80vh]">
 					<code>
-						<pre className="whitespace-pre-wrap break-words">
+						<pre className="whitespace-pre-wrap wrap-break-word">
 							<CodeEditor
 								language="json"
 								lineWrapping

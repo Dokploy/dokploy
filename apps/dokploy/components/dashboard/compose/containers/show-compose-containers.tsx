@@ -55,12 +55,14 @@ interface Props {
 	appName: string;
 	serverId?: string;
 	appType: "stack" | "docker-compose";
+	serviceId?: string;
 }
 
 export const ShowComposeContainers = ({
 	appName,
 	appType,
 	serverId,
+	serviceId,
 }: Props) => {
 	const { data, isPending, refetch } =
 		api.docker.getContainersByAppNameMatch.useQuery(
@@ -112,6 +114,7 @@ export const ShowComposeContainers = ({
 									<TableHead>Name</TableHead>
 									<TableHead>State</TableHead>
 									<TableHead>Status</TableHead>
+									{appType === "stack" && <TableHead>Node</TableHead>}
 									<TableHead>Container ID</TableHead>
 									<TableHead className="text-right" />
 								</TableRow>
@@ -119,9 +122,11 @@ export const ShowComposeContainers = ({
 							<TableBody>
 								{data.map((container) => (
 									<ContainerRow
-										key={container.containerId}
+										key={container.name}
 										container={container}
+										appType={appType}
 										serverId={serverId}
+										serviceId={serviceId}
 										onActionComplete={() => refetch()}
 									/>
 								))}
@@ -140,14 +145,19 @@ interface ContainerRowProps {
 		name: string;
 		state: string;
 		status: string;
+		node?: string;
 	};
+	appType: "stack" | "docker-compose";
 	serverId?: string;
+	serviceId?: string;
 	onActionComplete: () => void;
 }
 
 const ContainerRow = ({
 	container,
+	appType,
 	serverId,
+	serviceId,
 	onActionComplete,
 }: ContainerRowProps) => {
 	const [logsOpen, setLogsOpen] = useState(false);
@@ -187,7 +197,13 @@ const ContainerRow = ({
 					variant={
 						container.state === "running"
 							? "default"
-							: container.state === "exited"
+							: [
+										"exited",
+										"pending",
+										"preparing",
+										"starting",
+										"ready",
+									].includes(container.state)
 								? "secondary"
 								: "destructive"
 					}
@@ -196,94 +212,99 @@ const ContainerRow = ({
 				</Badge>
 			</TableCell>
 			<TableCell>{container.status}</TableCell>
+			{appType === "stack" && <TableCell>{container.node || "-"}</TableCell>}
 			<TableCell className="font-mono text-sm text-muted-foreground">
-				{container.containerId}
+				{container.containerId || "-"}
 			</TableCell>
 			<TableCell className="text-right">
-				<Dialog open={logsOpen} onOpenChange={setLogsOpen}>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" className="h-8 w-8 p-0">
-								{actionLoading ? (
-									<Loader2 className="h-4 w-4 animate-spin" />
-								) : (
-									<MoreHorizontal className="h-4 w-4" />
-								)}
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
-							<DialogTrigger asChild>
+				{!container.containerId ? null : (
+					<Dialog open={logsOpen} onOpenChange={setLogsOpen}>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" className="h-8 w-8 p-0">
+									{actionLoading ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<MoreHorizontal className="h-4 w-4" />
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuLabel>Actions</DropdownMenuLabel>
+								<DialogTrigger asChild>
+									<DropdownMenuItem
+										className="cursor-pointer"
+										onSelect={(e) => e.preventDefault()}
+									>
+										View Logs
+									</DropdownMenuItem>
+								</DialogTrigger>
+								<ShowContainerConfig
+									containerId={container.containerId}
+									serverId={serverId || ""}
+								/>
+								<ShowContainerMounts
+									containerId={container.containerId}
+									serverId={serverId || ""}
+								/>
+								<ShowContainerNetworks
+									containerId={container.containerId}
+									serverId={serverId || ""}
+								/>
+								<DockerTerminalModal
+									containerId={container.containerId}
+									serverId={serverId || ""}
+									serviceId={serviceId}
+								>
+									Terminal
+								</DockerTerminalModal>
+								<DropdownMenuSeparator />
 								<DropdownMenuItem
 									className="cursor-pointer"
-									onSelect={(e) => e.preventDefault()}
+									disabled={actionLoading !== null}
+									onClick={() => handleAction("restart", restartMutation)}
 								>
-									View Logs
+									Restart
 								</DropdownMenuItem>
-							</DialogTrigger>
-							<ShowContainerConfig
-								containerId={container.containerId}
-								serverId={serverId || ""}
-							/>
-							<ShowContainerMounts
-								containerId={container.containerId}
-								serverId={serverId || ""}
-							/>
-							<ShowContainerNetworks
-								containerId={container.containerId}
-								serverId={serverId || ""}
-							/>
-							<DockerTerminalModal
-								containerId={container.containerId}
-								serverId={serverId || ""}
-							>
-								Terminal
-							</DockerTerminalModal>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								className="cursor-pointer"
-								disabled={actionLoading !== null}
-								onClick={() => handleAction("restart", restartMutation)}
-							>
-								Restart
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								disabled={actionLoading !== null}
-								onClick={() => handleAction("start", startMutation)}
-							>
-								Start
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								disabled={actionLoading !== null}
-								onClick={() => handleAction("stop", stopMutation)}
-							>
-								Stop
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								className="cursor-pointer text-red-500 focus:text-red-600"
-								disabled={actionLoading !== null}
-								onClick={() => handleAction("kill", killMutation)}
-							>
-								Kill
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-					<DialogContent className="sm:max-w-7xl">
-						<DialogHeader>
-							<DialogTitle>View Logs</DialogTitle>
-							<DialogDescription>Logs for {container.name}</DialogDescription>
-						</DialogHeader>
-						<div className="flex flex-col gap-4 pt-2.5">
-							<DockerLogsId
-								containerId={container.containerId}
-								serverId={serverId}
-								runType="native"
-							/>
-						</div>
-					</DialogContent>
-				</Dialog>
+								<DropdownMenuItem
+									className="cursor-pointer"
+									disabled={actionLoading !== null}
+									onClick={() => handleAction("start", startMutation)}
+								>
+									Start
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									className="cursor-pointer"
+									disabled={actionLoading !== null}
+									onClick={() => handleAction("stop", stopMutation)}
+								>
+									Stop
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									className="cursor-pointer text-red-500 focus:text-red-600"
+									disabled={actionLoading !== null}
+									onClick={() => handleAction("kill", killMutation)}
+								>
+									Kill
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+						<DialogContent className="sm:max-w-7xl">
+							<DialogHeader>
+								<DialogTitle>View Logs</DialogTitle>
+								<DialogDescription>Logs for {container.name}</DialogDescription>
+							</DialogHeader>
+							<div className="flex flex-col gap-4 pt-2.5">
+								<DockerLogsId
+									containerId={container.containerId}
+									serverId={serverId}
+									runType="native"
+									serviceId={serviceId}
+								/>
+							</div>
+						</DialogContent>
+					</Dialog>
+				)}
 			</TableCell>
 		</TableRow>
 	);

@@ -13,14 +13,18 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { HandleAi } from "./handle-ai";
+import { HandleAiProviders } from "./handle-ai-providers";
 
 export const AiForm = () => {
 	const { data: aiConfigs, refetch, isPending } = api.ai.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } = api.ai.delete.useMutation();
+	const { data: currentUser } = api.user.get.useQuery();
+	const isOrgAdmin =
+		currentUser?.role === "owner" || currentUser?.role === "admin";
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="flex flex-row gap-2 justify-between">
 						<div>
@@ -30,7 +34,10 @@ export const AiForm = () => {
 							</CardTitle>
 							<CardDescription>Manage your AI configurations</CardDescription>
 						</div>
-						{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
+						<div className="flex flex-row gap-2">
+							{isOrgAdmin && <HandleAiProviders />}
+							{aiConfigs && aiConfigs?.length > 0 && <HandleAi />}
+						</div>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
@@ -55,7 +62,7 @@ export const AiForm = () => {
 												key={config.aiId}
 												className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
 											>
-												<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
+												<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border w-full">
 													<div>
 														<span className="text-sm font-medium">
 															{config.name}

@@ -54,6 +54,15 @@ export const apiUpdateAi = createSchema
 	})
 	.omit({ organizationId: true });
 
+export const aiCustomProviderSchema = z.object({
+	name: z.string().min(1, { message: "Name is required" }),
+	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
+});
+
+export const apiSaveAiCustomProviders = z.object({
+	providers: z.array(aiCustomProviderSchema),
+});
+
 export const deploySuggestionSchema = z.object({
 	environmentId: z.string().min(1),
 	id: z.string().min(1),

@@ -94,9 +94,10 @@ export function TagFilter({
 							<CommandEmpty>
 								<div className="flex flex-col items-center gap-2 py-1">
 									<span className="text-sm text-muted-foreground">
-										No tags found.
+										{tags.length === 0
+											? "No tags created yet."
+											: "No tags found."}
 									</span>
-									<HandleTag />
 								</div>
 							</CommandEmpty>
 							<CommandGroup>
@@ -118,6 +119,9 @@ export function TagFilter({
 									);
 								})}
 							</CommandGroup>
+							<div className="flex items-center justify-center p-2 border-t">
+								<HandleTag />
+							</div>
 						</CommandList>
 					</Command>
 				</PopoverContent>

@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgTable,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -79,8 +86,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 			docsUrl: string | null;
 			errorPageTitle: string | null;
 			errorPageDescription: string | null;
-			metaTitle: string | null;
 			footerText: string | null;
+			ogImageUrl: string | null;
 		}>()
 		.default({
 			appName: null,
@@ -93,9 +100,15 @@ export const webServerSettings = pgTable("webServerSettings", {
 			docsUrl: null,
 			errorPageTitle: null,
 			errorPageDescription: null,
-			metaTitle: null,
 			footerText: null,
+			ogImageUrl: null,
 		}),
+	// Deployment Configuration (self-hosted only)
+	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
+	// Concurrent builds on the local web server
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
+	// Auth Configuration (self-hosted only)
+	enforceSSO: boolean("enforceSSO").notNull().default(false),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -155,6 +168,13 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheApplications: z.boolean().optional(),
 	cleanupCacheOnPreviews: z.boolean().optional(),
 	cleanupCacheOnCompose: z.boolean().optional(),
+	remoteServersOnly: z.boolean().optional(),
+	enforceSSO: z.boolean().optional(),
+	buildsConcurrency: z.number().int().min(1).max(100).optional(),
+});
+
+export const apiUpdateWebServerBuildsConcurrency = z.object({
+	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
 export const apiAssignDomain = z
@@ -203,8 +223,8 @@ export const whitelabelingConfigSchema = z.object({
 	docsUrl: safeUrl,
 	errorPageTitle: z.string().nullable(),
 	errorPageDescription: z.string().nullable(),
-	metaTitle: z.string().nullable(),
 	footerText: z.string().nullable(),
+	ogImageUrl: safeUrl,
 });
 
 export const apiUpdateWhitelabeling = z.object({

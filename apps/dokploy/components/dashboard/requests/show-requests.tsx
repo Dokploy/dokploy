@@ -63,7 +63,7 @@ export const ShowRequests = () => {
 	const [dateRange, setDateRange] = useState<{
 		from: Date | undefined;
 		to: Date | undefined;
-	}>(getDefaultDateRange());
+	}>(() => getDefaultDateRange());
 
 	// Check if logs exist to determine if traefik has been reloaded
 	// Only fetch when active to minimize network calls
@@ -226,7 +226,7 @@ export const ShowRequests = () => {
 											</PopoverTrigger>
 											<PopoverContent className="w-auto p-0" align="end">
 												<Calendar
-													initialFocus
+													autoFocus
 													mode="range"
 													defaultMonth={dateRange.from}
 													selected={{

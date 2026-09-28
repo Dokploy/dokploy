@@ -201,7 +201,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 
 	return (
 		<div className="flex flex-col h-full gap-6">
-			<div className="flex-grow overflow-auto pb-8">
+			<div className="grow overflow-auto pb-8">
 				<div className="space-y-6">
 					<h2 className="text-lg font-semibold">Step 2: Choose a Variant</h2>
 					{!selectedVariant && (

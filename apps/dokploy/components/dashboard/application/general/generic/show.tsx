@@ -154,7 +154,10 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					}}
 				>
 					<div className="flex flex-row items-center justify-between w-full overflow-auto">
-						<TabsList className="flex gap-4 justify-start bg-transparent">
+						<TabsList
+							variant="line"
+							className="flex gap-4 justify-start bg-transparent"
+						>
 							<TabsTrigger
 								value="github"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"

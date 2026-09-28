@@ -36,6 +36,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -53,6 +54,7 @@ const Schema = z.object({
 		message: "SSH Key is required",
 	}),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	enableDockerCleanup: z.boolean().default(true),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -90,6 +92,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: "root",
 			sshKeyId: "",
 			serverType: "deploy",
+			enableDockerCleanup: true,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -103,6 +106,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
 			serverType: data?.serverType || "deploy",
+			enableDockerCleanup: data?.enableDockerCleanup ?? true,
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -119,6 +123,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
 			serverType: data.serverType || "deploy",
+			enableDockerCleanup: data.enableDockerCleanup,
 			serverId: serverId || "",
 		})
 			.then(async (_data) => {
@@ -415,6 +420,27 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 										sudo access.
 									</FormDescription>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableDockerCleanup"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+									<div className="space-y-0.5">
+										<FormLabel>Enable Docker Cleanup</FormLabel>
+										<FormDescription>
+											Automatically prune unused Docker images daily. Keeps disk
+											usage in check on this remote server.
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
 								</FormItem>
 							)}
 						/>

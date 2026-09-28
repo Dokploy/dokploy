@@ -1,6 +1,6 @@
 {
-  "id": "0a54b83b-635f-4acd-874b-84ca77596380",
-  "prevId": "7d5052b1-2fca-4b0f-986e-7efbf8ac4841",
+  "id": "4ea8d307-4963-4488-85f5-f36a701a524c",
+  "prevId": "de1ea564-75f5-431f-adb8-7c4db357dde5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3882,151 +3882,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.managed_server": {
-      "name": "managed_server",
-      "schema": "",
-      "columns": {
-        "managedServerId": {
-          "name": "managedServerId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serverId": {
-          "name": "serverId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "plan": {
-          "name": "plan",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "managedServerStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "providerVmId": {
-          "name": "providerVmId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "zone": {
-          "name": "zone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sshKeyId": {
-          "name": "sshKeyId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ipAddress": {
-          "name": "ipAddress",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hostname": {
-          "name": "hostname",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stripeSubscriptionId": {
-          "name": "stripeSubscriptionId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "stripePriceId": {
-          "name": "stripePriceId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "errorMessage": {
-          "name": "errorMessage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "managed_server_organizationId_organization_id_fk": {
-          "name": "managed_server_organizationId_organization_id_fk",
-          "tableFrom": "managed_server",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "managed_server_serverId_server_serverId_fk": {
-          "name": "managed_server_serverId_server_serverId_fk",
-          "tableFrom": "managed_server",
-          "tableTo": "server",
-          "columnsFrom": [
-            "serverId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "managed_server_sshKeyId_ssh-key_sshKeyId_fk": {
-          "name": "managed_server_sshKeyId_ssh-key_sshKeyId_fk",
-          "tableFrom": "managed_server",
-          "tableTo": "ssh-key",
-          "columnsFrom": [
-            "sshKeyId"
-          ],
-          "columnsTo": [
-            "sshKeyId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -8166,6 +8021,20 @@
           "notNull": false,
           "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
         },
+        "remoteServersOnly": {
+          "name": "remoteServersOnly",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "enforceSSO": {
+          "name": "enforceSSO",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "cleanupCacheApplications": {
           "name": "cleanupCacheApplications",
           "type": "boolean",
@@ -8304,19 +8173,6 @@
         "gitlab",
         "bitbucket",
         "gitea"
-      ]
-    },
-    "public.managedServerStatus": {
-      "name": "managedServerStatus",
-      "schema": "public",
-      "values": [
-        "pending",
-        "provisioning",
-        "configuring",
-        "ready",
-        "error",
-        "terminating",
-        "terminated"
       ]
     },
     "public.mountType": {

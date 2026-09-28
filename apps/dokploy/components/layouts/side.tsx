@@ -14,33 +14,37 @@ import {
 	ClipboardList,
 	Clock,
 	CreditCard,
-	Database,
 	Folder,
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
+	Globe,
+	HardDrive,
 	House,
 	Key,
 	KeyRound,
+	LayoutGrid,
 	Loader2,
 	LogIn,
 	type LucideIcon,
 	Package,
 	Palette,
-	PieChart,
-	Rocket,
 	Server,
 	ShieldCheck,
+	Smartphone,
 	Star,
 	Tags,
 	Trash2,
 	User,
 	Users,
+	Vault,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { TruncateTooltip } from "@/components/shared/truncate-tooltip";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -53,13 +57,25 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import {
 	SIDEBAR_COOKIE_NAME,
@@ -85,6 +101,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { TrialBanner } from "../dashboard/billing/trial-banner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
@@ -163,10 +180,11 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Deployments",
-			url: "/dashboard/deployments",
-			icon: Rocket,
-			isEnabled: ({ permissions }) => !!permissions?.deployment.read,
+			title: "Overview",
+			url: "/dashboard/overview",
+			icon: LayoutGrid,
+			// Only enabled for users with access to services
+			isEnabled: ({ permissions }) => !!permissions?.service.read,
 		},
 		{
 			isSingle: true,
@@ -182,36 +200,23 @@ const MENU: Menu = {
 			title: "Schedules",
 			url: "/dashboard/schedules",
 			icon: Clock,
-			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, permissions }) =>
-				!isCloud && !!permissions?.organization.update,
+			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
-			// Only enabled for users with access to Traefik files in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.traefikFiles.read && !isCloud),
+			// Only enabled for users with access to Traefik files
+			isEnabled: ({ permissions }) => !!permissions?.traefikFiles.read,
 		},
 		{
 			isSingle: true,
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
-			// Only enabled for users with access to Docker in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
-		},
-		{
-			isSingle: true,
-			title: "Swarm",
-			url: "/dashboard/swarm",
-			icon: PieChart,
-			// Only enabled for users with access to Docker in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.docker.read && !isCloud),
+			// Only enabled for users with access to Docker
+			isEnabled: ({ permissions }) => !!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
@@ -298,10 +303,24 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Sessions",
+			icon: Smartphone,
+			url: "/dashboard/settings/sessions",
+		},
+		{
+			isSingle: true,
 			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			isEnabled: ({ permissions }) => !!permissions?.server.read,
+		},
+		{
+			isSingle: true,
+			title: "Deployments",
+			url: "/dashboard/settings/deployments",
+			icon: Boxes,
+			isEnabled: ({ permissions, isCloud }) =>
+				!!(permissions?.server.read && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -357,9 +376,23 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Secrets",
+			url: "/dashboard/settings/secrets",
+			icon: Vault,
+			isEnabled: ({ permissions }) => !!permissions?.vaultProvider.create,
+		},
+		{
+			isSingle: true,
+			title: "DNS Providers",
+			url: "/dashboard/settings/dns",
+			icon: Globe,
+			isEnabled: ({ permissions }) => !!permissions?.dnsProvider.read,
+		},
+		{
+			isSingle: true,
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
-			icon: Database,
+			icon: HardDrive,
 			isEnabled: ({ permissions }) => !!permissions?.destination.read,
 		},
 
@@ -369,15 +402,6 @@ const MENU: Menu = {
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			isEnabled: ({ permissions }) => !!permissions?.certificate.read,
-		},
-		{
-			isSingle: true,
-			title: "Cluster",
-			url: "/dashboard/settings/cluster",
-			icon: Boxes,
-			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ permissions, isCloud }) =>
-				!!(permissions?.organization.update && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -562,6 +586,8 @@ function SidebarLogo() {
 	const { isMobile } = useSidebar();
 	const isCollapsed = state === "collapsed" && !isMobile;
 	const { data: activeOrganization } = api.organization.active.useQuery();
+	const { data: haveValidLicense } =
+		api.licenseKey.haveValidLicenseKey.useQuery();
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
@@ -569,6 +595,8 @@ function SidebarLogo() {
 	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
 	>(null);
+	const [organizationSelectorOpen, setOrganizationSelectorOpen] =
+		useState(false);
 
 	useEffect(() => {
 		if (activeOrganization) {
@@ -590,9 +618,12 @@ function SidebarLogo() {
 					)}
 				>
 					{/* Organization Logo and Selector */}
-					<SidebarMenuItem className={"w-full"}>
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
+					<SidebarMenuItem className={"w-full min-w-0"}>
+						<Popover
+							open={organizationSelectorOpen}
+							onOpenChange={setOrganizationSelectorOpen}
+						>
+							<PopoverTrigger asChild>
 								<SidebarMenuButton
 									size={isCollapsed ? "sm" : "lg"}
 									className={cn(
@@ -603,14 +634,13 @@ function SidebarLogo() {
 								>
 									<div
 										className={cn(
-											"flex items-center gap-2",
+											"flex min-w-0 flex-1 items-center gap-2",
 											isCollapsed && "justify-center",
 										)}
 									>
 										<div
 											className={cn(
-												"flex items-center justify-center rounded-sm border",
-												"size-6",
+												"flex size-6 shrink-0 items-center justify-center rounded-sm border",
 											)}
 										>
 											<Logo
@@ -623,162 +653,179 @@ function SidebarLogo() {
 										</div>
 										<div
 											className={cn(
-												"flex flex-col items-start",
+												"flex flex-col items-start min-w-0 flex-1",
 												isCollapsed && "hidden",
 											)}
 										>
-											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
-											</p>
+											<div className="flex items-center gap-1.5 min-w-0 w-full">
+												<TruncateTooltip
+													text={
+														activeOrganization?.name ?? "Select Organization"
+													}
+													className="text-sm font-medium"
+												/>
+												{haveValidLicense && (
+													<Badge variant="blue" className="shrink-0">
+														Enterprise
+													</Badge>
+												)}
+											</div>
 										</div>
 									</div>
 									<ChevronsUpDown
-										className={cn("ml-auto", isCollapsed && "hidden")}
+										className={cn("ml-auto shrink-0", isCollapsed && "hidden")}
 									/>
 								</SidebarMenuButton>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								className="rounded-lg max-h-[min(70vh,28rem)] flex flex-col"
+							</PopoverTrigger>
+							<PopoverContent
+								className="w-96 p-0"
 								align="start"
 								side={isMobile ? "bottom" : "right"}
 								sideOffset={4}
 							>
-								<DropdownMenuLabel className="text-xs text-muted-foreground shrink-0">
-									Organizations
-								</DropdownMenuLabel>
-								<div className="overflow-y-auto overflow-x-hidden min-h-0 -mx-1 px-1">
-									{organizations?.map((org) => {
-										const isDefault = org.members?.[0]?.isDefault ?? false;
-										return (
-											<div
-												className="flex flex-row justify-between"
-												key={org.name}
-											>
-												<DropdownMenuItem
-													onClick={async () => {
-														await authClient.organization.setActive({
-															organizationId: org.id,
-														});
-														window.location.reload();
-													}}
-													className="w-full gap-2 p-2"
-												>
-													<div className="flex flex-col gap-1">
-														<div className="flex items-center gap-2">
-															{org.name}
-														</div>
-													</div>
-													<div className="flex size-6 items-center justify-center rounded-sm border">
-														<Logo
-															className={cn(
-																"transition-all",
-																state === "collapsed" ? "size-6" : "size-10",
-															)}
-															logoUrl={org.logo ?? undefined}
-														/>
-													</div>
-												</DropdownMenuItem>
-
-												<div className="flex items-center gap-2">
-													<Button
-														variant="ghost"
-														size="icon"
-														className={cn(
-															"group",
-															isDefault
-																? "hover:bg-yellow-500/10"
-																: "hover:bg-blue-500/10",
-														)}
-														isLoading={isSettingDefault && !isDefault}
-														disabled={isDefault}
-														onClick={async (e) => {
-															if (isDefault) return;
-															e.stopPropagation();
-															await setDefaultOrganization({
+								<Command>
+									<CommandInput
+										placeholder="Search organizations..."
+										className="h-9"
+									/>
+									<CommandList className="max-h-[min(60vh,24rem)]">
+										<CommandEmpty>No organizations found.</CommandEmpty>
+										<CommandGroup heading="Organizations">
+											{organizations?.map((org) => {
+												const isDefault = org.members?.[0]?.isDefault ?? false;
+												return (
+													<CommandItem
+														key={org.id}
+														value={org.name}
+														onSelect={async () => {
+															setOrganizationSelectorOpen(false);
+															await authClient.organization.setActive({
 																organizationId: org.id,
-															})
-																.then(() => {
-																	refetch();
-																	toast.success("Default organization updated");
-																})
-																.catch((error) => {
-																	toast.error(
-																		error?.message ||
-																			"Error setting default organization",
-																	);
-																});
+															});
+															window.location.reload();
 														}}
-														title={
-															isDefault
-																? "Default organization"
-																: "Set as default"
-														}
+														className="flex items-center justify-between gap-1"
 													>
-														{isDefault ? (
-															<Star
-																fill="#eab308"
-																stroke="#eab308"
-																className="size-4 text-yellow-500"
-															/>
-														) : (
-															<Star
-																fill="none"
-																stroke="currentColor"
-																className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
-															/>
-														)}
-													</Button>
-													{org.ownerId === session?.user?.id && (
-														<>
-															<AddOrganization organizationId={org.id} />
-															<DialogAction
-																title="Delete Organization"
-																description="Are you sure you want to delete this organization?"
-																type="destructive"
-																onClick={async () => {
-																	await deleteOrganization({
+														<div className="flex min-w-0 flex-1 items-center gap-2">
+															<div className="flex size-6 shrink-0 items-center justify-center rounded-sm border">
+																<Logo
+																	className={cn(
+																		"transition-all",
+																		state === "collapsed" ? "size-4" : "size-5",
+																	)}
+																	logoUrl={org.logo ?? undefined}
+																/>
+															</div>
+															<span className="truncate">{org.name}</span>
+														</div>
+
+														<div
+															className="flex shrink-0 items-center gap-2"
+															onClick={(e) => e.stopPropagation()}
+															onKeyDown={(e) => e.stopPropagation()}
+														>
+															<Button
+																variant="ghost"
+																size="icon"
+																className={cn(
+																	"group",
+																	isDefault
+																		? "hover:bg-yellow-500/10"
+																		: "hover:bg-blue-500/10",
+																)}
+																isLoading={isSettingDefault && !isDefault}
+																disabled={isDefault}
+																onClick={async (e) => {
+																	if (isDefault) return;
+																	e.stopPropagation();
+																	await setDefaultOrganization({
 																		organizationId: org.id,
 																	})
 																		.then(() => {
 																			refetch();
 																			toast.success(
-																				"Organization deleted successfully",
+																				"Default organization updated",
 																			);
 																		})
 																		.catch((error) => {
 																			toast.error(
 																				error?.message ||
-																					"Error deleting organization",
+																					"Error setting default organization",
 																			);
 																		});
 																}}
+																title={
+																	isDefault
+																		? "Default organization"
+																		: "Set as default"
+																}
 															>
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="group hover:bg-red-500/10"
-																	isLoading={isRemoving}
-																>
-																	<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-																</Button>
-															</DialogAction>
-														</>
-													)}
-												</div>
-											</div>
-										);
-									})}
-								</div>
-								{(user?.role === "owner" ||
-									user?.role === "admin" ||
-									isCloud) && (
-									<>
-										<DropdownMenuSeparator />
-										<AddOrganization />
-									</>
-								)}
-							</DropdownMenuContent>
-						</DropdownMenu>
+																{isDefault ? (
+																	<Star
+																		fill="#eab308"
+																		stroke="#eab308"
+																		className="size-4 text-yellow-500"
+																	/>
+																) : (
+																	<Star
+																		fill="none"
+																		stroke="currentColor"
+																		className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+																	/>
+																)}
+															</Button>
+															{org.ownerId === session?.user?.id && (
+																<>
+																	<AddOrganization organizationId={org.id} />
+																	<DialogAction
+																		title="Delete Organization"
+																		description="Are you sure you want to delete this organization?"
+																		type="destructive"
+																		onClick={async () => {
+																			await deleteOrganization({
+																				organizationId: org.id,
+																			})
+																				.then(() => {
+																					refetch();
+																					toast.success(
+																						"Organization deleted successfully",
+																					);
+																				})
+																				.catch((error) => {
+																					toast.error(
+																						error?.message ||
+																							"Error deleting organization",
+																					);
+																				});
+																		}}
+																	>
+																		<Button
+																			variant="ghost"
+																			size="icon"
+																			className="group hover:bg-red-500/10"
+																			isLoading={isRemoving}
+																		>
+																			<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																		</Button>
+																	</DialogAction>
+																</>
+															)}
+														</div>
+													</CommandItem>
+												);
+											})}
+										</CommandGroup>
+									</CommandList>
+									{(user?.role === "owner" ||
+										user?.role === "admin" ||
+										isCloud) && (
+										<div className="border-t p-1">
+											<AddOrganization />
+										</div>
+									)}
+								</Command>
+							</PopoverContent>
+						</Popover>
 					</SidebarMenuItem>
 
 					{/* Notification Bell */}
@@ -795,7 +842,7 @@ function SidebarLogo() {
 								>
 									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (
-										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+										<span className="absolute top-0 right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
 											{invitations.length}
 										</span>
 									)}
@@ -950,7 +997,7 @@ export default function Page({ children }: Props) {
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
 					{/* <SidebarMenuButton
-						className="group-data-[collapsible=icon]:!p-0"
+						className="group-data-[collapsible=icon]:p-0!"
 						size="lg"
 					> */}
 					<LogoWrapper />
@@ -1183,8 +1230,9 @@ export default function Page({ children }: Props) {
 				<SidebarRail />
 			</Sidebar>
 			<SidebarInset>
+				{isCloud === true && <TrialBanner />}
 				{!includesProjects && (
-					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 						<div className="flex items-center justify-between w-full px-4">
 							<div className="flex items-center gap-2">
 								<SidebarTrigger className="-ml-1" />

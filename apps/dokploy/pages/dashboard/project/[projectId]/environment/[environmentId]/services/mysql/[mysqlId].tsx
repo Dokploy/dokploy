@@ -10,8 +10,8 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
-import superjson from "superjson";
 import { toast } from "sonner";
+import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -23,6 +23,7 @@ import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-gene
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
@@ -140,7 +141,7 @@ const MySql = (
 														</Label>
 													</TooltipTrigger>
 													<TooltipContent
-														className="z-[999] w-[300px]"
+														className="z-999 w-[300px]"
 														align="start"
 														side="top"
 													>
@@ -158,6 +159,13 @@ const MySql = (
 									<div className="flex flex-row gap-2 justify-end">
 										{permissions?.service.create && (
 											<UpdateMysql mysqlId={mysqlId} />
+										)}
+										{permissions?.service.create && (
+											<TransferService
+												id={mysqlId}
+												type="mysql"
+												serverId={data?.serverId}
+											/>
 										)}
 										{permissions?.service.delete && (
 											<DeleteService id={mysqlId} type="mysql" />
@@ -199,7 +207,7 @@ const MySql = (
 											router.push(newPath, undefined, { shallow: true });
 										}}
 									>
-										<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
+										<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-auto">
 											<TabsList
 												className={cn(
 													"md:grid md:w-fit max-md:overflow-y-scroll justify-start ",
@@ -276,6 +284,7 @@ const MySql = (
 													<ShowDockerLogs
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
+														serviceId={data?.mysqlId}
 													/>
 												</div>
 											</TabsContent>

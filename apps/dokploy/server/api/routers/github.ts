@@ -1,4 +1,6 @@
 import {
+	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	findGithubById,
 	getAccessibleGitProviderIds,
 	getGithubBranches,
@@ -22,17 +24,37 @@ import {
 } from "@/server/db/schema";
 
 export const githubRouter = createTRPCRouter({
-	one: protectedProcedure.input(apiFindOneGithub).query(async ({ input }) => {
-		return await findGithubById(input.githubId);
-	}),
+	one: protectedProcedure
+		.input(apiFindOneGithub)
+		.query(async ({ input, ctx }) => {
+			const github = await findGithubById(input.githubId);
+			await assertGitProviderAccess(ctx.session, github.gitProvider);
+
+			if (!(await canViewGitProviderSecrets(ctx.session, github.gitProvider))) {
+				return {
+					...github,
+					githubClientSecret: null,
+					githubPrivateKey: null,
+					githubWebhookSecret: null,
+				};
+			}
+
+			return github;
+		}),
 	getGithubRepositories: protectedProcedure
 		.input(apiFindOneGithub)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			const github = await findGithubById(input.githubId);
+			await assertGitProviderAccess(ctx.session, github.gitProvider);
 			return await getGithubRepositories(input.githubId);
 		}),
 	getGithubBranches: protectedProcedure
 		.input(apiFindGithubBranches)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.githubId) {
+				const github = await findGithubById(input.githubId);
+				await assertGitProviderAccess(ctx.session, github.gitProvider);
+			}
 			return await getGithubBranches(input);
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
@@ -56,6 +78,7 @@ export const githubRouter = createTRPCRouter({
 			.map((provider) => {
 				return {
 					githubId: provider.githubId,
+					githubUrl: provider.githubUrl,
 					gitProvider: {
 						...provider.gitProvider,
 					},
@@ -67,8 +90,10 @@ export const githubRouter = createTRPCRouter({
 
 	testConnection: protectedProcedure
 		.input(apiFindOneGithub)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const github = await findGithubById(input.githubId);
+				await assertGitProviderAccess(ctx.session, github.gitProvider);
 				const result = await getGithubRepositories(input.githubId);
 				return `Found ${result.length} repositories`;
 			} catch (err) {

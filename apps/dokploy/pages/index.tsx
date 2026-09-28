@@ -1,11 +1,17 @@
-import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import {
+	getWebServerSettings,
+	IS_CLOUD,
+	isAdminPresent,
+} from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -33,9 +39,15 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { InputOTP } from "@/components/ui/input-otp";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSeparator,
+	InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
@@ -52,12 +64,14 @@ type LoginForm = z.infer<typeof LoginSchema>;
 
 interface Props {
 	IS_CLOUD: boolean;
+	enforceSSO: boolean;
 }
-export default function Home({ IS_CLOUD }: Props) {
+export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const router = useRouter();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
+	const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
 	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
 	const [isTwoFactor, setIsTwoFactor] = useState(false);
@@ -72,6 +86,29 @@ export default function Home({ IS_CLOUD }: Props) {
 			password: "",
 		},
 	});
+
+	useEffect(() => {
+		const queryError = router.query.error;
+		if (!queryError) return;
+
+		const raw = Array.isArray(queryError) ? queryError[0] : queryError;
+		if (!raw) return;
+		const normalized = raw.replace(/[+_]/g, " ").toLowerCase();
+
+		setError(
+			normalized.includes("account not linked")
+				? "This account already exists but isn't linked to that sign-in provider yet. Contact your administrator to link it."
+				: normalized.includes("access denied")
+					? "Access was denied by the identity provider."
+					: "We couldn't complete sign-in. Please try again or contact your administrator.",
+		);
+
+		const { error: _removed, ...rest } = router.query;
+		router.replace({ pathname: router.pathname, query: rest }, undefined, {
+			shallow: true,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [router.query.error]);
 
 	const onSubmit = async (values: LoginForm) => {
 		setIsLoginLoading(true);
@@ -97,8 +134,7 @@ export default function Home({ IS_CLOUD }: Props) {
 				return;
 			}
 
-			// @ts-ignore
-			if (data?.twoFactorRedirect as boolean) {
+			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
@@ -113,6 +149,34 @@ export default function Home({ IS_CLOUD }: Props) {
 			setIsLoginLoading(false);
 		}
 	};
+	const onPasskeySignIn = async () => {
+		setIsPasskeyLoading(true);
+		try {
+			const { data, error } = await authClient.signIn.passkey();
+
+			if (error) {
+				const errorCode = "code" in error ? error.code : undefined;
+				if (
+					errorCode !== "AUTH_CANCELLED" &&
+					errorCode !== "ERROR_CEREMONY_ABORTED"
+				) {
+					toast.error(error.message || "Failed to sign in with passkey");
+					setError(error.message || "Failed to sign in with passkey");
+				}
+				return;
+			}
+
+			if (data) {
+				toast.success("Logged in successfully");
+				router.push("/dashboard/home");
+			}
+		} catch {
+			toast.error("An error occurred while signing in with passkey");
+		} finally {
+			setIsPasskeyLoading(false);
+		}
+	};
+
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (twoFactorCode.length !== 6) {
@@ -177,6 +241,7 @@ export default function Home({ IS_CLOUD }: Props) {
 			{IS_CLOUD && <SignInWithGoogle />}
 			<Form {...loginForm}>
 				<form
+					method="post"
 					onSubmit={loginForm.handleSubmit(onSubmit)}
 					className="space-y-4"
 					id="login-form"
@@ -216,6 +281,16 @@ export default function Home({ IS_CLOUD }: Props) {
 					</Button>
 				</form>
 			</Form>
+			<Button
+				variant="outline"
+				className="w-full mt-4"
+				type="button"
+				onClick={onPasskeySignIn}
+				isLoading={isPasskeyLoading}
+			>
+				<Fingerprint className="size-4" />
+				Sign in with Passkey
+			</Button>
 		</>
 	);
 
@@ -247,7 +322,9 @@ export default function Home({ IS_CLOUD }: Props) {
 			<CardContent className="p-0">
 				{!isTwoFactor ? (
 					<>
-						{showSignInWithSSO ? (
+						{enforceSSO ? (
+							<SignInWithSSO enforce />
+						) : showSignInWithSSO ? (
 							<SignInWithSSO>{loginContent}</SignInWithSSO>
 						) : (
 							loginContent
@@ -256,6 +333,7 @@ export default function Home({ IS_CLOUD }: Props) {
 				) : (
 					<>
 						<form
+							method="post"
 							onSubmit={onTwoFactorSubmit}
 							className="space-y-4"
 							id="two-factor-form"
@@ -269,10 +347,21 @@ export default function Home({ IS_CLOUD }: Props) {
 									value={twoFactorCode}
 									onChange={setTwoFactorCode}
 									maxLength={6}
-									placeholder="••••••"
 									pattern={REGEXP_ONLY_DIGITS}
 									autoFocus
-								/>
+								>
+									<InputOTPGroup>
+										<InputOTPSlot index={0} />
+										<InputOTPSlot index={1} />
+										<InputOTPSlot index={2} />
+									</InputOTPGroup>
+									<InputOTPSeparator />
+									<InputOTPGroup>
+										<InputOTPSlot index={3} />
+										<InputOTPSlot index={4} />
+										<InputOTPSlot index={5} />
+									</InputOTPGroup>
+								</InputOTP>
 								<CardDescription>
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>
@@ -285,7 +374,7 @@ export default function Home({ IS_CLOUD }: Props) {
 								</button>
 							</div>
 
-							<div className="flex gap-4">
+							<div className="grid grid-cols-2 gap-4">
 								<Button
 									variant="outline"
 									className="w-full"
@@ -319,7 +408,11 @@ export default function Home({ IS_CLOUD }: Props) {
 									</DialogDescription>
 								</DialogHeader>
 
-								<form onSubmit={onBackupCodeSubmit} className="space-y-4">
+								<form
+									method="post"
+									onSubmit={onBackupCodeSubmit}
+									className="space-y-4"
+								>
 									<div className="flex flex-col gap-2">
 										<Label>Backup Code</Label>
 										<Input
@@ -401,6 +494,12 @@ Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the login/onboarding logo and app name
+	// render correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+	await helpers.sso.showSignInWithSSO.prefetch();
+
 	if (IS_CLOUD) {
 		try {
 			const { user } = await validateRequest(context.req);
@@ -416,7 +515,9 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				IS_CLOUD: IS_CLOUD,
+				enforceSSO: false,
 			},
 		};
 	}
@@ -442,9 +543,13 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
+	const webServerSettings = await getWebServerSettings();
+
 	return {
 		props: {
+			trpcState: helpers.dehydrate(),
 			hasAdmin,
+			enforceSSO: webServerSettings?.enforceSSO ?? false,
 		},
 	};
 }

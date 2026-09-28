@@ -125,7 +125,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 													<TooltipContent
 														side="left"
 														sideOffset={5}
-														className="max-w-[11rem]"
+														className="max-w-44"
 													>
 														<p>Set current public IP</p>
 													</TooltipContent>

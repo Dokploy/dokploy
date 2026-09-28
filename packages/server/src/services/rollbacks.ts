@@ -7,7 +7,6 @@ import {
 	deployments as deploymentsSchema,
 	rollbacks,
 } from "../db/schema";
-import type { ApplicationNested } from "../utils/builders";
 import { getRegistryTag } from "../utils/cluster/upload";
 import {
 	calculateResources,
@@ -18,12 +17,19 @@ import {
 } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
+import { withResolvedVaultRefs } from "../utils/vault";
 import { type Application, findApplicationById } from "./application";
 import { findDeploymentById } from "./deployment";
+import type { Environment } from "./environment";
 import type { Mount } from "./mount";
+import { resolveServiceNetworks } from "./network";
 import type { Port } from "./port";
 import type { Project } from "./project";
-import { type Registry, safeDockerLoginCommand } from "./registry";
+import {
+	findRegistryByIdWithCredentials,
+	type Registry,
+	safeDockerLoginCommand,
+} from "./registry";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
@@ -56,11 +62,29 @@ export const createRollback = async (
 			...rest
 		} = await findApplicationById(deployment.applicationId);
 
+		const registry = rest.registryId
+			? await findRegistryByIdWithCredentials(rest.registryId)
+			: rest.registry;
+		const buildRegistry = rest.buildRegistryId
+			? await findRegistryByIdWithCredentials(rest.buildRegistryId)
+			: rest.buildRegistry;
+		const rollbackRegistry = rest.rollbackRegistryId
+			? await findRegistryByIdWithCredentials(rest.rollbackRegistryId)
+			: rest.rollbackRegistry;
+
+		const fullContextWithCredentials = {
+			...rest,
+			registry,
+			buildRegistry,
+			rollbackRegistry,
+		};
+
 		await tx
 			.update(rollbacks)
 			.set({
 				image: tagImage,
-				fullContext: rest,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				fullContext: fullContextWithCredentials as any,
 			})
 			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
 
@@ -84,19 +108,7 @@ export const findRollbackById = async (rollbackId: string) => {
 	const result = await db.query.rollbacks.findFirst({
 		where: eq(rollbacks.rollbackId, rollbackId),
 		with: {
-			deployment: {
-				with: {
-					application: {
-						with: {
-							environment: {
-								with: {
-									project: true,
-								},
-							},
-						},
-					},
-				},
-			},
+			deployment: true,
 		},
 	});
 
@@ -162,7 +174,6 @@ export const rollback = async (rollbackId: string) => {
 	if (!result.fullContext) {
 		throw new Error("Rollback context not found");
 	}
-	// Use the full context for rollback
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
@@ -193,29 +204,32 @@ const rollbackApplication = async (
 	image: string,
 	serverId?: string | null,
 	fullContext?: Application & {
-		environment: {
+		environment: Environment & {
 			project: Project;
 		};
 		mounts: Mount[];
 		ports: Port[];
-		rollbackRegistry?: Registry;
+		rollbackRegistry?: Registry | null;
 	},
 ) => {
 	if (!fullContext) {
 		throw new Error("Full context is required for rollback");
 	}
 
+	const resolvedContext = await withResolvedVaultRefs(fullContext);
+
+	const rollbackRegistry = resolvedContext.rollbackRegistry ?? undefined;
+
 	// Ensure Docker daemon is authenticated with the rollback registry
 	// before updating the swarm service. The authconfig in CreateServiceOptions
 	// alone is not sufficient — Docker Swarm also relies on the daemon's
 	// cached credentials (~/.docker/config.json) to distribute auth to nodes.
-	if (fullContext.rollbackRegistry) {
-		await dockerLoginForRegistry(fullContext.rollbackRegistry, serverId);
+	if (rollbackRegistry) {
+		await dockerLoginForRegistry(rollbackRegistry, serverId);
 	}
 
 	const docker = await getRemoteDocker(serverId);
 
-	// Use the same configuration as mechanizeDockerContainer
 	const {
 		env,
 		mounts,
@@ -225,7 +239,7 @@ const rollbackApplication = async (
 		cpuReservation,
 		command,
 		ports,
-	} = fullContext;
+	} = resolvedContext;
 
 	const resources = calculateResources({
 		memoryLimit,
@@ -236,6 +250,10 @@ const rollbackApplication = async (
 
 	const volumesMount = generateVolumeMounts(mounts);
 
+	const resolvedNetworks = await resolveServiceNetworks(
+		resolvedContext as Parameters<typeof resolveServiceNetworks>[0],
+	);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -244,28 +262,28 @@ const rollbackApplication = async (
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		Ulimits,
-	} = generateConfigContainer(fullContext as ApplicationNested);
+	} = generateConfigContainer(
+		resolvedContext as Parameters<typeof generateConfigContainer>[0],
+	);
 
 	const bindsMount = generateBindMounts(mounts);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		fullContext.environment.project.env,
+		resolvedContext.environment.project.env,
+		resolvedContext.environment.env,
 	);
 
-	// Build the full registry image path if rollbackRegistry is available
-	// e.g., "appName:v5" -> "siumauricio/appName:v5" or "registry.com/prefix/appName:v5"
 	let rollbackImage = image;
-	if (fullContext.rollbackRegistry) {
-		rollbackImage = getRegistryTag(fullContext.rollbackRegistry, image);
+	if (rollbackRegistry) {
+		rollbackImage = getRegistryTag(rollbackRegistry, image);
 	}
 
 	const settings: CreateServiceOptions = {
 		authconfig: {
-			password: fullContext.rollbackRegistry?.password || "",
-			username: fullContext.rollbackRegistry?.username || "",
-			serveraddress: fullContext.rollbackRegistry?.registryUrl || "",
+			password: rollbackRegistry?.password || "",
+			username: rollbackRegistry?.username || "",
+			serveraddress: rollbackRegistry?.registryUrl || "",
 		},
 		Name: appName,
 		TaskTemplate: {
@@ -283,7 +301,7 @@ const rollbackApplication = async (
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {

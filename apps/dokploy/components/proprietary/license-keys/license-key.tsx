@@ -92,8 +92,11 @@ export function LicenseKeySettings() {
 					{enabled ? (
 						<>
 							<div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-								<div className="space-y-2">
-									<label className="text-sm font-medium" htmlFor="licenseKey">
+								<div className="">
+									<label
+										className="text-sm font-medium mb-2 flex"
+										htmlFor="licenseKey"
+									>
 										License Key
 									</label>
 									<Input

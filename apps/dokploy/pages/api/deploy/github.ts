@@ -23,6 +23,9 @@ import {
 	logWebhookError,
 } from "./[refreshToken]";
 
+const getGithubRepositoryOwner = (githubBody: any) =>
+	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -109,7 +112,7 @@ export default async function handler(
 		try {
 			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
-			const owner = githubBody?.repository?.owner?.name;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
 
@@ -219,10 +222,12 @@ export default async function handler(
 
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
-			const owner = githubBody?.repository?.owner?.name;
-			const normalizedCommits = githubBody?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const owner = getGithubRepositoryOwner(githubBody);
+			const normalizedCommits = githubBody?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const apps = await db.query.applications.findMany({
 				where: and(
@@ -372,7 +377,7 @@ export default async function handler(
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
-			const owner = githubBody?.repository?.owner?.login;
+			const owner = getGithubRepositoryOwner(githubBody);
 			const prAuthor = githubBody?.pull_request?.user?.login;
 
 			// Validate PR author information is present
@@ -479,10 +484,6 @@ export default async function handler(
 					if (!hasLabel) continue;
 				}
 
-				const previewLimit = app?.previewLimit || 0;
-				if (app?.previewDeployments?.length > previewLimit) {
-					continue;
-				}
 				const previewDeploymentResult =
 					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
@@ -490,6 +491,15 @@ export default async function handler(
 					previewDeploymentResult?.previewDeploymentId || "";
 
 				if (!previewDeploymentResult && shouldCreateDeployment) {
+					// The limit only applies to new previews, existing ones must
+					// still be redeployed when the pull request is updated.
+					const previewLimit = app?.previewLimit ?? 3;
+					if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
+						console.warn(
+							`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
+						);
+						continue;
+					}
 					const previewDeployment = await createPreviewDeployment({
 						applicationId: app.applicationId as string,
 						branch: prBranch,

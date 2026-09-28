@@ -31,6 +31,45 @@ import { api } from "@/utils/api";
 
 // Railpack versions from https://github.com/railwayapp/railpack/releases
 export const RAILPACK_VERSIONS = [
+	"0.39.0",
+	"0.38.0",
+	"0.37.1",
+	"0.37.0",
+	"0.36.4",
+	"0.36.3",
+	"0.36.2",
+	"0.36.1",
+	"0.36.0",
+	"0.35.0",
+	"0.34.0",
+	"0.33.0",
+	"0.32.0",
+	"0.31.2",
+	"0.31.1",
+	"0.31.0",
+	"0.30.1",
+	"0.30.0",
+	"0.29.0",
+	"0.28.0",
+	"0.27.2",
+	"0.27.1",
+	"0.27.0",
+	"0.26.1",
+	"0.26.0",
+	"0.25.0",
+	"0.24.0",
+	"0.23.0",
+	"0.22.2",
+	"0.22.1",
+	"0.22.0",
+	"0.21.0",
+	"0.20.0",
+	"0.19.0",
+	"0.18.0",
+	"0.17.2",
+	"0.17.1",
+	"0.17.0",
+	"0.16.0",
 	"0.15.4",
 	"0.15.3",
 	"0.15.2",
@@ -45,12 +84,22 @@ export const RAILPACK_VERSIONS = [
 	"0.9.1",
 	"0.9.0",
 	"0.8.0",
+	"0.7.2",
+	"0.7.1",
 	"0.7.0",
+	"0.6.1",
 	"0.6.0",
+	"0.5.1",
 	"0.5.0",
 	"0.4.0",
 	"0.3.0",
+	"0.2.3",
 	"0.2.2",
+	"0.2.1",
+	"0.2.0",
+	"0.1.2",
+	"0.1.1",
+	"0.1.0",
 ] as const;
 
 export enum BuildType {
@@ -88,6 +137,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	z.object({
 		buildType: z.literal(BuildType.nixpacks),
 		publishDirectory: z.string().optional(),
+		isStaticSpa: z.boolean().default(false),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
@@ -138,6 +188,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 			return {
 				buildType: BuildType.nixpacks,
 				publishDirectory: data.publishDirectory || undefined,
+				isStaticSpa: data.isStaticSpa ?? false,
 			};
 		case BuildType.paketo_buildpacks:
 			return {
@@ -179,6 +230,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 
 	const buildType = form.watch("buildType");
 	const railpackVersion = form.watch("railpackVersion");
+	const publishDirectory = form.watch("publishDirectory");
 	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
 	useEffect(() => {
@@ -224,7 +276,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					? data.herokuVersion
 					: null,
 			isStaticSpa:
-				data.buildType === BuildType.static ? data.isStaticSpa : null,
+				data.buildType === BuildType.static ||
+				data.buildType === BuildType.nixpacks
+					? data.isStaticSpa
+					: null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
 					? data.railpackVersion || "0.15.4"
@@ -413,6 +468,30 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												{...field}
 												value={field.value ?? ""}
 											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.nixpacks && publishDirectory && (
+							<FormField
+								control={form.control}
+								name="isStaticSpa"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<div className="flex items-center gap-x-2 p-2">
+												<Checkbox
+													id="checkboxIsStaticSpaNixpacks"
+													value={String(field.value)}
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+												<FormLabel htmlFor="checkboxIsStaticSpaNixpacks">
+													Single Page Application (SPA)
+												</FormLabel>
+											</div>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

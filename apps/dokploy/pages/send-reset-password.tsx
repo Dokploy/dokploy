@@ -1,5 +1,6 @@
 import { IS_CLOUD } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const loginSchema = z.object({
@@ -110,6 +112,7 @@ export default function Home() {
 						{!temp.is2FAEnabled ? (
 							<Form {...form}>
 								<form
+									method="post"
 									onSubmit={form.handleSubmit(onSubmit)}
 									className="grid gap-4"
 								>
@@ -164,7 +167,7 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(_context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -174,7 +177,14 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 		};
 	}
 
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }

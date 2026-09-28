@@ -4,11 +4,12 @@ import {
 	apikey,
 	invitation,
 	member,
+	passkey,
 	user,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
 export type User = typeof user.$inferSelect;
@@ -396,6 +397,21 @@ export const findMemberById = async (
 	return result;
 };
 
+export const findPasskeysByUserId = async (userId: string) => {
+	return db.query.passkey.findMany({
+		where: eq(passkey.userId, userId),
+		columns: {
+			id: true,
+			name: true,
+			deviceType: true,
+			backedUp: true,
+			createdAt: true,
+			aaguid: true,
+		},
+		orderBy: [desc(passkey.createdAt)],
+	});
+};
+
 export const createOrganizationUserWithCredentials = async ({
 	organizationId,
 	email,
@@ -430,7 +446,7 @@ export const createOrganizationUserWithCredentials = async ({
 			.insert(user)
 			.values({
 				email: normalizedEmail,
-				emailVerified: false,
+				emailVerified: true,
 				updatedAt: now,
 			})
 			.returning({

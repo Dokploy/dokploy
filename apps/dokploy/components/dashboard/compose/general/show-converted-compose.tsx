@@ -52,7 +52,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					Preview Compose
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-6xl max-h-[50rem]">
+			<DialogContent className="sm:max-w-6xl max-h-[85vh] flex flex-col">
 				<DialogHeader>
 					<DialogTitle>Converted Compose</DialogTitle>
 					<DialogDescription>
@@ -62,16 +62,12 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				<AlertBlock type="info" className="mb-4">
-					Preview your docker-compose file with added domains. Note: At least
-					one domain must be specified for this conversion to take effect.
-				</AlertBlock>
 				{isPending ? (
-					<div className="flex flex-row items-center justify-center min-h-[25rem] border p-4 rounded-md">
+					<div className="flex flex-row items-center justify-center min-h-100 border p-4 rounded-md">
 						<Loader2 className="h-8 w-8 text-muted-foreground mb-2 animate-spin" />
 					</div>
 				) : compose?.length === 5 ? (
-					<div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[25rem]">
+					<div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-100">
 						<Puzzle className="h-8 w-8 text-muted-foreground mb-2" />
 						<span className="text-muted-foreground">
 							No converted compose data available.
@@ -79,7 +75,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					</div>
 				) : (
 					<>
-						<div className="flex flex-row gap-2 justify-end my-4">
+						<div className="flex flex-row gap-2 justify-end">
 							<Button
 								variant="secondary"
 								isLoading={isPending}
@@ -100,14 +96,15 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 							</Button>
 						</div>
 
-						<pre>
+						<div className="flex-1 min-h-0 overflow-auto rounded-md border">
 							<CodeEditor
 								value={compose || ""}
 								language="yaml"
 								readOnly
-								height="50rem"
+								height="100%"
+								wrapperClassName="h-full"
 							/>
-						</pre>
+						</div>
 					</>
 				)}
 			</DialogContent>

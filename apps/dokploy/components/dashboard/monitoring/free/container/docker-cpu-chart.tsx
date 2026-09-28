@@ -29,7 +29,7 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 	}));
 
 	return (
-		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+		<ChartContainer config={chartConfig} className="mt-4 h-40 w-full">
 			<AreaChart
 				data={transformedData}
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -69,6 +69,7 @@ export const DockerCpuChart = ({ accumulativeData }: Props) => {
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="usage"
 					stroke="var(--color-usage)"
 					fill="url(#fillCpu)"

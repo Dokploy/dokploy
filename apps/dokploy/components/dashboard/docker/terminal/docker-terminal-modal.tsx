@@ -23,12 +23,14 @@ interface Props {
 	containerId: string;
 	serverId?: string;
 	children?: React.ReactNode;
+	serviceId?: string;
 }
 
 export const DockerTerminalModal = ({
 	children,
 	containerId,
 	serverId,
+	serviceId,
 }: Props) => {
 	const [mainDialogOpen, setMainDialogOpen] = useState(false);
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -74,6 +76,7 @@ export const DockerTerminalModal = ({
 					id="terminal"
 					containerId={containerId}
 					serverId={serverId || ""}
+					serviceId={serviceId}
 				/>
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>

@@ -11,6 +11,7 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { projects } from "./project";
 import { redis } from "./redis";
+import { encryptedText } from "./utils";
 
 export const environments = pgTable("environment", {
 	environmentId: text("environmentId")
@@ -22,7 +23,7 @@ export const environments = pgTable("environment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	env: text("env").notNull().default(""),
+	env: encryptedText("env").notNull().default(""),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),

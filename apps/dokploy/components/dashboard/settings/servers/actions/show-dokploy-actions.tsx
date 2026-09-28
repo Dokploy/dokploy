@@ -19,8 +19,6 @@ export const ShowDokployActions = () => {
 	const { mutateAsync: reloadServer, isPending } =
 		api.settings.reloadServer.useMutation();
 
-	const { mutateAsync: cleanRedis } = api.settings.cleanRedis.useMutation();
-	const { mutateAsync: reloadRedis } = api.settings.reloadRedis.useMutation();
 	const { mutateAsync: cleanAllDeploymentQueue } =
 		api.settings.cleanAllDeploymentQueue.useMutation();
 
@@ -73,21 +71,6 @@ export const ShowDokployActions = () => {
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={async () => {
-							await cleanRedis()
-								.then(async () => {
-									toast.success("Redis cleaned");
-								})
-								.catch(() => {
-									toast.error("Error cleaning Redis");
-								});
-						}}
-					>
-						Clean Redis
-					</DropdownMenuItem>
-
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={async () => {
 							await cleanAllDeploymentQueue()
 								.then(() => {
 									toast.success("Deployment queue cleaned");
@@ -98,21 +81,6 @@ export const ShowDokployActions = () => {
 						}}
 					>
 						Clean all deployment queue
-					</DropdownMenuItem>
-
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={async () => {
-							await reloadRedis()
-								.then(async () => {
-									toast.success("Redis reloaded");
-								})
-								.catch(() => {
-									toast.error("Error reloading Redis");
-								});
-						}}
-					>
-						Reload Redis
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

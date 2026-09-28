@@ -4,6 +4,7 @@ import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findDestinationById } from "@dokploy/server/services/destination";
 import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
@@ -23,7 +24,7 @@ export const runComposeBackup = async (
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType, serviceName } = backup;
-	const destination = backup.destination;
+	const destination = await findDestinationById(backup.destinationId);
 	const backupFileName = `${getBackupTimestamp()}.${databaseType === "mongo" ? "bson" : "sql"}.gz`;
 	const s3AppName = serviceName ? `${appName}_${serviceName}` : appName;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix)}${backupFileName}`;
@@ -36,11 +37,10 @@ export const runComposeBackup = async (
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-
 		const backupCommand = getBackupCommand(
 			backup,
-			rcloneCommand,
+			rcloneFlags,
+			rcloneDestination,
 			deployment.logPath,
 		);
 		if (compose.serverId) {
