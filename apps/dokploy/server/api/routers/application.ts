@@ -22,6 +22,7 @@ import {
 	removePreviewDeployment,
 	removeService,
 	removeTraefikConfig,
+	runQcStep,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -486,6 +487,22 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: application.applicationId,
 				resourceName: application.appName,
 			});
+		}),
+	regenerateTestPlan: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				deployment: ["create"],
+			});
+			const application = await findApplicationById(input.applicationId);
+			const result = await runQcStep(application);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "application",
+				resourceId: application.applicationId,
+				resourceName: application.appName,
+			});
+			return result;
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)

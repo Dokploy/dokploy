@@ -10,6 +10,10 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import {
+	getTestExecCommand,
+	readTestExecExitCode,
+} from "@dokploy/server/utils/builders/run-test-command";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
@@ -35,6 +39,7 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	type Deployment,
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
@@ -51,7 +56,15 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { runQcStep } from "./qc-step";
 export type Application = typeof applications.$inferSelect;
+
+const toTestExecStatus = (
+	exitCode: number | null,
+): Deployment["testExecStatus"] => {
+	if (exitCode === null) return "skipped";
+	return exitCode === 0 ? "passed" : "failed";
+};
 
 export const createApplication = async (
 	input: z.infer<typeof apiCreateApplication>,
@@ -199,6 +212,12 @@ export const deployApplication = async ({
 	});
 
 	try {
+		const qcResult = await runQcStep(application);
+		await updateDeployment(deployment.deploymentId, {
+			testPlanVersionAtDeploy: qcResult.testPlanVersion,
+			qcVerdict: qcResult.verdict,
+		});
+
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository(applicationEntity);
@@ -223,6 +242,7 @@ export const deployApplication = async ({
 		}
 
 		command += await getBuildCommand(application);
+		command += await getTestExecCommand(applicationEntity);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
@@ -267,7 +287,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
@@ -289,6 +309,15 @@ export const deployApplication = async ({
 				});
 			}
 		}
+
+		const testExitCode = await readTestExecExitCode(
+			deployment.logPath,
+			serverId,
+		);
+		await updateDeployment(deployment.deploymentId, {
+			testExecStatus: toTestExecStatus(testExitCode),
+			testExecExitCode: testExitCode,
+		});
 	}
 	return true;
 };
@@ -316,6 +345,7 @@ export const rebuildApplication = async ({
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
+		command += await getTestExecCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -354,6 +384,15 @@ export const rebuildApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
+	} finally {
+		const testExitCode = await readTestExecExitCode(
+			deployment.logPath,
+			serverId,
+		);
+		await updateDeployment(deployment.deploymentId, {
+			testExecStatus: toTestExecStatus(testExitCode),
+			testExecExitCode: testExitCode,
+		});
 	}
 
 	return true;

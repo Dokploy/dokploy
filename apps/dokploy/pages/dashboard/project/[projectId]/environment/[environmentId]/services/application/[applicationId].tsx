@@ -15,6 +15,7 @@ import superjson from "superjson";
 import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
 import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
+import { ShowQcSettings } from "@/components/dashboard/application/advanced/qc/show-qc-settings";
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
 import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
 import { ShowBuildServer } from "@/components/dashboard/application/advanced/show-build-server";
@@ -29,6 +30,7 @@ import { ShowIconSettings } from "@/components/dashboard/application/icon/show-i
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowTestPlan } from "@/components/dashboard/application/qc/show-test-plan";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
@@ -70,6 +72,7 @@ type TabState =
 	| "monitoring"
 	| "preview-deployments"
 	| "volume-backups"
+	| "test-plan"
 	| "icon";
 
 const Service = (
@@ -262,6 +265,9 @@ const Service = (
 													Preview Deployments
 												</TabsTrigger>
 											)}
+											{permissions?.deployment.read && (
+												<TabsTrigger value="test-plan">Test Plan</TabsTrigger>
+											)}
 											{permissions?.schedule.read && (
 												<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											)}
@@ -405,6 +411,13 @@ const Service = (
 											</div>
 										</TabsContent>
 									)}
+									{permissions?.deployment.read && (
+										<TabsContent value="test-plan" className="w-full">
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowTestPlan applicationId={applicationId} />
+											</div>
+										</TabsContent>
+									)}
 									{permissions?.domain.read && (
 										<TabsContent value="domains" className="w-full">
 											<div className="flex flex-col gap-4 pt-2.5">
@@ -421,6 +434,7 @@ const Service = (
 										<TabsContent value="advanced">
 											<div className="flex flex-col gap-4 pt-2.5">
 												<AddCommand applicationId={applicationId} />
+												<ShowQcSettings applicationId={applicationId} />
 												<ShowClusterSettings
 													id={applicationId}
 													type="application"

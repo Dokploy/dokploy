@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
+	integer,
 	pgEnum,
 	pgTable,
 	text,
@@ -16,6 +17,7 @@ import { previewDeployments } from "./preview-deployments";
 import { rollbacks } from "./rollbacks";
 import { schedules } from "./schedule";
 import { server } from "./server";
+import { qcVerdict, testExecStatus } from "./shared";
 import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
@@ -73,6 +75,11 @@ export const deployments = pgTable("deployment", {
 	buildServerId: text("buildServerId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	// Snapshot of the QC/test-exec verdict for this specific deploy
+	testPlanVersionAtDeploy: integer("testPlanVersionAtDeploy"),
+	qcVerdict: qcVerdict("qcVerdict"),
+	testExecStatus: testExecStatus("testExecStatus"),
+	testExecExitCode: integer("testExecExitCode"),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({

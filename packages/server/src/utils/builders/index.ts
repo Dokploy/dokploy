@@ -196,7 +196,7 @@ export const mechanizeDockerContainer = async (
 	}
 };
 
-const getImageName = async (application: ApplicationNested) => {
+export const getImageName = async (application: ApplicationNested) => {
 	const { appName, sourceType, dockerImage, registry, buildRegistry } =
 		application;
 	const imageName = `${appName}:latest`;

@@ -1380,6 +1380,13 @@
       "when": 1788995453103,
       "tag": "0196_worthless_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 197,
+      "version": "7",
+      "when": 1790523783037,
+      "tag": "0197_shallow_red_hulk",
+      "breakpoints": true
     }
   ]
 }
