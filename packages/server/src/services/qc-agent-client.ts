@@ -14,10 +14,11 @@ interface QcRunHandle {
 	runId: string;
 }
 
-// ponytail: contract assumed for QC_Agent_Tool's external trigger API.
-// QC_Agent_Tool currently only exposes an interactive chat/SSE surface
-// (see its README) — these two endpoints (plus GET .../runs/{runId}) need
-// to be added there before this client works end to end.
+interface QcProjectHandle {
+	projectId: string;
+	status: "cloning" | "ready" | "failed";
+}
+
 const qcFetch = async <T>(path: string, init?: RequestInit): Promise<T> => {
 	if (!QC_AGENT_BASE_URL) {
 		throw new Error("QC_AGENT_BASE_URL is not configured");
@@ -61,6 +62,58 @@ const pollRun = async (
 
 	throw new Error(
 		`QC agent run ${runId} timed out after ${QC_AGENT_TIMEOUT_MS}ms`,
+	);
+};
+
+// Get-or-create by repo URL — no one has to go create a Project through
+// QC_Agent_Tool's own UI first. Two applications pointing at the same repo
+// resolve to the same QC_Agent_Tool project (one clone, one synced
+// workspace), so calling this again for an already-resolved app is cheap
+// and safe, not just idempotent-by-accident.
+export const resolveQcProject = async (params: {
+	repoUrl: string;
+	name?: string;
+}): Promise<string> => {
+	const { projectId, status } = await qcFetch<QcProjectHandle>(
+		"/api/external/projects/resolve",
+		{
+			method: "POST",
+			body: JSON.stringify({ repoUrl: params.repoUrl, name: params.name }),
+		},
+	);
+
+	if (status === "ready") {
+		return projectId;
+	}
+	if (status === "failed") {
+		throw new Error(`QC agent failed to clone ${params.repoUrl}`);
+	}
+
+	// "cloning" — first time this repo is resolved. Reuses the same poll
+	// budget/interval as a test-plan run; a first clone is a one-time cost,
+	// every later deploy of this app hits the "ready" branch above instead.
+	const deadline = Date.now() + QC_AGENT_TIMEOUT_MS;
+	while (Date.now() < deadline) {
+		await new Promise((resolve) =>
+			setTimeout(resolve, QC_AGENT_POLL_INTERVAL_MS),
+		);
+		const project = await qcFetch<QcProjectHandle>(
+			"/api/external/projects/resolve",
+			{
+				method: "POST",
+				body: JSON.stringify({ repoUrl: params.repoUrl, name: params.name }),
+			},
+		);
+		if (project.status === "ready") {
+			return project.projectId;
+		}
+		if (project.status === "failed") {
+			throw new Error(`QC agent failed to clone ${params.repoUrl}`);
+		}
+	}
+
+	throw new Error(
+		`QC agent project for ${params.repoUrl} is still cloning after timeout`,
 	);
 };
 

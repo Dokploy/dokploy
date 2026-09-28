@@ -141,10 +141,19 @@ export const ShowQcSettings = ({ applicationId }: Props) => {
 							name="qcProjectId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>QC Agent Project ID</FormLabel>
+									<FormLabel>QC Agent Project ID (optional)</FormLabel>
 									<FormControl>
-										<Input placeholder="proj_xxx" {...field} />
+										<Input
+											placeholder="Auto-detected from this app's repo on first deploy"
+											{...field}
+										/>
 									</FormControl>
+									<FormDescription>
+										Leave empty — QC Agent resolves and fills this in
+										automatically from the application's own git repo. Only set
+										it by hand to point this app at an existing QC Agent project
+										instead.
+									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
