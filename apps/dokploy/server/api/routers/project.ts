@@ -73,6 +73,17 @@ export const projectRouter = createTRPCRouter({
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
 			try {
+
+                                      // VIEW-ONLY ROLE ENFORCEMENT CHECK INJECTED HERE
+                                if (ctx.session?.user?.role === "VIEW_ONLY") {
+                                        throw new TRPCError({
+                                                code: "UNAUTHORIZED",
+                                                message: "Access Denied: View-only members are restricted from modifying projects or infrastructure mappings.",
+                                            });
+                              }
+
+
+
 				await checkProjectAccess(ctx, "create");
 
 				const admin = await findUserById(ctx.user.ownerId);
