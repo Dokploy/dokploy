@@ -33,7 +33,9 @@ export const sendEmailNotification = async (
 		const transporter = nodemailer.createTransport({
 			host: smtpServer,
 			port: smtpPort,
-			auth: { user: username, pass: password },
+			...(username && password
+				? { auth: { user: username, pass: password } }
+				: {}),
 		});
 
 		await transporter.sendMail({
