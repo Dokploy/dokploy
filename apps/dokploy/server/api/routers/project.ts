@@ -75,7 +75,7 @@ export const projectRouter = createTRPCRouter({
 			try {
 
                                       // VIEW-ONLY ROLE ENFORCEMENT CHECK INJECTED HERE
-                                if (ctx.user?.role === "VIEW_ONLY") {
+                                if ((ctx.user?.role as string) === "VIEW_ONLY") {
                                         throw new TRPCError({
                                                 code: "FORBIDDEN",
                                                 message: "Access Denied: View-only members are restricted from modifying projects or infrastructure mappings.",
