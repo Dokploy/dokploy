@@ -14,6 +14,7 @@ import { db } from "@dokploy/server/db";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { parseBody } from "next/dist/server/api-utils/node/parse-body";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -29,9 +30,7 @@ const getGithubRepositoryOwner = (githubBody: any) =>
 
 export const config = {
 	api: {
-		bodyParser: {
-			sizeLimit: DEPLOY_WEBHOOK_MAX_BODY_SIZE,
-		},
+		bodyParser: false,
 	},
 };
 
@@ -39,6 +38,11 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
+	if (Number(req.headers["content-length"]) > DEPLOY_WEBHOOK_MAX_BODY_SIZE) {
+		res.status(413).json({ message: "Payload too large" });
+		return;
+	}
+	req.body = await parseBody(req, DEPLOY_WEBHOOK_MAX_BODY_SIZE);
 	const signature = req.headers["x-hub-signature-256"];
 	if (!signature) {
 		res.status(401).json({ message: "Missing signature header" });

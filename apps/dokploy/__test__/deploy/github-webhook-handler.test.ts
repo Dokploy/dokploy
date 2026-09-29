@@ -62,6 +62,10 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+vi.mock("next/dist/server/api-utils/node/parse-body", () => ({
+	parseBody: async (req: { body: unknown }) => req.body,
+}));
+
 vi.mock("@dokploy/server", () => ({
 	DEPLOY_WEBHOOK_MAX_BODY_SIZE: 25 * 1024 * 1024,
 	IS_CLOUD: false,
