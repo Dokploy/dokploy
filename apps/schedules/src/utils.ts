@@ -216,7 +216,8 @@ export const initializeJobs = async () => {
 		},
 	});
 
-	const filteredSchedulesBasedOnServerStatus = schedulesResult.filter(isScheduleActive);
+	const filteredSchedulesBasedOnServerStatus =
+		schedulesResult.filter(isScheduleActive);
 
 	for (const schedule of filteredSchedulesBasedOnServerStatus) {
 		try {

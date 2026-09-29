@@ -141,9 +141,16 @@ export const scheduleRouter = createTRPCRouter({
 				await checkPermission(ctx, { schedule: ["update"] });
 			}
 			if (IS_CLOUD) {
-				const effectiveCron = input.cronExpression ?? existingSchedule.cronExpression;
-				const effectiveTimezone = input.timezone !== undefined ? input.timezone : existingSchedule.timezone;
-				const effectiveEnabled = input.enabled !== undefined ? input.enabled : existingSchedule.enabled;
+				const effectiveCron =
+					input.cronExpression ?? existingSchedule.cronExpression;
+				const effectiveTimezone =
+					input.timezone !== undefined
+						? input.timezone
+						: existingSchedule.timezone;
+				const effectiveEnabled =
+					input.enabled !== undefined
+						? input.enabled
+						: existingSchedule.enabled;
 
 				if (effectiveEnabled) {
 					await updateJob({
@@ -176,8 +183,12 @@ export const scheduleRouter = createTRPCRouter({
 							timezone: existingSchedule.timezone,
 						}).catch(() => {});
 					} else {
-						const effectiveCron = input.cronExpression ?? existingSchedule.cronExpression;
-						const effectiveTimezone = input.timezone !== undefined ? input.timezone : existingSchedule.timezone;
+						const effectiveCron =
+							input.cronExpression ?? existingSchedule.cronExpression;
+						const effectiveTimezone =
+							input.timezone !== undefined
+								? input.timezone
+								: existingSchedule.timezone;
 						await removeJob({
 							cronSchedule: effectiveCron,
 							scheduleId: input.scheduleId,
