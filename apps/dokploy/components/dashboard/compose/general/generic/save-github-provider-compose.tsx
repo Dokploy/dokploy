@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
+import { buildGithubProviderUpdate } from "./compose-provider-update";
 
 const GithubProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -147,18 +148,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 	}, [form.reset, data]);
 
 	const onSubmit = async (data: GithubProvider) => {
-		await mutateAsync({
-			branch: data.branch,
-			repository: data.repository.repo,
-			composeId,
-			owner: data.repository.owner,
-			composePath: data.composePath,
-			githubId: data.githubId,
-			sourceType: "github",
-			watchPaths: data.watchPaths,
-			enableSubmodules: data.enableSubmodules,
-			triggerType: data.triggerType,
-		})
+		await mutateAsync(buildGithubProviderUpdate(composeId, data))
 			.then(async () => {
 				toast.success("Service Provider Saved");
 				await refetch();

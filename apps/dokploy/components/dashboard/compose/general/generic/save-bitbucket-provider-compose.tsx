@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { buildBitbucketProviderUpdate } from "./compose-provider-update";
 
 const BitbucketProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -149,18 +150,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: BitbucketProvider) => {
-		await mutateAsync({
-			bitbucketBranch: data.branch,
-			bitbucketRepository: data.repository.repo,
-			bitbucketRepositorySlug: data.repository.slug || data.repository.repo,
-			bitbucketOwner: data.repository.owner,
-			bitbucketId: data.bitbucketId,
-			composePath: data.composePath,
-			composeId,
-			sourceType: "bitbucket",
-			watchPaths: data.watchPaths,
-			enableSubmodules: data.enableSubmodules,
-		})
+		await mutateAsync(buildBitbucketProviderUpdate(composeId, data))
 			.then(async () => {
 				toast.success("Service Provider Saved");
 				await refetch();

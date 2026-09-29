@@ -49,6 +49,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { Repository } from "@/utils/gitea-utils";
+import { buildGiteaProviderUpdate } from "./compose-provider-update";
 
 const GiteaProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -149,17 +150,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: GiteaProvider) => {
-		await mutateAsync({
-			giteaBranch: data.branch,
-			giteaRepository: data.repository.repo,
-			giteaOwner: data.repository.owner,
-			composePath: data.composePath,
-			giteaId: data.giteaId,
-			composeId,
-			sourceType: "gitea",
-			watchPaths: data.watchPaths,
-			enableSubmodules: data.enableSubmodules,
-		} as any)
+		await mutateAsync(buildGiteaProviderUpdate(composeId, data))
 			.then(async () => {
 				toast.success("Service Provider Saved");
 				await refetch();

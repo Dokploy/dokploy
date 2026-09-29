@@ -36,6 +36,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { buildGitProviderUpdate } from "./compose-provider-update";
 
 const GitProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -90,16 +91,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 	}, [form.reset, data, form]);
 
 	const onSubmit = async (values: GitProvider) => {
-		await mutateAsync({
-			customGitBranch: values.branch,
-			customGitUrl: values.repositoryURL,
-			customGitSSHKeyId: values.sshKey === "none" ? null : values.sshKey,
-			composeId,
-			sourceType: "git",
-			composePath: values.composePath,
-			watchPaths: values.watchPaths || [],
-			enableSubmodules: values.enableSubmodules,
-		})
+		await mutateAsync(buildGitProviderUpdate(composeId, values))
 			.then(async () => {
 				toast.success("Git Provider Saved");
 				await refetch();
