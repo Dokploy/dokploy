@@ -1,4 +1,6 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+export const roleEnum = pgEnum("role", ["OWNER", "ADMIN", "VIEW_ONLY"]);
 
 export const orgTeams = pgTable("org_teams", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
