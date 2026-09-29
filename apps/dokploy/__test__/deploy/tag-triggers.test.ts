@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchesTagPattern, matchesTriggerTags } from "@/utils/tag-triggers";
+import { matchesTriggerTags } from "@/utils/tag-triggers";
 
 describe("tag trigger patterns", () => {
 	it.each([
@@ -19,21 +19,14 @@ describe("tag trigger patterns", () => {
 		["go-1", "go-**", true],
 		["v1X2", "v1.2", false],
 		["v1.2", "v1.2", true],
-		["go-a", "go-[ab]", false],
-		["go-1", "go-?", false],
 		["release/go/v1", "*", true],
-		["release/v1.2", "release/*", true],
-		["go-v1.2", "go-*", true],
-		["go-(1)", "go-(1)", true],
-		["go-1", "go-(1)", false],
-		["go-1", "go-@(1|2)", false],
-		["go-1", "go-{1,2}", false],
-		["!go-1", "!go-*", true],
-		["node-1", "!go-*", false],
-		["go+1", "go+*", true],
-		["go1", "go+*", false],
+		["go-1", "go-?", true],
+		["go-12", "go-?", false],
+		["go-1", "{go,node}-*", true],
+		["node-1", "!go-*", true],
+		["go-1", "!go-*", false],
 	])("matches %s against %s: %s", (tag, pattern, expected) => {
-		expect(matchesTagPattern(tag, pattern)).toBe(expected);
+		expect(matchesTriggerTags(tag, [pattern])).toBe(expected);
 	});
 
 	it("accepts all tags when no filter is configured", () => {

@@ -285,18 +285,6 @@ export const ShowDeployments = ({
 							const isExpanded = expandedDescriptions.has(
 								deployment.deploymentId,
 							);
-							const descriptionText = (deployment.description ?? "")
-								.split("\n")
-								.filter((line) => {
-									const text = line.trim();
-									if (text.startsWith("Tag SHA:")) return false;
-									return !(
-										text.startsWith("Tag: ") &&
-										titleText.trim() === `Tag created: ${text.slice(5)}`
-									);
-								})
-								.join("\n")
-								.trim();
 							const canDelete =
 								deployment.status === "done" || deployment.status === "error";
 
@@ -353,9 +341,9 @@ export const ShowDeployments = ({
 												</button>
 											)}
 											{/* Trigger metadata and checked-out commit */}
-											{descriptionText && (
+											{deployment.description?.trim() && (
 												<span className="whitespace-pre-wrap wrap-anywhere text-xs text-muted-foreground font-mono">
-													{descriptionText}
+													{deployment.description}
 												</span>
 											)}
 										</div>

@@ -30,7 +30,6 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { getDeploymentCommitDescription } from "../utils/deployment-description";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
@@ -286,10 +285,9 @@ export const deployApplication = async ({
 			if (commitInfo) {
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
-					description: getDeploymentCommitDescription(
-						descriptionLog,
-						commitInfo.hash,
-					),
+					description: descriptionLog.startsWith("Tag: ")
+						? `${descriptionLog}\nCommit: ${commitInfo.hash}`
+						: `Commit: ${commitInfo.hash}`,
 				});
 			}
 		}
