@@ -949,7 +949,6 @@ export const composeRouter = createTRPCRouter({
 				customGitSSHKeyId: null,
 
 				sourceType: "github", // Reset to default
-				composeStatus: "idle",
 				watchPaths: null,
 				enableSubmodules: false,
 			});
