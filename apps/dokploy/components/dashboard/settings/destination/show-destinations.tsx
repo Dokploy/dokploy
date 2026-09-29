@@ -19,7 +19,7 @@ export const ShowDestinations = () => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -56,7 +56,7 @@ export const ShowDestinations = () => {
 													key={destination.destinationId}
 													className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
 												>
-													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
+													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border w-full">
 														<div className="flex flex-col gap-1">
 															<span className="text-sm">
 																{index + 1}. {destination.name}

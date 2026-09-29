@@ -22,7 +22,7 @@ export const ShowApiKeys = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader className="flex flex-row gap-2 flex-wrap justify-between items-center">
 						<div>

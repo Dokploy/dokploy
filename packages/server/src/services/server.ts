@@ -4,7 +4,9 @@ import {
 	member,
 	organization,
 	server,
+	team,
 } from "@dokploy/server/db/schema";
+import { resolveMemberServers } from "@dokploy/server/services/organization-teams";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -264,7 +266,7 @@ export const getAccessibleServerIds = async (session: {
 			eq(member.userId, userId),
 			eq(member.organizationId, activeOrganizationId),
 		),
-		columns: { accessedServers: true, role: true },
+		columns: { accessedServers: true, role: true, teamId: true },
 	});
 
 	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
@@ -277,5 +279,20 @@ export const getAccessibleServerIds = async (session: {
 		return new Set(allOrgServers.map((s) => s.serverId));
 	}
 
-	return new Set(memberRecord?.accessedServers ?? []);
+	const memberTeam = memberRecord?.teamId
+		? await db.query.team.findFirst({
+				where: and(
+					eq(team.id, memberRecord.teamId),
+					eq(team.organizationId, activeOrganizationId),
+				),
+				columns: { accessedServers: true },
+			})
+		: null;
+	const orgServerIds = new Set(allOrgServers.map((item) => item.serverId));
+	return new Set(
+		resolveMemberServers(
+			memberRecord?.accessedServers ?? [],
+			memberTeam?.accessedServers,
+		).filter((serverId) => orgServerIds.has(serverId)),
+	);
 };

@@ -34,7 +34,7 @@ type ActionOf<R extends Resource> = (typeof statements)[R][number];
 interface CreateContextOptions {
 	user:
 		| (User & {
-				role: "member" | "admin" | "owner";
+				role: "member" | "admin" | "owner" | "viewer";
 				ownerId: string;
 				enableEnterpriseFeatures: boolean;
 				isValidEnterpriseLicense: boolean;
@@ -94,7 +94,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 			? {
 					...user,
 					email: user.email,
-					role: user.role as "owner" | "member" | "admin",
+					role: user.role as "owner" | "member" | "admin" | "viewer",
 					id: user.id,
 					ownerId: user.ownerId,
 				}
