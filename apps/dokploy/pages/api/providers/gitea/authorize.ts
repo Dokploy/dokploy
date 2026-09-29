@@ -29,7 +29,7 @@ export default async function handler(
 			"redirect_uri",
 			gitea.redirectUri as string,
 		);
-		authorizationUrl.searchParams.append("scope", "read:user repo");
+		authorizationUrl.searchParams.append("scope", "read:user repo write:repository");
 		authorizationUrl.searchParams.append("state", giteaId as string);
 
 		// Redirect user to Gitea authorization URL
