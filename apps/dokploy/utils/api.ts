@@ -1,3 +1,4 @@
+import { MutationCache, QueryCache } from "@tanstack/react-query";
 import {
 	createWSClient,
 	httpBatchLink,
@@ -9,6 +10,7 @@ import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import type { AppRouter } from "@/server/api/root";
+import { handleAuthError } from "@/utils/auth-error";
 
 const getBaseUrl = () => {
 	if (typeof window !== "undefined") return "";
@@ -71,9 +73,18 @@ const links =
 				}),
 			];
 
+const queryClientConfig = {
+	queryCache: new QueryCache({
+		onError: (error: unknown) => handleAuthError(error),
+	}),
+	mutationCache: new MutationCache({
+		onError: (error: unknown) => handleAuthError(error),
+	}),
+};
+
 export const api = createTRPCNext<AppRouter>({
 	config() {
-		return { links };
+		return { links, queryClientConfig };
 	},
 	ssr: false,
 	transformer: superjson,
