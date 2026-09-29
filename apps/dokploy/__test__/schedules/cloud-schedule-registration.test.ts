@@ -10,7 +10,7 @@ vi.mock("../../../schedules/src/queue", () => ({
 		removeRepeatable: vi.fn(),
 		getRepeatableJobs: vi.fn(),
 		obliterate: vi.fn(),
-	}
+	},
 }));
 
 import {
