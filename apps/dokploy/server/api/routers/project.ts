@@ -75,9 +75,9 @@ export const projectRouter = createTRPCRouter({
 			try {
 
                                       // VIEW-ONLY ROLE ENFORCEMENT CHECK INJECTED HERE
-                                if (ctx.session?.user?.role === "VIEW_ONLY") {
+                                if (ctx.user?.role === "VIEW_ONLY") {
                                         throw new TRPCError({
-                                                code: "UNAUTHORIZED",
+                                                code: "FORBIDDEN",
                                                 message: "Access Denied: View-only members are restricted from modifying projects or infrastructure mappings.",
                                             });
                               }
@@ -130,7 +130,7 @@ export const projectRouter = createTRPCRouter({
 
 				if (!accessedProjects.includes(input.projectId)) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
+						code: "FORBIDDEN",
 						message: "You don't have access to this project",
 					});
 				}
@@ -225,7 +225,7 @@ export const projectRouter = createTRPCRouter({
 
 			if (project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
-					code: "UNAUTHORIZED",
+					code: "FORBIDDEN",
 					message: "You are not authorized to access this project",
 				});
 			}
@@ -782,7 +782,7 @@ export const projectRouter = createTRPCRouter({
 					currentProject.organizationId !== ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
+						code: "FORBIDDEN",
 						message: "You are not authorized to delete this project",
 					});
 				}
@@ -809,7 +809,7 @@ export const projectRouter = createTRPCRouter({
 					currentProject.organizationId !== ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
+						code: "FORBIDDEN",
 						message: "You are not authorized to update this project",
 					});
 				}
@@ -821,7 +821,7 @@ export const projectRouter = createTRPCRouter({
 					);
 					if (!accessedProjects.includes(input.projectId)) {
 						throw new TRPCError({
-							code: "UNAUTHORIZED",
+							code: "FORBIDDEN",
 							message: "You don't have access to this project",
 						});
 					}
@@ -889,7 +889,7 @@ export const projectRouter = createTRPCRouter({
 						ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
-						code: "UNAUTHORIZED",
+						code: "FORBIDDEN",
 						message: "You are not authorized to access this project",
 					});
 				}
@@ -906,7 +906,7 @@ export const projectRouter = createTRPCRouter({
 					);
 					if (!accessedProjects.includes(sourceEnvironment.project.projectId)) {
 						throw new TRPCError({
-							code: "UNAUTHORIZED",
+							code: "FORBIDDEN",
 							message: "You don't have access to this project",
 						});
 					}
