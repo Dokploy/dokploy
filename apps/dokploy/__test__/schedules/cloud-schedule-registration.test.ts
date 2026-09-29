@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { isScheduleActive, buildScheduleJobPayload } from "../../../schedules/src/utils";
+import {
+	isScheduleActive,
+	buildScheduleJobPayload,
+} from "../../../schedules/src/utils";
 
 describe("initializeJobs — schedule filter", () => {
 	const makeSchedule = (overrides: Record<string, unknown> = {}) => ({
