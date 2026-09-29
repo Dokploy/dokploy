@@ -1,4 +1,17 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+
+vi.mock("../../../schedules/src/queue", () => ({
+	scheduleJob: vi.fn(),
+	removeJob: vi.fn(),
+	cleanQueue: vi.fn(),
+	getJobRepeatable: vi.fn(),
+	jobQueue: {
+		add: vi.fn(),
+		removeRepeatable: vi.fn(),
+		getRepeatableJobs: vi.fn(),
+		obliterate: vi.fn(),
+	}
+}));
 
 import { isScheduleActive, buildScheduleJobPayload } from "../../../schedules/src/utils";
 
