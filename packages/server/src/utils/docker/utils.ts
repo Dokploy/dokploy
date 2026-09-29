@@ -467,16 +467,13 @@ export const removeRailpackBuilder = async (
 	appName: string,
 	serverId?: string | null,
 ) => {
-	try {
-		const command = `docker buildx rm ${quote([getRailpackBuilderName(appName)])}`;
+	const builderName = quote([getRailpackBuilderName(appName)]);
+	const command = `if docker buildx inspect ${builderName} >/dev/null 2>&1; then docker buildx rm ${builderName}; fi`;
 
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
-		} else {
-			await execAsync(command);
-		}
-	} catch (error) {
-		return error;
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
 	}
 };
 
