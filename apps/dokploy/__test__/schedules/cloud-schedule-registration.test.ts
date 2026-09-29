@@ -14,8 +14,9 @@ describe("initializeJobs — schedule filter", () => {
 
 	const filterSchedule = (schedule: ReturnType<typeof makeSchedule>) => {
 		if (schedule.server) {
-			return (schedule.server as { serverStatus: string }).serverStatus ===
-				"active";
+			return (
+				(schedule.server as { serverStatus: string }).serverStatus === "active"
+			);
 		}
 		if (schedule.application) {
 			return (
