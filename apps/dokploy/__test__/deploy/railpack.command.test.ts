@@ -37,17 +37,30 @@ describe("getRailpackCommand", () => {
 
 		expect(command).toContain("--build-arg secrets-hash=");
 		expect(command).not.toContain("cache-key=");
+		expect(command).not.toContain("--no-cache");
+		expect(command).not.toContain("buildx prune");
 	});
 
-	it("includes cache-key only when clean cache is enabled", () => {
+	it("deletes the previous cache and builds without it when clean cache is enabled", () => {
 		const command = getRailpackCommand(
 			createApplication({
 				cleanCache: true,
 			}),
 		);
 
+		expect(command).toContain(
+			"docker buildx prune --builder railpack-test-app --all --force",
+		);
 		expect(command).toContain("--build-arg secrets-hash=");
+		expect(command).toContain("--no-cache");
 		expect(command).toContain("--build-arg cache-key=");
+	});
+
+	it("keeps one persistent builder per application to reuse the build cache", () => {
+		const command = getRailpackCommand(createApplication());
+
+		expect(command).toContain("--builder railpack-test-app ");
+		expect(command).not.toContain("docker buildx rm");
 	});
 
 	it("installs Railpack through sudo for non-root users", () => {

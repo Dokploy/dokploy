@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { nanoid } from "nanoid";
 import { quote } from "shell-quote";
 import {
+	getRailpackBuilderName,
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForShell,
@@ -45,14 +46,19 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 	const cacheKey = cleanCache ? nanoid(10) : undefined;
 	// Build command.
-	// Use a unique builder name per build so concurrent deployments don't race
-	// on a shared "builder-containerd" instance (create/use/rm collisions).
-	const builderName = `railpack-${appName}-${nanoid(6)}`;
+	const builderName = quote([getRailpackBuilderName(appName)]);
+	const clearBuildCache = cleanCache
+		? `docker buildx prune --builder ${builderName} --all --force || {
+	echo "❌ Deleting the Railpack build cache failed" ;
+	exit 1;
+}`
+		: "";
 	const buildArgs = [
 		"buildx",
 		"build",
 		"--builder",
 		builderName,
+		...(cleanCache ? ["--no-cache"] : []),
 		"--build-arg",
 		`secrets-hash=${secretsHash}`,
 		...(cacheKey ? ["--build-arg", `cache-key=${cacheKey}`] : []),
@@ -84,8 +90,6 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 
 	const bashCommand = `
 
-# Ensure we have a builder with containerd (isolated per build)
-
 export RAILPACK_VERSION=${application.railpackVersion}
 # use sudo for non-root so the install can write to /usr/local/bin
 if [ "$(id -u)" -eq 0 ]; then
@@ -96,12 +100,21 @@ else
 	SUDO_CMD=""
 fi
 $SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
-docker buildx create --name ${builderName} --driver docker-container || true
+if ! docker buildx inspect ${builderName} >/dev/null 2>&1; then
+	docker buildx create --name ${builderName} --driver docker-container || docker buildx inspect ${builderName} >/dev/null 2>&1 || {
+		echo "❌ Railpack builder creation failed" ;
+		exit 1;
+	}
+fi
+docker buildx inspect --bootstrap ${builderName} >/dev/null || {
+	echo "❌ Railpack builder failed to start" ;
+	exit 1;
+}
+${clearBuildCache}
 
 echo "Preparing Railpack build plan..." ;
 railpack ${prepareArgs.join(" ")} || {
 	echo "❌ Railpack prepare failed" ;
-	docker buildx rm ${builderName} || true
 	exit 1;
 }
 echo "✅ Railpack prepare completed." ;
@@ -111,11 +124,9 @@ echo "Building with Railpack frontend..." ;
 ${exportEnvs.join("\n")}
 docker ${buildArgs.join(" ")} || {
 	echo "❌ Railpack build failed" ;
-	docker buildx rm ${builderName} || true
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
-docker buildx rm ${builderName} || true
 `;
 
 	return bashCommand;

@@ -181,11 +181,18 @@ ${exec}
 echo "Execution completed."
 `;
 
+const RAILPACK_BUILDER_PREFIX = "railpack-";
+
+export const getRailpackBuilderName = (appName: string) =>
+	`${RAILPACK_BUILDER_PREFIX}${appName}`;
+
+const pruneRailpackBuilders = `docker buildx ls --format '{{.Name}} {{.DriverEndpoint}}' | awk '$1 ~ /^${RAILPACK_BUILDER_PREFIX}/ && $2 == "docker-container" { print $1 }' | while read -r builder; do docker buildx prune --builder "$builder" --all --force; done`;
+
 const cleanupCommands = {
 	containers: "docker container prune --force",
 	images: "docker image prune --all --force",
 	volumes: "docker volume prune --all --force",
-	builders: "docker builder prune --all --force",
+	builders: `docker builder prune --all --force && ${pruneRailpackBuilders}`,
 	system: "docker system prune --all --force",
 };
 
@@ -445,6 +452,23 @@ export const removeService = async (
 ) => {
 	try {
 		const command = `docker service rm ${appName}`;
+
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (error) {
+		return error;
+	}
+};
+
+export const removeRailpackBuilder = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker buildx rm ${quote([getRailpackBuilderName(appName)])}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
