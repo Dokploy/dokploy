@@ -1,12 +1,7 @@
-import {
-	DEPLOY_WEBHOOK_MAX_BODY_SIZE,
-	IS_CLOUD,
-	shouldDeploy,
-} from "@dokploy/server";
+import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { parseBody } from "next/dist/server/api-utils/node/parse-body";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
@@ -22,7 +17,9 @@ import {
 
 export const config = {
 	api: {
-		bodyParser: false,
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
 	},
 };
 
@@ -30,11 +27,6 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	if (Number(req.headers["content-length"]) > DEPLOY_WEBHOOK_MAX_BODY_SIZE) {
-		res.status(413).json({ message: "Payload too large" });
-		return;
-	}
-	req.body = await parseBody(req, DEPLOY_WEBHOOK_MAX_BODY_SIZE);
 	const { refreshToken } = req.query;
 	try {
 		if (req.headers["x-github-event"] === "ping") {
