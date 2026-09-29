@@ -39,6 +39,14 @@ function isGitProviderWebhook(headers: NextApiRequest["headers"]): boolean {
 	);
 }
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
