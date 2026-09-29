@@ -15,8 +15,10 @@ import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
 
 const app = new Hono();
 
-cleanQueue();
-initializeJobs();
+(async () => {
+	await cleanQueue();
+	await initializeJobs();
+})();
 
 app.use(async (c, next) => {
 	if (c.req.path === "/health") {
@@ -111,7 +113,7 @@ process.on("unhandledRejection", (reason, _promise) => {
 	);
 });
 
-const port = Number.parseInt(process.env.PORT || "3000");
+const port = Number.parseInt(process.env.PORT || "3000", 10);
 
 logger.info("Starting Schedules Server ✅", port);
 serve({ fetch: app.fetch, port });

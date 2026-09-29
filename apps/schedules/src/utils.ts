@@ -207,6 +207,7 @@ export const initializeJobs = async () => {
 			if (schedule.compose) {
 				return schedule.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 
@@ -216,6 +217,7 @@ export const initializeJobs = async () => {
 				scheduleId: schedule.scheduleId,
 				type: "schedule",
 				cronSchedule: schedule.cronExpression,
+				timezone: schedule.timezone ?? undefined,
 			});
 		} catch (error) {
 			logger.error(error, `Failed to schedule ${schedule.scheduleId}`);
@@ -253,6 +255,7 @@ export const initializeJobs = async () => {
 			if (volumeBackup.compose) {
 				return volumeBackup.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 

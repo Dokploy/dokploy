@@ -66,12 +66,20 @@ export const scheduleRouter = createTRPCRouter({
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
-					schedule({
-						scheduleId: newSchedule.scheduleId,
-						type: "schedule",
-						cronSchedule: newSchedule.cronExpression,
-						timezone: newSchedule.timezone,
-					});
+					try {
+						await schedule({
+							scheduleId: newSchedule.scheduleId,
+							type: "schedule",
+							cronSchedule: newSchedule.cronExpression,
+							timezone: newSchedule.timezone,
+						});
+					} catch (error) {
+						await deleteSchedule(newSchedule.scheduleId);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to register schedule with job service",
+						});
+					}
 				} else {
 					scheduleJob(newSchedule);
 				}
@@ -126,25 +134,38 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				await checkPermission(ctx, { schedule: ["update"] });
 			}
-			const updatedSchedule = await updateSchedule(input);
-
 			if (IS_CLOUD) {
-				if (updatedSchedule?.enabled) {
+				const effectiveCron =
+					input.cronExpression ?? existingSchedule.cronExpression;
+				const effectiveTimezone =
+					input.timezone !== undefined
+						? input.timezone
+						: existingSchedule.timezone;
+				const effectiveEnabled =
+					input.enabled !== undefined
+						? input.enabled
+						: existingSchedule.enabled;
+
+				if (effectiveEnabled) {
 					await updateJob({
-						scheduleId: updatedSchedule.scheduleId,
+						scheduleId: input.scheduleId,
 						type: "schedule",
-						cronSchedule: updatedSchedule.cronExpression,
-						timezone: updatedSchedule.timezone,
+						cronSchedule: effectiveCron,
+						timezone: effectiveTimezone,
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
-						scheduleId: updatedSchedule.scheduleId,
+						cronSchedule: effectiveCron,
+						scheduleId: input.scheduleId,
 						type: "schedule",
-						timezone: updatedSchedule.timezone,
+						timezone: effectiveTimezone,
 					});
 				}
-			} else {
+			}
+
+			const updatedSchedule = await updateSchedule(input);
+
+			if (!IS_CLOUD) {
 				if (updatedSchedule?.enabled) {
 					removeScheduleJob(updatedSchedule.scheduleId);
 					scheduleJob(updatedSchedule);
@@ -179,8 +200,6 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				await checkPermission(ctx, { schedule: ["delete"] });
 			}
-			await deleteSchedule(input.scheduleId);
-
 			if (IS_CLOUD) {
 				await removeJob({
 					cronSchedule: scheduleItem.cronExpression,
@@ -191,6 +210,8 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				removeScheduleJob(scheduleItem.scheduleId);
 			}
+
+			await deleteSchedule(input.scheduleId);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "schedule",
