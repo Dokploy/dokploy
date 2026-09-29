@@ -176,9 +176,9 @@ describe("updateJob() — POST /update-backup", () => {
 			}),
 		);
 
-		const { schedule } = await import("@/server/utils/backup");
-		await expect(schedule(scheduleJob)).rejects.toThrow(
-			/Failed to register schedule job: 502/,
+		const { updateJob } = await import("@/server/utils/backup");
+		await expect(updateJob(scheduleJob)).rejects.toThrow(
+			/Failed to update schedule job: 502/,
 		);
 	});
 });

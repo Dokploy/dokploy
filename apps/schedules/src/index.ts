@@ -15,12 +15,13 @@ import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
 
 const app = new Hono();
 
-(async () => {
+const initPromise = (async () => {
 	await cleanQueue();
 	await initializeJobs();
 })();
 
 app.use(async (c, next) => {
+	await initPromise;
 	if (c.req.path === "/health") {
 		return next();
 	}
