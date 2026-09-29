@@ -66,7 +66,7 @@ const NON_PHYSICAL_DEVICE_PATTERNS = [
 	// Partitions and md/dm devices repeat I/O already counted on the underlying disk.
 	/^(sd|hd|vd|xvd)[a-z]+\d+$/,
 	/^(nvme\d+n\d+|mmcblk\d+)p\d+$/,
-	/^(md\d+|dm-\d+)$/,
+	/^(md|dm-)/,
 ];
 
 export const isPhysicalDisk = (device: string) =>

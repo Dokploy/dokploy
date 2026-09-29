@@ -1,5 +1,38 @@
-import { isPhysicalDisk } from "@dokploy/server/monitoring/utils";
-import { describe, expect, it } from "vitest";
+import {
+	getHostSystemStats,
+	isPhysicalDisk,
+} from "@dokploy/server/monitoring/utils";
+import { describe, expect, it, vi } from "vitest";
+
+const GiB = 1024 ** 3;
+const diskStat = (device: string, readGiB: number, writeGiB: number) => ({
+	device,
+	readBytes: { toBytes: () => readGiB * GiB },
+	writeBytes: { toBytes: () => writeGiB * GiB },
+});
+
+vi.mock("node-os-utils", () => ({
+	OSUtils: class {
+		cpu = { usage: async () => ({ success: false }) };
+		memory = { info: async () => ({ success: false }) };
+		network = { overview: async () => ({ success: false }) };
+		disk = {
+			stats: async () => ({
+				success: true,
+				data: [
+					diskStat("nvme0n1", 50, 100),
+					diskStat("nvme0n1p1", 50, 100),
+					diskStat("nvme1n1", 50, 100),
+					diskStat("nvme1n1p1", 50, 100),
+					diskStat("md0", 50, 100),
+					diskStat("md0p1", 50, 100),
+					diskStat("dm-0", 50, 100),
+					diskStat("zram0", 10, 20),
+				],
+			}),
+		};
+	},
+}));
 
 describe("isPhysicalDisk (#5513, #5385)", () => {
 	it.each([
@@ -28,7 +61,7 @@ describe("isPhysicalDisk (#5513, #5385)", () => {
 		expect(isPhysicalDisk(device)).toBe(false);
 	});
 
-	it.each(["md0", "md127", "dm-0", "dm-12"])(
+	it.each(["md0", "md127", "md0p1", "md_d0p1", "dm-0", "dm-12"])(
 		"skips stacked device %s",
 		(device) => {
 			expect(isPhysicalDisk(device)).toBe(false);
@@ -60,5 +93,12 @@ describe("isPhysicalDisk (#5513, #5385)", () => {
 			"md3",
 		];
 		expect(devices.filter(isPhysicalDisk)).toEqual(["nvme0n1", "nvme1n1"]);
+	});
+});
+
+describe("getHostSystemStats Block I/O (#5513, #5385)", () => {
+	it("sums only whole physical disks", async () => {
+		const stats = await getHostSystemStats();
+		expect(stats.BlockIO).toBe("100.00GiB / 200.00GiB");
 	});
 });
