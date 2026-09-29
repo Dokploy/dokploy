@@ -1,5 +1,6 @@
 import {
 	type Bitbucket,
+	DEPLOY_WEBHOOK_MAX_BODY_SIZE,
 	getBitbucketHeaders,
 	IS_CLOUD,
 	shouldDeploy,
@@ -35,7 +36,7 @@ const getPackageVersion = (headers: any, body: any) => {
 export const config = {
 	api: {
 		bodyParser: {
-			sizeLimit: "25mb",
+			sizeLimit: DEPLOY_WEBHOOK_MAX_BODY_SIZE,
 		},
 	},
 };

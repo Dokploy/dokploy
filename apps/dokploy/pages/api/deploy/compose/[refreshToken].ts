@@ -1,4 +1,8 @@
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import {
+	DEPLOY_WEBHOOK_MAX_BODY_SIZE,
+	IS_CLOUD,
+	shouldDeploy,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -18,7 +22,7 @@ import {
 export const config = {
 	api: {
 		bodyParser: {
-			sizeLimit: "25mb",
+			sizeLimit: DEPLOY_WEBHOOK_MAX_BODY_SIZE,
 		},
 	},
 };

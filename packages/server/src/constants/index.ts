@@ -13,7 +13,7 @@ export const DOKPLOY_DOCKER_PORT = process.env.DOKPLOY_DOCKER_PORT
 
 export const CLEANUP_CRON_JOB = "50 23 * * *";
 
-// Body size limits for the OpenAPI catch-all route (pages/api/[...trpc].ts).
+// Body size limits for the OpenAPI catch-all route (pages/api/[...trpc].ts) and the deploy webhooks (pages/api/deploy/*).
 const parseByteSize = (envVar: string, fallback: number): number => {
 	const raw = process.env[envVar];
 	if (!raw) return fallback;
@@ -33,6 +33,11 @@ export const OPENAPI_MAX_JSON_BODY_SIZE = parseByteSize(
 export const OPENAPI_MAX_UPLOAD_SIZE = parseByteSize(
 	"OPENAPI_MAX_UPLOAD_SIZE",
 	1024 * 1024 * 1024, // 1gb
+);
+
+export const DEPLOY_WEBHOOK_MAX_BODY_SIZE = parseByteSize(
+	"DEPLOY_WEBHOOK_MAX_BODY_SIZE",
+	25 * 1024 * 1024, // 25mb, GitHub's max webhook payload
 );
 
 type DockerSocketCandidate = {

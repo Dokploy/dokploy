@@ -2,6 +2,7 @@ import {
 	checkUserRepositoryPermissions,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
+	DEPLOY_WEBHOOK_MAX_BODY_SIZE,
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
@@ -29,7 +30,7 @@ const getGithubRepositoryOwner = (githubBody: any) =>
 export const config = {
 	api: {
 		bodyParser: {
-			sizeLimit: "25mb",
+			sizeLimit: DEPLOY_WEBHOOK_MAX_BODY_SIZE,
 		},
 	},
 };
