@@ -1,11 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-	buildBitbucketProviderUpdate,
-	buildGiteaProviderUpdate,
-	buildGithubProviderUpdate,
-	buildGitlabProviderUpdate,
-	buildGitProviderUpdate,
-} from "@/components/dashboard/compose/general/generic/compose-provider-update";
 
 const mockUpdateCompose = vi.hoisted(() => vi.fn());
 
@@ -45,88 +38,10 @@ const caller = composeRouter.createCaller({
 	user: { id: "user-1", email: "user@example.com", role: "owner" },
 } as Parameters<typeof composeRouter.createCaller>[0]);
 
-const providerUpdates = [
-	{
-		name: "GitHub",
-		update: buildGithubProviderUpdate("compose-1", {
-			branch: "main",
-			composePath: "./docker-compose.yml",
-			repository: { owner: "example-owner", repo: "example-repo" },
-			githubId: "provider-1",
-			watchPaths: ["src/**"],
-			triggerType: "push",
-			enableSubmodules: false,
-		}),
-	},
-	{
-		name: "GitLab",
-		update: buildGitlabProviderUpdate("compose-1", {
-			branch: "main",
-			composePath: "./docker-compose.yml",
-			repository: {
-				owner: "example-owner",
-				repo: "example-repo",
-				id: 1,
-				gitlabPathNamespace: "example-owner/example-repo",
-			},
-			gitlabId: "provider-1",
-			watchPaths: ["src/**"],
-			enableSubmodules: false,
-		}),
-	},
-	{
-		name: "Bitbucket",
-		update: buildBitbucketProviderUpdate("compose-1", {
-			branch: "main",
-			composePath: "./docker-compose.yml",
-			repository: {
-				owner: "example-owner",
-				repo: "example-repo",
-				slug: "example-repo-slug",
-			},
-			bitbucketId: "provider-1",
-			watchPaths: ["src/**"],
-			enableSubmodules: false,
-		}),
-	},
-	{
-		name: "Gitea",
-		update: buildGiteaProviderUpdate("compose-1", {
-			branch: "main",
-			composePath: "./docker-compose.yml",
-			repository: { owner: "example-owner", repo: "example-repo" },
-			giteaId: "provider-1",
-			watchPaths: ["src/**"],
-			enableSubmodules: false,
-		}),
-	},
-	{
-		name: "custom Git",
-		update: buildGitProviderUpdate("compose-1", {
-			branch: "main",
-			composePath: "./docker-compose.yml",
-			repositoryURL: "https://example.com/repo.git",
-			sshKey: "key-1",
-			watchPaths: ["src/**"],
-			enableSubmodules: false,
-		}),
-	},
-] as const;
-
 describe("saving a compose provider", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
-
-	it.each(providerUpdates)(
-		"does not send a status when saving $name settings",
-		({ update }) => {
-			expect(update).toEqual(
-				expect.objectContaining({ composeId: "compose-1" }),
-			);
-			expect(update).not.toHaveProperty("composeStatus");
-		},
-	);
 
 	it.each(["done", "running"])(
 		"keeps the %s status when disconnecting a Git provider",

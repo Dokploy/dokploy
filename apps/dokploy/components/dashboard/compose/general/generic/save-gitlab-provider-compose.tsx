@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { buildGitlabProviderUpdate } from "./compose-provider-update";
 
 const GitlabProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -160,7 +159,19 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: GitlabProvider) => {
-		await mutateAsync(buildGitlabProviderUpdate(composeId, data))
+		await mutateAsync({
+			gitlabBranch: data.branch,
+			gitlabRepository: data.repository.repo,
+			gitlabOwner: data.repository.owner,
+			composePath: data.composePath,
+			gitlabId: data.gitlabId,
+			composeId,
+			gitlabProjectId: data.repository.id,
+			gitlabPathNamespace: data.repository.gitlabPathNamespace,
+			sourceType: "gitlab",
+			watchPaths: data.watchPaths,
+			enableSubmodules: data.enableSubmodules,
+		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
 				await refetch();
