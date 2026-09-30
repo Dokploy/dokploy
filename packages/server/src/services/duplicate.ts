@@ -4,10 +4,11 @@ import type {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { IS_CLOUD } from "../constants";
+import { generateRandomDomain } from "../templates";
 import { createApplication, findApplicationById } from "./application";
 import { createBackup } from "./backup";
 import { createCompose, findComposeById } from "./compose";
-import { createDomain } from "./domain";
+import { createDomain, type Domain } from "./domain";
 import { createLibsql, findLibsqlById } from "./libsql";
 import { createMariadb, findMariadbById } from "./mariadb";
 import { createMongo, findMongoById } from "./mongo";
@@ -137,6 +138,40 @@ export const duplicateServerOverride = async (
 	};
 };
 
+const duplicateDomains = async (
+	domains: Domain[],
+	sourceServerId: string | null,
+	target: { serverId: string | null; appName: string },
+): Promise<Domain[]> => {
+	if (sourceServerId === target.serverId) {
+		return domains;
+	}
+
+	const isSslipHost = (host: string) => /\.sslip\.io\.?$/i.test(host);
+	const hosts = new Map<string, string>();
+	if (domains.some((domain) => isSslipHost(domain.host))) {
+		const serverIp = target.serverId
+			? (await findServerById(target.serverId)).ipAddress
+			: (await getWebServerSettings())?.serverIp;
+		if (serverIp) {
+			for (const domain of domains) {
+				if (isSslipHost(domain.host) && !hosts.has(domain.host)) {
+					hosts.set(
+						domain.host,
+						generateRandomDomain({ serverIp, projectName: target.appName }),
+					);
+				}
+			}
+		}
+	}
+
+	return domains.map((domain) => ({
+		...domain,
+		host: hosts.get(domain.host) ?? domain.host,
+		enabled: domain.enabled && hosts.has(domain.host),
+	}));
+};
+
 export const duplicateService = async (input: DuplicateServiceInput) => {
 	switch (input.type) {
 		case "application": {
@@ -158,7 +193,11 @@ export const duplicateService = async (input: DuplicateServiceInput) => {
 				await duplicatePayload(application, appName, input),
 			);
 
-			for (const domain of domains) {
+			for (const domain of await duplicateDomains(
+				domains,
+				application.serverId,
+				newApplication,
+			)) {
 				const { domainId, ...rest } = domain;
 				await createDomain({
 					...rest,
@@ -228,7 +267,11 @@ export const duplicateService = async (input: DuplicateServiceInput) => {
 				});
 			}
 
-			for (const domain of domains) {
+			for (const domain of await duplicateDomains(
+				domains,
+				compose.serverId,
+				newCompose,
+			)) {
 				const { domainId, ...rest } = domain;
 				await createDomain({
 					...rest,

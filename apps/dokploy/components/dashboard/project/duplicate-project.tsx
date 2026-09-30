@@ -378,7 +378,10 @@ export const DuplicateProject = ({
 							{targetServer !== "keep" && (
 								<AlertBlock type="warning">
 									Networks that only exist on the current server are detached
-									from the copies.
+									from the copies. On copies placed on a different server,
+									sslip.io domains are regenerated with the target IP. Custom
+									domains are copied disabled. Update their DNS to point to the
+									target before enabling them.
 								</AlertBlock>
 							)}
 						</div>
