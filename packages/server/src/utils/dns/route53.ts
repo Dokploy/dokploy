@@ -28,9 +28,12 @@ const ensureTrailingDot = (name: string) =>
 	name.endsWith(".") ? name : `${name}.`;
 const stripZonePrefix = (id: string) => id.replace(/^\/hostedzone\//, "");
 // Route53 returns special characters in names as \ + three-digit octal code (e.g. * as \052).
+// Escaped dots (\056) and backslashes (\134) stay escaped so decoded names remain unique.
 const decodeRecordName = (name: string) =>
-	name.replace(/\\([0-7]{3})/g, (_, code) =>
-		String.fromCharCode(Number.parseInt(code, 8)),
+	name.replace(/\\([0-7]{3})/g, (match, code) =>
+		code === "056" || code === "134"
+			? match
+			: String.fromCharCode(Number.parseInt(code, 8)),
 	);
 
 const buildRecordId = (type: string, name: string) =>

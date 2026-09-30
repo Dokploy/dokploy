@@ -132,6 +132,33 @@ describe("route53Client.listRecords", () => {
 		});
 	});
 
+	it("keeps escaped dots so they stay distinct from label separators", async () => {
+		send.mockResolvedValueOnce({
+			ResourceRecordSets: [
+				{
+					Name: "a\\056b.example.com.",
+					Type: "A",
+					TTL: 300,
+					ResourceRecords: [{ Value: "1.2.3.4" }],
+				},
+				{
+					Name: "a.b.example.com.",
+					Type: "A",
+					TTL: 300,
+					ResourceRecords: [{ Value: "5.6.7.8" }],
+				},
+			],
+			IsTruncated: false,
+		});
+
+		const records = await route53Client.listRecords(config, "Z123");
+
+		expect(records.map((r) => r.id)).toEqual([
+			"A:a\\056b.example.com",
+			"A:a.b.example.com",
+		]);
+	});
+
 	it("skips record sets with no ResourceRecords (e.g. alias targets)", async () => {
 		send.mockResolvedValueOnce({
 			ResourceRecordSets: [
