@@ -60,6 +60,41 @@ export const canAccessDockerOverWss = async (
 	return true;
 };
 
+// Authorizes container-stats WebSockets opened from monitoring views.
+// Members with monitoring.read + explicit access to the service can watch
+// charts without needing the broader docker.read or service.read grants that
+// terminals/logs require.
+export const canAccessMonitoringOverWss = async (
+	user: WssUser,
+	session: WssSession,
+	serviceId?: string | null,
+): Promise<boolean> => {
+	if (!user || !session?.activeOrganizationId) return false;
+
+	const ctx = buildCtx(user, session.activeOrganizationId);
+
+	if (!(await hasPermission(ctx, { monitoring: ["read"] }))) {
+		return false;
+	}
+
+	if (!serviceId) {
+		return await canAccessDockerOverWss(user, session, null, null);
+	}
+
+	try {
+		const member = await findMemberByUserId(
+			user.id,
+			session.activeOrganizationId,
+		);
+		if (member.role === "owner" || member.role === "admin") {
+			return true;
+		}
+		return member.accessedServices.includes(serviceId);
+	} catch {
+		return false;
+	}
+};
+
 // Authorizes the host/server SSH terminal opened over a WebSocket. The local
 // host terminal is a root shell on the control-plane host, so it is restricted
 // to owner/admin. A remote server terminal needs server access plus

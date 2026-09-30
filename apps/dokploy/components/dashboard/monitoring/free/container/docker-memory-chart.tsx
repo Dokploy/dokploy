@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useId } from "react";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
 	type ChartConfig,
@@ -27,6 +28,7 @@ export const DockerMemoryChart = ({
 	accumulativeData,
 	memoryLimitGB,
 }: Props) => {
+	const fillId = useId().replace(/:/g, "");
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
@@ -41,7 +43,7 @@ export const DockerMemoryChart = ({
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
 			>
 				<defs>
-					<linearGradient id="fillMemory" x1="0" y1="0" x2="0" y2="1">
+					<linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
 						<stop
 							offset="5%"
 							stopColor="var(--color-usage)"
@@ -78,7 +80,7 @@ export const DockerMemoryChart = ({
 					isAnimationActive={false}
 					dataKey="usage"
 					stroke="var(--color-usage)"
-					fill="url(#fillMemory)"
+					fill={`url(#${fillId})`}
 					strokeWidth={2}
 				/>
 				<ChartLegend content={<ChartLegendContent />} />

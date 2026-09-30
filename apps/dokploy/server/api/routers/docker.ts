@@ -19,7 +19,10 @@ import {
 	uploadFileToContainer,
 	writeContainerFile,
 } from "@dokploy/server";
-import { checkPermission } from "@dokploy/server/services/permission";
+import {
+	checkPermission,
+	hasPermission,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -227,7 +230,7 @@ export const dockerRouter = createTRPCRouter({
 			return await getConfig(input.containerId, input.serverId);
 		}),
 
-	getContainersByAppNameMatch: withPermission("service", "read")
+	getContainersByAppNameMatch: protectedProcedure
 		.input(
 			z.object({
 				appType: z.enum(["stack", "docker-compose"]).optional(),
@@ -236,6 +239,16 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			const canService = await hasPermission(ctx, { service: ["read"] });
+			const canMonitoring = await hasPermission(ctx, {
+				monitoring: ["read"],
+			});
+			if (!canService && !canMonitoring) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have permission to access this resource",
+				});
+			}
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {

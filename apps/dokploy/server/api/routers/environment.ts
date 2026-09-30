@@ -6,6 +6,7 @@ import {
 	findEnvironmentById,
 	findEnvironmentsByProjectId,
 	IS_CLOUD,
+	stripEnvironmentMetricsSecrets,
 	updateEnvironmentById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -108,10 +109,10 @@ export const environmentRouter = createTRPCRouter({
 					accessedServices,
 				);
 
-				return filteredEnvironment;
+				return stripEnvironmentMetricsSecrets(filteredEnvironment);
 			}
 
-			return environment;
+			return stripEnvironmentMetricsSecrets(environment);
 		}),
 
 	byProjectId: protectedProcedure

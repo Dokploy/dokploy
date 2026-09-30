@@ -1,4 +1,3 @@
-import type { findEnvironmentById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
@@ -32,6 +31,10 @@ import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant"
 import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
+import {
+	extractServicesFromEnvironment,
+	type Services,
+} from "@/components/dashboard/project/extract-services";
 import { AddImport } from "@/components/dashboard/project/add-import";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
@@ -111,187 +114,7 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
-export type Services = {
-	serverId?: string | null;
-	serverName?: string | null;
-	name: string;
-	type:
-		| "mariadb"
-		| "application"
-		| "postgres"
-		| "mysql"
-		| "mongo"
-		| "redis"
-		| "compose"
-		| "libsql";
-	description?: string | null;
-	id: string;
-	createdAt: string;
-	status?: "idle" | "running" | "done" | "error";
-	lastDeployDate?: Date | null;
-	icon?: string | null;
-};
-
-type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
-
-export const extractServicesFromEnvironment = (
-	environment: Environment | undefined,
-) => {
-	if (!environment) return [];
-
-	const allServices: Services[] = [];
-
-	const applications: Services[] =
-		environment.applications?.map((item) => {
-			// Get the most recent deployment date
-			let lastDeployDate: Date | null = null;
-			const deployments = (item as any).deployments;
-			if (deployments && deployments.length > 0) {
-				for (const deployment of deployments) {
-					const deployDate = new Date(
-						deployment.finishedAt ||
-							deployment.startedAt ||
-							deployment.createdAt,
-					);
-					if (!lastDeployDate || deployDate > lastDeployDate) {
-						lastDeployDate = deployDate;
-					}
-				}
-			}
-			return {
-				name: item.name,
-				type: "application",
-				id: item.applicationId,
-				createdAt: item.createdAt,
-				status: item.applicationStatus,
-				description: item.description,
-				serverId: item.serverId,
-				serverName: item?.server?.name || null,
-				lastDeployDate,
-				icon: item.icon || null,
-			};
-		}) || [];
-
-	const mariadb: Services[] =
-		environment.mariadb?.map((item) => ({
-			name: item.name,
-			type: "mariadb",
-			id: item.mariadbId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-		})) || [];
-
-	const postgres: Services[] =
-		environment.postgres?.map((item) => ({
-			name: item.name,
-			type: "postgres",
-			id: item.postgresId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-		})) || [];
-
-	const mongo: Services[] =
-		environment.mongo?.map((item) => ({
-			name: item.name,
-			type: "mongo",
-			id: item.mongoId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-		})) || [];
-
-	const redis: Services[] =
-		environment.redis?.map((item) => ({
-			name: item.name,
-			type: "redis",
-			id: item.redisId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-		})) || [];
-
-	const mysql: Services[] =
-		environment.mysql?.map((item) => ({
-			name: item.name,
-			type: "mysql",
-			id: item.mysqlId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-		})) || [];
-
-	const compose: Services[] =
-		environment.compose?.map((item) => {
-			// Get the most recent deployment date
-			let lastDeployDate: Date | null = null;
-			const deployments = (item as any).deployments;
-			if (deployments && deployments.length > 0) {
-				for (const deployment of deployments) {
-					const deployDate = new Date(
-						deployment.finishedAt ||
-							deployment.startedAt ||
-							deployment.createdAt,
-					);
-					if (!lastDeployDate || deployDate > lastDeployDate) {
-						lastDeployDate = deployDate;
-					}
-				}
-			}
-			return {
-				name: item.name,
-				type: "compose",
-				id: item.composeId,
-				createdAt: item.createdAt,
-				status: item.composeStatus,
-				description: item.description,
-				serverId: item.serverId,
-				serverName: item?.server?.name || null,
-				lastDeployDate,
-				icon: item.icon || null,
-			};
-		}) || [];
-
-	const libsql: Services[] =
-		environment.libsql?.map((item) => ({
-			name: item.name,
-			type: "libsql",
-			id: item.libsqlId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-			serverName: item?.server?.name || null,
-		})) || [];
-
-	allServices.push(
-		...applications,
-		...compose,
-		...libsql,
-		...mysql,
-		...redis,
-		...mongo,
-		...postgres,
-		...mariadb,
-	);
-
-	allServices.sort((a, b) => {
-		return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-	});
-
-	return allServices;
-};
+export type { Services };
 
 const EnvironmentPage = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -1059,6 +882,16 @@ const EnvironmentPage = (
 							</CardHeader>
 							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
+									{permissions?.monitoring.read && (
+										<Button variant="outline" asChild>
+											<Link
+												href={`/dashboard/project/${projectId}/environment/${environmentId}/monitoring`}
+											>
+												<CircuitBoard className="h-4 w-4" />
+												Monitoring
+											</Link>
+										</Button>
+									)}
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
