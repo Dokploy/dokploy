@@ -111,6 +111,27 @@ describe("route53Client.listRecords", () => {
 		]);
 	});
 
+	it("decodes octal escapes such as \\052 for wildcard names", async () => {
+		send.mockResolvedValueOnce({
+			ResourceRecordSets: [
+				{
+					Name: "\\052.example.com.",
+					Type: "A",
+					TTL: 300,
+					ResourceRecords: [{ Value: "1.2.3.4" }],
+				},
+			],
+			IsTruncated: false,
+		});
+
+		const records = await route53Client.listRecords(config, "Z123");
+
+		expect(records[0]).toMatchObject({
+			id: "A:*.example.com",
+			name: "*.example.com",
+		});
+	});
+
 	it("skips record sets with no ResourceRecords (e.g. alias targets)", async () => {
 		send.mockResolvedValueOnce({
 			ResourceRecordSets: [
@@ -348,6 +369,24 @@ describe("route53Client.deleteRecord", () => {
 		send.mockResolvedValueOnce({});
 
 		await route53Client.deleteRecord(config, "Z123", "A:app.example.com");
+
+		const changeCommand = send.mock.calls[1]?.[0] as HasInput;
+		expect(changeCommand.input.ChangeBatch.Changes).toEqual([
+			{ Action: "DELETE", ResourceRecordSet: existingSet },
+		]);
+	});
+
+	it("finds a wildcard record set that Route53 returns escaped", async () => {
+		const existingSet = {
+			Name: "\\052.example.com.",
+			Type: "A",
+			TTL: 300,
+			ResourceRecords: [{ Value: "1.2.3.4" }],
+		};
+		send.mockResolvedValueOnce({ ResourceRecordSets: [existingSet] });
+		send.mockResolvedValueOnce({});
+
+		await route53Client.deleteRecord(config, "Z123", "A:*.example.com");
 
 		const changeCommand = send.mock.calls[1]?.[0] as HasInput;
 		expect(changeCommand.input.ChangeBatch.Changes).toEqual([

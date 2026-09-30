@@ -27,6 +27,11 @@ const stripTrailingDot = (name: string) => name.replace(/\.$/, "");
 const ensureTrailingDot = (name: string) =>
 	name.endsWith(".") ? name : `${name}.`;
 const stripZonePrefix = (id: string) => id.replace(/^\/hostedzone\//, "");
+// Route53 returns special characters in names as \ + three-digit octal code (e.g. * as \052).
+const decodeRecordName = (name: string) =>
+	name.replace(/\\([0-7]{3})/g, (_, code) =>
+		String.fromCharCode(Number.parseInt(code, 8)),
+	);
 
 const buildRecordId = (type: string, name: string) =>
 	`${type}:${stripTrailingDot(name)}`;
@@ -61,7 +66,8 @@ const findExactRecordSet = async (
 	if (
 		candidate &&
 		candidate.Type === type &&
-		stripTrailingDot(candidate.Name ?? "") === stripTrailingDot(name)
+		stripTrailingDot(decodeRecordName(candidate.Name ?? "")) ===
+			stripTrailingDot(name)
 	) {
 		return candidate;
 	}
@@ -132,10 +138,11 @@ export const route53Client: DnsClient<Route53Config> = {
 				if (!set.Name || !set.Type || !set.ResourceRecords?.length) {
 					continue;
 				}
+				const name = decodeRecordName(set.Name);
 				records.push({
-					id: buildRecordId(set.Type, set.Name),
+					id: buildRecordId(set.Type, name),
 					type: set.Type,
-					name: stripTrailingDot(set.Name),
+					name: stripTrailingDot(name),
 					content: set.ResourceRecords.map((r) => r.Value).join("\n"),
 					ttl: set.TTL ?? 300,
 				});
