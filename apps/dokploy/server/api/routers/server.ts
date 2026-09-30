@@ -19,6 +19,7 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { getEffectiveAccessedServices } from "@dokploy/server/services/access-scope";
 import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
@@ -151,10 +152,11 @@ export const serverRouter = createTRPCRouter({
 				return services;
 			}
 
-			const { accessedServices } = await findMemberByUserId(
+			const memberRecord = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
+			const accessedServices = await getEffectiveAccessedServices(memberRecord);
 			return services.filter((service) =>
 				accessedServices.includes(service.id),
 			);
