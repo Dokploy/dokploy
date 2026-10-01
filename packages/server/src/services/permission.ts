@@ -1,5 +1,9 @@
 import { db } from "@dokploy/server/db";
 import { member, organizationRole } from "@dokploy/server/db/schema";
+import {
+	getEffectiveAccessedServices,
+	resolveAccessScope,
+} from "@dokploy/server/services/access-scope";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -215,6 +219,40 @@ export const resolvePermissions = async (
 	return result;
 };
 
+const reachesService = async (
+	memberRecord: Awaited<ReturnType<typeof findMemberByUserId>>,
+	serviceId: string,
+) => {
+	if (memberRecord.accessedServices.includes(serviceId)) {
+		return true;
+	}
+	return (await getEffectiveAccessedServices(memberRecord)).includes(serviceId);
+};
+
+export const isProjectVisible = async (
+	memberRecord: Awaited<ReturnType<typeof findMemberByUserId>>,
+	projectId: string,
+) => {
+	if (memberRecord.accessedProjects.includes(projectId)) {
+		return true;
+	}
+	return (await resolveAccessScope(memberRecord)).projectIds.includes(
+		projectId,
+	);
+};
+
+const seesEnvironment = async (
+	memberRecord: Awaited<ReturnType<typeof findMemberByUserId>>,
+	environmentId: string,
+) => {
+	if (memberRecord.accessedEnvironments.includes(environmentId)) {
+		return true;
+	}
+	return (await resolveAccessScope(memberRecord)).environmentIds.includes(
+		environmentId,
+	);
+};
+
 export const checkProjectAccess = async (
 	ctx: PermissionCtx,
 	action: "create" | "delete",
@@ -232,7 +270,7 @@ export const checkProjectAccess = async (
 		memberRecord.role !== "owner" &&
 		memberRecord.role !== "admin"
 	) {
-		if (!memberRecord.accessedProjects.includes(projectId)) {
+		if (!(await isProjectVisible(memberRecord, projectId))) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this project",
@@ -251,7 +289,7 @@ export const checkServicePermissionAndAccess = async (
 	const memberRecord = await findMemberByUserId(userId, organizationId);
 	await checkPermission(ctx, permissions);
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
-		if (!memberRecord.accessedServices.includes(serviceId)) {
+		if (!(await reachesService(memberRecord, serviceId))) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this service",
@@ -273,14 +311,14 @@ export const checkServiceAccess = async (
 
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
 		if (action === "create") {
-			if (!memberRecord.accessedProjects.includes(serviceId)) {
+			if (!(await isProjectVisible(memberRecord, serviceId))) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have access to this project",
 				});
 			}
 		} else {
-			if (!memberRecord.accessedServices.includes(serviceId)) {
+			if (!(await reachesService(memberRecord, serviceId))) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have access to this service",
@@ -306,7 +344,7 @@ export const checkEnvironmentAccess = async (
 		memberRecord.role !== "owner" &&
 		memberRecord.role !== "admin"
 	) {
-		if (!memberRecord.accessedEnvironments.includes(environmentId)) {
+		if (!(await seesEnvironment(memberRecord, environmentId))) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this environment",
@@ -326,7 +364,7 @@ export const checkEnvironmentCreationPermission = async (
 	await checkPermission(ctx, { environment: ["create"] });
 
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
-		if (!memberRecord.accessedProjects.includes(projectId)) {
+		if (!(await isProjectVisible(memberRecord, projectId))) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this project",
@@ -346,7 +384,7 @@ export const checkEnvironmentDeletionPermission = async (
 	await checkPermission(ctx, { environment: ["delete"] });
 
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
-		if (!memberRecord.accessedProjects.includes(projectId)) {
+		if (!(await isProjectVisible(memberRecord, projectId))) {
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this project",

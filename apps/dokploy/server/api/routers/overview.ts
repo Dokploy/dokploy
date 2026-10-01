@@ -3,6 +3,7 @@ import {
 	getAllDomainsForOrganization,
 	getAllServicesForOrganization,
 } from "@dokploy/server";
+import { getEffectiveAccessedServices } from "@dokploy/server/services/access-scope";
 import {
 	findMemberByUserId,
 	hasPermission,
@@ -15,7 +16,9 @@ export const overviewRouter = createTRPCRouter({
 		const orgId = ctx.session.activeOrganizationId;
 		const accessedServices =
 			ctx.user.role !== "owner" && ctx.user.role !== "admin"
-				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+				? await getEffectiveAccessedServices(
+						await findMemberByUserId(ctx.user.id, orgId),
+					)
 				: null;
 		return getAllServicesForOrganization(orgId, accessedServices);
 	}),
@@ -35,7 +38,9 @@ export const overviewRouter = createTRPCRouter({
 		const orgId = ctx.session.activeOrganizationId;
 		const accessedServices =
 			ctx.user.role !== "owner" && ctx.user.role !== "admin"
-				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+				? await getEffectiveAccessedServices(
+						await findMemberByUserId(ctx.user.id, orgId),
+					)
 				: null;
 		return getAllBackupsForOrganization(orgId, accessedServices, {
 			backup: canReadBackups,
@@ -47,7 +52,9 @@ export const overviewRouter = createTRPCRouter({
 		const orgId = ctx.session.activeOrganizationId;
 		const accessedServices =
 			ctx.user.role !== "owner" && ctx.user.role !== "admin"
-				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+				? await getEffectiveAccessedServices(
+						await findMemberByUserId(ctx.user.id, orgId),
+					)
 				: null;
 		return getAllDomainsForOrganization(orgId, accessedServices);
 	}),
