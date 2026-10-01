@@ -156,9 +156,9 @@ export const readMonitoringConfig = async (readAll = false) => {
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
 		if (!readAll) {
-			// Read first 500 lines using streams
-			let content = "";
-			let validCount = 0;
+			// Stream the file keeping only the most recent 500 valid lines
+			const MAX_LINES = 500;
+			const lines: string[] = [];
 
 			const fileStream = createReadStream(configPath, { encoding: "utf8" });
 			const readline = createInterface({
@@ -177,10 +177,9 @@ export const readMonitoringConfig = async (readAll = false) => {
 						const log = JSON.parse(trimmed);
 						// Exclude Dokploy service app and Dashboard requests
 						if (log.ServiceName !== "dokploy-service-app@file") {
-							content += `${line}\n`;
-							validCount++;
-							if (validCount >= 500) {
-								break;
+							lines.push(line);
+							if (lines.length > MAX_LINES) {
+								lines.shift();
 							}
 						}
 					}
@@ -188,7 +187,7 @@ export const readMonitoringConfig = async (readAll = false) => {
 					// Ignore invalid JSON
 				}
 			}
-			return content;
+			return lines.map((line) => `${line}\n`).join("");
 		}
 		return fs.readFileSync(configPath, "utf8");
 	}
