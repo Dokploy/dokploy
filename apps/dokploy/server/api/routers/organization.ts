@@ -597,6 +597,13 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			if (input.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You can only transfer ownership of your currently active organization",
+				});
+			}
+
 			const org = await db.query.organization.findFirst({
 				where: eq(organization.id, input.organizationId),
 			});
@@ -638,28 +645,28 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			// Update organization ownerId
-			await db
-				.update(organization)
-				.set({ ownerId: targetMember.userId })
-				.where(eq(organization.id, input.organizationId));
+			// Atomic transaction: ownership transfer and role reassignments succeed or fail together
+			await db.transaction(async (tx) => {
+				await tx
+					.update(organization)
+					.set({ ownerId: targetMember.userId })
+					.where(eq(organization.id, input.organizationId));
 
-			// Demote previous owner to admin
-			await db
-				.update(member)
-				.set({ role: "admin" })
-				.where(
-					and(
-						eq(member.organizationId, input.organizationId),
-						eq(member.userId, ctx.user.id),
-					),
-				);
+				await tx
+					.update(member)
+					.set({ role: "admin" })
+					.where(
+						and(
+							eq(member.organizationId, input.organizationId),
+							eq(member.userId, ctx.user.id),
+						),
+					);
 
-			// Promote target member to owner
-			await db
-				.update(member)
-				.set({ role: "owner" })
-				.where(eq(member.id, targetMember.id));
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, targetMember.id));
+			});
 
 			await audit(ctx, {
 				action: "update",
@@ -706,7 +713,7 @@ export const organizationRouter = createTRPCRouter({
 		.input(
 			z.object({
 				memberId: z.string(),
-				teamId: z.string().nullable(),
+				teamId: z.string().min(1).max(100).nullable(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {

@@ -1,68 +1,124 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-describe("Organization & Teams Management Features (Issue #1413)", () => {
-	it("validates that transferOwnership checks permissions and updates owner roles", () => {
-		const currentOwnerId = "user-owner-1";
-		const newOwnerUserId = "user-member-2";
+// Mock audit and db primitives
+vi.mock("@/server/api/utils/audit", () => ({
+	audit: vi.fn(async () => undefined),
+}));
 
-		const mockOrg = {
-			id: "org-1",
-			name: "Enterprise Devs",
-			ownerId: currentOwnerId,
+const mockDb = {
+	query: {
+		organization: {
+			findFirst: vi.fn(async ({ where }: any) => ({
+				id: "org-active-1",
+				name: "Active Org",
+				ownerId: "user-owner-1",
+			})),
+		},
+		member: {
+			findFirst: vi.fn(async ({ where }: any) => ({
+				id: "member-2",
+				userId: "user-target-2",
+				organizationId: "org-active-1",
+				role: "member",
+			})),
+		},
+	},
+	transaction: vi.fn(async (cb: any) => {
+		const tx = {
+			update: vi.fn(() => ({
+				set: vi.fn(() => ({
+					where: vi.fn(async () => []),
+				})),
+			})),
 		};
+		return await cb(tx);
+	}),
+	update: vi.fn(() => ({
+		set: vi.fn(() => ({
+			where: vi.fn(() => ({
+				returning: vi.fn(async () => [{ id: "member-2", teamId: "team-eng-1" }]),
+			})),
+		})),
+	})),
+	delete: vi.fn(() => ({
+		where: vi.fn(() => ({
+			returning: vi.fn(async () => [{ id: "inv-1" }, { id: "inv-2" }]),
+		})),
+	})),
+};
 
-		const mockTargetMember = {
-			id: "member-2",
-			userId: newOwnerUserId,
-			organizationId: "org-1",
-			role: "member",
-		};
+vi.mock("@dokploy/server/db", () => ({
+	db: mockDb,
+}));
 
-		// 1. Caller must be the organization owner
-		const canTransfer = mockOrg.ownerId === currentOwnerId;
-		expect(canTransfer).toBe(true);
-
-		// 2. Caller cannot transfer to themselves
-		const isSameUser = mockTargetMember.userId === currentOwnerId;
-		expect(isSameUser).toBe(false);
-
-		// 3. Execution state changes
-		const updatedOrg = { ...mockOrg, ownerId: mockTargetMember.userId };
-		const updatedPreviousOwnerRole = "admin";
-		const updatedNewOwnerRole = "owner";
-
-		expect(updatedOrg.ownerId).toBe(newOwnerUserId);
-		expect(updatedPreviousOwnerRole).toBe("admin");
-		expect(updatedNewOwnerRole).toBe("owner");
-	});
-
-	it("filters and deletes expired and canceled invitations accurately", () => {
-		const now = new Date("2026-09-12T20:00:00Z");
-
-		const mockInvitations = [
-			{ id: "inv-1", status: "pending", expiresAt: new Date("2026-09-14T00:00:00Z") }, // Active
-			{ id: "inv-2", status: "canceled", expiresAt: new Date("2026-09-14T00:00:00Z") }, // Canceled -> delete
-			{ id: "inv-3", status: "pending", expiresAt: new Date("2026-09-10T00:00:00Z") }, // Expired -> delete
-		];
-
-		const toDelete = mockInvitations.filter(
-			(inv) => inv.status === "canceled" || inv.expiresAt < now,
+describe("Organization & Teams Management Router Actions (Issue #1413)", () => {
+	it("executes atomic ownership transfer within active organization", async () => {
+		const { organizationRouter } = await import(
+			"@/server/api/routers/organization"
 		);
 
-		expect(toDelete.length).toBe(2);
-		expect(toDelete.map((i) => i.id)).toEqual(["inv-2", "inv-3"]);
+		const caller = organizationRouter.createCaller({
+			session: { activeOrganizationId: "org-active-1" },
+			user: { id: "user-owner-1", role: "owner", email: "owner@test.com" },
+		} as any);
+
+		const result = await caller.transferOwnership({
+			organizationId: "org-active-1",
+			newOwnerMemberId: "member-2",
+		});
+
+		expect(result).toEqual({ success: true });
+		expect(mockDb.transaction).toHaveBeenCalled();
 	});
 
-	it("supports updating member team assignment", () => {
-		const mockMember = {
-			id: "member-1",
-			organizationId: "org-1",
-			teamId: null as string | null,
-		};
+	it("rejects ownership transfer if targeted organization is not active", async () => {
+		const { organizationRouter } = await import(
+			"@/server/api/routers/organization"
+		);
 
-		const targetTeamId = "team-alpha-99";
-		const updated = { ...mockMember, teamId: targetTeamId };
+		const caller = organizationRouter.createCaller({
+			session: { activeOrganizationId: "org-active-1" },
+			user: { id: "user-owner-1", role: "owner", email: "owner@test.com" },
+		} as any);
 
-		expect(updated.teamId).toBe("team-alpha-99");
+		await expect(
+			caller.transferOwnership({
+				organizationId: "org-other-2",
+				newOwnerMemberId: "member-2",
+			}),
+		).rejects.toThrow("You can only transfer ownership of your currently active organization");
+	});
+
+	it("deletes expired and canceled invitations for active organization", async () => {
+		const { organizationRouter } = await import(
+			"@/server/api/routers/organization"
+		);
+
+		const caller = organizationRouter.createCaller({
+			session: { activeOrganizationId: "org-active-1" },
+			user: { id: "user-owner-1", role: "owner", email: "owner@test.com" },
+		} as any);
+
+		const result = await caller.deleteExpiredInvitations();
+		expect(result).toEqual({ deletedCount: 2 });
+		expect(mockDb.delete).toHaveBeenCalled();
+	});
+
+	it("updates member team assignment when caller belongs to active organization", async () => {
+		const { organizationRouter } = await import(
+			"@/server/api/routers/organization"
+		);
+
+		const caller = organizationRouter.createCaller({
+			session: { activeOrganizationId: "org-active-1" },
+			user: { id: "user-owner-1", role: "owner", email: "owner@test.com" },
+		} as any);
+
+		const result = await caller.updateMemberTeam({
+			memberId: "member-2",
+			teamId: "team-eng-1",
+		});
+
+		expect(result).toEqual({ id: "member-2", teamId: "team-eng-1" });
 	});
 });
