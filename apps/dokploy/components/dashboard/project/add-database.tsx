@@ -11,6 +11,7 @@ import {
 	MysqlIcon,
 	PostgresqlIcon,
 	RedisIcon,
+	ValkeyIcon,
 } from "@/components/icons/data-tools-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,10 +64,11 @@ const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mysql: "mysql:8",
 	postgres: "postgres:18",
 	redis: "redis:8",
+	valkey: "valkey/valkey:8",
 };
 
 const databasesUserDefaultPlaceholder: Record<
-	Exclude<DbType, "redis">,
+	Exclude<DbType, "redis" | "valkey">,
 	string
 > = {
 	libsql: "libsql",
@@ -159,6 +161,11 @@ const mySchema = z
 				type: z.literal("redis"),
 			})
 			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("valkey"),
+			})
+			.merge(baseDatabaseSchema),
 	])
 	.superRefine((data, ctx) => {
 		if (data.type === "libsql") {
@@ -200,6 +207,10 @@ const databasesMap = {
 	redis: {
 		icon: <RedisIcon />,
 		label: "Redis",
+	},
+	valkey: {
+		icon: <ValkeyIcon />,
+		label: "Valkey",
 	},
 	libsql: {
 		icon: <LibsqlIcon className="size-10" />,
@@ -262,6 +273,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 		mysql: mysqlMutation,
 		postgres: postgresMutation,
 		redis: redisMutation,
+		valkey: redisMutation,
 	};
 
 	const onSubmit = async (data: AddDatabase) => {
@@ -331,6 +343,13 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			promise = redisMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
+			});
+		} else if (data.type === "valkey") {
+			promise = redisMutation.mutateAsync({
+				...commonParams,
+				databasePassword: data.databasePassword,
+				engine: "valkey",
 				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		}

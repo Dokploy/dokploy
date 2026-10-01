@@ -23,6 +23,7 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 		env,
 		externalPort,
 		dockerImage,
+		engine,
 		memoryLimit,
 		memoryReservation,
 		databasePassword,
@@ -90,7 +91,10 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 						}
 					: {
 							Command: ["/bin/sh"],
-							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
+							Args: [
+								"-c",
+								`${engine === "valkey" ? "valkey-server" : "redis-server"} --requirepass ${databasePassword}`,
+							],
 						}),
 				...(Ulimits && { Ulimits }),
 				Labels,
