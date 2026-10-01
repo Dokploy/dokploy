@@ -16,3 +16,22 @@ export const vaultFetch = async (url: string, init: RequestInit = {}) => {
 		signal: AbortSignal.timeout(VAULT_REQUEST_TIMEOUT_MS),
 	});
 };
+
+// For vault clients (e.g. SDK-based, non-fetch) that don't support an AbortSignal directly.
+export const vaultFetchWithTimeout = async <T>(
+	promise: Promise<T>,
+	timeoutMs: number = VAULT_REQUEST_TIMEOUT_MS,
+): Promise<T> => {
+	let timer: ReturnType<typeof setTimeout>;
+	const timeout = new Promise<never>((_, reject) => {
+		timer = setTimeout(
+			() => reject(new Error(`Request timed out after ${timeoutMs}ms`)),
+			timeoutMs,
+		);
+	});
+	try {
+		return await Promise.race([promise, timeout]);
+	} finally {
+		clearTimeout(timer!);
+	}
+};
