@@ -144,12 +144,7 @@ export default async function handler(
 					serverId: app.serverId ?? undefined,
 				};
 
-				await enqueueDeployment(jobData).catch((error: unknown) => {
-					console.error("Failed to enqueue deployment", {
-						job: jobData,
-						error,
-					});
-				});
+				await enqueueDeployment(jobData);
 			}
 
 			// Find compose apps configured to deploy on tag
@@ -174,12 +169,7 @@ export default async function handler(
 					serverId: composeApp.serverId ?? undefined,
 				};
 
-				await enqueueDeployment(jobData).catch((error: unknown) => {
-					console.error("Failed to enqueue deployment", {
-						job: jobData,
-						error,
-					});
-				});
+				await enqueueDeployment(jobData);
 			}
 
 			const totalApps = apps.length + composeApps.length;
@@ -247,12 +237,7 @@ export default async function handler(
 					continue;
 				}
 
-				await enqueueDeployment(jobData).catch((error: unknown) => {
-					console.error("Failed to enqueue deployment", {
-						job: jobData,
-						error,
-					});
-				});
+				await enqueueDeployment(jobData);
 			}
 
 			const composeApps = await db.query.compose.findMany({
@@ -286,12 +271,7 @@ export default async function handler(
 					continue;
 				}
 
-				await enqueueDeployment(jobData).catch((error: unknown) => {
-					console.error("Failed to enqueue deployment", {
-						job: jobData,
-						error,
-					});
-				});
+				await enqueueDeployment(jobData);
 			}
 
 			const totalApps = apps.length + composeApps.length;
@@ -301,10 +281,10 @@ export default async function handler(
 				res.status(200).json({ message: "No apps to deploy" });
 				return;
 			}
-			res.status(200).json({ message: `Deployed ${totalApps} apps` });
+			return res.status(200).json({ message: `Deployed ${totalApps} apps` });
 		} catch (error) {
 			logWebhookError("Error deploying Application:", error);
-			res.status(400).json({ message: "Error deploying Application" });
+			return res.status(400).json({ message: "Error deploying Application" });
 		}
 	} else if (req.headers["x-github-event"] === "pull_request") {
 		const prId = githubBody?.pull_request?.id;
@@ -491,12 +471,14 @@ export default async function handler(
 				};
 
 				if (previewDeploymentId) {
-					await enqueueDeployment(jobData).catch((error: unknown) => {
-						console.error("Failed to enqueue deployment", {
-							job: jobData,
-							error,
+					try {
+						await enqueueDeployment(jobData);
+					} catch (error) {
+						logWebhookError("Error enqueueing preview deployment:", error);
+						return res.status(503).json({
+							message: "Error enqueueing preview deployment",
 						});
-					});
+					}
 				}
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
