@@ -1,5 +1,6 @@
 import {
 	countActiveDeploymentsByOrganization,
+	getActiveDeploymentSummary,
 	getAllBackupsForOrganization,
 	getAllDomainsForOrganization,
 	getAllServicesForOrganization,
@@ -33,12 +34,24 @@ export const overviewRouter = createTRPCRouter({
 			);
 		}),
 
+	activeDeploymentSummary: withPermission("service", "read").query(
+		async ({ ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const membership = await findMemberByUserId(ctx.user.id, orgId);
+			const accessedServices =
+				membership.role === "owner" || membership.role === "admin"
+					? null
+					: membership.accessedServices;
+			return getActiveDeploymentSummary(orgId, accessedServices);
+		},
+	),
+
 	activeDeploymentsByOrganization: protectedProcedure.query(async ({ ctx }) => {
 		// An API key is scoped to a single organization (see validateRequest); never let it enumerate the owner's other memberships.
-		const isApiKeyRequest = !!ctx.req.headers["x-api-key"];
+		const isSessionRequest = ctx.authType === "session";
 		return countActiveDeploymentsByOrganization(
 			ctx.user.id,
-			isApiKeyRequest ? ctx.session.activeOrganizationId : null,
+			isSessionRequest ? null : ctx.session.activeOrganizationId,
 		);
 	}),
 

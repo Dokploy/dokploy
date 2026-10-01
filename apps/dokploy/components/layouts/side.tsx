@@ -601,7 +601,9 @@ function SidebarLogo() {
 	const { data: activeDeploymentsByOrg } =
 		api.overview.activeDeploymentsByOrganization.useQuery(undefined, {
 			enabled: organizationSelectorOpen,
-			refetchInterval: 5000,
+			staleTime: 0,
+			refetchOnWindowFocus: false,
+			refetchOnReconnect: false,
 		});
 
 	useEffect(() => {
@@ -619,12 +621,13 @@ function SidebarLogo() {
 			) : (
 				<SidebarMenu
 					className={cn(
-						"flex gap-2",
-						isCollapsed ? "flex-col" : "flex-row justify-between items-center",
+						isCollapsed
+							? "flex flex-col gap-2"
+							: "grid grid-cols-[minmax(0,1fr)_2rem_2rem] items-center gap-1",
 					)}
 				>
 					{/* Organization Logo and Selector */}
-					<SidebarMenuItem className={"w-full min-w-0"}>
+					<SidebarMenuItem className="w-full min-w-0">
 						<Popover
 							open={organizationSelectorOpen}
 							onOpenChange={setOrganizationSelectorOpen}
@@ -663,12 +666,12 @@ function SidebarLogo() {
 												isCollapsed && "hidden",
 											)}
 										>
-											<div className="flex items-center gap-1.5 min-w-0 w-full">
+											<div className="flex flex-col items-start gap-0.5 min-w-0 w-full">
 												<TruncateTooltip
 													text={
 														activeOrganization?.name ?? "Select Organization"
 													}
-													className="text-sm font-medium"
+													className="max-w-full text-sm font-medium"
 												/>
 												{haveValidLicense && (
 													<Badge variant="blue" className="shrink-0">
@@ -844,19 +847,25 @@ function SidebarLogo() {
 						</Popover>
 					</SidebarMenuItem>
 
-					<ActiveDeployments isCollapsed={isCollapsed} />
+					<SidebarMenuItem
+						className={cn(
+							"flex size-8 justify-center mx-auto",
+							isCollapsed && "empty:hidden",
+						)}
+					>
+						<ActiveDeployments />
+					</SidebarMenuItem>
 
 					{/* Notification Bell */}
-					<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
+					<SidebarMenuItem className="flex justify-center">
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button
 									variant="ghost"
 									size="icon"
-									className={cn(
-										"relative",
-										isCollapsed && "h-8 w-8 p-1.5 mx-auto",
-									)}
+									className="relative size-8 p-1.5 text-muted-foreground hover:text-foreground"
+									aria-label="Pending invitations"
+									title="Pending invitations"
 								>
 									<Bell className="size-4" />
 									{invitations && invitations.length > 0 && (

@@ -541,6 +541,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			}
 			if (!valid || !key) {
 				return {
+					authType: null,
 					session: null,
 					user: null,
 				};
@@ -555,6 +556,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 
 			if (!apiKeyRecord) {
 				return {
+					authType: null,
 					session: null,
 					user: null,
 				};
@@ -568,6 +570,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 
 			if (!organizationId) {
 				return {
+					authType: null,
 					session: null,
 					user: null,
 				};
@@ -590,6 +593,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 			};
 
 			const mockSession = {
+				authType: "apiKey" as const,
 				session: {
 					userId: apiKeyRecord.user.id,
 					activeOrganizationId: organizationId || "",
@@ -614,6 +618,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 		} catch (error) {
 			console.error("Error verifying API key", error);
 			return {
+				authType: null,
 				session: null,
 				user: null,
 			};
@@ -629,6 +634,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 
 	if (!session?.session || !session.user) {
 		return {
+			authType: null,
 			session: null,
 			user: null,
 		};
@@ -667,5 +673,5 @@ export const validateRequest = async (request: IncomingMessage) => {
 		}
 	}
 
-	return session;
+	return { ...session, authType: "session" as const };
 };

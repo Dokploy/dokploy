@@ -26,7 +26,13 @@ const selectChain = () => ({
 });
 
 vi.mock("@dokploy/server/db", () => ({
-	db: { select: vi.fn(selectChain) },
+	db: {
+		select: vi.fn(selectChain),
+		execute: vi.fn((clause: SQL) => {
+			whereCalls.push(clause);
+			return Promise.resolve([{ count: countPerType * 8 }]);
+		}),
+	},
 }));
 
 vi.mock("@dokploy/server/services/permission", () => ({
@@ -94,25 +100,16 @@ describe("countServicesForOrganization", () => {
 		expect(await countServicesForOrganization("org", [], "running")).toBe(0);
 		expect(whereCalls).toHaveLength(0);
 	});
-
-	test("sums the per-type counts using the same status scoping", async () => {
+	test("aggregates all service types in one query with member and status scoping", async () => {
 		countPerType = 2;
-		expect(await countServicesForOrganization("org", null, "running")).toBe(16);
-		expectStatusClauseOnEveryType();
-		for (const clause of whereCalls) {
-			expect(toSql(clause).params).toEqual(["org", "running"]);
-		}
-	});
-
-	test("respects accessedServices for members", async () => {
-		countPerType = 1;
 		expect(
-			await countServicesForOrganization("org", ["svc-1", "svc-2"], "running"),
-		).toBe(8);
-		for (const clause of whereCalls) {
-			const { sql, params } = toSql(clause);
-			expect(sql).toContain(" in (");
-			expect(params).toEqual(["org", "svc-1", "svc-2", "running"]);
-		}
+			await countServicesForOrganization("org", ["svc-1"], "running"),
+		).toBe(16);
+		expect(whereCalls).toHaveLength(1);
+		const query = toSql(whereCalls[0]!);
+		expect(query.sql.match(/union all/g)).toHaveLength(7);
+		expect(query.params.filter((p) => p === "running")).toHaveLength(8);
+		expect(query.params.filter((p) => p === "svc-1")).toHaveLength(8);
+		expect(query.sql).toContain('"composeStatus"');
 	});
 });

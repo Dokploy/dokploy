@@ -32,6 +32,7 @@ type ActionOf<R extends Resource> = (typeof statements)[R][number];
  */
 
 interface CreateContextOptions {
+	authType?: "apiKey" | "session" | null;
 	user:
 		| (User & {
 				role: "member" | "admin" | "owner";
@@ -59,6 +60,7 @@ interface CreateContextOptions {
  */
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
 	return {
+		...(opts.authType ? { authType: opts.authType } : {}),
 		session: opts.session,
 		db,
 		req: opts.req,
@@ -77,19 +79,20 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
 
 	// Get from the request
-	const { session, user } = await validateRequest(req);
+	const { session, user, authType } = await validateRequest(req);
 
 	return createInnerTRPCContext({
+		authType,
 		req,
 		res,
-		// @ts-ignore
+		// @ts-expect-error
 		session: session
 			? {
 					...session,
 					activeOrganizationId: session.activeOrganizationId || "",
 				}
 			: null,
-		// @ts-ignore
+		// @ts-expect-error
 		user: user
 			? {
 					...user,

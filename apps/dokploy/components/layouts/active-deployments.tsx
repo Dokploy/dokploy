@@ -1,7 +1,9 @@
 import { getOverviewServiceHref } from "@dokploy/server/services/overview-shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { OverviewServiceIcon } from "@/components/dashboard/overview/show-overview-services";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,62 +13,88 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarMenuItem } from "@/components/ui/sidebar";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import {
+	activeDeploymentPollInterval,
+	changesDeploymentStatus,
+} from "@/utils/active-deployments";
 import { api } from "@/utils/api";
 
-interface Props {
-	isCollapsed: boolean;
-}
-
-export const ActiveDeployments = ({ isCollapsed }: Props) => {
+export const ActiveDeployments = () => {
+	const [open, setOpen] = useState(false);
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const { data: active } = api.overview.services.useQuery(
-		{ status: "running" },
+	const utils = api.useUtils();
+	const queryClient = useQueryClient();
+	const canRead = !!permissions?.service.read;
+	const { data: summary } = api.overview.activeDeploymentSummary.useQuery(
+		undefined,
 		{
-			enabled: !!permissions?.service.read,
-			// Poll faster while something is deploying so the indicator clears promptly
-			refetchInterval: (query) => (query.state.data?.length ? 3000 : 10000),
+			enabled: canRead,
+			staleTime: 15_000,
+			refetchInterval: (query) =>
+				activeDeploymentPollInterval(query.state.data?.count ?? 0),
+			refetchIntervalInBackground: false,
 		},
 	);
+	const detailsOpen = open && (summary?.count ?? 0) > 1;
+	useEffect(() => {
+		if (!canRead || (summary?.count ?? 0) <= 1) setOpen(false);
+	}, [canRead, summary?.count]);
+	const {
+		data: active,
+		isLoading,
+		isError,
+	} = api.overview.services.useQuery(
+		{ status: "running" },
+		{
+			enabled: canRead && detailsOpen,
+			staleTime: 0,
+			refetchInterval: detailsOpen ? 15_000 : false,
+			refetchIntervalInBackground: false,
+		},
+	);
+	useEffect(
+		() =>
+			queryClient.getMutationCache().subscribe((event) => {
+				if (
+					canRead &&
+					event.type === "updated" &&
+					event.action.type === "success" &&
+					changesDeploymentStatus(event.mutation.options.mutationKey)
+				) {
+					void utils.overview.activeDeploymentSummary.invalidate();
+					void utils.overview.activeDeploymentsByOrganization.invalidate();
+					if (detailsOpen)
+						void utils.overview.services.invalidate({ status: "running" });
+				}
+			}),
+		[canRead, detailsOpen, queryClient, utils],
+	);
 
-	if (!active || active.length === 0) {
-		return null;
-	}
-
+	if (!canRead || !summary?.count) return null;
+	const count = summary.count;
 	const canReadDeployments = !!permissions?.deployment.read;
-
-	const label = `${active.length} Active ${active.length === 1 ? "Deployment" : "Deployments"}`;
-	const single = active.length === 1 ? active[0] : null;
+	const label = `${count} Active ${count === 1 ? "Deployment" : "Deployments"}`;
+	const single = summary.single;
 
 	const button = (
 		<Button
 			variant="ghost"
-			size={isCollapsed ? "icon" : "sm"}
-			className={cn(
-				"relative gap-1.5 px-2",
-				isCollapsed && "h-8 w-8 p-1.5 mx-auto",
-			)}
+			size="icon"
+			className="relative size-8 p-1.5 text-yellow-700 dark:text-yellow-500 hover:bg-yellow-500/10 hover:text-yellow-700 dark:hover:text-yellow-400"
 			aria-label={label}
 			asChild={!!single}
 		>
 			{single ? (
 				<Link href={getOverviewServiceHref(single, { canReadDeployments })}>
-					<ActiveDeploymentsIcon
-						count={active.length}
-						isCollapsed={isCollapsed}
-					/>
+					<ActiveDeploymentsIcon count={count} />
 				</Link>
 			) : (
-				<ActiveDeploymentsIcon
-					count={active.length}
-					isCollapsed={isCollapsed}
-				/>
+				<ActiveDeploymentsIcon count={count} />
 			)}
 		</Button>
 	);
@@ -79,18 +107,18 @@ export const ActiveDeployments = ({ isCollapsed }: Props) => {
 
 	if (single) {
 		return (
-			<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
+			<>
 				<Tooltip>
 					<TooltipTrigger asChild>{button}</TooltipTrigger>
 					{tooltip}
 				</Tooltip>
-			</SidebarMenuItem>
+			</>
 		);
 	}
 
 	return (
-		<SidebarMenuItem className={cn(isCollapsed && "mt-2")}>
-			<DropdownMenu>
+		<>
+			<DropdownMenu open={detailsOpen} onOpenChange={setOpen}>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>{button}</DropdownMenuTrigger>
@@ -99,7 +127,18 @@ export const ActiveDeployments = ({ isCollapsed }: Props) => {
 				</Tooltip>
 				<DropdownMenuContent align="start" side="right" className="w-80">
 					<DropdownMenuLabel>{label}</DropdownMenuLabel>
-					{active.map((service) => (
+					{isLoading && (
+						<DropdownMenuItem disabled>Loading deployments…</DropdownMenuItem>
+					)}
+					{isError && (
+						<DropdownMenuItem disabled>
+							Unable to load deployments
+						</DropdownMenuItem>
+					)}
+					{!isLoading && !isError && active?.length === 0 && (
+						<DropdownMenuItem disabled>No active deployments</DropdownMenuItem>
+					)}
+					{active?.map((service) => (
 						<DropdownMenuItem key={service.id} asChild>
 							<Link
 								href={getOverviewServiceHref(service, { canReadDeployments })}
@@ -133,25 +172,15 @@ export const ActiveDeployments = ({ isCollapsed }: Props) => {
 					))}
 				</DropdownMenuContent>
 			</DropdownMenu>
-		</SidebarMenuItem>
+		</>
 	);
 };
 
-const ActiveDeploymentsIcon = ({
-	count,
-	isCollapsed,
-}: {
-	count: number;
-	isCollapsed: boolean;
-}) => (
+const ActiveDeploymentsIcon = ({ count }: { count: number }) => (
 	<>
-		<Loader2 className="size-4 animate-spin text-yellow-600 dark:text-yellow-500" />
-		{isCollapsed ? (
-			<span className="absolute top-0 right-0 flex size-4 items-center justify-center rounded-full bg-yellow-500 text-xs text-black">
-				{count}
-			</span>
-		) : (
-			<span className="text-xs tabular-nums">{count} active</span>
-		)}
+		<Loader2 className="size-4 animate-spin" />
+		<span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-yellow-500 px-0.5 text-[10px] font-medium tabular-nums text-black">
+			{count > 99 ? "99+" : count}
+		</span>
 	</>
 );

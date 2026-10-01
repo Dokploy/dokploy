@@ -272,47 +272,96 @@ export const getAllServicesForOrganization = async (
 	return attachLastDeployAt(results.flat());
 };
 
-/**
- * Count-only counterpart of getAllServicesForOrganization for the same scoping rules;
- * skips the display/enrichment joins since callers only need the number.
- */
+type OrganizationServiceScope = {
+	organizationId: string;
+	accessedServices: string[] | null;
+};
+
+type ActiveDeploymentSummaryRow = {
+	organizationId: string;
+	count: number;
+	id: string;
+	name: string;
+	type: OverviewServiceType;
+	projectId: string;
+	environmentId: string;
+};
+
+// One database round trip for all eight service types and all readable organizations.
+// Aggregate within each table first; no service enrichment or deployment history is loaded.
+async function summarizeServices(
+	scopes: OrganizationServiceScope[],
+	status: OverviewServiceStatus,
+): Promise<ActiveDeploymentSummaryRow[]> {
+	const readable = scopes.filter(
+		(scope) =>
+			scope.accessedServices === null || scope.accessedServices.length > 0,
+	);
+	if (!readable.length) return [];
+	const counts = SERVICE_TYPE_CONFIGS.map((config) => {
+		const { table, idCol, statusCol } = serviceTypeColumns(config);
+		const access = or(
+			...readable.map((scope) =>
+				and(
+					eq(projects.organizationId, scope.organizationId),
+					scope.accessedServices === null
+						? undefined
+						: inArray(idCol, scope.accessedServices),
+				),
+			),
+		);
+		return sql`select ${projects.organizationId} as "organizationId", count(*)::int as count,
+   min(${idCol}) as id, min(${table.name}) as name, ${config.type}::text as type,
+   min(${projects.projectId}) as "projectId", min(${environments.environmentId}) as "environmentId"
+   from ${table}
+   inner join ${environments} on ${eq(table.environmentId, environments.environmentId)}
+   inner join ${projects} on ${eq(environments.projectId, projects.projectId)}
+   where ${and(eq(statusCol, status), access)}
+   group by ${projects.organizationId}`;
+	});
+	return db.execute<ActiveDeploymentSummaryRow>(sql`
+  select "organizationId", sum(count)::int as count, min(id) as id, min(name) as name,
+   min(type) as type, min("projectId") as "projectId", min("environmentId") as "environmentId"
+  from (${sql.join(counts, sql` union all `)}) active_services group by "organizationId"
+ `);
+}
+
+export const getActiveDeploymentSummary = async (
+	organizationId: string,
+	accessedServices: string[] | null,
+) => {
+	const [row] = await summarizeServices(
+		[{ organizationId, accessedServices }],
+		"running",
+	);
+	return {
+		count: row?.count ?? 0,
+		single:
+			row?.count === 1
+				? {
+						id: row.id,
+						name: row.name,
+						type: row.type,
+						projectId: row.projectId,
+						environmentId: row.environmentId,
+					}
+				: null,
+	};
+};
+
 export const countServicesForOrganization = async (
-	orgId: string,
+	organizationId: string,
 	accessedServices: string[] | null,
 	status: OverviewServiceStatus,
 ): Promise<number> => {
-	if (accessedServices !== null && accessedServices.length === 0) {
-		return 0;
-	}
-
-	const counts = await Promise.all(
-		SERVICE_TYPE_CONFIGS.map(async (config) => {
-			const { table } = serviceTypeColumns(config);
-			const [row] = await db
-				.select({ count: sql<number>`count(*)::int` })
-				.from(table)
-				.innerJoin(
-					environments,
-					eq(table.environmentId, environments.environmentId),
-				)
-				.innerJoin(projects, eq(environments.projectId, projects.projectId))
-				.where(
-					and(
-						...serviceTypeConditions(config, orgId, accessedServices, status),
-					),
-				);
-			return row?.count ?? 0;
-		}),
+	const [row] = await summarizeServices(
+		[{ organizationId, accessedServices }],
+		status,
 	);
-
-	return counts.reduce((total, count) => total + count, 0);
+	return row?.count ?? 0;
 };
 
-/**
- * Deploying-service count for every organization the user belongs to, each evaluated with that
- * membership's own role, permissions and accessedServices. `organizationId` limits the lookup to
- * one organization — API keys are scoped to a single organization and must not see the others.
- */
+/** API keys may only count services within their authenticated organization. */
 export const countActiveDeploymentsByOrganization = async (
 	userId: string,
 	organizationId: string | null,
@@ -326,30 +375,33 @@ export const countActiveDeploymentsByOrganization = async (
 			: eq(member.userId, userId),
 		columns: { organizationId: true, role: true, accessedServices: true },
 	});
-
-	const entries = await Promise.all(
-		memberships.map(async (membership) => {
-			const orgCtx = {
-				user: { id: userId },
-				session: { activeOrganizationId: membership.organizationId },
-			};
-			if (!(await hasPermission(orgCtx, { service: ["read"] }))) {
-				return [membership.organizationId, 0] as const;
-			}
-			const accessedServices =
-				membership.role !== "owner" && membership.role !== "admin"
-					? membership.accessedServices
-					: null;
-			const count = await countServicesForOrganization(
-				membership.organizationId,
-				accessedServices,
-				"running",
-			);
-			return [membership.organizationId, count] as const;
-		}),
-	);
-
-	return Object.fromEntries(entries);
+	const result: Record<string, number> = {};
+	const scopes: OrganizationServiceScope[] = [];
+	// Keep the established permission checks, without fanning out over memberships.
+	for (const membership of memberships) {
+		result[membership.organizationId] = 0;
+		if (
+			await hasPermission(
+				{
+					user: { id: userId },
+					session: { activeOrganizationId: membership.organizationId },
+				},
+				{ service: ["read"] },
+			)
+		) {
+			scopes.push({
+				organizationId: membership.organizationId,
+				accessedServices:
+					membership.role === "owner" || membership.role === "admin"
+						? null
+						: membership.accessedServices,
+			});
+		}
+	}
+	for (const row of await summarizeServices(scopes, "running")) {
+		result[row.organizationId] = row.count;
+	}
+	return result;
 };
 
 type Owner = {
