@@ -196,6 +196,29 @@ describe("GitHub app webhook auto-deploy", () => {
 		});
 	});
 
+	it.each(["push", "tag"])(
+		"reports a failed enqueue instead of accepting a %s delivery",
+		async (event) => {
+			mocks.applicationsFindMany.mockResolvedValue([
+				{ applicationId: "application-id", serverId: null, watchPaths: null },
+			]);
+			mocks.enqueueDeployment.mockRejectedValueOnce(
+				new Error("Deployment persistence unavailable"),
+			);
+			const res = createResponse();
+
+			await handler(
+				event === "tag"
+					? createTagRequest("v1.0.0")
+					: createPushRequest("main"),
+				res,
+			);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.status).not.toHaveBeenCalledWith(200);
+		},
+	);
+
 	it("matches push events using repository owner name when available", async () => {
 		const res = createResponse();
 
@@ -377,6 +400,19 @@ describe("GitHub app webhook preview deployments", () => {
 			previewDeploymentId: "new-preview-id",
 		});
 		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue(undefined);
+	});
+
+	it("reports a failed preview enqueue instead of accepting the delivery", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		mocks.enqueueDeployment.mockRejectedValueOnce(
+			new Error("Deployment persistence unavailable"),
+		);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(res.status).toHaveBeenCalledWith(503);
+		expect(res.status).not.toHaveBeenCalledWith(200);
 	});
 
 	it("redeploys an existing preview even when the limit is reached", async () => {
