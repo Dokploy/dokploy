@@ -13,6 +13,7 @@ import {
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
+import { resolveBuildPlan } from "./build-platform";
 import { getDockerCommand } from "./docker-file";
 import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
@@ -41,36 +42,42 @@ export type ApplicationNested = InferResultType<
 
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	const application = await withResolvedVaultRefs(rawApplication);
+	const plan = await resolveBuildPlan(application);
 	let command = "";
+
+	if (plan.output.mode === "push" && plan.output.logins) {
+		command += `${plan.output.logins}\n`;
+	}
 
 	if (application.sourceType !== "docker") {
 		const { buildType } = application;
 		switch (buildType) {
 			case "nixpacks":
-				command = getNixpacksCommand(application);
+				command += getNixpacksCommand(application);
 				break;
 			case "heroku_buildpacks":
-				command = getHerokuCommand(application);
+				command += getHerokuCommand(application);
 				break;
 			case "paketo_buildpacks":
-				command = getPaketoCommand(application);
+				command += getPaketoCommand(application);
 				break;
 			case "static":
-				command = getStaticCommand(application);
+				command += getStaticCommand(application, plan);
 				break;
 			case "dockerfile":
-				command = getDockerCommand(application);
+				command += getDockerCommand(application, plan);
 				break;
 			case "railpack":
-				command = getRailpackCommand(application);
+				command += getRailpackCommand(application, plan);
 				break;
 		}
 	}
 
 	if (
-		application.registry ||
-		application.buildRegistry ||
-		application.rollbackRegistry
+		plan.output.mode === "local" &&
+		(application.registry ||
+			application.buildRegistry ||
+			application.rollbackRegistry)
 	) {
 		command += await uploadImageRemoteCommand(application);
 	}

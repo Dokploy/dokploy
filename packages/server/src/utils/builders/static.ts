@@ -2,6 +2,7 @@ import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
 import { getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import type { BuildPlan } from "./build-platform";
 
 const nginxSpaConfig = `
 worker_processes 1;
@@ -28,7 +29,10 @@ http {
 }
 `;
 
-export const getStaticCommand = (application: ApplicationNested) => {
+export const getStaticCommand = (
+	application: ApplicationNested,
+	plan: BuildPlan,
+) => {
 	const { publishDirectory, isStaticSpa } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	let command = "";
@@ -58,10 +62,13 @@ export const getStaticCommand = (application: ApplicationNested) => {
 		].join("\n"),
 	);
 
-	command += getDockerCommand({
-		...application,
-		buildType: "dockerfile",
-		dockerfile: "Dockerfile",
-	});
+	command += getDockerCommand(
+		{
+			...application,
+			buildType: "dockerfile",
+			dockerfile: "Dockerfile",
+		},
+		plan,
+	);
 	return command;
 };
