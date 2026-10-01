@@ -12,7 +12,10 @@ import { db } from "@dokploy/server/db";
 import { hasValidLicense } from "@dokploy/server/index";
 import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
-import { checkPermission } from "@dokploy/server/services/permission";
+import {
+	checkPermission,
+	resolvePermissions,
+} from "@dokploy/server/services/permission";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -82,14 +85,14 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	return createInnerTRPCContext({
 		req,
 		res,
-		// @ts-ignore
+		// @ts-expect-error
 		session: session
 			? {
 					...session,
 					activeOrganizationId: session.activeOrganizationId || "",
 				}
 			: null,
-		// @ts-ignore
+		// @ts-expect-error
 		user: user
 			? {
 					...user,
@@ -262,4 +265,26 @@ export const withPermission = <R extends Resource>(
 	protectedProcedure.use(async ({ ctx, next }) => {
 		await checkPermission(ctx, { [resource]: [action] } as any);
 		return next();
+	});
+
+export const withAnyPermission = <R extends Resource>(
+	resource: R,
+	actions: ActionOf<R>[],
+) =>
+	protectedProcedure.use(async ({ ctx, next }) => {
+		const permissions = await resolvePermissions(ctx);
+		const resourcePerms = permissions[resource];
+
+		if (resourcePerms) {
+			for (const action of actions) {
+				if ((resourcePerms as Record<string, boolean>)[action as string]) {
+					return next();
+				}
+			}
+		}
+
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
 	});
