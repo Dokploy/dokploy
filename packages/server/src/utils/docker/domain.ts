@@ -4,11 +4,13 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { network, patch } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
+import type { Registry } from "@dokploy/server/services/registry";
 import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
+import { getRegistryTag } from "../cluster/upload";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -110,12 +112,48 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
+const sanitizeComposeServiceName = (serviceName: string): string =>
+	serviceName.toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+
+export const applyBuildRegistryImages = (
+	spec: ComposeSpecification,
+	registry: Registry,
+	appName: string,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	if (!result.services) return result;
+
+	for (const [serviceName, service] of Object.entries(result.services)) {
+		if (service?.build) {
+			const localImage = `${sanitizeComposeServiceName(appName)}-${sanitizeComposeServiceName(serviceName)}:latest`;
+			service.image = getRegistryTag(registry, localImage);
+		}
+	}
+
+	return result;
+};
+
+export const hasBuildableServices = (
+	spec: ComposeSpecification | null,
+): boolean => {
+	if (!spec?.services) return false;
+	return Object.values(spec.services).some((service) => Boolean(service?.build));
+};
+
 export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
+	options?: {
+		buildRegistry?: Registry;
+		loadServerId?: string | null;
+	},
 ) => {
 	try {
-		const composeConverted = await addDomainToCompose(compose, domains);
+		const loadCompose =
+			options?.loadServerId !== undefined
+				? { ...compose, serverId: options.loadServerId }
+				: compose;
+		let composeConverted = await addDomainToCompose(loadCompose, domains);
 		const path = getComposePath(compose);
 
 		if (!composeConverted) {
@@ -123,6 +161,14 @@ export const writeDomainsToCompose = async (
 echo "❌ Error: Compose file not found";
 exit 1;
 			`;
+		}
+
+		if (options?.buildRegistry) {
+			composeConverted = applyBuildRegistryImages(
+				composeConverted,
+				options.buildRegistry,
+				compose.appName,
+			);
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
