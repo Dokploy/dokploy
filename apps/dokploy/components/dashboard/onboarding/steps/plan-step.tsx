@@ -15,13 +15,50 @@ const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
 );
 
+type Tier = "hobby" | "startup";
+
+const PLANS: {
+	tier: Tier;
+	name: string;
+	description: string;
+	price: number;
+	features: string[];
+	recommended?: boolean;
+}[] = [
+	{
+		tier: "hobby",
+		name: "Hobby",
+		description: "For individual developers",
+		price: calculatePriceHobby(1, false),
+		features: [
+			"Setup 1 server",
+			"Unlimited apps & databases",
+			"2 environments",
+			"Community support",
+		],
+	},
+	{
+		tier: "startup",
+		name: "Startup",
+		description: "For small to mid-size teams",
+		price: calculatePriceStartup(STARTUP_SERVERS_INCLUDED, false),
+		recommended: true,
+		features: [
+			`Setup up to ${STARTUP_SERVERS_INCLUDED} servers`,
+			"Unlimited users & environments",
+			"Basic RBAC + 2FA",
+			"Email & chat support",
+		],
+	},
+];
+
 interface Props {
 	onNext: () => void;
 }
 
 export const PlanStep = ({ onNext }: Props) => {
-	const [loadingTier, setLoadingTier] = useState<
-		"hobby" | "startup" | "trial" | null
+	const [loading, setLoading] = useState<
+		`${"trial" | "checkout"}:${Tier}` | null
 	>(null);
 	const { data } = api.stripe.getProducts.useQuery();
 	const { mutateAsync: createCheckoutSession } =
@@ -30,12 +67,12 @@ export const PlanStep = ({ onNext }: Props) => {
 		api.stripe.startFreeTrial.useMutation();
 	const utils = api.useUtils();
 
-	const handleCheckout = async (tier: "hobby" | "startup") => {
+	const handleCheckout = async (tier: Tier) => {
 		if (!data) return;
 		const productId =
 			tier === "hobby" ? data.hobbyProductId : data.startupProductId;
 		if (!productId) return;
-		setLoadingTier(tier);
+		setLoading(`checkout:${tier}`);
 		try {
 			const stripe = await stripePromise;
 			const session = await createCheckoutSession({
@@ -47,14 +84,14 @@ export const PlanStep = ({ onNext }: Props) => {
 			await stripe?.redirectToCheckout({ sessionId: session.sessionId });
 		} catch {
 			toast.error("Error starting checkout");
-			setLoadingTier(null);
+			setLoading(null);
 		}
 	};
 
-	const handleTrial = async () => {
-		setLoadingTier("trial");
+	const handleTrial = async (tier: Tier) => {
+		setLoading(`trial:${tier}`);
 		try {
-			await startFreeTrial();
+			await startFreeTrial({ tier });
 			await utils.project.onboardingStatus.invalidate();
 			toast.success("Your 7-day trial has started");
 			onNext();
@@ -63,7 +100,7 @@ export const PlanStep = ({ onNext }: Props) => {
 				error instanceof Error ? error.message : "Error starting trial",
 			);
 		} finally {
-			setLoadingTier(null);
+			setLoading(null);
 		}
 	};
 
@@ -79,134 +116,72 @@ export const PlanStep = ({ onNext }: Props) => {
 					Start free, upgrade when ready.
 				</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					No credit card for the trial — add one only if you decide to stay.
+					Try any plan free for 7 days. No credit card required — add one only
+					if you decide to stay.
 				</p>
 			</div>
 
-			<div className="flex flex-col rounded-2xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 overflow-hidden">
-				<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 p-7">
-					<div>
-						<span className="inline-flex items-center rounded-full bg-white text-zinc-950 dark:bg-zinc-950 dark:text-white font-mono text-[10px] font-semibold uppercase tracking-[0.15em] px-2.5 py-1">
-							Recommended
-						</span>
-						<p className={`${displayFont.className} text-2xl mt-3`}>
-							7-day free trial
-						</p>
-						<p className="text-sm text-zinc-400 dark:text-zinc-600 mt-1 max-w-xs">
-							No card required — cancel anytime.
-						</p>
-						<ul className="flex flex-col gap-1.5 mt-4">
-							{[
-								"Setup 1 server",
-								"Unlimited apps & databases",
-								"Community support",
-							].map((f) => (
-								<li
-									key={f}
-									className="flex items-center gap-2 text-sm text-zinc-300 dark:text-zinc-700"
-								>
-									<CheckIcon className="size-3.5 text-zinc-500 shrink-0" />
-									{f}
-								</li>
-							))}
-						</ul>
-					</div>
-					<Button
-						size="lg"
-						className="bg-white text-zinc-950 hover:bg-zinc-200 dark:bg-zinc-950 dark:text-white dark:hover:bg-zinc-800 w-fit shrink-0 px-6"
-						isLoading={loadingTier === "trial"}
-						disabled={loadingTier !== null}
-						onClick={handleTrial}
-					>
-						Start trial
-						<ArrowRightIcon className="size-4" />
-					</Button>
-				</div>
-			</div>
-
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden border">
-				<div className="flex flex-col justify-between gap-6 bg-background p-7">
-					<div>
-						<p className="font-medium">Hobby</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							For individual developers
-						</p>
-						<p className="text-3xl font-semibold mt-4 tabular-nums">
-							${calculatePriceHobby(1, false).toFixed(2)}
-							<span className="text-sm font-normal text-muted-foreground">
-								{" "}
-								/mo
-							</span>
-						</p>
-						<ul className="flex flex-col gap-1.5 mt-4">
-							{[
-								"Setup 1 server",
-								"Unlimited apps & databases",
-								"2 environments",
-								"Community support",
-							].map((f) => (
-								<li
-									key={f}
-									className="flex items-center gap-2 text-sm text-muted-foreground"
+				{PLANS.map((plan) => {
+					const productId =
+						plan.tier === "hobby"
+							? data?.hobbyProductId
+							: data?.startupProductId;
+					return (
+						<div
+							key={plan.tier}
+							className="flex flex-col justify-between gap-6 bg-background p-7"
+						>
+							<div>
+								{plan.recommended && (
+									<span className="inline-flex items-center rounded-full bg-primary text-primary-foreground font-mono text-[10px] font-semibold uppercase tracking-[0.15em] px-2.5 py-1 mb-3">
+										Recommended
+									</span>
+								)}
+								<p className="font-medium">{plan.name}</p>
+								<p className="text-sm text-muted-foreground mt-1">
+									{plan.description}
+								</p>
+								<p className="text-3xl font-semibold mt-4 tabular-nums">
+									${plan.price.toFixed(2)}
+									<span className="text-sm font-normal text-muted-foreground">
+										{" "}
+										/mo
+									</span>
+								</p>
+								<ul className="flex flex-col gap-1.5 mt-4">
+									{plan.features.map((f) => (
+										<li
+											key={f}
+											className="flex items-center gap-2 text-sm text-muted-foreground"
+										>
+											<CheckIcon className="size-3.5 shrink-0" />
+											{f}
+										</li>
+									))}
+								</ul>
+							</div>
+							<div className="flex flex-col gap-2">
+								<Button
+									isLoading={loading === `trial:${plan.tier}`}
+									disabled={loading !== null}
+									onClick={() => handleTrial(plan.tier)}
 								>
-									<CheckIcon className="size-3.5 shrink-0" />
-									{f}
-								</li>
-							))}
-						</ul>
-					</div>
-					<Button
-						variant="outline"
-						isLoading={loadingTier === "hobby"}
-						disabled={loadingTier !== null || !data?.hobbyProductId}
-						onClick={() => handleCheckout("hobby")}
-					>
-						Subscribe
-					</Button>
-				</div>
-
-				<div className="flex flex-col justify-between gap-6 bg-background p-7">
-					<div>
-						<p className="font-medium">Startup</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							For small to mid-size teams
-						</p>
-						<p className="text-3xl font-semibold mt-4 tabular-nums">
-							$
-							{calculatePriceStartup(STARTUP_SERVERS_INCLUDED, false).toFixed(
-								2,
-							)}
-							<span className="text-sm font-normal text-muted-foreground">
-								{" "}
-								/mo
-							</span>
-						</p>
-						<ul className="flex flex-col gap-1.5 mt-4">
-							{[
-								`Setup up to ${STARTUP_SERVERS_INCLUDED} servers`,
-								"Unlimited users & environments",
-								"Basic RBAC + 2FA",
-								"Email & chat support",
-							].map((f) => (
-								<li
-									key={f}
-									className="flex items-center gap-2 text-sm text-muted-foreground"
+									Start 7-day free trial
+									<ArrowRightIcon className="size-4" />
+								</Button>
+								<Button
+									variant="outline"
+									isLoading={loading === `checkout:${plan.tier}`}
+									disabled={loading !== null || !productId}
+									onClick={() => handleCheckout(plan.tier)}
 								>
-									<CheckIcon className="size-3.5 shrink-0" />
-									{f}
-								</li>
-							))}
-						</ul>
-					</div>
-					<Button
-						variant="outline"
-						isLoading={loadingTier === "startup"}
-						disabled={loadingTier !== null || !data?.startupProductId}
-						onClick={() => handleCheckout("startup")}
-					>
-						Subscribe
-					</Button>
-				</div>
+									Subscribe now
+								</Button>
+							</div>
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);
