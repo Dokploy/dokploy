@@ -29,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { ComposeFileMountHint } from "./compose-file-mount-hint";
 
 interface Props {
 	serviceId: string;
@@ -96,6 +97,7 @@ export const AddVolumes = ({
 		resolver: zodResolver(mySchema),
 	});
 	const type = form.watch("type");
+	const filePath = form.watch("filePath");
 
 	useEffect(() => {
 		form.reset();
@@ -360,6 +362,12 @@ PORT=3000
 												</FormItem>
 											)}
 										/>
+										{serviceType === "compose" && (
+											<ComposeFileMountHint
+												composeId={serviceId}
+												fileName={filePath}
+											/>
+										)}
 									</>
 								)}
 								{serviceType !== "compose" && (
