@@ -184,6 +184,7 @@ const addPermissions = z.object({
 	canAccessToSSHKeys: z.boolean().optional().default(false),
 	canAccessToGitProviders: z.boolean().optional().default(false),
 	canCreateEnvironments: z.boolean().optional().default(false),
+	canManageDeployments: z.boolean().optional().default(false),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -194,7 +195,8 @@ interface Props {
 }
 
 export const AddUserPermissions = ({ userId, role }: Props) => {
-	const isCustomRole = !!role && !["owner", "admin", "member"].includes(role);
+	const isCustomRole =
+		!!role && !["owner", "admin", "member", "viewer"].includes(role);
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: projects } = api.project.allForPermissions.useQuery(undefined, {
 		enabled: isOpen,
@@ -243,6 +245,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 			canAccessToSSHKeys: false,
 			canAccessToGitProviders: false,
 			canCreateEnvironments: false,
+			canManageDeployments: false,
 		},
 		resolver: zodResolver(addPermissions),
 	});
@@ -266,6 +269,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 				canAccessToSSHKeys: data.canAccessToSSHKeys,
 				canAccessToGitProviders: data.canAccessToGitProviders,
 				canCreateEnvironments: data.canCreateEnvironments,
+				canManageDeployments: data.canManageDeployments,
 			});
 		}
 	}, [form, form.reset, data, isOpen]);
@@ -289,6 +293,7 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
 			canAccessToGitProviders: data.canAccessToGitProviders,
 			canCreateEnvironments: data.canCreateEnvironments,
+			canManageDeployments: data.canManageDeployments,
 		})
 			.then(async () => {
 				toast.success("Permissions updated");
@@ -400,6 +405,26 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 												<FormLabel>Delete Services</FormLabel>
 												<FormDescription>
 													Allow the user to delete services
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="canManageDeployments"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs">
+											<div className="space-y-0.5">
+												<FormLabel>Start / Stop Deployments</FormLabel>
+												<FormDescription>
+													Allow this member to start or cancel deployments without granting broader write access.
 												</FormDescription>
 											</div>
 											<FormControl>

@@ -5,6 +5,7 @@ import {
 	organization,
 	server,
 } from "@dokploy/server/db/schema";
+import { findMemberByUserId } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -259,13 +260,7 @@ export const getAccessibleServerIds = async (session: {
 		},
 	});
 
-	const memberRecord = await db.query.member.findFirst({
-		where: and(
-			eq(member.userId, userId),
-			eq(member.organizationId, activeOrganizationId),
-		),
-		columns: { accessedServers: true, role: true },
-	});
+	const memberRecord = await findMemberByUserId(userId, activeOrganizationId);
 
 	if (memberRecord?.role === "owner" || memberRecord?.role === "admin") {
 		return new Set(allOrgServers.map((s) => s.serverId));
