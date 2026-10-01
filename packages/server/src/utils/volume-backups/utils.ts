@@ -11,7 +11,9 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import { quote } from "shell-quote";
+import { getSafeRcloneErrorMessage } from "../backups/redact";
+import { getRclonePathAndFlags, normalizeS3Path } from "../backups/utils";
 import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume, getVolumeServiceAppName } from "./backup";
 
@@ -84,12 +86,16 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const s3AppName = getVolumeServiceAppName(volumeBackup);
-		const backupFilesPath = `:s3:${destination.bucket}/${s3AppName}/${normalizeS3Path(prefix || "")}`;
-		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include \"${volumeName}-*.tar\" ${backupFilesPath}`;
+		const appName = getVolumeServiceAppName(volumeBackup);
+		const { flags: rcloneFlags, path: backupFilesPath } =
+			await getRclonePathAndFlags(
+				destination,
+				`${appName}/${normalizeS3Path(prefix || "")}`,
+			);
+		const includePattern = `${volumeName}-*.tar`;
+		const listCommand = `rclone lsf ${rcloneFlags.join(" ")} --include ${quote([includePattern])} ${quote([backupFilesPath])}`;
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const deleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${quote([`${backupFilesPath}/{}`])}`;
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
 
 		if (serverId) {
@@ -98,7 +104,10 @@ const cleanupOldVolumeBackups = async (
 			await execAsync(fullCommand);
 		}
 	} catch (error) {
-		console.error("Volume backup retention error", error);
+		console.error(
+			"Volume backup retention error",
+			getSafeRcloneErrorMessage(error),
+		);
 	}
 };
 
@@ -151,13 +160,15 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 			);
 		}
 	} catch (error) {
+		const safeErrorMessage = getSafeRcloneErrorMessage(error);
+		console.error("Volume backup error:", safeErrorMessage);
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const volumeBackupPath = path.join(
 			VOLUME_BACKUPS_PATH,
 			volumeBackup.appName,
 		);
-		// delete all the .tar files
-		const command = `rm -rf ${volumeBackupPath}/*.tar`;
+		// delete all the .tar files while keeping wildcard expansion intact
+		const command = `rm -rf ${quote([volumeBackupPath])}/*.tar`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
@@ -179,7 +190,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 				serviceType: mappedServiceType,
 				type: "error",
 				organizationId,
-				errorMessage: error instanceof Error ? error.message : String(error),
+				errorMessage: safeErrorMessage,
 			});
 		} catch (notificationError) {
 			console.error(
