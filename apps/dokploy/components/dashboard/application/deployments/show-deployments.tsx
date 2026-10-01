@@ -340,9 +340,9 @@ export const ShowDeployments = ({
 													)}
 												</button>
 											)}
-											{/* Hash (from description) - shown in compact form */}
+											{/* Trigger metadata and checked-out commit */}
 											{deployment.description?.trim() && (
-												<span className="wrap-anywhere text-xs text-muted-foreground font-mono">
+												<span className="whitespace-pre-wrap wrap-anywhere text-xs text-muted-foreground font-mono">
 													{deployment.description}
 												</span>
 											)}

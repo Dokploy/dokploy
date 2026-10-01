@@ -285,7 +285,9 @@ export const deployApplication = async ({
 			if (commitInfo) {
 				await updateDeployment(deployment.deploymentId, {
 					title: commitInfo.message,
-					description: `Commit: ${commitInfo.hash}`,
+					description: descriptionLog.startsWith("Tag: ")
+						? `${descriptionLog}\nCommit: ${commitInfo.hash}`
+						: `Commit: ${commitInfo.hash}`,
 				});
 			}
 		}
