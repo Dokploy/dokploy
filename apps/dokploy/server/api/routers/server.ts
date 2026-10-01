@@ -7,6 +7,7 @@ import {
 	findUserById,
 	getAccessibleServerIds,
 	getPublicIpWithFallback,
+	getServerDiskUsage,
 	getServicesByServerId,
 	haveActiveServices,
 	IS_CLOUD,
@@ -116,6 +117,27 @@ export const serverRouter = createTRPCRouter({
 			}
 
 			return redactServerSshKey(server);
+		}),
+	diskUsage: withPermission("server", "read")
+		.input(apiFindOneServer)
+		.query(async ({ input, ctx }) => {
+			const currentServer = await findServerById(input.serverId);
+			if (currentServer.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+
+			return getServerDiskUsage(input.serverId);
 		}),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
