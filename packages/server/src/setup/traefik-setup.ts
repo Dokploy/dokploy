@@ -2,13 +2,14 @@ import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
+	readFileSync,
 	rmSync,
 	statSync,
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
-import { stringify } from "yaml";
+import { parseDocument, stringify } from "yaml";
 import { paths } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
@@ -31,6 +32,40 @@ export interface TraefikOptions {
 		protocol?: string;
 	}[];
 }
+
+export interface DefaultTraefikConfigOptions {
+	enableSwarmProvider?: boolean;
+}
+
+interface DockerInfo {
+	Swarm?: {
+		LocalNodeState?: string;
+		ControlAvailable?: boolean;
+	};
+}
+
+export const isSwarmManager = ({ Swarm }: DockerInfo) =>
+	Swarm?.LocalNodeState === "active" && Swarm.ControlAvailable === true;
+
+const detectSwarmManager = async () => {
+	try {
+		const docker = await getRemoteDocker();
+		return isSwarmManager(await docker.info());
+	} catch (error) {
+		console.warn("Could not verify Docker Swarm role", error);
+		return undefined;
+	}
+};
+
+export const restartStandaloneTraefik = async (serverId?: string) => {
+	try {
+		const docker = await getRemoteDocker(serverId);
+		await docker.getContainer("dokploy-traefik").restart();
+		console.log("Traefik restarted with role-aware config ✅");
+	} catch (error) {
+		console.warn("Could not restart standalone Traefik", error);
+	}
+};
 
 export const initializeStandaloneTraefik = async ({
 	env,
@@ -250,7 +285,9 @@ export const createDefaultServerTraefikConfig = () => {
 	);
 };
 
-export const getDefaultTraefikConfig = () => {
+export const getDefaultTraefikConfig = ({
+	enableSwarmProvider = true,
+}: DefaultTraefikConfigOptions = {}) => {
 	const configObject: MainTraefikConfig = {
 		global: {
 			sendAnonymousUsage: false,
@@ -264,10 +301,12 @@ export const getDefaultTraefikConfig = () => {
 						},
 					}
 				: {
-						swarm: {
-							exposedByDefault: false,
-							watch: true,
-						},
+						...(enableSwarmProvider && {
+							swarm: {
+								exposedByDefault: false,
+								watch: true,
+							},
+						}),
 						docker: {
 							exposedByDefault: false,
 							watch: true,
@@ -320,13 +359,17 @@ export const getDefaultTraefikConfig = () => {
 	return yamlStr;
 };
 
-export const getDefaultServerTraefikConfig = () => {
+export const getDefaultServerTraefikConfig = ({
+	enableSwarmProvider = true,
+}: DefaultTraefikConfigOptions = {}) => {
 	const configObject: MainTraefikConfig = {
 		providers: {
-			swarm: {
-				exposedByDefault: false,
-				watch: true,
-			},
+			...(enableSwarmProvider && {
+				swarm: {
+					exposedByDefault: false,
+					watch: true,
+				},
+			}),
 			docker: {
 				exposedByDefault: false,
 				watch: true,
@@ -374,7 +417,7 @@ export const getDefaultServerTraefikConfig = () => {
 	return yamlStr;
 };
 
-export const createDefaultTraefikConfig = () => {
+export const createDefaultTraefikConfig = async () => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths();
 	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
 	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
@@ -394,14 +437,41 @@ export const createDefaultTraefikConfig = () => {
 			console.log("Found traefik.yml as directory, removing it...");
 			rmSync(mainConfig, { recursive: true, force: true });
 		} else if (stats.isFile()) {
+			const swarmManager = await detectSwarmManager();
+			if (swarmManager === undefined) {
+				console.log("Main config already exists");
+				return false;
+			}
+
+			const configDocument = parseDocument(readFileSync(mainConfig, "utf8"));
+			const hasSwarmProvider = configDocument.hasIn(["providers", "swarm"]);
+			if (swarmManager && !hasSwarmProvider) {
+				configDocument.setIn(["providers", "swarm"], {
+					exposedByDefault: false,
+					watch: true,
+				});
+				writeFileSync(mainConfig, configDocument.toString(), "utf8");
+				console.log("Restored Swarm provider in manager Traefik config");
+				return true;
+			}
+			if (!swarmManager && hasSwarmProvider) {
+				configDocument.deleteIn(["providers", "swarm"]);
+				writeFileSync(mainConfig, configDocument.toString(), "utf8");
+				console.log("Removed Swarm provider from worker Traefik config");
+				return true;
+			}
 			console.log("Main config already exists");
-			return;
+			return false;
 		}
 	}
 
-	const yamlStr = getDefaultTraefikConfig();
+	const swarmManager = await detectSwarmManager();
+	const yamlStr = getDefaultTraefikConfig({
+		enableSwarmProvider: swarmManager === true,
+	});
 	writeFileSync(mainConfig, yamlStr, "utf8");
 	console.log("Traefik config created successfully");
+	return false;
 };
 
 export const getDefaultMiddlewares = () => {

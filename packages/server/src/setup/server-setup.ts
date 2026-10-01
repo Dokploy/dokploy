@@ -241,7 +241,7 @@ ${setupMainDirectory()}
 ${setupDirectories()}
 
 echo -e "8. Setting up Traefik"
-${createTraefikConfig()}
+${createServerTraefikConfigCommand()}
 
 echo -e "9. Setting up Middlewares"
 ${createDefaultMiddlewares()}
@@ -662,17 +662,57 @@ else
 fi
 `;
 
-const createTraefikConfig = () => {
-	const config = getDefaultServerTraefikConfig();
+export const createServerTraefikConfigCommand = () => {
+	const managerConfig = getDefaultServerTraefikConfig({
+		enableSwarmProvider: true,
+	});
+	const workerConfig = getDefaultServerTraefikConfig({
+		enableSwarmProvider: false,
+	});
 
 	const command = `
+	TRAEFIK_CONFIG_CHANGED=false
+	NODE_SWARM_ROLE="$($SUDO_CMD docker info --format '{{.Swarm.LocalNodeState}} {{.Swarm.ControlAvailable}}' 2>/dev/null || true)"
 	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
 		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
 	fi
 	if [ -f "/etc/dokploy/traefik/traefik.yml" ]; then
+		if [ "$NODE_SWARM_ROLE" = "active true" ] && ! grep -q '^  swarm:[[:space:]]*$' /etc/dokploy/traefik/traefik.yml; then
+			TEMP_TRAEFIK_CONFIG=$(mktemp)
+			awk '
+				/^providers:[[:space:]]*$/ {
+					print
+					print "  swarm:"
+					print "    exposedByDefault: false"
+					print "    watch: true"
+					next
+				}
+				{ print }
+			' /etc/dokploy/traefik/traefik.yml > "$TEMP_TRAEFIK_CONFIG"
+			mv "$TEMP_TRAEFIK_CONFIG" /etc/dokploy/traefik/traefik.yml
+			TRAEFIK_CONFIG_CHANGED=true
+			echo "Restored Swarm provider in manager Traefik config ✅"
+		elif [ "$NODE_SWARM_ROLE" = "active false" ] && grep -q '^  swarm:[[:space:]]*$' /etc/dokploy/traefik/traefik.yml; then
+			TEMP_TRAEFIK_CONFIG=$(mktemp)
+			awk '
+				/^  swarm:[[:space:]]*$/ { skipping_swarm = 1; next }
+				skipping_swarm && /^[^[:space:]]/ { skipping_swarm = 0 }
+				skipping_swarm && /^  [^[:space:]][^:]*:/ { skipping_swarm = 0 }
+				!skipping_swarm { print }
+			' /etc/dokploy/traefik/traefik.yml > "$TEMP_TRAEFIK_CONFIG"
+			mv "$TEMP_TRAEFIK_CONFIG" /etc/dokploy/traefik/traefik.yml
+			TRAEFIK_CONFIG_CHANGED=true
+			echo "Removed Swarm provider from worker Traefik config ✅"
+		fi
 		echo "Traefik config already exists ✅"
+	elif [ "$NODE_SWARM_ROLE" = "active true" ]; then
+		cat <<'DOKPLOY_TRAEFIK_CONFIG' > /etc/dokploy/traefik/traefik.yml
+${managerConfig}
+DOKPLOY_TRAEFIK_CONFIG
 	else
-		echo "${config}" > /etc/dokploy/traefik/traefik.yml
+		cat <<'DOKPLOY_TRAEFIK_CONFIG' > /etc/dokploy/traefik/traefik.yml
+${workerConfig}
+DOKPLOY_TRAEFIK_CONFIG
 	fi
 	`;
 
@@ -712,7 +752,12 @@ export const createTraefikInstance = () => {
 		fi
 
 		if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
-			echo "Traefik already exists ✅"
+			if [ "$TRAEFIK_CONFIG_CHANGED" = "true" ]; then
+				$SUDO_CMD docker restart dokploy-traefik >/dev/null
+				echo "Traefik restarted with worker-safe config ✅"
+			else
+				echo "Traefik already exists ✅"
+			fi
 		else
 			# Create the dokploy-traefik container
 			TRAEFIK_VERSION=${TRAEFIK_VERSION}
