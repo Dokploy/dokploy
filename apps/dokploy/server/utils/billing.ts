@@ -173,3 +173,36 @@ export const getBillingStatus = async (
 		isAnnual,
 	};
 };
+
+const isMissingResource = (error: unknown) =>
+	error instanceof Stripe.errors.StripeError &&
+	error.code === "resource_missing";
+
+export const cancelStripeSubscriptions = async (
+	stripeCustomerId: string,
+	stripe: Stripe = getStripeClient(),
+) => {
+	const subscriptions = await stripe.subscriptions
+		.list({ customer: stripeCustomerId, status: "all", limit: 100 })
+		.catch((error: unknown) => {
+			if (isMissingResource(error)) return null;
+			throw error;
+		});
+
+	const cancelledSubscriptions: string[] = [];
+	for (const subscription of subscriptions?.data ?? []) {
+		if (
+			subscription.status === "canceled" ||
+			subscription.status === "incomplete_expired"
+		) {
+			continue;
+		}
+		await stripe.subscriptions.cancel(subscription.id, {
+			invoice_now: false,
+			prorate: false,
+		});
+		cancelledSubscriptions.push(subscription.id);
+	}
+
+	return { cancelledSubscriptions };
+};
