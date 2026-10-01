@@ -79,6 +79,10 @@ export const S3_PROVIDERS: Array<{
 		name: "Minio Object Storage",
 	},
 	{
+		key: "Neon",
+		name: "Neon Object Storage",
+	},
+	{
 		key: "Netease",
 		name: "Netease Object Storage (NOS)",
 	},
