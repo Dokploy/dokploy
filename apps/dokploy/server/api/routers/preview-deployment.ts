@@ -1,17 +1,18 @@
 import {
+	type DeploymentJob,
 	findApplicationById,
 	findPreviewDeploymentById,
 	findPreviewDeploymentsByApplicationId,
-	IS_CLOUD,
 	removePreviewDeployment,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { apiFindAllByApplication } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
+import {
+	cleanDeploymentQueue,
+	enqueueDeployment,
+} from "@/server/queues/queueSetup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const previewDeploymentRouter = createTRPCRouter({
@@ -58,6 +59,27 @@ export const previewDeploymentRouter = createTRPCRouter({
 			return true;
 		}),
 
+	cleanQueues: protectedProcedure
+		.input(z.object({ previewDeploymentId: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const preview = await findPreviewDeploymentById(
+				input.previewDeploymentId,
+			);
+			await checkServicePermissionAndAccess(ctx, preview.applicationId, {
+				deployment: ["cancel"],
+			});
+			await cleanDeploymentQueue({
+				applicationType: "application-preview",
+				applicationId: preview.applicationId,
+				previewDeploymentId: preview.previewDeploymentId,
+			});
+			await audit(ctx, {
+				action: "cancel",
+				resourceType: "previewDeployment",
+				resourceId: preview.previewDeploymentId,
+			});
+		}),
+
 	redeploy: protectedProcedure
 		.input(
 			z.object({
@@ -85,29 +107,10 @@ export const previewDeploymentRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "application-preview",
 				previewDeploymentId: input.previewDeploymentId,
-				server: !!application.serverId,
 				serverId: application.serverId ?? undefined,
 			};
 
-			if (IS_CLOUD && application.serverId) {
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "redeploy",
-					resourceType: "previewDeployment",
-					resourceId: input.previewDeploymentId,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeployment(jobData);
 			await audit(ctx, {
 				action: "redeploy",
 				resourceType: "previewDeployment",

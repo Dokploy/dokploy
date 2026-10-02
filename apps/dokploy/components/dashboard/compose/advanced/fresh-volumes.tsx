@@ -59,7 +59,8 @@ export const FreshVolumes = ({ composeId }: Props) => {
 	});
 
 	const expectedName = `${data?.name}/${data?.appName}`;
-	const isRunning = data?.composeStatus === "running";
+	const isRunning =
+		data?.composeStatus === "running" || data?.composeStatus === "queued";
 
 	const onSubmit = async (formData: FreshVolumesForm) => {
 		if (formData.confirmName !== expectedName) {
