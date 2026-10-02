@@ -96,6 +96,7 @@ export * from "./utils/builders/nixpacks";
 export * from "./utils/builders/paketo";
 export * from "./utils/builders/static";
 export * from "./utils/builders/utils";
+export * from "./utils/caddy/caddyfile";
 export * from "./utils/cluster/upload";
 export * from "./utils/crons/enterprise";
 export * from "./utils/databases/rebuild";
