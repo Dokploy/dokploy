@@ -12,6 +12,7 @@ import {
 	IS_CLOUD,
 	redactServerSshKey,
 	removeDeploymentsByServerId,
+	removeVectorAgent,
 	serverAudit,
 	serverSetup,
 	serverValidate,
@@ -473,11 +474,25 @@ export const serverRouter = createTRPCRouter({
 						message: "Server has active services, please delete them first",
 					});
 				}
+				let vectorAgentRemovalWarning: string | undefined;
+				if ((currentServer.logProviderIds?.length ?? 0) > 0) {
+					await removeVectorAgent(input.serverId).catch((error) => {
+						vectorAgentRemovalWarning =
+							error instanceof Error ? error.message : String(error);
+						console.error(
+							`[Vector] Failed to remove agent for server ${input.serverId} before deletion:`,
+							error,
+						);
+					});
+				}
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "server",
 					resourceId: currentServer.serverId,
 					resourceName: currentServer.name,
+					...(vectorAgentRemovalWarning
+						? { metadata: { vectorAgentRemovalWarning } }
+						: {}),
 				});
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
@@ -488,7 +503,10 @@ export const serverRouter = createTRPCRouter({
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
-				return redactServerSshKey(currentServer);
+				return {
+					...redactServerSshKey(currentServer),
+					vectorAgentRemovalWarning,
+				};
 			} catch (error) {
 				throw error;
 			}
@@ -511,6 +529,7 @@ export const serverRouter = createTRPCRouter({
 						message: "Server is inactive",
 					});
 				}
+
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
