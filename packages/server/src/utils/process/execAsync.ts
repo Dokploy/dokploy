@@ -1,4 +1,5 @@
-import { exec, execFile } from "node:child_process";
+import { exec, execFile, spawn } from "node:child_process";
+import type { Readable } from "node:stream";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
@@ -25,7 +26,12 @@ const execAsyncBase = util.promisify(exec);
 
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: {
+		cwd?: string;
+		env?: NodeJS.ProcessEnv;
+		shell?: string;
+		maxBuffer?: number;
+	},
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, options);
@@ -319,6 +325,37 @@ export const writeFileRemote = async (
 				timeout: 99999,
 			});
 	});
+};
+
+const STDERR_LIMIT = 8 * 1024;
+
+export const execStreamLocal = (command: string): Readable => {
+	const child = spawn(command, { shell: true });
+	let stderr = "";
+
+	child.stderr.on("data", (data: Buffer) => {
+		stderr = `${stderr}${data.toString()}`.slice(-STDERR_LIMIT);
+	});
+	child.on("error", (error) => child.stdout.emit("error", error));
+	child.on("close", (code) => {
+		// Without a finished read the consumer cancelled, so this is not a real failure.
+		if (code !== 0 && child.stdout.readableEnded) {
+			child.stdout.emit(
+				"error",
+				new ExecError(
+					`Command failed with exit code ${code ?? "null"}: ${stderr}`,
+					{
+						command,
+						stderr,
+						exitCode: code ?? undefined,
+					},
+				),
+			);
+		}
+	});
+	child.stdout.on("close", () => child.kill());
+
+	return child.stdout;
 };
 
 export const sleep = (ms: number) => {
