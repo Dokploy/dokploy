@@ -40,6 +40,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
+// Keep in sync with the `ingressIps` limit of the server API schema.
+const MAX_INGRESS_IPS = 16;
+
 const parseIngressIps = (value?: string) =>
 	(value ?? "")
 		.split(/[\s,]+/)
@@ -60,6 +63,9 @@ const Schema = z.object({
 	ingressIps: z
 		.string()
 		.optional()
+		.refine((value) => parseIngressIps(value).length <= MAX_INGRESS_IPS, {
+			message: `Enter at most ${MAX_INGRESS_IPS} addresses`,
+		})
 		.refine((value) => parseIngressIps(value).every(isValidIp), {
 			message: "Enter valid IPv4 or IPv6 addresses separated by commas",
 		}),
@@ -436,7 +442,8 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 									<FormDescription>
 										Optional. Addresses your domains may resolve to besides this
 										server, such as a floating VIP (keepalived) or a load
-										balancer. Only used to validate domain DNS, never for SSH.
+										balancer, up to {MAX_INGRESS_IPS} addresses. Only used to
+										validate domain DNS, never for SSH.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>

@@ -1,3 +1,4 @@
+import { normalizeIp } from "@dokploy/server/utils/ip-address";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -145,7 +146,7 @@ const createSchema = createInsertSchema(server, {
 });
 
 const ingressIpsSchema = z
-	.array(z.union([z.ipv4(), z.ipv6()]).transform((ip) => ip.toLowerCase()))
+	.array(z.union([z.ipv4(), z.ipv6()]).transform(normalizeIp))
 	.max(16)
 	.optional();
 

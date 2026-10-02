@@ -211,6 +211,23 @@ describe("validateDomain", () => {
 		).resolves.toMatchObject({ isValid: false, resolvedIp: "10.0.0.99" });
 	});
 
+	it("matches IPv6 addresses regardless of how they are written", async () => {
+		mocks.resolve4.mockImplementation(
+			(_domain: string, callback: (error: Error | null) => void) =>
+				callback(new Error("queryA ENODATA example.com")),
+		);
+		mocks.resolve6.mockImplementation(
+			(
+				_domain: string,
+				callback: (error: Error | null, addresses?: string[]) => void,
+			) => callback(null, ["2001:db8::50"]),
+		);
+
+		await expect(
+			validateDomain("example.com", ["2001:0DB8:0:0:0:0:0:50"]),
+		).resolves.toMatchObject({ isValid: true, resolvedIp: "2001:db8::50" });
+	});
+
 	it("validates an IPv6-only domain against an IPv6 server address", async () => {
 		const noIpv4 = Object.assign(new Error("queryA ENODATA example.com"), {
 			code: "ENODATA",

@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
+import { normalizeIp } from "@dokploy/server/utils/ip-address";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
@@ -211,7 +212,8 @@ export const validateDomain = async (
 		}
 
 		if (expectedIps && expectedIps.length > 0) {
-			const isValid = resolvedIps.some((ip) => expectedIps.includes(ip));
+			const expected = new Set(expectedIps.map(normalizeIp));
+			const isValid = resolvedIps.some((ip) => expected.has(normalizeIp(ip)));
 			return {
 				isValid,
 				resolvedIp: resolvedIps.join(", "),
