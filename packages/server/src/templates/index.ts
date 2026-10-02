@@ -3,12 +3,17 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Domain } from "@dokploy/server/services/domain";
+import {
+	DEFAULT_FREE_DOMAIN_PROVIDER,
+	type FreeDomainProvider,
+} from "@dokploy/server/utils/free-domain";
 import { TRPCError } from "@trpc/server";
 import { fetchTemplateFiles } from "./github";
 
 export interface Schema {
 	serverIp: string;
 	projectName: string;
+	domainProvider?: FreeDomainProvider;
 }
 
 export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName"> & {
@@ -33,21 +38,21 @@ export interface GenerateJWTOptions {
 export const generateRandomDomain = ({
 	serverIp,
 	projectName,
+	domainProvider = DEFAULT_FREE_DOMAIN_PROVIDER,
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
 	const effectiveIp = serverIp || "127.0.0.1";
 	const slugIp = effectiveIp.replaceAll(".", "-").replaceAll(":", "-");
 
 	// Domain labels have a max length of 63 characters
-	// Reserve space for: hash (6) + separators (1-2) + ip section + dot + sslip.io (8)
-	// Approx: 6 + 2 + (variable ip length) + 9 = ~19-30 chars for other parts
+	// Reserve space for: hash (6) + separators (1-2) + ip section + dot + provider (~10)
 	const maxProjectNameLength = 40;
 	const truncatedProjectName =
 		projectName.length > maxProjectNameLength
 			? projectName.substring(0, maxProjectNameLength)
 			: projectName;
 
-	return `${truncatedProjectName}-${hash}-${slugIp}.sslip.io`;
+	return `${truncatedProjectName}-${hash}-${slugIp}.${domainProvider}`;
 };
 
 export const generateHash = (length = 8): string => {
