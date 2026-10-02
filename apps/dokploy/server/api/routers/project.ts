@@ -8,6 +8,7 @@ import {
 	createMongo,
 	createMount,
 	createMysql,
+	createObjectStorage,
 	createPort,
 	createPostgres,
 	createPreviewDeployment,
@@ -23,6 +24,7 @@ import {
 	findMariadbById,
 	findMongoById,
 	findMySqlById,
+	findObjectStorageById,
 	findPostgresById,
 	findProjectById,
 	findRedisById,
@@ -62,6 +64,7 @@ import {
 	mariadb,
 	mongo,
 	mysql,
+	objectstorage,
 	postgres,
 	projects,
 	redis,
@@ -192,6 +195,14 @@ export const projectRouter = createTRPCRouter({
 									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(redis.redisId, accessedServices),
 								},
+								objectstorage: {
+									columns: { ...serviceColumns, objectStorageId: true },
+									with: { server: { columns: { name: true } } },
+									where: buildServiceFilter(
+										objectstorage.objectStorageId,
+										accessedServices,
+									),
+								},
 							},
 						},
 						projectTags: {
@@ -311,6 +322,17 @@ export const projectRouter = createTRPCRouter({
 									applicationStatus: true,
 								},
 							},
+							objectstorage: {
+								where: buildServiceFilter(
+									objectstorage.objectStorageId,
+									accessedServices,
+								),
+								columns: {
+									objectStorageId: true,
+									name: true,
+									applicationStatus: true,
+								},
+							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
 								columns: {
@@ -382,6 +404,13 @@ export const projectRouter = createTRPCRouter({
 						libsql: {
 							columns: {
 								libsqlId: true,
+							},
+						},
+						objectstorage: {
+							columns: {
+								objectStorageId: true,
+								name: true,
+								applicationStatus: true,
 							},
 						},
 					},
@@ -507,6 +536,17 @@ export const projectRouter = createTRPCRouter({
 									serverId: true,
 								},
 							},
+							objectstorage: {
+								columns: {
+									objectStorageId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
 						},
 					},
 				},
@@ -605,6 +645,10 @@ export const projectRouter = createTRPCRouter({
 							where: applyFilter(redis.redisId),
 							columns: { applicationStatus: true },
 						},
+						objectstorage: {
+							where: applyFilter(objectstorage.objectStorageId),
+							columns: { applicationStatus: true },
+						},
 					},
 				},
 			},
@@ -613,6 +657,7 @@ export const projectRouter = createTRPCRouter({
 		let applicationsCount = 0;
 		let composeCount = 0;
 		let databasesCount = 0;
+		let objectStorageCount = 0;
 		let environmentsCount = 0;
 		const status = { running: 0, error: 0, idle: 0 };
 		const bump = (s?: string | null) => {
@@ -633,6 +678,7 @@ export const projectRouter = createTRPCRouter({
 					env.mysql.length +
 					env.postgres.length +
 					env.redis.length;
+				objectStorageCount += env.objectstorage.length;
 
 				for (const a of env.applications) bump(a.applicationStatus);
 				for (const c of env.compose) bump(c.composeStatus);
@@ -642,6 +688,7 @@ export const projectRouter = createTRPCRouter({
 				for (const s of env.mysql) bump(s.applicationStatus);
 				for (const s of env.postgres) bump(s.applicationStatus);
 				for (const s of env.redis) bump(s.applicationStatus);
+				for (const s of env.objectstorage) bump(s.applicationStatus);
 			}
 		}
 
@@ -651,7 +698,9 @@ export const projectRouter = createTRPCRouter({
 			applications: applicationsCount,
 			compose: composeCount,
 			databases: databasesCount,
-			services: applicationsCount + composeCount + databasesCount,
+			objectStorage: objectStorageCount,
+			services:
+				applicationsCount + composeCount + databasesCount + objectStorageCount,
 			status,
 		};
 	}),
@@ -855,6 +904,7 @@ export const projectRouter = createTRPCRouter({
 								"mariadb",
 								"mongo",
 								"mysql",
+								"objectstorage",
 								"postgres",
 								"redis",
 							]),
@@ -1239,6 +1289,35 @@ export const projectRouter = createTRPCRouter({
 										...rest,
 										serviceId: newRedis.redisId,
 										serviceType: "redis",
+									});
+								}
+
+								break;
+							}
+							case "objectstorage": {
+								const { objectStorageId, mounts, appName, ...objectStorage } =
+									await findObjectStorageById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
+								const newObjectStorage = await createObjectStorage({
+									...objectStorage,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${objectStorage.name} (copy)`
+										: objectStorage.name,
+									environmentId: targetProject?.environmentId || "",
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newObjectStorage.objectStorageId,
+										serviceType: "objectstorage",
 									});
 								}
 

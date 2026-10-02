@@ -11,8 +11,11 @@ import {
 import { useRouter } from "next/router";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
 import {
+	AlarikIcon,
+	GarageIcon,
 	LibsqlIcon,
 	MariadbIcon,
+	MinioIcon,
 	MongodbIcon,
 	MysqlIcon,
 	PostgresqlIcon,
@@ -62,6 +65,7 @@ type EnvironmentServiceCollections = {
 	redis: (NamedService & { redisId: string })[];
 	mongo: (NamedService & { mongoId: string })[];
 	libsql: (NamedService & { libsqlId: string })[];
+	objectstorage: (NamedService & { objectStorageId: string })[];
 };
 
 type ServiceCollections = Pick<
@@ -74,6 +78,7 @@ type ServiceCollections = Pick<
 	| "redis"
 	| "mongo"
 	| "libsql"
+	| "objectstorage"
 >;
 
 const SERVICE_COLLECTION_KEYS = [
@@ -85,6 +90,7 @@ const SERVICE_COLLECTION_KEYS = [
 	"redis",
 	"mongo",
 	"libsql",
+	"objectstorage",
 ] as const satisfies ReadonlyArray<keyof ServiceCollections>;
 
 const SERVICE_QUERY_KEYS = [
@@ -96,6 +102,7 @@ const SERVICE_QUERY_KEYS = [
 	"redisId",
 	"mongoId",
 	"libsqlId",
+	"objectStorageId",
 ] as const;
 
 const SERVICE_ICONS: Record<
@@ -110,6 +117,7 @@ const SERVICE_ICONS: Record<
 	redis: RedisIcon,
 	mongo: MongodbIcon,
 	libsql: LibsqlIcon,
+	objectstorage: MinioIcon,
 };
 
 const getStringQueryParam = (value: string | string[] | undefined) =>
@@ -178,6 +186,11 @@ const extractServicesFromEnvironment = (
 		...mapServices(servicesByType.redis, (item) => item.redisId, "redis"),
 		...mapServices(servicesByType.mongo, (item) => item.mongoId, "mongo"),
 		...mapServices(servicesByType.libsql, (item) => item.libsqlId, "libsql"),
+		...mapServices(
+			servicesByType.objectstorage,
+			(item) => item.objectStorageId,
+			"objectstorage",
+		),
 	];
 };
 

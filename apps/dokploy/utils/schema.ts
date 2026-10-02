@@ -5,7 +5,7 @@ if (typeof window === "undefined") {
 	void (async () => {
 		const undici = await import("undici");
 		globalThis.File = undici.File as any;
-		// @ts-ignore
+		// @ts-expect-error
 		globalThis.FileList = undici.FileList as any;
 	})();
 }

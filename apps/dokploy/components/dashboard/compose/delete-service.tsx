@@ -63,6 +63,11 @@ export const DeleteService = ({ id, type }: Props) => {
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
 		compose: () =>
 			api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+		objectstorage: () =>
+			api.objectstorage.one.useQuery(
+				{ objectStorageId: id },
+				{ enabled: !!id },
+			),
 	};
 	const { data } = queryMap[type]
 		? queryMap[type]()
@@ -77,6 +82,7 @@ export const DeleteService = ({ id, type }: Props) => {
 		application: () => api.application.delete.useMutation(),
 		mongo: () => api.mongo.remove.useMutation(),
 		compose: () => api.compose.delete.useMutation(),
+		objectstorage: () => api.objectstorage.remove.useMutation(),
 	};
 	const { mutateAsync, isPending } = mutationMap[type]
 		? mutationMap[type]()
@@ -103,6 +109,7 @@ export const DeleteService = ({ id, type }: Props) => {
 				libsqlId: id || "",
 				applicationId: id || "",
 				composeId: id || "",
+				objectStorageId: id || "",
 				deleteVolumes,
 			})
 				.then((result) => {

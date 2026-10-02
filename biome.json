@@ -10,10 +10,10 @@
 		"includes": [
 			"**",
 			"!**/.docker",
-			"!**/.next/**",
+			"!**/.next",
 			"!**/dist",
-			"!**/drizzle/**",
-			"!node_modules/**",
+			"!**/drizzle",
+			"!node_modules",
 			"!packages/server/package.json"
 		],
 		"maxSize": 2097152,

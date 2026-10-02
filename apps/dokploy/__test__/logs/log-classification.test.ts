@@ -1,5 +1,5 @@
-import { getLogType } from "@/components/dashboard/docker/logs/utils";
 import { expect, test } from "vitest";
+import { getLogType } from "@/components/dashboard/docker/logs/utils";
 
 test("classifies real failures as error", () => {
 	expect(getLogType("Error: connection refused at db:5432").type).toBe("error");

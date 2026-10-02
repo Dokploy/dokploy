@@ -63,7 +63,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			projectName: project.name,
 			databaseType: "mongodb",
 			type: "error",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 			databaseName: backup.database,

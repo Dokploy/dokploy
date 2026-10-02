@@ -46,7 +46,7 @@ const addDockerImage = z.object({
 
 interface Props {
 	id: string;
-	type: Exclude<ServiceType, "application">;
+	type: Exclude<ServiceType, "application" | "objectstorage">;
 }
 
 type AddDockerImage = z.infer<typeof addDockerImage>;

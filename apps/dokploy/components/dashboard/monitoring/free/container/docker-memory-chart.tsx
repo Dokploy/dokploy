@@ -30,7 +30,7 @@ export const DockerMemoryChart = ({
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
-		// @ts-ignore
+		// @ts-expect-error
 		usage: (convertMemoryToBytes(item.value.used) / 1024 ** 3).toFixed(2),
 	}));
 

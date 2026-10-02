@@ -102,6 +102,10 @@ export const findProjectById = async (projectId: string) => {
 						columns: { ...serviceColumns, redisId: true },
 						with: { server: { columns: { name: true } } },
 					},
+					objectstorage: {
+						columns: { ...serviceColumns, objectStorageId: true },
+						with: { server: { columns: { name: true } } },
+					},
 				},
 			},
 			projectTags: {

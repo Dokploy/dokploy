@@ -10,6 +10,7 @@ const PAGES = [
 	"mariadb",
 	"mongodb",
 	"mysql",
+	"objectstorage",
 	"postgres",
 	"redis",
 ] as const;
@@ -68,6 +69,7 @@ const SHORTCUTS: ShortcutsDictionary = {
 	mariadb: POSTGRES_SHORTCUTS,
 	mongodb: POSTGRES_SHORTCUTS,
 	mysql: POSTGRES_SHORTCUTS,
+	objectstorage: POSTGRES_SHORTCUTS,
 	postgres: POSTGRES_SHORTCUTS,
 	redis: REDIS_SHORTCUTS,
 };

@@ -9,6 +9,7 @@ import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
+import { objectstorage } from "./objectstorage";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 
@@ -21,6 +22,7 @@ export const serviceType = pgEnum("serviceType", [
 	"redis",
 	"compose",
 	"libsql",
+	"objectstorage",
 ]);
 
 export type ServiceType = (typeof serviceType.enumValues)[number];
@@ -64,6 +66,10 @@ export const mounts = pgTable("mount", {
 	redisId: text("redisId").references(() => redis.redisId, {
 		onDelete: "cascade",
 	}),
+	objectStorageId: text("objectStorageId").references(
+		() => objectstorage.objectStorageId,
+		{ onDelete: "cascade" },
+	),
 });
 
 export const MountssRelations = relations(mounts, ({ one }) => ({
@@ -99,6 +105,10 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.redisId],
 		references: [redis.redisId],
 	}),
+	objectstorage: one(objectstorage, {
+		fields: [mounts.objectStorageId],
+		references: [objectstorage.objectStorageId],
+	}),
 }));
 
 const createSchema = createInsertSchema(mounts, {
@@ -119,6 +129,7 @@ const createSchema = createInsertSchema(mounts, {
 		"redis",
 		"compose",
 		"libsql",
+		"objectstorage",
 	]),
 });
 

@@ -11,6 +11,7 @@ import {
 	mariadb,
 	mongo,
 	mysql,
+	objectstorage,
 	postgres,
 	previewDeployments,
 	projects,
@@ -41,7 +42,8 @@ type TypeQueryConfig = {
 		| typeof mongo
 		| typeof redis
 		| typeof compose
-		| typeof libsql;
+		| typeof libsql
+		| typeof objectstorage;
 	idColumn: { name: string };
 	statusColumn: { name: string };
 	hasIcon: boolean;
@@ -157,6 +159,13 @@ const SERVICE_TYPE_CONFIGS: TypeQueryConfig[] = [
 		type: "libsql",
 		table: libsql,
 		idColumn: { name: "libsqlId" },
+		statusColumn: { name: "applicationStatus" },
+		hasIcon: false,
+	},
+	{
+		type: "objectstorage",
+		table: objectstorage,
+		idColumn: { name: "objectStorageId" },
 		statusColumn: { name: "applicationStatus" },
 		hasIcon: false,
 	},

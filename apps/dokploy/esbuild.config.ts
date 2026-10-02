@@ -5,13 +5,13 @@ const result = dotenv.config({ path: ".env.production" });
 
 function prepareDefine(config: DotenvParseOutput | undefined) {
 	const define = {};
-	// @ts-ignore
+	// @ts-expect-error
 	for (const [key, value] of Object.entries(config)) {
 		// Skip DATABASE_URL to allow runtime environment variable override
 		if (key === "DATABASE_URL") {
 			continue;
 		}
-		// @ts-ignore
+		// @ts-expect-error
 		define[`process.env.${key}`] = JSON.stringify(value);
 	}
 	return define;

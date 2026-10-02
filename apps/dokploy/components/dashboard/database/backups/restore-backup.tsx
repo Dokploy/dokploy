@@ -66,7 +66,7 @@ import type { ServiceType } from "../../application/advanced/show-resources";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 type DatabaseType =
-	| Exclude<ServiceType, "application" | "redis">
+	| Exclude<ServiceType, "application" | "redis" | "objectstorage">
 	| "web-server";
 
 interface Props {

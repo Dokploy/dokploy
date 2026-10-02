@@ -55,6 +55,11 @@ import { deployMongo, findMongoById, updateMongoById } from "./mongo";
 import { createFileMount } from "./mount";
 import { deployMySql, findMySqlById, updateMySqlById } from "./mysql";
 import {
+	deployObjectStorage,
+	findObjectStorageById,
+	updateObjectStorageById,
+} from "./objectstorage";
+import {
 	deployPostgres,
 	findPostgresById,
 	updatePostgresById,
@@ -87,6 +92,8 @@ const findService = async (serviceType: ServiceType, serviceId: string) => {
 			return await findRedisById(serviceId);
 		case "libsql":
 			return await findLibsqlById(serviceId);
+		case "objectstorage":
+			return await findObjectStorageById(serviceId);
 	}
 };
 
@@ -123,6 +130,8 @@ const updateServer = async (
 			return await updateRedisById(serviceId, data);
 		case "libsql":
 			return await updateLibsqlById(serviceId, data);
+		case "objectstorage":
+			return await updateObjectStorageById(serviceId, data);
 	}
 };
 
@@ -150,6 +159,10 @@ const updateStatus = async (
 			return await updateRedisById(serviceId, { applicationStatus: status });
 		case "libsql":
 			return await updateLibsqlById(serviceId, { applicationStatus: status });
+		case "objectstorage":
+			return await updateObjectStorageById(serviceId, {
+				applicationStatus: status,
+			});
 	}
 };
 
@@ -443,6 +456,8 @@ const deployOnTarget = async (
 			return await deployRedis(serviceId, log);
 		case "libsql":
 			return await deployLibsql(serviceId, log);
+		case "objectstorage":
+			return await deployObjectStorage(serviceId, log);
 	}
 };
 

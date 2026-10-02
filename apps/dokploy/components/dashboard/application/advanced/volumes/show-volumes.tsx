@@ -41,6 +41,11 @@ export const ShowVolumes = ({ id, type }: Props) => {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		objectstorage: () =>
+			api.objectstorage.one.useQuery(
+				{ objectStorageId: id },
+				{ enabled: !!id },
+			),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()

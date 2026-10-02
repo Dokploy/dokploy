@@ -11,6 +11,7 @@ import type { LibsqlNested } from "../databases/libsql";
 import type { MariadbNested } from "../databases/mariadb";
 import type { MongoNested } from "../databases/mongo";
 import type { MysqlNested } from "../databases/mysql";
+import type { ObjectStorageNested } from "../databases/objectstorage";
 import type { PostgresNested } from "../databases/postgres";
 import type { RedisNested } from "../databases/redis";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -739,6 +740,7 @@ export const generateFileMounts = (
 		| MongoNested
 		| MariadbNested
 		| MysqlNested
+		| ObjectStorageNested
 		| PostgresNested
 		| RedisNested,
 ) => {

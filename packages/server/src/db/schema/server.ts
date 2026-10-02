@@ -20,6 +20,7 @@ import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { network } from "./network";
+import { objectstorage } from "./objectstorage";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { schedules } from "./schedule";
@@ -125,6 +126,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mongo: many(mongo),
 	mysql: many(mysql),
 	postgres: many(postgres),
+	objectstorage: many(objectstorage),
 	certificates: many(certificates),
 	networks: many(network),
 	organization: one(organization, {

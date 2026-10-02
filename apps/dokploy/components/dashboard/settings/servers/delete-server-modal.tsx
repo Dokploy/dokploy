@@ -32,6 +32,7 @@ const serviceTypeLabel: Record<string, string> = {
 	mongo: "MongoDB",
 	redis: "Redis",
 	libsql: "LibSQL",
+	objectstorage: "Object Storage",
 };
 
 export const DeleteServerModal = ({
@@ -58,6 +59,8 @@ export const DeleteServerModal = ({
 	const { mutateAsync: deleteMongo } = api.mongo.remove.useMutation();
 	const { mutateAsync: deleteRedis } = api.redis.remove.useMutation();
 	const { mutateAsync: deleteLibsql } = api.libsql.remove.useMutation();
+	const { mutateAsync: deleteObjectStorage } =
+		api.objectstorage.remove.useMutation();
 	const { mutateAsync: deleteServer, isPending: isDeletingServer } =
 		api.server.remove.useMutation();
 
@@ -95,6 +98,9 @@ export const DeleteServerModal = ({
 					break;
 				case "libsql":
 					await deleteLibsql({ libsqlId: service.id });
+					break;
+				case "objectstorage":
+					await deleteObjectStorage({ objectStorageId: service.id });
 					break;
 			}
 			toast.success(`${service.name} deleted successfully`);

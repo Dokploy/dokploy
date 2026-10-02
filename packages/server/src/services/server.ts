@@ -110,6 +110,7 @@ export const haveActiveServices = async (serverId: string) => {
 			mysql: { columns: { mysqlId: true } },
 			postgres: { columns: { postgresId: true } },
 			redis: { columns: { redisId: true } },
+			objectstorage: { columns: { objectStorageId: true } },
 		},
 	});
 
@@ -125,7 +126,8 @@ export const haveActiveServices = async (serverId: string) => {
 		currentServer?.mongo?.length +
 		currentServer?.mysql?.length +
 		currentServer?.postgres?.length +
-		currentServer?.redis?.length;
+		currentServer?.redis?.length +
+		currentServer?.objectstorage?.length;
 
 	if (total === 0) {
 		return false;
@@ -143,6 +145,11 @@ export const SERVICE_TYPES_BY_SERVER = [
 	{ type: "mongo", relation: "mongo", idColumn: "mongoId" },
 	{ type: "redis", relation: "redis", idColumn: "redisId" },
 	{ type: "libsql", relation: "libsql", idColumn: "libsqlId" },
+	{
+		type: "objectstorage",
+		relation: "objectstorage",
+		idColumn: "objectStorageId",
+	},
 ] as const;
 
 export interface ServerService {
@@ -191,6 +198,10 @@ export const getServicesByServerId = async (
 			},
 			libsql: {
 				columns: { libsqlId: true, name: true },
+				with: { environment: { with: { project: true } } },
+			},
+			objectstorage: {
+				columns: { objectStorageId: true, name: true },
 				with: { environment: { with: { project: true } } },
 			},
 		},

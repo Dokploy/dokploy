@@ -45,9 +45,9 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		term.loadAddon(clipboardAddon);
 		fixMacOsAltKeys(term);
 
-		// @ts-ignore
+		// @ts-expect-error
 		term.open(termRef.current);
-		// @ts-ignore
+		// @ts-expect-error
 		term.loadAddon(addonFit);
 		addonFit.fit();
 

@@ -209,7 +209,6 @@ export const suggestVariants = async ({
 
 		const result = await generateText({
 			model,
-			// @ts-ignore - Zod + AI SDK Output.object() causes excessively deep instantiation
 			output: Output.object({ schema: fullSchema }),
 			prompt: `
 		    Act as advanced DevOps engineer. Analyze the user's request and generate up to 3 deployment suggestions, each with a complete docker compose configuration.

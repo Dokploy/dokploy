@@ -52,6 +52,11 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
 		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		objectstorage: () =>
+			api.objectstorage.one.useQuery(
+				{ objectStorageId: id },
+				{ enabled: !!id },
+			),
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
@@ -73,6 +78,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		mariadb: () => api.mariadb.saveEnvironment.useMutation(),
 		mongo: () => api.mongo.saveEnvironment.useMutation(),
 		mysql: () => api.mysql.saveEnvironment.useMutation(),
+		objectstorage: () => api.objectstorage.saveEnvironment.useMutation(),
 		postgres: () => api.postgres.saveEnvironment.useMutation(),
 		redis: () => api.redis.saveEnvironment.useMutation(),
 	};
@@ -120,6 +126,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			mariadbId: id || "",
 			mongoId: id || "",
 			mysqlId: id || "",
+			objectStorageId: id || "",
 			postgresId: id || "",
 			redisId: id || "",
 			env: formData.environment,
