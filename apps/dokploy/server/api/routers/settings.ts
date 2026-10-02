@@ -2,10 +2,13 @@ import {
 	assertTraefikProvider,
 	CLEANUP_CRON_JOB,
 	caddyFilePath,
+	caddySwitch,
+	caddySyncError,
 	checkGPUStatus,
 	checkPortInUse,
 	checkPostgresHealth,
 	checkTraefikHealth,
+	checkWebServerSwitch,
 	cleanupAll,
 	cleanupAllBackground,
 	cleanupBuilders,
@@ -43,6 +46,7 @@ import {
 	spawnAsync,
 	startLogCleanup,
 	stopLogCleanup,
+	switchWebServer,
 	syncCaddy,
 	updateLetsEncryptEmail,
 	updateServerById,
@@ -87,6 +91,11 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+
+const apiWebServerSwitch = z.object({
+	provider: z.enum(["traefik", "caddy"]),
+	serverId: z.string().optional(),
+});
 
 const assertCanManageWebServer = async (
 	serverId: string | undefined,
@@ -165,6 +174,46 @@ export const settingsRouter = createTRPCRouter({
 				action: "reload",
 				resourceType: "settings",
 				resourceName: "dokploy-traefik",
+			});
+			return true;
+		}),
+	getWebServerProvider: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input, ctx }) => {
+			await assertCanManageWebServer(
+				input?.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			const provider = await getWebServerProvider(input?.serverId);
+			return {
+				provider,
+				lastSwitch: caddySwitch(input?.serverId),
+				syncError:
+					provider === "caddy" ? caddySyncError(input?.serverId) : undefined,
+			};
+		}),
+	checkWebServerSwitch: adminProcedure
+		.input(apiWebServerSwitch)
+		.query(async ({ input, ctx }) => {
+			await assertCanManageWebServer(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			return checkWebServerSwitch(input.provider, input.serverId);
+		}),
+	switchWebServer: adminProcedure
+		.input(apiWebServerSwitch.extend({ acknowledged: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			await assertCanManageWebServer(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			await switchWebServer(input.provider, input.serverId, input.acknowledged);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceId: input.serverId,
+				resourceName: `web-server-${input.provider}`,
 			});
 			return true;
 		}),

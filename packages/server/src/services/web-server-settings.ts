@@ -50,6 +50,25 @@ export const getWebServerProvider = async (
 };
 
 /**
+ * Record which proxy serves a server's domains. This changes nothing on the
+ * server: the switch does that, and records it here
+ */
+export const setWebServerProvider = async (
+	provider: WebServerProvider,
+	serverId?: string | null,
+) => {
+	if (!serverId) {
+		await updateWebServerSettings({ webServerProvider: provider });
+		return;
+	}
+
+	await db
+		.update(server)
+		.set({ webServerProvider: provider })
+		.where(eq(server.serverId, serverId));
+};
+
+/**
  * Refuse a Traefik-only change on a server that runs Caddy, where it would
  * be saved and have no effect
  */

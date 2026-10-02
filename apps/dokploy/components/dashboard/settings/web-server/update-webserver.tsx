@@ -65,6 +65,8 @@ export const UpdateWebServer = ({
 	const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
 
 	const { mutateAsync: updateServer } = api.settings.updateServer.useMutation();
+	const { data: webServer } = api.settings.getWebServerProvider.useQuery();
+	const proxy = webServer?.provider === "caddy" ? "Caddy" : "Traefik";
 	const { refetch: checkHealth } =
 		api.settings.checkInfrastructureHealth.useQuery(undefined, {
 			enabled: false,
@@ -177,7 +179,7 @@ export const UpdateWebServer = ({
 							{modalState === "checking" && (
 								<span className="flex items-center gap-2">
 									<Loader2 className="animate-spin h-4 w-4" />
-									Checking PostgreSQL and Traefik...
+									Checking PostgreSQL and {proxy}...
 								</span>
 							)}
 
@@ -189,7 +191,7 @@ export const UpdateWebServer = ({
 											service={healthResult.postgres}
 										/>
 										<ServiceStatusItem
-											name="Traefik"
+											name={proxy}
 											service={healthResult.traefik}
 										/>
 									</div>
