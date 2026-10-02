@@ -101,7 +101,7 @@ export const ShowRequests = () => {
 								Requests
 							</CardTitle>
 							<CardDescription>
-								See all the incoming requests that pass trough Traefik
+								See all the incoming requests that pass through Traefik
 							</CardDescription>
 
 							{shouldShowWarning && (
