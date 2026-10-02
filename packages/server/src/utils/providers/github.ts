@@ -263,6 +263,44 @@ export const getGithubRepositories = async (githubId?: string) => {
 	return repositories;
 };
 
+export const getGithubRepository = async (
+	githubId: string,
+	owner: string,
+	repository: string,
+) => {
+	const githubProvider = await findGithubById(githubId);
+	const octokit = authGithub(githubProvider);
+
+	try {
+		const { data } = await octokit.rest.repos.get({
+			owner,
+			repo: repository,
+		});
+
+		return {
+			id: data.id,
+			name: data.name,
+			owner: data.owner.login,
+			path: data.full_name,
+			url: data.html_url,
+		};
+	} catch (error) {
+		const status =
+			typeof error === "object" && error !== null && "status" in error
+				? Number(error.status)
+				: undefined;
+
+		throw new TRPCError({
+			code: status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				status === 404
+					? `Repository ${owner}/${repository} was not found or is not accessible`
+					: `Failed to look up repository ${owner}/${repository}`,
+			cause: error,
+		});
+	}
+};
+
 export const getGithubBranches = async (
 	input: z.infer<typeof apiFindGithubBranches>,
 ) => {
@@ -289,4 +327,44 @@ export const getGithubBranches = async (
 	>["data"];
 
 	return branches;
+};
+
+export const getGithubBranch = async (
+	githubId: string,
+	owner: string,
+	repository: string,
+	branch: string,
+) => {
+	const githubProvider = await findGithubById(githubId);
+	const octokit = new Octokit({
+		authStrategy: createAppAuth,
+		auth: {
+			appId: githubProvider.githubAppId,
+			privateKey: githubProvider.githubPrivateKey,
+			installationId: githubProvider.githubInstallationId,
+		},
+		baseUrl: deriveGithubApiUrl(githubProvider.githubUrl),
+	});
+
+	try {
+		const { data } = await octokit.rest.repos.getBranch({
+			owner,
+			repo: repository,
+			branch,
+		});
+		return { name: data.name };
+	} catch (error) {
+		const status =
+			typeof error === "object" && error !== null && "status" in error
+				? Number(error.status)
+				: undefined;
+		throw new TRPCError({
+			code: status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				status === 404
+					? `Branch ${branch} was not found in ${owner}/${repository}`
+					: `Failed to look up branch ${branch}`,
+			cause: error,
+		});
+	}
 };
