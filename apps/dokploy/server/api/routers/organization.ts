@@ -5,7 +5,7 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, lt, or } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -27,6 +27,7 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -48,6 +49,9 @@ export const organizationRouter = createTRPCRouter({
 					slug: nanoid(),
 					createdAt: new Date(),
 					ownerId: ctx.user.id,
+					metadata: input.description
+						? JSON.stringify({ description: input.description })
+						: null,
 				})
 				.returning()
 				.then((res) => res[0]);
@@ -132,6 +136,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: z.string().optional(),
 				defaultRole: z.string().min(1).nullable().optional(),
 			}),
 		)
@@ -183,7 +188,7 @@ export const organizationRouter = createTRPCRouter({
 					});
 				}
 
-				if (!["admin", "member"].includes(input.defaultRole)) {
+				if (!["admin", "member", "user"].includes(input.defaultRole)) {
 					const customRole = await db.query.organizationRole.findFirst({
 						where: and(
 							eq(organizationRole.organizationId, input.organizationId),
@@ -208,11 +213,27 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
+			let updatedMetadata: string | undefined = undefined;
+			if (input.description !== undefined) {
+				const freshOrg = await db.query.organization.findFirst({
+					where: eq(organization.id, input.organizationId),
+				});
+				try {
+					const parsed = freshOrg?.metadata ? JSON.parse(freshOrg.metadata) : {};
+					updatedMetadata = JSON.stringify({ ...parsed, description: input.description });
+				} catch {
+					updatedMetadata = JSON.stringify({ description: input.description });
+				}
+			}
+
 			const result = await db
 				.update(organization)
 				.set({
 					name: input.name,
 					logo: input.logo,
+					...(updatedMetadata !== undefined && {
+						metadata: updatedMetadata,
+					}),
 					...(input.defaultRole !== undefined && {
 						defaultRole: input.defaultRole,
 					}),
@@ -455,6 +476,36 @@ export const organizationRouter = createTRPCRouter({
 				metadata: { type: "removeInvitation" },
 			});
 			return result;
+		}),
+	deleteExpiredInvitations: withPermission("member", "create").mutation(async ({ ctx }) => {
+		const orgId = ctx.session.activeOrganizationId;
+		const result = await db.delete(invitation).where(
+			and(eq(invitation.organizationId, orgId), or(eq(invitation.status, "canceled"), eq(invitation.status, "cancelled"), lt(invitation.expiresAt, new Date()))),
+		);
+		await audit(ctx, { action: "delete", resourceType: "organization", resourceId: orgId, resourceName: "expired_invitations" });
+		return result;
+	}),
+	transferOwnership: protectedProcedure
+		.input(z.object({ newOwnerMemberId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const org = await db.query.organization.findFirst({ where: eq(organization.id, orgId) });
+			if (!org) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+			if (org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "Only owner can transfer ownership" });
+
+			const targetMember = await db.query.member.findFirst({
+				where: and(eq(member.id, input.newOwnerMemberId), eq(member.organizationId, orgId)),
+			});
+			if (!targetMember) throw new TRPCError({ code: "NOT_FOUND", message: "Target member not found in organization" });
+			if (targetMember.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Already the owner" });
+
+			await db.transaction(async (tx) => {
+				await tx.update(organization).set({ ownerId: targetMember.userId }).where(eq(organization.id, orgId));
+				await tx.update(member).set({ role: "owner" }).where(eq(member.id, targetMember.id));
+				await tx.update(member).set({ role: "admin" }).where(and(eq(member.organizationId, orgId), eq(member.userId, ctx.user.id)));
+			});
+			await audit(ctx, { action: "update", resourceType: "organization", resourceId: orgId, resourceName: org.name });
+			return { success: true };
 		}),
 	updateMemberRole: withPermission("member", "update")
 		.input(
