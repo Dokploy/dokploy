@@ -1,6 +1,11 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateRedirect, redirects } from "@dokploy/server/db/schema";
 import {
+	assertCaddyAcceptsRedirect,
+	syncCaddy,
+	syncCaddyInBackground,
+} from "@dokploy/server/utils/caddy/sync";
+import {
 	createRedirectMiddleware,
 	removeRedirectMiddleware,
 	updateRedirectMiddleware,
@@ -27,6 +32,9 @@ export const findRedirectById = async (redirectId: string) => {
 export const createRedirect = async (
 	redirectData: z.infer<typeof apiCreateRedirect>,
 ) => {
+	// Outside the try, whose catch replaces every message with its own.
+	const { serverId } = await findApplicationById(redirectData.applicationId);
+	await assertCaddyAcceptsRedirect(serverId, redirectData);
 	try {
 		await db.transaction(async (tx) => {
 			const redirect = await tx
@@ -48,8 +56,6 @@ export const createRedirect = async (
 
 			createRedirectMiddleware(application, redirect);
 		});
-
-		return true;
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -57,6 +63,8 @@ export const createRedirect = async (
 			cause: error,
 		});
 	}
+	await syncCaddy(serverId);
+	return true;
 };
 
 export const removeRedirectById = async (redirectId: string) => {
@@ -77,6 +85,7 @@ export const removeRedirectById = async (redirectId: string) => {
 		const application = await findApplicationById(response.applicationId);
 
 		await removeRedirectMiddleware(application, response);
+		syncCaddyInBackground(application.serverId);
 
 		return response;
 	} catch (error) {
@@ -93,6 +102,12 @@ export const updateRedirectById = async (
 	redirectData: Partial<Redirect>,
 ) => {
 	try {
+		const current = await findRedirectById(redirectId);
+		const application = await findApplicationById(current.applicationId);
+		await assertCaddyAcceptsRedirect(application.serverId, {
+			...current,
+			...redirectData,
+		});
 		const redirect = await db
 			.update(redirects)
 			.set({
@@ -108,9 +123,8 @@ export const updateRedirectById = async (
 				message: "Redirect not found",
 			});
 		}
-		const application = await findApplicationById(redirect.applicationId);
-
 		await updateRedirectMiddleware(application, redirect);
+		await syncCaddy(application.serverId);
 
 		return redirect;
 	} catch (error) {

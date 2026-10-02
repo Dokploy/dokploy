@@ -6,6 +6,10 @@ import {
 	type apiCreateCertificate,
 	certificates,
 } from "@dokploy/server/db/schema";
+import {
+	syncCaddy,
+	syncCaddyInBackground,
+} from "@dokploy/server/utils/caddy/sync";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -53,7 +57,10 @@ export const createCertificate = async (
 
 	const cer = certificate[0];
 
-	createCertificateFiles(cer);
+	// Caddy reads the files, so its sync waits for them.
+	void createCertificateFiles(cer).then(() =>
+		syncCaddyInBackground(cer.serverId),
+	);
 
 	return cer;
 };
@@ -80,6 +87,7 @@ export const removeCertificateById = async (certificateId: string) => {
 			message: "Failed to delete the certificate",
 		});
 	}
+	await syncCaddy(certificate.serverId);
 
 	return result;
 };
@@ -156,6 +164,7 @@ export const updateCertificate = async (
 	// If cert data or private key changed, rewrite files
 	if (updates.certificateData || updates.privateKey) {
 		await createCertificateFiles(cert);
+		await syncCaddy(cert.serverId, true);
 	}
 
 	return cert;

@@ -2,6 +2,7 @@ import {
 	createDomain,
 	findApplicationById,
 	findDomainById,
+	findDomainServerId,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
@@ -12,6 +13,7 @@ import {
 	manageDomain,
 	removeDomain,
 	removeDomainById,
+	syncCaddy,
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
@@ -47,6 +49,7 @@ export const domainRouter = createTRPCRouter({
 					});
 				}
 				const domain = await createDomain(input);
+				await syncCaddy(await findDomainServerId(domain));
 				await audit(ctx, {
 					action: "create",
 					resourceType: "domain",
@@ -140,6 +143,7 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
+			await syncCaddy(await findDomainServerId(domain));
 			return result;
 		}),
 	toggleEnable: protectedProcedure
@@ -188,6 +192,7 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
+			await syncCaddy(await findDomainServerId(domain));
 
 			return {
 				...result,
@@ -241,6 +246,7 @@ export const domainRouter = createTRPCRouter({
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
 			}
+			await syncCaddy(await findDomainServerId(domain));
 
 			return result;
 		}),

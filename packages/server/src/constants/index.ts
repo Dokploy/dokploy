@@ -127,6 +127,7 @@ export const paths = (isServer = false) => {
 		BASE_PATH,
 		MAIN_TRAEFIK_PATH,
 		DYNAMIC_TRAEFIK_PATH,
+		MAIN_CADDY_PATH: `${BASE_PATH}/caddy`,
 		LOGS_PATH: `${BASE_PATH}/logs`,
 		APPLICATIONS_PATH: `${BASE_PATH}/applications`,
 		COMPOSE_PATH: `${BASE_PATH}/compose`,
