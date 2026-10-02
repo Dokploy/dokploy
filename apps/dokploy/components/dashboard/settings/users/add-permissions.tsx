@@ -519,7 +519,8 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Access to SSH Keys</FormLabel>
 												<FormDescription>
-													Allow to users to access to the SSH Keys section
+													Manage SSH keys. Host terminal access requires the
+													separate Server Terminal permission in a custom role.
 												</FormDescription>
 											</div>
 											<FormControl>

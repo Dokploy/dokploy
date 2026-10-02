@@ -1,9 +1,20 @@
-import { getAccessibleServerIds } from "@dokploy/server";
+import {
+	findServerById,
+	getAccessibleServerIds,
+	IS_CLOUD,
+} from "@dokploy/server";
 import {
 	checkServiceAccess,
 	findMemberByUserId,
 	hasPermission,
 } from "@dokploy/server/services/permission";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
+import { quote } from "shell-quote";
+import { findWssService } from "./service-resource";
+import { isValidContainerId } from "./utils";
 
 type WssUser = { id: string } | null | undefined;
 type WssSession = { activeOrganizationId?: string | null } | null | undefined;
@@ -13,52 +24,111 @@ const buildCtx = (user: { id: string }, activeOrganizationId: string) => ({
 	session: { activeOrganizationId },
 });
 
-// Authorizes docker/container operations opened over a WebSocket (container
-// terminal, container logs, container stats). Requires the docker permission
-// (owner/admin, or a member explicitly granted canAccessToDocker) and, for a
-// remote server, that the server is accessible to the caller. Previously these
-// handlers only checked session + organization, so any member could reach a
-// root shell / logs of any container.
-export const canAccessDockerOverWss = async (
+type DockerTarget =
+	| { containerId: string; runType?: string | null }
+	| { appName: string; appType: string };
+
+export const authorizeDockerOverWss = async (
 	user: WssUser,
 	session: WssSession,
 	serverId?: string | null,
 	serviceId?: string | null,
-): Promise<boolean> => {
-	// return false;
-	if (!user || !session?.activeOrganizationId) return false;
-
-	const ctx = buildCtx(user, session.activeOrganizationId);
-
-	// When the container belongs to a specific Dokploy service (opened from a
-	// service page, so serviceId is present), access to that service is the
-	// authoritative gate — matching the service tRPC endpoints (e.g.
-	// application.readLogs, which check service access only). A member granted
-	// the service can read its logs / open its terminal even without the broad
-	// "docker" permission or explicit access to the server it runs on.
-	if (serviceId) {
-		try {
-			await checkServiceAccess(ctx, serviceId, "read");
-			return true;
-		} catch {
-			return false;
+	target?: DockerTarget,
+): Promise<{ containerId?: string } | null> => {
+	if (!user || !session?.activeOrganizationId || !target) return null;
+	try {
+		const ctx = buildCtx(user, session.activeOrganizationId);
+		if (!(await hasPermission(ctx, { docker: ["read"] }))) return null;
+		// The handlers interpret an absent server ID as the control-plane host.
+		if (serverId === "local" || (!serverId && IS_CLOUD)) return null;
+		if (serverId) {
+			const accessible = await getAccessibleServerIds({
+				userId: user.id,
+				activeOrganizationId: session.activeOrganizationId,
+			});
+			if (!accessible.has(serverId)) return null;
+			const server = await findServerById(serverId);
+			if (server.organizationId !== session.activeOrganizationId) return null;
 		}
+		const member = await findMemberByUserId(
+			user.id,
+			session.activeOrganizationId,
+		);
+		const privileged = member.role === "owner" || member.role === "admin";
+		// A Docker grant alone must not expose the local control plane to members.
+		if (!serviceId && !serverId && !privileged) return null;
+		let service: Awaited<ReturnType<typeof findWssService>> = null;
+		if (serviceId) {
+			await checkServiceAccess(ctx, serviceId, "read");
+			service = await findWssService(serviceId, session.activeOrganizationId);
+			if (!service || (service.serverId || null) !== (serverId || null))
+				return null;
+		}
+		if ("appName" in target) {
+			if (!["application", "stack", "docker-compose"].includes(target.appType))
+				return null;
+			if (target.appName === "dokploy")
+				return privileged && !serviceId ? {} : null;
+			if (!service) return privileged ? {} : null;
+			if (target.appType !== service.appType) return null;
+			if (target.appType === "application")
+				return target.appName === service.appName ? {} : null;
+		}
+		const isContainer = "containerId" in target;
+		const name = isContainer ? target.containerId : target.appName;
+		if (!isValidContainerId(name)) return null;
+		const swarm = isContainer && target.runType === "swarm";
+		const command = quote([
+			"docker",
+			...(swarm ? [] : ["container"]),
+			"inspect",
+			name,
+		]);
+		const inspect = async (command: string) =>
+			serverId ? execAsyncRemote(serverId, command) : execAsync(command);
+		const { stdout } = await inspect(command);
+		const [resource] = JSON.parse(stdout);
+		let swarmService = resource;
+		// docker service logs accepts task IDs as well as service IDs. Resolve
+		// task ownership through its ServiceID, while retaining the task log target.
+		if (swarm && resource.ServiceID) {
+			if (
+				typeof resource.ServiceID !== "string" ||
+				!isValidContainerId(resource.ServiceID)
+			)
+				return null;
+			const result = await inspect(
+				quote(["docker", "service", "inspect", resource.ServiceID]),
+			);
+			[swarmService] = JSON.parse(result.stdout);
+		}
+		const labels =
+			(swarm ? swarmService.Spec?.Labels : resource.Config?.Labels) ?? {};
+		if (service) {
+			const matches =
+				service.appType === "stack"
+					? labels["com.docker.stack.namespace"] === service.appName
+					: service.appType === "docker-compose"
+						? !swarm && labels["com.docker.compose.project"] === service.appName
+						: (swarm
+								? swarmService.Spec?.Name
+								: labels["com.docker.swarm.service.name"]) === service.appName;
+			if (!matches) return null;
+		}
+		const containerId = swarm ? resource.ID : resource.Id;
+		if (typeof containerId !== "string" || !isValidContainerId(containerId))
+			return null;
+		// Execute against the inspected ID so a renamed/replaced container cannot
+		// change the target between authorization and docker exec/logs.
+		return { containerId };
+	} catch {
+		return null;
 	}
-
-	// Generic Docker overview (no service context): mirror the docker tRPC router
-	// — require the docker permission and access to the target server.
-	if (!(await hasPermission(ctx, { docker: ["read"] }))) return false;
-
-	if (serverId && serverId !== "local") {
-		const accessible = await getAccessibleServerIds({
-			userId: user.id,
-			activeOrganizationId: session.activeOrganizationId,
-		});
-		if (!accessible.has(serverId)) return false;
-	}
-
-	return true;
 };
+
+export const canAccessDockerOverWss = async (
+	...args: Parameters<typeof authorizeDockerOverWss>
+) => (await authorizeDockerOverWss(...args)) !== null;
 
 // Authorizes the host/server SSH terminal opened over a WebSocket. The local
 // host terminal is a root shell on the control-plane host, so it is restricted
