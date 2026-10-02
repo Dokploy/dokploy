@@ -1,6 +1,7 @@
 import {
 	assertTraefikProvider,
 	CLEANUP_CRON_JOB,
+	caddyFilePath,
 	checkGPUStatus,
 	checkPortInUse,
 	checkPostgresHealth,
@@ -21,6 +22,8 @@ import {
 	getWebServerProvider,
 	getWebServerSettings,
 	IS_CLOUD,
+	isCaddyPath,
+	listCaddyFiles,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -34,6 +37,7 @@ import {
 	readPorts,
 	recreateDirectory,
 	reloadDockerResource,
+	saveCaddyFile,
 	sendDockerCleanupNotifications,
 	setupGPUSupport,
 	spawnAsync,
@@ -625,6 +629,13 @@ export const settingsRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			try {
 				await checkPermission(ctx, { traefikFiles: ["read"] });
+				if ((await getWebServerProvider(input?.serverId)) === "caddy") {
+					await assertCanManageWebServer(
+						input?.serverId,
+						ctx.session.activeOrganizationId,
+					);
+					return listCaddyFiles(input?.serverId);
+				}
 				const { MAIN_TRAEFIK_PATH } = paths(!!input?.serverId);
 				const result = await readDirectory(MAIN_TRAEFIK_PATH, input?.serverId);
 				return result || [];
@@ -637,16 +648,25 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
 			await checkPermission(ctx, { traefikFiles: ["write"] });
-			await assertTraefikProvider(input.serverId);
-			await writeTraefikConfigInPath(
-				input.path,
-				input.traefikConfig,
-				input?.serverId,
-			);
+			const caddy = isCaddyPath(input.path, input.serverId);
+			if (caddy) {
+				await assertCanManageWebServer(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
+				await saveCaddyFile(input.path, input.traefikConfig, input.serverId);
+			} else {
+				await assertTraefikProvider(input.serverId);
+				await writeTraefikConfigInPath(
+					input.path,
+					input.traefikConfig,
+					input?.serverId,
+				);
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "settings",
-				resourceName: "traefik-file",
+				resourceName: caddy ? "caddy-file" : "traefik-file",
 			});
 			return true;
 		}),
@@ -664,7 +684,12 @@ export const settingsRouter = createTRPCRouter({
 				}
 			}
 
-			return readConfigInPath(input.path, input.serverId);
+			return readConfigInPath(
+				isCaddyPath(input.path, input.serverId)
+					? caddyFilePath(input.path, input.serverId)
+					: input.path,
+				input.serverId,
+			);
 		}),
 	getIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
