@@ -1,4 +1,5 @@
 import {
+	assertTraefikProvider,
 	CLEANUP_CRON_JOB,
 	checkGPUStatus,
 	checkPortInUse,
@@ -17,6 +18,7 @@ import {
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
+	getWebServerProvider,
 	getWebServerSettings,
 	IS_CLOUD,
 	parseRawConfig,
@@ -37,6 +39,7 @@ import {
 	spawnAsync,
 	startLogCleanup,
 	stopLogCleanup,
+	syncCaddy,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -81,6 +84,24 @@ import {
 	publicProcedure,
 } from "../trpc";
 
+const assertCanManageWebServer = async (
+	serverId: string | undefined,
+	organizationId: string,
+) => {
+	if (IS_CLOUD) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Caddy is not available on Dokploy Cloud",
+		});
+	}
+	if (
+		serverId &&
+		(await findServerById(serverId)).organizationId !== organizationId
+	) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+};
+
 export const settingsRouter = createTRPCRouter({
 	getWebServerSettings: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
@@ -116,6 +137,20 @@ export const settingsRouter = createTRPCRouter({
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			if ((await getWebServerProvider(input?.serverId)) === "caddy") {
+				await assertCanManageWebServer(
+					input?.serverId,
+					ctx.session.activeOrganizationId,
+				);
+				// A reload drops no connection, so Caddy's answer is waited for.
+				await syncCaddy(input?.serverId, true);
+				await audit(ctx, {
+					action: "reload",
+					resourceType: "settings",
+					resourceName: "dokploy-caddy",
+				});
+				return true;
+			}
 			// Run in background so the request returns immediately; avoids proxy timeouts.
 			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
 				(err) => {
@@ -303,6 +338,7 @@ export const settingsRouter = createTRPCRouter({
 			if (input.letsEncryptEmail) {
 				updateLetsEncryptEmail(input.letsEncryptEmail);
 			}
+			await syncCaddy();
 
 			await audit(ctx, {
 				action: "update",
@@ -490,6 +526,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
+			await assertTraefikProvider();
 			writeMainConfig(input.traefikConfig);
 			await audit(ctx, {
 				action: "update",
@@ -512,6 +549,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
+			await assertTraefikProvider();
 			writeConfig("dokploy", input.traefikConfig);
 			await audit(ctx, {
 				action: "update",
@@ -535,6 +573,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
+			await assertTraefikProvider();
 			writeConfig("middlewares", input.traefikConfig);
 			await audit(ctx, {
 				action: "update",
@@ -598,6 +637,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
 			await checkPermission(ctx, { traefikFiles: ["write"] });
+			await assertTraefikProvider(input.serverId);
 			await writeTraefikConfigInPath(
 				input.path,
 				input.traefikConfig,
@@ -864,6 +904,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
+			if (input.enable) await assertTraefikProvider();
 			const mainConfig = readMainConfig();
 			if (!mainConfig) return false;
 

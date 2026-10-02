@@ -1,6 +1,7 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { server, webServerSettings } from "@dokploy/server/db/schema";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 export type WebServerProvider =
@@ -46,6 +47,20 @@ export const getWebServerProvider = async (
 	});
 
 	return remote?.webServerProvider ?? "traefik";
+};
+
+/**
+ * Refuse a Traefik-only change on a server that runs Caddy, where it would
+ * be saved and have no effect
+ */
+export const assertTraefikProvider = async (serverId?: string | null) => {
+	if ((await getWebServerProvider(serverId)) === "caddy") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"This server runs Caddy, so Traefik's configuration is not in use",
+		});
+	}
 };
 
 /**

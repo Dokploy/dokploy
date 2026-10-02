@@ -14,6 +14,7 @@ import {
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import { assertTraefikProvider } from "./web-server-settings";
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -452,6 +453,7 @@ export const checkPortInUse = async (
 };
 
 export const writeTraefikSetup = async (input: TraefikOptions) => {
+	await assertTraefikProvider(input.serverId);
 	const resourceType = await getDockerResourceType(
 		"dokploy-traefik",
 		input.serverId,

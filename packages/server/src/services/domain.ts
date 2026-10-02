@@ -11,14 +11,64 @@ import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { type apiCreateDomain, domains } from "../db/schema";
+import {
+	type apiCreateDomain,
+	applications,
+	compose,
+	domains,
+	previewDeployments,
+} from "../db/schema";
+import {
+	assertCaddySupports,
+	caddyUnsupported,
+	syncCaddyInBackground,
+} from "../utils/caddy/sync";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+/**
+ * The server a domain is served from: its application's, its compose's, or
+ * its preview deployment's application's
+ */
+export const findDomainServerId = async (
+	owner: Partial<
+		Pick<Domain, "applicationId" | "composeId" | "previewDeploymentId">
+	>,
+) => {
+	if (owner.applicationId) {
+		const application = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, owner.applicationId),
+			columns: { serverId: true },
+		});
+		return application?.serverId ?? null;
+	}
+	if (owner.composeId) {
+		const service = await db.query.compose.findFirst({
+			where: eq(compose.composeId, owner.composeId),
+			columns: { serverId: true },
+		});
+		return service?.serverId ?? null;
+	}
+	if (owner.previewDeploymentId) {
+		const preview = await db.query.previewDeployments.findFirst({
+			where: eq(
+				previewDeployments.previewDeploymentId,
+				owner.previewDeploymentId,
+			),
+			columns: { previewDeploymentId: true },
+			with: { application: { columns: { serverId: true } } },
+		});
+		return preview?.application.serverId ?? null;
+	}
+	return null;
+};
+
 export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
+	const serverId = await findDomainServerId(input);
+	await assertCaddySupports(serverId, input);
 	const result = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
@@ -44,6 +94,7 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 		return domain;
 	});
 
+	syncCaddyInBackground(serverId);
 	return result;
 };
 
@@ -128,6 +179,10 @@ export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
+	if (caddyUnsupported(domainData)) {
+		const current = await findDomainById(domainId);
+		await assertCaddySupports(await findDomainServerId(current), domainData);
+	}
 	const domain = await db
 		.update(domains)
 		.set({
@@ -137,16 +192,20 @@ export const updateDomainById = async (
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
+	if (domain[0]) {
+		syncCaddyInBackground(await findDomainServerId(domain[0]));
+	}
 	return domain[0];
 };
 
 export const removeDomainById = async (domainId: string) => {
-	await findDomainById(domainId);
+	const domain = await findDomainById(domainId);
 	const result = await db
 		.delete(domains)
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
+	syncCaddyInBackground(await findDomainServerId(domain));
 	return result[0];
 };
 
