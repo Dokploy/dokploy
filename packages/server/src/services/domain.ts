@@ -245,6 +245,11 @@ export const getServerIpCandidates = async (
 		if (server.ipAddress) {
 			candidates.add(server.ipAddress);
 		}
+		// Addresses the user declared (floating VIP, load balancer) can't be
+		// discovered from the server itself, so they are added up front.
+		for (const ingressIp of server.ingressIps ?? []) {
+			candidates.add(ingressIp);
+		}
 
 		const [interfaceIps, publicIp] = await Promise.all([
 			withTimeout(

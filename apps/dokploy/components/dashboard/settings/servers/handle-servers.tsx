@@ -40,6 +40,15 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
+const parseIngressIps = (value?: string) =>
+	(value ?? "")
+		.split(/[\s,]+/)
+		.map((ip) => ip.trim())
+		.filter(Boolean);
+
+const isValidIp = (ip: string) =>
+	z.ipv4().safeParse(ip).success || z.ipv6().safeParse(ip).success;
+
 const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
@@ -48,6 +57,12 @@ const Schema = z.object({
 	ipAddress: z.string().min(1, {
 		message: "IP Address is required",
 	}),
+	ingressIps: z
+		.string()
+		.optional()
+		.refine((value) => parseIngressIps(value).every(isValidIp), {
+			message: "Enter valid IPv4 or IPv6 addresses separated by commas",
+		}),
 	port: z.number().optional(),
 	username: z.string().optional(),
 	sshKeyId: z.string().min(1, {
@@ -88,6 +103,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			description: "",
 			name: "",
 			ipAddress: "",
+			ingressIps: "",
 			port: 22,
 			username: "root",
 			sshKeyId: "",
@@ -102,6 +118,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			description: data?.description || "",
 			name: data?.name || "",
 			ipAddress: data?.ipAddress || "",
+			ingressIps: data?.ingressIps?.join(", ") || "",
 			port: data?.port || 22,
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
@@ -119,6 +136,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			name: data.name,
 			description: data.description || "",
 			ipAddress: data.ipAddress?.trim() || "",
+			ingressIps: parseIngressIps(data.ingressIps),
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
@@ -405,6 +423,25 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								)}
 							/>
 						</div>
+
+						<FormField
+							control={form.control}
+							name="ingressIps"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Additional Ingress IPs</FormLabel>
+									<FormControl>
+										<Input placeholder="10.0.0.50, 203.0.113.10" {...field} />
+									</FormControl>
+									<FormDescription>
+										Optional. Addresses your domains may resolve to besides this
+										server, such as a floating VIP (keepalived) or a load
+										balancer. Only used to validate domain DNS, never for SSH.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						<FormField
 							control={form.control}
