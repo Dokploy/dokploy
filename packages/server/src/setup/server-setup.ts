@@ -194,7 +194,7 @@ if [ "$OS_TYPE" = 'amzn' ]; then
 fi
 
 case "$OS_TYPE" in
-arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles | opensuse-leap | opensuse-tumbleweed | almalinux | opencloudos | amzn | alpine) ;;
+arch | archarm | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles | opensuse-leap | opensuse-tumbleweed | almalinux | opencloudos | amzn | alpine) ;;
 *)
 	echo "This script only supports Debian, Redhat, Arch Linux, Alpine Linux, or SLES based operating systems for now."
 	exit
@@ -493,7 +493,7 @@ const validatePorts = () => `
 const installUtilities = () => `
 
 	case "$OS_TYPE" in
-	arch)
+	arch | archarm)
 		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
@@ -589,7 +589,7 @@ if ! [ -x "$(command -v docker)" ]; then
                 exit 1
             fi
             ;;
-        "arch")
+        "arch" | "archarm")
             $SUDO_CMD pacman -Sy docker docker-compose --noconfirm >/dev/null 2>&1
             $SUDO_CMD systemctl enable docker.service >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
