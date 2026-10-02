@@ -303,3 +303,32 @@ export const getBackupCommand = (
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
+
+// Builds the rclone pipeline used by keepLatestNBackups to list backup files
+// and delete everything older than the N most recent ones. The S3 path is
+// user-controlled (backup prefix), so it must stay a single shell word.
+export const getKeepLatestNBackupsCommand = (
+	backup: Pick<BackupSchedule, "prefix" | "databaseType" | "keepLatestCount">,
+	destination: Destination,
+	appName: string,
+): string | null => {
+	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
+	// is saved as 0 in the database
+	if (!backup.keepLatestCount) return null;
+
+	const rcloneFlags = getS3Credentials(destination);
+	const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+
+	// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+	// the S3 path is double-quoted: the backup prefix is user input and may
+	// contain spaces or other shell-special characters (e.g. issue #4354)
+	const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" "${backupFilesPath}"`;
+	// when we pipe the above command with this one, we only get the list of files we want to delete
+	const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+	// this command deletes the files; the {} placeholder stays inside the
+	// quotes so xargs substitutes the full path as a single argument
+	// to test the deletion before actually deleting we can add --dry-run before "${backupFilesPath}{}"
+	const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} "${backupFilesPath}{}"`;
+
+	return `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+};
