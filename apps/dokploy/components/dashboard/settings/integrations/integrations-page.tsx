@@ -1,4 +1,5 @@
 import { Blocks } from "lucide-react";
+import Link from "next/link";
 import type { ComponentType } from "react";
 import {
 	Card,
@@ -42,6 +43,16 @@ export const IntegrationsPage = () => {
 						{INTEGRATION_CARDS.map(({ id, Card: IntegrationCard }) => (
 							<IntegrationCard key={id} />
 						))}
+						<p className="text-sm text-muted-foreground">
+							Sendly and Notifly are set up as notification channels in{" "}
+							<Link
+								href="/dashboard/settings/notifications"
+								className="underline"
+							>
+								Notifications
+							</Link>
+							.
+						</p>
 					</CardContent>
 				</div>
 			</Card>

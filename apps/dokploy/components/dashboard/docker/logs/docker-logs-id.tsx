@@ -471,6 +471,8 @@ export const DockerLogsId: React.FC<Props> = ({
 								<Input
 									className="rounded-t-none rounded-r-none bg-background border border-t-0"
 									placeholder="Send a command"
+									aria-label="Send input to the container (stdin)"
+									aria-describedby="container-stdin-help"
 									name="command"
 									disabled={!ws || ws.readyState !== WebSocket.OPEN || isPaused}
 								/>
@@ -484,6 +486,13 @@ export const DockerLogsId: React.FC<Props> = ({
 									<SendIcon className="size-4" />
 								</Button>
 							</ButtonGroup>
+							<p
+								id="container-stdin-help"
+								className="px-1 pt-1 text-xs text-muted-foreground"
+							>
+								Sent to the container's standard input (stdin). The process must
+								read stdin for this to do anything.
+							</p>
 						</form>
 					</div>
 				</div>

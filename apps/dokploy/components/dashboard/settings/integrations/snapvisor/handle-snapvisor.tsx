@@ -28,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { SNAPVISOR_DEFAULT_BASE_URL } from "@dokploy/server/utils/snapvisor/urls";
 
-
 const snapvisorSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
 	accessToken: z.string(),
@@ -98,9 +97,7 @@ export const HandleSnapvisor = ({ editing = false }: Props) => {
 		const action = editing
 			? updateMutation.mutateAsync({
 					...common,
-					...(data.accessToken.trim()
-						? { accessToken: data.accessToken }
-						: {}),
+					...(data.accessToken.trim() ? { accessToken: data.accessToken } : {}),
 				})
 			: createMutation.mutateAsync({
 					...common,
@@ -140,9 +137,9 @@ export const HandleSnapvisor = ({ editing = false }: Props) => {
 			})
 			.then((result) => {
 				toast.success("Connection successful", {
-					description: `Accounts reachable: ${result.accounts
-						.map((a) => a.slug)
-						.join(", ") || "none"}`,
+					description: `Accounts reachable: ${
+						result.accounts.map((a) => a.slug).join(", ") || "none"
+					}`,
 				});
 			})
 			.catch((e) => {
@@ -171,129 +168,134 @@ export const HandleSnapvisor = ({ editing = false }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl overflow-hidden">
 				<DialogHeader>
 					<DialogTitle>{editing ? "Update" : "Connect"} Snapvisor</DialogTitle>
 					<DialogDescription>
 						Connect a Snapvisor account to this organization using a personal
-						access token. Applications can then be linked to a Snapvisor
-						project from their Preview Deployment settings.
+						access token. Applications can then be linked to a Snapvisor project
+						from their Preview Deployment settings.
 					</DialogDescription>
 				</DialogHeader>
-				{(isError || testMutation.isError) && (
-					<AlertBlock type="error" className="w-full">
-						{testMutation.error?.message || error?.message}
+				<div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+					{(isError || testMutation.isError) && (
+						<AlertBlock type="error" className="w-full">
+							{testMutation.error?.message || error?.message}
+						</AlertBlock>
+					)}
+					<AlertBlock type="info" className="w-full">
+						Screenshots are still captured by the Snapvisor CLI in your own CI.
+						Dokploy only finds the build Snapvisor already created for the
+						commit it just deployed and shows its review status.
 					</AlertBlock>
-				)}
-				<AlertBlock type="info" className="w-full">
-					Screenshots are still captured by the Snapvisor CLI in your own CI.
-					Dokploy only finds the build Snapvisor already created for the
-					commit it just deployed and shows its review status.
-				</AlertBlock>
 
-				<Form {...form}>
-					<form
-						id="hook-form-snapvisor"
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
+					<Form {...form}>
+						<form
+							id="hook-form-snapvisor"
+							onSubmit={form.handleSubmit(onSubmit)}
+							className="grid w-full gap-4"
+						>
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Name</FormLabel>
+										<FormControl>
+											<Input placeholder="Snapvisor" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="accessToken"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Personal access token</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												autoComplete="off"
+												placeholder={
+													editing
+														? `Leave blank to keep the current token${
+																integration?.accessTokenMasked
+																	? ` (${integration.accessTokenMasked})`
+																	: ""
+															}`
+														: "Snapvisor personal access token"
+												}
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Create one in Snapvisor under your account settings. It is
+											never shown again here.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="accountSlug"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Account slug</FormLabel>
+										<FormControl>
+											<Input placeholder="my-team" {...field} />
+										</FormControl>
+										<FormDescription>
+											The slug in your Snapvisor URLs, e.g. the{" "}
+											<code className="text-xs">my-team</code> in
+											app.snapvisor.io/my-team/my-project.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="baseUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Base URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder={SNAPVISOR_DEFAULT_BASE_URL}
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Change only for a self-hosted Snapvisor.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</form>
+					</Form>
+				</div>
+
+				<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
+					<Button
+						isLoading={testMutation.isPending}
+						type="button"
+						variant="secondary"
+						onClick={handleTestConnection}
 					>
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Name</FormLabel>
-									<FormControl>
-										<Input placeholder="Snapvisor" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="accessToken"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Personal access token</FormLabel>
-									<FormControl>
-										<Input
-											type="password"
-											autoComplete="off"
-											placeholder={
-												editing
-													? `Leave blank to keep the current token${
-															integration?.accessTokenMasked
-																? ` (${integration.accessTokenMasked})`
-																: ""
-														}`
-													: "Snapvisor personal access token"
-											}
-											{...field}
-										/>
-									</FormControl>
-									<FormDescription>
-										Create one in Snapvisor under your account settings. It is
-										never shown again here.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="accountSlug"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Account slug</FormLabel>
-									<FormControl>
-										<Input placeholder="my-team" {...field} />
-									</FormControl>
-									<FormDescription>
-										The slug in your Snapvisor URLs, e.g. the{" "}
-										<code className="text-xs">my-team</code> in
-										app.snapvisor.io/my-team/my-project.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="baseUrl"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Base URL</FormLabel>
-									<FormControl>
-										<Input placeholder={SNAPVISOR_DEFAULT_BASE_URL} {...field} />
-									</FormControl>
-									<FormDescription>
-										Change only for a self-hosted Snapvisor.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</form>
-
-					<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
-						<Button
-							isLoading={testMutation.isPending}
-							type="button"
-							variant="secondary"
-							onClick={handleTestConnection}
-						>
-							Test connection
-						</Button>
-						<Button
-							isLoading={isPending}
-							form="hook-form-snapvisor"
-							type="submit"
-						>
-							{editing ? "Update" : "Connect"}
-						</Button>
-					</DialogFooter>
-				</Form>
+						Test connection
+					</Button>
+					<Button
+						isLoading={isPending}
+						form="hook-form-snapvisor"
+						type="submit"
+					>
+						{editing ? "Update" : "Connect"}
+					</Button>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
