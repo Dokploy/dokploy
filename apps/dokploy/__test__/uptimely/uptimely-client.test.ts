@@ -1,13 +1,21 @@
 import {
+	buildCodeModeProgram,
 	createUptimelyClient,
+	parseSandboxError,
 	parseSseMessages,
 	UptimelyError,
 } from "@dokploy/server/utils/uptimely/client";
 import { describe, expect, it, vi } from "vitest";
 
 /**
- * The Uptimely client speaks MCP Streamable HTTP by hand: `initialize` then
- * `tools/call`, with either a plain JSON or an SSE-framed body.
+ * Uptimely's MCP server runs in "Code Mode": it lists only `search_tools` and
+ * `execute_typescript`, and every real tool is an `external_<name>(input)`
+ * function inside the TypeScript sandbox. The client speaks MCP Streamable
+ * HTTP by hand (`initialize` then `tools/call`) and turns every
+ * `callTool("uptimely_x", args)` into one `execute_typescript` call.
+ *
+ * The fixtures below mirror responses recorded from the live server on
+ * 2026-10-03 (ids replaced with placeholders).
  */
 
 type Handler = (body: {
@@ -40,24 +48,193 @@ const initResult = (id: number) =>
 const sse = (payload: unknown) =>
 	`event: message\ndata: ${JSON.stringify(payload)}\n\n`;
 
+/** An `execute_typescript` tools/call result carrying `envelope` as text. */
+const executeResult = (envelope: unknown) => ({
+	content: [{ type: "text", text: JSON.stringify(envelope) }],
+});
+
+const rpc = (id: number, result: unknown) =>
+	JSON.stringify({ jsonrpc: "2.0", id, result });
+
 const projectList = {
-	projects: [{ id: "p-1", name: "Devino", slug: "devino" }],
+	projects: [
+		{ id: "p-1", name: "Devino Team", slug: "devino-team" },
+		{ id: "p-2", name: "QA Sandbox", slug: "qa-sandbox-hezek99u" },
+	],
 	defaultProjectId: "p-1",
 };
 
-describe("uptimely client", () => {
-	it("initializes, then calls the tool, parsing a plain JSON body", async () => {
+// Recorded sandbox failures.
+const PROJECT_DENIED =
+	"PROJECT_ACCESS_DENIED: This credential cannot access project 00000000-0000-0000-0000-000000000000. Call uptimely_project_list to get the project IDs this connection can access, then retry with one of those.";
+const INVALID_INPUT =
+	"INVALID_INPUT: Tool input validation failed for uptimely_status_page_list. Please fix the following errors and try again:\n- projectId: Invalid input: expected string, received undefined\n\nProvided arguments: {}";
+
+const clientWith = (handler: Handler, extra: { timeoutMs?: number } = {}) =>
+	createUptimelyClient({
+		baseUrl: "https://uptimely.test/",
+		apiKey: "key-123",
+		fetchImpl: fakeFetch(handler) as unknown as typeof fetch,
+		...extra,
+	});
+
+const failingWith = (message: string) =>
+	clientWith((req) =>
+		req.method === "initialize"
+			? { body: initResult(req.id) }
+			: {
+					body: rpc(
+						req.id,
+						executeResult({
+							success: false,
+							logs: [],
+							error: { message, name: "Error" },
+						}),
+					),
+				},
+	);
+
+const caught = async (promise: Promise<unknown>) =>
+	(await promise.catch((e: unknown) => e)) as UptimelyError;
+
+/**
+ * Runs a generated program the way the Uptimely sandbox does: the
+ * `external_*` function is in scope and the body may `await` and `return`.
+ */
+const runProgram = async (
+	code: string,
+	name: string,
+	impl: (input: unknown) => unknown,
+) => {
+	const AsyncFunction = Object.getPrototypeOf(async () => {})
+		.constructor as new (
+		...args: string[]
+	) => (...fnArgs: unknown[]) => Promise<unknown>;
+	return new AsyncFunction(name, code)(impl);
+};
+
+describe("buildCodeModeProgram", () => {
+	it("calls the matching external_* function with the JSON-embedded input", async () => {
+		const code = buildCodeModeProgram("uptimely_status_page_list", {
+			projectId: "p-1",
+		});
+		expect(code).toContain("await external_uptimely_status_page_list(input)");
+		const seen: unknown[] = [];
+		const result = await runProgram(
+			code,
+			"external_uptimely_status_page_list",
+			(input) => {
+				seen.push(input);
+				return { ok: true };
+			},
+		);
+		expect(result).toEqual({ ok: true });
+		expect(seen).toEqual([{ projectId: "p-1" }]);
+	});
+
+	it("does not double the external_ prefix", () => {
+		expect(buildCodeModeProgram("external_uptimely_project_list")).toContain(
+			"await external_uptimely_project_list(input)",
+		);
+	});
+
+	it("passes hostile argument values through as data, never as code", async () => {
+		const hostile = {
+			name: `"); throw new Error("pwned"); ("`,
+			description: "line1\nline2     `${process.exit()}` \\ ' \" </script>",
+			url: "https://x.test/?a=1&b=2#frag",
+			nested: { list: ["'; return 1; '", 1, true, null] },
+			["__proto__"]: { polluted: true },
+		};
+		// JSON.stringify of an object literal with __proto__ sets the prototype,
+		// so build a plain own-property copy for the comparison.
+		const args = JSON.parse(JSON.stringify(hostile)) as Record<string, unknown>;
+		Object.defineProperty(args, "__proto__", {
+			value: { polluted: true },
+			enumerable: true,
+			configurable: true,
+			writable: true,
+		});
+		const code = buildCodeModeProgram("uptimely_monitor_create", args);
+
+		// The only code is the fixed two-line template.
+		expect(code.split("\n")).toHaveLength(2);
+		expect(code).not.toMatch(/ | /);
+
+		let seen: Record<string, unknown> | undefined;
+		await runProgram(code, "external_uptimely_monitor_create", (input) => {
+			seen = input as Record<string, unknown>;
+			return {};
+		});
+		expect(seen?.name).toBe(hostile.name);
+		expect(seen?.description).toBe(hostile.description);
+		expect(seen?.nested).toEqual(hostile.nested);
+		expect(Object.getOwnPropertyNames(seen)).toContain("__proto__");
+		expect((seen as { polluted?: boolean }).polluted).toBeUndefined();
+	});
+
+	it("rejects a tool name that is not a plain identifier", () => {
+		for (const bad of [
+			"uptimely_x(); evil(",
+			"a-b",
+			"",
+			"x y",
+			"x\nreturn 1",
+		]) {
+			expect(() => buildCodeModeProgram(bad)).toThrow(UptimelyError);
+		}
+	});
+});
+
+describe("parseSandboxError", () => {
+	it("splits the code from the details", () => {
+		const parsed = parseSandboxError(PROJECT_DENIED);
+		expect(parsed.code).toBe("PROJECT_ACCESS_DENIED");
+		expect(parsed.message).toMatch(/^This credential cannot access project/);
+		expect(parsed.settingsUrl).toBeUndefined();
+	});
+
+	it("reads the trailing JSON fields (settingsUrl)", () => {
+		const parsed = parseSandboxError(
+			'AI_WRITE_OPS_DISABLED: AI write operations are disabled for this project. {"settingsUrl":"https://uptimely.test/dashboard/p/settings/api-keys"}',
+		);
+		expect(parsed).toMatchObject({
+			code: "AI_WRITE_OPS_DISABLED",
+			message: "AI write operations are disabled for this project.",
+			settingsUrl: "https://uptimely.test/dashboard/p/settings/api-keys",
+		});
+	});
+
+	it("keeps a 'Provided arguments: {}' tail as part of the message", () => {
+		const parsed = parseSandboxError(INVALID_INPUT);
+		expect(parsed.code).toBe("INVALID_INPUT");
+		expect(parsed.message).toContain("Provided arguments: {}");
+		expect(parsed.fields).toBeUndefined();
+	});
+
+	it("maps a missing external_* function to a clear message", () => {
+		expect(
+			parseSandboxError("'external_uptimely_monitor_create' is not defined"),
+		).toEqual({
+			code: "TOOL_UNAVAILABLE",
+			message: expect.stringContaining("uptimely_monitor_create"),
+		});
+	});
+
+	it("passes an uncoded message through unchanged", () => {
+		expect(parseSandboxError("boom")).toEqual({ message: "boom" });
+	});
+});
+
+describe("uptimely client (code mode)", () => {
+	it("initializes, then runs one execute_typescript call, parsing a plain JSON body", async () => {
 		const fetchImpl = fakeFetch((req) => {
 			if (req.method === "initialize") return { body: initResult(req.id) };
 			return {
-				body: JSON.stringify({
-					jsonrpc: "2.0",
-					id: req.id,
-					result: {
-						content: [{ type: "text", text: JSON.stringify(projectList) }],
-						structuredContent: projectList,
-					},
-				}),
+				body: rpc(
+					req.id,
+					executeResult({ success: true, result: projectList, logs: [] }),
+				),
 			};
 		});
 		const client = createUptimelyClient({
@@ -80,14 +257,45 @@ describe("uptimely client", () => {
 		expect(init1.params.protocolVersion).toBe("2025-03-26");
 		const call = JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body));
 		expect(call.method).toBe("tools/call");
-		expect(call.params).toEqual({
-			name: "uptimely_project_list",
-			arguments: {},
+		expect(call.params.name).toBe("execute_typescript");
+		expect(Object.keys(call.params.arguments)).toEqual(["code"]);
+		expect(call.params.arguments.code).toBe(
+			buildCodeModeProgram("uptimely_project_list", {}),
+		);
+		expect(call.params.arguments.code).toContain(
+			"external_uptimely_project_list",
+		);
+	});
+
+	it("sends the arguments inside the generated program", async () => {
+		let code = "";
+		const client = clientWith((req) => {
+			if (req.method === "initialize") return { body: initResult(req.id) };
+			code = String(req.params?.arguments?.code);
+			return {
+				body: rpc(req.id, executeResult({ success: true, result: { a: 1 } })),
+			};
 		});
+		await client.callTool("uptimely_monitor_get", {
+			projectId: "p-1",
+			monitorId: "m-1",
+		});
+		expect(code).toBe(
+			buildCodeModeProgram("uptimely_monitor_get", {
+				projectId: "p-1",
+				monitorId: "m-1",
+			}),
+		);
+		let seen: unknown;
+		await runProgram(code, "external_uptimely_monitor_get", (input) => {
+			seen = input;
+			return {};
+		});
+		expect(seen).toEqual({ projectId: "p-1", monitorId: "m-1" });
 	});
 
 	it("parses SSE-framed responses", async () => {
-		const fetchImpl = fakeFetch((req) => {
+		const client = clientWith((req) => {
 			if (req.method === "initialize") {
 				return {
 					contentType: "text/event-stream",
@@ -99,19 +307,26 @@ describe("uptimely client", () => {
 				body: sse({
 					jsonrpc: "2.0",
 					id: req.id,
-					result: {
-						// No structuredContent: the text part carries the JSON.
-						content: [{ type: "text", text: JSON.stringify(projectList) }],
-					},
+					result: executeResult({ success: true, result: projectList }),
 				}),
 			};
 		});
-		const client = createUptimelyClient({
-			baseUrl: "https://uptimely.test",
-			apiKey: "k",
-			fetchImpl: fetchImpl as unknown as typeof fetch,
-		});
 
+		await expect(client.callTool("uptimely_project_list")).resolves.toEqual(
+			projectList,
+		);
+	});
+
+	it("reads the envelope from structuredContent when the server sends it", async () => {
+		const client = clientWith((req) =>
+			req.method === "initialize"
+				? { body: initResult(req.id) }
+				: {
+						body: rpc(req.id, {
+							structuredContent: { success: true, result: projectList },
+						}),
+					},
+		);
 		await expect(client.callTool("uptimely_project_list")).resolves.toEqual(
 			projectList,
 		);
@@ -122,11 +337,10 @@ describe("uptimely client", () => {
 			req.method === "initialize"
 				? { body: initResult(req.id) }
 				: {
-						body: JSON.stringify({
-							jsonrpc: "2.0",
-							id: req.id,
-							result: { structuredContent: { ok: true } },
-						}),
+						body: rpc(
+							req.id,
+							executeResult({ success: true, result: { ok: true } }),
+						),
 					},
 		);
 		const client = createUptimelyClient({
@@ -143,7 +357,7 @@ describe("uptimely client", () => {
 	});
 
 	it("surfaces a JSON-RPC error with the server message", async () => {
-		const fetchImpl = fakeFetch((req) =>
+		const client = clientWith((req) =>
 			req.method === "initialize"
 				? { body: initResult(req.id) }
 				: {
@@ -154,27 +368,75 @@ describe("uptimely client", () => {
 						}),
 					},
 		);
-		const client = createUptimelyClient({
-			baseUrl: "https://uptimely.test",
-			apiKey: "k",
-			fetchImpl: fetchImpl as unknown as typeof fetch,
-		});
-
-		const error = (await client
-			.callTool("nope")
-			.catch((e: unknown) => e)) as UptimelyError;
+		const error = await caught(client.callTool("uptimely_project_list"));
 		expect(error).toBeInstanceOf(UptimelyError);
 		expect(error.message).toBe("Unknown tool: nope");
 		expect(error.code).toBe(-32602);
 	});
 
-	it("surfaces a tool denial (isError) with its code and settings link", async () => {
+	it("maps a denied project to a code and a useful message", async () => {
+		const error = await caught(
+			failingWith(PROJECT_DENIED).callTool("uptimely_status_page_list", {
+				projectId: "nope",
+			}),
+		);
+		expect(error).toBeInstanceOf(UptimelyError);
+		expect(error.code).toBe("PROJECT_ACCESS_DENIED");
+		expect(error.message).toContain("cannot access project");
+		expect(error.message).not.toMatch(/^PROJECT_ACCESS_DENIED/);
+	});
+
+	it("maps the AI write gate to AI_WRITE_OPS_DISABLED with its settings link", async () => {
+		const error = await caught(
+			failingWith(
+				'AI_WRITE_OPS_DISABLED: AI write operations are disabled for this project. {"settingsUrl":"https://uptimely.test/dashboard/p/settings/api-keys"}',
+			).callTool("uptimely_monitor_create", {}),
+		);
+		expect(error).toBeInstanceOf(UptimelyError);
+		expect(error.message).toBe(
+			"AI write operations are disabled for this project.",
+		);
+		expect(error.code).toBe("AI_WRITE_OPS_DISABLED");
+		expect(error.settingsUrl).toBe(
+			"https://uptimely.test/dashboard/p/settings/api-keys",
+		);
+	});
+
+	it("maps invalid input", async () => {
+		const error = await caught(
+			failingWith(INVALID_INPUT).callTool("uptimely_status_page_list"),
+		);
+		expect(error.code).toBe("INVALID_INPUT");
+		expect(error.message).toContain("projectId");
+	});
+
+	it("maps a tool the key cannot reach (ReferenceError) to a clear error", async () => {
+		const error = await caught(
+			failingWith("'external_uptimely_monitor_create' is not defined").callTool(
+				"uptimely_monitor_create",
+				{},
+			),
+		);
+		expect(error.code).toBe("TOOL_UNAVAILABLE");
+		expect(error.message).toMatch(/does not expose uptimely_monitor_create/);
+	});
+
+	it("surfaces a plain sandbox failure message", async () => {
+		const error = await caught(
+			failingWith("boom").callTool("uptimely_project_list"),
+		);
+		expect(error).toBeInstanceOf(UptimelyError);
+		expect(error.message).toBe("boom");
+		expect(error.code).toBeUndefined();
+	});
+
+	it("surfaces a transport-level tool denial (isError)", async () => {
 		const denial = {
 			code: "AI_WRITE_OPS_DISABLED",
 			message: "AI write operations are disabled for this project.",
 			settingsUrl: "https://uptimely.test/dashboard/p/settings/api-keys",
 		};
-		const fetchImpl = fakeFetch((req) =>
+		const client = clientWith((req) =>
 			req.method === "initialize"
 				? { body: initResult(req.id) }
 				: {
@@ -190,44 +452,51 @@ describe("uptimely client", () => {
 						}),
 					},
 		);
-		const client = createUptimelyClient({
-			baseUrl: "https://uptimely.test",
-			apiKey: "k",
-			fetchImpl: fetchImpl as unknown as typeof fetch,
-		});
-
-		const error = (await client
-			.callTool("uptimely_monitor_create", {})
-			.catch((e: unknown) => e)) as UptimelyError;
-		expect(error).toBeInstanceOf(UptimelyError);
+		const error = await caught(client.callTool("uptimely_monitor_create", {}));
 		expect(error.message).toBe(denial.message);
 		expect(error.code).toBe("AI_WRITE_OPS_DISABLED");
 		expect(error.settingsUrl).toBe(denial.settingsUrl);
 	});
 
 	it("treats a lone { error } tool output as a failure", async () => {
-		const fetchImpl = fakeFetch((req) =>
+		const client = clientWith((req) =>
 			req.method === "initialize"
 				? { body: initResult(req.id) }
 				: {
-						body: JSON.stringify({
-							jsonrpc: "2.0",
-							id: req.id,
-							result: {
-								structuredContent: {
-									error: "Monitor not found or access denied.",
-								},
-							},
-						}),
+						body: rpc(
+							req.id,
+							executeResult({
+								success: true,
+								result: { error: "Monitor not found or access denied." },
+								logs: [],
+							}),
+						),
 					},
 		);
-		const client = createUptimelyClient({
-			baseUrl: "https://uptimely.test",
-			apiKey: "k",
-			fetchImpl: fetchImpl as unknown as typeof fetch,
-		});
 		await expect(client.callTool("uptimely_monitor_get")).rejects.toThrow(
 			"Monitor not found or access denied.",
+		);
+	});
+
+	it("fails clearly when the program returned nothing", async () => {
+		const client = clientWith((req) =>
+			req.method === "initialize"
+				? { body: initResult(req.id) }
+				: { body: rpc(req.id, executeResult({ success: true, logs: [] })) },
+		);
+		await expect(client.callTool("uptimely_project_list")).rejects.toThrow(
+			/empty result/,
+		);
+	});
+
+	it("rejects a response that is not an execute_typescript envelope", async () => {
+		const client = clientWith((req) =>
+			req.method === "initialize"
+				? { body: initResult(req.id) }
+				: { body: rpc(req.id, executeResult(projectList)) },
+		);
+		await expect(client.callTool("uptimely_project_list")).rejects.toThrow(
+			/unexpected tool result/,
 		);
 	});
 
