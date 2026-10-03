@@ -189,8 +189,8 @@ export const buildCodeModeProgram = (
 		? toolName
 		: `external_${toolName}`;
 	const literal = JSON.stringify(JSON.stringify(args ?? {}))
-		.replace(/ /g, "\\u2028")
-		.replace(/ /g, "\\u2029");
+		.replace(/\u2028/g, "\\u2028")
+		.replace(/\u2029/g, "\\u2029");
 	return `const input = JSON.parse(${literal});\nreturn await ${fn}(input);`;
 };
 
@@ -458,9 +458,9 @@ export const createUptimelyClient = (
 					id: nextId++,
 					method: "tools/call",
 					params: {
-							name: UPTIMELY_EXECUTE_TOOL,
-							arguments: { code: buildCodeModeProgram(name, args) },
-						},
+						name: UPTIMELY_EXECUTE_TOOL,
+						arguments: { code: buildCodeModeProgram(name, args) },
+					},
 				},
 				true,
 			);

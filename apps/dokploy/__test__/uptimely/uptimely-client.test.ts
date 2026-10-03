@@ -141,25 +141,19 @@ describe("buildCodeModeProgram", () => {
 	it("passes hostile argument values through as data, never as code", async () => {
 		const hostile = {
 			name: `"); throw new Error("pwned"); ("`,
-			description: "line1\nline2     `${process.exit()}` \\ ' \" </script>",
+			description:
+				"line1\nline2 \u2028 \u2029 `${process.exit()}` \\ ' \" </script>",
 			url: "https://x.test/?a=1&b=2#frag",
 			nested: { list: ["'; return 1; '", 1, true, null] },
 			["__proto__"]: { polluted: true },
 		};
-		// JSON.stringify of an object literal with __proto__ sets the prototype,
-		// so build a plain own-property copy for the comparison.
+		// A computed "__proto__" key is an own property; JSON.parse keeps it one.
 		const args = JSON.parse(JSON.stringify(hostile)) as Record<string, unknown>;
-		Object.defineProperty(args, "__proto__", {
-			value: { polluted: true },
-			enumerable: true,
-			configurable: true,
-			writable: true,
-		});
 		const code = buildCodeModeProgram("uptimely_monitor_create", args);
 
 		// The only code is the fixed two-line template.
 		expect(code.split("\n")).toHaveLength(2);
-		expect(code).not.toMatch(/ | /);
+		expect(code).not.toMatch(/\u2028|\u2029/);
 
 		let seen: Record<string, unknown> | undefined;
 		await runProgram(code, "external_uptimely_monitor_create", (input) => {
