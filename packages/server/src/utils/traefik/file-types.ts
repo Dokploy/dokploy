@@ -207,6 +207,9 @@ export type HttpMiddleware =
 			headers?: HeadersMiddleware;
 	  }
 	| {
+			ipAllowList?: IpWhiteListMiddleware;
+	  }
+	| {
 			ipWhiteList?: IpWhiteListMiddleware;
 	  }
 	| {
