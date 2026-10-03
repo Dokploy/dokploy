@@ -245,7 +245,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 						// Viewing logs must not attach to the container's stdin. Only
 						// attach for explicit input, and never forward teardown signals.
 						if (!localAttach) {
-							localAttach = spawnPty(
+							const attach = spawnPty(
 								"docker",
 								["attach", "--sig-proxy=false", containerId],
 								{
@@ -257,8 +257,13 @@ export const setupDockerContainerLogsWebSocketServer = (
 									rows: 30,
 								},
 							);
+							localAttach = attach;
 							// Logs arrive through docker logs; drain duplicate attach output.
-							localAttach.onData(() => {});
+							attach.onData(() => {});
+							// The attach ends with its container; the next input spawns a new one.
+							attach.onExit(() => {
+								if (localAttach === attach) localAttach = undefined;
+							});
 						}
 						localAttach.write(`${command.toString()}\n`);
 					} catch (error) {
