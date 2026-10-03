@@ -139,6 +139,48 @@ describe("uptimely router org scoping", () => {
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
+	it("rejects preflightService for a service in another organization", async () => {
+		mocks.serviceOrganizationId = "org-2";
+		await expect(caller().preflightService(foreign)).rejects.toMatchObject({
+			code: "UNAUTHORIZED",
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it("keeps preflightService behind the same gate as linkService", async () => {
+		// Same permission (service:create) as linking; a bare member without
+		// access to the service is refused.
+		mocks.memberRole = "member";
+		await expect(
+			caller("member").preflightService({
+				serviceType: "application",
+				serviceId: "app-1",
+			}),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it("rejects a malformed check path before touching anything", async () => {
+		for (const checkPath of ["health", "//evil.com", "https://x", " /a"]) {
+			await expect(
+				caller().preflightService({
+					serviceType: "application",
+					serviceId: "app-1",
+					checkPath,
+				}),
+			).rejects.toMatchObject({ code: "BAD_REQUEST" });
+			await expect(
+				caller().linkService({
+					serviceType: "application",
+					serviceId: "app-1",
+					includeSslAndDomain: false,
+					checkPath,
+				}),
+			).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		}
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
 	it("rejects unlinkService and runProbe for a service in another organization", async () => {
 		mocks.serviceOrganizationId = "org-2";
 		await expect(caller().unlinkService(foreign)).rejects.toMatchObject({

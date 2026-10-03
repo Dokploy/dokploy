@@ -58,9 +58,15 @@ vi.mock("@dokploy/server/services/domain", async (importOriginal) => ({
 
 const {
 	buildUptimelyDailyTimeline,
+	computeUptimelyUptimePercent,
+	currentUptimelySegment,
 	getUptimelyServiceStatus,
+	httpsUrlsFromDomains,
 	linkUptimelyService,
 	planUptimelyMonitors,
+	preflightUptimelyTarget,
+	resolveUptimelyServiceTarget,
+	uptimelyDayState,
 	worstUptimelyStatus,
 } = await import("@dokploy/server/services/uptimely");
 
@@ -271,6 +277,41 @@ describe("linkUptimelyService", () => {
 		expect(result.skipped).toBe(1);
 	});
 
+	it("checks the given path on every HTTPS domain when one is set", async () => {
+		await linkUptimelyService({
+			integration,
+			serviceType: "application",
+			serviceId: "app-1",
+			includeSslAndDomain: true,
+			checkPath: "/health",
+		});
+		expect(
+			toolCalls
+				.filter((c) => c.arguments.monitorType === "Website")
+				.map((c) => c.arguments.url),
+		).toEqual([
+			"https://app.example.com/health",
+			"https://www.example.com/health",
+		]);
+		// SSL and Domain monitors stay host-level.
+		expect(
+			toolCalls
+				.filter((c) => c.arguments.monitorType !== "Website")
+				.map((c) => c.arguments.host),
+		).toEqual([
+			"app.example.com",
+			"www.example.com",
+			"app.example.com",
+			"www.example.com",
+		]);
+		expect(
+			mocks.insertedLinks.filter((l) => l.kind === "website").map((l) => l.target),
+		).toEqual([
+			"https://app.example.com/health",
+			"https://www.example.com/health",
+		]);
+	});
+
 	it("refuses when the service has nothing to monitor", async () => {
 		mocks.findDomainsByApplicationId.mockResolvedValue([]);
 		await expect(
@@ -300,6 +341,81 @@ describe("linkUptimelyService", () => {
 			}),
 		).rejects.toThrow(/Created 1 of 2 monitors.*Plan limit reached/);
 		expect(mocks.insertedLinks.map((l) => l.monitorId)).toEqual(["mon-1"]);
+	});
+});
+
+describe("httpsUrlsFromDomains check path", () => {
+	const domains = [
+		{ host: "api.example.com", https: true, path: "/" },
+		{ host: "App.Example.com", https: true, path: "/app/" },
+		{ host: "dupe.example.com", https: true, path: "/" },
+		{ host: "dupe.example.com", https: true, path: "" },
+		{ host: "plain.example.com", https: false, path: "/" },
+		{ host: "*.example.com", https: true, path: "/" },
+	];
+
+	it("is unchanged without a check path", () => {
+		expect(httpsUrlsFromDomains(domains).map((u) => u.url)).toEqual([
+			"https://api.example.com",
+			"https://app.example.com/app/",
+			"https://dupe.example.com",
+		]);
+	});
+
+	it("appends the check path to each domain's own path", () => {
+		expect(httpsUrlsFromDomains(domains, "/health").map((u) => u.url)).toEqual([
+			"https://api.example.com/health",
+			"https://app.example.com/app/health",
+			"https://dupe.example.com/health",
+		]);
+	});
+
+	it("never produces a URL on another host", () => {
+		// Not reachable through the schema, but the builder must hold on its own:
+		// the path is appended after the host, whatever it contains.
+		for (const evil of ["//evil.com/x", "/\\evil.com", "/@evil.com"]) {
+			for (const { url } of httpsUrlsFromDomains(domains.slice(0, 1), evil)) {
+				expect(new URL(url).host).toBe("api.example.com");
+			}
+		}
+	});
+
+	it("threads the path through resolveUptimelyServiceTarget", async () => {
+		mocks.findApplicationById.mockResolvedValue({
+			applicationId: "app-1",
+			name: "web",
+			environment: { project: { name: "Devino", organizationId: "org-1" } },
+		});
+		mocks.findDomainsByApplicationId.mockResolvedValue(domains.slice(0, 1));
+		const withPath = await resolveUptimelyServiceTarget("application", "app-1", {
+			checkPath: "/health",
+		});
+		expect(withPath.httpsUrls).toEqual([
+			{ host: "api.example.com", url: "https://api.example.com/health" },
+		]);
+		const without = await resolveUptimelyServiceTarget("application", "app-1");
+		expect(without.httpsUrls[0]?.url).toBe("https://api.example.com");
+	});
+});
+
+describe("preflightUptimelyTarget", () => {
+	it("only ever checks the target's own URLs, and only public https", async () => {
+		// A target built (wrongly) with an http URL is refused at the boundary.
+		const results = await preflightUptimelyTarget({
+			httpsUrls: [{ host: "127.0.0.1", url: "http://127.0.0.1:9/" }],
+		});
+		expect(results).toEqual([
+			{
+				url: "http://127.0.0.1:9/",
+				status: null,
+				ok: false,
+				error: "Only https:// URLs are checked",
+			},
+		]);
+	});
+
+	it("returns nothing for a target without HTTPS URLs", async () => {
+		expect(await preflightUptimelyTarget({ httpsUrls: [] })).toEqual([]);
 	});
 });
 
@@ -446,5 +562,185 @@ describe("status helpers", () => {
 		expect(days.at(-2)?.status?.name).toBe("Offline");
 		expect(days.at(-3)?.status?.name).toBe("Operational");
 		expect(days.at(-4)?.status).toBeNull();
+	});
+});
+
+describe("timeline day states and uptime", () => {
+	const now = new Date("2026-09-22T12:00:00Z");
+	const operational = { name: "Operational", color: "g" };
+	const offline = { name: "Offline", color: "r" };
+
+	it("tells 'no data' apart from 'operational' and 'offline'", () => {
+		// A monitor created today that is already Offline: the other 29 days
+		// must read as "no data", not as healthy.
+		const days = buildUptimelyDailyTimeline(
+			[
+				{
+					status: offline,
+					startsAt: "2026-09-22T09:00:00Z",
+					endsAt: null,
+					createdAt: "2026-09-22T09:00:00Z",
+				},
+			],
+			30,
+			now,
+		);
+		expect(days.at(-1)?.state).toBe("offline");
+		expect(days.slice(0, 29).every((d) => d.state === "no-data")).toBe(true);
+		expect(days.slice(0, 29).every((d) => d.status === null)).toBe(true);
+	});
+
+	it("maps statuses to day states", () => {
+		expect(uptimelyDayState(operational, true)).toBe("operational");
+		expect(uptimelyDayState({ name: "Degraded Performance" }, true)).toBe(
+			"degraded",
+		);
+		expect(uptimelyDayState(offline, true)).toBe("offline");
+		expect(uptimelyDayState({ name: "Maintenance" }, true)).toBe("maintenance");
+		expect(uptimelyDayState(null, true)).toBe("unknown");
+		expect(uptimelyDayState(null, false)).toBe("no-data");
+		expect(uptimelyDayState(operational, false)).toBe("no-data");
+	});
+
+	it("computes time-weighted uptime over covered time only", () => {
+		const percent = computeUptimelyUptimePercent(
+			[
+				{
+					status: operational,
+					startsAt: "2026-09-22T06:00:00Z",
+					endsAt: null,
+					createdAt: "2026-09-22T06:00:00Z",
+				},
+				{
+					status: offline,
+					startsAt: "2026-09-22T03:00:00Z",
+					endsAt: "2026-09-22T06:00:00Z",
+					createdAt: "2026-09-22T03:00:00Z",
+				},
+			],
+			30,
+			now,
+		);
+		// 6h up (06:00-12:00) and 3h down: the 29 earlier days are not counted.
+		expect(percent).toBeCloseTo((6 / 9) * 100, 5);
+	});
+
+	it("returns null uptime when nothing can be judged", () => {
+		expect(computeUptimelyUptimePercent([], 30, now)).toBeNull();
+		expect(
+			computeUptimelyUptimePercent(
+				[
+					{
+						status: { name: "Maintenance", color: "b" },
+						startsAt: "2026-09-22T00:00:00Z",
+						endsAt: null,
+						createdAt: "2026-09-22T00:00:00Z",
+					},
+				],
+				30,
+				now,
+			),
+		).toBeNull();
+	});
+
+	it("clips segments to the 30-day window", () => {
+		const percent = computeUptimelyUptimePercent(
+			[
+				{
+					status: offline,
+					startsAt: "2026-01-01T00:00:00Z",
+					endsAt: "2026-08-23T12:00:00Z",
+					createdAt: "2026-01-01T00:00:00Z",
+				},
+				{
+					status: operational,
+					startsAt: "2026-08-23T12:00:00Z",
+					endsAt: null,
+					createdAt: "2026-08-23T12:00:00Z",
+				},
+			],
+			30,
+			now,
+		);
+		expect(percent).toBe(100);
+	});
+
+	it("picks the open segment as the current one", () => {
+		const current = currentUptimelySegment([
+			{
+				status: operational,
+				startsAt: "2026-09-10T00:00:00Z",
+				endsAt: "2026-09-11T00:00:00Z",
+				createdAt: "2026-09-10T00:00:00Z",
+			},
+			{
+				status: offline,
+				startsAt: "2026-09-12T00:00:00Z",
+				endsAt: null,
+				createdAt: "2026-09-12T00:00:00Z",
+				rootCause: "HTTP 404",
+			},
+		]);
+		expect(current?.status?.name).toBe("Offline");
+		expect(current?.rootCause).toBe("HTTP 404");
+		expect(currentUptimelySegment([])).toBeNull();
+	});
+
+	it("adds uptime, since, reason and last check to the service status", async () => {
+		mocks.linksFindMany.mockResolvedValue([
+			{ linkId: "l1", monitorId: "m1", kind: "website", target: "https://a" },
+		]);
+		const recent = new Date(Date.now() - 3_600_000).toISOString();
+		toolHandler = () => ({
+			id: "m1",
+			name: "m1",
+			monitorType: "Website",
+			currentStatus: offline,
+			probes: [
+				{ lastPingAt: "2026-09-22T11:50:00Z" },
+				{ lastPingAt: "2026-09-22T11:55:00Z" },
+				{ lastPingAt: null },
+			],
+			statusTimeline: [
+				{
+					id: "t",
+					status: offline,
+					startsAt: recent,
+					endsAt: null,
+					rootCause: "HTTP 404",
+					createdAt: recent,
+				},
+			],
+		});
+		const status = await getUptimelyServiceStatus({
+			integration,
+			serviceType: "application",
+			serviceId: "app-1",
+		});
+		expect(status.monitors[0]).toMatchObject({
+			statusSince: recent,
+			reason: "HTTP 404",
+			lastCheckAt: "2026-09-22T11:55:00Z",
+			uptimePercent: 0,
+		});
+		// Without probes (the usual case for Website monitors) there is no last check.
+		toolHandler = () => ({
+			id: "m1",
+			name: "m1",
+			monitorType: "Website",
+			currentStatus: operational,
+			statusTimeline: [],
+		});
+		const bare = await getUptimelyServiceStatus({
+			integration,
+			serviceType: "application",
+			serviceId: "app-1",
+		});
+		expect(bare.monitors[0]).toMatchObject({
+			lastCheckAt: null,
+			reason: null,
+			statusSince: null,
+			uptimePercent: null,
+		});
 	});
 });

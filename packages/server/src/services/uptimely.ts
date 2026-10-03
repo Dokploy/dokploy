@@ -12,6 +12,10 @@ import {
 	type UptimelyClient,
 	UptimelyError,
 } from "@dokploy/server/utils/uptimely/client";
+import {
+	preflightUrls,
+	type UptimelyPreflightResult,
+} from "@dokploy/server/utils/uptimely/preflight";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -220,7 +224,17 @@ type DomainLike = {
 	previewDeploymentId?: string | null;
 };
 
-const httpsUrlsFromDomains = (domains: DomainLike[]) => {
+/**
+ * `checkPath` (already validated by `uptimelyCheckPathSchema`) is appended to
+ * each domain's own path rather than replacing it: a domain with path `/api`
+ * only routes `/api*` to this service, so `/api` + `/health` is the URL that
+ * actually reaches it. For the usual `/` domain path the result is just the
+ * check path.
+ */
+export const httpsUrlsFromDomains = (
+	domains: DomainLike[],
+	checkPath?: string,
+) => {
 	const seen = new Set<string>();
 	const urls: { host: string; url: string }[] = [];
 	for (const domain of domains) {
@@ -235,7 +249,12 @@ const httpsUrlsFromDomains = (domains: DomainLike[]) => {
 					? domain.path
 					: `/${domain.path}`
 				: "";
-		const url = `https://${host}${path}`;
+		const url = checkPath
+			? `https://${host}${path.replace(/\/+$/, "")}${checkPath}`
+			: `https://${host}${path}`;
+		// Defense in depth: whatever the path says, the host must stay the
+		// service's own.
+		if (checkPath && new URL(url).host !== host) continue;
 		if (seen.has(url)) continue;
 		seen.add(url);
 		urls.push({ host, url });
@@ -259,6 +278,7 @@ const DATABASE_FINDERS = {
 export const resolveUptimelyServiceTarget = async (
 	serviceType: UptimelyServiceType,
 	serviceId: string,
+	options: { checkPath?: string } = {},
 ): Promise<UptimelyServiceTarget> => {
 	if (serviceType === "application") {
 		const application = await findApplicationById(serviceId);
@@ -267,7 +287,7 @@ export const resolveUptimelyServiceTarget = async (
 			organizationId: application.environment.project.organizationId,
 			projectName: application.environment.project.name,
 			serviceName: application.name,
-			httpsUrls: httpsUrlsFromDomains(domains),
+			httpsUrls: httpsUrlsFromDomains(domains, options.checkPath),
 			externalEndpoint: null,
 		};
 	}
@@ -278,7 +298,7 @@ export const resolveUptimelyServiceTarget = async (
 			organizationId: compose.environment.project.organizationId,
 			projectName: compose.environment.project.name,
 			serviceName: compose.name,
-			httpsUrls: httpsUrlsFromDomains(domains),
+			httpsUrls: httpsUrlsFromDomains(domains, options.checkPath),
 			externalEndpoint: null,
 		};
 	}
@@ -392,12 +412,16 @@ export const linkUptimelyService = async (params: {
 	serviceType: UptimelyServiceType;
 	serviceId: string;
 	includeSslAndDomain: boolean;
+	/** Path every Website monitor checks; ignored when `target` is passed. */
+	checkPath?: string;
 	target?: UptimelyServiceTarget;
 }) => {
 	const { integration, serviceType, serviceId } = params;
 	const target =
 		params.target ??
-		(await resolveUptimelyServiceTarget(serviceType, serviceId));
+		(await resolveUptimelyServiceTarget(serviceType, serviceId, {
+			checkPath: params.checkPath,
+		}));
 	const plan = planUptimelyMonitors(target, {
 		includeSslAndDomain: params.includeSslAndDomain,
 	});
@@ -468,6 +492,21 @@ export const linkUptimelyService = async (params: {
 };
 
 /**
+ * Preflight of the Website monitors a service would get: one real GET per
+ * HTTPS URL of `target`. The URLs come only from the service's own resolved
+ * domains (+ the validated check path); `preflightUrls` additionally refuses
+ * non-HTTPS and non-public hops, so no caller-supplied URL can reach it.
+ */
+export const preflightUptimelyTarget = async (
+	target: Pick<UptimelyServiceTarget, "httpsUrls">,
+	options?: Parameters<typeof preflightUrls>[1],
+): Promise<UptimelyPreflightResult[]> =>
+	preflightUrls(
+		target.httpsUrls.map((u) => u.url),
+		options,
+	);
+
+/**
  * Removes the link rows only. Uptimely's MCP surface has no monitor delete
  * tool, so the monitors themselves stay in Uptimely until deleted there.
  */
@@ -502,6 +541,7 @@ interface UptimelyTimelineSegment {
 	startsAt: string | null;
 	endsAt: string | null;
 	createdAt: string;
+	rootCause?: string | null;
 }
 
 interface UptimelyMonitorDetail {
@@ -510,6 +550,7 @@ interface UptimelyMonitorDetail {
 	monitorType: string;
 	currentStatus: UptimelyStatusRef | null;
 	statusTimeline: UptimelyTimelineSegment[];
+	probes?: { lastPingAt: string | null }[];
 }
 
 /**
@@ -543,23 +584,117 @@ export const worstUptimelyStatus = (
 	return worst;
 };
 
+export type UptimelyDayState =
+	| "operational"
+	| "degraded"
+	| "offline"
+	| "maintenance"
+	| "unknown"
+	| "no-data";
+
 export interface UptimelyTimelineDay {
 	/** UTC day start, ISO date (YYYY-MM-DD). */
 	day: string;
 	status: UptimelyStatusRef | null;
+	/**
+	 * What the bar should say. `no-data` means no segment covers the day (the
+	 * monitor did not exist yet); `unknown` means a segment covers it but its
+	 * status could not be read. Both differ from "operational".
+	 */
+	state: UptimelyDayState;
 }
+
+/** Pure: the bar state of a day from its worst status (`hasData` = a segment covers it). */
+export const uptimelyDayState = (
+	status: Pick<UptimelyStatusRef, "name"> | null | undefined,
+	hasData: boolean,
+): UptimelyDayState => {
+	if (!hasData) return "no-data";
+	if (!status) return "unknown";
+	switch (uptimelyStatusSeverity(status)) {
+		case 0:
+			return "operational";
+		case 3:
+			return "degraded";
+		case 4:
+			return "offline";
+		case 2:
+			return "maintenance";
+		default:
+			return "unknown";
+	}
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Pure: uptime over the last `days` days from the status segments the panel
+ * already has. Time-weighted over the time segments cover (a monitor created
+ * yesterday is judged on yesterday only): Operational and Degraded count as
+ * up, Offline as down; maintenance and unreadable statuses are left out.
+ * Returns null when there is nothing to judge.
+ */
+export const computeUptimelyUptimePercent = (
+	segments: UptimelyTimelineSegment[],
+	days = 30,
+	now: Date = new Date(),
+): number | null => {
+	const windowStart = now.getTime() - days * DAY_MS;
+	let up = 0;
+	let down = 0;
+	for (const segment of segments) {
+		const start = Math.max(
+			Date.parse(segment.startsAt ?? segment.createdAt),
+			windowStart,
+		);
+		const end = Math.min(
+			segment.endsAt ? Date.parse(segment.endsAt) : now.getTime(),
+			now.getTime(),
+		);
+		if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+			continue;
+		}
+		const severity = uptimelyStatusSeverity(segment.status);
+		if (severity === 0 || severity === 3) up += end - start;
+		else if (severity === 4) down += end - start;
+	}
+	const total = up + down;
+	return total > 0 ? (up / total) * 100 : null;
+};
+
+/**
+ * Pure: the segment the monitor is in right now (the open one, else the most
+ * recently started), used for "since" and the reason Uptimely recorded.
+ */
+export const currentUptimelySegment = (
+	segments: UptimelyTimelineSegment[],
+): UptimelyTimelineSegment | null => {
+	const open = segments.find((s) => !s.endsAt);
+	if (open) return open;
+	let latest: UptimelyTimelineSegment | null = null;
+	for (const s of segments) {
+		if (
+			!latest ||
+			Date.parse(s.startsAt ?? s.createdAt) >
+				Date.parse(latest.startsAt ?? latest.createdAt)
+		) {
+			latest = s;
+		}
+	}
+	return latest;
+};
 
 /**
  * Pure: folds status timeline segments into one bucket per UTC day (oldest
  * first), each carrying the worst status seen that day. Days no segment
- * covers are `null` (no data).
+ * covers are `null` with state `no-data`.
  */
 export const buildUptimelyDailyTimeline = (
 	segments: UptimelyTimelineSegment[],
 	days = 30,
 	now: Date = new Date(),
 ): UptimelyTimelineDay[] => {
-	const DAY = 24 * 60 * 60 * 1000;
+	const DAY = DAY_MS;
 	const todayStart = Date.UTC(
 		now.getUTCFullYear(),
 		now.getUTCMonth(),
@@ -580,12 +715,14 @@ export const buildUptimelyDailyTimeline = (
 		const overlapping = spans.filter(
 			(s) => s.start < dayEnd && s.end >= dayStart,
 		);
+		const status =
+			overlapping.length > 0
+				? worstUptimelyStatus(overlapping.map((s) => s.status))
+				: null;
 		buckets.push({
 			day: new Date(dayStart).toISOString().slice(0, 10),
-			status:
-				overlapping.length > 0
-					? worstUptimelyStatus(overlapping.map((s) => s.status))
-					: null,
+			status,
+			state: uptimelyDayState(status, overlapping.length > 0),
 		});
 	}
 	return buckets;
@@ -621,6 +758,14 @@ export const getUptimelyServiceStatus = async (params: {
 					? result.reason.message
 					: "Could not read the monitor from Uptimely"
 				: null;
+		const segments = detail?.statusTimeline ?? [];
+		const current = currentUptimelySegment(segments);
+		const lastPingAt =
+			(detail?.probes ?? [])
+				.map((p) => p.lastPingAt)
+				.filter((t): t is string => !!t)
+				.sort()
+				.at(-1) ?? null;
 		return {
 			linkId: link.linkId,
 			monitorId: link.monitorId,
@@ -628,7 +773,15 @@ export const getUptimelyServiceStatus = async (params: {
 			target: link.target,
 			name: detail?.name ?? null,
 			status: detail?.currentStatus ?? null,
-			timeline: buildUptimelyDailyTimeline(detail?.statusTimeline ?? []),
+			timeline: buildUptimelyDailyTimeline(segments),
+			/** 30-day uptime in percent, null until the monitor has history. */
+			uptimePercent: computeUptimelyUptimePercent(segments),
+			/** When the monitor entered its current status. */
+			statusSince: current?.startsAt ?? current?.createdAt ?? null,
+			/** Reason Uptimely recorded for the current status, if any. */
+			reason: current?.rootCause ?? null,
+			/** Last probe time, when Uptimely reports one (not for every monitor). */
+			lastCheckAt: lastPingAt,
 			url: uptimelyMonitorUrl(integration, link.monitorId),
 			error,
 		};

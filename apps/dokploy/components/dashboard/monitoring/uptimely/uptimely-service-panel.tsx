@@ -1,4 +1,6 @@
 import {
+	AlertTriangle,
+	CheckCircle2,
 	ExternalLink,
 	Link2Off,
 	Loader2,
@@ -7,16 +9,18 @@ import {
 	RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
 	PoweredByUptimely,
 	UptimelyMark,
 } from "@/components/dashboard/settings/integrations/uptimely/uptimely-logo";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
 	Tooltip,
@@ -26,6 +30,18 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api, type RouterInputs, type RouterOutputs } from "@/utils/api";
+import { useDebounce } from "@/utils/hooks/use-debounce";
+import {
+	CHECK_PATH_MAX_LENGTH,
+	checkPathError,
+	dayBarClass,
+	dayTooltip,
+	displayUrl,
+	formatRelativeTime,
+	formatUptimePercent,
+	isOfflineStatus,
+	preflightWarning,
+} from "./uptimely-panel-helpers";
 
 type UptimelyServiceType =
 	RouterInputs["uptimely"]["serviceStatus"]["serviceType"];
@@ -78,27 +94,126 @@ const DailyTimeline = ({
 	days: ServiceStatus["monitors"][number]["timeline"];
 }) => (
 	<TooltipProvider delayDuration={0}>
-		<div className="flex h-5 items-stretch gap-[2px]" aria-label="Last 30 days">
+		<div className="flex h-6 items-stretch gap-[2px]" aria-label="Last 30 days">
 			{days.map((day) => (
 				<Tooltip key={day.day}>
 					<TooltipTrigger asChild>
 						<span
-							className="w-1.5 rounded-sm bg-muted"
+							className={cn("w-2 rounded-sm", dayBarClass(day.state))}
+							title={dayTooltip(day)}
+							aria-label={dayTooltip(day)}
 							style={
-								day.status?.color
+								day.state !== "no-data" && day.status?.color
 									? { backgroundColor: day.status.color }
 									: undefined
 							}
 						/>
 					</TooltipTrigger>
-					<TooltipContent>
-						{day.day}: {day.status?.name ?? "No data"}
-					</TooltipContent>
+					<TooltipContent>{dayTooltip(day)}</TooltipContent>
 				</Tooltip>
 			))}
 		</div>
 	</TooltipProvider>
 );
+
+/**
+ * Per-URL preflight shown before any monitor exists: what the URL answers
+ * today, with a warning when Uptimely would report it Offline.
+ */
+const PreflightResults = ({
+	serviceType,
+	serviceId,
+	checkPath,
+}: {
+	serviceType: UptimelyServiceType;
+	serviceId: string;
+	checkPath: string;
+}) => {
+	const debouncedPath = useDebounce(checkPath.trim(), 600);
+	const pathError = checkPathError(debouncedPath);
+	const mutation = api.uptimely.preflightService.useMutation();
+	const { mutate } = mutation;
+	const run = useCallback(
+		() =>
+			mutate({
+				serviceType,
+				serviceId,
+				...(debouncedPath ? { checkPath: debouncedPath } : {}),
+			}),
+		[mutate, serviceType, serviceId, debouncedPath],
+	);
+	// Re-check when the (debounced) path changes.
+	useEffect(() => {
+		if (!pathError) run();
+	}, [pathError, run]);
+	const isFetching = mutation.isPending;
+	const error = mutation.error;
+	// Ignore a late answer for a path the input no longer holds.
+	const data =
+		mutation.variables?.checkPath === (debouncedPath || undefined)
+			? mutation.data
+			: undefined;
+	const failing = (data ?? []).filter((r) => !r.ok);
+
+	return (
+		<div className="flex flex-col gap-2">
+			<div className="flex flex-row items-center justify-between gap-2">
+				<span className="text-xs font-medium">Reachability check</span>
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={run}
+					disabled={isFetching || !!pathError}
+				>
+					<RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+					Check
+				</Button>
+			</div>
+			{error ? (
+				<span className="text-xs text-muted-foreground">
+					Could not check the URLs: {error.message}
+				</span>
+			) : (
+				<>
+					{(data ?? []).map((result) => (
+						<div
+							key={result.url}
+							className="flex flex-row items-center gap-2 text-xs"
+						>
+							{result.ok ? (
+								<CheckCircle2 className="size-3.5 shrink-0 text-green-500" />
+							) : (
+								<AlertTriangle className="size-3.5 shrink-0 text-amber-500" />
+							)}
+							<span className="truncate" title={result.url}>
+								{displayUrl(result.url)}
+							</span>
+							<span className="shrink-0 text-muted-foreground">
+								{result.status ?? result.error ?? "No response"}
+							</span>
+						</div>
+					))}
+					{isFetching && !data && (
+						<span className="flex items-center gap-2 text-xs text-muted-foreground">
+							<Loader2 className="size-3.5 animate-spin" />
+							Checking the URLs...
+						</span>
+					)}
+				</>
+			)}
+			{failing.length > 0 && (
+				<Alert>
+					<AlertTriangle />
+					<AlertDescription className="flex flex-col gap-1 text-xs">
+						{failing.map((result) => (
+							<span key={result.url}>{preflightWarning(result)}</span>
+						))}
+					</AlertDescription>
+				</Alert>
+			)}
+		</div>
+	);
+};
 
 /**
  * Uptimely panel shown above the built-in metrics in a service's Monitoring
@@ -107,6 +222,7 @@ const DailyTimeline = ({
  */
 export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 	const [includeSslAndDomain, setIncludeSslAndDomain] = useState(false);
+	const [checkPath, setCheckPath] = useState("");
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
@@ -132,9 +248,21 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 	const supportsDomains =
 		serviceType === "application" || serviceType === "compose";
 
+	const hasMonitors = !!data?.configured && data.monitors.length > 0;
+	const trimmedPath = checkPath.trim();
+	const pathError = checkPathError(trimmedPath);
+
 	const link = async () => {
 		await linkMutation
-			.mutateAsync({ ...input, includeSslAndDomain })
+			.mutateAsync({
+				...input,
+				includeSslAndDomain,
+				// Only set on first creation; "Add monitors for new domains" on an
+				// already-linked service keeps checking each domain's own URL.
+				...(trimmedPath && supportsDomains && !hasMonitors
+					? { checkPath: trimmedPath }
+					: {}),
+			})
 			.then(async (result) => {
 				toast.success(
 					result.created > 0
@@ -236,8 +364,14 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 						</span>
 					) : (
 						<span>
-							Uptimely monitoring is available once an admin connects it in
-							Settings → Integrations.
+							Uptimely monitoring is available once an admin connects it in{" "}
+							<Link
+								href="/dashboard/settings/integrations"
+								className="text-foreground underline"
+							>
+								Settings → Integrations
+							</Link>
+							.
 						</span>
 					)}
 				</span>
@@ -273,11 +407,47 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 							</Label>
 						</div>
 					)}
+					{supportsDomains && canManage && (
+						<>
+							<div className="flex flex-col gap-1.5">
+								<Label
+									htmlFor={`uptimely-path-${serviceId}`}
+									className="text-sm font-normal"
+								>
+									Path to check (optional)
+								</Label>
+								<Input
+									id={`uptimely-path-${serviceId}`}
+									className="max-w-sm"
+									placeholder="/health"
+									maxLength={CHECK_PATH_MAX_LENGTH}
+									value={checkPath}
+									onChange={(e) => setCheckPath(e.target.value)}
+									aria-invalid={!!pathError}
+								/>
+								<span
+									className={cn(
+										"text-xs",
+										pathError ? "text-red-500" : "text-muted-foreground",
+									)}
+								>
+									{pathError ??
+										"Added to each domain. Pick one that returns 200 (2xx or 3xx counts as up)."}
+								</span>
+							</div>
+							<PreflightResults
+								serviceType={serviceType}
+								serviceId={serviceId}
+								checkPath={checkPath}
+							/>
+						</>
+					)}
 					{canManage ? (
 						<Button
 							className="w-fit"
 							onClick={link}
 							isLoading={linkMutation.isPending}
+							disabled={!!pathError}
 						>
 							<PlugZap className="size-4" />
 							Monitor with Uptimely
@@ -352,38 +522,88 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 			</div>
 
 			<div className="flex flex-col divide-y rounded-lg border">
-				{data.monitors.map((monitor) => (
-					<div
-						key={monitor.linkId}
-						className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between"
-					>
-						<div className="flex min-w-0 flex-row items-center gap-2">
-							<Badge variant="secondary" className="shrink-0">
-								{KIND_LABEL[monitor.kind]}
-							</Badge>
-							<span className="truncate text-sm" title={monitor.target}>
-								{monitor.target}
-							</span>
-						</div>
-						<div className="flex flex-row flex-wrap items-center gap-3">
-							{monitor.error ? (
-								<span className="text-xs text-red-500">{monitor.error}</span>
-							) : (
-								<DailyTimeline days={monitor.timeline} />
+				{data.monitors.map((monitor) => {
+					const uptime = formatUptimePercent(monitor.uptimePercent);
+					const since = isOfflineStatus(monitor.status)
+						? formatRelativeTime(monitor.statusSince)
+						: null;
+					const lastCheck = formatRelativeTime(monitor.lastCheckAt);
+					return (
+						<div key={monitor.linkId} className="flex flex-col gap-1.5 p-3">
+							<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+								<div className="flex min-w-0 flex-row items-center gap-2">
+									<Badge variant="secondary" className="shrink-0">
+										{KIND_LABEL[monitor.kind]}
+									</Badge>
+									<span className="truncate text-sm" title={monitor.target}>
+										{monitor.target}
+									</span>
+								</div>
+								<div className="flex flex-row flex-wrap items-center gap-3">
+									{monitor.error ? (
+										<span className="text-xs text-red-500">
+											{monitor.error}
+										</span>
+									) : (
+										<>
+											<DailyTimeline days={monitor.timeline} />
+											<span
+												className="w-24 text-xs text-muted-foreground"
+												title="Uptime over the last 30 days"
+											>
+												{uptime ? `${uptime} (30d)` : "No history yet"}
+											</span>
+										</>
+									)}
+									<UptimelyStatusPill status={monitor.status} />
+									<a
+										href={monitor.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+									>
+										Open in Uptimely
+										<ExternalLink className="size-3" />
+									</a>
+								</div>
+							</div>
+							{since && (
+								<span className="text-xs text-muted-foreground">
+									Offline since {since}
+									{monitor.reason ? `: ${monitor.reason}` : ""}
+									{lastCheck ? ` · Last check ${lastCheck}` : ""}
+								</span>
 							)}
-							<UptimelyStatusPill status={monitor.status} />
-							<a
-								href={monitor.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-							>
-								Open in Uptimely
-								<ExternalLink className="size-3" />
-							</a>
 						</div>
-					</div>
-				))}
+					);
+				})}
+			</div>
+
+			<div className="flex flex-col gap-1 text-xs text-muted-foreground">
+				<span className="flex flex-row flex-wrap items-center gap-x-3 gap-y-1">
+					Last 30 days:
+					<span className="inline-flex items-center gap-1">
+						<span className="size-2 rounded-sm bg-green-500" />
+						Up
+					</span>
+					<span className="inline-flex items-center gap-1">
+						<span className="size-2 rounded-sm bg-red-500" />
+						Down
+					</span>
+					<span className="inline-flex items-center gap-1">
+						<span className="size-2 rounded-sm border border-dashed border-muted-foreground/40" />
+						No data (not monitored yet)
+					</span>
+				</span>
+				{data.monitors.some(
+					(m) => m.kind === "website" && isOfflineStatus(m.status),
+				) && (
+					<span>
+						A Website monitor is Offline unless its URL returns 2xx or 3xx. If
+						your service answers 404 there, unlink it and monitor again with a
+						path such as /health.
+					</span>
+				)}
 			</div>
 
 			<div className="flex flex-row flex-wrap items-center justify-between gap-2">

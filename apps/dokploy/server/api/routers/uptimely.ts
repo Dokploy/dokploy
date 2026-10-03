@@ -6,6 +6,7 @@ import {
 	linkUptimelyService,
 	listUptimelyStatusPages,
 	maskUptimelyApiKey,
+	preflightUptimelyTarget,
 	removeUptimely,
 	resolveUptimelyServiceTarget,
 	runUptimelyProbe,
@@ -26,6 +27,7 @@ import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateUptimely,
 	apiLinkUptimelyService,
+	apiPreflightUptimelyService,
 	apiRunUptimelyProbe,
 	apiTestUptimelyConnection,
 	apiUpdateUptimely,
@@ -227,6 +229,7 @@ export const uptimelyRouter = createTRPCRouter({
 			const target = await resolveUptimelyServiceTarget(
 				input.serviceType,
 				input.serviceId,
+				{ checkPath: input.checkPath },
 			);
 			if (target.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
@@ -259,6 +262,37 @@ export const uptimelyRouter = createTRPCRouter({
 			} catch (error) {
 				return asBadRequest(error, "Error creating Uptimely monitors");
 			}
+		}),
+
+	/**
+	 * Real GET of each HTTPS URL a Website monitor would watch, so the panel
+	 * can warn before creating monitors that Uptimely would report Offline.
+	 * Same gate as `linkService`; the URLs are derived server-side from the
+	 * service's own domains (+ the validated `checkPath`), never taken from the
+	 * client, and every hop must be public HTTPS. A mutation (not a query) on
+	 * purpose: it makes outbound requests, so it is explicit and, for MCP, sits
+	 * in the admin scope next to `linkService` rather than the read scope.
+	 */
+	preflightService: protectedProcedure
+		.input(apiPreflightUptimelyService)
+		.mutation(async ({ input, ctx }) => {
+			assertSelfHosted();
+			await checkServicePermissionAndAccess(ctx, input.serviceId, {
+				service: ["create"],
+			});
+			await requireIntegration(ctx.session.activeOrganizationId);
+			const target = await resolveUptimelyServiceTarget(
+				input.serviceType,
+				input.serviceId,
+				{ checkPath: input.checkPath },
+			);
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this service",
+				});
+			}
+			return preflightUptimelyTarget(target);
 		}),
 
 	unlinkService: protectedProcedure
