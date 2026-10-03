@@ -81,6 +81,19 @@ type ToolCall = { name: string; arguments: Record<string, unknown> };
 let toolCalls: ToolCall[] = [];
 let toolHandler: (call: ToolCall) => unknown = () => ({});
 
+/** Reads back `const input = JSON.parse("<json>");\nreturn await external_x(input);`. */
+const decodeProgram = (code: string): ToolCall => {
+	const match =
+		/^const input = JSON\.parse\(("(?:[^"\\]|\\.)*")\);\nreturn await external_([A-Za-z0-9_]+)\(input\);$/.exec(
+			code,
+		);
+	if (!match) throw new Error(`Unexpected generated program: ${code}`);
+	return {
+		name: match[2] as string,
+		arguments: JSON.parse(JSON.parse(match[1] as string)),
+	};
+};
+
 const installFetch = () => {
 	toolCalls = [];
 	vi.stubGlobal(
@@ -94,21 +107,29 @@ const installFetch = () => {
 					result: { protocolVersion: "2025-03-26", capabilities: {} },
 				});
 			}
-			const call = req.params as ToolCall;
+			// Code Mode: the only tool is `execute_typescript`; decode the
+			// generated program back into the Uptimely tool call it makes.
+			expect(req.params.name).toBe("execute_typescript");
+			const call = decodeProgram(String(req.params.arguments.code));
 			toolCalls.push(call);
-			let result: unknown;
+			let envelope: unknown;
 			try {
-				result = { structuredContent: toolHandler(call) };
+				envelope = { success: true, result: toolHandler(call), logs: [] };
 			} catch (error) {
-				result = {
-					isError: true,
-					structuredContent: {
-						code: "TOOL_EXECUTION_FAILED",
-						message: (error as Error).message,
+				envelope = {
+					success: false,
+					logs: [],
+					error: {
+						name: "Error",
+						message: `TOOL_EXECUTION_FAILED: ${(error as Error).message}`,
 					},
 				};
 			}
-			return Response.json({ jsonrpc: "2.0", id: req.id, result });
+			return Response.json({
+				jsonrpc: "2.0",
+				id: req.id,
+				result: { content: [{ type: "text", text: JSON.stringify(envelope) }] },
+			});
 		}),
 	);
 };
