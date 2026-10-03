@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.8**
+Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.9**
 
 Everything in upstream Dokploy **v0.30.7**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
@@ -12,7 +12,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.8 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.9 \
   --with-registry-auth \
   dokploy
 ```
@@ -126,6 +126,22 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/tag/v0.29.12-community.2)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.7-community.9
+
+**Uptimely integration works with Uptimely's Code Mode MCP** ([#250](https://github.com/DevinoSolutions/dokploy-community/pull/250))
+
+- Uptimely's MCP endpoint now exposes only `search_tools` and `execute_typescript`, so every call from Dokploy (test connection, status pages, monitor create and lookup, probes) failed with "Tool ... not found". Dokploy now runs each Uptimely tool through `execute_typescript`, and Uptimely's error codes (project access, invalid input, AI write operations off) come back as readable messages with a link to the right settings page.
+
+**Snapvisor defaults to its API host** ([#249](https://github.com/DevinoSolutions/dokploy-community/pull/249))
+
+- The Snapvisor Base URL now defaults to `https://api.snapvisor.io`. The old default, `https://app.snapvisor.io`, served the web app, so Test connection failed with "Snapvisor returned a non-JSON response". Saved integrations that still use the old value are treated as the API host, and build review links keep pointing at the web app.
+
+**Container log input survives a container restart** ([#248](https://github.com/DevinoSolutions/dokploy-community/pull/248))
+
+- Typing into the log viewer of a container that had exited and restarted went nowhere until the log viewer was reopened. The input session is now reopened on the next keystroke, including for TTY containers.
+
+> Merged on green CI; the image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.7-community.8
 
@@ -472,7 +488,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.7-community.8
+export DOKPLOY_VERSION=v0.30.7-community.9
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -485,7 +501,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.8     # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.9     # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
