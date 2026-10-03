@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.9**
+Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.10**
 
 Everything in upstream Dokploy **v0.30.7**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
@@ -17,7 +17,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.9 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.10 \
   --with-registry-auth \
   dokploy
 ```
@@ -131,6 +131,22 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/tag/v0.29.12-community.2)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.7-community.10
+
+**Uptimely monitors check the right URL** ([#254](https://github.com/DevinoSolutions/dokploy-community/pull/254))
+
+- Before creating monitors, the Uptimely panel checks each URL and shows what it returns. When one returns an error (for example a 404 at `/`), it warns that Uptimely will report it Offline.
+- A new optional **Path to check** (for example `/health`) is added to every domain's monitor.
+- The 30-day timeline now has per-day tooltips, a legend and a 30-day uptime percentage, and days without data look different from healthy days. Offline monitors show since when, with a hint on how to fix them.
+
+**Clearer integrations and log viewer** ([#252](https://github.com/DevinoSolutions/dokploy-community/pull/252), [#251](https://github.com/DevinoSolutions/dokploy-community/pull/251))
+
+- Integration dialogs keep Test connection and Save visible on small screens, and the Integrations page points to Notifications for Sendly and Notifly.
+- The log viewer's input says that it writes to the container's standard input.
+- A wrong Uptimely API key now shows "Uptimely rejected the API key" instead of "Uptimely JSON-RPC error undefined".
+
+> Merged on green CI; the image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.7-community.9
 
@@ -493,7 +509,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.7-community.9
+export DOKPLOY_VERSION=v0.30.7-community.10
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -506,7 +522,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.9     # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.10     # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
