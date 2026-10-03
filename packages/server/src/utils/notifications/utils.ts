@@ -82,6 +82,19 @@ export const sendResendNotification = async (
 	}
 };
 
+/**
+ * Sendly answers 200 for an email whose subject and body match one it already
+ * sent to the same recipient, but never delivers it. The send time makes every
+ * test email unique, so each "Test" click really arrives.
+ */
+export const buildSendlyTestEmail = (now: Date = new Date()) => {
+	const sentAt = now.toISOString().replace("T", " ").slice(0, 19);
+	return {
+		subject: `Test Email (${sentAt} UTC)`,
+		html: `<p>Hi, From Dokploy 👋</p><p>Sent at ${sentAt} UTC.</p>`,
+	};
+};
+
 export const sendSendlyNotification = async (
 	connection: typeof sendly.$inferInsert,
 	subject: string,
