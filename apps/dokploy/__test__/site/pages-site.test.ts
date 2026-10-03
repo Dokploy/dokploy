@@ -344,6 +344,25 @@ describe("pages site: repository files", () => {
 		it("keeps the title as its first line (it is the site index)", () => {
 			expect(readme.startsWith("# Dokploy Community Edition")).toBe(true);
 		});
+
+		it("shows the env reference syntax without feeding it to Liquid", () => {
+			expect(readme).toContain(
+				"<code>${&#123;service.&lt;name&gt;.fqdn}}</code>",
+			);
+		});
+	});
+
+	describe("Liquid", () => {
+		// GitHub Pages runs every page through Liquid, which silently drops
+		// `{{ ... }}` and `{% ... %}`. Escape them as `&#123;` in raw HTML.
+		it.each(["README.md", "faq.md", "integrations.md"])(
+			"%s has no Liquid delimiters",
+			(file) => {
+				const text = read(file);
+				expect(text).not.toContain("{{");
+				expect(text).not.toContain("{%");
+			},
+		);
 	});
 
 	describe("IndexNow key file", () => {

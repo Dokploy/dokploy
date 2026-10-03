@@ -69,7 +69,7 @@ https://github.com/user-attachments/assets/94134095-5601-4279-be2f-219734c8e199
 - **Wildcard domain support** (`*.example.com`), with an optional wildcard-restriction setting to control who can use it
 - **Per-server default domain** for auto-generated app domains — each server can hand out its own base domain
 - Global **response-compression** toggle (Traefik compress middleware)
-- Cross-service env references via `${{service.<name>.fqdn}}`
+- Cross-service env references via <code>${&#123;service.&lt;name&gt;.fqdn}}</code>
 - Configurable **MTU** for isolated networks, explicit `HostIp` on Traefik port bindings, and public-IP handling for `traefik.me` domains behind private IPs
 - Custom certificate provider display and more reliable Traefik file-provider discovery
 
