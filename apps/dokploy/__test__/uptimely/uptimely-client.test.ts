@@ -506,6 +506,57 @@ describe("uptimely client (code mode)", () => {
 		);
 	});
 
+	it("shows the API key message when the 401 body is an OAuth error", async () => {
+		const fetchImpl = fakeFetch(() => ({
+			status: 401,
+			body: JSON.stringify({
+				error: "invalid_token",
+				error_description: "No authorization provided",
+			}),
+		}));
+		const client = createUptimelyClient({
+			baseUrl: "https://uptimely.test",
+			apiKey: "bad",
+			fetchImpl: fetchImpl as unknown as typeof fetch,
+		});
+		await expect(client.callTool("uptimely_project_list")).rejects.toThrow(
+			"Uptimely rejected the API key. Check the project API key in Settings → Integrations.",
+		);
+	});
+
+	it("still surfaces a JSON-RPC error object's message", async () => {
+		const fetchImpl = fakeFetch((req) => ({
+			body: JSON.stringify({
+				jsonrpc: "2.0",
+				id: req.id,
+				error: { code: -32602, message: "Invalid params" },
+			}),
+		}));
+		const client = createUptimelyClient({
+			baseUrl: "https://uptimely.test",
+			apiKey: "k",
+			fetchImpl: fetchImpl as unknown as typeof fetch,
+		});
+		await expect(client.callTool("uptimely_project_list")).rejects.toThrow(
+			"Invalid params",
+		);
+	});
+
+	it("reports the HTTP status for a non-401 error with a string error body", async () => {
+		const fetchImpl = fakeFetch(() => ({
+			status: 500,
+			body: JSON.stringify({ error: "internal_error" }),
+		}));
+		const client = createUptimelyClient({
+			baseUrl: "https://uptimely.test",
+			apiKey: "k",
+			fetchImpl: fetchImpl as unknown as typeof fetch,
+		});
+		await expect(client.callTool("uptimely_project_list")).rejects.toThrow(
+			"Uptimely responded with HTTP 500",
+		);
+	});
+
 	it("times out instead of hanging", async () => {
 		const fetchImpl = vi.fn(
 			(_url: string | URL | Request, init?: RequestInit) =>
