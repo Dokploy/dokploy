@@ -6,6 +6,11 @@ Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.9**
 
 Everything in upstream Dokploy **v0.30.7**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
+## Guides
+
+- **[Integrations guide](https://dokploy-community.devino.ca/integrations/)** — set up Uptimely, Snapvisor, DoDomain, Sendly and Notifly
+- **[FAQ](https://dokploy-community.devino.ca/faq/)** — install, migrate from Dokploy, multi-arch images, uptime monitoring, telemetry
+
 ## Switching from official Dokploy
 
 One command. Keeps every app, database, domain, and setting — the extra migrations are additive:
