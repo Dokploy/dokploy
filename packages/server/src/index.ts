@@ -170,6 +170,7 @@ export * from "./utils/traefik/types";
 export * from "./utils/traefik/web-server";
 export * from "./utils/snapvisor/client";
 export * from "./utils/uptimely/client";
+export * from "./utils/uptimely/preflight";
 export * from "./utils/dodomain/client";
 export * from "./utils/notifications/domain-verification";
 export * from "./utils/vault";

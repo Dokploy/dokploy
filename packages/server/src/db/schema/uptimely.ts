@@ -173,8 +173,35 @@ export const apiUptimelyService = z.object({
 	serviceId: z.string().min(1),
 });
 
+export const UPTIMELY_CHECK_PATH_MAX_LENGTH = 200;
+
+/**
+ * Optional path every Website monitor checks (e.g. `/health`), appended to the
+ * domain's own path. It is only ever joined onto the service's own hosts, so
+ * it must stay a plain path: it starts with a single `/`, is printable ASCII
+ * and contains no whitespace, backslash (browsers read it as `/`) or fragment.
+ * `//host` would be a protocol-relative URL and is refused outright.
+ */
+export const uptimelyCheckPathSchema = z
+	.string()
+	.max(
+		UPTIMELY_CHECK_PATH_MAX_LENGTH,
+		`Use at most ${UPTIMELY_CHECK_PATH_MAX_LENGTH} characters`,
+	)
+	.refine((value) => value.startsWith("/"), "The path must start with /")
+	.refine((value) => !value.startsWith("//"), "The path cannot start with //")
+	.refine(
+		(value) => /^[\x21-\x7e]*$/.test(value) && !/[\\#]/.test(value),
+		"Use a plain path without spaces, backslashes or #",
+	);
+
 export const apiLinkUptimelyService = apiUptimelyService.extend({
 	includeSslAndDomain: z.boolean().default(false),
+	checkPath: uptimelyCheckPathSchema.optional(),
+});
+
+export const apiPreflightUptimelyService = apiUptimelyService.extend({
+	checkPath: uptimelyCheckPathSchema.optional(),
 });
 
 export const apiRunUptimelyProbe = apiUptimelyService.extend({

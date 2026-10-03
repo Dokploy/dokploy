@@ -666,6 +666,7 @@ exports[`MCP tool scope table > tool → scope snapshot 1`] = `
   "uptimely-create": "dokploy:admin",
   "uptimely-linkService": "dokploy:admin",
   "uptimely-one": "dokploy:read",
+  "uptimely-preflightService": "dokploy:admin",
   "uptimely-remove": "dokploy:admin",
   "uptimely-runProbe": "dokploy:admin",
   "uptimely-serviceStatus": "dokploy:read",
