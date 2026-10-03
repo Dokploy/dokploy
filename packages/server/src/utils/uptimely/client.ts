@@ -113,7 +113,13 @@ const pickResponse = (
 ): JsonRpcResponse | null => {
 	const responses = candidates.filter(
 		(c): c is JsonRpcResponse =>
-			!!c && typeof c === "object" && ("result" in c || "error" in c),
+			!!c &&
+			typeof c === "object" &&
+			("result" in c ||
+				// A string `error` is an OAuth-style body, not a JSON-RPC error.
+				("error" in c &&
+					!!(c as { error: unknown }).error &&
+					typeof (c as { error: unknown }).error === "object")),
 	);
 	return (
 		responses.find((r) => r.id === id) ??
@@ -396,6 +402,14 @@ export const createUptimelyClient = (
 			? parseJsonRpcBody(body, response.headers.get("content-type"), id)
 			: null;
 
+		// Checked first: Uptimely answers a bad key with HTTP 401 and an OAuth
+		// error body, which must not be read as a JSON-RPC error.
+		if (response.status === 401 || response.status === 403) {
+			throw new UptimelyError(
+				"Uptimely rejected the API key. Check the project API key in Settings → Integrations.",
+				{ code: response.status },
+			);
+		}
 		if (parsed?.error) {
 			throw new UptimelyError(
 				parsed.error.message || `Uptimely JSON-RPC error ${parsed.error.code}`,
@@ -403,12 +417,6 @@ export const createUptimelyClient = (
 			);
 		}
 		if (!response.ok) {
-			if (response.status === 401 || response.status === 403) {
-				throw new UptimelyError(
-					"Uptimely rejected the API key. Check the project API key in Settings → Integrations.",
-					{ code: response.status },
-				);
-			}
 			throw new UptimelyError(
 				`Uptimely responded with HTTP ${response.status}`,
 				{ code: response.status },
