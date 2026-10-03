@@ -67,7 +67,8 @@ export const initializeStandaloneTraefik = async ({
 	for (const port of additionalPorts) {
 		const portKey = `${port.targetPort}/${port.protocol ?? "tcp"}`;
 		exposedPorts[portKey] = {};
-		portBindings[portKey] = [{ HostPort: port.publishedPort.toString() }];
+		portBindings[portKey] = portBindings[portKey] ?? [];
+		portBindings[portKey].push({ HostPort: port.publishedPort.toString() });
 	}
 
 	const settings: ContainerCreateOptions = {
