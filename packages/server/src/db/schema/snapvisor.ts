@@ -4,7 +4,9 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 
-export const SNAPVISOR_DEFAULT_BASE_URL = "https://app.snapvisor.io";
+import { SNAPVISOR_DEFAULT_BASE_URL } from "../../utils/snapvisor/urls";
+
+export { SNAPVISOR_DEFAULT_BASE_URL };
 
 /**
  * Organization-scoped Snapvisor connection (one per organization).

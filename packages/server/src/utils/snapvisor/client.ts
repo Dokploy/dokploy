@@ -14,6 +14,8 @@
  * fork needs.
  */
 
+import { normalizeSnapvisorApiBaseUrl } from "./urls";
+
 export class SnapvisorError extends Error {
 	readonly status?: number;
 
@@ -102,7 +104,7 @@ interface SnapvisorPage<T> {
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export const snapvisorApiUrl = (baseUrl: string) =>
-	`${baseUrl.replace(/\/+$/, "")}/v2`;
+	`${normalizeSnapvisorApiBaseUrl(baseUrl)}/v2`;
 
 export interface SnapvisorClient {
 	getMe(): Promise<SnapvisorMe>;

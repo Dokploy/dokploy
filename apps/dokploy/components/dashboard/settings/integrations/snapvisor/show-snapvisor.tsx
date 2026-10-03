@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { snapvisorWebBaseUrl } from "@dokploy/server/utils/snapvisor/urls";
 import { HandleSnapvisor } from "./handle-snapvisor";
 import {
 	PoweredBySnapvisor,
@@ -88,7 +89,7 @@ export const ShowSnapvisor = () => {
 						<dt className="text-xs text-muted-foreground">Base URL</dt>
 						<dd className="break-all">
 							<a
-								href={`${integration.baseUrl}/${integration.accountSlug}`}
+								href={`${snapvisorWebBaseUrl(integration.baseUrl)}/${integration.accountSlug}`}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-flex items-center gap-1 hover:underline"

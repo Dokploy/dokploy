@@ -26,8 +26,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { SNAPVISOR_DEFAULT_BASE_URL } from "@dokploy/server/utils/snapvisor/urls";
 
-export const SNAPVISOR_DEFAULT_BASE_URL = "https://app.snapvisor.io";
 
 const snapvisorSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),

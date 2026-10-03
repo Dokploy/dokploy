@@ -130,7 +130,7 @@ beforeEach(() => {
 		name: "Snapvisor",
 		accessToken: SECRET_TOKEN,
 		accountSlug: "my-team",
-		baseUrl: "https://app.snapvisor.io",
+		baseUrl: "https://api.snapvisor.io",
 		createdAt: new Date(),
 	};
 	mocks.application = {
