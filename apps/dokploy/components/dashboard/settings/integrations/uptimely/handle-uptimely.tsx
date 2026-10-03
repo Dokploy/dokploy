@@ -215,7 +215,7 @@ export const HandleUptimely = ({ editing = false }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl overflow-hidden">
 				<DialogHeader>
 					<DialogTitle>{editing ? "Update" : "Connect"} Uptimely</DialogTitle>
 					<DialogDescription>
@@ -223,215 +223,222 @@ export const HandleUptimely = ({ editing = false }: Props) => {
 						API key. Services can then be monitored from their Monitoring tab.
 					</DialogDescription>
 				</DialogHeader>
-				{(isError || testMutation.isError) && (
-					<AlertBlock type="error" className="w-full">
-						{testMutation.error?.message || error?.message}
+				<div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+					{(isError || testMutation.isError) && (
+						<AlertBlock type="error" className="w-full">
+							{testMutation.error?.message || error?.message}
+						</AlertBlock>
+					)}
+					<AlertBlock type="info" className="w-full">
+						Creating monitors and running probes are write operations in
+						Uptimely: turn on{" "}
+						<span className="font-medium">AI write operations</span> for the
+						project in{" "}
+						<a
+							href={apiKeysUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="underline"
+						>
+							Uptimely → Settings → API Keys
+						</a>{" "}
+						or monitor creation will be refused. Reading status works either
+						way.
 					</AlertBlock>
-				)}
-				<AlertBlock type="info" className="w-full">
-					Creating monitors and running probes are write operations in Uptimely:
-					turn on <span className="font-medium">AI write operations</span> for
-					the project in{" "}
-					<a
-						href={apiKeysUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="underline"
-					>
-						Uptimely → Settings → API Keys
-					</a>{" "}
-					or monitor creation will be refused. Reading status works either way.
-				</AlertBlock>
 
-				<Form {...form}>
-					<form
-						id="hook-form-uptimely"
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
-					>
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Name</FormLabel>
-									<FormControl>
-										<Input placeholder="Uptimely" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="apiKey"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Project API key</FormLabel>
-									<FormControl>
-										<Input
-											type="password"
-											autoComplete="off"
-											placeholder={
-												editing
-													? `Leave blank to keep the current key${
-															integration?.apiKeyMasked
-																? ` (${integration.apiKeyMasked})`
-																: ""
-														}`
-													: "Uptimely project API key"
-											}
-											{...field}
-										/>
-									</FormControl>
-									<FormDescription>
-										Create one in Uptimely under Settings → API Keys. The key is
-										locked to a single project and is never shown again here.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="projectId"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Project ID</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="00000000-0000-0000-0000-000000000000"
-											{...field}
-										/>
-									</FormControl>
-									<FormDescription>
-										Leave it blank and use Test connection to fill it in from
-										the projects the key can reach.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						{testResult && (
-							<div className="flex flex-col gap-2 rounded-lg border p-3">
-								<span className="text-sm font-medium">
-									Projects this key can access
-								</span>
-								{testResult.projects.length === 0 ? (
-									<span className="text-xs text-muted-foreground">
-										None. Check that the key is still active in Uptimely.
-									</span>
-								) : (
-									testResult.projects.map((project) => {
-										const selected = project.id === projectId;
-										return (
-											<button
-												type="button"
-												key={project.id}
-												onClick={() =>
-													form.setValue("projectId", project.id, {
-														shouldValidate: true,
-													})
+					<Form {...form}>
+						<form
+							id="hook-form-uptimely"
+							onSubmit={form.handleSubmit(onSubmit)}
+							className="grid w-full gap-4"
+						>
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Name</FormLabel>
+										<FormControl>
+											<Input placeholder="Uptimely" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="apiKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Project API key</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												autoComplete="off"
+												placeholder={
+													editing
+														? `Leave blank to keep the current key${
+																integration?.apiKeyMasked
+																	? ` (${integration.apiKeyMasked})`
+																	: ""
+															}`
+														: "Uptimely project API key"
 												}
-												className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
-											>
-												<span className="flex flex-col">
-													<span>{project.name}</span>
-													<span className="font-mono text-xs text-muted-foreground">
-														{project.id}
-													</span>
-												</span>
-												{selected ? (
-													<CheckCircle2 className="size-4 text-green-600" />
-												) : (
-													<span className="text-xs text-muted-foreground">
-														Use this project
-													</span>
-												)}
-											</button>
-										);
-									})
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Create one in Uptimely under Settings → API Keys. The key
+											is locked to a single project and is never shown again
+											here.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
 								)}
-								{!testResult.projectFound && testResult.projects.length > 0 && (
-									<span className="flex items-center gap-1 text-xs text-red-500">
-										<XCircle className="size-3" />
-										The project id above is not one of these.
+							/>
+							<FormField
+								control={form.control}
+								name="projectId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Project ID</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="00000000-0000-0000-0000-000000000000"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Leave it blank and use Test connection to fill it in from
+											the projects the key can reach.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							{testResult && (
+								<div className="flex flex-col gap-2 rounded-lg border p-3">
+									<span className="text-sm font-medium">
+										Projects this key can access
 									</span>
-								)}
-							</div>
-						)}
-						<FormField
-							control={form.control}
-							name="baseUrl"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Base URL</FormLabel>
-									<FormControl>
-										<Input placeholder={UPTIMELY_DEFAULT_BASE_URL} {...field} />
-									</FormControl>
-									<FormDescription>
-										Change only for a self-hosted Uptimely.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="statusPageSlug"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Status page slug (optional)</FormLabel>
-									<FormControl>
-										<Input placeholder="my-status-page" {...field} />
-									</FormControl>
-									{editing && statusPages && statusPages.length > 0 && (
-										<div className="flex flex-wrap gap-2">
-											{statusPages.map((page) => (
-												<Badge
-													key={page.id}
-													variant={
-														page.slug === field.value ? "default" : "secondary"
-													}
-													className="cursor-pointer"
+									{testResult.projects.length === 0 ? (
+										<span className="text-xs text-muted-foreground">
+											None. Check that the key is still active in Uptimely.
+										</span>
+									) : (
+										testResult.projects.map((project) => {
+											const selected = project.id === projectId;
+											return (
+												<button
+													type="button"
+													key={project.id}
 													onClick={() =>
-														form.setValue("statusPageSlug", page.slug)
+														form.setValue("projectId", project.id, {
+															shouldValidate: true,
+														})
 													}
+													className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
 												>
-													{page.name}
-													{!page.isPublic && " (private)"}
-												</Badge>
-											))}
-										</div>
+													<span className="flex flex-col">
+														<span>{project.name}</span>
+														<span className="font-mono text-xs text-muted-foreground">
+															{project.id}
+														</span>
+													</span>
+													{selected ? (
+														<CheckCircle2 className="size-4 text-green-600" />
+													) : (
+														<span className="text-xs text-muted-foreground">
+															Use this project
+														</span>
+													)}
+												</button>
+											);
+										})
 									)}
-									<FormDescription>
-										When set, the public status badge is shown on each monitored
-										service. Only public status pages have a badge.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
+									{!testResult.projectFound &&
+										testResult.projects.length > 0 && (
+											<span className="flex items-center gap-1 text-xs text-red-500">
+												<XCircle className="size-3" />
+												The project id above is not one of these.
+											</span>
+										)}
+								</div>
 							)}
-						/>
-					</form>
+							<FormField
+								control={form.control}
+								name="baseUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Base URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder={UPTIMELY_DEFAULT_BASE_URL}
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Change only for a self-hosted Uptimely.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="statusPageSlug"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Status page slug (optional)</FormLabel>
+										<FormControl>
+											<Input placeholder="my-status-page" {...field} />
+										</FormControl>
+										{editing && statusPages && statusPages.length > 0 && (
+											<div className="flex flex-wrap gap-2">
+												{statusPages.map((page) => (
+													<Badge
+														key={page.id}
+														variant={
+															page.slug === field.value
+																? "default"
+																: "secondary"
+														}
+														className="cursor-pointer"
+														onClick={() =>
+															form.setValue("statusPageSlug", page.slug)
+														}
+													>
+														{page.name}
+														{!page.isPublic && " (private)"}
+													</Badge>
+												))}
+											</div>
+										)}
+										<FormDescription>
+											When set, the public status badge is shown on each
+											monitored service. Only public status pages have a badge.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</form>
+					</Form>
+				</div>
 
-					<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
-						<Button
-							isLoading={testMutation.isPending}
-							type="button"
-							variant="secondary"
-							onClick={handleTestConnection}
-						>
-							Test connection
-						</Button>
-						<Button
-							isLoading={isPending}
-							form="hook-form-uptimely"
-							type="submit"
-						>
-							{editing ? "Update" : "Connect"}
-						</Button>
-					</DialogFooter>
-				</Form>
+				<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
+					<Button
+						isLoading={testMutation.isPending}
+						type="button"
+						variant="secondary"
+						onClick={handleTestConnection}
+					>
+						Test connection
+					</Button>
+					<Button isLoading={isPending} form="hook-form-uptimely" type="submit">
+						{editing ? "Update" : "Connect"}
+					</Button>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);

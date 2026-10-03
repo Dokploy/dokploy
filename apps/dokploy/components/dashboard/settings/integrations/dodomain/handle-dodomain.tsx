@@ -208,7 +208,7 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl overflow-hidden">
 				<DialogHeader>
 					<DialogTitle>{editing ? "Update" : "Connect"} DoDomain</DialogTitle>
 					<DialogDescription>
@@ -217,171 +217,173 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 						service&apos;s Domains tab.
 					</DialogDescription>
 				</DialogHeader>
-				{(isError || testMutation.isError) && (
-					<AlertBlock type="error" className="w-full">
-						{testMutation.error?.message || error?.message}
+				<div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+					{(isError || testMutation.isError) && (
+						<AlertBlock type="error" className="w-full">
+							{testMutation.error?.message || error?.message}
+						</AlertBlock>
+					)}
+					<AlertBlock type="info" className="w-full">
+						Saving registers a webhook endpoint on this panel&apos;s public URL
+						(<span className="font-mono">/api/webhooks/dodomain</span>) so
+						DoDomain can report verification results. The panel must be
+						reachable over https (Settings → Web Server).
 					</AlertBlock>
-				)}
-				<AlertBlock type="info" className="w-full">
-					Saving registers a webhook endpoint on this panel&apos;s public URL (
-					<span className="font-mono">/api/webhooks/dodomain</span>) so DoDomain
-					can report verification results. The panel must be reachable over
-					https (Settings → Web Server).
-				</AlertBlock>
 
-				<Form {...form}>
-					<form
-						id="hook-form-dodomain"
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
-					>
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Name</FormLabel>
-									<FormControl>
-										<Input placeholder="DoDomain" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="secretKey"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Secret key</FormLabel>
-									<FormControl>
-										<Input
-											type="password"
-											autoComplete="off"
-											placeholder={
-												editing
-													? `Leave blank to keep the current key${
-															integration?.secretKeyMasked
-																? ` (${integration.secretKeyMasked})`
-																: ""
-														}`
-													: "dd_sk_..."
-											}
-											{...field}
-										/>
-									</FormControl>
-									<FormDescription>
-										The app&apos;s server-side key from the DoDomain dashboard.
-										It is stored on this server and never shown again here.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="appId"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>App ID</FormLabel>
-									<FormControl>
-										<Input placeholder="app_..." {...field} />
-									</FormControl>
-									<FormDescription>
-										Leave it blank and use Test connection to fill it in from
-										the key.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						{testResult && (
-							<div className="flex flex-col gap-2 rounded-lg border p-3">
-								<span className="text-sm font-medium">
-									App this key belongs to
-								</span>
-								{testResult.apps.length === 0 ? (
-									<span className="text-xs text-muted-foreground">
-										None. Check that the key is still active in DoDomain.
-									</span>
-								) : (
-									testResult.apps.map((app) => {
-										const selected = app.id === appId;
-										return (
-											<button
-												type="button"
-												key={app.id}
-												onClick={() =>
-													form.setValue("appId", app.id, {
-														shouldValidate: true,
-													})
+					<Form {...form}>
+						<form
+							id="hook-form-dodomain"
+							onSubmit={form.handleSubmit(onSubmit)}
+							className="grid w-full gap-4"
+						>
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Name</FormLabel>
+										<FormControl>
+											<Input placeholder="DoDomain" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="secretKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Secret key</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												autoComplete="off"
+												placeholder={
+													editing
+														? `Leave blank to keep the current key${
+																integration?.secretKeyMasked
+																	? ` (${integration.secretKeyMasked})`
+																	: ""
+															}`
+														: "dd_sk_..."
 												}
-												className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
-											>
-												<span className="flex flex-col">
-													<span>
-														{app.name}
-														{app.sandbox && " (sandbox)"}
-													</span>
-													<span className="font-mono text-xs text-muted-foreground">
-														{app.id}
-													</span>
-												</span>
-												{selected ? (
-													<CheckCircle2 className="size-4 text-green-600" />
-												) : (
-													<span className="text-xs text-muted-foreground">
-														Use this app
-													</span>
-												)}
-											</button>
-										);
-									})
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											The app&apos;s server-side key from the DoDomain
+											dashboard. It is stored on this server and never shown
+											again here.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
 								)}
-								{!testResult.appFound && testResult.apps.length > 0 && (
-									<span className="flex items-center gap-1 text-xs text-red-500">
-										<XCircle className="size-3" />
-										The app id above does not match the key.
+							/>
+							<FormField
+								control={form.control}
+								name="appId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>App ID</FormLabel>
+										<FormControl>
+											<Input placeholder="app_..." {...field} />
+										</FormControl>
+										<FormDescription>
+											Leave it blank and use Test connection to fill it in from
+											the key.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							{testResult && (
+								<div className="flex flex-col gap-2 rounded-lg border p-3">
+									<span className="text-sm font-medium">
+										App this key belongs to
 									</span>
-								)}
-							</div>
-						)}
-						<FormField
-							control={form.control}
-							name="baseUrl"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Base URL</FormLabel>
-									<FormControl>
-										<Input placeholder={DODOMAIN_DEFAULT_BASE_URL} {...field} />
-									</FormControl>
-									<FormDescription>
-										Change only for a self-hosted DoDomain.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
+									{testResult.apps.length === 0 ? (
+										<span className="text-xs text-muted-foreground">
+											None. Check that the key is still active in DoDomain.
+										</span>
+									) : (
+										testResult.apps.map((app) => {
+											const selected = app.id === appId;
+											return (
+												<button
+													type="button"
+													key={app.id}
+													onClick={() =>
+														form.setValue("appId", app.id, {
+															shouldValidate: true,
+														})
+													}
+													className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
+												>
+													<span className="flex flex-col">
+														<span>
+															{app.name}
+															{app.sandbox && " (sandbox)"}
+														</span>
+														<span className="font-mono text-xs text-muted-foreground">
+															{app.id}
+														</span>
+													</span>
+													{selected ? (
+														<CheckCircle2 className="size-4 text-green-600" />
+													) : (
+														<span className="text-xs text-muted-foreground">
+															Use this app
+														</span>
+													)}
+												</button>
+											);
+										})
+									)}
+									{!testResult.appFound && testResult.apps.length > 0 && (
+										<span className="flex items-center gap-1 text-xs text-red-500">
+											<XCircle className="size-3" />
+											The app id above does not match the key.
+										</span>
+									)}
+								</div>
 							)}
-						/>
-					</form>
+							<FormField
+								control={form.control}
+								name="baseUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Base URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder={DODOMAIN_DEFAULT_BASE_URL}
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Change only for a self-hosted DoDomain.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</form>
+					</Form>
+				</div>
 
-					<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
-						<Button
-							isLoading={testMutation.isPending}
-							type="button"
-							variant="secondary"
-							onClick={handleTestConnection}
-						>
-							Test connection
-						</Button>
-						<Button
-							isLoading={isPending}
-							form="hook-form-dodomain"
-							type="submit"
-						>
-							{editing ? "Update" : "Connect"}
-						</Button>
-					</DialogFooter>
-				</Form>
+				<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
+					<Button
+						isLoading={testMutation.isPending}
+						type="button"
+						variant="secondary"
+						onClick={handleTestConnection}
+					>
+						Test connection
+					</Button>
+					<Button isLoading={isPending} form="hook-form-dodomain" type="submit">
+						{editing ? "Update" : "Connect"}
+					</Button>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
