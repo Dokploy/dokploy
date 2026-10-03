@@ -1,4 +1,5 @@
 import {
+	buildSendlyTestEmail,
 	createCustomNotification,
 	createDiscordNotification,
 	createEmailNotification,
@@ -493,11 +494,8 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiTestSendlyConnection)
 		.mutation(async ({ input }) => {
 			try {
-				await sendSendlyNotification(
-					input,
-					"Test Email",
-					"<p>Hi, From Dokploy 👋</p>",
-				);
+				const { subject, html } = buildSendlyTestEmail();
+				await sendSendlyNotification(input, subject, html);
 				return true;
 			} catch (error) {
 				throw new TRPCError({
