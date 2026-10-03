@@ -1,0 +1,54 @@
+# GitHub Pages (legacy Jekyll build) config for https://dokploy-community.devino.ca
+#
+# The site is the README (index), plus integrations.md and faq.md. Everything
+# else in this repository is source code or internal documentation and must
+# not be published or listed in the sitemap, so it is excluded below.
+
+title: "Dokploy Community Edition"
+# jekyll-seo-tag builds the home page <title> as "title | tagline"; without a
+# tagline it falls back to the long description below.
+tagline: "A self-hosted Dokploy fork"
+description: "A self-hosted Dokploy fork: upstream Dokploy plus 100+ community fixes, native Uptimely, Snapvisor and DoDomain integrations, an MCP server and more."
+url: "https://dokploy-community.devino.ca"
+baseurl: ""
+lang: en
+
+# Both are on the GitHub Pages plugin whitelist.
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# GitHub Pages runs Jekyll 3, where `exclude` replaces the defaults instead of
+# extending them, so the defaults (Gemfile, node_modules, vendor) are repeated.
+exclude:
+  # Source code and internal documentation
+  - apps
+  - packages
+  - docs
+  - patches
+  - scripts
+  - .github
+  - .claude
+  - .devcontainer
+  - .vscode
+  # Tooling, build and lock files
+  - Dockerfile
+  - Dockerfile.cloud
+  - Dockerfile.monitoring
+  - Dockerfile.schedule
+  - Dockerfile.server
+  - biome.json
+  - package.json
+  - pnpm-lock.yaml
+  - pnpm-workspace.yaml
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  # Repository-meta Markdown that is not a public site page (still on GitHub)
+  - CONTRIBUTING.md
+  - GUIDES.md
+  - SECURITY.md
+  - LICENSE.MD
+  - LICENSE_PROPRIETARY.md
+  - TERMS_AND_CONDITIONS.md

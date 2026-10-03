@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dokploy-community.devino.ca/sitemap.xml
