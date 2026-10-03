@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.10**
+Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.11**
 
 Everything in upstream Dokploy **v0.30.7**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
@@ -17,7 +17,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.10 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.11 \
   --with-registry-auth \
   dokploy
 ```
@@ -131,6 +131,14 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/tag/v0.29.12-community.2)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.7-community.11
+
+**Sendly test emails arrive every time** ([#256](https://github.com/DevinoSolutions/dokploy-community/pull/256))
+
+- Sendly accepts an email identical to one it already sent to the same recipient but never delivers it, so only the first **Test Notification** of a Sendly channel ever reached the inbox. Each test email now carries its send time, for example `Test Email (2026-10-03 19:06:09 UTC)`.
+
+> Merged on green CI; the image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.7-community.10
 
@@ -509,7 +517,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.7-community.10
+export DOKPLOY_VERSION=v0.30.7-community.11
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -522,7 +530,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.10     # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.11     # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
