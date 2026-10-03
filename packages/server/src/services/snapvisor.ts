@@ -11,6 +11,7 @@ import {
 	type SnapvisorBuild,
 	type SnapvisorClient,
 } from "@dokploy/server/utils/snapvisor/client";
+import { snapvisorWebBaseUrl } from "@dokploy/server/utils/snapvisor/urls";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -45,7 +46,7 @@ export const snapvisorBuildReviewUrl = (
 	projectName: string,
 	buildNumber: number | string,
 ) =>
-	`${integration.baseUrl.replace(/\/+$/, "")}/${encodeURIComponent(
+	`${snapvisorWebBaseUrl(integration.baseUrl)}/${encodeURIComponent(
 		integration.accountSlug,
 	)}/${encodeURIComponent(projectName)}/builds/${buildNumber}`;
 

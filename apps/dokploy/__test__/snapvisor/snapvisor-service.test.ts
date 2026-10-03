@@ -61,8 +61,11 @@ vi.mock(
 	}),
 );
 
-const { registerPreviewDeployment, findLatestPreviewCommitSha } =
-	await import("@dokploy/server/services/snapvisor");
+const {
+	registerPreviewDeployment,
+	findLatestPreviewCommitSha,
+	snapvisorBuildReviewUrl,
+} = await import("@dokploy/server/services/snapvisor");
 
 const ORG = "org-1";
 const PREVIEW_ID = "preview-1";
@@ -99,7 +102,7 @@ const integrationRow = {
 	name: "Snapvisor",
 	accessToken: "token-abc",
 	accountSlug: "my-team",
-	baseUrl: "https://app.snapvisor.io",
+	baseUrl: "https://api.snapvisor.io",
 	createdAt: new Date(),
 };
 
@@ -143,6 +146,9 @@ describe("registerPreviewDeployment", () => {
 			previewDeploymentId: PREVIEW_ID,
 		});
 
+		expect(toolCalls[0]?.url.startsWith("https://api.snapvisor.io/v2/")).toBe(
+			true,
+		);
 		expect(result.registered).toBe(true);
 		expect(result.build?.id).toBe("build-1");
 		expect(mocks.updatePreviewDeployment).toHaveBeenCalledWith(PREVIEW_ID, {
@@ -226,5 +232,42 @@ describe("findLatestPreviewCommitSha", () => {
 			createdAt: new Date().toISOString(),
 		});
 		await expect(findLatestPreviewCommitSha(PREVIEW_ID)).resolves.toBeNull();
+	});
+});
+
+describe("legacy app.snapvisor.io base URL", () => {
+	it("still calls the API host for an integration saved with the old default", async () => {
+		mocks.integrationFindFirst.mockResolvedValue({
+			...integrationRow,
+			baseUrl: "https://app.snapvisor.io/",
+		});
+		await registerPreviewDeployment({ previewDeploymentId: PREVIEW_ID });
+		expect(toolCalls).toHaveLength(1);
+		expect(toolCalls[0]?.url.startsWith("https://api.snapvisor.io/v2/")).toBe(
+			true,
+		);
+	});
+});
+
+describe("snapvisorBuildReviewUrl", () => {
+	it("builds web links on the web host for the API default and the legacy value", () => {
+		for (const baseUrl of [
+			"https://api.snapvisor.io",
+			"https://app.snapvisor.io/",
+		]) {
+			expect(
+				snapvisorBuildReviewUrl({ baseUrl, accountSlug: "my-team" }, "web", 42),
+			).toBe("https://app.snapvisor.io/my-team/web/builds/42");
+		}
+	});
+
+	it("uses a custom host as-is", () => {
+		expect(
+			snapvisorBuildReviewUrl(
+				{ baseUrl: "https://sv.example/", accountSlug: "t" },
+				"p",
+				"7",
+			),
+		).toBe("https://sv.example/t/p/builds/7");
 	});
 });
