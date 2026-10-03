@@ -67,8 +67,13 @@ export const initializeStandaloneTraefik = async ({
 	for (const port of additionalPorts) {
 		const portKey = `${port.targetPort}/${port.protocol ?? "tcp"}`;
 		exposedPorts[portKey] = {};
-		portBindings[portKey] = portBindings[portKey] ?? [];
-		portBindings[portKey].push({ HostPort: port.publishedPort.toString() });
+		const hostPort = port.publishedPort.toString();
+		const bindings = portBindings[portKey] ?? [];
+		// Skip a host port that is already bound (e.g. the dashboard's 8080/tcp).
+		if (!bindings.some((binding) => binding.HostPort === hostPort)) {
+			bindings.push({ HostPort: hostPort });
+		}
+		portBindings[portKey] = bindings;
 	}
 
 	const settings: ContainerCreateOptions = {

@@ -387,10 +387,14 @@ export const readPorts = async (
 			const protocol = key.split("/")[1];
 			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
 
-			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
-			const firstMapping = containerPortMappings[0];
-			if (firstMapping) {
-				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
+			// A target port can be published on several host ports. Docker also
+			// lists each host port once per address family (IPv4 and IPv6), so
+			// keep every distinct host port and drop the per-family duplicates.
+			for (const mapping of containerPortMappings ?? []) {
+				const publishedPort = Number.parseInt(mapping?.HostPort, 10);
+				if (Number.isNaN(publishedPort)) {
+					continue;
+				}
 				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
 				if (!seenPorts.has(portKey)) {
 					seenPorts.add(portKey);
