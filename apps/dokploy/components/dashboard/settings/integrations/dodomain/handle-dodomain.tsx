@@ -1,9 +1,8 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckCircle2, PenBoxIcon, PlugZap, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,38 +25,14 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import {
+	createDodomainSchema,
+	DODOMAIN_DEFAULT_BASE_URL,
+	type DoDomainForm,
+	dodomainDashboardUrl,
+} from "./dodomain-form-schema";
 
-export const DODOMAIN_DEFAULT_BASE_URL = "https://app.dodomain.io";
-
-// Mirrors the server rule: the secret key is sent as a bearer token, so only
-// https (or http on a loopback host, for local development) is accepted.
-const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
-
-const isSecureBaseUrl = (value: string) => {
-	try {
-		const url = new URL(value);
-		if (url.protocol === "https:") return true;
-		return url.protocol === "http:" && LOOPBACK_HOSTNAMES.has(url.hostname);
-	} catch {
-		return false;
-	}
-};
-
-const dodomainSchema = z.object({
-	name: z.string().trim().min(1, "Name is required"),
-	secretKey: z.string(),
-	appId: z.string().trim().min(1, "App ID is required"),
-	baseUrl: z
-		.string()
-		.trim()
-		.url("Enter a valid URL")
-		.refine(
-			isSecureBaseUrl,
-			"Use an https URL (http is only allowed for localhost)",
-		),
-});
-
-type DoDomainForm = z.infer<typeof dodomainSchema>;
+export { DODOMAIN_DEFAULT_BASE_URL };
 
 interface Props {
 	/** Present when editing the organization's existing integration. */
@@ -86,14 +61,19 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 		refetchOnWindowFocus: false,
 	});
 
+	const schema = useMemo(() => createDodomainSchema({ editing }), [editing]);
+
 	const form = useForm<DoDomainForm>({
+		// Validate a field when it is left, then on every change, so a pasted
+		// http:// base URL or a wrong key is flagged before pressing Connect.
+		mode: "onTouched",
 		defaultValues: {
 			name: "DoDomain",
 			secretKey: "",
 			appId: "",
 			baseUrl: DODOMAIN_DEFAULT_BASE_URL,
 		},
-		resolver: zodResolver(dodomainSchema),
+		resolver: zodResolver(schema),
 	});
 
 	useEffect(() => {
@@ -113,23 +93,13 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 	}, [open]);
 
 	const appId = form.watch("appId");
-
-	const secretKeyError = (key: string) =>
-		key && !key.startsWith("dd_sk_")
-			? "DoDomain secret keys start with dd_sk_"
-			: null;
+	// "DoDomain dashboard" links to the instance the Base URL points at.
+	const dashboardUrl = dodomainDashboardUrl(form.watch("baseUrl") ?? "");
 
 	const onSubmit = async (data: DoDomainForm) => {
+		// The schema already checked the key: required when connecting, a
+		// dd_sk_ prefix whenever one is typed.
 		const secretKey = data.secretKey.trim();
-		if (!editing && !secretKey) {
-			form.setError("secretKey", { message: "Secret key is required" });
-			return;
-		}
-		const keyError = secretKeyError(secretKey);
-		if (keyError) {
-			form.setError("secretKey", { message: keyError });
-			return;
-		}
 		const common = {
 			name: data.name,
 			appId: data.appId,
@@ -161,20 +131,13 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 	};
 
 	const handleTestConnection = async () => {
-		const valid = await form.trigger(["baseUrl"]);
+		// Only the fields the test uses: App ID may stay blank, Test connection
+		// fills it in. When editing, a blank key falls back to the stored one.
+		const valid = await form.trigger(["baseUrl", "secretKey"], {
+			shouldFocus: true,
+		});
 		if (!valid) return;
 		const secretKey = form.getValues("secretKey").trim();
-		if (!secretKey && !editing) {
-			form.setError("secretKey", {
-				message: "Enter a secret key to test the connection",
-			});
-			return;
-		}
-		const keyError = secretKeyError(secretKey);
-		if (keyError) {
-			form.setError("secretKey", { message: keyError });
-			return;
-		}
 		const typedAppId = form.getValues("appId").trim();
 		setTestResult(null);
 		await testMutation
@@ -293,9 +256,18 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 											/>
 										</FormControl>
 										<FormDescription>
-											The app&apos;s server-side key from the DoDomain
-											dashboard. It is stored on this server and never shown
-											again here.
+											In the{" "}
+											<a
+												href={dashboardUrl}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="underline underline-offset-2 hover:text-foreground"
+											>
+												DoDomain dashboard
+											</a>
+											, copy your app&apos;s server-side secret key (starts with{" "}
+											<span className="font-mono">dd_sk_</span>). It is stored on
+											this server and never shown again here.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -308,7 +280,10 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 									<FormItem>
 										<FormLabel>App ID</FormLabel>
 										<FormControl>
-											<Input placeholder="app_..." {...field} />
+											<Input
+												placeholder="Filled in by Test connection"
+												{...field}
+											/>
 										</FormControl>
 										<FormDescription>
 											Leave it blank and use Test connection to fill it in from
@@ -382,7 +357,8 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 											/>
 										</FormControl>
 										<FormDescription>
-											Change only for a self-hosted DoDomain.
+											Change only for a self-hosted DoDomain. Must use https
+											(http is allowed only for localhost).
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
