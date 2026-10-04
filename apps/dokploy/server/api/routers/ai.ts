@@ -31,6 +31,7 @@ import {
 	getProviderName,
 	type Model,
 	selectAIProvider,
+	toHeadersRecord,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
@@ -74,7 +75,9 @@ export const aiRouter = createTRPCRouter({
 					case "gemini":
 						response = await fetch(
 							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
-							{ headers: {} },
+							// Gemini authenticates via the `key` query param, so only the
+							// user-defined headers are sent here.
+							{ headers: toHeadersRecord(input.headers) },
 						);
 						break;
 					case "perplexity":

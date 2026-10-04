@@ -55,6 +55,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { useDebounce } from "@/utils/hooks/use-debounce";
 
 const AI_PROVIDERS = [
 	{ name: "OpenAI", apiUrl: "https://api.openai.com/v1" },
@@ -150,6 +151,10 @@ export const HandleAi = ({ aiId }: Props) => {
 	const apiUrl = form.watch("apiUrl");
 	const apiKey = form.watch("apiKey");
 	const headers = form.watch("headers");
+	const debouncedHeaders = useDebounce(headers, 500);
+	const headerErrors = form.formState.errors.headers as
+		| { key?: { message?: string } }[]
+		| undefined;
 
 	// Any Ollama instance on the default port 11434 is treated as no-auth
 	// (covers localhost and self-hosted LAN deployments). Ollama Cloud
@@ -163,7 +168,7 @@ export const HandleAi = ({ aiId }: Props) => {
 		{
 			apiUrl: apiUrl ?? "",
 			apiKey: apiKey ?? "",
-			headers,
+			headers: debouncedHeaders,
 		},
 		{
 			enabled: !!apiUrl && (isLocalOllama || !!apiKey),
@@ -366,23 +371,33 @@ export const HandleAi = ({ aiId }: Props) => {
 									) : (
 										<div className="space-y-2">
 											{fields.map((item, index) => (
-												<div key={item.id} className="flex items-center gap-2">
-													<Input
-														placeholder="Header name"
-														{...form.register(`headers.${index}.key`)}
-													/>
-													<Input
-														placeholder="Header value"
-														{...form.register(`headers.${index}.value`)}
-													/>
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														onClick={() => remove(index)}
-													>
-														<Trash2 className="h-4 w-4" />
-													</Button>
+												<div key={item.id} className="space-y-1">
+													<div className="flex items-center gap-2">
+														<Input
+															placeholder="Header name"
+															aria-invalid={!!headerErrors?.[index]?.key}
+															{...form.register(`headers.${index}.key`)}
+														/>
+														<Input
+															type="password"
+															autoComplete="one-time-code"
+															placeholder="Header value"
+															{...form.register(`headers.${index}.value`)}
+														/>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															onClick={() => remove(index)}
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+													{headerErrors?.[index]?.key?.message && (
+														<p className="text-sm text-destructive">
+															{headerErrors[index]?.key?.message}
+														</p>
+													)}
 												</div>
 											))}
 										</div>

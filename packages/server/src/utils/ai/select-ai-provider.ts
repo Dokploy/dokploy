@@ -12,8 +12,17 @@ export interface AIHeader {
 	value: string;
 }
 
-// User-defined headers win over the built-in defaults, so a gateway can also
-// override Authorization when it does not use the Bearer scheme.
+const CANONICAL_HEADER_NAMES: Record<string, string> = {
+	authorization: "Authorization",
+	"x-api-key": "x-api-key",
+	"api-key": "api-key",
+};
+
+const canonicalHeaderName = (key: string) =>
+	CANONICAL_HEADER_NAMES[key.toLowerCase()] ?? key;
+
+// Names are canonicalised so a user-typed `authorization` replaces the built-in
+// Authorization instead of being sent as a second, differently-cased header.
 export const toHeadersRecord = (
 	headers?: AIHeader[] | null,
 ): Record<string, string> => {
@@ -21,7 +30,7 @@ export const toHeadersRecord = (
 	for (const header of headers ?? []) {
 		const key = header?.key?.trim();
 		if (!key) continue;
-		record[key] = header.value ?? "";
+		record[canonicalHeaderName(key)] = header.value ?? "";
 	}
 	return record;
 };

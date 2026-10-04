@@ -58,7 +58,8 @@ export const apiCreateAi = createSchema
 		headers: true,
 		isEnabled: true,
 	})
-	.required();
+	.required()
+	.extend({ headers: aiHeadersSchema.nullable().optional() });
 
 export const apiUpdateAi = createSchema
 	.partial()
