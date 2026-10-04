@@ -2,6 +2,7 @@ import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useState } from "react";
 import { toast } from "sonner";
+import { OpenInLibreDBStudio } from "@/components/dashboard/libredb-studio/open-in-libredb-studio";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Button } from "@/components/ui/button";
@@ -258,6 +259,10 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 								</Tooltip>
 							</Button>
 						</DockerTerminalModal>
+						<OpenInLibreDBStudio
+							databaseType="mariadb"
+							databaseId={mariadbId}
+						/>
 					</CardContent>
 				</Card>
 				<DrawerLogs

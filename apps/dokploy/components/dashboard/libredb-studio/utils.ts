@@ -141,3 +141,107 @@ export const getAddDatabaseStudioSwitch = (input: {
 	}
 	return { available: true, description: ADD_DATABASE_STUDIO_DESCRIPTION };
 };
+
+export const DATABASE_NOT_RUNNING_REASON = "Deploy or start the database first";
+
+export const STUDIO_NOT_RUNNING_REASON = "The Studio is not running";
+
+export const DATABASE_NOT_COVERED_REASON =
+	"The LibreDB Studio of this environment does not cover this database.";
+
+export const POPUP_BLOCKED_MESSAGE =
+	"Your browser blocked the new tab. Allow pop-ups for this site and try again.";
+
+export const INVALID_LAUNCH_URL_MESSAGE =
+	"The launch address is not an http or https URL.";
+
+export interface StudioForDatabase {
+	studio: {
+		libredbStudioId: string;
+		serverId: string | null;
+		applicationStatus: StudioStatus;
+	} | null;
+	seedId: string;
+	covered: boolean;
+	reason: string | null;
+	canInstall: boolean;
+	databaseStatus: StudioStatus;
+	environmentId: string;
+	serverId: string | null;
+}
+
+export type OpenInStudioState =
+	| { kind: "hidden" }
+	| { kind: "setup"; environmentId: string; serverId: string | null }
+	| { kind: "disabled"; reason: string }
+	| { kind: "ready"; libredbStudioId: string; connectionId: string };
+
+export const getOpenInStudioState = (
+	data: StudioForDatabase | undefined,
+	errorMessage?: string,
+): OpenInStudioState => {
+	if (!data) {
+		return errorMessage
+			? { kind: "disabled", reason: errorMessage }
+			: { kind: "hidden" };
+	}
+	const { studio } = data;
+	if (studio && data.covered) {
+		if (data.databaseStatus === "idle") {
+			return { kind: "disabled", reason: DATABASE_NOT_RUNNING_REASON };
+		}
+		if (studio.applicationStatus !== "done") {
+			return { kind: "disabled", reason: STUDIO_NOT_RUNNING_REASON };
+		}
+		return {
+			kind: "ready",
+			libredbStudioId: studio.libredbStudioId,
+			connectionId: data.seedId,
+		};
+	}
+	if (data.canInstall && studio === null) {
+		return {
+			kind: "setup",
+			environmentId: data.environmentId,
+			serverId: data.serverId,
+		};
+	}
+	if (data.reason) {
+		return { kind: "disabled", reason: data.reason };
+	}
+	if (studio) {
+		return { kind: "disabled", reason: DATABASE_NOT_COVERED_REASON };
+	}
+	return { kind: "hidden" };
+};
+
+export interface LaunchTab {
+	opener: unknown;
+	location: { replace: (url: string) => void };
+	close: () => void;
+}
+
+export const openLaunchTab = (opener: {
+	open: (url: string, target: string) => LaunchTab | null;
+}): LaunchTab | null => opener.open("about:blank", "_blank");
+
+// The launch tab starts as about:blank, which shares Dokploy's origin, so a javascript: or data: address would run with Dokploy's privileges.
+export const assertLaunchUrl = (url: string): string => {
+	let protocol: string;
+	try {
+		protocol = new URL(url).protocol;
+	} catch {
+		throw new Error(INVALID_LAUNCH_URL_MESSAGE);
+	}
+	if (protocol !== "https:" && protocol !== "http:") {
+		throw new Error(INVALID_LAUNCH_URL_MESSAGE);
+	}
+	return url;
+};
+
+// window.open with noopener returns no handle to navigate later, so the opener is cut by hand before Studio loads.
+export const navigateLaunchTab = (tab: LaunchTab, url: string): void => {
+	const launchUrl = assertLaunchUrl(url);
+	tab.opener = null;
+	tab.location.replace(launchUrl);
+};
