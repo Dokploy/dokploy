@@ -13,6 +13,7 @@ import {
 	rebuildDatabase,
 	removeLibsqlById,
 	removeService,
+	scheduleLibreDBStudioSync,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -433,6 +434,11 @@ export const libsqlRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const previous = await db.query.libsql.findFirst({
+				where: eq(libsqlTable.libsqlId, input.libsqlId),
+				columns: { environmentId: true, serverId: true },
+			});
+
 			const updatedLibsql = await db
 				.update(libsqlTable)
 				.set({
@@ -448,6 +454,10 @@ export const libsqlRouter = createTRPCRouter({
 					message: "Failed to move libsql",
 				});
 			}
+			if (previous) {
+				scheduleLibreDBStudioSync(previous);
+			}
+			scheduleLibreDBStudioSync(updatedLibsql);
 
 			await audit(ctx, {
 				action: "move",

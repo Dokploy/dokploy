@@ -28,9 +28,14 @@ import {
 import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import { asc, eq, inArray } from "drizzle-orm";
+import { scheduleJob } from "node-schedule";
 import { findApplicationById, updateApplication } from "./application";
 
 const SYNC_DEBOUNCE_MS = 1000;
+
+const RECONCILE_JOB_NAME = "libredb-studio-reconcile";
+
+const RECONCILE_CRON = "*/5 * * * *";
 
 // Studio reads AUTH_COOKIE_SECURE with these spellings for "off", trimmed
 // and case-insensitive (libredb-studio src/lib/auth.ts, readCookieSecureOverride).
@@ -395,6 +400,18 @@ export const reconcileLibreDBStudios = async (): Promise<void> => {
 	for (const studio of studios) {
 		await syncLibreDBStudioAndLogFailure(studio.libredbStudioId);
 	}
+};
+
+export const initLibreDBStudioReconcileJob = (): void => {
+	scheduleJob(RECONCILE_JOB_NAME, RECONCILE_CRON, async () => {
+		// node-schedule turns a rejected job into an "error" event, which throws
+		// when nothing listens, so the failure is logged here instead.
+		try {
+			await reconcileLibreDBStudios();
+		} catch (error) {
+			console.error("[libredb-studio] Reconcile job failed:", error);
+		}
+	});
 };
 
 export const getLibreDBStudioUrl = (
