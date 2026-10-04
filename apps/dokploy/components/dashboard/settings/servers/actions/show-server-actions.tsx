@@ -34,7 +34,10 @@ export const ShowServerActions = ({ serverId, children }: Props) => {
 					</DropdownMenuItem>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-xl">
+			<DialogContent
+				className="sm:max-w-xl"
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<div className="flex flex-col gap-1">
 					<DialogTitle className="text-xl">Web server settings</DialogTitle>
 					<DialogDescription>Reload or clean the web server.</DialogDescription>

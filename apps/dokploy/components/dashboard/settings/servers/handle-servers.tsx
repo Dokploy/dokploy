@@ -162,7 +162,10 @@ export const HandleServers = ({ serverId, children }: Props) => {
 					</Button>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-3xl ">
+			<DialogContent
+				className="sm:max-w-3xl "
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<DialogHeader>
 					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
 					<DialogDescription>

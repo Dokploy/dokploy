@@ -24,7 +24,10 @@ export const ShowMonitoringModal = ({ url, token, children }: Props) => {
 					</Button>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-7xl  ">
+			<DialogContent
+				className="sm:max-w-7xl  "
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<div className="flex gap-4 py-4 w-full">
 					<ShowPaidMonitoring BASE_URL={url} token={token} />
 				</div>
