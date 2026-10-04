@@ -29,11 +29,32 @@ import { api } from "@/utils/api";
 
 export const DODOMAIN_DEFAULT_BASE_URL = "https://app.dodomain.io";
 
+// Mirrors the server rule: the secret key is sent as a bearer token, so only
+// https (or http on a loopback host, for local development) is accepted.
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+const isSecureBaseUrl = (value: string) => {
+	try {
+		const url = new URL(value);
+		if (url.protocol === "https:") return true;
+		return url.protocol === "http:" && LOOPBACK_HOSTNAMES.has(url.hostname);
+	} catch {
+		return false;
+	}
+};
+
 const dodomainSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
 	secretKey: z.string(),
 	appId: z.string().trim().min(1, "App ID is required"),
-	baseUrl: z.string().trim().url("Enter a valid URL"),
+	baseUrl: z
+		.string()
+		.trim()
+		.url("Enter a valid URL")
+		.refine(
+			isSecureBaseUrl,
+			"Use an https URL (http is only allowed for localhost)",
+		),
 });
 
 type DoDomainForm = z.infer<typeof dodomainSchema>;
