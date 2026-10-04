@@ -12,7 +12,7 @@ import { appRouter } from "@/server/api/root";
 const Page = () => {
 	return (
 		<div className="w-full">
-			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
+			<div className="h-full rounded-xl w-full flex flex-col gap-4">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
 					<div className="rounded-xl bg-background shadow-md">
 						<div className="p-6">

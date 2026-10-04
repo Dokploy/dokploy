@@ -24,7 +24,7 @@ export const AiForm = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="flex flex-row gap-2 justify-between">
 						<div>
@@ -62,7 +62,7 @@ export const AiForm = () => {
 												key={config.aiId}
 												className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
 											>
-												<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
+												<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border w-full">
 													<div>
 														<span className="text-sm font-medium">
 															{config.name}
