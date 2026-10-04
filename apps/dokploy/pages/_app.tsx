@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import "@/lib/patch-dom-for-translation";
 
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
