@@ -15,9 +15,23 @@ const mocks = vi.hoisted(() => ({
 	inserts: [] as unknown[],
 	updates: [] as unknown[],
 	domainFindFirst: vi.fn(async () => undefined as unknown),
+	// Ids the service asked for through `findFirst` (the `?integration=` path).
+	integrationLookups: [] as string[],
 }));
 
 vi.mock("@dokploy/server/db", () => {
+	// Pulls the bound value out of a drizzle `eq(column, value)` condition so the
+	// fake `findFirst` can honour the `where` the service built.
+	const boundValue = (condition: unknown): string | undefined => {
+		if (!condition || typeof condition !== "object") return undefined;
+		const node = condition as { value?: unknown; queryChunks?: unknown[] };
+		if (typeof node.value === "string") return node.value;
+		for (const chunk of node.queryChunks ?? []) {
+			const found = boundValue(chunk);
+			if (found !== undefined) return found;
+		}
+		return undefined;
+	};
 	const updateChain = () => {
 		const self: any = {
 			set: vi.fn((values: unknown) => {
@@ -38,7 +52,14 @@ vi.mock("@dokploy/server/db", () => {
 					if (table === "dodomainIntegration") {
 						return {
 							findMany: vi.fn(async () => mocks.integrations),
-							findFirst: vi.fn(async () => mocks.integrations[0]),
+							findFirst: vi.fn(async (args?: { where?: unknown }) => {
+									const id = boundValue(args?.where);
+									if (id === undefined) return mocks.integrations[0];
+									mocks.integrationLookups.push(id);
+									return mocks.integrations.find(
+										(integration) => integration.dodomainId === id,
+									);
+								}),
 						};
 					}
 					if (table === "domains") {
@@ -82,7 +103,7 @@ const makeReq = ({
 	method?: string;
 	headers?: Record<string, string>;
 	body?: string;
-	query?: Record<string, string>;
+	query?: Record<string, string | string[]>;
 } = {}) => ({
 	method,
 	headers,
@@ -154,6 +175,7 @@ describe("POST /api/webhooks/dodomain", () => {
 		mocks.claimResult = [{ deliveryId: "del_1" }];
 		mocks.inserts = [];
 		mocks.updates = [];
+		mocks.integrationLookups = [];
 	});
 
 	it("disables Next's body parser so the signature covers the raw bytes", async () => {
@@ -281,5 +303,174 @@ describe("POST /api/webhooks/dodomain", () => {
 			res,
 		);
 		expect(recorded.status).toBe(413);
+	});
+
+	/**
+	 * Each integration registers its own endpoint URL with `?integration=<id>`.
+	 * When the id is present only that integration's secret may verify the
+	 * delivery; it must never fall back to trying every integration.
+	 */
+	describe("?integration=<id> routing", () => {
+		const SECRET_A = "whsec_integration_a";
+		const SECRET_B = "whsec_integration_b";
+
+		const integration = (dodomainId: string, webhookSecret: string | null) => ({
+			dodomainId,
+			organizationId: `org-${dodomainId}`,
+			name: "DoDomain",
+			secretKey: "dd_sk_test",
+			appId: `app_${dodomainId}`,
+			baseUrl: "https://dodomain.test",
+			webhookEndpointId: `we_${dodomainId}`,
+			webhookUrl: `https://dok.example.com/api/webhooks/dodomain?integration=${dodomainId}`,
+			webhookSecret,
+			createdAt: new Date(),
+		});
+
+		const deliver = async ({
+			integrationQuery,
+			signingSecret,
+			body = event(),
+		}: {
+			integrationQuery?: string | string[];
+			signingSecret: string;
+			body?: string;
+		}) => {
+			const { res, recorded } = makeRes();
+			await run(
+				makeReq({
+					body,
+					query:
+						integrationQuery === undefined
+							? {}
+							: { integration: integrationQuery },
+					headers: {
+						"x-dodomain-signature": signDoDomainPayload(signingSecret, body),
+					},
+				}),
+				res,
+			);
+			return recorded;
+		};
+
+		const expectNoWrite = () => {
+			expect(mocks.inserts).toHaveLength(0);
+			expect(mocks.updates).toHaveLength(0);
+			expect(mocks.domainFindFirst).not.toHaveBeenCalled();
+		};
+
+		beforeEach(() => {
+			mocks.integrations = [
+				integration("dd-a", SECRET_A),
+				integration("dd-b", SECRET_B),
+			];
+		});
+
+		it("accepts a delivery signed with the named integration's own secret", async () => {
+			const recorded = await deliver({
+				integrationQuery: "dd-b",
+				signingSecret: SECRET_B,
+			});
+			expect(recorded.status).toBe(200);
+			expect(recorded.body).toMatchObject({ received: true });
+			expect(mocks.integrationLookups).toEqual(["dd-b"]);
+			expect(mocks.inserts).toEqual([{ deliveryId: "del_1" }]);
+		});
+
+		it("refuses another integration's secret on a scoped URL and never writes", async () => {
+			const recorded = await deliver({
+				integrationQuery: "dd-b",
+				signingSecret: SECRET_A,
+			});
+			expect(recorded.status).toBe(401);
+			expect(recorded.body).toMatchObject({ error: "invalid_signature" });
+			expect(mocks.integrationLookups).toEqual(["dd-b"]);
+			expectNoWrite();
+		});
+
+		it("accepts that same secret when the URL is not scoped (legacy endpoints)", async () => {
+			const recorded = await deliver({ signingSecret: SECRET_A });
+			expect(recorded.status).toBe(200);
+			expect(mocks.integrationLookups).toEqual([]);
+			expect(mocks.inserts).toEqual([{ deliveryId: "del_1" }]);
+		});
+
+		it("answers 401 for an unknown integration id and never writes", async () => {
+			const recorded = await deliver({
+				integrationQuery: "dd-unknown",
+				signingSecret: SECRET_A,
+			});
+			expect(recorded.status).toBe(401);
+			expect(recorded.body).toMatchObject({ error: "invalid_signature" });
+			expect(mocks.integrationLookups).toEqual(["dd-unknown"]);
+			expectNoWrite();
+		});
+
+		it("answers 401 for the named integration when it has no signing secret", async () => {
+			mocks.integrations = [
+				integration("dd-a", SECRET_A),
+				integration("dd-b", null),
+			];
+			const recorded = await deliver({
+				integrationQuery: "dd-b",
+				signingSecret: "",
+			});
+			expect(recorded.status).toBe(401);
+			expectNoWrite();
+		});
+
+		it("answers 401 for a tampered body on a scoped URL", async () => {
+			const signedBody = event();
+			const { res, recorded } = makeRes();
+			await run(
+				makeReq({
+					body: signedBody.replace("app.customer.com", "evil.example.com"),
+					query: { integration: "dd-a" },
+					headers: {
+						"x-dodomain-signature": signDoDomainPayload(SECRET_A, signedBody),
+					},
+				}),
+				res,
+			);
+			expect(recorded.status).toBe(401);
+			expectNoWrite();
+		});
+
+		it("uses the first value when the param is repeated", async () => {
+			const accepted = await deliver({
+				integrationQuery: ["dd-a", "dd-b"],
+				signingSecret: SECRET_A,
+			});
+			expect(accepted.status).toBe(200);
+			expect(mocks.integrationLookups).toEqual(["dd-a"]);
+
+			mocks.inserts = [];
+			const refused = await deliver({
+				integrationQuery: ["dd-a", "dd-b"],
+				signingSecret: SECRET_B,
+			});
+			expect(refused.status).toBe(401);
+			expect(mocks.inserts).toHaveLength(0);
+		});
+
+		it("treats an empty integration param as unscoped", async () => {
+			const recorded = await deliver({
+				integrationQuery: "",
+				signingSecret: SECRET_B,
+			});
+			expect(recorded.status).toBe(200);
+			expect(mocks.integrationLookups).toEqual([]);
+		});
+
+		it("answers 401 without a signature even when the integration exists", async () => {
+			const { res, recorded } = makeRes();
+			await run(
+				makeReq({ body: event(), query: { integration: "dd-a" } }),
+				res,
+			);
+			expect(recorded.status).toBe(401);
+			expect(mocks.integrationLookups).toEqual([]);
+			expectNoWrite();
+		});
 	});
 });

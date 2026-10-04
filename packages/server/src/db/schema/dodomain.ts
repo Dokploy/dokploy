@@ -106,11 +106,28 @@ const dodomainSecretKeySchema = z
 	.trim()
 	.startsWith("dd_sk_", "A DoDomain secret key starts with dd_sk_");
 
+// The secret key travels as a bearer token, so plain http would leak it. Only
+// loopback hosts may skip TLS, for local development.
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+const isSecureDoDomainBaseUrl = (value: string) => {
+	try {
+		const url = new URL(value);
+		if (url.protocol === "https:") return true;
+		return url.protocol === "http:" && LOOPBACK_HOSTNAMES.has(url.hostname);
+	} catch {
+		return false;
+	}
+};
+
 const dodomainBaseUrlSchema = z
 	.string()
 	.trim()
 	.url("Enter a valid URL")
-	.refine((value) => /^https?:\/\//i.test(value), "Use an http(s) URL")
+	.refine(
+		isSecureDoDomainBaseUrl,
+		"Use an https URL (http is only allowed for localhost)",
+	)
 	.transform((value) => value.replace(/\/+$/, ""));
 
 export const apiCreateDoDomain = z.object({
