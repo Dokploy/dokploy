@@ -2,9 +2,9 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.7** | Fork version **v0.30.7-community.11**
+Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.1**
 
-Everything in upstream Dokploy **v0.30.7**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
+Everything in upstream Dokploy **v0.30.8**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
 ## Guides
 
@@ -17,7 +17,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.11 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.1 \
   --with-registry-auth \
   dokploy
 ```
@@ -25,7 +25,7 @@ docker service update \
 Going back to official is just as easy (our extra tables/columns are simply ignored):
 
 ```bash
-docker service update --image dokploy/dokploy:v0.30.7 --with-registry-auth dokploy
+docker service update --image dokploy/dokploy:v0.30.8 --with-registry-auth dokploy
 ```
 
 The image is public — no registry login required.
@@ -131,6 +131,25 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/tag/v0.29.12-community.2)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.8-community.1
+
+**Upstream v0.30.8 sync** ([#259](https://github.com/DevinoSolutions/dokploy-community/pull/259)): upstream's only change is the Dokploy Cloud chat widget, so nothing changes for self-hosted installs.
+
+**Upstream fixes ported ahead of their release**, each 1:1 with credit to its author:
+
+- Session cookies are marked `Secure` when the dashboard is served over HTTPS ([#260](https://github.com/DevinoSolutions/dokploy-community/pull/260), from [Dokploy#5022](https://github.com/Dokploy/dokploy/pull/5022) by @Souvik-Cyclic)
+- S3 credentials stay redacted in backup logs even when they contain quote characters ([#261](https://github.com/DevinoSolutions/dokploy-community/pull/261), from [Dokploy#5527](https://github.com/Dokploy/dokploy/pull/5527) by @Souvik-Cyclic)
+- The deployment log tail is stopped when the browser disconnects early ([#262](https://github.com/DevinoSolutions/dokploy-community/pull/262), from [Dokploy#5529](https://github.com/Dokploy/dokploy/pull/5529) by @Souvik-Cyclic)
+- Deploy webhooks accept payloads up to 25 MB ([#263](https://github.com/DevinoSolutions/dokploy-community/pull/263), from [Dokploy#5543](https://github.com/Dokploy/dokploy/pull/5543) by @Souvik-Cyclic)
+- Saving a compose service's provider settings keeps its status ([#264](https://github.com/DevinoSolutions/dokploy-community/pull/264), from [Dokploy#5544](https://github.com/Dokploy/dokploy/pull/5544) by @roshanasingh4)
+- Saving an application's provider settings keeps its status ([#265](https://github.com/DevinoSolutions/dokploy-community/pull/265), from [Dokploy#5455](https://github.com/Dokploy/dokploy/pull/5455) by @roshanasingh4)
+- Host Block I/O stats count physical disks only ([#266](https://github.com/DevinoSolutions/dokploy-community/pull/266), from [Dokploy#5540](https://github.com/Dokploy/dokploy/pull/5540) by @Souvik-Cyclic)
+- The add-invitation form keeps its input after a failed submit ([#267](https://github.com/DevinoSolutions/dokploy-community/pull/267), from [Dokploy#5498](https://github.com/Dokploy/dokploy/pull/5498) by @imrja8)
+
+**DoDomain**: the base URL must use https; plain http is allowed only for localhost ([#258](https://github.com/DevinoSolutions/dokploy-community/pull/258)).
+
+> No database migration. Merged on green CI; the image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.7-community.11
 
@@ -517,7 +536,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.7-community.11
+export DOKPLOY_VERSION=v0.30.8-community.1
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -530,7 +549,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.11     # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.1      # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
