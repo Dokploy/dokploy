@@ -83,3 +83,61 @@ export const buildStudioDomainInput = (
 	kind === "custom"
 		? { kind: "custom", host: host.trim() }
 		: { kind: "generated" };
+
+export const ADD_DATABASE_STUDIO_NOTE =
+	"This database will appear in LibreDB Studio automatically and can be opened there once it is deployed.";
+
+export const ADD_DATABASE_STUDIO_SWITCH_LABEL =
+	"Also set up LibreDB Studio for this environment";
+
+export const ADD_DATABASE_NO_IP_MESSAGE =
+	"This server has no IP address to build a generated domain from. Install LibreDB Studio with a custom domain from the Create Service menu instead.";
+
+export type AddDatabaseStudioSection =
+	| { kind: "none" }
+	| { kind: "error"; message: string }
+	| { kind: "note" }
+	| { kind: "switch" };
+
+export const getAddDatabaseStudioSection = (input: {
+	isCloud: boolean | undefined;
+	canSetUp: boolean;
+	serverId: string | null | undefined;
+	studios: readonly { serverId: string | null }[] | undefined;
+	errorMessage: string | undefined;
+}): AddDatabaseStudioSection => {
+	if (input.isCloud !== false || input.serverId === undefined) {
+		return { kind: "none" };
+	}
+	if (input.errorMessage) {
+		return { kind: "error", message: input.errorMessage };
+	}
+	if (!input.studios) {
+		return { kind: "none" };
+	}
+	if (findStudioForServer(input.studios, input.serverId)) {
+		return { kind: "note" };
+	}
+	return input.canSetUp ? { kind: "switch" } : { kind: "none" };
+};
+
+const ADD_DATABASE_STUDIO_DESCRIPTION = `Installs LibreDB Studio on a generated address after the database is created. ${PLAIN_HTTP_WARNING}`;
+
+export const getAddDatabaseStudioSwitch = (input: {
+	serverIp: string | null | undefined;
+	errorMessage: string | undefined;
+}): { available: boolean; description: string } => {
+	if (input.errorMessage) {
+		return {
+			available: false,
+			description: `The IP address of this server could not be checked: ${input.errorMessage}`,
+		};
+	}
+	if (input.serverIp === undefined) {
+		return { available: false, description: ADD_DATABASE_STUDIO_DESCRIPTION };
+	}
+	if (!isGeneratedDomainAvailable(input.serverIp)) {
+		return { available: false, description: ADD_DATABASE_NO_IP_MESSAGE };
+	}
+	return { available: true, description: ADD_DATABASE_STUDIO_DESCRIPTION };
+};

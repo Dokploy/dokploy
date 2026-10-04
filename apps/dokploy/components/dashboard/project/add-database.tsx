@@ -5,6 +5,14 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
+	ADD_DATABASE_STUDIO_NOTE,
+	ADD_DATABASE_STUDIO_SWITCH_LABEL,
+	canSetUpLibreDBStudio,
+	getAddDatabaseStudioSection,
+	getAddDatabaseStudioSwitch,
+	resolveSelectedServerId,
+} from "@/components/dashboard/libredb-studio/utils";
+import {
 	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
@@ -12,6 +20,7 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -25,6 +34,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -95,6 +105,7 @@ const baseDatabaseSchema = z.object({
 	dockerImage: z.string(),
 	description: z.string().nullable(),
 	serverId: z.string().nullable(),
+	setupLibreDBStudio: z.boolean().default(false),
 });
 
 const mySchema = z
@@ -223,12 +234,14 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 		api.settings.getWebServerSettings.useQuery();
 	const showLocalOption = !isCloud && !webServerSettings?.remoteServersOnly;
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const libsqlMutation = api.libsql.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
 	const postgresMutation = api.postgres.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();
+	const libredbStudioInstall = api.libredbStudio.install.useMutation();
 
 	// Get environment data to extract projectId
 	const { data: environment } = api.environment.one.useQuery({ environmentId });
@@ -250,6 +263,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			databaseName: "",
 			databaseUser: "",
 			serverId: null,
+			setupLibreDBStudio: false,
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -264,7 +278,63 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 		redis: redisMutation,
 	};
 
+	const selectedServerId = resolveSelectedServerId(
+		form.watch("serverId"),
+		showLocalOption,
+	);
+	const { data: studios, error: studiosError } =
+		api.libredbStudio.byEnvironment.useQuery(
+			{ environmentId },
+			{ enabled: visible && isCloud === false },
+		);
+	const studioSection = getAddDatabaseStudioSection({
+		isCloud,
+		canSetUp: canSetUpLibreDBStudio({
+			isCloud,
+			canCreateServices: permissions?.service.create,
+			canCreateDeployments: permissions?.deployment.create,
+		}),
+		serverId: selectedServerId,
+		studios,
+		errorMessage: studiosError?.message,
+	});
+	const { data: studioServerIp, error: studioServerIpError } =
+		api.domain.canGenerateTraefikMeDomains.useQuery(
+			{ serverId: selectedServerId ?? "" },
+			{ enabled: visible && studioSection.kind === "switch" },
+		);
+	const studioSwitch = getAddDatabaseStudioSwitch({
+		serverIp: studioServerIp,
+		errorMessage: studioServerIpError?.message,
+	});
+
+	const installLibreDBStudio = (serverId: string | null) => {
+		toast.promise(
+			libredbStudioInstall.mutateAsync({
+				environmentId,
+				serverId: serverId ?? undefined,
+				domain: { kind: "generated" },
+			}),
+			{
+				loading: "Setting up LibreDB Studio...",
+				success: (result) => {
+					utils.libredbStudio.invalidate();
+					utils.environment.one.invalidate({ environmentId });
+					return `LibreDB Studio installed at ${result.url}. Its first deploy is running.`;
+				},
+				error: (error: Error) =>
+					`LibreDB Studio could not be installed: ${error.message}`,
+			},
+		);
+	};
+
 	const onSubmit = async (data: AddDatabase) => {
+		const studioServerId =
+			data.setupLibreDBStudio &&
+			studioSection.kind === "switch" &&
+			studioSwitch.available
+				? selectedServerId
+				: undefined;
 		const defaultDockerImage =
 			data.dockerImage || dockerImageDefaultPlaceholder[data.type];
 
@@ -348,8 +418,12 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 						description: "",
 						databaseName: "",
 						databaseUser: "",
+						setupLibreDBStudio: false,
 					});
 					setVisible(false);
+					if (studioServerId !== undefined) {
+						installLibreDBStudio(studioServerId);
+					}
 					// Invalidate the project query to refresh the environment data
 					await utils.environment.one.invalidate({
 						environmentId,
@@ -780,6 +854,44 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 												</FormItem>
 											);
 										}}
+									/>
+								)}
+								{studioSection.kind === "error" && (
+									<AlertBlock type="error" className="mt-4">
+										{studioSection.message}
+									</AlertBlock>
+								)}
+								{studioSection.kind === "note" && (
+									<AlertBlock type="info" className="mt-4">
+										{ADD_DATABASE_STUDIO_NOTE}
+									</AlertBlock>
+								)}
+								{studioSection.kind === "switch" && (
+									<FormField
+										control={form.control}
+										name="setupLibreDBStudio"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between gap-4 p-3 mt-4 border rounded-lg shadow-xs">
+												<div className="space-y-0.5">
+													<FormLabel>
+														{ADD_DATABASE_STUDIO_SWITCH_LABEL}
+													</FormLabel>
+													<FormDescription>
+														{studioSwitch.description}
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={
+															studioSwitch.available && field.value === true
+														}
+														onCheckedChange={field.onChange}
+														disabled={!studioSwitch.available}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
 									/>
 								)}
 							</div>
