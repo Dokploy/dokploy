@@ -3,7 +3,7 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { resolveDockerContainerOverWss } from "./authorize";
 import {
 	getShell,
 	isValidContainerId,
@@ -76,13 +76,14 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
-		if (
-			!(await canAccessDockerOverWss(user, session, serverId, serviceId, {
-				type: "logs",
-				containerId,
-				runType,
-			}))
-		) {
+		const boundContainerId = await resolveDockerContainerOverWss(
+			user,
+			session,
+			serverId,
+			serviceId,
+			{ type: "logs", containerId, runType },
+		);
+		if (!boundContainerId) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
@@ -111,7 +112,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 							runType === "swarm" ? "--raw" : ""
 						} --tail ${tail} ${
 							since === "all" ? "" : `--since ${since}`
-						} --follow ${containerId}`;
+						} --follow ${boundContainerId}`;
 						const escapedSearch = search ? search.replace(/'/g, "'\\''") : "";
 						const command = search
 							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
@@ -166,7 +167,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					runType === "swarm" ? "--raw" : ""
 				} --tail ${tail} ${
 					since === "all" ? "" : `--since ${since}`
-				} --follow ${containerId}`;
+				} --follow ${boundContainerId}`;
 				const command = search
 					? `${baseCommand} 2>&1 | grep -iF '${search}'`
 					: baseCommand;

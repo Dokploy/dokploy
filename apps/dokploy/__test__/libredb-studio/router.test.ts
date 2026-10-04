@@ -54,6 +54,10 @@ const studioService = vi.hoisted(() => ({
 	withLibreDBStudioScopeLock: vi.fn(),
 }));
 
+const studioHost = vi.hoisted(() => ({
+	isHostUsedByAnotherService: vi.fn(),
+}));
+
 const audit = vi.hoisted(() => vi.fn());
 
 const queue = vi.hoisted(() => ({
@@ -71,6 +75,8 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/services/permission", () => permission);
 
 vi.mock("@dokploy/server/services/libredb-studio", () => studioService);
+
+vi.mock("@dokploy/server/utils/libredb-studio/host", () => studioHost);
 
 vi.mock("@dokploy/server/lib/auth", () => ({
 	validateRequest: vi.fn(),
@@ -482,6 +488,38 @@ describe("libredbStudio.install", () => {
 		});
 		expect(readEnvVar(savedSettings().env, "AUTH_COOKIE_SECURE")).toBeNull();
 		expect(result.url).toBe("https://studio.example.com");
+	});
+
+	it.each([
+		["the Dokploy server", undefined, null],
+		["a remote server", "server-1", "server-1"],
+	])(
+		"refuses a custom host another service on %s already uses, before any write",
+		async (_name, serverId, expectedServerId) => {
+			studioHost.isHostUsedByAnotherService.mockResolvedValue(true);
+
+			await expect(
+				caller().install({
+					environmentId: "env-1",
+					serverId,
+					domain: { kind: "custom", host: "shared.example.com" },
+				}),
+			).rejects.toMatchObject({
+				code: "CONFLICT",
+				message:
+					"Another service already uses this domain. Choose a domain that only the Studio uses.",
+			});
+			expect(studioHost.isHostUsedByAnotherService).toHaveBeenCalledWith({
+				host: "shared.example.com",
+				serverId: expectedServerId,
+			});
+			expectNothingInstalled();
+		},
+	);
+
+	it("does not look up other services for a generated domain", async () => {
+		await installGenerated();
+		expect(studioHost.isHostUsedByAnotherService).not.toHaveBeenCalled();
 	});
 
 	it("scopes the lock, the application, the domain and the deploy to the chosen server", async () => {

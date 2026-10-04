@@ -3,7 +3,7 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { resolveDockerContainerOverWss } from "./authorize";
 import {
 	isValidContainerId,
 	isValidShell,
@@ -70,12 +70,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 			return;
 		}
 
-		if (
-			!(await canAccessDockerOverWss(user, session, serverId, serviceId, {
-				type: "terminal",
-				containerId,
-			}))
-		) {
+		const boundContainerId = await resolveDockerContainerOverWss(
+			user,
+			session,
+			serverId,
+			serviceId,
+			{ type: "terminal", containerId },
+		);
+		if (!boundContainerId) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
@@ -103,7 +105,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 							"-it",
 							"-w",
 							"/",
-							containerId,
+							boundContainerId,
 							shell,
 						].join(" ");
 						conn.exec(dockerCommand, { pty: { cols, rows } }, (err, stream) => {
@@ -180,7 +182,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				}
 				const ptyProcess = spawn(
 					"docker",
-					["exec", "-it", "-w", "/", containerId, shell],
+					["exec", "-it", "-w", "/", boundContainerId, shell],
 					{ cols, rows },
 				);
 

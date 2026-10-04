@@ -10,6 +10,7 @@ const server = vi.hoisted(() => ({
 }));
 
 const permission = vi.hoisted(() => ({
+	checkPermission: vi.fn(),
 	checkServiceAccess: vi.fn(),
 	checkServicePermissionAndAccess: vi.fn(),
 }));
@@ -25,6 +26,10 @@ const studioService = vi.hoisted(() => ({
 
 const launchToken = vi.hoisted(() => ({
 	createLaunchToken: vi.fn(),
+}));
+
+const studioHost = vi.hoisted(() => ({
+	isHostUsedByAnotherService: vi.fn(),
 }));
 
 const audit = vi.hoisted(() => vi.fn());
@@ -44,6 +49,8 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/services/permission", () => permission);
 
 vi.mock("@dokploy/server/services/libredb-studio", () => studioService);
+
+vi.mock("@dokploy/server/utils/libredb-studio/host", () => studioHost);
 
 vi.mock("@dokploy/server/utils/libredb-studio/launch-token", () => launchToken);
 
@@ -219,25 +226,70 @@ describe("libredbStudio.sync", () => {
 			caller().sync({ libredbStudioId: "studio-1" }),
 		).resolves.toEqual({ changed: true, networksChanged: false });
 
-		expect(permission.checkServicePermissionAndAccess).toHaveBeenCalledWith(
+		expect(permission.checkServiceAccess).toHaveBeenCalledWith(
 			expect.anything(),
 			"app-1",
-			{ deployment: ["create"] },
+			"read",
 		);
+		expect(permission.checkPermission).toHaveBeenCalledWith(expect.anything(), {
+			deployment: ["create"],
+		});
 		expect(studioService.syncLibreDBStudio).toHaveBeenCalledWith("studio-1", {
 			force: true,
 		});
 	});
 
 	it("refuses a caller without deployment.create on the Studio", async () => {
-		permission.checkServicePermissionAndAccess.mockRejectedValue(
-			denied("You don't have access to this service"),
-		);
+		permission.checkPermission.mockRejectedValue(denied());
 
 		await expect(
 			caller("member").sync({ libredbStudioId: "studio-1" }),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 		expect(studioService.syncLibreDBStudio).not.toHaveBeenCalled();
+	});
+
+	describe("for a member", () => {
+		// Mirrors the member rules of the permission helpers: service access by
+		// accessedServices, and no change of a Studio through
+		// checkServicePermissionAndAccess.
+		const asMember = (accessedServices: string[]) => {
+			permission.checkServiceAccess.mockImplementation(
+				async (_ctx, serviceId) => {
+					if (!accessedServices.includes(serviceId)) {
+						throw denied("You don't have access to this service");
+					}
+				},
+			);
+			permission.checkPermission.mockResolvedValue(undefined);
+			permission.checkServicePermissionAndAccess.mockRejectedValue(
+				denied(
+					"Only owners and admins of the organization can change a LibreDB Studio. Members can open it with Open in LibreDB Studio.",
+				),
+			);
+		};
+
+		it("runs Sync now with the Studio in accessedServices and deployment.create", async () => {
+			asMember(["app-1"]);
+
+			await expect(
+				caller("member").sync({ libredbStudioId: "studio-1" }),
+			).resolves.toEqual({ changed: true, networksChanged: false });
+			expect(studioService.syncLibreDBStudio).toHaveBeenCalledWith("studio-1", {
+				force: true,
+			});
+		});
+
+		it("refuses Sync now without the Studio in accessedServices", async () => {
+			asMember(["other-app"]);
+
+			await expect(
+				caller("member").sync({ libredbStudioId: "studio-1" }),
+			).rejects.toMatchObject({
+				code: "UNAUTHORIZED",
+				message: "You don't have access to this service",
+			});
+			expect(studioService.syncLibreDBStudio).not.toHaveBeenCalled();
+		});
 	});
 
 	it("reports a failed sync to the caller with its message", async () => {
@@ -333,6 +385,33 @@ describe("libredbStudio.launch", () => {
 		});
 		expect(launchToken.createLaunchToken).not.toHaveBeenCalled();
 	});
+
+	it.each([
+		["the Dokploy server", null],
+		["a remote server", "server-1"],
+	])(
+		"refuses, before it signs, a Studio whose host another service on %s also uses",
+		async (_name, serverId) => {
+			studioService.findLibreDBStudioById.mockResolvedValue(
+				studioRow({ serverId }),
+			);
+			studioHost.isHostUsedByAnotherService.mockResolvedValue(true);
+
+			await expect(
+				caller().launch({ libredbStudioId: "studio-1" }),
+			).rejects.toMatchObject({
+				code: "PRECONDITION_FAILED",
+				message:
+					"Another service uses this Studio's domain. Give the Studio a domain of its own before you open it.",
+			});
+			expect(studioHost.isHostUsedByAnotherService).toHaveBeenCalledWith({
+				host: "studio.example.com",
+				serverId,
+				studioApplicationId: "app-1",
+			});
+			expect(launchToken.createLaunchToken).not.toHaveBeenCalled();
+		},
+	);
 
 	it("refuses to launch a Studio that is not running", async () => {
 		studioService.findLibreDBStudioById.mockResolvedValue(

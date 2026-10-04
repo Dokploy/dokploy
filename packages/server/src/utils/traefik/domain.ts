@@ -16,6 +16,7 @@ import {
 	removeForwardAuthMiddleware,
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+import { assertTraefikRuleValues } from "./rule-values";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
@@ -155,6 +156,10 @@ export const createRouterConfig = async (
 		customEntrypoint,
 	} = domain;
 	const punycodeHost = toPunycode(host);
+	// toPunycode drops control characters but maps a fullwidth grave accent
+	// to a backtick, so the stored and the written host are both checked.
+	assertTraefikRuleValues({ host, path, internalPath });
+	assertTraefikRuleValues({ host: punycodeHost });
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${punycodeHost}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,

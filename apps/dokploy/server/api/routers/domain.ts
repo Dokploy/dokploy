@@ -15,7 +15,12 @@ import {
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import {
+	checkLibreDBStudioHost,
+	checkServicePermissionAndAccess,
+	DOMAIN_HOST_IN_USE_MESSAGE,
+	LIBREDB_STUDIO_MEMBER_CHANGE_MESSAGE,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -37,15 +42,17 @@ export const domainRouter = createTRPCRouter({
 		.input(apiCreateDomain)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (input.domainType === "compose" && input.composeId) {
+				if (input.composeId) {
 					await checkServicePermissionAndAccess(ctx, input.composeId, {
 						domain: ["create"],
 					});
-				} else if (input.domainType === "application" && input.applicationId) {
+				}
+				if (input.applicationId) {
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
 						domain: ["create"],
 					});
 				}
+				await checkLibreDBStudioHost(ctx, input.host, input);
 				const domain = await createDomain(input);
 				await audit(ctx, {
 					action: "create",
@@ -55,6 +62,13 @@ export const domainRouter = createTRPCRouter({
 				});
 				return domain;
 			} catch (error) {
+				if (
+					error instanceof TRPCError &&
+					(error.message === LIBREDB_STUDIO_MEMBER_CHANGE_MESSAGE ||
+						error.message === DOMAIN_HOST_IN_USE_MESSAGE)
+				) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
@@ -117,6 +131,9 @@ export const domainRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, preview.applicationId, {
 					domain: ["create"],
 				});
+			}
+			if (input.host) {
+				await checkLibreDBStudioHost(ctx, input.host, currentDomain);
 			}
 
 			const result = await updateDomainById(input.domainId, input);

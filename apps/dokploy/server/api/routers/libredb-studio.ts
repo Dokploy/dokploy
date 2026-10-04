@@ -46,7 +46,6 @@ import {
 	checkEnvironmentAccess,
 	checkPermission,
 	checkServiceAccess,
-	checkServicePermissionAndAccess,
 	type PermissionCtx,
 } from "@dokploy/server/services/permission";
 import {
@@ -63,6 +62,7 @@ import {
 	readEnvVar,
 	setEnvVar,
 } from "@dokploy/server/utils/libredb-studio/env";
+import { isHostUsedByAnotherService } from "@dokploy/server/utils/libredb-studio/host";
 import { LIBREDB_STUDIO_ICON_DATA_URL } from "@dokploy/server/utils/libredb-studio/icon";
 import {
 	createLaunchToken,
@@ -427,6 +427,20 @@ export const libredbStudioRouter = createTRPCRouter({
 				}
 			}
 
+			if (
+				input.domain.kind === "custom" &&
+				(await isHostUsedByAnotherService({
+					host: input.domain.host,
+					serverId: input.serverId ?? null,
+				}))
+			) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"Another service already uses this domain. Choose a domain that only the Studio uses.",
+				});
+			}
+
 			const scope = {
 				environmentId: input.environmentId,
 				serverId: input.serverId ?? null,
@@ -757,9 +771,8 @@ export const libredbStudioRouter = createTRPCRouter({
 				input.libredbStudioId,
 				ctx.session.activeOrganizationId,
 			);
-			await checkServicePermissionAndAccess(ctx, studio.applicationId, {
-				deployment: ["create"],
-			});
+			await checkServiceAccess(ctx, studio.applicationId, "read");
+			await checkPermission(ctx, { deployment: ["create"] });
 			return syncLibreDBStudio(studio.libredbStudioId, { force: true });
 		}),
 
@@ -805,6 +818,19 @@ export const libredbStudioRouter = createTRPCRouter({
 			}
 
 			const launchDomain = requireLaunchDomain(studio.application.domains);
+			if (
+				await isHostUsedByAnotherService({
+					host: new URL(launchDomain.url).hostname,
+					serverId: studio.application.serverId,
+					studioApplicationId: studio.applicationId,
+				})
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Another service uses this Studio's domain. Give the Studio a domain of its own before you open it.",
+				});
+			}
 			requireDecryptedSecrets(studio);
 			const token = createLaunchToken({
 				secret: studio.launchSecret,

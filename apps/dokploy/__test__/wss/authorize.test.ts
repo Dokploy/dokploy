@@ -15,9 +15,9 @@ vi.mock("@dokploy/server", () => ({
 	getAccessibleServerIds: mockGetAccessibleServerIds,
 }));
 
-const mockIsContainerBoundToService = vi.hoisted(() => vi.fn());
+const mockResolveBoundTarget = vi.hoisted(() => vi.fn());
 vi.mock("@/server/wss/container-binding", () => ({
-	isContainerBoundToService: mockIsContainerBoundToService,
+	resolveBoundTarget: mockResolveBoundTarget,
 }));
 
 import {
@@ -74,7 +74,7 @@ describe("canAccessDockerOverWss", () => {
 		mockHasPermission.mockResolvedValue(false);
 		mockGetAccessibleServerIds.mockResolvedValue(new Set());
 		mockCheckServiceAccess.mockResolvedValue(undefined);
-		mockIsContainerBoundToService.mockResolvedValue(true);
+		mockResolveBoundTarget.mockResolvedValue("container-1");
 		expect(
 			await canAccessDockerOverWss(USER, SESSION, "srv-remote", "svc-1", {
 				type: "logs",

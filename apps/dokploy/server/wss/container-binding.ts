@@ -92,10 +92,10 @@ const findBoundService = async (
 	return null;
 };
 
-const readContainerLabels = async (
+const inspectContainerTarget = async (
 	service: BoundService,
 	target: Extract<WssContainerTarget, { containerId: string }>,
-): Promise<Record<string, string>> => {
+): Promise<{ id: string; labels: Record<string, string> }> => {
 	const docker = await getRemoteDocker(service.serverId);
 	// In swarm mode the logs handler runs `docker service logs` on a task id,
 	// and a task carries its service only by id. That command tries the string
@@ -103,19 +103,38 @@ const readContainerLabels = async (
 	if (target.type === "logs" && target.runType === "swarm") {
 		const task = await docker.getTask(target.containerId).inspect();
 		if (task.ID !== target.containerId) {
-			return {};
+			return { id: task.ID, labels: {} };
 		}
 		const owner = await docker.getService(task.ServiceID).inspect();
 		return {
-			...owner.Spec?.Labels,
-			[SERVICE_LABEL.swarm]: owner.Spec?.Name,
+			id: task.ID,
+			labels: {
+				...owner.Spec?.Labels,
+				[SERVICE_LABEL.swarm]: owner.Spec?.Name,
+			},
 		};
 	}
 	const container = await docker.getContainer(target.containerId).inspect();
-	return container.Config?.Labels ?? {};
+	return { id: container.Id, labels: container.Config?.Labels ?? {} };
 };
 
-const statsNameBelongsTo = (
+// A stack's stats name is "<service>.<slot>.<taskId>". A stack named "ns_x"
+// has services that start with "ns_", so the task's own namespace label
+// decides, never the name.
+const stackTaskBelongsTo = async (service: BoundService, appName: string) => {
+	const taskId = appName.split(".").pop();
+	if (!taskId) return false;
+	const docker = await getRemoteDocker(service.serverId);
+	const task = await docker.getTask(taskId).inspect();
+	if (task.ID !== taskId) return false;
+	const owner = await docker.getService(task.ServiceID).inspect();
+	return (
+		owner.Spec?.Labels?.[SERVICE_LABEL.stack] === service.appName &&
+		appName.startsWith(`${owner.Spec?.Name}.`)
+	);
+};
+
+const statsNameBelongsTo = async (
 	service: BoundService,
 	target: Extract<WssContainerTarget, { type: "stats" }>,
 ) => {
@@ -129,25 +148,29 @@ const statsNameBelongsTo = (
 		case "stack":
 			return (
 				service.kind === "stack" &&
-				target.appName.startsWith(`${service.appName}_`)
+				(await stackTaskBelongsTo(service, target.appName))
 			);
 	}
 };
 
+// Resolves to the full container or task ID the handler must run docker on,
+// because docker resolves the caller's string again, by name before an ID
+// prefix, and may then reach another container. Stats resolve to the bound
+// service's appName, which the stats handler adds to its container filter.
 // Rejects when the container cannot be inspected, so a missing container is
 // refused by the caller's catch.
-export const isContainerBoundToService = async (
+export const resolveBoundTarget = async (
 	serviceId: string,
 	serverId: string | null | undefined,
 	target: WssContainerTarget,
-): Promise<boolean> => {
+): Promise<string | null> => {
 	const service = await findBoundService(serviceId);
 	if (!service || (serverId || null) !== service.serverId) {
-		return false;
+		return null;
 	}
 	if (target.type === "stats") {
-		return statsNameBelongsTo(service, target);
+		return (await statsNameBelongsTo(service, target)) ? service.appName : null;
 	}
-	const labels = await readContainerLabels(service, target);
-	return labels[SERVICE_LABEL[service.kind]] === service.appName;
+	const { id, labels } = await inspectContainerTarget(service, target);
+	return labels[SERVICE_LABEL[service.kind]] === service.appName ? id : null;
 };
