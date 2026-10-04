@@ -9,7 +9,7 @@ Everything in upstream Dokploy **v0.30.8**, plus **100+ community features and f
 ## Guides
 
 - **[Integrations guide](https://dokploy-community.devino.ca/integrations/)** — set up Uptimely, Snapvisor, DoDomain, Sendly and Notifly
-- **[FAQ](https://dokploy-community.devino.ca/faq/)** — install, migrate from Dokploy, multi-arch images, uptime monitoring, telemetry
+- **[FAQ](https://dokploy-community.devino.ca/faq/)** — install, migrate from Dokploy, MCP server for Claude Code, large deploy webhooks, DoDomain, uptime monitoring, telemetry
 
 ## Switching from official Dokploy
 

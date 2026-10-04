@@ -1,12 +1,12 @@
 # Dokploy Community Edition
 
-> Dokploy Community Edition is a self-hosted community fork of Dokploy, the platform for deploying applications, databases and Docker Compose stacks. It is upstream Dokploy v0.30.7 plus 100+ community features and fixes ported 1:1 with credit to their authors, native integrations (Uptimely, Snapvisor, DoDomain, Sendly, Notifly), a remote MCP server and fork-only security hardening. It is not affiliated with the Dokploy project. Switching from official Dokploy keeps all data, and switching back is supported.
+> Dokploy Community Edition is a self-hosted community fork of Dokploy, the platform for deploying applications, databases and Docker Compose stacks. It is upstream Dokploy v0.30.8 plus 100+ community features and fixes ported 1:1 with credit to their authors, native integrations (Uptimely, Snapvisor, DoDomain, Sendly, Notifly), a remote MCP server and fork-only security hardening. It is not affiliated with the Dokploy project. Switching from official Dokploy keeps all data, and switching back is supported.
 
 ## Install and upgrade
 
-- [README: install, switch from Dokploy, features](https://github.com/DevinoSolutions/dokploy-community#readme): Fresh install with `curl -sSL https://dokploy-community.devino.ca/install.sh | sh`, one-command switch from official Dokploy with `docker service update --image ghcr.io/devinosolutions/dokploy-community:v0.30.7-community.9 --with-registry-auth dokploy`, and the full feature list.
+- [README: install, switch from Dokploy, features](https://github.com/DevinoSolutions/dokploy-community#readme): Fresh install with `curl -sSL https://dokploy-community.devino.ca/install.sh | sh`, one-command switch from official Dokploy with `docker service update --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.1 --with-registry-auth dokploy`, and the full feature list.
 - [Site home](https://dokploy-community.devino.ca/): The same README as a web page, including the list of what is different from upstream Dokploy.
-- [Docker image tags](https://github.com/DevinoSolutions/dokploy-community#docker-image): ghcr.io/devinosolutions/dokploy-community with versioned tags (for example v0.30.7-community.9), `latest` for the latest release and `canary` for the latest build. Recent release images are multi-arch (linux/amd64 and linux/arm64).
+- [Docker image tags](https://github.com/DevinoSolutions/dokploy-community#docker-image): ghcr.io/devinosolutions/dokploy-community with versioned tags (for example v0.30.8-community.1), `latest` for the latest release and `canary` for the latest build. Recent release images are multi-arch (linux/amd64 and linux/arm64).
 - [Versioning](https://github.com/DevinoSolutions/dokploy-community#versioning): Tags follow the scheme v<upstream-version>-community.<release>.
 
 ## Features
@@ -15,10 +15,11 @@
 - [Uptimely monitoring](https://dokploy-community.devino.ca/integrations/#uptimely-uptime-ssl-and-domain-monitoring): One Website monitor per HTTPS domain from a service's Monitoring tab, checked every 5 minutes, with a 30-day timeline.
 - [Snapvisor visual testing](https://dokploy-community.devino.ca/integrations/#snapvisor-visual-testing-on-preview-deployments): Visual-diff review status on preview deployments, looked up by commit SHA.
 - [DoDomain domain connect](https://dokploy-community.devino.ca/integrations/#dodomain-custom-domain-connect-and-dns-verification): Domain owners connect DNS through a hosted flow and Dokploy shows the verification state.
+- [Built-in MCP server](https://github.com/DevinoSolutions/dokploy-community#remote-mcp-server-with-oauth-fork-original): Dokploy serves its own remote MCP server at `https://<your-dokploy>/api/mcp` with OAuth sign-in, so Claude Code and other MCP clients need no local process and no API key: `claude mcp add --transport http --scope user dokploy https://<host>/api/mcp`, then authenticate in the browser. An API key in the `x-api-key` header also works.
 
 ## FAQ
 
-- [Frequently asked questions](https://dokploy-community.devino.ca/faq/): What the fork is, affiliation with Dokploy, install and migration, going back to official Dokploy, multi-arch images, uptime monitoring, the container log viewer, upstream sync and telemetry.
+- [Frequently asked questions](https://dokploy-community.devino.ca/faq/): What the fork is, affiliation with Dokploy, install and migration, going back to official Dokploy, multi-arch images, connecting Claude Code over MCP, large GitHub push webhooks (413, payloads up to 25 MB), service status after saving provider settings, connecting DoDomain, uptime monitoring, the container log viewer, upstream sync and telemetry.
 
 ## Source and support
 

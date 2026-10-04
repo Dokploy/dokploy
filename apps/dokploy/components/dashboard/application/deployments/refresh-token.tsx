@@ -27,7 +27,12 @@ export const RefreshToken = ({ id, type }: Props) => {
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
-				<Button variant="ghost" size="icon">
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label="Regenerate webhook token"
+					title="Regenerate webhook token"
+				>
 					<RefreshCcw className="h-4 w-4 cursor-pointer text-muted-foreground" />
 				</Button>
 			</AlertDialogTrigger>
