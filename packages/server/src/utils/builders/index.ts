@@ -11,6 +11,10 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import {
+	applyLibreDBStudioDeployOverrides,
+	getLibreDBStudioDeployOverrides,
+} from "../libredb-studio/deploy";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 import { getDockerCommand } from "./docker-file";
@@ -126,6 +130,14 @@ export const mechanizeDockerContainer = async (
 		application.environment.project.env,
 		application.environment.env,
 	);
+	const containerSpec = applyLibreDBStudioDeployOverrides(
+		{
+			env: envVariables,
+			mounts: [...volumesMount, ...bindsMount, ...filesMount],
+			placement: Placement,
+		},
+		await getLibreDBStudioDeployOverrides(application),
+	);
 
 	const image = await getImageName(application);
 	const authConfig = await getAuthConfig(application);
@@ -138,8 +150,8 @@ export const mechanizeDockerContainer = async (
 			ContainerSpec: {
 				HealthCheck,
 				Image: image,
-				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Env: containerSpec.env,
+				Mounts: containerSpec.mounts,
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {
@@ -154,7 +166,7 @@ export const mechanizeDockerContainer = async (
 			},
 			Networks: resolvedNetworks,
 			RestartPolicy,
-			Placement,
+			Placement: containerSpec.placement,
 			Resources: {
 				...resources,
 			},
