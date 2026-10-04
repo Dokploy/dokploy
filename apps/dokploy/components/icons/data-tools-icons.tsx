@@ -1,4 +1,3 @@
-import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 // https://worldvectorlogo.com/downloaded/redis Ref
@@ -213,141 +212,22 @@ export const LibsqlIcon = ({ className }: Props) => {
 };
 
 export const LibreDBStudioIcon = ({ className }: Props) => {
-	const id = useId();
-	const ringGradientId = `${id}-libredb-brand-gradient-2`;
-	const firstBarGradientId = `${id}-libredb-brand-gradient-3`;
-	const secondBarGradientId = `${id}-libredb-brand-gradient-4`;
-	const thirdBarGradientId = `${id}-libredb-brand-gradient-5`;
-	const leftBracketGradientId = `${id}-libredb-accent-gradient`;
-	const rightBracketGradientId = `${id}-libredb-accent-gradient-2`;
 	return (
 		<svg
-			width="40"
-			height="40"
-			viewBox="-25.315 0 600 600"
-			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
 			className={className}
 		>
-			<defs>
-				<linearGradient
-					id={ringGradientId}
-					x1="-3472.17"
-					y1="-2046.79"
-					x2="-3470.72"
-					y2="-2045.35"
-					gradientTransform="translate(481417.78 327672.36) scale(138.6 160)"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop offset="0" stopColor="#4f46e5" />
-					<stop offset="1" stopColor="#9333ea" />
-				</linearGradient>
-				<linearGradient
-					id={firstBarGradientId}
-					x1="-3438.43"
-					y1="-1839.94"
-					x2="-3435"
-					y2="-1836.52"
-					gradientTransform="translate(206480.32 18628.25) scale(60 10)"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop offset="0" stopColor="#4f46e5" />
-					<stop offset="1" stopColor="#9333ea" />
-				</linearGradient>
-				<linearGradient
-					id={secondBarGradientId}
-					x1="-3438.48"
-					y1="-1834.54"
-					x2="-3435.05"
-					y2="-1831.12"
-					gradientTransform="translate(206480.32 18628.25) scale(60 10)"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop offset="0" stopColor="#4f46e5" />
-					<stop offset="1" stopColor="#9333ea" />
-				</linearGradient>
-				<linearGradient
-					id={thirdBarGradientId}
-					x1="-3438.43"
-					y1="-1829.03"
-					x2="-3435"
-					y2="-1825.61"
-					gradientTransform="translate(206480.32 18628.25) scale(60 10)"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop offset="0" stopColor="#4f46e5" />
-					<stop offset="1" stopColor="#9333ea" />
-				</linearGradient>
-				<linearGradient
-					id={leftBracketGradientId}
-					x1="-3319.89"
-					y1="-2022.98"
-					x2="-3319.19"
-					y2="-2022.28"
-					gradientTransform="translate(66506.13 121652.95) scale(20 60)"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop offset="0" stopColor="#10b981" />
-					<stop offset="1" stopColor="#3b82f6" />
-				</linearGradient>
-				<linearGradient
-					id={rightBracketGradientId}
-					x1="-3309.46"
-					y1="-2022.82"
-					x2="-3308.76"
-					y2="-2022.12"
-					gradientTransform="translate(66616.13 121652.95) scale(20 60)"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop offset="0" stopColor="#10b981" />
-					<stop offset="1" stopColor="#3b82f6" />
-				</linearGradient>
-			</defs>
-			<path
-				fill={`url(#${ringGradientId})`}
-				d="M274.68,600c-19.18,0-38.36-4.92-55.46-14.76l-163.74-94.6C21.26,470.95,0,434.1,0,394.49v-188.97c0-39.62,21.26-76.46,55.5-96.16L219.2,14.77c34.23-19.69,76.74-19.69,110.96,0h.02s163.72,94.6,163.72,94.6c34.21,19.69,55.48,56.53,55.48,96.15v188.97c0,39.62-21.27,76.46-55.5,96.16l-163.7,94.58c-17.12,9.85-36.31,14.77-55.49,14.77ZM274.69,19.89c-15.75,0-31.5,4.04-45.54,12.12L65.44,126.6c-28.09,16.16-45.54,46.4-45.54,78.91v188.97c0,32.52,17.44,62.75,45.52,78.91l163.74,94.6c28.08,16.15,62.98,16.16,91.07,0l163.7-94.58c28.09-16.16,45.54-46.4,45.54-78.91v-188.97c0-32.52-17.44-62.75-45.52-78.91l-163.72-94.6c-14.04-8.08-29.79-12.12-45.54-12.12Z"
-			/>
-			<g opacity="0.3">
-				<rect
-					fill={`url(#${firstBarGradientId})`}
-					x="159.97"
-					y="229.91"
-					width="229.21"
-					height="31.03"
-					rx="6.85"
-					ry="6.85"
-				/>
-			</g>
-			<g opacity="0.3">
-				<rect
-					fill={`url(#${secondBarGradientId})`}
-					x="159.97"
-					y="284.48"
-					width="229.21"
-					height="31.03"
-					rx="6.85"
-					ry="6.85"
-				/>
-			</g>
-			<g opacity="0.3">
-				<rect
-					fill={`url(#${thirdBarGradientId})`}
-					x="159.97"
-					y="339.06"
-					width="229.21"
-					height="31.03"
-					rx="6.85"
-					ry="6.85"
-				/>
-			</g>
-			<path
-				fill={`url(#${leftBracketGradientId})`}
-				d="M136.02,426.06c-3.7,0-7.33-1.79-9.54-5.1l-76.4-114.71c-2.56-3.84-2.56-8.85,0-12.69l76.4-114.71c3.5-5.26,10.61-6.69,15.88-3.18,5.26,3.51,6.69,10.61,3.18,15.88l-72.17,108.36,72.17,108.36c3.51,5.26,2.08,12.37-3.18,15.88-1.95,1.3-4.16,1.92-6.34,1.92Z"
-			/>
-			<path
-				fill={`url(#${rightBracketGradientId})`}
-				d="M413.14,426.06c-2.18,0-4.39-.62-6.34-1.92-5.26-3.51-6.69-10.61-3.18-15.88l72.17-108.36-72.17-108.36c-3.51-5.26-2.08-12.37,3.18-15.88,5.27-3.5,12.37-2.08,15.88,3.18l76.4,114.71c2.56,3.84,2.56,8.85,0,12.69l-76.4,114.71c-2.21,3.31-5.84,5.1-9.54,5.1Z"
-			/>
+			<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+			<path d="M10 9.5 8 12l2 2.5" />
+			<path d="m14 9.5 2 2.5-2 2.5" />
 		</svg>
 	);
 };

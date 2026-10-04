@@ -291,7 +291,10 @@ const Service = (
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowLibreDBStudio applicationId={applicationId} />
+											<ShowLibreDBStudio
+												applicationId={applicationId}
+												icon={data?.icon}
+											/>
 											<ShowGeneralApplication applicationId={applicationId} />
 										</div>
 									</TabsContent>

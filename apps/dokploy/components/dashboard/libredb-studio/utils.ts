@@ -2,6 +2,7 @@ import {
 	INVALID_HOSTNAME_MESSAGE,
 	VALID_HOSTNAME_REGEX,
 } from "@dokploy/server/utils/hostname-validation";
+import { LIBREDB_STUDIO_ICON_DATA_URL } from "@dokploy/server/utils/libredb-studio/icon";
 
 export const LOCAL_SERVER_VALUE = "dokploy";
 
@@ -313,3 +314,11 @@ export const getDatabaseHref = (
 	database: { kind: StudioDatabaseType; id: string },
 ): string =>
 	`/dashboard/project/${studio.projectId}/environment/${studio.environmentId}/services/${database.kind}/${database.id}`;
+
+export const isLibreDBStudioIcon = (icon: string | null | undefined): boolean =>
+	icon === LIBREDB_STUDIO_ICON_DATA_URL;
+
+export const isKnownLibreDBStudio = (input: {
+	studio: unknown;
+	icon: string | null | undefined;
+}): boolean => !!input.studio || isLibreDBStudioIcon(input.icon);

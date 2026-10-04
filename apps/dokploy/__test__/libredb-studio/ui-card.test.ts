@@ -1,3 +1,4 @@
+import { LIBREDB_STUDIO_ICON_DATA_URL } from "@dokploy/server/utils/libredb-studio/icon";
 import { describe, expect, test } from "vitest";
 import {
 	COOKIE_SETTING_WARNING,
@@ -8,6 +9,8 @@ import {
 	getStudioStatusLabel,
 	getSyncResultMessage,
 	HTTP_ADDRESS_WARNING,
+	isKnownLibreDBStudio,
+	isLibreDBStudioIcon,
 	STUDIO_NO_DOMAIN_REASON,
 	STUDIO_REVOCATION_WARNING,
 } from "@/components/dashboard/libredb-studio/utils";
@@ -122,5 +125,47 @@ describe("Studio card sentences", () => {
 		expect(STUDIO_REVOCATION_WARNING).toBe(
 			"Removing someone's access in Dokploy does not end a Studio session they already opened, which lasts up to 24 hours; disable their Studio account to cut it at once.",
 		);
+	});
+});
+
+describe("isLibreDBStudioIcon", () => {
+	test("recognizes the icon install stores for a Studio", () => {
+		expect(isLibreDBStudioIcon(LIBREDB_STUDIO_ICON_DATA_URL)).toBe(true);
+	});
+
+	test("rejects a missing or different icon", () => {
+		expect(isLibreDBStudioIcon(null)).toBe(false);
+		expect(isLibreDBStudioIcon(undefined)).toBe(false);
+		expect(isLibreDBStudioIcon("")).toBe(false);
+		expect(
+			isLibreDBStudioIcon("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="),
+		).toBe(false);
+	});
+});
+
+describe("isKnownLibreDBStudio", () => {
+	test("knows a Studio from an earlier answer or from its icon", () => {
+		expect(
+			isKnownLibreDBStudio({
+				studio: { libredbStudioId: "studio-1" },
+				icon: null,
+			}),
+		).toBe(true);
+		expect(
+			isKnownLibreDBStudio({
+				studio: undefined,
+				icon: LIBREDB_STUDIO_ICON_DATA_URL,
+			}),
+		).toBe(true);
+	});
+
+	test("does not treat any other application as a Studio", () => {
+		expect(isKnownLibreDBStudio({ studio: undefined, icon: null })).toBe(false);
+		expect(
+			isKnownLibreDBStudio({
+				studio: null,
+				icon: "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+			}),
+		).toBe(false);
 	});
 });

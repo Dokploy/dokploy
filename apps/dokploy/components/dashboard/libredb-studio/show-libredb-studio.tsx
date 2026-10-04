@@ -12,6 +12,7 @@ import {
 	getStudioStatusLabel,
 	getSyncResultMessage,
 	HTTP_ADDRESS_WARNING,
+	isKnownLibreDBStudio,
 	STUDIO_ACCESS_WARNING,
 	STUDIO_NO_DOMAIN_REASON,
 	STUDIO_REVOCATION_WARNING,
@@ -47,9 +48,10 @@ import { api } from "@/utils/api";
 
 interface Props {
 	applicationId: string;
+	icon?: string | null;
 }
 
-export const ShowLibreDBStudio = ({ applicationId }: Props) => {
+export const ShowLibreDBStudio = ({ applicationId, icon }: Props) => {
 	const id = useId();
 	const [showCredentials, setShowCredentials] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -86,6 +88,10 @@ export const ShowLibreDBStudio = ({ applicationId }: Props) => {
 		return null;
 	}
 	if (error) {
+		// The card runs on every application page, so an error on an application not known to be a Studio stays silent.
+		if (!isKnownLibreDBStudio({ studio, icon })) {
+			return null;
+		}
 		return (
 			<AlertBlock type="error">
 				LibreDB Studio status could not be loaded: {error.message}

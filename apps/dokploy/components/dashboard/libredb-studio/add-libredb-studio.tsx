@@ -34,7 +34,7 @@ export const AddLibreDBStudio = ({ environmentId }: Props) => {
 				className="w-full cursor-pointer space-x-3"
 				onSelect={(event) => event.preventDefault()}
 			>
-				<LibreDBStudioIcon className="size-4" />
+				<LibreDBStudioIcon className="size-4 text-muted-foreground" />
 				<span>LibreDB Studio</span>
 			</DropdownMenuItem>
 		</InstallLibreDBStudioDialog>
