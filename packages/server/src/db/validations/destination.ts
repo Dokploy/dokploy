@@ -57,19 +57,15 @@ const hasRcloneControlCharacters = (value: string) =>
 const RCLONE_WINDOWS_DRIVE_PATH = /^[a-zA-Z]:/;
 const RCLONE_REMOTE_PREFIX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const RCLONE_PERCENT_ESCAPE = /%[0-9a-f]{2}/i;
-const RCLONE_MALFORMED_PERCENT_ESCAPE = /%(?![0-9a-f]{2})/i;
+const RCLONE_PERCENT_ESCAPE_GLOBAL = /%[0-9a-f]{2}/gi;
 
 const decodeRclonePath = (value: string) => {
-	if (RCLONE_MALFORMED_PERCENT_ESCAPE.test(value)) return null;
-
 	let decoded = value;
 	for (let index = 0; index < 8; index += 1) {
 		if (!RCLONE_PERCENT_ESCAPE.test(decoded)) return decoded;
-		try {
-			decoded = decodeURIComponent(decoded);
-		} catch {
-			return null;
-		}
+		decoded = decoded.replace(RCLONE_PERCENT_ESCAPE_GLOBAL, (escape) =>
+			String.fromCharCode(parseInt(escape.slice(1), 16)),
+		);
 	}
 	return RCLONE_PERCENT_ESCAPE.test(decoded) ? null : decoded;
 };

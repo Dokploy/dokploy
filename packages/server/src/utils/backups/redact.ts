@@ -1,5 +1,5 @@
 // A shell word as produced by shell-quote: bare, 'single' or "double" quoted.
-const SHELL_WORD = String.raw`(?:[^\s'"\]|\.|'[^']*'|"(?:[^"\]|\.)*")+`;
+const SHELL_WORD = String.raw`(?:[^\s'"\\]|\\.|'[^']*'|"(?:[^"\\]|\\.)*")+`;
 
 const ACCESS_KEY_PATTERN = new RegExp(
 	`(--s3-access-key-id=)${SHELL_WORD}`,
