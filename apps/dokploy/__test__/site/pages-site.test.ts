@@ -416,13 +416,16 @@ describe("pages site: repository files", () => {
 			/Based on \*\*Dokploy (v\d+\.\d+\.\d+)\*\*/,
 		)?.[1] as string;
 
-		/** Tags that are examples or commands, not "since vX" history. */
+		/**
+		 * Tags that are examples or commands, not history: "since vX" mentions
+		 * and links to a specific release's notes keep their version.
+		 */
 		const currentTags = (text: string) =>
 			[...text.matchAll(COMMUNITY_TAG_RE)]
-				.filter(
-					(match) =>
-						!/since $/i.test(text.slice(Math.max(0, match.index - 6), match.index)),
-				)
+				.filter((match) => {
+					const before = text.slice(Math.max(0, match.index - 14), match.index);
+					return !/since $/i.test(before) && !before.endsWith("/releases/tag/");
+				})
 				.map((match) => match[0]);
 
 		it("has a release version in package.json and a base version in the README", () => {
