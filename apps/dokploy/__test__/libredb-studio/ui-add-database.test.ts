@@ -1,11 +1,16 @@
 import { describe, expect, test } from "vitest";
 import {
 	ADD_DATABASE_NO_IP_MESSAGE,
+	ADD_DATABASE_STUDIO_CARD_CAPTION,
+	ADD_DATABASE_STUDIO_CARD_LABEL,
+	ADD_DATABASE_STUDIO_CARD_VALUE,
 	ADD_DATABASE_STUDIO_NOTE,
 	ADD_DATABASE_STUDIO_SWITCH_LABEL,
 	getAddDatabaseStudioSection,
 	getAddDatabaseStudioSwitch,
+	getAddDatabaseTypeValue,
 	PLAIN_HTTP_WARNING,
+	shouldCloseAddDatabaseOnStudioInstall,
 } from "@/components/dashboard/libredb-studio/utils";
 
 const studios = [{ serverId: null }, { serverId: "server-1" }];
@@ -133,7 +138,59 @@ describe("Add Database sentences", () => {
 			"Also set up LibreDB Studio for this environment",
 		);
 		expect(ADD_DATABASE_NO_IP_MESSAGE).toBe(
-			"This server has no IP address to build a generated domain from. Install LibreDB Studio with a custom domain from the Create Service menu instead.",
+			"This server has no IP address to build a generated domain from. Install LibreDB Studio with a custom domain from the LibreDB Studio card in this dialog instead.",
 		);
+	});
+});
+
+describe("getAddDatabaseTypeValue", () => {
+	test("selects the Studio card while it is chosen, whatever the database type", () => {
+		expect(getAddDatabaseTypeValue(true, "postgres")).toBe("libredb-studio");
+		expect(getAddDatabaseTypeValue(true, "libsql")).toBe("libredb-studio");
+	});
+
+	test("selects the database type otherwise", () => {
+		expect(getAddDatabaseTypeValue(false, "postgres")).toBe("postgres");
+		expect(getAddDatabaseTypeValue(false, "redis")).toBe("redis");
+	});
+});
+
+describe("Add Database Studio card", () => {
+	test("has its value, label and caption", () => {
+		expect(ADD_DATABASE_STUDIO_CARD_VALUE).toBe("libredb-studio");
+		expect(ADD_DATABASE_STUDIO_CARD_LABEL).toBe("LibreDB Studio");
+		expect(ADD_DATABASE_STUDIO_CARD_CAPTION).toBe("Database editor");
+	});
+});
+
+describe("shouldCloseAddDatabaseOnStudioInstall", () => {
+	test("closes the dialog while it is open on the LibreDB Studio card", () => {
+		expect(
+			shouldCloseAddDatabaseOnStudioInstall({
+				open: true,
+				studioSelected: true,
+			}),
+		).toBe(true);
+	});
+
+	test("leaves the dialog alone after it was closed or another card was chosen", () => {
+		expect(
+			shouldCloseAddDatabaseOnStudioInstall({
+				open: false,
+				studioSelected: true,
+			}),
+		).toBe(false);
+		expect(
+			shouldCloseAddDatabaseOnStudioInstall({
+				open: true,
+				studioSelected: false,
+			}),
+		).toBe(false);
+		expect(
+			shouldCloseAddDatabaseOnStudioInstall({
+				open: false,
+				studioSelected: false,
+			}),
+		).toBe(false);
 	});
 });

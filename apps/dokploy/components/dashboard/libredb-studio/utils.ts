@@ -92,7 +92,7 @@ export const ADD_DATABASE_STUDIO_SWITCH_LABEL =
 	"Also set up LibreDB Studio for this environment";
 
 export const ADD_DATABASE_NO_IP_MESSAGE =
-	"This server has no IP address to build a generated domain from. Install LibreDB Studio with a custom domain from the Create Service menu instead.";
+	"This server has no IP address to build a generated domain from. Install LibreDB Studio with a custom domain from the LibreDB Studio card in this dialog instead.";
 
 export type AddDatabaseStudioSection =
 	| { kind: "none" }
@@ -322,3 +322,39 @@ export const isKnownLibreDBStudio = (input: {
 	studio: unknown;
 	icon: string | null | undefined;
 }): boolean => !!input.studio || isLibreDBStudioIcon(input.icon);
+
+export const ADD_DATABASE_STUDIO_CARD_VALUE = "libredb-studio";
+
+export const ADD_DATABASE_STUDIO_CARD_LABEL = "LibreDB Studio";
+
+export const ADD_DATABASE_STUDIO_CARD_CAPTION = "Database editor";
+
+export const getAddDatabaseTypeValue = <T extends string>(
+	studioSelected: boolean,
+	type: T,
+): T | typeof ADD_DATABASE_STUDIO_CARD_VALUE =>
+	studioSelected ? ADD_DATABASE_STUDIO_CARD_VALUE : type;
+
+// An install outlives the form that started it, so a late success must not close a dialog the user has closed or moved on from.
+export const shouldCloseAddDatabaseOnStudioInstall = (view: {
+	open: boolean;
+	studioSelected: boolean;
+}): boolean => view.open && view.studioSelected;
+
+// The install mutation lives in the dialog's parent, so a failed install's error would otherwise greet the next opening of the form.
+export const shouldResetStudioInstallOnOpen = (install: {
+	open: boolean;
+	pending: boolean;
+}): boolean => install.open && !install.pending;
+
+export const STUDIO_MEMBER_INSTALL_NOTE =
+	"After it is installed, only owners and admins of the organization can change this Studio; you can open it and use Sync now.";
+
+export const getStudioInstallerNote = (
+	role: string | undefined,
+): string | null => {
+	if (role === undefined || role === "owner" || role === "admin") {
+		return null;
+	}
+	return STUDIO_MEMBER_INSTALL_NOTE;
+};

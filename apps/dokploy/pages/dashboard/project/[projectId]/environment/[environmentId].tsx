@@ -28,7 +28,6 @@ import Link from "next/link";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import { AddLibreDBStudio } from "@/components/dashboard/libredb-studio/add-libredb-studio";
 import { isLibreDBStudioIcon } from "@/components/dashboard/libredb-studio/utils";
 import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
 import { AddApplication } from "@/components/dashboard/project/add-application";
@@ -1094,7 +1093,6 @@ const EnvironmentPage = (
 													environmentId={environmentId}
 												/>
 												<AddTemplate environmentId={environmentId} />
-												<AddLibreDBStudio environmentId={environmentId} />
 												<AddAiAssistant
 													projectName={projectData?.name}
 													environmentId={environmentId}

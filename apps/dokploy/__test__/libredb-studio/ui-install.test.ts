@@ -4,6 +4,7 @@ import {
 	canSetUpLibreDBStudio,
 	findStudioForServer,
 	getCustomHostError,
+	getStudioInstallerNote,
 	getStudioServiceHref,
 	isGeneratedDomainAvailable,
 	LOCAL_SERVER_VALUE,
@@ -11,6 +12,8 @@ import {
 	PLAIN_HTTP_WARNING,
 	resolveSelectedServerId,
 	STUDIO_ACCESS_WARNING,
+	STUDIO_MEMBER_INSTALL_NOTE,
+	shouldResetStudioInstallOnOpen,
 } from "@/components/dashboard/libredb-studio/utils";
 
 describe("canSetUpLibreDBStudio", () => {
@@ -169,6 +172,47 @@ describe("install dialog sentences", () => {
 		);
 		expect(NO_SERVER_IP_MESSAGE).toBe(
 			"This server has no IP address to build a generated domain from. Use a custom domain.",
+		);
+	});
+});
+
+describe("getStudioInstallerNote", () => {
+	test("tells a member that only owners and admins can change the Studio", () => {
+		expect(getStudioInstallerNote("member")).toBe(
+			"After it is installed, only owners and admins of the organization can change this Studio; you can open it and use Sync now.",
+		);
+		expect(getStudioInstallerNote("member")).toBe(STUDIO_MEMBER_INSTALL_NOTE);
+	});
+
+	test("shows nothing to an owner or an admin", () => {
+		expect(getStudioInstallerNote("owner")).toBeNull();
+		expect(getStudioInstallerNote("admin")).toBeNull();
+	});
+
+	test("shows nothing while the role is loading", () => {
+		expect(getStudioInstallerNote(undefined)).toBeNull();
+	});
+});
+
+describe("shouldResetStudioInstallOnOpen", () => {
+	test("clears a failed or finished install when the dialog opens", () => {
+		expect(shouldResetStudioInstallOnOpen({ open: true, pending: false })).toBe(
+			true,
+		);
+	});
+
+	test("keeps a running install so the reopened form shows it loading", () => {
+		expect(shouldResetStudioInstallOnOpen({ open: true, pending: true })).toBe(
+			false,
+		);
+	});
+
+	test("leaves the install alone while the dialog is closed", () => {
+		expect(
+			shouldResetStudioInstallOnOpen({ open: false, pending: false }),
+		).toBe(false);
+		expect(shouldResetStudioInstallOnOpen({ open: false, pending: true })).toBe(
+			false,
 		);
 	});
 });

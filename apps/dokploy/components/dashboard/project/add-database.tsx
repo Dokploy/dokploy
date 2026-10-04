@@ -1,18 +1,29 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { AlertTriangle, Database, HelpCircle } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
+	LibreDBStudioInstallForm,
+	useLibreDBStudioInstall,
+} from "@/components/dashboard/libredb-studio/install-libredb-studio-form";
+import {
+	ADD_DATABASE_STUDIO_CARD_CAPTION,
+	ADD_DATABASE_STUDIO_CARD_LABEL,
+	ADD_DATABASE_STUDIO_CARD_VALUE,
 	ADD_DATABASE_STUDIO_NOTE,
 	ADD_DATABASE_STUDIO_SWITCH_LABEL,
 	canSetUpLibreDBStudio,
 	getAddDatabaseStudioSection,
 	getAddDatabaseStudioSwitch,
+	getAddDatabaseTypeValue,
 	resolveSelectedServerId,
+	shouldCloseAddDatabaseOnStudioInstall,
+	shouldResetStudioInstallOnOpen,
 } from "@/components/dashboard/libredb-studio/utils";
 import {
+	LibreDBStudioIcon,
 	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
@@ -228,6 +239,7 @@ interface Props {
 export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
+	const [studioSelected, setStudioSelected] = useState(false);
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: webServerSettings } =
@@ -242,6 +254,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const postgresMutation = api.postgres.create.useMutation();
 	const redisMutation = api.redis.create.useMutation();
 	const libredbStudioInstall = api.libredbStudio.install.useMutation();
+	const studioCardInstall = useLibreDBStudioInstall();
 
 	// Get environment data to extract projectId
 	const { data: environment } = api.environment.one.useQuery({ environmentId });
@@ -287,13 +300,14 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			{ environmentId },
 			{ enabled: visible && isCloud === false },
 		);
+	const canSetUpStudio = canSetUpLibreDBStudio({
+		isCloud,
+		canCreateServices: permissions?.service.create,
+		canCreateDeployments: permissions?.deployment.create,
+	});
 	const studioSection = getAddDatabaseStudioSection({
 		isCloud,
-		canSetUp: canSetUpLibreDBStudio({
-			isCloud,
-			canCreateServices: permissions?.service.create,
-			canCreateDeployments: permissions?.deployment.create,
-		}),
+		canSetUp: canSetUpStudio,
 		serverId: selectedServerId,
 		studios,
 		errorMessage: studiosError?.message,
@@ -307,6 +321,25 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 		serverIp: studioServerIp,
 		errorMessage: studioServerIpError?.message,
 	});
+	const installingStudio = canSetUpStudio && studioSelected;
+	const studioViewRef = useRef({
+		open: visible,
+		studioSelected: installingStudio,
+	});
+	// A render React discards must not leave values that a late install success reads.
+	useLayoutEffect(() => {
+		studioViewRef.current = { open: visible, studioSelected: installingStudio };
+	}, [visible, installingStudio]);
+	useLayoutEffect(() => {
+		if (
+			shouldResetStudioInstallOnOpen({
+				open: visible,
+				pending: studioCardInstall.isPending,
+			})
+		) {
+			studioCardInstall.reset();
+		}
+	}, [visible]);
 
 	const installLibreDBStudio = (serverId: string | null) => {
 		toast.promise(
@@ -468,8 +501,18 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 									</FormLabel>
 									<FormControl>
 										<RadioGroup
-											onValueChange={field.onChange}
-											defaultValue={field.value}
+											onValueChange={(value) => {
+												if (value === ADD_DATABASE_STUDIO_CARD_VALUE) {
+													setStudioSelected(true);
+													return;
+												}
+												setStudioSelected(false);
+												field.onChange(value);
+											}}
+											value={getAddDatabaseTypeValue(
+												installingStudio,
+												field.value,
+											)}
 											className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
 										>
 											{Object.entries(databasesMap).map(([key, value]) => (
@@ -495,10 +538,33 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													</FormControl>
 												</FormItem>
 											))}
+											{canSetUpStudio && (
+												<FormItem className="flex w-full items-center space-x-3 space-y-0">
+													<FormControl className="w-full">
+														<div>
+															<RadioGroupItem
+																value={ADD_DATABASE_STUDIO_CARD_VALUE}
+																id={ADD_DATABASE_STUDIO_CARD_VALUE}
+																className="peer sr-only"
+															/>
+															<Label
+																htmlFor={ADD_DATABASE_STUDIO_CARD_VALUE}
+																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary has-data-[state=checked]:border-primary cursor-pointer"
+															>
+																<LibreDBStudioIcon className="size-10 text-muted-foreground" />
+																{ADD_DATABASE_STUDIO_CARD_LABEL}
+																<span className="text-xs font-normal text-muted-foreground">
+																	{ADD_DATABASE_STUDIO_CARD_CAPTION}
+																</span>
+															</Label>
+														</div>
+													</FormControl>
+												</FormItem>
+											)}
 										</RadioGroup>
 									</FormControl>
 									<FormMessage />
-									{activeMutation[field.value].isError && (
+									{!installingStudio && activeMutation[field.value].isError && (
 										<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 											<AlertTriangle className="text-red-600 dark:text-red-400" />
 											<span className="text-sm text-red-600 dark:text-red-400">
@@ -509,195 +575,31 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<div className="flex flex-col gap-4">
-							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
-							</FormLabel>
-							<div className="flex flex-col gap-2">
-								<FormField
-									control={form.control}
-									name="name"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Name</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="Name"
-													{...field}
-													onChange={(e) => {
-														const val = e.target.value || "";
-														const serviceName = slugify(val.trim());
-														form.setValue("appName", `${slug}-${serviceName}`);
-														field.onChange(val);
-													}}
-												/>
-											</FormControl>
-
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								{shouldShowServerDropdown && (
+						{!installingStudio && (
+							<div className="flex flex-col gap-4">
+								<FormLabel className="text-lg font-semibold leading-none tracking-tight">
+									Fill the next fields.
+								</FormLabel>
+								<div className="flex flex-col gap-2">
 									<FormField
 										control={form.control}
-										name="serverId"
+										name="name"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Select a Server</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={
-														field.value ||
-														(showLocalOption ? "dokploy" : undefined)
-													}
-												>
-													<SelectTrigger>
-														<SelectValue
-															placeholder={
-																showLocalOption ? "Dokploy" : "Select a Server"
-															}
-														/>
-													</SelectTrigger>
-													<SelectContent>
-														<SelectGroup>
-															{showLocalOption && (
-																<SelectItem value="dokploy">
-																	<span className="flex items-center gap-2 justify-between w-full">
-																		<span>Dokploy</span>
-																		<span className="text-muted-foreground text-xs self-center">
-																			Default
-																		</span>
-																	</span>
-																</SelectItem>
-															)}
-															{servers?.map((server) => (
-																<SelectItem
-																	key={server.serverId}
-																	value={server.serverId}
-																>
-																	{server.name}
-																</SelectItem>
-															))}
-															<SelectLabel>
-																Servers (
-																{servers?.length + (showLocalOption ? 1 : 0)})
-															</SelectLabel>
-														</SelectGroup>
-													</SelectContent>
-												</Select>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
-								<FormField
-									control={form.control}
-									name="appName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel className="flex items-center gap-2">
-												App Name
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<HelpCircle className="size-4 text-muted-foreground" />
-														</TooltipTrigger>
-														<TooltipContent side="right">
-															<p>
-																This will be the name of the Docker Swarm
-																service
-															</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</FormLabel>
-											<FormControl>
-												<Input placeholder="my-app" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
-									name="description"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Description</FormLabel>
-											<FormControl>
-												<Textarea
-													className="h-24"
-													placeholder="Description"
-													{...field}
-													value={field.value || ""}
-												/>
-											</FormControl>
-
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								{(type === "mariadb" ||
-									type === "mysql" ||
-									type === "postgres") && (
-									<FormField
-										control={form.control}
-										name="databaseName"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Database Name</FormLabel>
-												<FormControl>
-													<Input placeholder="Database Name" {...field} />
-												</FormControl>
-
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
-
-								{type === "libsql" && (
-									<FormField
-										control={form.control}
-										name="sqldNode"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Sqld Node</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value || "primary"}
-												>
-													<SelectTrigger>
-														<SelectValue placeholder={"primary"} />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectGroup>
-															{["primary", "replica"].map((node) => (
-																<SelectItem key={node} value={node}>
-																	{node.charAt(0).toUpperCase() + node.slice(1)}
-																</SelectItem>
-															))}
-														</SelectGroup>
-													</SelectContent>
-												</Select>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
-								{type === "libsql" && sqldNode === "replica" && (
-									<FormField
-										control={form.control}
-										name="sqldPrimaryUrl"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Sqld Primary URL</FormLabel>
+												<FormLabel>Name</FormLabel>
 												<FormControl>
 													<Input
-														placeholder={"https://<host>:<port>"}
-														autoComplete="off"
+														placeholder="Name"
 														{...field}
+														onChange={(e) => {
+															const val = e.target.value || "";
+															const serviceName = slugify(val.trim());
+															form.setValue(
+																"appName",
+																`${slug}-${serviceName}`,
+															);
+															field.onChange(val);
+														}}
 													/>
 												</FormControl>
 
@@ -705,102 +607,253 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											</FormItem>
 										)}
 									/>
-								)}
-								{type === "libsql" && (
+									{shouldShowServerDropdown && (
+										<FormField
+											control={form.control}
+											name="serverId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Select a Server</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={
+															field.value ||
+															(showLocalOption ? "dokploy" : undefined)
+														}
+													>
+														<SelectTrigger>
+															<SelectValue
+																placeholder={
+																	showLocalOption
+																		? "Dokploy"
+																		: "Select a Server"
+																}
+															/>
+														</SelectTrigger>
+														<SelectContent>
+															<SelectGroup>
+																{showLocalOption && (
+																	<SelectItem value="dokploy">
+																		<span className="flex items-center gap-2 justify-between w-full">
+																			<span>Dokploy</span>
+																			<span className="text-muted-foreground text-xs self-center">
+																				Default
+																			</span>
+																		</span>
+																	</SelectItem>
+																)}
+																{servers?.map((server) => (
+																	<SelectItem
+																		key={server.serverId}
+																		value={server.serverId}
+																	>
+																		{server.name}
+																	</SelectItem>
+																))}
+																<SelectLabel>
+																	Servers (
+																	{servers?.length + (showLocalOption ? 1 : 0)})
+																</SelectLabel>
+															</SelectGroup>
+														</SelectContent>
+													</Select>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
 									<FormField
 										control={form.control}
-										name="enableNamespaces"
-										render={({ field }) => {
-											return (
+										name="appName"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel className="flex items-center gap-2">
+													App Name
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<HelpCircle className="size-4 text-muted-foreground" />
+															</TooltipTrigger>
+															<TooltipContent side="right">
+																<p>
+																	This will be the name of the Docker Swarm
+																	service
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</FormLabel>
+												<FormControl>
+													<Input placeholder="my-app" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="description"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Description</FormLabel>
+												<FormControl>
+													<Textarea
+														className="h-24"
+														placeholder="Description"
+														{...field}
+														value={field.value || ""}
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									{(type === "mariadb" ||
+										type === "mysql" ||
+										type === "postgres") && (
+										<FormField
+											control={form.control}
+											name="databaseName"
+											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Enable Namespaces</FormLabel>
+													<FormLabel>Database Name</FormLabel>
 													<FormControl>
-														<Select
-															onValueChange={(value) =>
-																field.onChange(Boolean(value))
-															}
-															defaultValue={
-																field.value ? String(field.value) : "false"
-															}
-														>
-															<SelectTrigger>
-																<SelectValue placeholder={"false"} />
-															</SelectTrigger>
-															<SelectContent>
-																<SelectGroup>
-																	{["false", "true"].map((node) => (
-																		<SelectItem key={node} value={node}>
-																			{node.charAt(0).toUpperCase() +
-																				node.slice(1)}
-																		</SelectItem>
-																	))}
-																</SelectGroup>
-															</SelectContent>
-														</Select>
+														<Input placeholder="Database Name" {...field} />
 													</FormControl>
 
 													<FormMessage />
 												</FormItem>
-											);
-										}}
-									/>
-								)}
-								{(type === "libsql" ||
-									type === "mariadb" ||
-									type === "mongo" ||
-									type === "mysql" ||
-									type === "postgres") && (
-									<FormField
-										control={form.control}
-										name="databaseUser"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Database User</FormLabel>
-												<FormControl>
-													<Input
-														placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
-														autoComplete="off"
-														{...field}
-													/>
-												</FormControl>
-
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
-
-								<FormField
-									control={form.control}
-									name="databasePassword"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Database Password</FormLabel>
-											<FormControl>
-												<Input
-													type="password"
-													placeholder="******************"
-													autoComplete="one-time-code"
-													enablePasswordGenerator={true}
-													{...field}
-												/>
-											</FormControl>
-
-											<FormMessage />
-										</FormItem>
+											)}
+										/>
 									)}
-								/>
-								{(type === "mariadb" || type === "mysql") && (
+
+									{type === "libsql" && (
+										<FormField
+											control={form.control}
+											name="sqldNode"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Sqld Node</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value || "primary"}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder={"primary"} />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectGroup>
+																{["primary", "replica"].map((node) => (
+																	<SelectItem key={node} value={node}>
+																		{node.charAt(0).toUpperCase() +
+																			node.slice(1)}
+																	</SelectItem>
+																))}
+															</SelectGroup>
+														</SelectContent>
+													</Select>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+									{type === "libsql" && sqldNode === "replica" && (
+										<FormField
+											control={form.control}
+											name="sqldPrimaryUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Sqld Primary URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder={"https://<host>:<port>"}
+															autoComplete="off"
+															{...field}
+														/>
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+									{type === "libsql" && (
+										<FormField
+											control={form.control}
+											name="enableNamespaces"
+											render={({ field }) => {
+												return (
+													<FormItem>
+														<FormLabel>Enable Namespaces</FormLabel>
+														<FormControl>
+															<Select
+																onValueChange={(value) =>
+																	field.onChange(Boolean(value))
+																}
+																defaultValue={
+																	field.value ? String(field.value) : "false"
+																}
+															>
+																<SelectTrigger>
+																	<SelectValue placeholder={"false"} />
+																</SelectTrigger>
+																<SelectContent>
+																	<SelectGroup>
+																		{["false", "true"].map((node) => (
+																			<SelectItem key={node} value={node}>
+																				{node.charAt(0).toUpperCase() +
+																					node.slice(1)}
+																			</SelectItem>
+																		))}
+																	</SelectGroup>
+																</SelectContent>
+															</Select>
+														</FormControl>
+
+														<FormMessage />
+													</FormItem>
+												);
+											}}
+										/>
+									)}
+									{(type === "libsql" ||
+										type === "mariadb" ||
+										type === "mongo" ||
+										type === "mysql" ||
+										type === "postgres") && (
+										<FormField
+											control={form.control}
+											name="databaseUser"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database User</FormLabel>
+													<FormControl>
+														<Input
+															placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
+															autoComplete="off"
+															{...field}
+														/>
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+
 									<FormField
 										control={form.control}
-										name="databaseRootPassword"
+										name="databasePassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database Root password</FormLabel>
+												<FormLabel>Database Password</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
 														placeholder="******************"
+														autoComplete="one-time-code"
 														enablePasswordGenerator={true}
 														{...field}
 													/>
@@ -810,43 +863,40 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											</FormItem>
 										)}
 									/>
-								)}
+									{(type === "mariadb" || type === "mysql") && (
+										<FormField
+											control={form.control}
+											name="databaseRootPassword"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database Root password</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="******************"
+															enablePasswordGenerator={true}
+															{...field}
+														/>
+													</FormControl>
 
-								<FormField
-									control={form.control}
-									name="dockerImage"
-									defaultValue={form.formState.defaultValues?.dockerImage}
-									render={({ field }) => {
-										return (
-											<FormItem>
-												<FormLabel>Docker image</FormLabel>
-												<FormControl>
-													<Input
-														placeholder={`Default ${dockerImageDefaultPlaceholder[type]}`}
-														{...field}
-													/>
-												</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
 
-												<FormMessage />
-											</FormItem>
-										);
-									}}
-								/>
-
-								{type === "mongo" && (
 									<FormField
 										control={form.control}
-										name="replicaSets"
+										name="dockerImage"
+										defaultValue={form.formState.defaultValues?.dockerImage}
 										render={({ field }) => {
 											return (
-												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
-													<div className="space-y-0.5">
-														<FormLabel>Use Replica Sets</FormLabel>
-													</div>
+												<FormItem>
+													<FormLabel>Docker image</FormLabel>
 													<FormControl>
-														<Switch
-															checked={field.value}
-															onCheckedChange={field.onChange}
+														<Input
+															placeholder={`Default ${dockerImageDefaultPlaceholder[type]}`}
+															{...field}
 														/>
 													</FormControl>
 
@@ -855,58 +905,99 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 											);
 										}}
 									/>
-								)}
-								{studioSection.kind === "error" && (
-									<AlertBlock type="error" className="mt-4">
-										{studioSection.message}
-									</AlertBlock>
-								)}
-								{studioSection.kind === "note" && (
-									<AlertBlock type="info" className="mt-4">
-										{ADD_DATABASE_STUDIO_NOTE}
-									</AlertBlock>
-								)}
-								{studioSection.kind === "switch" && (
-									<FormField
-										control={form.control}
-										name="setupLibreDBStudio"
-										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between gap-4 p-3 mt-4 border rounded-lg shadow-xs">
-												<div className="space-y-0.5">
-													<FormLabel>
-														{ADD_DATABASE_STUDIO_SWITCH_LABEL}
-													</FormLabel>
-													<FormDescription>
-														{studioSwitch.description}
-													</FormDescription>
-												</div>
-												<FormControl>
-													<Switch
-														checked={
-															studioSwitch.available && field.value === true
-														}
-														onCheckedChange={field.onChange}
-														disabled={!studioSwitch.available}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								)}
+
+									{type === "mongo" && (
+										<FormField
+											control={form.control}
+											name="replicaSets"
+											render={({ field }) => {
+												return (
+													<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
+														<div className="space-y-0.5">
+															<FormLabel>Use Replica Sets</FormLabel>
+														</div>
+														<FormControl>
+															<Switch
+																checked={field.value}
+																onCheckedChange={field.onChange}
+															/>
+														</FormControl>
+
+														<FormMessage />
+													</FormItem>
+												);
+											}}
+										/>
+									)}
+									{studioSection.kind === "error" && (
+										<AlertBlock type="error" className="mt-4">
+											{studioSection.message}
+										</AlertBlock>
+									)}
+									{studioSection.kind === "note" && (
+										<AlertBlock type="info" className="mt-4">
+											{ADD_DATABASE_STUDIO_NOTE}
+										</AlertBlock>
+									)}
+									{studioSection.kind === "switch" && (
+										<FormField
+											control={form.control}
+											name="setupLibreDBStudio"
+											render={({ field }) => (
+												<FormItem className="flex flex-row items-center justify-between gap-4 p-3 mt-4 border rounded-lg shadow-xs">
+													<div className="space-y-0.5">
+														<FormLabel>
+															{ADD_DATABASE_STUDIO_SWITCH_LABEL}
+														</FormLabel>
+														<FormDescription>
+															{studioSwitch.description}
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={
+																studioSwitch.available && field.value === true
+															}
+															onCheckedChange={field.onChange}
+															disabled={!studioSwitch.available}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+								</div>
 							</div>
-						</div>
+						)}
 					</form>
 
-					<DialogFooter>
-						<Button
-							isLoading={form.formState.isSubmitting}
-							form="hook-form"
-							type="submit"
-						>
-							Create
-						</Button>
-					</DialogFooter>
+					{installingStudio ? (
+						<LibreDBStudioInstallForm
+							environmentId={environmentId}
+							active={visible}
+							install={studioCardInstall}
+							onDone={() => {
+								if (
+									!shouldCloseAddDatabaseOnStudioInstall(studioViewRef.current)
+								) {
+									return;
+								}
+								setStudioSelected(false);
+								setVisible(false);
+							}}
+						/>
+					) : (
+						<DialogFooter>
+							<Button
+								isLoading={form.formState.isSubmitting}
+								form="hook-form"
+								type="submit"
+							>
+								Create
+							</Button>
+						</DialogFooter>
+					)}
 				</Form>
 			</DialogContent>
 		</Dialog>
