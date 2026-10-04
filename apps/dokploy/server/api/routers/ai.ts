@@ -1,5 +1,6 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
+	aiHeadersSchema,
 	apiCreateAi,
 	apiSaveAiCustomProviders,
 	apiUpdateAi,
@@ -50,11 +51,21 @@ export const aiRouter = createTRPCRouter({
 		}),
 
 	getModels: protectedProcedure
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				headers: aiHeadersSchema.optional(),
+			}),
+		)
 		.query(async ({ input }) => {
 			try {
 				const providerName = getProviderName(input.apiUrl);
-				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const headers = getProviderHeaders(
+					input.apiUrl,
+					input.apiKey,
+					input.headers,
+				);
 				let response = null;
 				switch (providerName) {
 					case "ollama":
@@ -288,6 +299,7 @@ ${input.logs}`,
 			z.object({
 				apiUrl: z.string().min(1),
 				apiKey: z.string(),
+				headers: aiHeadersSchema.optional(),
 				model: z.string().min(1),
 			}),
 		)
@@ -296,6 +308,7 @@ ${input.logs}`,
 				const provider = selectAIProvider({
 					apiUrl: input.apiUrl,
 					apiKey: input.apiKey,
+					headers: input.headers,
 				});
 				const model = provider(input.model);
 				const result = await generateText({
