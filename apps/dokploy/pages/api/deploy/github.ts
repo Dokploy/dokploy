@@ -60,6 +60,14 @@ export const shouldDeployPreviewDeployment = ({
 	return isCodeEvent || createdPreviewDeployment;
 };
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
