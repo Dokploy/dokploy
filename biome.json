@@ -14,6 +14,7 @@
 			"!**/dist",
 			"!**/drizzle/**",
 			"!**/drizzle-libredb-studio",
+			"!**/__test__/libredb-studio/fixtures",
 			"!node_modules/**",
 			"!packages/server/package.json"
 		],
