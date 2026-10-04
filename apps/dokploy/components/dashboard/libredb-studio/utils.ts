@@ -245,3 +245,71 @@ export const navigateLaunchTab = (tab: LaunchTab, url: string): void => {
 	tab.opener = null;
 	tab.location.replace(launchUrl);
 };
+
+export const CUSTOM_CONNECTIONS_WARNING =
+	"Allowing custom connections lets Studio users connect to any host this server can reach, including Dokploy's own database.";
+
+export const STUDIO_REVOCATION_WARNING =
+	"Removing someone's access in Dokploy does not end a Studio session they already opened, which lasts up to 24 hours; disable their Studio account to cut it at once.";
+
+export const COOKIE_SETTING_WARNING =
+	"Domain scheme changed: apply the cookie setting";
+
+export const HTTP_ADDRESS_WARNING =
+	"This address uses plain HTTP, so your Studio session cookie travels unencrypted; use a domain with HTTPS for anything beyond a trusted network.";
+
+export const STUDIO_NO_DOMAIN_REASON =
+	"The Studio has no domain. Add one in the Domains tab.";
+
+export const getStudioStatusLabel = (status: StudioStatus): string => {
+	switch (status) {
+		case "done":
+			return "Deployed";
+		case "running":
+			return "Deploying";
+		case "error":
+			return "Deploy failed";
+		case "idle":
+			return "Stopped or not deployed";
+	}
+};
+
+export const getStudioOpenBlocker = (studio: {
+	applicationStatus: StudioStatus;
+	url: string | null;
+}): string | null => {
+	if (studio.applicationStatus !== "done") {
+		return STUDIO_NOT_RUNNING_REASON;
+	}
+	if (!studio.url) {
+		return STUDIO_NO_DOMAIN_REASON;
+	}
+	return null;
+};
+
+export const getStudioImageTag = (image: string): string => {
+	const digestIndex = image.indexOf("@");
+	if (digestIndex !== -1) {
+		return image.slice(digestIndex + 1);
+	}
+	const tagIndex = image.lastIndexOf(":");
+	return tagIndex > image.lastIndexOf("/") ? image.slice(tagIndex + 1) : image;
+};
+
+export const getSyncResultMessage = (result: {
+	changed: boolean;
+	networksChanged: boolean;
+}): string => {
+	const seed = result.changed
+		? "Seed file updated."
+		: "Seed file was already up to date.";
+	return result.networksChanged
+		? `${seed} The Studio networks changed, and the running Studio was updated with them.`
+		: seed;
+};
+
+export const getDatabaseHref = (
+	studio: { projectId: string; environmentId: string },
+	database: { kind: StudioDatabaseType; id: string },
+): string =>
+	`/dashboard/project/${studio.projectId}/environment/${studio.environmentId}/services/${database.kind}/${database.id}`;
