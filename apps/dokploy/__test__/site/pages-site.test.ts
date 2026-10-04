@@ -56,6 +56,13 @@ const extractFaqPage = (html: string): FaqPage | undefined => {
 const indexNowKeyFiles = () =>
 	fs.readdirSync(REPO_ROOT).filter((name) => /^[0-9a-f]{32}\.txt$/.test(name));
 
+/** The release the repository is at, for example `v0.30.8-community.1`. */
+const packageVersion = (
+	JSON.parse(read("apps/dokploy/package.json")) as { version: string }
+).version;
+
+const COMMUNITY_TAG_RE = /v\d+\.\d+\.\d+-community\.\d+/g;
+
 describe("pages site: repository files", () => {
 	describe("_config.yml", () => {
 		const config = parseYaml(read("_config.yml")) as Record<string, unknown>;
@@ -218,11 +225,18 @@ describe("pages site: repository files", () => {
 			expect(frontMatter.permalink).toBe("/faq/");
 		});
 
-		it("embeds a parseable FAQPage with 8 to 12 questions", () => {
+		it("embeds a parseable FAQPage with 8 to 16 questions", () => {
 			expect(faqPage["@context"]).toBe("https://schema.org");
 			expect(faqPage["@type"]).toBe("FAQPage");
 			expect(faqPage.mainEntity.length).toBeGreaterThanOrEqual(8);
-			expect(faqPage.mainEntity.length).toBeLessThanOrEqual(12);
+			expect(faqPage.mainEntity.length).toBeLessThanOrEqual(16);
+		});
+
+		it("keeps the description short enough for a search snippet and names MCP and webhooks", () => {
+			const description = String(frontMatter.description);
+			expect(description.length).toBeLessThanOrEqual(160);
+			expect(description).toMatch(/MCP/);
+			expect(description).toMatch(/webhook/i);
 		});
 
 		it("shows every Question name verbatim as a heading", () => {
@@ -269,8 +283,34 @@ describe("pages site: repository files", () => {
 				/log viewer/,
 				/sync/,
 				/telemetry/,
+				/webhook/,
+				/MCP/,
+				/Claude Code/,
+				/DoDomain/,
 			]) {
 				expect(names).toMatch(topic);
+			}
+		});
+
+		it("gives the MCP answer the exact command from the README", () => {
+			const command =
+				"claude mcp add --transport http --scope user dokploy https://<host>/api/mcp";
+			expect(read("README.md")).toContain(command);
+			expect(body).toContain(command);
+		});
+
+		it("states the 25 MB webhook limit that the deploy routes really enforce", () => {
+			const answer = faqPage.mainEntity.find((q) => /webhook/.test(q.name))
+				?.acceptedAnswer.text;
+			expect(answer).toMatch(/1 MB/);
+			expect(answer).toMatch(/25 MB/);
+			expect(answer).toMatch(/413/);
+			for (const route of [
+				"apps/dokploy/pages/api/deploy/[refreshToken].ts",
+				"apps/dokploy/pages/api/deploy/compose/[refreshToken].ts",
+				"apps/dokploy/pages/api/deploy/github.ts",
+			]) {
+				expect(read(route), route).toContain('sizeLimit: "25mb"');
 			}
 		});
 
@@ -365,6 +405,80 @@ describe("pages site: repository files", () => {
 		);
 	});
 
+	describe("release version references", () => {
+		// llms.txt and faq.md went stale after a release once (they still said
+		// v0.30.7 while the package was v0.30.8). Every install command, tag
+		// example and "based on" statement must follow the package version and
+		// the README. Historical mentions ("Since v0.30.7-community.9 ...",
+		// README's "New in ..." sections) are exempt.
+		const readme = read("README.md");
+		const baseVersion = readme.match(
+			/Based on \*\*Dokploy (v\d+\.\d+\.\d+)\*\*/,
+		)?.[1] as string;
+
+		/** Tags that are examples or commands, not "since vX" history. */
+		const currentTags = (text: string) =>
+			[...text.matchAll(COMMUNITY_TAG_RE)]
+				.filter(
+					(match) =>
+						!/since $/i.test(text.slice(Math.max(0, match.index - 6), match.index)),
+				)
+				.map((match) => match[0]);
+
+		it("has a release version in package.json and a base version in the README", () => {
+			expect(packageVersion).toMatch(/^v\d+\.\d+\.\d+-community\.\d+$/);
+			expect(baseVersion).toMatch(/^v\d+\.\d+\.\d+$/);
+			expect(packageVersion.startsWith(`${baseVersion}-community.`)).toBe(true);
+			expect(readme).toContain(`Fork version **${packageVersion}**`);
+		});
+
+		it("README install and switch commands use the package version", () => {
+			const commandLines = readme
+				.split(/\r?\n/)
+				.filter(
+					(line) =>
+						line.includes("DOKPLOY_VERSION=") ||
+						line.includes("dokploy-community:v"),
+				);
+			// the switch command, DOKPLOY_VERSION and the versioned image tag
+			expect(commandLines.length).toBeGreaterThanOrEqual(3);
+			for (const line of commandLines) {
+				const tags = line.match(COMMUNITY_TAG_RE) ?? [];
+				expect(tags.length, line).toBeGreaterThan(0);
+				for (const tag of tags) expect(tag, line).toBe(packageVersion);
+			}
+		});
+
+		it.each(["llms.txt", "faq.md"])(
+			"%s commands and tag examples use the package version",
+			(file) => {
+				const tags = currentTags(read(file));
+				expect(tags.length).toBeGreaterThan(0);
+				for (const tag of tags) expect(tag, file).toBe(packageVersion);
+			},
+		);
+
+		it.each(["llms.txt", "faq.md"])(
+			"%s says it is based on the README's upstream version",
+			(file) => {
+				const text = read(file);
+				const stated = [...text.matchAll(/upstream Dokploy (v\d+\.\d+\.\d+)/gi)];
+				expect(stated.length, file).toBeGreaterThan(0);
+				for (const match of stated) expect(match[1], file).toBe(baseVersion);
+			},
+		);
+
+		it("the go-back-to-official commands use the README's upstream version", () => {
+			const official = /dokploy\/dokploy:(v\d+\.\d+\.\d+)/g;
+			for (const text of [readme, read("faq.md")]) {
+				const versions = [...text.matchAll(official)].map((m) => m[1]);
+				expect(versions.length).toBeGreaterThan(0);
+				for (const version of versions) expect(version).toBe(baseVersion);
+			}
+			expect(read("faq.md")).toContain(`for example ${baseVersion}.`);
+		});
+	});
+
 	describe("IndexNow key file", () => {
 		it("is a single root file named after a 32-character hex key", () => {
 			expect(indexNowKeyFiles()).toHaveLength(1);
@@ -386,7 +500,11 @@ describe.skipIf(!process.env.SITE_LIVE_TESTS)(
 			const response = await fetch(`${SITE}${pathname}`, {
 				headers: { "user-agent": "dokploy-community-site-test" },
 			});
-			return { status: response.status, text: await response.text() };
+			return {
+				status: response.status,
+				text: await response.text(),
+				robotsHeader: response.headers.get("x-robots-tag") ?? "",
+			};
 		};
 
 		it("/ answers 200 with an https canonical", async () => {
@@ -416,6 +534,38 @@ describe.skipIf(!process.env.SITE_LIVE_TESTS)(
 			const faqPage = extractFaqPage(text);
 			expect(faqPage).toBeDefined();
 			expect(faqPage?.mainEntity.length).toBeGreaterThanOrEqual(8);
+		});
+
+		it("/faq/ is not blocked from indexing by an x-robots-tag header", async () => {
+			const { status, robotsHeader } = await get("/faq/");
+			expect(status).toBe(200);
+			expect(robotsHeader).not.toMatch(/noindex/i);
+		});
+
+		it("/faq/ HTML has no noindex robots meta tag", async () => {
+			const { text } = await get("/faq/");
+			expect(text).not.toMatch(
+				/<meta[^>]+name="robots"[^>]+content="[^"]*noindex/i,
+			);
+		});
+
+		// The next two assertions compare the live site with this checkout, so
+		// they pass only after the change is merged to canary and Pages has
+		// rebuilt. Before that they may fail, which is expected.
+		it("/faq/ JSON-LD has the MCP question (post-deploy)", async () => {
+			const { text } = await get("/faq/");
+			const names = (extractFaqPage(text)?.mainEntity ?? []).map(
+				(question) => question.name,
+			);
+			expect(names).toContain(
+				"How do I connect Claude Code to Dokploy with MCP?",
+			);
+		});
+
+		it("/llms.txt names the package.json version (post-deploy)", async () => {
+			const { status, text } = await get("/llms.txt");
+			expect(status).toBe(200);
+			expect(text).toContain(packageVersion);
 		});
 
 		it("/integrations/ answers 200", async () => {
