@@ -30,11 +30,15 @@ import { db } from "@dokploy/server/db";
 import {
 	createLibreDBStudio,
 	findLibreDBStudioByApplicationId,
+	findLibreDBStudioById,
 	findLibreDBStudiosByEnvironment,
 	findLibreDBStudiosByScope,
+	getLibreDBStudioUrl,
 	getLibreDBStudioView,
 	type LibreDBStudioView,
+	studioNotFound,
 	syncLibreDBStudio,
+	updateLibreDBStudio,
 	withLibreDBStudioScopeLock,
 } from "@dokploy/server/services/libredb-studio";
 import {
@@ -42,6 +46,7 @@ import {
 	checkEnvironmentAccess,
 	checkPermission,
 	checkServiceAccess,
+	checkServicePermissionAndAccess,
 	type PermissionCtx,
 } from "@dokploy/server/services/permission";
 import {
@@ -54,9 +59,19 @@ import {
 	LIBREDB_STUDIO_DATA_DIR,
 	LIBREDB_STUDIO_PORT,
 } from "@dokploy/server/utils/libredb-studio/constants";
-import { setEnvVar } from "@dokploy/server/utils/libredb-studio/env";
+import {
+	readEnvVar,
+	setEnvVar,
+} from "@dokploy/server/utils/libredb-studio/env";
 import { LIBREDB_STUDIO_ICON_DATA_URL } from "@dokploy/server/utils/libredb-studio/icon";
-import type { StudioRole } from "@dokploy/server/utils/libredb-studio/launch-token";
+import {
+	createLaunchToken,
+	type StudioRole,
+} from "@dokploy/server/utils/libredb-studio/launch-token";
+import {
+	STUDIO_SECRETS_DECRYPTION_FAILED_MESSAGE,
+	studioSecretsAreDecrypted,
+} from "@dokploy/server/utils/libredb-studio/secrets";
 import {
 	type StudioDatabaseKind,
 	seedConnectionId,
@@ -116,6 +131,81 @@ const libredbStudioProcedure = protectedProcedure.use(({ next }) => {
 	}
 	return next();
 });
+
+const requireStudioManager = (role: string) => {
+	if (role !== "owner" && role !== "admin") {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message:
+				"Only owners and admins of the organization can manage the LibreDB Studio",
+		});
+	}
+};
+
+const libredbStudioAdminProcedure = libredbStudioProcedure.use(
+	({ ctx, next }) => {
+		requireStudioManager(ctx.user.role);
+		return next();
+	},
+);
+
+// validateRequest also authenticates /api/trpc with an x-api-key header, and launch and credentials hand out secrets meant for a person in the browser.
+const libredbStudioSessionOnlyProcedure = libredbStudioProcedure.use(
+	({ ctx, next }) => {
+		if (ctx.req.headers["x-api-key"]) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message:
+					"LibreDB Studio launch and credentials are not available to API keys",
+			});
+		}
+		return next();
+	},
+);
+
+// Owners and admins pass checkServiceAccess for any id, so a Studio of another
+// organization answers exactly like findLibreDBStudioById does for a missing one.
+const findStudioForOrganization = async (
+	libredbStudioId: string,
+	activeOrganizationId: string,
+) => {
+	const studio = await findLibreDBStudioById(libredbStudioId);
+	if (
+		studio.application.environment.project.organizationId !==
+		activeOrganizationId
+	) {
+		throw studioNotFound();
+	}
+	return studio;
+};
+
+// getLibreDBStudioUrl skips disabled, non-application and path domains itself, so launch and the cookie action pick the address the Studio card shows.
+const requireLaunchDomain = (
+	domains: Parameters<typeof getLibreDBStudioUrl>[0],
+) => {
+	const launchDomain = getLibreDBStudioUrl(domains);
+	if (!launchDomain) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"The LibreDB Studio has no enabled domain. Add a domain to its application first.",
+		});
+	}
+	return launchDomain;
+};
+
+const requireDecryptedSecrets = (studio: {
+	launchSecret: string;
+	jwtSecret: string;
+	adminPassword: string;
+}) => {
+	if (!studioSecretsAreDecrypted(studio)) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: STUDIO_SECRETS_DECRYPTION_FAILED_MESSAGE,
+		});
+	}
+};
 
 const studioAppName = (projectName: string) =>
 	`${slugify(projectName).slice(0, MAX_PROJECT_SLUG_LENGTH).replace(/-+$/, "")}${STUDIO_APP_NAME_SUFFIX}`;
@@ -650,5 +740,199 @@ export const libredbStudioRouter = createTRPCRouter({
 				reason: exclusion.message,
 				canInstall: false,
 			};
+		}),
+
+	sync: libredbStudioProcedure
+		.meta({
+			openapi: {
+				path: "/libredb-studio/sync",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(z.object({ libredbStudioId: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const studio = await findStudioForOrganization(
+				input.libredbStudioId,
+				ctx.session.activeOrganizationId,
+			);
+			await checkServicePermissionAndAccess(ctx, studio.applicationId, {
+				deployment: ["create"],
+			});
+			return syncLibreDBStudio(studio.libredbStudioId, { force: true });
+		}),
+
+	launch: libredbStudioSessionOnlyProcedure
+		.meta({
+			openapi: {
+				path: "/libredb-studio/launch",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(
+			z.object({
+				libredbStudioId: z.string().min(1),
+				connectionId: z
+					.string()
+					.regex(/^[a-z0-9-]{1,64}$/, "Invalid connection id")
+					.optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const studio = await findStudioForOrganization(
+				input.libredbStudioId,
+				ctx.session.activeOrganizationId,
+			);
+			const canOpenStudio = await isPermitted(() =>
+				checkServiceAccess(ctx, studio.applicationId, "read"),
+			);
+			if (!canOpenStudio) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You do not have access to this LibreDB Studio. Ask an owner or admin of the organization to give you access to its application.",
+				});
+			}
+
+			if (studio.application.applicationStatus !== "done") {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "The Studio is not running",
+				});
+			}
+
+			const launchDomain = requireLaunchDomain(studio.application.domains);
+			requireDecryptedSecrets(studio);
+			const token = createLaunchToken({
+				secret: studio.launchSecret,
+				libredbStudioId: studio.libredbStudioId,
+				userId: ctx.user.id,
+				email: ctx.user.email,
+				role: toStudioRole(ctx.user.role),
+				connectionId: input.connectionId,
+			});
+
+			const url = new URL("/launch", launchDomain.url);
+			url.hash = `token=${token}`;
+			return { url: url.toString() };
+		}),
+
+	credentials: libredbStudioSessionOnlyProcedure
+		.use(({ ctx, next }) => {
+			requireStudioManager(ctx.user.role);
+			return next();
+		})
+		.meta({
+			openapi: {
+				path: "/libredb-studio/credentials",
+				method: "GET",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(z.object({ libredbStudioId: z.string().min(1) }))
+		.query(async ({ input, ctx }) => {
+			const studio = await findStudioForOrganization(
+				input.libredbStudioId,
+				ctx.session.activeOrganizationId,
+			);
+			requireDecryptedSecrets(studio);
+			const email = readEnvVar(studio.application.env, "ADMIN_EMAIL");
+			if (!email) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						"The LibreDB Studio application has no ADMIN_EMAIL in its environment",
+				});
+			}
+			return { email, password: studio.adminPassword };
+		}),
+
+	update: libredbStudioAdminProcedure
+		.meta({
+			openapi: {
+				path: "/libredb-studio/update",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
+		.input(
+			z
+				.object({
+					libredbStudioId: z.string().min(1),
+					allowCustomConnections: z.boolean().optional(),
+					applyCookieSetting: z.boolean().optional(),
+					updateImage: z.boolean().optional(),
+				})
+				.refine(
+					(input) =>
+						input.allowCustomConnections !== undefined ||
+						input.applyCookieSetting === true ||
+						input.updateImage === true,
+					{ message: "Choose at least one change to apply" },
+				),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const studio = await findStudioForOrganization(
+				input.libredbStudioId,
+				ctx.session.activeOrganizationId,
+			);
+
+			const applicationChanges: { env?: string; dockerImage?: string } = {};
+			if (input.applyCookieSetting) {
+				const launchDomain = requireLaunchDomain(studio.application.domains);
+				applicationChanges.env = setEnvVar(
+					studio.application.env,
+					"AUTH_COOKIE_SECURE",
+					launchDomain.https ? null : "false",
+				);
+			}
+			if (input.updateImage) {
+				applicationChanges.dockerImage = getLibreDBStudioImage();
+			}
+
+			if (input.allowCustomConnections !== undefined) {
+				await updateLibreDBStudio(studio.libredbStudioId, {
+					allowCustomConnections: input.allowCustomConnections,
+				});
+			}
+			if (Object.keys(applicationChanges).length > 0) {
+				await updateApplication(studio.applicationId, applicationChanges);
+			}
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "application",
+				resourceId: studio.applicationId,
+				resourceName: studio.application.appName,
+			});
+
+			const jobData: DeploymentJob = {
+				applicationId: studio.applicationId,
+				titleLog: "LibreDB Studio settings update",
+				descriptionLog: "",
+				type: "deploy",
+				applicationType: "application",
+				server: !!studio.application.serverId,
+				serverId: studio.application.serverId ?? undefined,
+			};
+			await myQueue.add(
+				"deployments",
+				{ ...jobData },
+				{ removeOnComplete: true, removeOnFail: true },
+			);
+
+			await audit(ctx, {
+				action: "deploy",
+				resourceType: "application",
+				resourceId: studio.applicationId,
+				resourceName: studio.application.appName,
+			});
+
+			return getLibreDBStudioView(studio.libredbStudioId);
 		}),
 });
