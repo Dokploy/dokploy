@@ -260,19 +260,23 @@ export function processEnvVars(
 		return [];
 	}
 
+	const processEntries = (env: Record<string, string | boolean | number>) =>
+		Object.entries(env).map(([key, value]) => {
+			if (typeof value === "string") {
+				const processedValue = processValue(value, variables, schema);
+				return `${key}=${processedValue}`;
+			}
+			return `${key}=${value}`;
+		});
+
 	// Handle array of env vars
 	if (Array.isArray(template.config.env)) {
-		return template.config.env.map((env) => {
+		return template.config.env.flatMap((env) => {
 			if (typeof env === "string") {
 				return processValue(env, variables, schema);
 			}
-			// Si es un objeto, asumimos que es un par clave-valor
 			if (typeof env === "object" && env !== null) {
-				const keys = Object.keys(env);
-				if (keys.length > 0) {
-					const key = keys[0];
-					return `${key}=${env[key as keyof typeof env]}`;
-				}
+				return processEntries(env);
 			}
 			// Para valores primitivos (boolean, number)
 			return String(env);
@@ -280,13 +284,7 @@ export function processEnvVars(
 	}
 
 	// Handle object of env vars
-	return Object.entries(template.config.env).map(([key, value]) => {
-		if (typeof value === "string") {
-			const processedValue = processValue(value, variables, schema);
-			return `${key}=${processedValue}`;
-		}
-		return `${key}=${value}`;
-	});
+	return processEntries(template.config.env);
 }
 
 /**
