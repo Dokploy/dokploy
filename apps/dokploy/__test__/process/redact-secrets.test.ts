@@ -190,3 +190,26 @@ describe("redactSecrets", () => {
 		);
 	});
 });
+
+describe("redactSecrets shell-quoted values (#5519)", () => {
+	it("redacts a double-quoted value that contains escaped quotes", () => {
+		const redacted = redactSecrets(
+			String.raw`rclone rcat --s3-secret-access-key="say \"hi\" it's" --s3-region=us-east-1`,
+		);
+		expect(redacted).not.toContain("hi");
+		expect(redacted).toContain(
+			'--s3-secret-access-key="[REDACTED]" --s3-region=us-east-1',
+		);
+	});
+
+	it("redacts a DB password assignment that contains escaped quotes", () => {
+		const redacted = redactSecrets(String.raw`PGPASSWORD="p\"a ss" pg_dump -h db`);
+		expect(redacted).not.toContain("ss");
+		expect(redacted).toBe('PGPASSWORD="[REDACTED]" pg_dump -h db');
+	});
+
+	it("still redacts a value with an unbalanced quote", () => {
+		const redacted = redactSecrets('rclone lsf --s3-access-key-id="oops next');
+		expect(redacted).not.toContain("oops");
+	});
+});
