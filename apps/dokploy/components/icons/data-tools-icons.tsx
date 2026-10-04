@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 // https://worldvectorlogo.com/downloaded/redis Ref
@@ -206,6 +207,146 @@ export const LibsqlIcon = ({ className }: Props) => {
 			<path
 				style={{ fill: "#141b1f", strokeWidth: "0px" }}
 				d="M129.5,83.3c2.6,0,4.7,2.2,4.4,4.9l-.8,7.9c-.2,2.1-1.1,4-2.6,5.5l-97.7,97.7c-1.3,1.3-3.1,2-4.8,2s-3.5-.7-4.8-2l-5.2-5.2c-2.7-2.7-2.7-7,0-9.7l97.7-97.7c1.5-1.5,3.4-2.4,5.5-2.6l7.9-.8c.1,0,.3,0,.4,0M129.5,73.3h0c-.5,0-.9,0-1.4,0l-7.9.8c-4.4.4-8.5,2.4-11.5,5.5L10.9,177.3c-6.6,6.6-6.6,17.3,0,23.8l5.2,5.2c3.2,3.2,7.4,4.9,11.9,4.9s8.7-1.8,11.9-4.9l97.7-97.7c3.1-3.1,5-7.2,5.5-11.5l.8-7.9c.4-4-.9-8.1-3.7-11.1-2.7-3-6.6-4.7-10.7-4.7h0Z"
+			/>
+		</svg>
+	);
+};
+
+export const LibreDBStudioIcon = ({ className }: Props) => {
+	const id = useId();
+	const ringGradientId = `${id}-libredb-brand-gradient-2`;
+	const firstBarGradientId = `${id}-libredb-brand-gradient-3`;
+	const secondBarGradientId = `${id}-libredb-brand-gradient-4`;
+	const thirdBarGradientId = `${id}-libredb-brand-gradient-5`;
+	const leftBracketGradientId = `${id}-libredb-accent-gradient`;
+	const rightBracketGradientId = `${id}-libredb-accent-gradient-2`;
+	return (
+		<svg
+			width="40"
+			height="40"
+			viewBox="-25.315 0 600 600"
+			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+			className={className}
+		>
+			<defs>
+				<linearGradient
+					id={ringGradientId}
+					x1="-3472.17"
+					y1="-2046.79"
+					x2="-3470.72"
+					y2="-2045.35"
+					gradientTransform="translate(481417.78 327672.36) scale(138.6 160)"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop offset="0" stopColor="#4f46e5" />
+					<stop offset="1" stopColor="#9333ea" />
+				</linearGradient>
+				<linearGradient
+					id={firstBarGradientId}
+					x1="-3438.43"
+					y1="-1839.94"
+					x2="-3435"
+					y2="-1836.52"
+					gradientTransform="translate(206480.32 18628.25) scale(60 10)"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop offset="0" stopColor="#4f46e5" />
+					<stop offset="1" stopColor="#9333ea" />
+				</linearGradient>
+				<linearGradient
+					id={secondBarGradientId}
+					x1="-3438.48"
+					y1="-1834.54"
+					x2="-3435.05"
+					y2="-1831.12"
+					gradientTransform="translate(206480.32 18628.25) scale(60 10)"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop offset="0" stopColor="#4f46e5" />
+					<stop offset="1" stopColor="#9333ea" />
+				</linearGradient>
+				<linearGradient
+					id={thirdBarGradientId}
+					x1="-3438.43"
+					y1="-1829.03"
+					x2="-3435"
+					y2="-1825.61"
+					gradientTransform="translate(206480.32 18628.25) scale(60 10)"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop offset="0" stopColor="#4f46e5" />
+					<stop offset="1" stopColor="#9333ea" />
+				</linearGradient>
+				<linearGradient
+					id={leftBracketGradientId}
+					x1="-3319.89"
+					y1="-2022.98"
+					x2="-3319.19"
+					y2="-2022.28"
+					gradientTransform="translate(66506.13 121652.95) scale(20 60)"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop offset="0" stopColor="#10b981" />
+					<stop offset="1" stopColor="#3b82f6" />
+				</linearGradient>
+				<linearGradient
+					id={rightBracketGradientId}
+					x1="-3309.46"
+					y1="-2022.82"
+					x2="-3308.76"
+					y2="-2022.12"
+					gradientTransform="translate(66616.13 121652.95) scale(20 60)"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop offset="0" stopColor="#10b981" />
+					<stop offset="1" stopColor="#3b82f6" />
+				</linearGradient>
+			</defs>
+			<path
+				fill={`url(#${ringGradientId})`}
+				d="M274.68,600c-19.18,0-38.36-4.92-55.46-14.76l-163.74-94.6C21.26,470.95,0,434.1,0,394.49v-188.97c0-39.62,21.26-76.46,55.5-96.16L219.2,14.77c34.23-19.69,76.74-19.69,110.96,0h.02s163.72,94.6,163.72,94.6c34.21,19.69,55.48,56.53,55.48,96.15v188.97c0,39.62-21.27,76.46-55.5,96.16l-163.7,94.58c-17.12,9.85-36.31,14.77-55.49,14.77ZM274.69,19.89c-15.75,0-31.5,4.04-45.54,12.12L65.44,126.6c-28.09,16.16-45.54,46.4-45.54,78.91v188.97c0,32.52,17.44,62.75,45.52,78.91l163.74,94.6c28.08,16.15,62.98,16.16,91.07,0l163.7-94.58c28.09-16.16,45.54-46.4,45.54-78.91v-188.97c0-32.52-17.44-62.75-45.52-78.91l-163.72-94.6c-14.04-8.08-29.79-12.12-45.54-12.12Z"
+			/>
+			<g opacity="0.3">
+				<rect
+					fill={`url(#${firstBarGradientId})`}
+					x="159.97"
+					y="229.91"
+					width="229.21"
+					height="31.03"
+					rx="6.85"
+					ry="6.85"
+				/>
+			</g>
+			<g opacity="0.3">
+				<rect
+					fill={`url(#${secondBarGradientId})`}
+					x="159.97"
+					y="284.48"
+					width="229.21"
+					height="31.03"
+					rx="6.85"
+					ry="6.85"
+				/>
+			</g>
+			<g opacity="0.3">
+				<rect
+					fill={`url(#${thirdBarGradientId})`}
+					x="159.97"
+					y="339.06"
+					width="229.21"
+					height="31.03"
+					rx="6.85"
+					ry="6.85"
+				/>
+			</g>
+			<path
+				fill={`url(#${leftBracketGradientId})`}
+				d="M136.02,426.06c-3.7,0-7.33-1.79-9.54-5.1l-76.4-114.71c-2.56-3.84-2.56-8.85,0-12.69l76.4-114.71c3.5-5.26,10.61-6.69,15.88-3.18,5.26,3.51,6.69,10.61,3.18,15.88l-72.17,108.36,72.17,108.36c3.51,5.26,2.08,12.37-3.18,15.88-1.95,1.3-4.16,1.92-6.34,1.92Z"
+			/>
+			<path
+				fill={`url(#${rightBracketGradientId})`}
+				d="M413.14,426.06c-2.18,0-4.39-.62-6.34-1.92-5.26-3.51-6.69-10.61-3.18-15.88l72.17-108.36-72.17-108.36c-3.51-5.26-2.08-12.37,3.18-15.88,5.27-3.5,12.37-2.08,15.88,3.18l76.4,114.71c2.56,3.84,2.56,8.85,0,12.69l-76.4,114.71c-2.21,3.31-5.84,5.1-9.54,5.1Z"
 			/>
 		</svg>
 	);
