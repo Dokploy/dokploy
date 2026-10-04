@@ -6,6 +6,9 @@ import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -217,7 +220,7 @@ export const sendBuildSuccessNotifications = async ({
 					`<b>✅ Build Success</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Environment:</b> ${environmentName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(
 						date,
 						"PP",
-					)}\n<b>Time:</b> ${format(date, "pp")}`,
+					)}\n<b>Time:</b> ${formatNotificationTime(date)}`,
 					inlineButton,
 				);
 			}
@@ -270,7 +273,7 @@ export const sendBuildSuccessNotifications = async ({
 
 			if (mattermost) {
 				await sendMattermostNotification(mattermost, {
-					text: `**✅ Build Success**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${applicationType}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}\n\n[View Build Details](${buildLink})`,
+					text: `**✅ Build Success**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${applicationType}\n**Date:** ${formatNotificationDate(date)}\n**Time:** ${formatNotificationTime(date)}\n\n[View Build Details](${buildLink})`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -366,7 +369,7 @@ export const sendBuildSuccessNotifications = async ({
 												},
 												{
 													tag: "markdown",
-													content: `**Date:**\n${format(date, "PP pp")}`,
+													content: `**Date:**\n${formatNotificationDateTime(date)}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
@@ -418,7 +421,7 @@ export const sendBuildSuccessNotifications = async ({
 						{ name: "Application", value: applicationName },
 						{ name: "Environment", value: environmentName },
 						{ name: "Type", value: applicationType },
-						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Date", value: formatNotificationDateTime(date) },
 					],
 					potentialAction: {
 						type: "Action.OpenUrl",

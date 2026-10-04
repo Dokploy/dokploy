@@ -2,9 +2,11 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DokployBackupEmail from "@dokploy/server/emails/emails/dokploy-backup";
 import { render } from "@react-email/components";
-import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -192,7 +194,7 @@ export const sendDokployBackupNotifications = async ({
 					? `\n<b>Backup Size:</b> ${backupSize}`
 					: "";
 
-				const messageText = `<b>${statusEmoji} Dokploy Backup ${typeStatus}</b>\n\n<b>Backup Type:</b> Complete Dokploy Instance${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+				const messageText = `<b>${statusEmoji} Dokploy Backup ${typeStatus}</b>\n\n<b>Backup Type:</b> Complete Dokploy Instance${sizeInfo}\n<b>Date:</b> ${formatNotificationDate(date)}\n<b>Time:</b> ${formatNotificationTime(date)}${isError ? errorMsg : ""}`;
 
 				await sendTelegramNotification(telegram, messageText);
 			}
@@ -330,7 +332,7 @@ export const sendDokployBackupNotifications = async ({
 													: []),
 												{
 													tag: "markdown",
-													content: `**Date:**\n${format(date, "PP pp")}`,
+													content: `**Date:**\n${formatNotificationDateTime(date)}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
@@ -398,7 +400,7 @@ export const sendDokployBackupNotifications = async ({
 					facts: [
 						{ name: "Backup Type", value: "Complete Dokploy Instance" },
 						...(backupSize ? [{ name: "Backup Size", value: backupSize }] : []),
-						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Date", value: formatNotificationDateTime(date) },
 						{
 							name: "Status",
 							value: type === "success" ? "Successful" : "Failed",
