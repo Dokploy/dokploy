@@ -90,7 +90,10 @@ export const SetupServer = ({ serverId, children }: Props) => {
 					</Button>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-4xl  ">
+			<DialogContent
+				className="sm:max-w-4xl  "
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">

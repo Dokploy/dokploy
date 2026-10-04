@@ -23,7 +23,10 @@ export const ShowMonitoringModal = ({ serverId, children }: Props) => {
 					</Button>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-7xl  ">
+			<DialogContent
+				className="sm:max-w-7xl  "
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<div className="flex gap-4 py-4 w-full">
 					<ShowPaidMonitoring serverId={serverId} />
 				</div>
