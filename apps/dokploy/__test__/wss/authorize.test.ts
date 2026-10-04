@@ -15,6 +15,11 @@ vi.mock("@dokploy/server", () => ({
 	getAccessibleServerIds: mockGetAccessibleServerIds,
 }));
 
+const mockIsContainerBoundToService = vi.hoisted(() => vi.fn());
+vi.mock("@/server/wss/container-binding", () => ({
+	isContainerBoundToService: mockIsContainerBoundToService,
+}));
+
 import {
 	canAccessDockerOverWss,
 	canAccessTerminalOverWss,
@@ -69,8 +74,13 @@ describe("canAccessDockerOverWss", () => {
 		mockHasPermission.mockResolvedValue(false);
 		mockGetAccessibleServerIds.mockResolvedValue(new Set());
 		mockCheckServiceAccess.mockResolvedValue(undefined);
+		mockIsContainerBoundToService.mockResolvedValue(true);
 		expect(
-			await canAccessDockerOverWss(USER, SESSION, "srv-remote", "svc-1"),
+			await canAccessDockerOverWss(USER, SESSION, "srv-remote", "svc-1", {
+				type: "logs",
+				containerId: "container-1",
+				runType: "native",
+			}),
 		).toBe(true);
 		// Service path is authoritative — it must not fall through to docker/server.
 		expect(mockHasPermission).not.toHaveBeenCalled();

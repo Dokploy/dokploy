@@ -106,7 +106,13 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
+		if (
+			!(await canAccessDockerOverWss(user, session, null, serviceId, {
+				type: "stats",
+				appName,
+				appType,
+			}))
+		) {
 			ws.close(4003, "Not authorized");
 			return;
 		}

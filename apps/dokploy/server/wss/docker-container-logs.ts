@@ -76,7 +76,13 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
+		if (
+			!(await canAccessDockerOverWss(user, session, serverId, serviceId, {
+				type: "logs",
+				containerId,
+				runType,
+			}))
+		) {
 			ws.close(4003, "Not authorized");
 			return;
 		}

@@ -4,6 +4,10 @@ import {
 	findMemberByUserId,
 	hasPermission,
 } from "@dokploy/server/services/permission";
+import {
+	isContainerBoundToService,
+	type WssContainerTarget,
+} from "./container-binding";
 
 type WssUser = { id: string } | null | undefined;
 type WssSession = { activeOrganizationId?: string | null } | null | undefined;
@@ -24,6 +28,7 @@ export const canAccessDockerOverWss = async (
 	session: WssSession,
 	serverId?: string | null,
 	serviceId?: string | null,
+	target?: WssContainerTarget,
 ): Promise<boolean> => {
 	// return false;
 	if (!user || !session?.activeOrganizationId) return false;
@@ -39,7 +44,10 @@ export const canAccessDockerOverWss = async (
 	if (serviceId) {
 		try {
 			await checkServiceAccess(ctx, serviceId, "read");
-			return true;
+			// The handlers run docker on the caller's containerId, so access to a
+			// service only covers the containers of that service.
+			if (!target) return false;
+			return await isContainerBoundToService(serviceId, serverId, target);
 		} catch {
 			return false;
 		}
