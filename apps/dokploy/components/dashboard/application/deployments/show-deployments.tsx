@@ -50,7 +50,10 @@ interface Props {
 	serverId?: string;
 }
 
-export const formatDuration = (seconds: number) => {
+// A deployment's description is "Commit: <40-character SHA>" for git builds.
+const COMMIT_DESCRIPTION_RE = /^(Commit:\s*)?([0-9a-f]{40})$/i;
+
+export const formatDuration =(seconds: number) => {
 	if (seconds < 60) return `${seconds}s`;
 	const minutes = Math.floor(seconds / 60);
 	const remainingSeconds = seconds % 60;
@@ -164,7 +167,7 @@ export const ShowDeployments = ({
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
-						See the last 10 deployments for this {type}
+						Recent deployments for this service.
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center flex-wrap gap-2">
@@ -238,8 +241,9 @@ export const ShowDeployments = ({
 				{refreshToken && (
 					<div className="flex flex-col gap-2 text-sm">
 						<span>
-							If you want to re-deploy this application use this URL in the
-							config of your git provider or docker
+							To redeploy automatically, add this webhook URL to your Git
+							provider or container registry. Payloads up to 25 MB are
+							accepted.
 						</span>
 						<div className="flex flex-row items-center gap-2 flex-wrap">
 							<span>Webhook URL: </span>
@@ -269,6 +273,12 @@ export const ShowDeployments = ({
 								<Button
 									variant="ghost"
 									size="icon"
+									aria-label={
+										showWebhookUrl ? "Hide webhook URL" : "Show webhook URL"
+									}
+									title={
+										showWebhookUrl ? "Hide webhook URL" : "Show webhook URL"
+									}
 									onClick={() => {
 										setShowWebhookUrl((v) => !v);
 									}}
@@ -297,9 +307,14 @@ export const ShowDeployments = ({
 				) : deployments?.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10 min-h-[25vh]">
 						<RocketIcon className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
-							No deployments found
+						<span className="text-base font-medium text-foreground">
+							No deployments yet
 						</span>
+						<p className="max-w-md text-center text-sm text-muted-foreground">
+							{refreshToken
+								? "Click Deploy to start the first one, or push to the connected branch or call the webhook URL above to deploy automatically."
+								: "Click Deploy to start the first one, or push to the connected branch to deploy automatically."}
+						</p>
 					</div>
 				) : (
 					<div className="flex flex-col gap-4">
@@ -365,11 +380,43 @@ export const ShowDeployments = ({
 												</button>
 											)}
 											{/* Hash (from description) - shown in compact form */}
-											{deployment.description?.trim() && (
-												<span className="wrap-anywhere text-xs text-muted-foreground font-mono">
-													{deployment.description}
-												</span>
-											)}
+											{deployment.description?.trim() &&
+												(() => {
+													const description = deployment.description.trim();
+													const commit = description.match(COMMIT_DESCRIPTION_RE);
+													const sha = commit?.[2];
+													if (!sha) {
+														return (
+															<span className="wrap-anywhere text-xs text-muted-foreground font-mono">
+																{description}
+															</span>
+														);
+													}
+													return (
+														<button
+															type="button"
+															title={`${sha} (click to copy)`}
+															aria-label={`Copy commit ${sha}`}
+															onClick={() => {
+																copy(sha);
+																toast.success("Copied to clipboard.");
+															}}
+															className="w-fit text-left text-xs text-muted-foreground font-mono hover:text-foreground transition-colors cursor-pointer"
+														>
+															{commit?.[1] ? "Commit: " : ""}
+															{sha.slice(0, 7)}
+														</button>
+													);
+												})()}
+											{deployment.status === "error" &&
+												deployment.errorMessage?.trim() && (
+													<span
+														className="truncate text-xs text-red-500"
+														title={deployment.errorMessage}
+													>
+														{deployment.errorMessage.trim().split("\n")[0]}
+													</span>
+												)}
 										</div>
 									</div>
 									<div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:max-w-[300px] sm:items-end sm:justify-start">
