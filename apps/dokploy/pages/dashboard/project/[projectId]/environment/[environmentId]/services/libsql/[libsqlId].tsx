@@ -188,7 +188,7 @@ const Libsql = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/libsql/${libsqlId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/libsql/${libsqlId}?tab=${e}${router.query.from === "overview" ? `&from=overview&overviewTab=${router.query.overviewTab ?? "services"}` : ""}`;
 
 										router.push(newPath, undefined, { shallow: true });
 									}}

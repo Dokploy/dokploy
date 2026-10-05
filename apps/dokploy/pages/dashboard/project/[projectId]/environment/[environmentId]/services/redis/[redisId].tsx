@@ -201,7 +201,7 @@ const Redis = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/redis/${redisId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/redis/${redisId}?tab=${e}${router.query.from === "overview" ? `&from=overview&overviewTab=${router.query.overviewTab ?? "services"}` : ""}`;
 
 										router.push(newPath, undefined, { shallow: true });
 									}}

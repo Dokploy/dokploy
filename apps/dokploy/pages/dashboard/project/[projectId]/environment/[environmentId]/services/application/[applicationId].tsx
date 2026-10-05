@@ -237,7 +237,7 @@ const Service = (
 									className="w-full"
 									onValueChange={(e) => {
 										setTab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/application/${applicationId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/application/${applicationId}?tab=${e}${router.query.from === "overview" ? `&from=overview&overviewTab=${router.query.overviewTab ?? "services"}` : ""}`;
 										router.push(newPath);
 									}}
 								>
