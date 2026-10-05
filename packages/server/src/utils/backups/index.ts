@@ -14,19 +14,18 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 
-export const initCronJobs = async () => {
-	console.log("Setting up cron jobs....");
-
+const getOwnerUserId = async (): Promise<string | undefined> => {
 	const admin = await db.query.member.findFirst({
 		where: eq(member.role, "owner"),
 		with: {
 			user: true,
 		},
 	});
+	return admin?.user?.id;
+};
 
-	if (!admin) {
-		return;
-	}
+export const initCronJobs = async () => {
+	console.log("Setting up cron jobs....");
 
 	const webServerSettings = await getWebServerSettings();
 
@@ -39,7 +38,10 @@ export const initCronJobs = async () => {
 
 				await cleanupAll();
 
-				await sendDockerCleanupNotifications(admin.user.id);
+				const ownerUserId = await getOwnerUserId();
+				if (ownerUserId) {
+					await sendDockerCleanupNotifications(ownerUserId);
+				}
 			});
 		} catch (error) {
 			console.error("[Backup] Docker Cleanup Error", error);
@@ -59,10 +61,13 @@ export const initCronJobs = async () => {
 
 					await cleanupAll(serverId);
 
-					await sendDockerCleanupNotifications(
-						admin.user.id,
-						`Docker cleanup for Server ${name} (${serverId})`,
-					);
+					const ownerUserId = await getOwnerUserId();
+					if (ownerUserId) {
+						await sendDockerCleanupNotifications(
+							ownerUserId,
+							`Docker cleanup for Server ${name} (${serverId})`,
+						);
+					}
 				});
 			} catch (error) {
 				console.error(`[Backup] ${error}`);
