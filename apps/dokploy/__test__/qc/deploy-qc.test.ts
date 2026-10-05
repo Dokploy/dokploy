@@ -229,6 +229,17 @@ describe("deployApplication with the QC step", () => {
 			false,
 		);
 		expect(builders.mechanizeDockerContainer).not.toHaveBeenCalled();
+		expect(deploymentService.updateDeployment).toHaveBeenCalledWith("dep1", {
+			qcVerdict: "error",
+		});
+		const blocked = scriptsRun().some((s) =>
+			String(s).includes(
+				Buffer.from("== QC test plan blocked the deploy: QC down ==").toString(
+					"base64",
+				),
+			),
+		);
+		expect(blocked).toBe(true);
 	});
 
 	it("does not split the deploy when the QC step is off", async () => {

@@ -317,6 +317,19 @@ export const deployApplication = async ({
 			const qcResult = await runQcStep(application, {
 				commitSha: commit?.hash,
 				idempotencyKey: deployment.deploymentId,
+			}).catch(async (error: unknown) => {
+				// "closed" policy: the deploy stops here, but the row and log should
+				// still say why.
+				const reason = error instanceof Error ? error.message : String(error);
+				await updateDeployment(deployment.deploymentId, {
+					qcVerdict: "error",
+				});
+				await appendDeploymentLog(
+					deployment.logPath,
+					serverId,
+					`== QC test plan blocked the deploy: ${reason} ==`,
+				);
+				throw error;
 			});
 			await updateDeployment(deployment.deploymentId, {
 				testPlanVersionAtDeploy: qcResult.testPlanVersion,
