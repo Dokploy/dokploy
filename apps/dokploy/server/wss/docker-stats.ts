@@ -110,6 +110,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close(4003, "Not authorized");
 			return;
 		}
+
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
