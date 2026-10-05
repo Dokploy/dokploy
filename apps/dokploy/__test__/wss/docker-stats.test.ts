@@ -15,8 +15,9 @@ vi.mock("@dokploy/server", () => ({
 	docker: { listContainers: vi.fn(async () => []) },
 	execAsync: vi.fn(),
 }));
+const mockCanAccessDockerOverWss = vi.hoisted(() => vi.fn());
 vi.mock("@/server/wss/authorize", () => ({
-	canAccessDockerOverWss: vi.fn(async () => true),
+	canAccessDockerOverWss: mockCanAccessDockerOverWss,
 }));
 
 import { setupDockerStatsMonitoringSocketServer } from "@/server/wss/docker-stats";
@@ -43,6 +44,7 @@ let url: string;
 beforeEach(async () => {
 	vi.clearAllMocks();
 	mockGetHostSystemStats.mockResolvedValue({});
+	mockCanAccessDockerOverWss.mockResolvedValue(true);
 	server = http.createServer();
 	setupDockerStatsMonitoringSocketServer(server);
 	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
@@ -85,6 +87,19 @@ describe("docker stats websocket (#5504)", () => {
 
 		await closeClient(ws);
 		auth.resolve(AUTH);
+		await wait(POLL_INTERVAL + 200);
+
+		expect(mockRecordAdvancedStats).not.toHaveBeenCalled();
+	});
+
+	it("does not start polling when the client disconnects during the permission check", async () => {
+		mockValidateRequest.mockResolvedValue(AUTH);
+		const access = deferred<boolean>();
+		mockCanAccessDockerOverWss.mockReturnValue(access.promise);
+		const ws = await connect();
+
+		await closeClient(ws);
+		access.resolve(true);
 		await wait(POLL_INTERVAL + 200);
 
 		expect(mockRecordAdvancedStats).not.toHaveBeenCalled();
