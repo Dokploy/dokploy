@@ -18,7 +18,9 @@ import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
-export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
+export const createDomain = async (
+	input: z.infer<typeof apiCreateDomain> & Partial<Pick<Domain, "enabled">>,
+) => {
 	const result = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
@@ -36,7 +38,7 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 			});
 		}
 
-		if (domain.applicationId) {
+		if (domain.applicationId && domain.enabled) {
 			const application = await findApplicationById(domain.applicationId);
 			await manageDomain(application, domain);
 		}
