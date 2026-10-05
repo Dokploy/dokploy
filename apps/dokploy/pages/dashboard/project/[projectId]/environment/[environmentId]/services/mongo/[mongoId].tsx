@@ -91,9 +91,9 @@ const Mongo = (
 			<div className="w-full">
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
+						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<CardTitle className="text-xl flex min-w-0 flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
 										<div className="absolute -right-1  -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
@@ -101,7 +101,9 @@ const Mongo = (
 
 										<MongodbIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
-									{data?.name}
+									<span className="min-w-0 truncate" title={data?.name}>
+										{data?.name}
+									</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>
@@ -111,10 +113,10 @@ const Mongo = (
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex flex-col h-fit w-fit gap-2">
-								<div className="flex flex-row h-fit w-fit gap-2">
+							<div className="flex max-w-[45%] flex-col h-fit w-fit gap-2 md:max-w-none">
+								<div className="flex max-w-full flex-row h-fit w-fit gap-2">
 									<Badge
-										className="cursor-pointer"
+										className="max-w-full cursor-pointer truncate"
 										onClick={() => {
 											const ip = data?.server?.ipAddress || serverIp;
 											if (ip) {
