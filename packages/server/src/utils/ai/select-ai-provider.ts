@@ -7,6 +7,34 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOllama } from "ai-sdk-ollama";
 
+export interface AIHeader {
+	key: string;
+	value: string;
+}
+
+const CANONICAL_HEADER_NAMES: Record<string, string> = {
+	authorization: "Authorization",
+	"x-api-key": "x-api-key",
+	"api-key": "api-key",
+};
+
+const canonicalHeaderName = (key: string) =>
+	CANONICAL_HEADER_NAMES[key.toLowerCase()] ?? key;
+
+// Names are canonicalised so a user-typed `authorization` replaces the built-in
+// Authorization instead of being sent as a second, differently-cased header.
+export const toHeadersRecord = (
+	headers?: AIHeader[] | null,
+): Record<string, string> => {
+	const record: Record<string, string> = {};
+	for (const header of headers ?? []) {
+		const key = header?.key?.trim();
+		if (!key) continue;
+		record[canonicalHeaderName(key)] = header.value ?? "";
+	}
+	return record;
+};
+
 export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.openai.com")) return "openai";
 	if (apiUrl.includes("azure.com")) return "azure";
@@ -23,14 +51,20 @@ export function getProviderName(apiUrl: string) {
 	return "custom";
 }
 
-export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
+export function selectAIProvider(config: {
+	apiUrl: string;
+	apiKey: string;
+	headers?: AIHeader[] | null;
+}) {
 	const providerName = getProviderName(config.apiUrl);
+	const customHeaders = toHeadersRecord(config.headers);
 
 	switch (providerName) {
 		case "openai":
 			return createOpenAI({
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
+				headers: customHeaders,
 			});
 		case "azure":
 			// Azure OpenAI-compatible endpoints already include /v1 in the path.
@@ -42,22 +76,26 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 					headers: {
 						"api-key": config.apiKey,
 						Authorization: `Bearer ${config.apiKey}`,
+						...customHeaders,
 					},
 				});
 			}
 			return createAzure({
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
+				headers: customHeaders,
 			});
 		case "anthropic":
 			return createAnthropic({
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
+				headers: customHeaders,
 			});
 		case "cohere":
 			return createCohere({
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
+				headers: customHeaders,
 			});
 		case "perplexity":
 			return createOpenAICompatible({
@@ -66,24 +104,27 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 					"X-Pplx-Integration": "dokploy",
+					...customHeaders,
 				},
 			});
 		case "mistral":
 			return createMistral({
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
+				headers: customHeaders,
 			});
 		case "ollama":
 			return createOllama({
 				baseURL: config.apiUrl,
 				headers: config.apiKey
-					? { Authorization: `Bearer ${config.apiKey}` }
-					: undefined,
+					? { Authorization: `Bearer ${config.apiKey}`, ...customHeaders }
+					: customHeaders,
 			});
 		case "deepinfra":
 			return createDeepInfra({
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
+				headers: customHeaders,
 			});
 		case "gemini":
 			return createOpenAICompatible({
@@ -91,6 +132,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+					...customHeaders,
 				},
 			});
 		case "openrouter":
@@ -99,6 +141,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+					...customHeaders,
 				},
 			});
 		case "zai":
@@ -107,6 +150,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+					...customHeaders,
 				},
 			});
 		case "minimax":
@@ -115,6 +159,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+					...customHeaders,
 				},
 			});
 		case "custom":
@@ -123,6 +168,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				baseURL: config.apiUrl,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
+					...customHeaders,
 				},
 			});
 		default:
@@ -133,12 +179,16 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 export const getProviderHeaders = (
 	apiUrl: string,
 	apiKey: string,
+	headers?: AIHeader[] | null,
 ): Record<string, string> => {
+	const customHeaders = toHeadersRecord(headers);
+
 	// Anthropic
 	if (apiUrl.includes("anthropic")) {
 		return {
 			"x-api-key": apiKey,
 			"anthropic-version": "2023-06-01",
+			...customHeaders,
 		};
 	}
 
@@ -146,14 +196,17 @@ export const getProviderHeaders = (
 	if (apiUrl.includes("mistral")) {
 		return {
 			Authorization: `Bearer ${apiKey}`,
+			...customHeaders,
 		};
 	}
 
 	// Default (OpenAI style)
 	return {
 		Authorization: `Bearer ${apiKey}`,
+		...customHeaders,
 	};
 };
+
 export interface Model {
 	id: string;
 	object: string;

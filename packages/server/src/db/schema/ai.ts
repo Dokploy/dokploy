@@ -1,9 +1,19 @@
 import { relations } from "drizzle-orm";
-import { boolean, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
+
+export const aiHeadersSchema = z.array(
+	z.object({
+		key: z.string().min(1, { message: "Header name is required" }),
+		value: z.string(),
+	}),
+);
+
+export type AIHeader = z.infer<typeof aiHeadersSchema>[number];
+
 export const ai = pgTable("ai", {
 	aiId: text("aiId")
 		.notNull()
@@ -13,6 +23,7 @@ export const ai = pgTable("ai", {
 	apiUrl: text("apiUrl").notNull(),
 	apiKey: text("apiKey").notNull(),
 	model: text("model").notNull(),
+	headers: jsonb("headers").$type<AIHeader[]>(),
 	isEnabled: boolean("isEnabled").notNull().default(true),
 	organizationId: text("organizationId")
 		.notNull()
@@ -34,6 +45,7 @@ const createSchema = createInsertSchema(ai, {
 	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
 	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
+	headers: aiHeadersSchema.nullable().optional(),
 	isEnabled: z.boolean().optional(),
 });
 
@@ -43,9 +55,11 @@ export const apiCreateAi = createSchema
 		apiUrl: true,
 		apiKey: true,
 		model: true,
+		headers: true,
 		isEnabled: true,
 	})
-	.required();
+	.required()
+	.extend({ headers: aiHeadersSchema.nullable().optional() });
 
 export const apiUpdateAi = createSchema
 	.partial()
