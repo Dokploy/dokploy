@@ -10,7 +10,10 @@ import {
 	testVaultProviderConnection,
 	updateVaultProvider,
 } from "@dokploy/server";
-import { findMemberByUserId } from "@dokploy/server/services/permission";
+import {
+	findMemberByUserId,
+	isProjectVisible,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -133,11 +136,11 @@ export const vaultProviderRouter = createTRPCRouter({
 			);
 
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				const { accessedProjects } = await findMemberByUserId(
+				const memberRecord = await findMemberByUserId(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
 				);
-				if (!accessedProjects.includes(input.projectId)) {
+				if (!(await isProjectVisible(memberRecord, input.projectId))) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You don't have access to this project",
