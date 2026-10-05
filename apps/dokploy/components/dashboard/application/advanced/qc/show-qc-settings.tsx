@@ -67,29 +67,48 @@ export const ShowQcSettings = ({ applicationId }: Props) => {
 		resolver: zodResolver(QcSettingsSchema),
 	});
 
+	// Background refetches (the server fills in qcProjectId during a deploy, the
+	// Test Plan tab polls the same query) must not wipe what is being typed.
+	const { dirtyFields } = form.formState;
+
 	useEffect(() => {
 		if (data) {
-			form.reset({
-				qcEnabled: data.qcEnabled ?? false,
-				qcProjectId: data.qcProjectId || "",
-				qcFailurePolicy: data.qcFailurePolicy || "open",
-				testExecEnabled: data.testExecEnabled ?? false,
-				testCommand: data.testCommand || "",
-				testExecFailurePolicy: data.testExecFailurePolicy || "closed",
-			});
+			form.reset(
+				{
+					qcEnabled: data.qcEnabled ?? false,
+					qcProjectId: data.qcProjectId || "",
+					qcFailurePolicy: data.qcFailurePolicy || "open",
+					testExecEnabled: data.testExecEnabled ?? false,
+					testCommand: data.testCommand || "",
+					testExecFailurePolicy: data.testExecFailurePolicy || "closed",
+				},
+				{ keepDirtyValues: true },
+			);
 		}
 	}, [data, form]);
 
 	const onSubmit = async (input: QcSettings) => {
+		// Only send what the user touched, so an untouched field (notably
+		// qcProjectId, which a deploy may have just filled in) can't be
+		// overwritten with a stale form value.
+		const changed = Object.keys(dirtyFields) as (keyof QcSettings)[];
+		if (changed.length === 0) {
+			toast.info("No changes to save");
+			return;
+		}
+		const payload: Partial<Record<keyof QcSettings, string | boolean | null>> =
+			{};
+		for (const key of changed) {
+			const value = input[key];
+			payload[key] =
+				(key === "qcProjectId" || key === "testCommand") && value === ""
+					? null
+					: value;
+		}
 		await mutateAsync({
 			applicationId,
-			qcEnabled: input.qcEnabled,
-			qcProjectId: input.qcProjectId || null,
-			qcFailurePolicy: input.qcFailurePolicy,
-			testExecEnabled: input.testExecEnabled,
-			testCommand: input.testCommand || null,
-			testExecFailurePolicy: input.testExecFailurePolicy,
-		})
+			...payload,
+		} as Parameters<typeof mutateAsync>[0])
 			.then(async () => {
 				toast.success("QC settings updated");
 				await utils.application.one.invalidate({ applicationId });

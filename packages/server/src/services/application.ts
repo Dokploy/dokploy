@@ -32,7 +32,7 @@ import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, lt, ne, or } from "drizzle-orm";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
@@ -171,6 +171,51 @@ export const updateApplication = async (
 		.returning();
 
 	return application[0];
+};
+
+// Atomic compare-and-set so two concurrent callers (a deploy and a manual
+// regenerate, or two deploys) can never both run the QC step for the same
+// application. A "generating" row older than `staleAfterMs` is treated as
+// abandoned by a crashed run and can be claimed again.
+export const claimTestPlanGeneration = async (
+	applicationId: string,
+	staleAfterMs: number,
+): Promise<boolean> => {
+	const now = new Date();
+	const staleBefore = new Date(now.getTime() - staleAfterMs).toISOString();
+	const claimed = await db
+		.update(applications)
+		.set({
+			testPlanStatus: "generating",
+			testPlanStartedAt: now.toISOString(),
+			testPlanError: null,
+		})
+		.where(
+			and(
+				eq(applications.applicationId, applicationId),
+				or(
+					ne(applications.testPlanStatus, "generating"),
+					isNull(applications.testPlanStartedAt),
+					lt(applications.testPlanStartedAt, staleBefore),
+				),
+			),
+		)
+		.returning({ applicationId: applications.applicationId });
+	return claimed.length > 0;
+};
+
+// Called on boot: no QC run can still be in flight in a freshly started
+// process, so any row left in "generating" was interrupted by the restart.
+export const resetStuckTestPlans = async () => {
+	const reset = await db
+		.update(applications)
+		.set({
+			testPlanStatus: "error",
+			testPlanError: "Interrupted by a server restart",
+		})
+		.where(eq(applications.testPlanStatus, "generating"))
+		.returning({ applicationId: applications.applicationId });
+	return reset.length;
 };
 
 export const updateApplicationStatus = async (

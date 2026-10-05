@@ -246,6 +246,8 @@ export const applications = pgTable("application", {
 	testPlanContent: text("testPlanContent"),
 	testPlanVersion: integer("testPlanVersion").notNull().default(0),
 	testPlanStatus: testPlanStatus("testPlanStatus").notNull().default("none"),
+	testPlanStartedAt: text("testPlanStartedAt"),
+	testPlanError: text("testPlanError"),
 	// Test-exec: runs the app's own test command inside the built image
 	testExecEnabled: boolean("testExecEnabled").notNull().default(false),
 	testCommand: text("testCommand"),
@@ -411,6 +413,8 @@ const createSchema = createInsertSchema(applications, {
 	testPlanContent: z.string().nullable().optional(),
 	testPlanVersion: z.number().optional(),
 	testPlanStatus: z.enum(["none", "generating", "ready", "error"]).optional(),
+	testPlanStartedAt: z.string().nullable().optional(),
+	testPlanError: z.string().nullable().optional(),
 	testExecEnabled: z.boolean().optional(),
 	testCommand: z.string().nullable().optional(),
 	testExecFailurePolicy: z.enum(["open", "closed"]).optional(),

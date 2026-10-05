@@ -11,10 +11,10 @@ const { APPLICATIONS_PATH } = paths();
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
-		// @ts-ignore
+		// @ts-expect-error
 		...actual,
 		paths: () => ({
-			// @ts-ignore
+			// @ts-expect-error
 			...actual.paths(),
 			BASE_PATH: OUTPUT_BASE,
 			APPLICATIONS_PATH: OUTPUT_BASE,
@@ -40,6 +40,8 @@ const baseApp: ApplicationNested = {
 	testPlanContent: null,
 	testPlanVersion: 0,
 	testPlanStatus: "none",
+	testPlanStartedAt: null,
+	testPlanError: null,
 	testExecEnabled: false,
 	testCommand: null,
 	testExecFailurePolicy: "closed",

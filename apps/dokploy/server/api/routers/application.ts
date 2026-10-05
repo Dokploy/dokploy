@@ -13,16 +13,17 @@ import {
 	getContainerLogs,
 	getWebServerSettings,
 	IS_CLOUD,
+	isTestPlanGenerating,
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
+	regenerateTestPlanInBackground,
 	removeDeployments,
 	removeDirectoryCode,
 	removeMonitoringDirectory,
 	removePreviewDeployment,
 	removeService,
 	removeTraefikConfig,
-	runQcStep,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -495,14 +496,26 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const application = await findApplicationById(input.applicationId);
-			const result = await runQcStep(application);
+			if (!application.qcEnabled) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Enable the QC test-plan step first",
+				});
+			}
+			if (isTestPlanGenerating(application)) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "A test plan is already being generated",
+				});
+			}
+			regenerateTestPlanInBackground(application);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",
 				resourceId: application.applicationId,
 				resourceName: application.appName,
 			});
-			return result;
+			return { started: true };
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
