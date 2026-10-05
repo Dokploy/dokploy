@@ -324,30 +324,54 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
 	});
 
-	it("queues the deployment on the server of the application", async () => {
-		mocks.applicationsFindMany.mockResolvedValue([
-			{
-				applicationId: "application-id",
-				serverId: "server-id",
-				watchPaths: null,
-			},
-		]);
-		const res = createResponse();
+	it.each([
+		["push", () => createPushRequest("main")],
+		["tag", () => createTagRequest("v1.0.0")],
+	])(
+		"queues %s deployments on the server of each service",
+		async (_, createRequest) => {
+			mocks.applicationsFindMany.mockResolvedValue([
+				{
+					applicationId: "application-id",
+					serverId: "server-a",
+					watchPaths: null,
+				},
+			]);
+			mocks.composeFindMany.mockResolvedValue([
+				{
+					composeId: "compose-id",
+					serverId: "server-b",
+					watchPaths: null,
+				},
+			]);
+			const res = createResponse();
 
-		await handler(createPushRequest("main"), res);
+			await handler(createRequest(), res);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
-			expect.objectContaining({
-				applicationId: "application-id",
-				serverId: "server-id",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
-			}),
-		);
-	});
+			expect(mocks.queueAdd).toHaveBeenCalledWith(
+				"deployments",
+				expect.objectContaining({
+					applicationId: "application-id",
+					serverId: "server-a",
+				}),
+				expect.objectContaining({
+					removeOnComplete: true,
+					removeOnFail: true,
+				}),
+			);
+			expect(mocks.queueAdd).toHaveBeenCalledWith(
+				"deployments",
+				expect.objectContaining({
+					composeId: "compose-id",
+					serverId: "server-b",
+				}),
+				expect.objectContaining({
+					removeOnComplete: true,
+					removeOnFail: true,
+				}),
+			);
+		},
+	);
 });
 
 describe("GitHub app webhook preview deployments", () => {
@@ -450,6 +474,29 @@ describe("GitHub app webhook preview deployments", () => {
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("queues the preview deployment on the server of the application", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({ serverId: "server-id" }),
+		]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "application-id",
+				applicationType: "application-preview",
+				previewDeploymentId: "new-preview-id",
+				serverId: "server-id",
+			}),
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
 	});
 
 	it("does not create a new preview once the limit is reached", async () => {
