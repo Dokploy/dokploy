@@ -30,7 +30,7 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { encodeBase64 } from "../utils/docker/utils";
+import { encodeBase64, getCopyFileMountsCommand } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -267,7 +267,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
@@ -424,6 +424,7 @@ export const deployPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
+		const originalAppName = application.appName;
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
@@ -440,6 +441,13 @@ export const deployPreviewApplication = async ({
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
+			// File mount contents live under the base application's directory;
+			// copy them so the preview's bind mount sources exist.
+			command += getCopyFileMountsCommand(
+				originalAppName,
+				previewDeployment.appName,
+				!!application.serverId,
+			);
 			command += await getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -543,6 +551,7 @@ export const rebuildPreviewApplication = async ({
 		});
 
 		// Set application properties for preview deployment
+		const originalAppName = application.appName;
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
@@ -555,6 +564,11 @@ export const rebuildPreviewApplication = async ({
 		const serverId = application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
+		command += getCopyFileMountsCommand(
+			originalAppName,
+			previewDeployment.appName,
+			!!application.serverId,
+		);
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
