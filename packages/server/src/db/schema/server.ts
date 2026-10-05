@@ -1,3 +1,4 @@
+import { normalizeIp } from "@dokploy/server/utils/ip-address";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -36,6 +37,9 @@ export const server = pgTable("server", {
 	name: text("name").notNull(),
 	description: text("description"),
 	ipAddress: text("ipAddress").notNull(),
+	// Extra addresses (floating VIP, load balancer) that domains of this server
+	// may resolve to. Only used by domain DNS validation, never for SSH.
+	ingressIps: text("ingressIps").array().notNull().default([]),
 	port: integer("port").notNull(),
 	username: text("username").notNull().default("root"),
 	appName: text("appName")
@@ -141,6 +145,11 @@ const createSchema = createInsertSchema(server, {
 	serverType: z.enum(["deploy", "build"]).optional(),
 });
 
+const ingressIpsSchema = z
+	.array(z.union([z.ipv4(), z.ipv6()]).transform(normalizeIp))
+	.max(16)
+	.optional();
+
 export const apiCreateServer = createSchema
 	.pick({
 		name: true,
@@ -155,6 +164,7 @@ export const apiCreateServer = createSchema
 	.required()
 	.extend({
 		enableDockerCleanup: z.boolean().default(true),
+		ingressIps: ingressIpsSchema,
 	});
 
 export const apiFindOneServer = z.object({
@@ -183,6 +193,7 @@ export const apiUpdateServer = createSchema
 	.extend({
 		command: z.string().optional(),
 		enableDockerCleanup: z.boolean().default(true),
+		ingressIps: ingressIpsSchema,
 	});
 
 export const apiUpdateServerBuildsConcurrency = z.object({
