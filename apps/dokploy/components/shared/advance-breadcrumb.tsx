@@ -211,6 +211,7 @@ export const AdvanceBreadcrumb = () => {
 			(value): value is string => !!value,
 		) ?? null;
 	const cameFromOverview = query.from === "overview";
+	const overviewTab = getStringQueryParam(query.overviewTab) || "services";
 
 	const [projectOpen, setProjectOpen] = useState(false);
 	const [serviceOpen, setServiceOpen] = useState(false);
@@ -665,7 +666,9 @@ export const AdvanceBreadcrumb = () => {
 										<Button
 											variant="ghost"
 											className="h-auto px-2 py-1.5 hover:bg-accent"
-											onClick={() => router.push("/dashboard/overview")}
+											onClick={() =>
+												router.push(`/dashboard/overview?tab=${overviewTab}`)
+											}
 										>
 											<LayoutGrid className="size-4 text-muted-foreground" />
 											<span className="font-medium">Overview</span>

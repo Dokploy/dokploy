@@ -57,7 +57,7 @@ const renderRowIcon = (row: OverviewBackup) => {
 
 const detailHref = (row: OverviewBackup) => {
 	if (!row.projectId || !row.environmentId || !row.serviceOwnerId) return null;
-	return `/dashboard/project/${row.projectId}/environment/${row.environmentId}/services/${row.serviceOwnerType}/${row.serviceOwnerId}?from=overview`;
+	return `/dashboard/project/${row.projectId}/environment/${row.environmentId}/services/${row.serviceOwnerType}/${row.serviceOwnerId}?from=overview&overviewTab=backups`;
 };
 
 export const ShowOverviewBackups = () => {

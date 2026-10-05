@@ -234,7 +234,7 @@ export const ShowOverviewDomains = () => {
 							</TableHeader>
 							<TableBody>
 								{pagedDomains.map((domain) => {
-									const href = `/dashboard/project/${domain.projectId}/environment/${domain.environmentId}/services/${domain.serviceOwnerType}/${domain.serviceOwnerId}?from=overview`;
+									const href = `/dashboard/project/${domain.projectId}/environment/${domain.environmentId}/services/${domain.serviceOwnerType}/${domain.serviceOwnerId}?from=overview&overviewTab=domains`;
 									return (
 										<TableRow key={domain.domainId}>
 											<TableCell>
