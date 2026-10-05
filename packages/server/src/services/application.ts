@@ -160,6 +160,22 @@ export const updateApplication = async (
 	return application[0];
 };
 
+const stripPreviewBuildOverrides = (application: {
+	rollbackActive: boolean | null;
+	buildRegistry: unknown;
+	rollbackRegistry: unknown;
+	registry: unknown;
+	buildArchitecture: Application["buildArchitecture"];
+	buildxBuilder: string | null;
+}) => {
+	application.rollbackActive = false;
+	application.buildRegistry = null;
+	application.rollbackRegistry = null;
+	application.registry = null;
+	application.buildArchitecture = "host";
+	application.buildxBuilder = null;
+};
+
 export const updateApplicationStatus = async (
 	applicationId: string,
 	applicationStatus: Application["applicationStatus"],
@@ -267,7 +283,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
+			// @ts-expect-error
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
@@ -428,10 +444,7 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.rollbackActive = false;
-		application.buildRegistry = null;
-		application.rollbackRegistry = null;
-		application.registry = null;
+		stripPreviewBuildOverrides(application);
 
 		let command = "set -e;";
 		if (application.sourceType === "github") {
@@ -547,10 +560,7 @@ export const rebuildPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.rollbackActive = false;
-		application.buildRegistry = null;
-		application.rollbackRegistry = null;
-		application.registry = null;
+		stripPreviewBuildOverrides(application);
 
 		const serverId = application.serverId;
 		let command = "set -e;";

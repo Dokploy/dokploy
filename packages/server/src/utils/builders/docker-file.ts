@@ -8,9 +8,17 @@ import {
 	getDockerContextPath,
 } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
+import {
+	type BuildPlan,
+	DEFAULT_MULTIARCH_BUILDER,
+	planPlatformArgs,
+} from "./build-platform";
 import { createEnvFileCommand } from "./utils";
 
-export const getDockerCommand = (application: ApplicationNested) => {
+export const getDockerCommand = (
+	application: ApplicationNested,
+	plan: BuildPlan,
+) => {
 	const {
 		appName,
 		env,
@@ -24,22 +32,35 @@ export const getDockerCommand = (application: ApplicationNested) => {
 	const dockerFilePath = getBuildAppDirectory(application);
 
 	try {
-		const image = `${appName}`;
-
 		const defaultContextPath =
 			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
 
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
 
-		const commandArgs = [
-			"build",
-			"-t",
-			image,
-			"-f",
-			dockerFilePath,
-			dockerContextPath,
-		];
+		const useBuildx = plan.output.mode === "push" || plan.builder !== null;
+		const builder =
+			plan.builder ??
+			(plan.output.mode === "push" ? DEFAULT_MULTIARCH_BUILDER : null);
+		const commandArgs = useBuildx ? ["buildx", "build"] : ["build"];
+		if (builder) {
+			commandArgs.push("--builder", quote([builder]));
+		}
+		commandArgs.push(...planPlatformArgs(plan));
+
+		if (plan.output.mode === "push") {
+			for (const tag of plan.output.tags) {
+				commandArgs.push("-t", quote([tag]));
+			}
+			commandArgs.push("--push");
+		} else {
+			commandArgs.push("-t", plan.output.image);
+			if (useBuildx) {
+				commandArgs.push("--load");
+			}
+		}
+
+		commandArgs.push("-f", dockerFilePath, dockerContextPath);
 
 		if (dockerBuildStage) {
 			commandArgs.push("--target", dockerBuildStage);
@@ -91,13 +112,18 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
+		const createDefaultBuilder =
+			plan.output.mode === "push" && !plan.builder
+				? `docker buildx inspect ${quote([DEFAULT_MULTIARCH_BUILDER])} >/dev/null 2>&1 || docker buildx create --name ${quote([DEFAULT_MULTIARCH_BUILDER])} --driver docker-container --driver-opt network=host\n`
+				: "";
+
 		command += `
 echo ${quote([`Building ${appName}`])} ;
 cd ${quote([dockerContextPath])} || {
   echo ${quote([`❌ The path ${dockerContextPath} does not exist`])} ;
   exit 1;
 }
-
+${createDefaultBuilder}
 ${joinedSecrets} docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;
