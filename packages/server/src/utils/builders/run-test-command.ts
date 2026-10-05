@@ -15,6 +15,7 @@ export const TEST_EXIT_MARKER = "QC_TEST_EXIT_CODE";
 // marker line so it can be parsed back out of the log afterwards.
 export const getTestExecCommand = async (
 	application: ApplicationNested,
+	deploymentId: string,
 ): Promise<string> => {
 	if (!application.testExecEnabled || !application.testCommand) {
 		return "";
@@ -22,20 +23,27 @@ export const getTestExecCommand = async (
 
 	const imageName = await getImageName(application);
 	const encodedCommand = encodeBase64(application.testCommand);
-	const runTests = `docker run --rm ${imageName} sh -c "$(echo ${encodedCommand} | base64 -d)"`;
-	// Capture the exit code explicitly instead of letting `set -e` abort
-	// immediately, so the marker line always gets written before we decide
-	// (based on testExecFailurePolicy) whether to actually fail the build.
+	// `|| __TEST_EXIT=$?` keeps the enclosing `set -e` from aborting before the
+	// marker line is written; the exit is re-raised below only when the policy
+	// says tests must block the deploy.
+	const runTests = `__TEST_EXIT=0; docker run --rm ${imageName} sh -c "$(echo ${encodedCommand} | base64 -d)" || __TEST_EXIT=$?`;
 	const abortOnFailure =
 		application.testExecFailurePolicy === "closed"
 			? "if [ $__TEST_EXIT -ne 0 ]; then exit $__TEST_EXIT; fi;"
 			: "";
 
-	return `echo "== Tests ==" ; ${runTests}; __TEST_EXIT=$?; echo "${TEST_EXIT_MARKER}:$__TEST_EXIT"; ${abortOnFailure}`;
+	return `echo "== Tests ==" ; ${runTests}; echo "${TEST_EXIT_MARKER}:${deploymentId}:$__TEST_EXIT"; ${abortOnFailure}`;
 };
 
-const parseTestExecExitCode = (log: string): number | null => {
-	const match = log.match(new RegExp(`${TEST_EXIT_MARKER}:(-?\\d+)`));
+// The deployment id is part of the marker so a line printed by the tests
+// themselves can't be mistaken for the real exit code.
+const parseTestExecExitCode = (
+	log: string,
+	deploymentId: string,
+): number | null => {
+	const match = log.match(
+		new RegExp(`${TEST_EXIT_MARKER}:${deploymentId}:(-?\\d+)`),
+	);
 	return match?.[1] ? Number(match[1]) : null;
 };
 
@@ -43,14 +51,15 @@ const parseTestExecExitCode = (log: string): number | null => {
 // server) to know whether the test-exec step ran and what it exited with.
 export const readTestExecExitCode = async (
 	logPath: string,
+	deploymentId: string,
 	serverId?: string | null,
 ): Promise<number | null> => {
-	const command = `grep -o '${TEST_EXIT_MARKER}:[-0-9]*' ${logPath} | tail -n1`;
+	const command = `grep -o '${TEST_EXIT_MARKER}:${deploymentId}:[-0-9]*' ${logPath} | tail -n1`;
 	try {
 		const result = serverId
 			? await execAsyncRemote(serverId, command)
 			: await execAsync(command);
-		return parseTestExecExitCode(result.stdout);
+		return parseTestExecExitCode(result.stdout, deploymentId);
 	} catch {
 		return null;
 	}

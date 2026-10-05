@@ -38,8 +38,14 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 
 	const onRegenerate = async () => {
 		await mutateAsync({ applicationId })
-			.then(async () => {
-				toast.success("Test plan updated");
+			.then(async (result) => {
+				if (result.verdict === "ready") {
+					toast.success("Test plan updated");
+				} else if (result.verdict === "skipped") {
+					toast.info(result.reason ?? "Test plan step was skipped");
+				} else {
+					toast.error(result.reason ?? "Error regenerating the test plan");
+				}
 				await refetch();
 			})
 			.catch(() => {
