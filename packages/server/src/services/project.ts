@@ -10,6 +10,7 @@ import {
 	projects,
 	redis,
 } from "@dokploy/server/db/schema";
+import { syncAllCaddyInBackground } from "@dokploy/server/utils/caddy/sync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -126,6 +127,7 @@ export const deleteProject = async (projectId: string) => {
 		.where(eq(projects.projectId, projectId))
 		.returning()
 		.then((value) => value[0]);
+	syncAllCaddyInBackground();
 
 	return project;
 };
