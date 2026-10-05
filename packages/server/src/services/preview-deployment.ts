@@ -9,7 +9,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import type { z } from "zod";
 import { generatePassword } from "../templates";
-import { removeService } from "../utils/docker/utils";
+import { removeRailpackBuilder, removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
@@ -58,6 +58,11 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		const cleanupOperations = [
 			async () =>
 				await removeService(application?.appName, application?.serverId),
+			async () =>
+				await removeRailpackBuilder(
+					application?.appName,
+					application?.serverId,
+				),
 			async () =>
 				await removeDeploymentsByPreviewDeploymentId(
 					previewDeployment,
