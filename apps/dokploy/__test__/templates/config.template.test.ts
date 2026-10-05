@@ -305,6 +305,118 @@ describe("processTemplate", () => {
 			expect(result.envs).toContain("DEBUG_MODE=true");
 			expect(result.envs).toContain("SOME_NUMBER=42");
 		});
+
+		it("should process variable references in env vars provided as an array of tables", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					app_name: "studio",
+					admin_password: "${password:32}",
+				},
+				config: {
+					domains: [],
+					env: [
+						{ APP: "${app_name}" },
+						{ ADMIN_PASSWORD: "${admin_password}" },
+					],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(2);
+			expect(result.envs[0]).toBe("APP=studio");
+			expect(result.envs[1]).toMatch(/^ADMIN_PASSWORD=.+$/);
+			expect(result.envs[1]).not.toContain("${");
+		});
+
+		it("should emit every key of a table in an array of tables, in order", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					app_name: "studio",
+				},
+				config: {
+					domains: [],
+					env: [
+						{
+							FIRST: "one",
+							SECOND: "${app_name}",
+							THIRD: "three",
+						},
+					],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toEqual([
+				"FIRST=one",
+				"SECOND=studio",
+				"THIRD=three",
+			]);
+		});
+
+		it("should handle boolean and number values in env vars provided as an array of tables", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: [
+						{
+							ENABLE_USER_SIGN_UP: false,
+							DEBUG_MODE: true,
+							SOME_NUMBER: 42,
+						},
+					],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toEqual([
+				"ENABLE_USER_SIGN_UP=false",
+				"DEBUG_MODE=true",
+				"SOME_NUMBER=42",
+			]);
+		});
+
+		it("should keep strings and tables of a mixed env array in order", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					app_name: "studio",
+				},
+				config: {
+					domains: [],
+					env: ["STATIC=value", { APP: "${app_name}" }, "LAST=${app_name}"],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toEqual([
+				"STATIC=value",
+				"APP=studio",
+				"LAST=studio",
+			]);
+		});
+
+		it("should skip an empty table in env vars provided as an array of tables", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: [{}, "STATIC=value"],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toEqual(["STATIC=value"]);
+		});
 	});
 
 	describe("mounts processing", () => {
