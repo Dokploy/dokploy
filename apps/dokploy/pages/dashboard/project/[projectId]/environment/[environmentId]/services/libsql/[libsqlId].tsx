@@ -80,9 +80,9 @@ const Libsql = (
 				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
+						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<CardTitle className="text-xl flex min-w-0 flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
 										<div className="absolute -right-1  -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
@@ -90,7 +90,7 @@ const Libsql = (
 
 										<LibsqlIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
-									{data?.name}
+									<span className="min-w-0 truncate">{data?.name}</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>

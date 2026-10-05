@@ -123,9 +123,9 @@ const Service = (
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2 items-center">
+						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<CardTitle className="text-xl flex min-w-0 flex-row gap-2 items-center">
 									<div className="relative flex flex-row gap-4 items-center">
 										<ShowIconSettings
 											serviceId={applicationId}
@@ -136,7 +136,7 @@ const Service = (
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 									</div>
-									{data?.name}
+									<span className="min-w-0 truncate">{data?.name}</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>
