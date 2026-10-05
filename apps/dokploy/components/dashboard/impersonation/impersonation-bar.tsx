@@ -46,6 +46,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
+import { DeleteAccountByEmail } from "./delete-account-by-email";
 
 type User = typeof authClient.$Infer.Session.user;
 
@@ -78,12 +79,12 @@ export const ImpersonationBar = () => {
 			});
 
 			const filteredUsers = response.data?.users.filter(
-				// @ts-ignore
+				// @ts-expect-error
 				(user) => user.allowImpersonation && data?.user?.email !== user.email,
 			);
 
 			if (!response.error) {
-				// @ts-ignore
+				// @ts-expect-error
 				setUsers(filteredUsers || []);
 			}
 		} catch (error) {
@@ -282,6 +283,7 @@ export const ImpersonationBar = () => {
 									<Shield className="h-4 w-4" />
 									Impersonate
 								</Button>
+								<DeleteAccountByEmail />
 							</div>
 						) : (
 							<div className="flex items-center gap-4 w-full flex-wrap">
