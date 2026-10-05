@@ -99,6 +99,7 @@ export const compose = pgTable("compose", {
 		.default(false),
 	pullImages: boolean("pullImages").notNull().default(false),
 	triggerType: triggerType("triggerType").default("push"),
+	waitForChecks: boolean("waitForChecks").notNull().default(false),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	icon: text("icon"),
 	environmentId: text("environmentId")

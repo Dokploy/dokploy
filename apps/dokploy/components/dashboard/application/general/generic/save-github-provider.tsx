@@ -19,6 +19,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -65,6 +66,7 @@ const GithubProviderSchema = z.object({
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
+	waitForChecks: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -91,6 +93,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			branch: "",
 			triggerType: "push",
 			enableSubmodules: false,
+			waitForChecks: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -103,6 +106,12 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 		githubProviders?.find((provider) => provider.githubId === githubId)
 			?.githubUrl ?? DEFAULT_GITHUB_URL;
 	const triggerType = form.watch("triggerType");
+	const { data: installationPermissions } =
+		api.github.installationPermissions.useQuery(
+			{ githubId },
+			{ enabled: !!githubId },
+		);
+	const hasChecksPermission = !!installationPermissions?.checks;
 
 	const { data: repositories, isPending: isLoadingRepositories } =
 		api.github.getGithubRepositories.useQuery(
@@ -142,6 +151,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
+				waitForChecks: data.waitForChecks ?? false,
 			});
 		}
 	}, [form.reset, data?.applicationId, form]);
@@ -157,6 +167,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			watchPaths: data.watchPaths || [],
 			triggerType: data.triggerType,
 			enableSubmodules: data.enableSubmodules,
+			waitForChecks: data.waitForChecks,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -568,6 +579,48 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{triggerType === "push" && (
+							<FormField
+								control={form.control}
+								name="waitForChecks"
+								render={({ field }) => (
+									<FormItem className="space-y-2">
+										<div className="flex flex-row items-center space-x-2">
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													disabled={!hasChecksPermission && !field.value}
+												/>
+											</FormControl>
+											<FormLabel>Deploy only when GitHub checks pass</FormLabel>
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+													</TooltipTrigger>
+													<TooltipContent className="max-w-sm">
+														<p>
+															A push no longer deploys on its own. The
+															deployment starts once every check suite reported
+															on the pushed commit has completed successfully,
+															so a commit without checks never deploys.
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+										{installationPermissions && !hasChecksPermission && (
+											<FormDescription>
+												The GitHub App cannot read checks. Grant it the Checks
+												read permission and the check_suite event on GitHub,
+												then accept the new permission on the installation.
+											</FormDescription>
+										)}
+									</FormItem>
+								)}
+							/>
+						)}
 					</div>
 					<div className="flex w-full justify-end">
 						<Button

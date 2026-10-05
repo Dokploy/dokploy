@@ -1,9 +1,11 @@
 import {
 	assertGitProviderAccess,
+	authGithub,
 	canViewGitProviderSecrets,
 	findGithubById,
 	getAccessibleGitProviderIds,
 	getGithubBranches,
+	getGithubInstallationPermissions,
 	getGithubRepositories,
 	haveGithubRequirements,
 	updateGithub,
@@ -56,6 +58,13 @@ export const githubRouter = createTRPCRouter({
 				await assertGitProviderAccess(ctx.session, github.gitProvider);
 			}
 			return await getGithubBranches(input);
+		}),
+	installationPermissions: protectedProcedure
+		.input(apiFindOneGithub)
+		.query(async ({ input, ctx }) => {
+			const github = await findGithubById(input.githubId);
+			await assertGitProviderAccess(ctx.session, github.gitProvider);
+			return await getGithubInstallationPermissions(authGithub(github));
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleGitProviderIds(ctx.session);

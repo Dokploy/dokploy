@@ -14,6 +14,11 @@ const mocks = vi.hoisted(() => ({
 	shouldDeploy: vi.fn(),
 	createPreviewDeployment: vi.fn(),
 	findPreviewDeploymentByApplicationId: vi.fn(),
+	listCheckSuites: vi.fn(),
+	areCheckSuitesPassing: vi.fn(),
+	getChangedFiles: vi.fn(),
+	deploy: vi.fn(),
+	isCloud: false,
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -30,6 +35,7 @@ vi.mock("@/server/db/schema", () => ({
 		repository: "application.repository",
 		owner: "application.owner",
 		githubId: "application.githubId",
+		waitForChecks: "application.waitForChecks",
 		isPreviewDeploymentsActive: "application.isPreviewDeploymentsActive",
 	},
 	compose: {
@@ -40,6 +46,7 @@ vi.mock("@/server/db/schema", () => ({
 		repository: "compose.repository",
 		owner: "compose.owner",
 		githubId: "compose.githubId",
+		waitForChecks: "compose.waitForChecks",
 	},
 	github: {
 		githubInstallationId: "github.githubInstallationId",
@@ -63,7 +70,9 @@ vi.mock("@dokploy/server/db", () => ({
 }));
 
 vi.mock("@dokploy/server", () => ({
-	IS_CLOUD: false,
+	get IS_CLOUD() {
+		return mocks.isCloud;
+	},
 	shouldDeploy: mocks.shouldDeploy,
 	checkUserRepositoryPermissions: vi.fn(),
 	createPreviewDeployment: mocks.createPreviewDeployment,
@@ -74,6 +83,9 @@ vi.mock("@dokploy/server", () => ({
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	getBitbucketHeaders: vi.fn(() => ({})),
 	removePreviewDeployment: vi.fn(),
+	listCheckSuites: mocks.listCheckSuites,
+	areCheckSuitesPassing: mocks.areCheckSuitesPassing,
+	getChangedFiles: mocks.getChangedFiles,
 }));
 
 vi.mock("@octokit/webhooks", () => ({
@@ -91,7 +103,7 @@ vi.mock("@/server/queues/queueSetup", () => ({
 }));
 
 vi.mock("@/server/utils/deploy", () => ({
-	deploy: vi.fn(),
+	deploy: mocks.deploy,
 }));
 
 import handler from "@/pages/api/deploy/github";
@@ -132,6 +144,7 @@ const createPushRequest = (
 			ref: `refs/heads/${branch}`,
 			after: "abc123",
 			head_commit: {
+				id: "abc123",
 				message: "fix: trigger deployment",
 			},
 			commits: [
@@ -476,5 +489,435 @@ describe("GitHub app webhook preview deployments", () => {
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
+	});
+});
+
+describe("GitHub app webhook wait for checks", () => {
+	const githubProvider = {
+		githubId: "github-provider-id",
+		githubInstallationId: 12345,
+		githubWebhookSecret: "webhook-secret",
+	};
+
+	const passingSuite = {
+		head_sha: "abc123",
+		status: "completed",
+		conclusion: "success",
+		latest_check_runs_count: 1,
+	};
+
+	const createCheckSuiteRequest = (
+		action: string,
+		checkSuite: Record<string, unknown> = {},
+	) =>
+		({
+			headers: {
+				"x-hub-signature-256": "sha256=test-signature",
+				"x-github-event": "check_suite",
+			},
+			body: {
+				installation: {
+					id: 12345,
+				},
+				action,
+				check_suite: {
+					head_sha: "abc123",
+					head_branch: "main",
+					before: "before123",
+					after: "abc123",
+					status: action === "completed" ? "completed" : "queued",
+					conclusion: action === "completed" ? "success" : null,
+					head_commit: {
+						id: "abc123",
+						message: "fix: trigger deployment",
+					},
+					...checkSuite,
+				},
+				repository: {
+					name: "dokploy",
+					owner: {
+						login: "agentHits",
+					},
+				},
+			},
+		}) as unknown as NextApiRequest;
+
+	const waitingApplication = {
+		applicationId: "application-id",
+		serverId: null,
+		watchPaths: null,
+		waitForChecks: true,
+	};
+
+	const waitingCompose = {
+		composeId: "compose-id",
+		serverId: null,
+		watchPaths: null,
+		waitForChecks: true,
+	};
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.githubFindFirst.mockResolvedValue(githubProvider);
+		mocks.verify.mockResolvedValue(true);
+		mocks.shouldDeploy.mockReturnValue(true);
+		mocks.applicationsFindMany.mockResolvedValue([]);
+		mocks.composeFindMany.mockResolvedValue([]);
+		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.listCheckSuites.mockResolvedValue([passingSuite]);
+		mocks.areCheckSuitesPassing.mockReturnValue(true);
+		mocks.getChangedFiles.mockResolvedValue(["src/index.ts"]);
+		mocks.isCloud = false;
+		mocks.deploy.mockResolvedValue({});
+	});
+
+	it("does not deploy a push when the application waits for checks", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(mocks.shouldDeploy).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 0 apps, 1 waiting for checks",
+		});
+	});
+
+	it("does not deploy a push when the compose service waits for checks", async () => {
+		mocks.composeFindMany.mockResolvedValue([waitingCompose]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 0 apps, 1 waiting for checks",
+		});
+	});
+
+	it("still deploys the other services of the push", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			waitingApplication,
+			{ applicationId: "other-id", serverId: null, waitForChecks: false },
+		]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({ applicationId: "other-id" }),
+			expect.anything(),
+		);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps, 1 waiting for checks",
+		});
+	});
+
+	it("keeps deploying tag pushes right away", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		const res = createResponse();
+
+		await handler(createTagRequest("v1.0.0"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps based on tag v1.0.0",
+		});
+	});
+
+	it("looks up the services waiting for checks on the branch of the suite", async () => {
+		mocks.applicationsFindMany.mockImplementation(({ where }) => {
+			const matches =
+				getConditionValue(where, "application.sourceType") === "github" &&
+				getConditionValue(where, "application.autoDeploy") === true &&
+				getConditionValue(where, "application.triggerType") === "push" &&
+				getConditionValue(where, "application.waitForChecks") === true &&
+				getConditionValue(where, "application.branch") === "main" &&
+				getConditionValue(where, "application.repository") === "dokploy" &&
+				getConditionValue(where, "application.owner") === "agentHits" &&
+				getConditionValue(where, "application.githubId") ===
+					"github-provider-id";
+
+			return Promise.resolve(matches ? [waitingApplication] : []);
+		});
+		mocks.composeFindMany.mockImplementation(({ where }) => {
+			const matches =
+				getConditionValue(where, "compose.sourceType") === "github" &&
+				getConditionValue(where, "compose.autoDeploy") === true &&
+				getConditionValue(where, "compose.triggerType") === "push" &&
+				getConditionValue(where, "compose.waitForChecks") === true &&
+				getConditionValue(where, "compose.branch") === "main" &&
+				getConditionValue(where, "compose.repository") === "dokploy" &&
+				getConditionValue(where, "compose.owner") === "agentHits" &&
+				getConditionValue(where, "compose.githubId") === "github-provider-id";
+
+			return Promise.resolve(matches ? [waitingCompose] : []);
+		});
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(2);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 2 apps after checks passed",
+		});
+	});
+
+	it("deploys the application once every suite on the commit passed", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.listCheckSuites).toHaveBeenCalledWith(
+			githubProvider,
+			"agentHits",
+			"dokploy",
+			"heads/main",
+		);
+		expect(mocks.areCheckSuitesPassing).toHaveBeenCalledWith([passingSuite]);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			{
+				applicationId: "application-id",
+				titleLog: "fix: trigger deployment",
+				descriptionLog: "Hash: abc123",
+				type: "deploy",
+				applicationType: "application",
+				server: false,
+			},
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps after checks passed",
+		});
+	});
+
+	it("deploys compose services the same way", async () => {
+		mocks.composeFindMany.mockResolvedValue([waitingCompose]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			{
+				composeId: "compose-id",
+				titleLog: "fix: trigger deployment",
+				descriptionLog: "Hash: abc123",
+				type: "deploy",
+				applicationType: "compose",
+				server: false,
+			},
+			expect.anything(),
+		);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps after checks passed",
+		});
+	});
+
+	it("does not deploy while checks are running or failed", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		mocks.areCheckSuitesPassing.mockReturnValue(false);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Checks have not all passed yet",
+		});
+	});
+
+	it("does not deploy when a newer push replaced the commit on the branch", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		mocks.listCheckSuites.mockResolvedValue([
+			{ ...passingSuite, head_sha: "def456" },
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.areCheckSuitesPassing).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Commit is no longer the head of the branch",
+		});
+	});
+
+	it("does not call the GitHub API when nothing waits on the branch", async () => {
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.listCheckSuites).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "No apps waiting for checks",
+		});
+	});
+
+	it("ignores check_suite actions other than completed", async () => {
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("requested"), res);
+
+		expect(mocks.applicationsFindMany).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Ignored check_suite action requested",
+		});
+	});
+
+	it("ignores suites without a branch", async () => {
+		const res = createResponse();
+
+		await handler(
+			createCheckSuiteRequest("completed", { head_branch: null }),
+			res,
+		);
+
+		expect(mocks.applicationsFindMany).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Ignored check_suite without a branch",
+		});
+	});
+
+	it("honours skip keywords in the commit message", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		const res = createResponse();
+
+		await handler(
+			createCheckSuiteRequest("completed", {
+				head_commit: { id: "abc123", message: "chore: bump [skip ci]" },
+			}),
+			res,
+		);
+
+		expect(mocks.applicationsFindMany).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployment skipped: commit message contains skip keyword",
+		});
+	});
+
+	it("compares the pushed commits once when a service has watch paths", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ ...waitingApplication, watchPaths: ["src/**"] },
+			{
+				...waitingApplication,
+				applicationId: "docs-id",
+				watchPaths: ["docs/**"],
+			},
+			{ ...waitingApplication, applicationId: "plain-id" },
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.getChangedFiles).toHaveBeenCalledTimes(1);
+		expect(mocks.getChangedFiles).toHaveBeenCalledWith(
+			githubProvider,
+			"agentHits",
+			"dokploy",
+			"before123",
+			"abc123",
+		);
+		expect(mocks.shouldDeploy).toHaveBeenCalledWith(
+			["src/**"],
+			["src/index.ts"],
+		);
+		expect(mocks.shouldDeploy).toHaveBeenCalledWith(
+			["docs/**"],
+			["src/index.ts"],
+		);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(3);
+	});
+
+	it("skips services whose watch paths did not change", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ ...waitingApplication, watchPaths: ["docs/**"] },
+		]);
+		mocks.shouldDeploy.mockReturnValue(false);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 0 apps after checks passed",
+		});
+	});
+
+	it("does not compare commits when no service has watch paths", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ ...waitingApplication, watchPaths: [] },
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.getChangedFiles).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("deploys without comparing when the branch has no previous commit", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ ...waitingApplication, watchPaths: ["src/**"] },
+		]);
+		const res = createResponse();
+
+		await handler(
+			createCheckSuiteRequest("completed", {
+				before: "0000000000000000000000000000000000000000",
+			}),
+			res,
+		);
+
+		expect(mocks.getChangedFiles).not.toHaveBeenCalled();
+		expect(mocks.shouldDeploy).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("dispatches to the cloud deployment service", async () => {
+		mocks.isCloud = true;
+		mocks.applicationsFindMany.mockResolvedValue([
+			{ ...waitingApplication, serverId: "server-id" },
+		]);
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.deploy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				applicationId: "application-id",
+				serverId: "server-id",
+			}),
+		);
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Deployed 1 apps after checks passed",
+		});
+	});
+
+	it("answers 400 when the GitHub API call fails", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([waitingApplication]);
+		mocks.listCheckSuites.mockRejectedValue(new Error("boom"));
+		const res = createResponse();
+
+		await handler(createCheckSuiteRequest("completed"), res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(400);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Error deploying after checks passed",
+		});
 	});
 });
