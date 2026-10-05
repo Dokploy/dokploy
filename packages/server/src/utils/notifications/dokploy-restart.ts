@@ -5,6 +5,9 @@ import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -137,7 +140,7 @@ export const sendDokployRestartNotifications = async () => {
 						`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(
 							date,
 							"PP",
-						)}\n<b>Time:</b> ${format(date, "pp")}`,
+						)}\n<b>Time:</b> ${formatNotificationTime(date)}`,
 					);
 				}
 
@@ -163,7 +166,7 @@ export const sendDokployRestartNotifications = async () => {
 
 				if (mattermost) {
 					await sendMattermostNotification(mattermost, {
-						text: `**✅ Dokploy Server Restarted**\n\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+						text: `**✅ Dokploy Server Restarted**\n\n**Date:** ${formatNotificationDate(date)}\n**Time:** ${formatNotificationTime(date)}`,
 						channel: mattermost.channel,
 						username: mattermost.username || "Dokploy",
 					});
@@ -272,7 +275,7 @@ export const sendDokployRestartNotifications = async () => {
 						title: "✅ Dokploy Server Restarted",
 						facts: [
 							{ name: "Status", value: "Successful" },
-							{ name: "Restart Time", value: format(date, "PP pp") },
+							{ name: "Restart Time", value: formatNotificationDateTime(date) },
 						],
 					});
 				}

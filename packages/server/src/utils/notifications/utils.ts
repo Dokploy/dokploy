@@ -12,8 +12,52 @@ import type {
 	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
+import { format } from "date-fns";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+
+const DEFAULT_NOTIFICATION_DATE_FORMAT = "PP";
+const DEFAULT_NOTIFICATION_TIME_FORMAT = "pp";
+
+const formatWithFallback = (
+	date: Date,
+	envFormat: string | undefined,
+	fallback: string,
+) => {
+	if (envFormat) {
+		try {
+			return format(date, envFormat);
+		} catch {
+			// Invalid date-fns pattern: fall back to the default format
+		}
+	}
+	return format(date, fallback);
+};
+
+/**
+ * Date shown in notifications. Override with NOTIFICATIONS_DATE_FORMAT
+ * (date-fns pattern, e.g. "dd/MM/yyyy"). Defaults to "PP".
+ */
+export const formatNotificationDate = (date: Date) =>
+	formatWithFallback(
+		date,
+		process.env.NOTIFICATIONS_DATE_FORMAT,
+		DEFAULT_NOTIFICATION_DATE_FORMAT,
+	);
+
+/**
+ * Time shown in notifications. Override with NOTIFICATIONS_TIME_FORMAT
+ * (date-fns pattern, e.g. "HH:mm:ss" for 24-hour time). Defaults to "pp".
+ */
+export const formatNotificationTime = (date: Date) =>
+	formatWithFallback(
+		date,
+		process.env.NOTIFICATIONS_TIME_FORMAT,
+		DEFAULT_NOTIFICATION_TIME_FORMAT,
+	);
+
+export const formatNotificationDateTime = (date: Date) =>
+	`${formatNotificationDate(date)} ${formatNotificationTime(date)}`;
 
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,

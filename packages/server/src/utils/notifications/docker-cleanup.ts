@@ -2,9 +2,11 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
 import { render } from "@react-email/components";
-import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -143,7 +145,7 @@ export const sendDockerCleanupNotifications = async (
 			if (telegram) {
 				await sendTelegramNotification(
 					telegram,
-					`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+					`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${formatNotificationDate(date)}\n<b>Time:</b> ${formatNotificationTime(date)}`,
 				);
 			}
 
@@ -173,7 +175,7 @@ export const sendDockerCleanupNotifications = async (
 
 			if (mattermost) {
 				await sendMattermostNotification(mattermost, {
-					text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${formatNotificationDate(date)}\n**Time:** ${formatNotificationTime(date)}`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -253,7 +255,7 @@ export const sendDockerCleanupNotifications = async (
 											elements: [
 												{
 													tag: "markdown",
-													content: `**Date:**\n${format(date, "PP pp")}`,
+													content: `**Date:**\n${formatNotificationDateTime(date)}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
@@ -281,7 +283,7 @@ export const sendDockerCleanupNotifications = async (
 				await sendTeamsNotification(teams, {
 					title: "✅ Docker Cleanup",
 					facts: [
-						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Date", value: formatNotificationDateTime(date) },
 						{ name: "Message", value: message },
 					],
 				});

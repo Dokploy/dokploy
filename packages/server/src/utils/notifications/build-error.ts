@@ -2,9 +2,11 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { render } from "@react-email/components";
-import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -201,7 +203,7 @@ export const sendBuildErrorNotifications = async ({
 
 				await sendTelegramNotification(
 					telegram,
-					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
+					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${formatNotificationDate(date)}\n<b>Time:</b> ${formatNotificationTime(date)}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
 					inlineButton,
 				);
 			}
@@ -364,7 +366,7 @@ ${errorMessage}
 												},
 												{
 													tag: "markdown",
-													content: `**Date:**\n${format(date, "PP pp")}`,
+													content: `**Date:**\n${formatNotificationDateTime(date)}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
@@ -417,7 +419,7 @@ ${errorMessage}
 						{ name: "Project", value: projectName },
 						{ name: "Application", value: applicationName },
 						{ name: "Type", value: applicationType },
-						{ name: "Date", value: format(date, "PP pp") },
+						{ name: "Date", value: formatNotificationDateTime(date) },
 						{ name: "Error Message", value: truncatedErrorMessage },
 					],
 					potentialAction: {
