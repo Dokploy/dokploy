@@ -5,21 +5,23 @@ import {
 	updateApplication,
 } from "./application";
 import {
-	QC_AGENT_TIMEOUT_MS,
-	resolveQcProject,
-	runTestPlanGenerate,
-	runTestPlanUpdate,
-} from "./qc-agent-client";
+	createQcRun,
+	getQcPlanMarkdown,
+	QC_SERVICE_TIMEOUT_MS,
+	type QcStageView,
+	waitForQcRun,
+} from "./qc-service-client";
 
 export interface QcStepResult {
 	verdict: "skipped" | "ready" | "error";
 	testPlanVersion: number | null;
 	reason?: string;
+	runId?: string;
+	stages?: QcStageView[];
 }
 
-// A "generating" row older than this was left behind by a crashed run:
-// project resolution plus the run itself can each use the full timeout.
-export const QC_STALE_AFTER_MS = 2 * QC_AGENT_TIMEOUT_MS + 60_000;
+// A "generating" row older than this was left behind by a crashed run.
+export const QC_STALE_AFTER_MS = QC_SERVICE_TIMEOUT_MS + 60_000;
 const WAIT_POLL_INTERVAL_MS = 3000;
 
 const errorMessage = (error: unknown) =>
@@ -29,14 +31,24 @@ const errorMessage = (error: unknown) =>
 // without an extra lookup (gitlab/gitea/bitbucket need their provider
 // row's own self-hosted base URL, not wired up yet; docker/drop have no
 // git source at all) — skip cleanly for the rest rather than guess a URL.
-const getApplicationRepoUrl = (application: Application): string | null => {
+export const getQcRepoSource = (
+	application: Application,
+): { repoUrl: string; branch: string } | null => {
 	if (application.sourceType === "github") {
-		return application.owner && application.repository
-			? `https://github.com/${application.owner}/${application.repository}.git`
+		return application.owner && application.repository && application.branch
+			? {
+					repoUrl: `https://github.com/${application.owner}/${application.repository}.git`,
+					branch: application.branch,
+				}
 			: null;
 	}
 	if (application.sourceType === "git") {
-		return application.customGitUrl ?? null;
+		return application.customGitUrl && application.customGitBranch
+			? {
+					repoUrl: application.customGitUrl,
+					branch: application.customGitBranch,
+				}
+			: null;
 	}
 	return null;
 };
@@ -48,7 +60,15 @@ export const isTestPlanGenerating = (
 	!!application.testPlanStartedAt &&
 	Date.now() - Date.parse(application.testPlanStartedAt) < QC_STALE_AFTER_MS;
 
-interface RunQcStepOptions {
+export interface RunQcStepOptions {
+	// The commit the plan is for: the one just cloned for a deploy, or the
+	// one already deployed for a manual regenerate.
+	commitSha?: string;
+	// Idempotency-Key of the service run; retrying the same deployment
+	// returns the run it already started.
+	idempotencyKey?: string;
+	// Re-plan even if this commit already has a plan (manual regenerate).
+	force?: boolean;
 	// The manual regenerate path reports failures through testPlanStatus
 	// instead of aborting anything, so it opts out of the "closed" policy.
 	ignoreFailurePolicy?: boolean;
@@ -61,7 +81,7 @@ const waitForRunningTestPlan = async (
 	application: Application,
 	shouldThrow: boolean,
 ): Promise<QcStepResult> => {
-	const deadline = Date.now() + QC_AGENT_TIMEOUT_MS;
+	const deadline = Date.now() + QC_SERVICE_TIMEOUT_MS;
 	let latest = await findApplicationById(application.applicationId);
 
 	while (latest.testPlanStatus === "generating" && Date.now() < deadline) {
@@ -83,8 +103,9 @@ const waitForRunningTestPlan = async (
 	return { verdict: "error", testPlanVersion: latest.testPlanVersion, reason };
 };
 
-// Blocking QC step: generates (first deploy) or updates (redeploy) the
-// application's test-plan document via QC_Agent_Tool before the build runs.
+// Blocking QC step: asks the QC service for a test plan of the commit that
+// was just cloned (it re-plans from the diff on a redeploy), before the
+// build runs.
 export const runQcStep = async (
 	initial: Application,
 	options: RunQcStepOptions = {},
@@ -103,40 +124,23 @@ export const runQcStep = async (
 		};
 	}
 
-	let qcProjectId = application.qcProjectId;
-	if (!qcProjectId) {
-		const repoUrl = getApplicationRepoUrl(application);
-		if (!repoUrl) {
-			console.log(
-				`QC step skipped for application ${application.applicationId}: no resolvable git repo URL for sourceType "${application.sourceType}"`,
-			);
-			return {
-				verdict: "skipped",
-				testPlanVersion: application.testPlanVersion,
-				reason: `No resolvable git repo URL for source type "${application.sourceType}"`,
-			};
-		}
-		try {
-			qcProjectId = await resolveQcProject({
-				repoUrl,
-				name: application.name,
-			});
-			await updateApplication(application.applicationId, { qcProjectId });
-		} catch (error) {
-			console.log("QC step: failed to resolve QC_Agent_Tool project", error);
-			// Status is left alone: another run may hold the "generating" claim.
-			await updateApplication(application.applicationId, {
-				testPlanError: errorMessage(error),
-			});
-			if (shouldThrow) {
-				throw error;
-			}
-			return {
-				verdict: "error",
-				testPlanVersion: application.testPlanVersion,
-				reason: errorMessage(error),
-			};
-		}
+	const source = getQcRepoSource(application);
+	if (!source) {
+		console.log(
+			`QC step skipped for application ${application.applicationId}: no resolvable git repo for sourceType "${application.sourceType}"`,
+		);
+		return {
+			verdict: "skipped",
+			testPlanVersion: application.testPlanVersion,
+			reason: `No resolvable git repo URL for source type "${application.sourceType}"`,
+		};
+	}
+	if (!options.commitSha) {
+		return {
+			verdict: "skipped",
+			testPlanVersion: application.testPlanVersion,
+			reason: "No commit to plan for yet; deploy the application first",
+		};
 	}
 
 	const claimed = await claimTestPlanGeneration(
@@ -147,17 +151,22 @@ export const runQcStep = async (
 		return waitForRunningTestPlan(application, shouldThrow);
 	}
 
-	// The deployment row of the deploy that triggers this step already exists
-	// by now, so "has any deployment" can't tell a first deploy apart.
-	const isFirstDeploy = application.testPlanVersion === 0;
-
 	try {
-		const result = isFirstDeploy
-			? await runTestPlanGenerate({ qcProjectId })
-			: await runTestPlanUpdate({ qcProjectId });
+		const created = await createQcRun({
+			repoUrl: source.repoUrl,
+			branch: source.branch,
+			commitSha: options.commitSha,
+			name: application.name,
+			force: options.force,
+			idempotencyKey:
+				options.idempotencyKey ??
+				`plan-${application.applicationId}-${options.commitSha}-${Date.now()}`,
+		});
+		const run = await waitForQcRun(created.runId);
 
-		if (result.status === "error") {
-			const reason = "QC Agent reported an error while building the test plan";
+		if (run.status !== "done") {
+			const reason =
+				run.error?.message ?? `The QC run ended as "${run.status}"`;
 			await updateApplication(application.applicationId, {
 				testPlanStatus: "error",
 				testPlanError: reason,
@@ -166,16 +175,25 @@ export const runQcStep = async (
 				verdict: "error",
 				testPlanVersion: application.testPlanVersion,
 				reason,
+				runId: run.runId,
+				stages: run.stages,
 			};
 		}
 
+		const content = await getQcPlanMarkdown(run.runId);
+		const version = run.planVersion ?? application.testPlanVersion;
 		await updateApplication(application.applicationId, {
-			testPlanContent: result.content,
-			testPlanVersion: result.version,
+			testPlanContent: content,
+			testPlanVersion: version,
 			testPlanStatus: "ready",
 			testPlanError: null,
 		});
-		return { verdict: "ready", testPlanVersion: result.version };
+		return {
+			verdict: "ready",
+			testPlanVersion: version,
+			runId: run.runId,
+			stages: run.stages,
+		};
 	} catch (error) {
 		console.log("QC step failed", error);
 		await updateApplication(application.applicationId, {
@@ -197,9 +215,16 @@ export const runQcStep = async (
 // Fire-and-forget entry point for the manual "Regenerate" button: the HTTP
 // request returns immediately and the UI follows testPlanStatus, so a run
 // that outlives a proxy timeout can't be mistaken for a failure.
-export const regenerateTestPlanInBackground = (application: Application) => {
+export const regenerateTestPlanInBackground = (
+	application: Application,
+	commitSha: string,
+) => {
 	const { applicationId } = application;
-	void runQcStep(application, { ignoreFailurePolicy: true })
+	void runQcStep(application, {
+		commitSha,
+		force: true,
+		ignoreFailurePolicy: true,
+	})
 		.then(async (result) => {
 			if (result.verdict === "skipped") {
 				await updateApplication(applicationId, {

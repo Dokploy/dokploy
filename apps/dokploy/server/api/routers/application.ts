@@ -11,6 +11,7 @@ import {
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
+	getGitCommitInfo,
 	getWebServerSettings,
 	IS_CLOUD,
 	isTestPlanGenerating,
@@ -508,7 +509,19 @@ export const applicationRouter = createTRPCRouter({
 					message: "A test plan is already being generated",
 				});
 			}
-			regenerateTestPlanInBackground(application);
+			const commit = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId: application.buildServerId || application.serverId,
+			});
+			if (!commit?.hash) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"There is no deployed code to plan yet. Deploy the application first.",
+				});
+			}
+			regenerateTestPlanInBackground(application, commit.hash);
 			await audit(ctx, {
 				action: "update",
 				resourceType: "application",

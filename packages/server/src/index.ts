@@ -44,7 +44,7 @@ export * from "./services/proprietary/forward-auth";
 export * from "./services/proprietary/license-key";
 export * from "./services/proprietary/sso";
 export * from "./services/proprietary/whitelabeling";
-export * from "./services/qc-agent-client";
+export * from "./services/qc-service-client";
 export * from "./services/qc-step";
 export * from "./services/redirect";
 export * from "./services/redis";
