@@ -323,6 +323,31 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
 	});
+
+	it("queues the deployment on the server of the application", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			{
+				applicationId: "application-id",
+				serverId: "server-id",
+				watchPaths: null,
+			},
+		]);
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "application-id",
+				serverId: "server-id",
+			}),
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
+	});
 });
 
 describe("GitHub app webhook preview deployments", () => {
