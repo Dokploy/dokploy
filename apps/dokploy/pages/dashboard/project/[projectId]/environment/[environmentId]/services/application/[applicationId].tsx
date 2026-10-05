@@ -136,7 +136,9 @@ const Service = (
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 									</div>
-									<span className="min-w-0 truncate">{data?.name}</span>
+									<span className="min-w-0 truncate" title={data?.name}>
+										{data?.name}
+									</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>
@@ -146,10 +148,10 @@ const Service = (
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex flex-col h-fit w-fit gap-2">
+							<div className="flex max-w-[45%] flex-col h-fit w-fit gap-2 md:max-w-none">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
-										className="cursor-pointer"
+										className="max-w-full cursor-pointer truncate"
 										onClick={() => {
 											const ip = data?.server?.ipAddress || serverIp;
 											if (ip) {

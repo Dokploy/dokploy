@@ -357,7 +357,10 @@ export const AdvanceBreadcrumb = () => {
 								className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
 							>
 								<FolderInput className="size-4 text-muted-foreground" />
-								<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
+								<span
+									className="font-medium max-w-[50px] md:max-w-[150px] truncate"
+									title={currentService?.name}
+								>
 									{currentProject?.name || "Select Project"}
 								</span>
 								<ChevronDown className="size-4 text-muted-foreground" />
