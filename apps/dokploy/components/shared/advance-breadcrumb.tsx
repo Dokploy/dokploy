@@ -4,8 +4,10 @@ import {
 	ChevronDown,
 	ChevronRight,
 	CircuitBoard,
+	Folder,
 	FolderInput,
 	GlobeIcon,
+	LayoutGrid,
 	X,
 } from "lucide-react";
 import { useRouter } from "next/router";
@@ -208,6 +210,7 @@ export const AdvanceBreadcrumb = () => {
 		SERVICE_QUERY_KEYS.map((key) => getStringQueryParam(query[key])).find(
 			(value): value is string => !!value,
 		) ?? null;
+	const cameFromOverview = query.from === "overview";
 
 	const [projectOpen, setProjectOpen] = useState(false);
 	const [serviceOpen, setServiceOpen] = useState(false);
@@ -328,12 +331,12 @@ export const AdvanceBreadcrumb = () => {
 	// If we're just on the projects page, show simple breadcrumb
 	if (!projectId) {
 		return (
-			<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+			<header className="flex min-h-16 h-auto shrink-0 items-center gap-2 py-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
 				<div className="flex items-center gap-2">
 					<SidebarTrigger className="-ml-1" />
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<div className="flex items-center gap-2">
-						<FolderInput className="size-4 text-muted-foreground" />
+						<Folder className="size-4 text-muted-foreground" />
 						<span className="font-medium">Projects</span>
 					</div>
 				</div>
@@ -342,12 +345,22 @@ export const AdvanceBreadcrumb = () => {
 	}
 
 	return (
-		<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+		<header className="flex min-h-16 h-auto shrink-0 items-center gap-2 py-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-12">
 			<div className="flex items-center gap-2">
 				<SidebarTrigger className="-ml-1" />
 				<Separator orientation="vertical" className="mr-2 h-4" />
 
-				<div className="flex items-center">
+				<div className="flex flex-wrap items-center">
+					<Button
+						variant="ghost"
+						className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+						onClick={() => router.push("/dashboard/projects")}
+					>
+						<Folder className="size-4 text-muted-foreground" />
+						<span className="font-medium">Projects</span>
+					</Button>
+					<ChevronRight className="size-4 text-muted-foreground" />
+
 					{/* Project Selector */}
 					<Popover open={projectOpen} onOpenChange={setProjectOpen}>
 						<PopoverTrigger asChild>
@@ -403,7 +416,10 @@ export const AdvanceBreadcrumb = () => {
 																		isExpanded ? null : project.projectId,
 																	);
 																} else {
-																	handleProjectSelect(project.projectId);
+																	handleProjectSelect(
+																		project.projectId,
+																		project.environments[0]?.environmentId,
+																	);
 																}
 															}}
 															className="flex items-center justify-between py-3 px-2 cursor-pointer"
@@ -556,91 +572,107 @@ export const AdvanceBreadcrumb = () => {
 					{/* Service Selector - only show when viewing a service */}
 					{serviceId && currentService && (
 						<>
-							<Separator orientation="vertical" className="mx-2 h-6" />
+							<div className="flex basis-full items-center md:basis-auto">
+								<Separator orientation="vertical" className="mx-2 h-6" />
 
-							<Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-								<PopoverTrigger asChild>
-									<Button
-										variant="ghost"
-										aria-expanded={serviceOpen}
-										className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+								<Popover open={serviceOpen} onOpenChange={setServiceOpen}>
+									<PopoverTrigger asChild>
+										<Button
+											variant="ghost"
+											aria-expanded={serviceOpen}
+											className="h-auto px-2 py-1.5 hover:bg-accent gap-2"
+										>
+											{getServiceIcon(currentService)}
+											<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
+												{currentService.name}
+											</span>
+											<ChevronDown className="size-4 text-muted-foreground" />
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent
+										className="w-[350px] p-0"
+										align="start"
+										sideOffset={8}
 									>
-										{getServiceIcon(currentService)}
-										<span className="font-medium max-w-[50px] md:max-w-[150px] truncate">
-											{currentService.name}
-										</span>
-										<ChevronDown className="size-4 text-muted-foreground" />
-									</Button>
-								</PopoverTrigger>
-								<PopoverContent
-									className="w-[350px] p-0"
-									align="start"
-									sideOffset={8}
-								>
-									<Command shouldFilter={false}>
-										<div className="relative">
-											<CommandInput
-												placeholder="Find Service..."
-												value={serviceSearch}
-												onValueChange={setServiceSearch}
-												className="w-full focus-visible:ring-0"
-											/>
-											<kbd className="pointer-events-none h-5 select-none absolute right-2 top-1/2 -translate-y-1/2 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
-												Esc
-											</kbd>
-										</div>
-										<CommandList>
-											<CommandEmpty>No services found.</CommandEmpty>
-											<CommandGroup>
-												<ScrollArea className="h-[300px]">
-													{filteredServices.map((service) => {
-														const isSelected = service.id === serviceId;
-														return (
-															<CommandItem
-																key={service.id}
-																value={service.id}
-																onSelect={() => handleServiceSelect(service)}
-																className="flex items-center justify-between py-2 cursor-pointer"
-															>
-																<div className="flex items-center gap-3">
-																	<div className="flex items-center justify-center size-8 rounded-md bg-muted">
-																		{getServiceIcon(service)}
+										<Command shouldFilter={false}>
+											<div className="relative">
+												<CommandInput
+													placeholder="Find Service..."
+													value={serviceSearch}
+													onValueChange={setServiceSearch}
+													className="w-full focus-visible:ring-0"
+												/>
+												<kbd className="pointer-events-none h-5 select-none absolute right-2 top-1/2 -translate-y-1/2 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 flex">
+													Esc
+												</kbd>
+											</div>
+											<CommandList>
+												<CommandEmpty>No services found.</CommandEmpty>
+												<CommandGroup>
+													<ScrollArea className="h-[300px]">
+														{filteredServices.map((service) => {
+															const isSelected = service.id === serviceId;
+															return (
+																<CommandItem
+																	key={service.id}
+																	value={service.id}
+																	onSelect={() => handleServiceSelect(service)}
+																	className="flex items-center justify-between py-2 cursor-pointer"
+																>
+																	<div className="flex items-center gap-3">
+																		<div className="flex items-center justify-center size-8 rounded-md bg-muted">
+																			{getServiceIcon(service)}
+																		</div>
+																		<div className="flex flex-col">
+																			<span className="font-medium">
+																				{service.name}
+																			</span>
+																			<span className="text-xs text-muted-foreground capitalize">
+																				{service.type}
+																			</span>
+																		</div>
 																	</div>
-																	<div className="flex flex-col">
-																		<span className="font-medium">
-																			{service.name}
-																		</span>
-																		<span className="text-xs text-muted-foreground capitalize">
-																			{service.type}
-																		</span>
-																	</div>
-																</div>
-																{isSelected && (
-																	<Check className="size-4 text-primary" />
-																)}
-															</CommandItem>
-														);
-													})}
-												</ScrollArea>
-											</CommandGroup>
-										</CommandList>
-									</Command>
-								</PopoverContent>
-							</Popover>
+																	{isSelected && (
+																		<Check className="size-4 text-primary" />
+																	)}
+																</CommandItem>
+															);
+														})}
+													</ScrollArea>
+												</CommandGroup>
+											</CommandList>
+										</Command>
+									</PopoverContent>
+								</Popover>
 
-							{/* Close button to go back to environment */}
-							<Button
-								variant="ghost"
-								size="icon"
-								className="size-7 ml-1 hidden md:flex"
-								onClick={() => {
-									router.push(
-										`/dashboard/project/${projectId}/environment/${environmentId}`,
-									);
-								}}
-							>
-								<X className="size-4 text-muted-foreground" />
-							</Button>
+								{/* Close button to go back to environment */}
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 ml-1 hidden md:flex"
+									onClick={() => {
+										router.push(
+											`/dashboard/project/${projectId}/environment/${environmentId}`,
+										);
+									}}
+								>
+									<X className="size-4 text-muted-foreground" />
+								</Button>
+
+								{cameFromOverview && (
+									<>
+										<ChevronRight className="size-4 text-muted-foreground" />
+										<Button
+											variant="ghost"
+											className="h-auto px-2 py-1.5 hover:bg-accent"
+											onClick={() => router.push("/dashboard/overview")}
+										>
+											<LayoutGrid className="size-4 text-muted-foreground" />
+											<span className="font-medium">Overview</span>
+										</Button>
+									</>
+								)}
+							</div>
 						</>
 					)}
 				</div>
