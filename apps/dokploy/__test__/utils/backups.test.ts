@@ -5,8 +5,8 @@ import {
 import { describe, expect, test, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({
-	exec: (cmd: string, cb: any) => {
-		if (cmd.startsWith("rclone obscure")) {
+	execFile: (cmd: string, args: string[], cb: any) => {
+		if (cmd === "rclone" && args[0] === "obscure") {
 			cb(null, { stdout: "obscured_pass" });
 		} else {
 			cb(null, { stdout: "" });
@@ -134,3 +134,20 @@ describe("getRclonePathAndFlags", () => {
 		expect(path.endsWith(":ftppath/mypath")).toBe(true);
 	});
 });
+
+	test("should correctly escape metacharacters and quotes in connection string", async () => {
+		const destination = {
+			provider: "sftp",
+			accessKey: 'user"with,comma=and"',
+			secretAccessKey: "ftppass",
+			bucket: "ftppath",
+			region: "2022",
+			endpoint: 'sftp.example.com',
+		};
+		const { flags, path } = await getRclonePathAndFlags(
+			destination as any,
+			"mypath",
+		);
+		// 'user"with,comma=and"' should become '"user\\"with,comma=and\\""'
+		expect(path).toContain('user="user\\"with,comma=and\\""');
+	});
