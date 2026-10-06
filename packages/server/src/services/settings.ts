@@ -379,6 +379,17 @@ export const readEnvironmentVariables = async (
 	return JSON.parse(result)?.join("\n");
 };
 
+/**
+ * Thrown by `readPorts` when the docker resource is neither a swarm service nor
+ * a standalone container (for example Traefik is not installed on the host).
+ */
+export class DockerResourceNotFoundError extends Error {
+	constructor(message = "Resource type not found") {
+		super(message);
+		this.name = "DockerResourceNotFoundError";
+	}
+}
+
 export const readPorts = async (
 	resourceName: string,
 	serverId?: string,
@@ -392,7 +403,7 @@ export const readPorts = async (
 	} else if (resourceType === "standalone") {
 		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
 	} else {
-		throw new Error("Resource type not found");
+		throw new DockerResourceNotFoundError();
 	}
 	let result = "";
 	if (serverId) {
@@ -430,8 +441,9 @@ export const readPorts = async (
 			const protocol = key.split("/")[1];
 			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
 
-			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
-			const firstMapping = containerPortMappings[0];
+			// Take only the first mapping to avoid duplicates (IPv4 and IPv6).
+			// Docker reports `null` for a port that is exposed but not published.
+			const firstMapping = containerPortMappings?.[0];
 			if (firstMapping) {
 				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
 				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
@@ -449,6 +461,25 @@ export const readPorts = async (
 	return ports.filter(
 		(port: any) => port.targetPort !== 80 && port.targetPort !== 443,
 	);
+};
+
+/**
+ * Whether the Traefik dashboard port (8080) is published. A host without
+ * Traefik has no published ports, so it reports `false` instead of failing.
+ * Any other failure (docker/SSH errors) still propagates.
+ */
+export const isTraefikDashboardPortEnabled = async (
+	serverId?: string,
+): Promise<boolean> => {
+	try {
+		const ports = await readPorts("dokploy-traefik", serverId);
+		return ports.some((port) => port.targetPort === 8080);
+	} catch (error) {
+		if (error instanceof DockerResourceNotFoundError) {
+			return false;
+		}
+		throw error;
+	}
 };
 
 export const checkPortInUse = async (

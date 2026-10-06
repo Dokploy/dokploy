@@ -44,6 +44,22 @@ import { findVolumeBackupById } from "./volume-backups";
 
 export type ServicePath = { href: string | null; label: string };
 
+/**
+ * Builds the error thrown when a deployment record cannot be created. Keeps the
+ * generic message but appends the underlying reason and keeps the original
+ * error as `cause`, so the failure is diagnosable from the API response and
+ * from error reporting instead of only the server console.
+ */
+export const createDeploymentError = (
+	error: unknown,
+	baseMessage = "Error creating the deployment",
+) =>
+	new TRPCError({
+		code: "BAD_REQUEST",
+		message: `${baseMessage}: ${error instanceof Error ? error.message : String(error)}`,
+		cause: error,
+	});
+
 export const getDeploymentErrorMessage = async ({
 	logPath,
 	serverId,
@@ -234,10 +250,7 @@ export const createDeployment = async (
 			.returning();
 		await updateApplicationStatus(application.applicationId, "error");
 		console.log(error);
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
-		});
+		throw createDeploymentError(error);
 	}
 };
 
@@ -328,10 +341,7 @@ export const createDeploymentPreview = async (
 			previewStatus: "error",
 		});
 		console.log(error);
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
-		});
+		throw createDeploymentError(error);
 	}
 };
 
@@ -407,10 +417,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 			composeStatus: "error",
 		});
 		console.log(error);
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
-		});
+		throw createDeploymentError(error);
 	}
 };
 
@@ -489,10 +496,7 @@ echo "Initializing backup\n" >> ${logFilePath};
 				finishedAt: new Date().toISOString(),
 			})
 			.returning();
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the backup",
-		});
+		throw createDeploymentError(error, "Error creating the backup");
 	}
 };
 
@@ -580,10 +584,7 @@ export const createDeploymentSchedule = async (
 			})
 			.returning();
 
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
-		});
+		throw createDeploymentError(error);
 	}
 };
 
@@ -667,10 +668,7 @@ export const createDeploymentVolumeBackup = async (
 			})
 			.returning();
 
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the deployment",
-		});
+		throw createDeploymentError(error);
 	}
 };
 

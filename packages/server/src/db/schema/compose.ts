@@ -1,3 +1,7 @@
+import {
+	isValidPreviewWildcard,
+	PREVIEW_WILDCARD_GUIDANCE,
+} from "@dokploy/server/utils/preview-wildcard";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -229,7 +233,10 @@ const createSchema = createInsertSchema(compose, {
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),
 	previewEnv: z.string().optional(),
 	previewLabels: z.array(z.string()).optional(),
-	previewWildcard: z.string().optional(),
+	previewWildcard: z
+		.string()
+		.refine(isValidPreviewWildcard, { message: PREVIEW_WILDCARD_GUIDANCE })
+		.optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewCustomCertResolver: z.string().optional(),
 	icon: z

@@ -1,3 +1,7 @@
+import {
+	isValidPreviewWildcard,
+	PREVIEW_WILDCARD_GUIDANCE,
+} from "@dokploy/server/utils/preview-wildcard";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { HelpCircle, Plus, Settings2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -139,7 +143,9 @@ const schema = z
 		env: z.string(),
 		buildArgs: z.string(),
 		buildSecrets: z.string(),
-		wildcardDomain: z.string(),
+		wildcardDomain: z
+			.string()
+			.refine(isValidPreviewWildcard, { message: PREVIEW_WILDCARD_GUIDANCE }),
 		port: z.number(),
 		previewLimit: z.number(),
 		previewLabels: z.array(z.string()).optional(),
