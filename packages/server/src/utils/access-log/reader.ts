@@ -26,57 +26,57 @@ interface PartialLogEntry {
 	time?: string;
 }
 
+export interface AccessLogLine {
+	/** The raw, trimmed JSON line. */
+	line: string;
+	entry: PartialLogEntry;
+}
+
 /**
- * Reads the most recent entries of a Traefik access log.
+ * Walks a Traefik access log from the end of the file towards the start, yielding
+ * valid (non-dashboard) JSON entries newest-first. The walk stops as soon as an entry
+ * logged before `notBefore` is reached, or when the consumer stops iterating.
  *
- * The file is walked backwards in fixed-size chunks and the walk stops as soon as
- * `limit` entries have been collected or an entry logged before `notBefore` is reached.
  * `access.log` is append-only and ordered by the `time` each request finished, so
  * reading backwards visits entries newest-first and the first entry logged before
- * `notBefore` guarantees every remaining entry is out of range too — the rest of the
+ * `notBefore` guarantees every remaining entry is out of range too: the rest of the
  * file never has to be touched.
  *
- * Memory is bounded by the entries actually returned rather than by the size of the
- * file, and the event loop is never blocked.
- *
- * @returns the matching entries as newline-separated raw JSON lines, in file order
- * (oldest first), or an empty string when nothing matches.
+ * The file is read in fixed-size chunks, so memory is bounded by the chunk size plus
+ * the longest line, and the event loop is never blocked.
  */
-export const readLastLogEntries = async (
+export async function* iterateLogEntriesBackwards(
 	filePath: string,
-	{ limit = DEFAULT_ENTRY_LIMIT, notBefore }: ReadLastLogEntriesOptions = {},
-): Promise<string> => {
-	if (limit <= 0) {
-		return "";
-	}
-
+	notBefore?: Date,
+): AsyncGenerator<AccessLogLine, void, undefined> {
 	const handle = await fs.promises.open(filePath, "r");
 
 	try {
 		const { size } = await handle.stat();
 
-		const collected: string[] = [];
 		let position = size;
 		let pending = Buffer.alloc(0);
 		let reachedCutoff = false;
 
-		const take = (raw: Buffer) => {
+		// Returns the parsed line when it should be yielded, null when it should be
+		// skipped. Sets `reachedCutoff` when the line proves we walked past `notBefore`.
+		const classify = (raw: Buffer): AccessLogLine | null => {
 			const line = raw.toString("utf8").trim();
 			// Same guard as the rest of the access-log helpers: only keep lines that
 			// look like a complete JSON object.
 			if (!line.startsWith("{") || !line.endsWith("}")) {
-				return;
+				return null;
 			}
 
 			let entry: PartialLogEntry;
 			try {
 				entry = JSON.parse(line);
 			} catch {
-				return;
+				return null;
 			}
 
 			if (entry.ServiceName === DOKPLOY_DASHBOARD_SERVICE) {
-				return;
+				return null;
 			}
 
 			if (notBefore) {
@@ -91,18 +91,18 @@ export const readLastLogEntries = async (
 				// An entry without a usable timestamp cannot prove we walked past the
 				// cutoff, so skip it instead of treating it as the boundary.
 				if (Number.isNaN(loggedAt)) {
-					return;
+					return null;
 				}
 				if (loggedAt < notBefore.getTime()) {
 					reachedCutoff = true;
-					return;
+					return null;
 				}
 			}
 
-			collected.push(line);
+			return { line, entry };
 		};
 
-		while (position > 0 && collected.length < limit && !reachedCutoff) {
+		while (position > 0 && !reachedCutoff) {
 			const readSize = Math.min(CHUNK_SIZE, position);
 			position -= readSize;
 
@@ -130,21 +130,109 @@ export const readLastLogEntries = async (
 			// into the previous chunk, so carry it over instead of parsing it now.
 			pending = combined.subarray(0, end);
 
-			for (const line of lines) {
-				take(line);
-				if (reachedCutoff || collected.length >= limit) {
+			for (const raw of lines) {
+				const parsed = classify(raw);
+				if (parsed) {
+					yield parsed;
+				}
+				if (reachedCutoff) {
 					break;
 				}
 			}
 		}
 
 		// The very first line of the file has no newline before it.
-		if (pending.length > 0 && collected.length < limit && !reachedCutoff) {
-			take(pending);
+		if (pending.length > 0 && !reachedCutoff) {
+			const parsed = classify(pending);
+			if (parsed) {
+				yield parsed;
+			}
 		}
-
-		return collected.reverse().join("\n");
 	} finally {
 		await handle.close();
 	}
+}
+
+/**
+ * Reads the most recent entries of a Traefik access log.
+ *
+ * The file is walked backwards (see {@link iterateLogEntriesBackwards}) and the walk
+ * stops as soon as `limit` entries have been collected or an entry logged before
+ * `notBefore` is reached. Memory is bounded by the entries actually returned rather
+ * than by the size of the file.
+ *
+ * @returns the matching entries as newline-separated raw JSON lines, in file order
+ * (oldest first), or an empty string when nothing matches.
+ */
+export const readLastLogEntries = async (
+	filePath: string,
+	{ limit = DEFAULT_ENTRY_LIMIT, notBefore }: ReadLastLogEntriesOptions = {},
+): Promise<string> => {
+	if (limit <= 0) {
+		return "";
+	}
+
+	const collected: string[] = [];
+	for await (const { line } of iterateLogEntriesBackwards(
+		filePath,
+		notBefore,
+	)) {
+		collected.push(line);
+		if (collected.length >= limit) {
+			break;
+		}
+	}
+
+	return collected.reverse().join("\n");
+};
+
+export interface HourlyRequestCount {
+	hour: string;
+	count: number;
+}
+
+/**
+ * Counts requests per hour inside `dateRange`, streaming the log backwards so that no
+ * more than one chunk of the file is ever held in memory. Unlike
+ * {@link readLastLogEntries} there is no entry cap: the result only grows with the
+ * number of distinct hours, so a very wide range over a very large log stays cheap
+ * and is never silently truncated.
+ *
+ * Produces the same output as `processLogs` applied to the whole file: entries are
+ * bucketed by `StartUTC`, the range is inclusive on both ends, and the result is
+ * sorted by hour ascending.
+ */
+export const aggregateHourlyRequests = async (
+	filePath: string,
+	dateRange?: { start?: string; end?: string },
+): Promise<HourlyRequestCount[]> => {
+	const start = dateRange?.start ? new Date(dateRange.start).getTime() : 0;
+	const end = dateRange?.end
+		? new Date(dateRange.end).getTime()
+		: Number.POSITIVE_INFINITY;
+	const hasRange = !!(dateRange?.start || dateRange?.end);
+	const notBefore = dateRange?.start ? new Date(dateRange.start) : undefined;
+
+	const counts = new Map<string, number>();
+
+	for await (const { entry } of iterateLogEntriesBackwards(
+		filePath,
+		// An unparsable start date cannot be used as a cutoff; fall back to a full walk.
+		notBefore && !Number.isNaN(notBefore.getTime()) ? notBefore : undefined,
+	)) {
+		const date = new Date(entry.StartUTC as string);
+		const time = date.getTime();
+		if (Number.isNaN(time)) {
+			continue;
+		}
+		if (hasRange && (time < start || time > end)) {
+			continue;
+		}
+		const hour = `${date.toISOString().slice(0, 13)}:00:00Z`;
+		counts.set(hour, (counts.get(hour) ?? 0) + 1);
+	}
+
+	return [...counts.entries()]
+		.map(([hour, count]) => ({ hour, count }))
+		.sort((a, b) => new Date(a.hour).getTime() - new Date(b.hour).getTime());
 };

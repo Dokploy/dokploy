@@ -5,10 +5,12 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import {
+	aggregateHourlyRequests,
 	DATE_RANGE_ENTRY_LIMIT,
 	DEFAULT_ENTRY_LIMIT,
 	readLastLogEntries,
 } from "../access-log/reader";
+import { processLogs } from "../access-log/utils";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -176,6 +178,29 @@ export const readMonitoringConfig = async (
 		limit: readAll ? DATE_RANGE_ENTRY_LIMIT : DEFAULT_ENTRY_LIMIT,
 		notBefore: dateRange?.start ? new Date(dateRange.start) : undefined,
 	});
+};
+
+/**
+ * Requests-per-hour series for the Requests page chart.
+ *
+ * With a date range the access log is streamed and aggregated without any entry cap,
+ * so a wide range over a very large log is neither truncated nor loaded into memory.
+ * Without a range it keeps the previous behaviour of summarising the default window
+ * of entries.
+ */
+export const readMonitoringStats = async (dateRange?: {
+	start?: string;
+	end?: string;
+}) => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
+	if (!fs.existsSync(configPath)) {
+		return [];
+	}
+	if (dateRange?.start || dateRange?.end) {
+		return aggregateHourlyRequests(configPath, dateRange);
+	}
+	return processLogs((await readMonitoringConfig(false)) as string);
 };
 
 export const readConfigInPath = async (pathFile: string, serverId?: string) => {
