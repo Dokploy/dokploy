@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+	findApplicationById: vi.fn(),
 	updateApplication: vi.fn(),
 	generate: vi.fn(),
 	update: vi.fn(),
@@ -8,6 +9,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@dokploy/server/services/application", () => ({
+	findApplicationById: mocks.findApplicationById,
 	updateApplication: mocks.updateApplication,
 }));
 vi.mock("@dokploy/server/services/qc-agent-client", () => ({
@@ -18,8 +20,8 @@ vi.mock("@dokploy/server/services/qc-agent-client", () => ({
 
 import { runQcStep } from "@dokploy/server/services/qc-step";
 
-const app = (overrides: Record<string, unknown> = {}) =>
-	({
+const app = (overrides: Record<string, unknown> = {}) => {
+	const row = {
 		applicationId: "app1",
 		name: "app",
 		qcEnabled: true,
@@ -29,12 +31,17 @@ const app = (overrides: Record<string, unknown> = {}) =>
 		sourceType: "github",
 		owner: "o",
 		repository: "r",
+		branch: "main",
 		...overrides,
-	}) as never;
+	};
+	mocks.findApplicationById.mockResolvedValue(row);
+	return row as never;
+};
 
 describe("runQcStep", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.resolve.mockResolvedValue("proj1");
 		mocks.generate.mockResolvedValue({
 			status: "ready",
 			content: "# plan",
