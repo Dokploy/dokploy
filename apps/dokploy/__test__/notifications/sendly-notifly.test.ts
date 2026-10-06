@@ -174,4 +174,100 @@ describe("sendNotiflyNotification", () => {
 			),
 		).rejects.toThrow("Forbidden");
 	});
+
+	const failWith = async (response: Record<string, unknown>) => {
+		const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+		fetchMock.mockResolvedValue({ ok: false, ...response });
+		const error = await sendNotiflyNotification(
+			{
+				notiflyId: "notifly-1",
+				apiKey: "ntf_bad",
+				workflowKey: "dokploy-alerts",
+				subscriberId: "dokploy",
+				baseUrl: "https://api.notifly.io",
+			},
+			{ event: "test" },
+		).catch((e: Error) => e);
+		return (error as Error).message;
+	};
+
+	it("turns a rejected key into one short readable line (no raw JSON, no repeat)", async () => {
+		const message = await failWith({
+			status: 401,
+			statusText: "Unauthorized",
+			text: async () =>
+				JSON.stringify({
+					message: "API Key not found",
+					error: "Unauthorized",
+					statusCode: 401,
+				}),
+		});
+		expect(message).toBe("Notifly rejected the API key (API Key not found)");
+		expect(message).not.toContain("{");
+		expect(message.match(/Notifly/g)).toHaveLength(1);
+	});
+
+	it("reads message lists, nested error messages and plain text", async () => {
+		expect(
+			await failWith({
+				status: 400,
+				statusText: "Bad Request",
+				text: async () =>
+					JSON.stringify({
+						message: ["name must be a string", "to must not be empty"],
+					}),
+			}),
+		).toBe(
+			"Notifly request failed (400 Bad Request): name must be a string, to must not be empty",
+		);
+		expect(
+			await failWith({
+				status: 404,
+				statusText: "Not Found",
+				text: async () =>
+					JSON.stringify({ error: { message: "Workflow not found" } }),
+			}),
+		).toBe("Notifly request failed (404 Not Found): Workflow not found");
+		expect(
+			await failWith({
+				status: 502,
+				statusText: "Bad Gateway",
+				text: async () => "upstream down",
+			}),
+		).toBe("Notifly request failed (502 Bad Gateway): upstream down");
+	});
+
+	it("caps a long upstream message and survives an empty body", async () => {
+		const long = await failWith({
+			status: 500,
+			statusText: "Internal Server Error",
+			text: async () => JSON.stringify({ message: "x".repeat(5000) }),
+		});
+		expect(long.length).toBeLessThan(260);
+		expect(long.endsWith("…")).toBe(true);
+		expect(
+			await failWith({
+				status: 401,
+				statusText: "Unauthorized",
+				text: async () => "",
+			}),
+		).toBe("Notifly rejected the API key");
+	});
+
+	it("says Notifly could not be reached when the request itself fails", async () => {
+		const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+		fetchMock.mockRejectedValue(new Error("getaddrinfo ENOTFOUND"));
+		await expect(
+			sendNotiflyNotification(
+				{
+					notiflyId: "notifly-1",
+					apiKey: "ntf_bad",
+					workflowKey: "dokploy-alerts",
+					subscriberId: "dokploy",
+					baseUrl: "https://api.notifly.io",
+				},
+				{ event: "test" },
+			),
+		).rejects.toThrow("Could not reach Notifly: getaddrinfo ENOTFOUND");
+	});
 });

@@ -173,6 +173,7 @@ export * from "./utils/snapvisor/client";
 export * from "./utils/uptimely/client";
 export * from "./utils/uptimely/preflight";
 export * from "./utils/dodomain/client";
+export * from "./utils/dodomain/webhook-reachability";
 export * from "./utils/notifications/domain-verification";
 export * from "./utils/vault";
 export * from "./utils/volume-backups/index";

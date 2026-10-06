@@ -61,6 +61,7 @@ const {
 	computeUptimelyUptimePercent,
 	currentUptimelySegment,
 	getUptimelyServiceStatus,
+	hasUptimelyMonitorableTarget,
 	httpsUrlsFromDomains,
 	linkUptimelyService,
 	planUptimelyMonitors,
@@ -416,6 +417,29 @@ describe("preflightUptimelyTarget", () => {
 
 	it("returns nothing for a target without HTTPS URLs", async () => {
 		expect(await preflightUptimelyTarget({ httpsUrls: [] })).toEqual([]);
+	});
+});
+
+describe("hasUptimelyMonitorableTarget", () => {
+	it("is true for an HTTPS URL or a database external endpoint", () => {
+		expect(
+			hasUptimelyMonitorableTarget({
+				httpsUrls: [{ host: "a.example.com", url: "https://a.example.com/" }],
+				externalEndpoint: null,
+			}),
+		).toBe(true);
+		expect(
+			hasUptimelyMonitorableTarget({
+				httpsUrls: [],
+				externalEndpoint: { host: "203.0.113.5", port: 5432 },
+			}),
+		).toBe(true);
+	});
+
+	it("is false for a service with no HTTPS domain and no external port", () => {
+		expect(
+			hasUptimelyMonitorableTarget({ httpsUrls: [], externalEndpoint: null }),
+		).toBe(false);
 	});
 });
 

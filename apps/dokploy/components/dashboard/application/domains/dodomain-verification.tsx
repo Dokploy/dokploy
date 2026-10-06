@@ -68,6 +68,9 @@ export const isDoDomainConnectableHost = (host: string) => {
 	);
 };
 
+const REVERIFY_DISABLED_REASON =
+	"Send a connect link first: there is no DoDomain connection to recheck yet.";
+
 const copyToClipboard = async (text: string, what: string) => {
 	try {
 		await navigator.clipboard.writeText(text);
@@ -312,10 +315,36 @@ export const DoDomainDomainActions = ({
 						<Copy className="size-4" />
 						Copy connect link
 					</DropdownMenuItem>
-					<DropdownMenuItem disabled={!connectionId} onSelect={handleReverify}>
-						<RefreshCw className="size-4" />
-						Re-verify DNS
-					</DropdownMenuItem>
+					{connectionId ? (
+						<DropdownMenuItem onSelect={handleReverify}>
+							<RefreshCw className="size-4" />
+							Re-verify DNS
+						</DropdownMenuItem>
+					) : (
+						// A disabled item swallows pointer events, so the tooltip hangs
+						// off a wrapper; the reason is also written under the label so it
+						// is readable without hovering.
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div>
+										<DropdownMenuItem disabled>
+											<RefreshCw className="size-4" />
+											<span className="flex flex-col">
+												Re-verify DNS
+												<span className="text-xs text-muted-foreground">
+													{REVERIFY_DISABLED_REASON}
+												</span>
+											</span>
+										</DropdownMenuItem>
+									</div>
+								</TooltipTrigger>
+								<TooltipContent side="left" className="max-w-xs">
+									<p>{REVERIFY_DISABLED_REASON}</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<DoDomainConnectLinkDialog

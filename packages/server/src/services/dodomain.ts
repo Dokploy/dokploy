@@ -16,6 +16,12 @@ import {
 	DoDomainError,
 	verifyDoDomainSignature,
 } from "@dokploy/server/utils/dodomain/client";
+import {
+	type DoDomainWebhookRefusalReason,
+	dodomainWebhookWarning,
+	isLikelyPrivateWebhookHost,
+	parseDoDomainWebhookRefusal,
+} from "@dokploy/server/utils/dodomain/webhook-reachability";
 import { getRemotePublicIp, isPrivateIp } from "@dokploy/server/utils/ip";
 import { sendDomainVerificationFailedNotifications } from "@dokploy/server/utils/notifications/domain-verification";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
@@ -104,6 +110,46 @@ export const findDoDomainByOrganizationId = async (organizationId: string) => {
 	return result ?? null;
 };
 
+type WebhookRegistration =
+	| {
+			webhook: {
+				webhookEndpointId: string;
+				webhookUrl: string;
+				webhookSecret: string;
+			};
+	  }
+	| { refusal: DoDomainWebhookRefusalReason };
+
+const refusalOf = (error: unknown) =>
+	error instanceof DoDomainError ? parseDoDomainWebhookRefusal(error) : null;
+
+const refusalWarning = (url: string, reason: DoDomainWebhookRefusalReason) =>
+	dodomainWebhookWarning(new URL(url).hostname, reason);
+
+/**
+ * Whether DoDomain can reach this panel's webhook URL, judged from the host
+ * alone (see `isLikelyPrivateWebhookHost`). `warning` is null when the host
+ * looks public or the panel URL is not configured yet.
+ */
+export const getDoDomainWebhookReachability = async () => {
+	let origin: string | null = null;
+	try {
+		origin = await resolveMcpOrigin({});
+	} catch {
+		origin = null;
+	}
+	if (!origin) {
+		return { host: null, likelyPrivate: false, warning: null };
+	}
+	const host = new URL(origin).hostname;
+	const likelyPrivate = isLikelyPrivateWebhookHost(host);
+	return {
+		host,
+		likelyPrivate,
+		warning: likelyPrivate ? dodomainWebhookWarning(host) : null,
+	};
+};
+
 /**
  * Registers (or re-points) the integration's webhook endpoint and returns the
  * endpoint id, URL and signing secret to store. An existing endpoint is
@@ -116,7 +162,7 @@ const registerWebhookEndpoint = async (params: {
 	client: DoDomainClient;
 	url: string;
 	existing?: { webhookEndpointId: string | null; webhookSecret: string | null };
-}) => {
+}): Promise<WebhookRegistration> => {
 	const { client, url, existing } = params;
 	if (existing?.webhookEndpointId && existing.webhookSecret) {
 		try {
@@ -125,11 +171,15 @@ const registerWebhookEndpoint = async (params: {
 				url,
 			);
 			return {
-				webhookEndpointId: updated.id,
-				webhookUrl: updated.url,
-				webhookSecret: existing.webhookSecret,
+				webhook: {
+					webhookEndpointId: updated.id,
+					webhookUrl: updated.url,
+					webhookSecret: existing.webhookSecret,
+				},
 			};
 		} catch (error) {
+			const refusal = refusalOf(error);
+			if (refusal) return { refusal };
 			if (!(error instanceof DoDomainError) || error.status !== 404) {
 				throw error;
 			}
@@ -139,11 +189,17 @@ const registerWebhookEndpoint = async (params: {
 	try {
 		const created = await client.webhookEndpoints.create(url);
 		return {
-			webhookEndpointId: created.id,
-			webhookUrl: created.url,
-			webhookSecret: created.secret,
+			webhook: {
+				webhookEndpointId: created.id,
+				webhookUrl: created.url,
+				webhookSecret: created.secret,
+			},
 		};
 	} catch (error) {
+		// A refused URL (private/unresolvable host) is not an error: the
+		// integration is still useful (Re-verify DNS works without webhooks).
+		const refusal = refusalOf(error);
+		if (refusal) return { refusal };
 		if (!(error instanceof DoDomainError) || error.status !== 400) {
 			throw error;
 		}
@@ -152,12 +208,21 @@ const registerWebhookEndpoint = async (params: {
 		if (!match) throw error;
 		const rotated = await client.webhookEndpoints.rotateSecret(match.id);
 		return {
-			webhookEndpointId: rotated.id,
-			webhookUrl: rotated.url,
-			webhookSecret: rotated.secret,
+			webhook: {
+				webhookEndpointId: rotated.id,
+				webhookUrl: rotated.url,
+				webhookSecret: rotated.secret,
+			},
 		};
 	}
 };
+
+/** The webhook columns of an integration whose endpoint could not be registered. */
+const NO_WEBHOOK = {
+	webhookEndpointId: null,
+	webhookUrl: null,
+	webhookSecret: null,
+} as const;
 
 export const createDoDomain = async (
 	input: z.infer<typeof apiCreateDoDomain>,
@@ -176,9 +241,10 @@ export const createDoDomain = async (
 	const dodomainId = nanoid();
 	const url = await resolveDoDomainWebhookUrl(dodomainId);
 	const client = dodomainClientFor(input);
-	const webhook = await registerWebhookEndpoint({ client, url }).catch(
+	const registration = await registerWebhookEndpoint({ client, url }).catch(
 		(error) => asBadRequest(error, "Error registering the DoDomain webhook"),
 	);
+	const webhook = "webhook" in registration ? registration.webhook : null;
 	try {
 		const created = await db
 			.insert(dodomainIntegration)
@@ -189,17 +255,27 @@ export const createDoDomain = async (
 				appId: input.appId,
 				baseUrl: input.baseUrl,
 				organizationId,
-				...webhook,
+				// Refused webhook URL: the integration is still saved without an
+				// endpoint (Re-verify DNS works without webhooks).
+				...(webhook ?? NO_WEBHOOK),
 			})
 			.returning()
 			.then((rows) => rows[0]);
 		if (!created) throw new Error("Error creating the DoDomain integration");
-		return created;
+		return {
+			integration: created,
+			webhookWarning:
+				"refusal" in registration
+					? refusalWarning(url, registration.refusal)
+					: null,
+		};
 	} catch (error) {
 		// Never leave an endpoint DoDomain would deliver to with no receiver.
-		await client.webhookEndpoints
-			.delete(webhook.webhookEndpointId)
-			.catch(() => {});
+		if (webhook) {
+			await client.webhookEndpoints
+				.delete(webhook.webhookEndpointId)
+				.catch(() => {});
+		}
 		return asBadRequest(error, "Error creating the DoDomain integration");
 	}
 };
@@ -225,12 +301,13 @@ export const updateDoDomain = async (
 	const credentialsChanged =
 		next.secretKey !== current.secretKey || next.baseUrl !== current.baseUrl;
 	const url = await resolveDoDomainWebhookUrl(current.dodomainId);
+	let webhookWarning: string | null = null;
 	if (
 		credentialsChanged ||
 		url !== current.webhookUrl ||
 		!current.webhookSecret
 	) {
-		const webhook = await registerWebhookEndpoint({
+		const registration = await registerWebhookEndpoint({
 			client: dodomainClientFor(next),
 			url,
 			// A different key or instance cannot address the old endpoint id.
@@ -238,7 +315,14 @@ export const updateDoDomain = async (
 		}).catch((error) =>
 			asBadRequest(error, "Error registering the DoDomain webhook"),
 		);
-		Object.assign(values, webhook);
+		if ("webhook" in registration) {
+			Object.assign(values, registration.webhook);
+		} else {
+			webhookWarning = refusalWarning(url, registration.refusal);
+			// New credentials cannot address the old endpoint; with the same
+			// credentials the old endpoint (if any) is left as it was.
+			if (credentialsChanged) Object.assign(values, NO_WEBHOOK);
+		}
 		if (credentialsChanged && current.webhookEndpointId) {
 			await dodomainClientFor(current)
 				.webhookEndpoints.delete(current.webhookEndpointId)
@@ -258,7 +342,7 @@ export const updateDoDomain = async (
 			message: "DoDomain integration not found",
 		});
 	}
-	return updated;
+	return { integration: updated, webhookWarning };
 };
 
 export const removeDoDomain = async (organizationId: string) => {

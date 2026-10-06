@@ -178,11 +178,6 @@ export const HandleSnapvisor = ({ editing = false }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-					{(isError || testMutation.isError) && (
-						<AlertBlock type="error" className="w-full">
-							{testMutation.error?.message || error?.message}
-						</AlertBlock>
-					)}
 					<AlertBlock type="info" className="w-full">
 						Screenshots are still captured by the Snapvisor CLI in your own CI.
 						Dokploy only finds the build Snapvisor already created for the
@@ -278,6 +273,14 @@ export const HandleSnapvisor = ({ editing = false }: Props) => {
 						</form>
 					</Form>
 				</div>
+
+				{/* Outside the scrolling form so a failure is never hidden above the
+				    fold; a toast alone vanishes before it can be read. */}
+				{(isError || testMutation.isError) && (
+					<AlertBlock type="error" className="w-full" role="alert">
+						{testMutation.error?.message || error?.message}
+					</AlertBlock>
+				)}
 
 				<DialogFooter className="flex w-full !justify-between gap-4 flex-row">
 					<Button

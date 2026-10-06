@@ -40,7 +40,9 @@ The Integrations page (`/dashboard/settings/integrations`) shows cards for Uptim
 1. Open the service and go to its **Monitoring** tab.
 2. In the **Uptime by Uptimely** panel, press **Monitor with Uptimely**. Nothing is created until you press it.
 3. For applications and compose stacks, tick **Also add SSL certificate and domain monitors** if you want them as well.
-4. Use **Run probe now** to run a check immediately, **Add monitors for new domains** after you add a domain, and **Open in Uptimely** to jump to a monitor.
+4. For applications and compose stacks, optionally fill in **Path to check (optional)**, for example `/health`. It is added to each domain's URL, so pick a path that returns 200 (a 2xx or 3xx counts as up). Leave it blank to monitor the domain's own URL. The path is only used when the monitors are first created.
+5. Below the path, the **Reachability check** makes a real request to each URL the monitors would watch and shows what it answers. A URL that answers an error or does not respond gets a warning that Uptimely will report it **Offline**, before any monitor exists. Press **Check** to run it again.
+6. Use **Run probe now** to run a check immediately, **Add monitors for new domains** after you add a domain (it creates a Website monitor for each HTTPS domain added since the service was linked and keeps the existing monitors), and **Open in Uptimely** to jump to a monitor.
 
 **What gets created**
 
@@ -50,8 +52,9 @@ The Integrations page (`/dashboard/settings/integrations`) shows cards for Uptim
 
 **Limits to know about**
 
-- One Website monitor is created per HTTPS domain. A service with no HTTPS domain, or a database with no external port, has nothing to monitor and Dokploy says so.
+- One Website monitor is created per HTTPS domain. A service with no HTTPS domain, or a database with no external port, has nothing to monitor: the **Monitor with Uptimely** button is disabled and the panel says what to add (an HTTPS domain, or an external port).
 - Uptimely checks the exact URL: the domain's host plus its path. If that URL answers 404 or another error, the monitor shows **Offline** even when the rest of the site works. Open the URL in a browser to see what Uptimely sees.
+- Once monitors exist, a Website monitor that is **Offline** shows a note under the timeline. If the service answers 404 there, unlink it and monitor again with a path such as `/health`.
 - Monitors cannot be deleted from Dokploy, because Uptimely's API has no monitor delete. **Unlink** only makes Dokploy forget the monitors for that service. Disconnecting the integration removes the stored API key and every link. In both cases the monitors keep running in Uptimely until you delete them there.
 - One Uptimely project is connected per organization.
 
@@ -108,6 +111,7 @@ The Integrations page (`/dashboard/settings/integrations`) shows cards for Uptim
 **Limits to know about**
 
 - Only concrete hostnames can be connected. Wildcard hosts and generated `sslip.io` and `traefik.me` names cannot.
+- DoDomain only delivers webhooks to a public HTTPS address. If the panel is served on a private address (for example a Tailscale `*.ts.net` name, a `.local` or `.internal` host, or a private IP), DoDomain refuses to register the webhook or cannot deliver to it, so the domain status never updates by itself. Dokploy still saves the integration and shows a warning on the card and in the edit dialog. In that case, press **Re-verify DNS** to refresh a domain's status, or serve the panel on a public HTTPS URL to receive webhooks. **Re-verify DNS** is disabled until a connect link has been sent for the domain.
 - A DNS verification failure is sent to the notification providers that are subscribed to deploy failures.
 - Disconnecting removes the stored secret key and deletes the webhook endpoint from DoDomain. Domains keep their current verification state.
 

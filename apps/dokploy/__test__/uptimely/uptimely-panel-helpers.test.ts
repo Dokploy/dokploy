@@ -6,8 +6,23 @@ import {
 	formatRelativeTime,
 	formatUptimePercent,
 	isOfflineStatus,
+	nothingToMonitorMessage,
 	preflightWarning,
 } from "@/components/dashboard/monitoring/uptimely/uptimely-panel-helpers";
+
+describe("nothingToMonitorMessage", () => {
+	it("tells web services to add an HTTPS domain", () => {
+		expect(nothingToMonitorMessage(true)).toBe(
+			"Add an HTTPS domain to this service to monitor it with Uptimely.",
+		);
+	});
+
+	it("tells databases to expose an external port", () => {
+		expect(nothingToMonitorMessage(false)).toBe(
+			"Expose an external port to add a TCP monitor for this database.",
+		);
+	});
+});
 
 describe("preflightWarning", () => {
 	it("explains a 404 in plain words", () => {

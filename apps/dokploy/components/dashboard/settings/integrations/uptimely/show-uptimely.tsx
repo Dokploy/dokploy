@@ -1,4 +1,5 @@
 import { ExternalLink, Loader2, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { LearnMoreLink } from "@/components/shared/learn-more-link";
@@ -18,6 +19,19 @@ export const ShowUptimely = () => {
 	const { data: integration, isPending } = api.uptimely.one.useQuery();
 	const { mutateAsync: remove, isPending: isRemoving } =
 		api.uptimely.remove.useMutation();
+
+	// The integration stores only the project id. Its name comes from the
+	// project list a connection test returns (the stored key is used when no
+	// key is sent); on any failure the card falls back to showing the id.
+	const { mutate: loadProjects, data: projectsResult } =
+		api.uptimely.testConnection.useMutation();
+	const projectId = integration?.projectId;
+	const baseUrl = integration?.baseUrl;
+	useEffect(() => {
+		if (projectId && baseUrl) loadProjects({ baseUrl, projectId });
+	}, [projectId, baseUrl, loadProjects]);
+	const projectName =
+		projectsResult?.projects.find((p) => p.id === projectId)?.name ?? null;
 
 	return (
 		<div className="flex flex-col gap-3 rounded-lg border bg-background p-4">
@@ -83,8 +97,17 @@ export const ShowUptimely = () => {
 						<dd className="font-mono">{integration.apiKeyMasked}</dd>
 					</div>
 					<div className="flex flex-col">
-						<dt className="text-xs text-muted-foreground">Project ID</dt>
-						<dd className="font-mono break-all">{integration.projectId}</dd>
+						<dt className="text-xs text-muted-foreground">Project</dt>
+						<dd className="break-all" title={integration.projectId}>
+							{projectName ?? (
+								<span className="font-mono">{integration.projectId}</span>
+							)}
+						</dd>
+						{projectName && (
+							<dd className="font-mono text-xs text-muted-foreground break-all">
+								{integration.projectId}
+							</dd>
+						)}
 					</div>
 					<div className="flex flex-col">
 						<dt className="text-xs text-muted-foreground">Base URL</dt>
