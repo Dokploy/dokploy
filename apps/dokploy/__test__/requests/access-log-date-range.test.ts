@@ -35,7 +35,7 @@ const entry = (index: number, overrides: Entry = {}): Entry => {
 		RequestMethod: "GET",
 		RequestPath: `/req-${String(index).padStart(5, "0")}`,
 		ServiceName: index % 11 === 0 ? DASHBOARD : "my-app-web@docker",
-		StartUTC: iso.replace("Z", ".123456789Z"),
+		StartUTC: iso.replace(".000Z", ".123456789Z"),
 		// Traefik logs `time` with second resolution, so many entries tie.
 		time: `${iso.slice(0, 16)}:00Z`,
 		padding: "x".repeat(300),
@@ -102,6 +102,27 @@ describe("access.log date range reads", () => {
 		["a range starting just after the slow request began", rangeOf(33.1, 36)],
 	] as const;
 
+	it("fixture sanity: the ranges under test select real, non-empty data", () => {
+		for (const [label, range] of ranges) {
+			const parsed = parseRawConfig(
+				fullFile,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				range,
+			);
+			const hourly = processLogs(fullFile, range);
+			if (label.includes("future")) {
+				expect(parsed.totalCount).toBe(0);
+				expect(hourly).toEqual([]);
+			} else {
+				expect(parsed.totalCount).toBeGreaterThan(10);
+				expect(hourly.length).toBeGreaterThan(1);
+			}
+		}
+	});
+
 	for (const [label, range] of ranges) {
 		it(`readStatsLogs data matches the whole-file read for ${label}`, async () => {
 			const raw = await readMonitoringConfig(true, range);
@@ -135,13 +156,19 @@ describe("access.log date range reads", () => {
 
 		it(`readStatsLogs pagination and filters match for ${label}`, async () => {
 			const raw = await readMonitoringConfig(true, range);
-			const args = [
+			const args: [
+				{ pageIndex: number; pageSize: number },
+				{ id: string; desc: boolean },
+				string,
+				string[],
+				{ start: string; end: string },
+			] = [
 				{ pageIndex: 1, pageSize: 10 },
 				{ id: "time", desc: true },
 				"api.example.com",
 				["2xx"],
 				range,
-			] as const;
+			];
 
 			expect(parseRawConfig(raw as string, ...args)).toEqual(
 				parseRawConfig(fullFile, ...args),

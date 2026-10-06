@@ -8,6 +8,7 @@ import {
 	aggregateHourlyRequests,
 	DATE_RANGE_ENTRY_LIMIT,
 	DEFAULT_ENTRY_LIMIT,
+	type HourlyRequestCount,
 	readLastLogEntries,
 } from "../access-log/reader";
 import { processLogs } from "../access-log/utils";
@@ -191,7 +192,7 @@ export const readMonitoringConfig = async (
 export const readMonitoringStats = async (dateRange?: {
 	start?: string;
 	end?: string;
-}) => {
+}): Promise<HourlyRequestCount[]> => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (!fs.existsSync(configPath)) {
