@@ -28,7 +28,7 @@ On a clean Linux server with root access, the same requirements as Dokploy, run 
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 
 # a specific version
-export DOKPLOY_VERSION=v0.30.8-community.4
+export DOKPLOY_VERSION=v0.30.8-community.5
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 
 # update an existing installation
@@ -41,7 +41,7 @@ Run one docker service update command against the dokploy service on your existi
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.4 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.5 \
   --with-registry-auth \
   dokploy
 ```
@@ -117,7 +117,7 @@ Yes. The container log viewer has a Send a command box that sends what you type 
 
 ## How does Dokploy Community Edition stay in sync with upstream Dokploy?
 
-The fork merges upstream release tags, never the moving upstream canary branch, so it always tracks a tested and published state. It diverges only for features that upstream lacks, and when upstream ships an equivalent the fork drops its own version and takes the upstream one. Releases are versioned as the upstream version plus a community release number, for example v0.30.8-community.4.
+The fork merges upstream release tags, never the moving upstream canary branch, so it always tracks a tested and published state. It diverges only for features that upstream lacks, and when upstream ships an equivalent the fork drops its own version and takes the upstream one. Releases are versioned as the upstream version plus a community release number, for example v0.30.8-community.5.
 
 [Versioning table](https://github.com/DevinoSolutions/dokploy-community#versioning)
 
@@ -249,7 +249,7 @@ It reports unhandled backend errors, meaning crashes and internal server errors,
       "name": "How does Dokploy Community Edition stay in sync with upstream Dokploy?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The fork merges upstream release tags, never the moving upstream canary branch, so it always tracks a tested and published state. It diverges only for features that upstream lacks, and when upstream ships an equivalent the fork drops its own version and takes the upstream one. Releases are versioned as the upstream version plus a community release number, for example v0.30.8-community.4."
+        "text": "The fork merges upstream release tags, never the moving upstream canary branch, so it always tracks a tested and published state. It diverges only for features that upstream lacks, and when upstream ships an equivalent the fork drops its own version and takes the upstream one. Releases are versioned as the upstream version plus a community release number, for example v0.30.8-community.5."
       }
     },
     {
