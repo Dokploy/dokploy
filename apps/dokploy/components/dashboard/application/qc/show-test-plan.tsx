@@ -1,4 +1,5 @@
 import { RefreshCw } from "lucide-react";
+import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,14 @@ interface Props {
 	applicationId: string;
 }
 
+// Outer bound only: past this a "generating" row is assumed abandoned, so the
+// UI stops polling and shows it as timed out (the server reclaims it on the
+// next run).
+const GENERATING_TIMEOUT_MS = 15 * 60 * 1000;
+
+const isGeneratingTimedOut = (startedAt: string | null | undefined) =>
+	!!startedAt && Date.now() - Date.parse(startedAt) > GENERATING_TIMEOUT_MS;
+
 const statusVariant = {
 	none: "outline",
 	generating: "default",
@@ -29,27 +38,37 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 		{
 			enabled: !!applicationId,
 			refetchInterval: (query) =>
-				query.state.data?.testPlanStatus === "generating" ? 3000 : false,
+				query.state.data?.testPlanStatus === "generating" &&
+				!isGeneratingTimedOut(query.state.data.testPlanStartedAt)
+					? 3000
+					: false,
 		},
 	);
+
+	const previousStatus = useRef<string | undefined>(undefined);
+	useEffect(() => {
+		const status = data?.testPlanStatus;
+		if (previousStatus.current === "generating") {
+			if (status === "ready") {
+				toast.success("Test plan updated");
+			} else if (status === "error") {
+				toast.error(data?.testPlanError ?? "Error generating the test plan");
+			}
+		}
+		previousStatus.current = status;
+	}, [data?.testPlanStatus, data?.testPlanError]);
 
 	const { mutateAsync, isPending } =
 		api.application.regenerateTestPlan.useMutation();
 
 	const onRegenerate = async () => {
 		await mutateAsync({ applicationId })
-			.then(async (result) => {
-				if (result.verdict === "ready") {
-					toast.success("Test plan updated");
-				} else if (result.verdict === "skipped") {
-					toast.info(result.reason ?? "Test plan step was skipped");
-				} else {
-					toast.error(result.reason ?? "Error regenerating the test plan");
-				}
+			.then(async () => {
+				toast.info("Test plan generation started");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error regenerating the test plan");
+			.catch((error) => {
+				toast.error(error?.message ?? "Error regenerating the test plan");
 			});
 	};
 
@@ -67,15 +86,22 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 		);
 	}
 
+	const timedOut =
+		data.testPlanStatus === "generating" &&
+		isGeneratingTimedOut(data.testPlanStartedAt);
+	const status = timedOut ? "error" : (data.testPlanStatus ?? "none");
+	const isGenerating = status === "generating";
+	const errorMessage = timedOut
+		? "Generation timed out. Click Regenerate to try again."
+		: data.testPlanError;
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row items-center justify-between">
 				<div>
 					<CardTitle className="text-xl flex items-center gap-2">
 						Test Plan
-						<Badge variant={statusVariant[data.testPlanStatus ?? "none"]}>
-							{data.testPlanStatus ?? "none"}
-						</Badge>
+						<Badge variant={statusVariant[status]}>{status}</Badge>
 						{data.testPlanVersion ? (
 							<span className="text-sm text-muted-foreground font-normal">
 								v{data.testPlanVersion}
@@ -90,13 +116,17 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 					variant="outline"
 					size="sm"
 					isLoading={isPending}
+					disabled={isGenerating}
 					onClick={onRegenerate}
 				>
 					<RefreshCw className="size-4 mr-2" />
 					Regenerate
 				</Button>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="flex flex-col gap-3">
+				{errorMessage && !isGenerating ? (
+					<p className="text-sm text-destructive">{errorMessage}</p>
+				) : null}
 				{data.testPlanContent ? (
 					<div className="prose prose-sm dark:prose-invert max-w-none">
 						<ReactMarkdown>{data.testPlanContent}</ReactMarkdown>

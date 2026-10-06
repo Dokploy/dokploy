@@ -15,6 +15,8 @@ const baseApp: ApplicationNested = {
 	testPlanContent: null,
 	testPlanVersion: 0,
 	testPlanStatus: "none",
+	testPlanStartedAt: null,
+	testPlanError: null,
 	testExecEnabled: false,
 	testCommand: null,
 	testExecFailurePolicy: "closed",

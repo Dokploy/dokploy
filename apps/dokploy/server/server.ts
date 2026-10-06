@@ -10,6 +10,7 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	resetStuckTestPlans,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -70,6 +71,7 @@ void app.prepare().then(async () => {
 		await initEnterpriseBackupCronJobs();
 
 		if (!IS_CLOUD) {
+			await resetStuckTestPlans();
 			console.log("Starting Deployment Worker");
 			const { startDeploymentWorker } = await import("./queues/queueSetup");
 			await startDeploymentWorker();

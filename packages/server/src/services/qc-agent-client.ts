@@ -1,6 +1,6 @@
 const QC_AGENT_BASE_URL = process.env.QC_AGENT_BASE_URL;
 const QC_AGENT_API_KEY = process.env.QC_AGENT_API_KEY;
-const QC_AGENT_TIMEOUT_MS =
+export const QC_AGENT_TIMEOUT_MS =
 	Number(process.env.QC_AGENT_TIMEOUT_SECONDS ?? 300) * 1000;
 const QC_AGENT_POLL_INTERVAL_MS = 3000;
 

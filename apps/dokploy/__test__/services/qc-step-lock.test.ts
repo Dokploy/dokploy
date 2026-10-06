@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findFirstDeployment = vi.fn();
 const findApplicationById = vi.fn();
 const updateApplication = vi.fn();
+const claimTestPlanGeneration = vi.fn();
 const resolveQcProject = vi.fn();
 const runTestPlanGenerate = vi.fn();
 const runTestPlanUpdate = vi.fn();
@@ -23,9 +24,12 @@ vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
 vi.mock("@dokploy/server/services/application", () => ({
 	findApplicationById: (...args: unknown[]) => findApplicationById(...args),
 	updateApplication: (...args: unknown[]) => updateApplication(...args),
+	claimTestPlanGeneration: (...args: unknown[]) =>
+		claimTestPlanGeneration(...args),
 }));
 
 vi.mock("@dokploy/server/services/qc-agent-client", () => ({
+	QC_AGENT_TIMEOUT_MS: 10_000,
 	resolveQcProject: (...args: unknown[]) => resolveQcProject(...args),
 	runTestPlanGenerate: (...args: unknown[]) => runTestPlanGenerate(...args),
 	runTestPlanUpdate: (...args: unknown[]) => runTestPlanUpdate(...args),
@@ -56,6 +60,7 @@ describe("runQcStep — per-application lock", () => {
 		vi.clearAllMocks();
 		findFirstDeployment.mockResolvedValue(undefined);
 		updateApplication.mockResolvedValue(undefined);
+		claimTestPlanGeneration.mockResolvedValue(true);
 		runTestPlanGenerate.mockResolvedValue({
 			status: "ready",
 			content: "plan",

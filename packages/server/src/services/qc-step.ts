@@ -1,6 +1,11 @@
 import type { Application } from "./application";
-import { findApplicationById, updateApplication } from "./application";
 import {
+	claimTestPlanGeneration,
+	findApplicationById,
+	updateApplication,
+} from "./application";
+import {
+	QC_AGENT_TIMEOUT_MS,
 	resolveQcProject,
 	runTestPlanGenerate,
 	runTestPlanUpdate,
@@ -11,6 +16,11 @@ export interface QcStepResult {
 	testPlanVersion: number | null;
 	reason?: string;
 }
+
+// A "generating" row older than this was left behind by a crashed run:
+// project resolution plus the run itself can each use the full timeout.
+export const QC_STALE_AFTER_MS = 2 * QC_AGENT_TIMEOUT_MS + 60_000;
+const WAIT_POLL_INTERVAL_MS = 3000;
 
 const errorMessage = (error: unknown) =>
 	error instanceof Error ? error.message : String(error);
@@ -41,6 +51,48 @@ const getApplicationBranch = (application: Application): string | null => {
 	return null;
 };
 
+export const isTestPlanGenerating = (
+	application: Pick<Application, "testPlanStatus" | "testPlanStartedAt">,
+) =>
+	application.testPlanStatus === "generating" &&
+	!!application.testPlanStartedAt &&
+	Date.now() - Date.parse(application.testPlanStartedAt) < QC_STALE_AFTER_MS;
+
+interface RunQcStepOptions {
+	// The manual regenerate path reports failures through testPlanStatus
+	// instead of aborting anything, so it opts out of the "closed" policy.
+	ignoreFailurePolicy?: boolean;
+}
+
+// Another run already holds the claim for this application: wait for it
+// instead of starting a duplicate, then report its outcome under the same
+// failure policy as if this call had produced it.
+const waitForRunningTestPlan = async (
+	application: Application,
+	shouldThrow: boolean,
+): Promise<QcStepResult> => {
+	const deadline = Date.now() + QC_AGENT_TIMEOUT_MS;
+	let latest = await findApplicationById(application.applicationId);
+
+	while (latest.testPlanStatus === "generating" && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, WAIT_POLL_INTERVAL_MS));
+		latest = await findApplicationById(application.applicationId);
+	}
+
+	if (latest.testPlanStatus === "ready") {
+		return { verdict: "ready", testPlanVersion: latest.testPlanVersion };
+	}
+
+	const reason =
+		latest.testPlanStatus === "generating"
+			? "Timed out waiting for a test plan that is already being generated"
+			: (latest.testPlanError ?? "The concurrent test plan run did not finish");
+	if (shouldThrow) {
+		throw new Error(reason);
+	}
+	return { verdict: "error", testPlanVersion: latest.testPlanVersion, reason };
+};
+
 // Keyed by applicationId — a second deploy of the SAME app queued while
 // the first's QC step is still running waits for it instead of racing it
 // (dokploy's own deploy queue has no per-application concurrency limit,
@@ -69,20 +121,25 @@ const withApplicationLock = <T>(
 
 // Blocking QC step: generates (first deploy) or updates (redeploy) the
 // application's test-plan document via QC_Agent_Tool before the build runs.
-export const runQcStep = (application: Application): Promise<QcStepResult> =>
+export const runQcStep = (
+	application: Application,
+	options: RunQcStepOptions = {},
+): Promise<QcStepResult> =>
 	withApplicationLock(application.applicationId, () =>
-		runQcStepUnlocked(application),
+		runQcStepUnlocked(application, options),
 	);
 
 const runQcStepUnlocked = async (
-	staleApplication: Application,
+	initial: Application,
+	options: RunQcStepOptions,
 ): Promise<QcStepResult> => {
-	// Re-read from DB now that it's actually our turn — a deploy that
-	// waited on the lock is still holding whatever snapshot its caller
-	// fetched before queueing, which may be stale by the time the prior
-	// deploy's QC step (e.g. qcProjectId, testPlanVersion) has finished
-	// writing its own updates.
-	const application = await findApplicationById(staleApplication.applicationId);
+	// Re-read now that it's our turn: the caller's copy can be minutes old (a
+	// deploy loads it before queueing) and a run ahead of us may have changed
+	// qcProjectId or testPlanVersion, so current settings must win.
+	const application = await findApplicationById(initial.applicationId);
+	const shouldThrow =
+		application.qcFailurePolicy === "closed" && !options.ignoreFailurePolicy;
+
 	if (!application.qcEnabled) {
 		return {
 			verdict: "skipped",
@@ -123,7 +180,11 @@ const runQcStepUnlocked = async (
 		}
 	} catch (error) {
 		console.log("QC step: failed to resolve QC_Agent_Tool project", error);
-		if (application.qcFailurePolicy === "closed") {
+		// Status is left alone: another run may hold the "generating" claim.
+		await updateApplication(application.applicationId, {
+			testPlanError: errorMessage(error),
+		});
+		if (shouldThrow) {
 			throw error;
 		}
 		return {
@@ -131,6 +192,14 @@ const runQcStepUnlocked = async (
 			testPlanVersion: application.testPlanVersion,
 			reason: errorMessage(error),
 		};
+	}
+
+	const claimed = await claimTestPlanGeneration(
+		application.applicationId,
+		QC_STALE_AFTER_MS,
+	);
+	if (!claimed) {
+		return waitForRunningTestPlan(application, shouldThrow);
 	}
 
 	// The deployment row of the deploy that triggers this step already exists
@@ -138,22 +207,20 @@ const runQcStepUnlocked = async (
 	const isFirstDeploy = application.testPlanVersion === 0;
 
 	try {
-		await updateApplication(application.applicationId, {
-			testPlanStatus: "generating",
-		});
-
 		const result = isFirstDeploy
 			? await runTestPlanGenerate({ qcProjectId, branch })
 			: await runTestPlanUpdate({ qcProjectId, branch });
 
 		if (result.status === "error") {
+			const reason = "QC Agent reported an error while building the test plan";
 			await updateApplication(application.applicationId, {
 				testPlanStatus: "error",
+				testPlanError: reason,
 			});
 			return {
 				verdict: "error",
 				testPlanVersion: application.testPlanVersion,
-				reason: "QC Agent reported an error while building the test plan",
+				reason,
 			};
 		}
 
@@ -161,15 +228,17 @@ const runQcStepUnlocked = async (
 			testPlanContent: result.content,
 			testPlanVersion: result.version,
 			testPlanStatus: "ready",
+			testPlanError: null,
 		});
 		return { verdict: "ready", testPlanVersion: result.version };
 	} catch (error) {
 		console.log("QC step failed", error);
 		await updateApplication(application.applicationId, {
 			testPlanStatus: "error",
+			testPlanError: errorMessage(error),
 		});
 
-		if (application.qcFailurePolicy === "closed") {
+		if (shouldThrow) {
 			throw error;
 		}
 		return {
@@ -178,4 +247,26 @@ const runQcStepUnlocked = async (
 			reason: errorMessage(error),
 		};
 	}
+};
+
+// Fire-and-forget entry point for the manual "Regenerate" button: the HTTP
+// request returns immediately and the UI follows testPlanStatus, so a run
+// that outlives a proxy timeout can't be mistaken for a failure.
+export const regenerateTestPlanInBackground = (application: Application) => {
+	const { applicationId } = application;
+	void runQcStep(application, { ignoreFailurePolicy: true })
+		.then(async (result) => {
+			if (result.verdict === "skipped") {
+				await updateApplication(applicationId, {
+					testPlanError: result.reason ?? null,
+				});
+			}
+		})
+		.catch(async (error) => {
+			console.log("Background test plan regeneration failed", error);
+			await updateApplication(applicationId, {
+				testPlanStatus: "error",
+				testPlanError: errorMessage(error),
+			}).catch(() => {});
+		});
 };
