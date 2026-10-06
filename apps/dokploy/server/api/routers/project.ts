@@ -27,7 +27,10 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	getProjectTransferPlan,
 	IS_CLOUD,
+	ProjectTransferError,
+	transferProject,
 	updateProjectById,
 	updateUser,
 } from "@dokploy/server";
@@ -834,6 +837,61 @@ export const projectRouter = createTRPCRouter({
 				}
 				return project;
 			} catch (error) {
+				throw error;
+			}
+		}),
+	transferPreview: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().min(1),
+				targetOrganizationId: z.string().min(1),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			return await getProjectTransferPlan({
+				projectId: input.projectId,
+				sourceOrganizationId: ctx.session.activeOrganizationId,
+				targetOrganizationId: input.targetOrganizationId,
+				userId: ctx.user.id,
+			});
+		}),
+	transfer: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().min(1),
+				targetOrganizationId: z.string().min(1),
+				confirm: z.literal(true),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const result = await transferProject({
+					projectId: input.projectId,
+					sourceOrganizationId: ctx.session.activeOrganizationId,
+					targetOrganizationId: input.targetOrganizationId,
+					userId: ctx.user.id,
+				});
+
+				await audit(ctx, {
+					action: "move",
+					resourceType: "project",
+					resourceId: result.projectId,
+					resourceName: result.projectName,
+					metadata: {
+						targetOrganizationId: result.targetOrganizationId,
+					},
+				});
+
+				return result;
+			} catch (error) {
+				if (error instanceof ProjectTransferError) {
+					throw new TRPCError({
+						code:
+							error.code === "PROJECT_NOT_FOUND" ? "NOT_FOUND" : "BAD_REQUEST",
+						message: error.message,
+						cause: error,
+					});
+				}
 				throw error;
 			}
 		}),
