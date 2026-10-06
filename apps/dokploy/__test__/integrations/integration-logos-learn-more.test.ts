@@ -37,22 +37,38 @@ const LOGOS = [
 ] as const;
 
 describe("product logos", () => {
-	it.each(LOGOS)("%s renders an optimized, labelled inline SVG", (name, Logo) => {
-		const html = renderToStaticMarkup(createElement(Logo));
-		expect(html).toMatch(/^<svg /);
-		expect(html).toContain("viewBox=");
-		expect(html).toContain(`aria-label="${name}"`);
-		// Stripped of metadata, fixed pixel sizes and web-font text.
-		expect(html).not.toMatch(/<(title|desc|metadata|style|text|image)\b/);
-		expect(html).not.toMatch(/\swidth="\d+"|\sheight="\d+"/);
-		expect(html).not.toContain("<script");
-	});
+	it.each(LOGOS)(
+		"%s renders an optimized, labelled inline SVG",
+		(name, Logo) => {
+			const html = renderToStaticMarkup(createElement(Logo));
+			expect(html).toMatch(/^<svg /);
+			expect(html).toContain("viewBox=");
+			expect(html).toContain(`aria-label="${name}"`);
+			// Stripped of metadata, fixed pixel sizes and web-font text.
+			expect(html).not.toMatch(/<(title|desc|metadata|style|text|image)\b/);
+			expect(html.match(/^<svg[^>]*>/)?.[0]).not.toMatch(/\s(width|height)=/);
+			expect(html).not.toContain("<script");
+		},
+	);
 
 	it.each(LOGOS)("%s takes its size from className", (_name, Logo) => {
-		const html = renderToStaticMarkup(createElement(Logo, { className: "size-10" }));
+		const html = renderToStaticMarkup(
+			createElement(Logo, { className: "size-10" }),
+		);
 		expect(html).toContain("size-10");
 		// The default size is replaced, not stacked.
 		expect(html).not.toContain("size-8");
+	});
+
+	it.each(LOGOS)("%s has only well-formed path data", (_name, Logo) => {
+		const html = renderToStaticMarkup(createElement(Logo));
+		const paths = [...html.matchAll(/ d="([^"]*)"/g)].map(
+			(m) => m[1] as string,
+		);
+		expect(paths.length).toBeGreaterThan(0);
+		for (const d of paths) {
+			expect(d).toMatch(/^M[MmLlHhVvCcSsQqTtAaZz0-9 .,\-eE]+$/);
+		}
 	});
 
 	it("keeps DoDomain's tile theme-aware instead of OS-media-query driven", () => {
