@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.2**
+Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.3**
 
 Everything in upstream Dokploy **v0.30.8**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
@@ -17,7 +17,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.2 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.3 \
   --with-registry-auth \
   dokploy
 ```
@@ -131,6 +131,32 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/latest)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.8-community.3
+
+**Integrations: logos, Learn more and fixes from a full end-to-end test** ([#273](https://github.com/DevinoSolutions/dokploy-community/pull/273), [#277](https://github.com/DevinoSolutions/dokploy-community/pull/277)):
+
+- Uptimely, Snapvisor, DoDomain, Sendly and Notifly show their own logos, with a Learn more link. Uptimely's goes to the new [Dokploy × Uptimely page](https://getuptimely.com/integrations/dokploy).
+- Monitor with Uptimely is disabled, with the reason, when a service has nothing to monitor. The Uptimely card shows the project name.
+- Snapvisor errors stay in the dialog instead of a toast that disappears.
+- DoDomain warns when your panel URL is private (for example a Tailscale `*.ts.net` name), because webhooks can't reach it. Re-verify DNS still works.
+- Notifly errors are short and readable.
+
+**Fixes for errors reported by other instances** ([#271](https://github.com/DevinoSolutions/dokploy-community/pull/271), [#272](https://github.com/DevinoSolutions/dokploy-community/pull/272)):
+
+- The Traefik settings no longer error when Traefik has no published dashboard port or isn't on the host.
+- The preview wildcard domain is validated when you save it.
+- An expired GitLab token tells you to reconnect the provider.
+- Volume backup failures include the real cause.
+- The Requests page reads large access logs without running out of memory (port of [Dokploy/dokploy#4991](https://github.com/Dokploy/dokploy/pull/4991) by @Adriel2503).
+
+**Upstream fixes ported ahead of their release**, each 1:1 with credit to its author:
+
+- libsql validates the app name like the other databases ([#274](https://github.com/DevinoSolutions/dokploy-community/pull/274), [Dokploy/dokploy#5584](https://github.com/Dokploy/dokploy/pull/5584) by @cevheri).
+- The terminal no longer collapses on zoom ([#275](https://github.com/DevinoSolutions/dokploy-community/pull/275), [Dokploy/dokploy#5582](https://github.com/Dokploy/dokploy/pull/5582) by @imrja8).
+- Tooltips no longer stick over open dialogs on the remote servers page ([#276](https://github.com/DevinoSolutions/dokploy-community/pull/276), [Dokploy/dokploy#5575](https://github.com/Dokploy/dokploy/pull/5575) by @imrja8).
+
+> No database migration. Merged on green CI; the image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.8-community.2
 
@@ -546,7 +572,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.8-community.2
+export DOKPLOY_VERSION=v0.30.8-community.3
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -559,7 +585,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.2      # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.3      # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
