@@ -794,7 +794,7 @@ export const settingsRouter = createTRPCRouter({
 				};
 			}
 			const rawConfig = await readMonitoringConfig(
-				!!input.dateRange?.start && !!input.dateRange?.end,
+				!!input.dateRange?.start || !!input.dateRange?.end,
 			);
 
 			const parsedConfig = parseRawConfig(
