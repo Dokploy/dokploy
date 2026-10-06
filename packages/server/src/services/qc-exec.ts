@@ -13,6 +13,13 @@ import {
 import type { Application } from "./application";
 import type { QcStepResult } from "./qc-step";
 
+export interface TestExecFailureDetail {
+	name: string;
+	category: string;
+	reason?: string;
+	suggestedFix?: string;
+}
+
 export interface TestExecSummary {
 	source: "command" | "generated";
 	verdict?: string;
@@ -21,6 +28,10 @@ export interface TestExecSummary {
 	failed?: number | null;
 	skipped?: number | null;
 	failures?: string[];
+	// What the service's triage made of the failures: code_bug, test_bug,
+	// flaky, env or unclassified.
+	categories?: Record<string, number>;
+	details?: TestExecFailureDetail[];
 }
 
 export interface GeneratedTestsOutcome {
@@ -103,14 +114,22 @@ export const runQcGeneratedTests = async (params: {
 			failed: (output.failed as number | null | undefined) ?? null,
 			skipped: (output.skipped as number | null | undefined) ?? null,
 			failures: (output.failures as string[] | undefined) ?? [],
+			categories: output.categories as Record<string, number> | undefined,
+			details: output.details as TestExecFailureDetail[] | undefined,
 		};
+		// "fail": the service found an application bug (or couldn't place a
+		// failure); this is what the failure policy is about.
 		const failed = verdict === "fail" || run.status !== "done";
+		// "warn" with failing tests: they failed, but none was judged an
+		// application bug, so they are reported and never block the deploy.
+		const warned = !failed && verdict === "warn" && (summary.failed ?? 0) > 0;
 		await log(
-			`== QC generated tests ${failed ? "FAILED" : "ok"}: ${headline} ==`,
+			`== QC generated tests ${failed ? "FAILED" : warned ? "WARNING" : "ok"}: ${headline} ==`,
 		);
 
 		return {
-			status: failed ? "failed" : verdict === "warn" ? "skipped" : "passed",
+			status:
+				failed || warned ? "failed" : verdict === "warn" ? "skipped" : "passed",
 			exitCode: result.exitCode,
 			summary,
 			stages: run.stages,

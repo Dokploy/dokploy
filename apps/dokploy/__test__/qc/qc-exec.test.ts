@@ -155,6 +155,54 @@ describe("runQcGeneratedTests", () => {
 		expect(outcome.blockDeploy).toBeUndefined();
 	});
 
+	it("reports failures judged not to be application bugs, without blocking even when closed", async () => {
+		mocks.runGeneratedTests.mockResolvedValue({
+			exitCode: 1,
+			durationSec: 2,
+			logTail: "x",
+		});
+		mocks.waitForQcRun.mockResolvedValue(
+			triageRun("warn", {
+				headline:
+					"2 failing test(s), none judged an application bug: 2 test bug",
+				passed: 3,
+				failed: 2,
+				categories: { test_bug: 2 },
+				details: [
+					{ name: "S-2 x", category: "test_bug", reason: "README.md:4 says 2" },
+				],
+			}),
+		);
+		const outcome = await call("closed");
+
+		expect(outcome.status).toBe("failed");
+		expect(outcome.exitCode).toBe(1);
+		expect(outcome.blockDeploy).toBeUndefined();
+		expect(outcome.summary).toMatchObject({
+			verdict: "warn",
+			failed: 2,
+			categories: { test_bug: 2 },
+		});
+		expect(outcome.summary.details?.[0]).toMatchObject({
+			name: "S-2 x",
+			category: "test_bug",
+		});
+		expect(logs.at(-1)).toContain("WARNING");
+	});
+
+	it("still blocks when the service found an application bug", async () => {
+		mocks.waitForQcRun.mockResolvedValue(
+			triageRun("fail", {
+				headline: "1 failing test(s): 1 code bug",
+				failed: 1,
+				categories: { code_bug: 1 },
+			}),
+		);
+		const outcome = await call("closed");
+		expect(outcome.status).toBe("failed");
+		expect(outcome.blockDeploy?.message).toContain("1 code bug");
+	});
+
 	it("records a 'no tests executed' warning as skipped, not as a failure", async () => {
 		mocks.waitForQcRun.mockResolvedValue(
 			triageRun("warn", { headline: "no tests were executed" }),

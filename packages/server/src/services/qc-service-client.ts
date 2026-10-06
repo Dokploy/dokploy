@@ -1,10 +1,32 @@
 import { createHash } from "node:crypto";
+import { EventEmitter } from "node:events";
 
 const QC_SERVICE_BASE_URL = process.env.QC_SERVICE_BASE_URL;
 const QC_SERVICE_API_KEY = process.env.QC_SERVICE_API_KEY;
 export const QC_SERVICE_TIMEOUT_MS =
 	Number(process.env.QC_SERVICE_TIMEOUT_SECONDS ?? 900) * 1000;
 const POLL_INTERVAL_MS = 3000;
+// Where the service can reach Dokploy's webhook receiver. Optional: without
+// it (or without QC_SERVICE_WEBHOOK_SECRET) runs are only polled.
+const QC_SERVICE_CALLBACK_URL = process.env.QC_SERVICE_CALLBACK_URL;
+
+// A finished-run callback wakes the poller early; polling is still what
+// decides, so a lost callback only costs a few seconds.
+const wakeups = new EventEmitter();
+export const notifyQcRun = (runId: string) => {
+	wakeups.emit(runId);
+};
+
+const sleepOrWake = (runId: string, ms: number) =>
+	new Promise<void>((resolve) => {
+		const done = () => {
+			clearTimeout(timer);
+			wakeups.off(runId, done);
+			resolve();
+		};
+		const timer = setTimeout(done, ms);
+		wakeups.once(runId, done);
+	});
 
 export type QcRunStatus =
 	| "queued"
@@ -113,6 +135,9 @@ export const createQcRun = async (params: {
 			commitSha: params.commitSha,
 			name: params.name,
 			stages: params.stages ?? ["plan"],
+			...(QC_SERVICE_CALLBACK_URL && process.env.QC_SERVICE_WEBHOOK_SECRET
+				? { callbackUrl: QC_SERVICE_CALLBACK_URL }
+				: {}),
 			policy: {
 				timeoutSec: Math.max(30, Math.floor(QC_SERVICE_TIMEOUT_MS / 1000)),
 				...(params.force ? { force: true } : {}),
@@ -131,6 +156,12 @@ export const cancelQcRun = async (runId: string): Promise<void> => {
 
 export const getQcPlanMarkdown = async (runId: string): Promise<string> =>
 	await (await qcFetch(`/v1/runs/${runId}/artifacts/test-plan.md`)).text();
+
+// The service's one-page HTML report of a run (verdict, counts, classified
+// failures, scenario coverage, test output). Everything in it is escaped by
+// the service, and the UI still shows it in a sandboxed frame.
+export const getQcRunReport = async (runId: string): Promise<string> =>
+	await (await qcFetch(`/v1/runs/${runId}/artifacts/run-report.html`)).text();
 
 export const getQcManifest = async (runId: string): Promise<QcManifest> =>
 	(await (
@@ -177,7 +208,7 @@ export const waitForQcRun = async (
 		) {
 			return run;
 		}
-		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+		await sleepOrWake(runId, POLL_INTERVAL_MS);
 	}
 	await cancelQcRun(runId).catch(() => {});
 	throw new Error(

@@ -7,6 +7,7 @@ import {
 	findAllDeploymentsCentralized,
 	findDeploymentById,
 	findScheduleById,
+	getQcRunReport,
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
@@ -158,6 +159,37 @@ export const deploymentRouter = createTRPCRouter({
 				},
 			});
 			return deploymentsList;
+		}),
+	// The QC service's report of the run behind a deployment's plan and tests.
+	qcReport: protectedProcedure
+		.input(z.object({ deploymentId: z.string().min(1) }))
+		.query(async ({ input, ctx }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+			if (!deployment.applicationId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "This deployment is not an application deployment.",
+				});
+			}
+			await checkServicePermissionAndAccess(ctx, deployment.applicationId, {
+				deployment: ["read"],
+			});
+			if (!deployment.qcRunId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "This deployment has no QC run.",
+				});
+			}
+			try {
+				return { html: await getQcRunReport(deployment.qcRunId) };
+			} catch (error) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `The QC service has no report for this run: ${
+						error instanceof Error ? error.message : String(error)
+					}`,
+				});
+			}
 		}),
 	killProcess: protectedProcedure
 		.input(
