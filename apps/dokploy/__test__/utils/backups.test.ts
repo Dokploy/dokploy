@@ -4,15 +4,19 @@ import {
 } from "@dokploy/server/utils/backups/utils";
 import { describe, expect, test, vi } from "vitest";
 
-vi.mock("node:child_process", () => ({
-	execFile: (cmd: string, args: string[], cb: any) => {
-		if (cmd === "rclone" && args[0] === "obscure") {
-			cb(null, { stdout: "obscured_pass" });
-		} else {
-			cb(null, { stdout: "" });
-		}
-	},
-}));
+vi.mock("node:child_process", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:child_process")>();
+	return {
+		...actual,
+		execFile: (cmd: string, args: string[], cb: any) => {
+			if (cmd === "rclone" && args[0] === "obscure") {
+				cb(null, { stdout: "obscured_pass" });
+			} else {
+				cb(null, { stdout: "" });
+			}
+		},
+	};
+});
 
 describe("normalizeS3Path", () => {
 	test("should handle empty and whitespace-only prefix", () => {
@@ -87,8 +91,9 @@ describe("getRclonePathAndFlags", () => {
 			destination as any,
 			"mypath",
 		);
-		expect(flags).toContain('--s3-access-key-id="access"');
-		expect(flags).toContain('--s3-secret-access-key="secret"');
+		// Note: The flags no longer include double quotes unless needed
+		expect(flags).toContain("--s3-access-key-id=access");
+		expect(flags).toContain("--s3-secret-access-key=secret");
 		expect(path).toBe(":s3:mybucket/mypath");
 	});
 
@@ -107,9 +112,9 @@ describe("getRclonePathAndFlags", () => {
 		);
 		expect(flags).toEqual([]);
 		expect(path).toContain(
-			':sftp,host="sftp.example.com",port="2022",user="sftpuser"',
+			":sftp,host=sftp.example.com,port=2022,user=sftpuser",
 		);
-		expect(path).toContain('pass="obscured_pass"');
+		expect(path).toContain("pass=obscured_pass");
 		expect(path.endsWith(":sftppath/mypath")).toBe(true);
 	});
 
@@ -128,9 +133,9 @@ describe("getRclonePathAndFlags", () => {
 		);
 		expect(flags).toEqual([]);
 		expect(path).toContain(
-			':ftp,host="ftp.example.com",port="21",user="ftpuser"',
+			":ftp,host=ftp.example.com,port=21,user=ftpuser",
 		);
-		expect(path).toContain('pass="obscured_pass"');
+		expect(path).toContain("pass=obscured_pass");
 		expect(path.endsWith(":ftppath/mypath")).toBe(true);
 	});
 });

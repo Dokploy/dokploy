@@ -15,10 +15,11 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
+import { redactRcloneCredentials } from "./redact";
 import {
+	getBackupTimestamp,
 	getRclonePathAndFlags,
 	normalizeS3Path,
-	redactRcloneCredentials,
 } from "./utils";
 
 function formatBytes(bytes?: number) {
