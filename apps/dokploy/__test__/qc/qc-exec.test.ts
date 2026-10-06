@@ -112,6 +112,13 @@ describe("runQcGeneratedTests", () => {
 			passed: 2,
 			failed: 0,
 		});
+		expect(outcome.stages).toEqual([
+			{
+				stage: "triage",
+				status: "ok",
+				output: expect.objectContaining({ verdict: "pass" }),
+			},
+		]);
 		expect(logs.at(-1)).toContain("ok: all 2 tests passed");
 		expect(mocks.cancelQcRun).not.toHaveBeenCalled();
 	});

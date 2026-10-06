@@ -3,6 +3,7 @@ import {
 	getQcManifest,
 	getQcTestBundle,
 	postQcExecResult,
+	type QcStageView,
 	waitForQcRun,
 } from "@dokploy/server/services/qc-service-client";
 import {
@@ -26,6 +27,8 @@ export interface GeneratedTestsOutcome {
 	status: "passed" | "failed" | "skipped";
 	exitCode: number | null;
 	summary: TestExecSummary;
+	// The service run's stages once it has judged the results.
+	stages?: QcStageView[];
 	// Set when the failure policy says the deploy must stop here.
 	blockDeploy?: Error;
 }
@@ -110,6 +113,7 @@ export const runQcGeneratedTests = async (params: {
 			status: failed ? "failed" : verdict === "warn" ? "skipped" : "passed",
 			exitCode: result.exitCode,
 			summary,
+			stages: run.stages,
 			blockDeploy:
 				failed && blocks
 					? new Error(`Generated tests failed: ${headline}`)

@@ -296,6 +296,7 @@ describe("deployApplication with the QC step", () => {
 			status: "passed" as const,
 			exitCode: 0,
 			summary: { source: "generated" as const, verdict: "pass", passed: 3 },
+			stages: [{ stage: "triage", status: "ok" }],
 		};
 
 		beforeEach(() => {
@@ -349,6 +350,7 @@ describe("deployApplication with the QC step", () => {
 				testExecStatus: "passed",
 				testExecExitCode: 0,
 				testExecSummary: passed.summary,
+				qcStageStatus: passed.stages,
 			});
 		});
 

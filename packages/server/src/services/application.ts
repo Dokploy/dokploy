@@ -367,6 +367,7 @@ export const deployApplication = async ({
 					testExecStatus: outcome.status,
 					testExecExitCode: outcome.exitCode,
 					testExecSummary: outcome.summary,
+					...(outcome.stages ? { qcStageStatus: outcome.stages } : {}),
 				});
 				if (outcome.blockDeploy) {
 					throw outcome.blockDeploy;
