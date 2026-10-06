@@ -19,7 +19,7 @@
 
 ## FAQ
 
-- [Frequently asked questions](https://dokploy-community.devino.ca/faq/): What the fork is, affiliation with Dokploy, install and migration, going back to official Dokploy, multi-arch images, connecting Claude Code over MCP, large GitHub push webhooks (413, payloads up to 25 MB), service status after saving provider settings, connecting DoDomain, uptime monitoring, the container log viewer, upstream sync and telemetry.
+- [Frequently asked questions](https://dokploy-community.devino.ca/faq/): What the fork is, affiliation with Dokploy, install and migration, going back to official Dokploy, multi-arch images, connecting Claude Code over MCP, large GitHub push webhooks (413, payloads up to 25 MB), service status after saving provider settings, connecting DoDomain, uptime monitoring, moving a service to another server, the container log viewer, upstream sync and telemetry.
 
 ## Source and support
 

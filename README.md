@@ -128,7 +128,7 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 - **Longer login sessions** — sessions last 30 days (sliding) instead of upstream's 3, configurable via `DOKPLOY_SESSION_DAYS`
 - **15+ UI/UX fixes** — deployments filtering and tab behavior, env-form edit stability, log-counter layout shift, responsive log pages, dark-theme icons, and new translations
 
-Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/tag/v0.29.12-community.2)** for the complete, per-PR credited list, migration details, and known caveats.
+Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/latest)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
 
@@ -645,4 +645,4 @@ This fork carries the work of **100+ contributors** — upstream Dokploy's autho
 
 ## License
 
-Same as upstream — [Apache 2.0](LICENSE)
+Same as upstream — [Apache 2.0](https://github.com/DevinoSolutions/dokploy-community/blob/canary/LICENSE.MD)

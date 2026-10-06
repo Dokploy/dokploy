@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: "en-US" }}">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+{% seo %}
+    <link rel="stylesheet" href="{{ "/assets/css/style.css?v=" | append: site.github.build_revision | relative_url }}">
+    {% include head-custom.html %}
+{% if page.url == "/" or page.url == "/index.html" or page.path == "README.md" %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Dokploy Community Edition",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Linux",
+      "description": {{ site.description | jsonify }},
+      "url": {{ site.url | jsonify }},
+      "softwareVersion": {{ site.version | jsonify }},
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "sameAs": ["https://github.com/DevinoSolutions/dokploy-community"],
+      "isBasedOn": "https://github.com/Dokploy/dokploy"
+    }
+    </script>
+{% endif %}
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      <nav class="site-nav" aria-label="Site">
+        <a class="site-nav-home" href="{{ "/" | relative_url }}">{{ site.title }}</a>
+        <a href="{{ "/integrations/" | relative_url }}"{% if page.url == "/integrations/" %} aria-current="page"{% endif %}>Integrations</a>
+        <a href="{{ "/faq/" | relative_url }}"{% if page.url == "/faq/" %} aria-current="page"{% endif %}>FAQ</a>
+        <a href="{{ "/" | relative_url }}#fresh-install">Install</a>
+        <a href="https://github.com/DevinoSolutions/dokploy-community">GitHub</a>
+        <a href="https://github.com/DevinoSolutions/dokploy-community/releases">Releases</a>
+      </nav>
+
+      {{ content }}
+
+      <footer class="site-footer">
+        <a href="https://github.com/DevinoSolutions/dokploy-community">GitHub repository</a>
+        &middot; <a href="{{ "/faq/" | relative_url }}">FAQ</a>
+        &middot; <a href="{{ "/integrations/" | relative_url }}">Integrations guide</a>
+        &middot; <a href="{{ "/llms.txt" | relative_url }}">llms.txt</a>
+        &middot; <a href="https://github.com/DevinoSolutions/dokploy-community/blob/canary/LICENSE.MD">Apache 2.0 license</a>
+      </footer>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

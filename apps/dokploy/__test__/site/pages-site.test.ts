@@ -63,6 +63,48 @@ const packageVersion = (
 
 const COMMUNITY_TAG_RE = /v\d+\.\d+\.\d+-community\.\d+/g;
 
+const REPO_URL = "https://github.com/DevinoSolutions/dokploy-community";
+const LICENSE_URL = `${REPO_URL}/blob/canary/LICENSE.MD`;
+const MARKDOWN_PAGES = ["README.md", "faq.md", "integrations.md", "404.md"];
+
+/** Drops fenced code blocks (``` or ~~~, also when indented in a list). */
+const withoutCodeFences = (text: string) => {
+	let inFence = false;
+	return text
+		.replace(/\r\n/g, "\n")
+		.split("\n")
+		.filter((line) => {
+			if (/^\s*(```|~~~)/.test(line)) {
+				inFence = !inFence;
+				return false;
+			}
+			return !inFence;
+		})
+		.join("\n");
+};
+
+/** Markdown front matter if there is any (README.md has none). */
+const frontMatterOf = (file: string) => {
+	const match = read(file)
+		.replace(/\r\n/g, "\n")
+		.match(/^---\n([\s\S]*?)\n---\n/);
+	return match
+		? (parseYaml(match[1] as string) as Record<string, unknown>)
+		: {};
+};
+
+/** The PNG width and height from the IHDR chunk. */
+const pngSize = (file: string) => {
+	const buffer = fs.readFileSync(path.join(REPO_ROOT, file));
+	expect(buffer.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+	expect(buffer.subarray(12, 16).toString("ascii")).toBe("IHDR");
+	return {
+		width: buffer.readUInt32BE(16),
+		height: buffer.readUInt32BE(20),
+		bytes: buffer.length,
+	};
+};
+
 describe("pages site: repository files", () => {
 	describe("_config.yml", () => {
 		const config = parseYaml(read("_config.yml")) as Record<string, unknown>;
@@ -106,9 +148,39 @@ describe("pages site: repository files", () => {
 			expect(config).not.toHaveProperty("remote_theme");
 		});
 
+		it("keeps the site description within a search snippet", () => {
+			const description = String(config.description);
+			expect(description.length).toBeGreaterThanOrEqual(70);
+			expect(description.length).toBeLessThanOrEqual(160);
+		});
+
+		it("sets the social preview image for every page and does not exclude it", () => {
+			// jekyll-seo-tag reads `image` from the page only, so it comes in
+			// through front matter defaults.
+			const defaults = (config.defaults ?? []) as {
+				scope?: { path?: string };
+				values?: Record<string, unknown>;
+			}[];
+			const forAllPages = defaults.find(
+				(entry) => entry.scope?.path === "" && entry.values?.image,
+			);
+			expect(forAllPages?.values?.image).toBe("/assets/og.png");
+			expect(fs.existsSync(path.join(REPO_ROOT, "assets/og.png"))).toBe(true);
+			expect(exclude).not.toContain("assets");
+			expect(exclude).not.toContain("assets/og.png");
+		});
+
+		it("has a version equal to the package.json version", () => {
+			expect(config.version).toBe(packageVersion);
+		});
+
 		it("does not exclude anything the public site serves", () => {
 			const served = [
 				"README.md",
+				"404.md",
+				"_layouts",
+				"_includes",
+				"assets",
 				"integrations.md",
 				"faq.md",
 				"llms.txt",
@@ -287,6 +359,7 @@ describe("pages site: repository files", () => {
 				/MCP/,
 				/Claude Code/,
 				/DoDomain/,
+				/move a Dokploy service to another server/,
 			]) {
 				expect(names).toMatch(topic);
 			}
@@ -312,6 +385,23 @@ describe("pages site: repository files", () => {
 			]) {
 				expect(read(route), route).toContain('sizeLimit: "25mb"');
 			}
+		});
+
+		it("answers how to move a service with the scan, copy-based cutover and restart-on-failure facts from the README", () => {
+			const answer = faqPage.mainEntity.find((q) =>
+				/move a Dokploy service/.test(q.name),
+			)?.acceptedAnswer.text;
+			expect(answer).toMatch(/multi-server/);
+			expect(answer).toMatch(/Application/);
+			expect(answer).toMatch(/Compose/);
+			expect(answer).toMatch(/database/);
+			expect(answer).toMatch(/scan/);
+			expect(answer).toMatch(/copy-based cutover/);
+			expect(answer).toMatch(/restarted/);
+			expect(body).toContain(`](${REPO_URL}/pull/148)`);
+			expect(read("README.md")).toContain(
+				"**Move a service to another server**",
+			);
 		});
 
 		it("has no Liquid tags that Jekyll would evaluate", () => {
@@ -465,7 +555,9 @@ describe("pages site: repository files", () => {
 			"%s says it is based on the README's upstream version",
 			(file) => {
 				const text = read(file);
-				const stated = [...text.matchAll(/upstream Dokploy (v\d+\.\d+\.\d+)/gi)];
+				const stated = [
+					...text.matchAll(/upstream Dokploy (v\d+\.\d+\.\d+)/gi),
+				];
 				expect(stated.length, file).toBeGreaterThan(0);
 				for (const match of stated) expect(match[1], file).toBe(baseVersion);
 			},
@@ -479,6 +571,221 @@ describe("pages site: repository files", () => {
 				for (const version of versions) expect(version).toBe(baseVersion);
 			}
 			expect(read("faq.md")).toContain(`for example ${baseVersion}.`);
+		});
+	});
+
+	describe("layout and navigation", () => {
+		const layout = read("_layouts/default.html");
+		const nav = layout.match(/<nav\b[\s\S]*?<\/nav>/)?.[0] ?? "";
+		const footer = layout.match(/<footer\b[\s\S]*?<\/footer>/)?.[0] ?? "";
+
+		it("overrides the default layout and keeps the SEO tag", () => {
+			expect(layout).toContain("{% seo %}");
+			expect(layout).toContain("{{ content }}");
+			expect(layout).toContain("anchors.add();");
+			expect(layout).toMatch(/^<!DOCTYPE html>/);
+		});
+
+		it("includes head-custom.html and the file exists", () => {
+			expect(layout).toContain("{% include head-custom.html %}");
+			expect(
+				fs.existsSync(path.join(REPO_ROOT, "_includes/head-custom.html")),
+			).toBe(true);
+		});
+
+		it("contains no heading element, so the page content owns the only H1", () => {
+			expect(layout).not.toMatch(/<h1/i);
+		});
+
+		it("has a site navigation that is not a heading and links the FAQ and integrations pages", () => {
+			expect(nav).toContain('aria-label="Site"');
+			expect(nav).toMatch(/href="\{\{ "\/faq\/" \| relative_url \}\}"/);
+			expect(nav).toMatch(
+				/href="\{\{ "\/integrations\/" \| relative_url \}\}"/,
+			);
+			expect(nav).toContain("#fresh-install");
+			expect(nav).toContain(REPO_URL);
+			expect(nav).toContain(`${REPO_URL}/releases`);
+		});
+
+		it("links the install section the README really has", () => {
+			expect(read("README.md")).toMatch(/^## Fresh install\s*$/m);
+		});
+
+		it("has a footer with the repository, FAQ, integrations, llms.txt and license links", () => {
+			expect(footer).toContain(REPO_URL);
+			expect(footer).toContain("/faq/");
+			expect(footer).toContain("/integrations/");
+			expect(footer).toContain("/llms.txt");
+			expect(footer).toContain(LICENSE_URL);
+		});
+
+		it("adds the SoftwareApplication JSON-LD on the home page only", () => {
+			const block = layout.match(
+				/\{% if page\.url == "\/"[\s\S]*?<script type="application\/ld\+json">([\s\S]*?)<\/script>[\s\S]*?\{% endif %\}/,
+			);
+			expect(block).not.toBeNull();
+			const ld = block?.[1] as string;
+			expect(ld).toContain('"@type": "SoftwareApplication"');
+			expect(ld).toContain('"name": "Dokploy Community Edition"');
+			expect(ld).toContain('"applicationCategory": "DeveloperApplication"');
+			expect(ld).toContain('"operatingSystem": "Linux"');
+			expect(ld).toContain("{{ site.description | jsonify }}");
+			expect(ld).toContain("{{ site.url | jsonify }}");
+			expect(ld).toContain("{{ site.version | jsonify }}");
+			expect(ld).toContain('"price": "0"');
+			expect(ld).toContain('"priceCurrency": "USD"');
+			expect(ld).toContain(
+				'"license": "https://www.apache.org/licenses/LICENSE-2.0"',
+			);
+			expect(ld).toContain(`"sameAs": ["${REPO_URL}"]`);
+			expect(ld).toContain('"isBasedOn": "https://github.com/Dokploy/dokploy"');
+		});
+
+		it("keeps code blocks scrollable on narrow screens", () => {
+			expect(read("_includes/head-custom.html")).toMatch(
+				/pre\s*\{\s*overflow-x:\s*auto/,
+			);
+		});
+	});
+
+	describe("pages", () => {
+		it.each(MARKDOWN_PAGES)("%s has exactly one H1", (file) => {
+			const text = withoutCodeFences(read(file));
+			const markdownH1 = text.split("\n").filter((line) => /^# \S/.test(line));
+			const htmlH1 = text.match(/<h1[\s>]/gi) ?? [];
+			expect(markdownH1.length + htmlH1.length).toBe(1);
+		});
+
+		it("has a 404 page at /404.html that stays out of the sitemap", () => {
+			expect(fs.existsSync(path.join(REPO_ROOT, "404.md"))).toBe(true);
+			const { frontMatter, body } = parseMarkdown("404.md");
+			expect(frontMatter.permalink).toBe("/404.html");
+			expect(frontMatter.sitemap).toBe(false);
+			expect(String(frontMatter.title).length).toBeGreaterThan(5);
+			expect(body).toMatch(/^# Page not found$/m);
+			for (const link of [
+				`${SITE}/`,
+				`${SITE}/integrations/`,
+				`${SITE}/faq/`,
+				`${SITE}/#fresh-install`,
+				REPO_URL,
+			]) {
+				expect(body, link).toContain(`](${link})`);
+			}
+		});
+
+		it("ships the social preview image as a 1200x630 PNG under 200 KB", () => {
+			const { width, height, bytes } = pngSize("assets/og.png");
+			expect(width).toBe(1200);
+			expect(height).toBe(630);
+			expect(bytes).toBeLessThan(200 * 1024);
+		});
+
+		describe("descriptions and titles", () => {
+			const config = parseYaml(read("_config.yml")) as Record<string, unknown>;
+			const pages = ["faq.md", "integrations.md", "404.md"];
+
+			it.each(pages)("%s has a 70 to 160 character description", (file) => {
+				const description = String(frontMatterOf(file).description);
+				expect(description.length).toBeGreaterThanOrEqual(70);
+				expect(description.length).toBeLessThanOrEqual(160);
+			});
+
+			it.each(pages)(
+				"%s renders a <title> of at most 60 characters",
+				(file) => {
+					const title = `${frontMatterOf(file).title} | ${config.title}`;
+					expect(title.length).toBeLessThanOrEqual(60);
+				},
+			);
+
+			it("the home page <title> and description fit too", () => {
+				const title = `${config.title} | ${config.tagline}`;
+				expect(title.length).toBeLessThanOrEqual(60);
+				const description = String(config.description);
+				expect(description.length).toBeGreaterThanOrEqual(70);
+				expect(description.length).toBeLessThanOrEqual(160);
+			});
+
+			it("keeps the five integration names in the integrations description", () => {
+				const description = String(
+					frontMatterOf("integrations.md").description,
+				);
+				for (const name of [
+					"Uptimely",
+					"Snapvisor",
+					"DoDomain",
+					"Sendly",
+					"Notifly",
+				]) {
+					expect(description).toContain(name);
+				}
+			});
+		});
+
+		describe("links", () => {
+			// Pages the site serves (relative links to them are fine); any other
+			// relative link must point at a repository file that is on the site.
+			const sitePages = new Set([
+				"/",
+				"/faq/",
+				"/integrations/",
+				"/llms.txt",
+				"/robots.txt",
+				"/install.sh",
+			]);
+			const exclude = ((
+				parseYaml(read("_config.yml")) as Record<string, unknown>
+			).exclude ?? []) as string[];
+
+			const relativeLinks = (file: string) => {
+				const text = withoutCodeFences(read(file));
+				const targets = [
+					...text.matchAll(/\]\(([^)\s]+)/g),
+					...text.matchAll(/href="([^"]+)"/g),
+				].map((match) => match[1] as string);
+				return targets.filter((target) => !/^(https?:|mailto:|#)/.test(target));
+			};
+
+			it.each(["README.md", "faq.md", "integrations.md", "404.md"])(
+				"%s has no relative link that would 404 on the site",
+				(file) => {
+					for (const link of relativeLinks(file)) {
+						const target = (link.split("#")[0] as string).split(
+							"?",
+						)[0] as string;
+						if (sitePages.has(target)) continue;
+						const relative = target.replace(/^\.?\//, "");
+						const topLevel = relative.split("/")[0] as string;
+						expect(
+							fs.existsSync(path.join(REPO_ROOT, relative)) &&
+								!exclude.includes(topLevel) &&
+								!exclude.includes(relative),
+							`${file}: ${link} is not a page or file the site serves`,
+						).toBe(true);
+					}
+				},
+			);
+
+			it("README links the license through its real file name", () => {
+				expect(read("README.md")).toContain(`[Apache 2.0](${LICENSE_URL})`);
+				expect(fs.existsSync(path.join(REPO_ROOT, "LICENSE.MD"))).toBe(true);
+			});
+
+			it("README general release-notes links point at the latest release, not an old tag", () => {
+				const links = [
+					...read("README.md").matchAll(
+						/\[([^\]]*(?:full|all) release notes[^\]]*)\]\(([^)\s]+)\)/gi,
+					),
+				];
+				expect(links.length).toBeGreaterThan(0);
+				for (const link of links) {
+					expect(link[2], link[1]).toMatch(
+						new RegExp(`^${REPO_URL}/releases(/latest)?$`),
+					);
+				}
+			});
 		});
 	});
 
@@ -507,8 +814,24 @@ describe.skipIf(!process.env.SITE_LIVE_TESTS)(
 				status: response.status,
 				text: await response.text(),
 				robotsHeader: response.headers.get("x-robots-tag") ?? "",
+				contentType: response.headers.get("content-type") ?? "",
 			};
 		};
+
+		const PAGES = ["/", "/faq/", "/integrations/"];
+
+		/** The same-site hrefs of a page, resolved against the page URL. */
+		const sameSiteLinks = (html: string, pathname: string) =>
+			[...html.matchAll(/<a\s[^>]*href="([^"]+)"/gi)]
+				.map((match) => new URL(match[1] as string, `${SITE}${pathname}`))
+				.filter((url) => url.origin === SITE);
+
+		const idsOf = (html: string) =>
+			new Set(
+				[...html.matchAll(/\s(?:id|name)="([^"]+)"/g)].map(
+					(match) => match[1] as string,
+				),
+			);
 
 		it("/ answers 200 with an https canonical", async () => {
 			const { status, text } = await get("/");
@@ -582,6 +905,102 @@ describe.skipIf(!process.env.SITE_LIVE_TESTS)(
 			expect(status).toBe(200);
 			expect(text).toMatch(
 				/^Sitemap: https:\/\/dokploy-community\.devino\.ca\/sitemap\.xml\s*$/m,
+			);
+		});
+
+		it.each(PAGES)("%s has exactly one <h1 (post-deploy)", async (pathname) => {
+			const { text } = await get(pathname);
+			expect(text.match(/<h1[\s>]/gi) ?? []).toHaveLength(1);
+		});
+
+		it("every same-site link on /, /faq/ and /integrations/ answers 200 and every #fragment exists (post-deploy)", async () => {
+			const pages = new Map<string, string>();
+			const page = async (pathname: string) => {
+				if (!pages.has(pathname))
+					pages.set(pathname, (await get(pathname)).text);
+				return pages.get(pathname) as string;
+			};
+			const failures: string[] = [];
+			const checked = new Set<string>();
+			for (const pathname of PAGES) {
+				const html = await page(pathname);
+				for (const url of sameSiteLinks(html, pathname)) {
+					const key = url.pathname + url.search;
+					const label = `${pathname} -> ${url.pathname}${url.hash}`;
+					if (!checked.has(key)) {
+						checked.add(key);
+						const { status } = await get(key);
+						if (status !== 200) failures.push(`${label} answered ${status}`);
+					}
+					if (url.hash.length > 1 && url.pathname.endsWith("/")) {
+						const ids = idsOf(await page(url.pathname));
+						if (!ids.has(decodeURIComponent(url.hash.slice(1)))) {
+							failures.push(`${label} has no matching id`);
+						}
+					}
+				}
+			}
+			expect(failures).toEqual([]);
+		});
+
+		it.each(PAGES)(
+			"%s has an og:image that answers 200 as image/png (post-deploy)",
+			async (pathname) => {
+				const { text } = await get(pathname);
+				const image = text.match(
+					/<meta property="og:image" content="([^"]+)"/,
+				)?.[1];
+				expect(image).toBeDefined();
+				expect(text).toMatch(
+					/<meta name="twitter:card" content="summary_large_image"/,
+				);
+				const response = await fetch(image as string);
+				expect(response.status).toBe(200);
+				expect(response.headers.get("content-type")).toMatch(/^image\/png/);
+			},
+		);
+
+		it("a missing page answers 404 with the custom Page not found body (post-deploy)", async () => {
+			const { status, text } = await get("/this-page-does-not-exist/");
+			expect(status).toBe(404);
+			expect(text).toContain("Page not found");
+			// GitHub's own default 404 page also says "Page not found" in its title
+			expect(text).toContain('aria-label="Site"');
+			expect(text).toContain("Dokploy Community Edition");
+		});
+
+		it("/sitemap.xml lists exactly the home, FAQ and integrations pages", async () => {
+			const { text } = await get("/sitemap.xml");
+			const locations = [...text.matchAll(/<loc>([^<]+)<\/loc>/g)]
+				.map((match) => match[1])
+				.sort();
+			expect(locations).toEqual([
+				`${SITE}/`,
+				`${SITE}/faq/`,
+				`${SITE}/integrations/`,
+			]);
+		});
+
+		it("/ has SoftwareApplication JSON-LD with the package version (post-deploy)", async () => {
+			const { text } = await get("/");
+			const software = [...text.matchAll(JSON_LD_RE)]
+				.map(
+					(match) => JSON.parse(match[1] as string) as Record<string, unknown>,
+				)
+				.find((data) => data["@type"] === "SoftwareApplication");
+			expect(software).toBeDefined();
+			expect(software?.applicationCategory).toBe("DeveloperApplication");
+			expect(software?.softwareVersion).toBe(packageVersion);
+			expect(software?.isBasedOn).toBe("https://github.com/Dokploy/dokploy");
+		});
+
+		it("/faq/ JSON-LD has the move-a-service question (post-deploy)", async () => {
+			const { text } = await get("/faq/");
+			const names = (extractFaqPage(text)?.mainEntity ?? []).map(
+				(question) => question.name,
+			);
+			expect(names).toContain(
+				"How do I move a Dokploy service to another server?",
 			);
 		});
 
