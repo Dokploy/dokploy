@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { PoweredByDoDomain } from "@/components/dashboard/settings/integrations/dodomain/dodomain-logo";
+import {
+	DoDomainMark,
+	PoweredByDoDomain,
+} from "@/components/dashboard/settings/integrations/dodomain/dodomain-logo";
+import { INTEGRATION_LEARN_MORE_URLS } from "@/components/dashboard/settings/integrations/integration-links";
+import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -186,7 +191,10 @@ export const DoDomainConnectLinkDialog = ({
 					<span className="text-xs text-muted-foreground">
 						The link expires on {new Date(session.expiresAt).toLocaleString()}.
 					</span>
-					<PoweredByDoDomain />
+					<div className="flex flex-row items-center justify-between gap-2">
+						<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.dodomain} />
+						<PoweredByDoDomain />
+					</div>
 				</div>
 			)}
 		</DialogContent>
@@ -291,7 +299,10 @@ export const DoDomainDomainActions = ({
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
-					<DropdownMenuLabel>DoDomain</DropdownMenuLabel>
+					<DropdownMenuLabel className="flex flex-row items-center gap-2">
+						<DoDomainMark className="size-4" />
+						DoDomain
+					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onSelect={() => connectLink.send(domainId)}>
 						<Send className="size-4" />
@@ -436,7 +447,10 @@ export const DoDomainHostCheck = ({ host }: { host: string }) => {
 							</>
 						)}
 					</span>
-					<PoweredByDoDomain className="pt-1" />
+					<div className="flex flex-row items-center justify-between gap-2 pt-1">
+						<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.dodomain} />
+						<PoweredByDoDomain />
+					</div>
 				</div>
 			)}
 		</div>

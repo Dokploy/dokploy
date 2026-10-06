@@ -1,17 +1,11 @@
-import { Activity } from "lucide-react";
+import { UptimelyLogo } from "@/components/icons/product-logos";
 import { cn } from "@/lib/utils";
 
 export const UPTIMELY_SITE_URL = "https://getuptimely.com";
 
+/** The product's official logo (app-icon tile), sized by the caller. */
 export const UptimelyMark = ({ className }: { className?: string }) => (
-	<span
-		className={cn(
-			"inline-flex items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-			className,
-		)}
-	>
-		<Activity className="size-[60%]" />
-	</span>
+	<UptimelyLogo className={className} />
 );
 
 export const PoweredByUptimely = ({ className }: { className?: string }) => (

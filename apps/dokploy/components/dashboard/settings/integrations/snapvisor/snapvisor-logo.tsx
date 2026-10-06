@@ -1,17 +1,11 @@
-import { ScanEye } from "lucide-react";
+import { SnapvisorLogo } from "@/components/icons/product-logos";
 import { cn } from "@/lib/utils";
 
 export const SNAPVISOR_SITE_URL = "https://snapvisor.io";
 
+/** The product's official logo (app-icon tile), sized by the caller. */
 export const SnapvisorMark = ({ className }: { className?: string }) => (
-	<span
-		className={cn(
-			"inline-flex items-center justify-center rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-400",
-			className,
-		)}
-	>
-		<ScanEye className="size-[60%]" />
-	</span>
+	<SnapvisorLogo className={className} />
 );
 
 export const PoweredBySnapvisor = ({ className }: { className?: string }) => (

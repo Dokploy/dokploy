@@ -1,17 +1,11 @@
-import { Globe } from "lucide-react";
+import { DoDomainLogo } from "@/components/icons/product-logos";
 import { cn } from "@/lib/utils";
 
 export const DODOMAIN_SITE_URL = "https://dodomain.io";
 
+/** The product's official logo (app-icon tile), sized by the caller. */
 export const DoDomainMark = ({ className }: { className?: string }) => (
-	<span
-		className={cn(
-			"inline-flex items-center justify-center rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400",
-			className,
-		)}
-	>
-		<Globe className="size-[60%]" />
-	</span>
+	<DoDomainLogo className={className} />
 );
 
 export const PoweredByDoDomain = ({ className }: { className?: string }) => (

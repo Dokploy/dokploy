@@ -20,7 +20,7 @@ The Integrations page (`/dashboard/settings/integrations`) shows cards for Uptim
 
 ## Uptimely: uptime, SSL and domain monitoring
 
-[Uptimely](https://getuptimely.com) runs checks from outside your server. With the integration, each application, compose stack or database gets an opt-in uptime panel on its **Monitoring** tab: a status pill, a 30-day timeline per monitor, and a link to each monitor in Uptimely. Checks run every 5 minutes.
+[Uptimely](https://getuptimely.com) runs checks from outside your server. With the integration, each application, compose stack or database gets an opt-in uptime panel on its **Monitoring** tab: a status pill, a 30-day timeline per monitor, and a link to each monitor in Uptimely. Checks run every 5 minutes. Uptimely also publishes a [Dokploy × Uptimely page](https://getuptimely.com/integrations/dokploy) that walks through the integration with screenshots.
 
 **What you need**
 
