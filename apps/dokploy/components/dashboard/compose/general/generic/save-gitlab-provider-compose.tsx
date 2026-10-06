@@ -128,6 +128,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 		data: branches,
 		fetchStatus,
 		status,
+		error: branchesError,
 	} = api.gitlab.getGitlabBranches.useQuery(
 		{
 			owner: repository?.owner,
@@ -189,6 +190,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 					className="grid w-full gap-4 py-3"
 				>
 					{error && <AlertBlock type="error">{error?.message}</AlertBlock>}
+					{branchesError && branchesError.message !== error?.message && (
+						<AlertBlock type="error">{branchesError.message}</AlertBlock>
+					)}
 					<div className="grid md:grid-cols-2 gap-4">
 						<FormField
 							control={form.control}

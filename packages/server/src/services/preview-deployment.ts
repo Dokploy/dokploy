@@ -28,6 +28,10 @@ import {
 } from "./deployment";
 import { createDomain } from "./domain";
 import { getRemotePublicIp, isPrivateIp } from "../utils/ip";
+import {
+	hasPreviewTemplateVariable,
+	PREVIEW_WILDCARD_GUIDANCE,
+} from "../utils/preview-wildcard";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { getIssueComment } from "./github";
 import {
@@ -215,10 +219,7 @@ export const createPreviewDeployment = async (
 	const uniqueId = generatePassword(6);
 	const domainTemplate = application.previewWildcard || "*.sslip.io";
 
-	const hasIdentifier =
-		domainTemplate.includes("${prNumber}") ||
-		domainTemplate.includes("${branchName}") ||
-		domainTemplate.includes("${uniqueId}");
+	const hasIdentifier = hasPreviewTemplateVariable(domainTemplate);
 
 	const appName: string = `preview-${application.appName}-${uniqueId}`;
 	let generateDomain: string;
@@ -381,7 +382,7 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
-const generateWildcardDomain = async (
+export const generateWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
@@ -389,7 +390,10 @@ const generateWildcardDomain = async (
 	serverId?: string,
 ): Promise<string> => {
 	if (!baseDomain.startsWith("*.")) {
-		throw new Error('The base domain must start with "*."');
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid preview domain "${baseDomain}". ${PREVIEW_WILDCARD_GUIDANCE}`,
+		});
 	}
 	const hash = `${appName}`;
 	if (baseDomain.includes("sslip.io")) {
@@ -656,10 +660,7 @@ export const createComposePreview = async (
 	// domains (one Traefik host per service). Each service gets a distinct host so
 	// multi-service stacks route correctly.
 	const domainTemplate = compose.previewWildcard || "*.sslip.io";
-	const hasIdentifier =
-		domainTemplate.includes("${prNumber}") ||
-		domainTemplate.includes("${branchName}") ||
-		domainTemplate.includes("${uniqueId}");
+	const hasIdentifier = hasPreviewTemplateVariable(domainTemplate);
 
 	let ownerId = "";
 	if (!hasIdentifier) {

@@ -45,7 +45,10 @@ export const refreshGitlabToken = async (gitlabProviderId: string) => {
 	);
 
 	if (!response.ok) {
-		throw new Error(`Failed to refresh token: ${response.statusText}`);
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: `GitLab token expired or was revoked. Reconnect the GitLab provider in Settings → Git. (HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""})`,
+		});
 	}
 
 	const data = await response.json();

@@ -1,5 +1,9 @@
 import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { VALID_GIT_URL_REGEX } from "@dokploy/server/utils/git-url-validation";
+import {
+	isValidPreviewWildcard,
+	PREVIEW_WILDCARD_GUIDANCE,
+} from "@dokploy/server/utils/preview-wildcard";
 import { relations } from "drizzle-orm";
 import {
 	bigint,
@@ -384,7 +388,10 @@ const createSchema = createInsertSchema(applications, {
 	previewEnv: z.string().optional(),
 	previewBuildArgs: z.string().optional(),
 	previewBuildSecrets: z.string().optional(),
-	previewWildcard: z.string().optional(),
+	previewWildcard: z
+		.string()
+		.refine(isValidPreviewWildcard, { message: PREVIEW_WILDCARD_GUIDANCE })
+		.optional(),
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
 	previewPath: z.string().optional(),

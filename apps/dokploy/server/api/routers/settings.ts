@@ -20,6 +20,7 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	isResponseCompressionEnabled,
+	isTraefikDashboardPortEnabled,
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
@@ -869,8 +870,7 @@ export const settingsRouter = createTRPCRouter({
 				input?.serverId,
 				ctx.session?.activeOrganizationId,
 			);
-			const ports = await readPorts("dokploy-traefik", input?.serverId);
-			return ports.some((port) => port.targetPort === 8080);
+			return await isTraefikDashboardPortEnabled(input?.serverId);
 		}),
 
 	readStatsLogs: protectedProcedure
