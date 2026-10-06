@@ -6,19 +6,27 @@ import { ShowPaidMonitoring } from "../../monitoring/paid/servers/show-paid-moni
 
 interface Props {
 	serverId: string;
+	children?: React.ReactNode;
 }
 
-export const ShowMonitoringModal = ({ serverId }: Props) => {
+export const ShowMonitoringModal = ({ serverId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<Button variant="outline" size="icon" className="h-9 w-9">
-					<BarChartHorizontalBigIcon className="h-4 w-4" />
-				</Button>
-			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  ">
+			{children ? (
+				<DialogTrigger asChild>{children}</DialogTrigger>
+			) : (
+				<DialogTrigger asChild>
+					<Button variant="outline" size="icon" className="h-9 w-9">
+						<BarChartHorizontalBigIcon className="h-4 w-4" />
+					</Button>
+				</DialogTrigger>
+			)}
+			<DialogContent
+				className="sm:max-w-7xl  "
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<div className="flex gap-4 py-4 w-full">
 					<ShowPaidMonitoring serverId={serverId} />
 				</div>
