@@ -1,6 +1,6 @@
-import fs, { createReadStream, writeFileSync } from "node:fs";
+import fs, { writeFileSync } from "node:fs";
+import { open as openFile } from "node:fs/promises";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
 import { quote } from "shell-quote";
@@ -151,44 +151,83 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	}
 };
 
+// A valid access.log entry is a JSON object, and not the Dokploy service's own
+// requests (the dashboard polling itself would otherwise dominate the log).
+const isValidRequestLine = (line: string) => {
+	const trimmed = line.trim();
+	if (trimmed === "" || !trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+		return false;
+	}
+	try {
+		return JSON.parse(trimmed).ServiceName !== "dokploy-service-app@file";
+	} catch {
+		return false;
+	}
+};
+
+// Reads the most recent `maxLines` valid entries without scanning the whole
+// file: access.log only grows and the Requests view polls every few seconds,
+// so a full forward read on every poll gets slower (and costs more CPU/IO) as
+// the file grows between cleanups. Reading fixed-size chunks backward from
+// EOF and stopping as soon as `maxLines` valid entries are found keeps each
+// read's cost close to the tail window actually needed, not the file size.
+const readRecentValidLines = async (filePath: string, maxLines: number) => {
+	const CHUNK_SIZE = 64 * 1024;
+	const fileHandle = await openFile(filePath, "r");
+	try {
+		const { size } = await fileHandle.stat();
+		let position = size;
+		// The start of a line whose end was already read in a later (closer to
+		// EOF) chunk; carried leftward and prefixed onto the next chunk's text.
+		let carry = "";
+		const collected: string[] = []; // newest first
+
+		while (position > 0 && collected.length < maxLines) {
+			const readSize = Math.min(CHUNK_SIZE, position);
+			position -= readSize;
+			const buffer = Buffer.alloc(readSize);
+			await fileHandle.read(buffer, 0, readSize, position);
+			const chunkText = buffer.toString("utf8") + carry;
+			const parts = chunkText.split("\n");
+
+			// parts[0] is itself incomplete (its start is further left, still
+			// unread) unless this chunk reaches all the way back to byte 0.
+			carry = position > 0 ? (parts.shift() ?? "") : "";
+
+			for (
+				let i = parts.length - 1;
+				i >= 0 && collected.length < maxLines;
+				i--
+			) {
+				const part = parts[i] ?? "";
+				const line = part.endsWith("\r") ? part.slice(0, -1) : part;
+				if (line !== "" && isValidRequestLine(line)) {
+					collected.push(line);
+				}
+			}
+		}
+
+		if (position === 0 && collected.length < maxLines && carry !== "") {
+			const line = carry.endsWith("\r") ? carry.slice(0, -1) : carry;
+			if (isValidRequestLine(line)) {
+				collected.push(line);
+			}
+		}
+
+		collected.reverse();
+		return collected;
+	} finally {
+		await fileHandle.close();
+	}
+};
+
 export const readMonitoringConfig = async (readAll = false) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
 		if (!readAll) {
-			// Read first 500 lines using streams
-			let content = "";
-			let validCount = 0;
-
-			const fileStream = createReadStream(configPath, { encoding: "utf8" });
-			const readline = createInterface({
-				input: fileStream,
-				crlfDelay: Number.POSITIVE_INFINITY,
-			});
-
-			for await (const line of readline) {
-				try {
-					const trimmed = line.trim();
-					if (
-						trimmed !== "" &&
-						trimmed.startsWith("{") &&
-						trimmed.endsWith("}")
-					) {
-						const log = JSON.parse(trimmed);
-						// Exclude Dokploy service app and Dashboard requests
-						if (log.ServiceName !== "dokploy-service-app@file") {
-							content += `${line}\n`;
-							validCount++;
-							if (validCount >= 500) {
-								break;
-							}
-						}
-					}
-				} catch {
-					// Ignore invalid JSON
-				}
-			}
-			return content;
+			const lines = await readRecentValidLines(configPath, 500);
+			return lines.map((line) => `${line}\n`).join("");
 		}
 		return fs.readFileSync(configPath, "utf8");
 	}
