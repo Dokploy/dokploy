@@ -324,7 +324,7 @@ export const obscurePassword = async (password: string) => {
 
 const escapeRcloneParam = (val: string) => {
 	if (/[=,"]/.test(val)) {
-		return `"${val.replace(/"/g, '\"')}"`;
+		return `"${val.replace(/"/g, '\\"')}"`;
 	}
 	return val;
 };
