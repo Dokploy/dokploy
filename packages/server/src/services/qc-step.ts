@@ -97,7 +97,11 @@ const runQcStepUnlocked = async (
 		console.log(
 			`QC step skipped for application ${application.applicationId}: no resolvable git repo URL/branch for sourceType "${application.sourceType}"`,
 		);
-		return { verdict: "skipped", testPlanVersion: application.testPlanVersion };
+		return {
+			verdict: "skipped",
+			testPlanVersion: application.testPlanVersion,
+			reason: `No resolvable git repo URL/branch for source type "${application.sourceType}"`,
+		};
 	}
 
 	// Resolved on every run, not just once — QC_Agent_Tool get-or-creates
@@ -122,7 +126,11 @@ const runQcStepUnlocked = async (
 		if (application.qcFailurePolicy === "closed") {
 			throw error;
 		}
-		return { verdict: "error", testPlanVersion: application.testPlanVersion };
+		return {
+			verdict: "error",
+			testPlanVersion: application.testPlanVersion,
+			reason: errorMessage(error),
+		};
 	}
 
 	// The deployment row of the deploy that triggers this step already exists
