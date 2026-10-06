@@ -3,5 +3,7 @@
   .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding-bottom: 12px; margin-bottom: 24px; border-bottom: 1px solid #d0d7de; font-size: 14px; }
   .site-nav a[aria-current="page"] { font-weight: 600; text-decoration: underline; }
   .site-nav-home { font-size: 16px; font-weight: 600; margin-right: auto; }
+  /* Narrow screens: the site title takes its own row so the links wrap together below it. */
+  @media (max-width: 544px) { .site-nav-home { flex-basis: 100%; margin-right: 0; } }
   .site-footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #d0d7de; font-size: 14px; color: #57606a; }
 </style>
