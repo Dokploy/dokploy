@@ -1,0 +1,138 @@
+import {
+	cancelQcRun,
+	getQcManifest,
+	getQcTestBundle,
+	postQcExecResult,
+	waitForQcRun,
+} from "@dokploy/server/services/qc-service-client";
+import {
+	getRunnerImage,
+	runGeneratedTests,
+} from "@dokploy/server/utils/builders/run-generated-tests";
+import type { Application } from "./application";
+import type { QcStepResult } from "./qc-step";
+
+export interface TestExecSummary {
+	source: "command" | "generated";
+	verdict?: string;
+	headline?: string;
+	passed?: number | null;
+	failed?: number | null;
+	skipped?: number | null;
+	failures?: string[];
+}
+
+export interface GeneratedTestsOutcome {
+	status: "passed" | "failed" | "skipped";
+	exitCode: number | null;
+	summary: TestExecSummary;
+	// Set when the failure policy says the deploy must stop here.
+	blockDeploy?: Error;
+}
+
+const errorMessage = (error: unknown) =>
+	error instanceof Error ? error.message : String(error);
+
+// Runs the tests the QC service generated for this deployment's commit in a
+// container on the build server, reports the outcome back to the service and
+// returns what the deployment should record. It never throws: a failure to run
+// the tests is an outcome like any other, decided by `testExecFailurePolicy`.
+export const runQcGeneratedTests = async (params: {
+	application: Pick<
+		Application,
+		"appName" | "testRunnerImage" | "testExecFailurePolicy"
+	>;
+	qcResult: QcStepResult;
+	deploymentId: string;
+	serverId?: string | null;
+	log: (message: string) => Promise<void>;
+}): Promise<GeneratedTestsOutcome> => {
+	const { application, qcResult, deploymentId, serverId, log } = params;
+	const blocks = application.testExecFailurePolicy === "closed";
+
+	if (!qcResult.awaitingExec || !qcResult.runId) {
+		const reason =
+			qcResult.verdict === "ready"
+				? "the QC service had no tests to generate for this commit"
+				: (qcResult.reason ?? "the QC step did not produce tests");
+		await log(`== QC generated tests skipped: ${reason} ==`);
+		return {
+			status: "skipped",
+			exitCode: null,
+			summary: { source: "generated", verdict: "skipped", headline: reason },
+		};
+	}
+
+	const runId = qcResult.runId;
+	let reported = false;
+	try {
+		const manifest = await getQcManifest(runId);
+		const bundle = await getQcTestBundle(runId);
+		await log(
+			`== QC generated tests: running ${manifest.files.length} file(s) for ${manifest.scenarios.length} scenario(s) in ${getRunnerImage(manifest, application.testRunnerImage)} ==`,
+		);
+
+		const result = await runGeneratedTests({
+			deploymentId,
+			serverId,
+			appName: application.appName,
+			bundle,
+			manifest,
+			runnerImage: application.testRunnerImage,
+		});
+		await postQcExecResult(runId, result);
+		reported = true;
+
+		const run = await waitForQcRun(runId);
+		const triage = run.stages.find((stage) => stage.stage === "triage");
+		const output = (triage?.output ?? {}) as Record<string, unknown>;
+		const verdict = run.verdict ?? (output.verdict as string | undefined);
+		const headline =
+			(output.headline as string | undefined) ??
+			run.error?.message ??
+			`exit code ${result.exitCode}`;
+
+		const summary: TestExecSummary = {
+			source: "generated",
+			verdict: verdict ?? "unknown",
+			headline,
+			passed: (output.passed as number | null | undefined) ?? null,
+			failed: (output.failed as number | null | undefined) ?? null,
+			skipped: (output.skipped as number | null | undefined) ?? null,
+			failures: (output.failures as string[] | undefined) ?? [],
+		};
+		const failed = verdict === "fail" || run.status !== "done";
+		await log(
+			`== QC generated tests ${failed ? "FAILED" : "ok"}: ${headline} ==`,
+		);
+
+		return {
+			status: failed ? "failed" : verdict === "warn" ? "skipped" : "passed",
+			exitCode: result.exitCode,
+			summary,
+			blockDeploy:
+				failed && blocks
+					? new Error(`Generated tests failed: ${headline}`)
+					: undefined,
+		};
+	} catch (error) {
+		const message = errorMessage(error);
+		await log(`== QC generated tests could not be run: ${message} ==`).catch(
+			() => {},
+		);
+		return {
+			status: "skipped",
+			exitCode: null,
+			summary: { source: "generated", verdict: "error", headline: message },
+			blockDeploy: blocks
+				? new Error(`Generated tests could not be run: ${message}`)
+				: undefined,
+		};
+	} finally {
+		if (!reported) {
+			// The deploy is moving on without reporting, so the service run must not
+			// keep waiting (and holding this branch) for results that won't come.
+			await cancelQcRun(runId).catch(() => {});
+		}
+	}
+};

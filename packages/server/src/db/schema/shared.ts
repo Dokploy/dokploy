@@ -31,6 +31,13 @@ export const testPlanStatus = pgEnum("testPlanStatus", [
 
 export const qcVerdict = pgEnum("qcVerdict", ["skipped", "ready", "error"]);
 
+// Where the tests of the pre-deploy test step come from: a command the user
+// wrote, or tests the QC service generated from the test plan.
+export const testExecSource = pgEnum("testExecSource", [
+	"command",
+	"generated",
+]);
+
 export const testExecStatus = pgEnum("testExecStatus", [
 	"skipped",
 	"passed",

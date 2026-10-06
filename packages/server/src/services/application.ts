@@ -56,6 +56,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { runQcGeneratedTests } from "./qc-exec";
 import { getQcRepoSource, runQcStep } from "./qc-step";
 export type Application = typeof applications.$inferSelect;
 
@@ -65,6 +66,10 @@ const toTestExecStatus = (
 	if (exitCode === null) return "skipped";
 	return exitCode === 0 ? "passed" : "failed";
 };
+
+const usesGeneratedTests = (
+	application: Pick<Application, "testExecEnabled" | "testExecSource">,
+) => application.testExecEnabled && application.testExecSource === "generated";
 
 const appendDeploymentLog = async (
 	logPath: string,
@@ -314,9 +319,11 @@ export const deployApplication = async ({
 				type: "application",
 				serverId,
 			});
+			const generateTests = usesGeneratedTests(application);
 			const qcResult = await runQcStep(application, {
 				commitSha: commit?.hash,
 				idempotencyKey: deployment.deploymentId,
+				generateTests,
 			}).catch(async (error: unknown) => {
 				// "closed" policy: the deploy stops here, but the row and log should
 				// still say why.
@@ -344,12 +351,50 @@ export const deployApplication = async ({
 					? `== QC test plan v${qcResult.testPlanVersion} ready ==`
 					: `== QC test plan ${qcResult.verdict}${qcResult.reason ? `: ${qcResult.reason}` : ""} ==`,
 			);
+
+			if (generateTests) {
+				// Before the build: the tests only need the source, so a failure
+				// saves the time of a build that would be thrown away.
+				const outcome = await runQcGeneratedTests({
+					application,
+					qcResult,
+					deploymentId: deployment.deploymentId,
+					serverId,
+					log: (message) =>
+						appendDeploymentLog(deployment.logPath, serverId, message),
+				});
+				await updateDeployment(deployment.deploymentId, {
+					testExecStatus: outcome.status,
+					testExecExitCode: outcome.exitCode,
+					testExecSummary: outcome.summary,
+				});
+				if (outcome.blockDeploy) {
+					throw outcome.blockDeploy;
+				}
+			}
 		} else {
 			const qcResult = await runQcStep(application);
 			await updateDeployment(deployment.deploymentId, {
 				testPlanVersionAtDeploy: qcResult.testPlanVersion,
 				qcVerdict: qcResult.verdict,
 			});
+			if (usesGeneratedTests(application)) {
+				const headline =
+					"Generated tests need the QC step enabled and a GitHub or Git source";
+				await updateDeployment(deployment.deploymentId, {
+					testExecStatus: "skipped",
+					testExecSummary: {
+						source: "generated",
+						verdict: "skipped",
+						headline,
+					},
+				});
+				await appendDeploymentLog(
+					deployment.logPath,
+					serverId,
+					`== QC generated tests skipped: ${headline} ==`,
+				);
+			}
 		}
 
 		command += await getBuildCommand(application);
@@ -418,7 +463,7 @@ export const deployApplication = async ({
 			}
 		}
 
-		if (application.testExecEnabled) {
+		if (application.testExecEnabled && !usesGeneratedTests(application)) {
 			const testExitCode = await readTestExecExitCode(
 				deployment.logPath,
 				deployment.deploymentId,
@@ -496,7 +541,7 @@ export const rebuildApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
 	} finally {
-		if (application.testExecEnabled) {
+		if (application.testExecEnabled && !usesGeneratedTests(application)) {
 			const testExitCode = await readTestExecExitCode(
 				deployment.logPath,
 				deployment.deploymentId,
