@@ -221,6 +221,76 @@ describe("qc-service-client", () => {
 		});
 	});
 
+	test("downloads the run report", async () => {
+		const client = await load();
+		fetchMock.mockResolvedValue(new Response("<html>report</html>"));
+		expect(await client.getQcRunReport("run1")).toBe("<html>report</html>");
+		expect((fetchMock.mock.calls[0] as [string])[0]).toBe(
+			"http://qc.test/v1/runs/run1/artifacts/run-report.html",
+		);
+	});
+
+	test("asks for callbacks only when both the URL and the secret are set", async () => {
+		const create = async () => {
+			const client = await load();
+			fetchMock.mockResolvedValue(json(run("queued"), 202));
+			await client.createQcRun({
+				repoUrl: "u",
+				branch: "b",
+				commitSha: "a".repeat(40),
+				idempotencyKey: "k",
+			});
+			return JSON.parse(
+				(fetchMock.mock.calls.at(-1) as [string, RequestInit])[1]
+					.body as string,
+			);
+		};
+		expect((await create()).callbackUrl).toBeUndefined();
+
+		process.env.QC_SERVICE_CALLBACK_URL = "https://dokploy.test/api/qc/webhook";
+		expect((await create()).callbackUrl).toBeUndefined();
+
+		process.env.QC_SERVICE_WEBHOOK_SECRET = "s";
+		expect((await create()).callbackUrl).toBe(
+			"https://dokploy.test/api/qc/webhook",
+		);
+		process.env.QC_SERVICE_CALLBACK_URL = undefined;
+		process.env.QC_SERVICE_WEBHOOK_SECRET = undefined;
+		delete process.env.QC_SERVICE_CALLBACK_URL;
+		delete process.env.QC_SERVICE_WEBHOOK_SECRET;
+	});
+
+	test("a callback wakes the wait before the next poll is due", async () => {
+		vi.useFakeTimers();
+		const client = await load();
+		fetchMock
+			.mockResolvedValueOnce(json(run("running")))
+			.mockResolvedValueOnce(json(run("done")));
+
+		const pending = client.waitForQcRun("run1");
+		await vi.advanceTimersByTimeAsync(0); // the first poll is in flight
+		client.notifyQcRun("run1");
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect((await pending).status).toBe("done");
+		expect(fetchMock).toHaveBeenCalledTimes(2); // no 3 s wait in between
+	});
+
+	test("a callback for another run does not wake this wait", async () => {
+		vi.useFakeTimers();
+		const client = await load();
+		fetchMock
+			.mockResolvedValueOnce(json(run("running")))
+			.mockResolvedValueOnce(json(run("done")));
+		const pending = client.waitForQcRun("run1");
+		await vi.advanceTimersByTimeAsync(0);
+		client.notifyQcRun("another");
+		await vi.advanceTimersByTimeAsync(0);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(3000);
+		expect((await pending).status).toBe("done");
+	});
+
 	test("downloads the plan markdown", async () => {
 		const client = await load();
 		fetchMock.mockResolvedValue(new Response("# plan"));

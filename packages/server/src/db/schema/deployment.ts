@@ -89,6 +89,13 @@ export const deployments = pgTable("deployment", {
 		failed?: number | null;
 		skipped?: number | null;
 		failures?: string[];
+		categories?: Record<string, number>;
+		details?: {
+			name: string;
+			category: string;
+			reason?: string;
+			suggestedFix?: string;
+		}[];
 	}>(),
 	qcRunId: text("qcRunId"),
 	qcStageStatus:
