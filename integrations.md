@@ -1,6 +1,6 @@
 ---
 title: "Dokploy Integrations Guide"
-description: "How to connect Uptimely uptime monitoring, Snapvisor visual testing, DoDomain custom-domain DNS verification, and Sendly and Notifly notifications in Dokploy Community Edition."
+description: "Connect Uptimely monitoring, Snapvisor visual testing, DoDomain domain DNS verification, and Sendly and Notifly notifications in Dokploy Community Edition."
 permalink: /integrations/
 ---
 

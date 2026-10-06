@@ -1,5 +1,5 @@
 ---
-title: "Dokploy Fork FAQ and Migration Guide"
+title: "Dokploy Fork FAQ and Migration"
 description: "Dokploy Community Edition FAQ: migrating from Dokploy, the built-in MCP server for Claude Code, 25 MB deploy webhooks, DoDomain, uptime monitoring, telemetry."
 permalink: /faq/
 ---
@@ -84,6 +84,12 @@ Upstream Dokploy rejected webhook request bodies larger than 1 MB, so a large Gi
 Upstream Dokploy set the status of a service back to idle when you saved the provider settings of an application, or disconnected the Git provider of an application or compose stack, so a running service could look stopped until its next deploy. Since v0.30.8-community.1 the Community Edition keeps the current status when you save provider settings.
 
 [Release notes on GitHub](https://github.com/DevinoSolutions/dokploy-community/releases/tag/v0.30.8-community.1)
+
+## How do I move a Dokploy service to another server?
+
+Yes, in multi-server mode. Open the Application, Compose stack or database you want to move and start the transfer to another server. The move runs in two phases, scan and then execute, and uses a copy-based cutover: the source is stopped, its data is copied to the destination, and the service switches to the new server only after the copy fully succeeds. If anything fails the source is restarted and left untouched, so the service keeps running where it was.
+
+[Server transfer pull request on GitHub](https://github.com/DevinoSolutions/dokploy-community/pull/148)
 
 ## How do I connect DoDomain to Dokploy?
 
@@ -196,6 +202,14 @@ It reports unhandled backend errors, meaning crashes and internal server errors,
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Upstream Dokploy set the status of a service back to idle when you saved the provider settings of an application, or disconnected the Git provider of an application or compose stack, so a running service could look stopped until its next deploy. Since v0.30.8-community.1 the Community Edition keeps the current status when you save provider settings."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I move a Dokploy service to another server?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, in multi-server mode. Open the Application, Compose stack or database you want to move and start the transfer to another server. The move runs in two phases, scan and then execute, and uses a copy-based cutover: the source is stopped, its data is copied to the destination, and the service switches to the new server only after the copy fully succeeds. If anything fails the source is restarted and left untouched, so the service keeps running where it was."
       }
     },
     {
