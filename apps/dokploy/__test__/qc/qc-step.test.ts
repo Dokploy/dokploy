@@ -42,6 +42,7 @@ const app = (overrides: Record<string, unknown> = {}) =>
 		sourceType: "github",
 		owner: "o",
 		repository: "r",
+		branch: "main",
 		...overrides,
 	}) as never;
 
@@ -53,6 +54,7 @@ describe("runQcStep", () => {
 		vi.clearAllMocks();
 		setStoredApp();
 		mocks.claim.mockResolvedValue(true);
+		mocks.resolve.mockResolvedValue("proj1");
 		mocks.generate.mockResolvedValue({
 			status: "ready",
 			content: "# plan",

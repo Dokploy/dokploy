@@ -72,26 +72,32 @@ const pollRun = async (
 // and safe, not just idempotent-by-accident.
 export const resolveQcProject = async (params: {
 	repoUrl: string;
+	branch: string;
 	name?: string;
 }): Promise<string> => {
+	const body = JSON.stringify({
+		repoUrl: params.repoUrl,
+		branch: params.branch,
+		name: params.name,
+	});
 	const { projectId, status } = await qcFetch<QcProjectHandle>(
 		"/api/external/projects/resolve",
-		{
-			method: "POST",
-			body: JSON.stringify({ repoUrl: params.repoUrl, name: params.name }),
-		},
+		{ method: "POST", body },
 	);
 
 	if (status === "ready") {
 		return projectId;
 	}
 	if (status === "failed") {
-		throw new Error(`QC agent failed to clone ${params.repoUrl}`);
+		throw new Error(
+			`QC agent failed to clone ${params.repoUrl}@${params.branch}`,
+		);
 	}
 
-	// "cloning" — first time this repo is resolved. Reuses the same poll
-	// budget/interval as a test-plan run; a first clone is a one-time cost,
-	// every later deploy of this app hits the "ready" branch above instead.
+	// "cloning" — first time this (repo, branch) pair is resolved. Reuses
+	// the same poll budget/interval as a test-plan run; a first clone is a
+	// one-time cost, every later deploy of this app hits the "ready"
+	// branch above instead.
 	const deadline = Date.now() + QC_AGENT_TIMEOUT_MS;
 	while (Date.now() < deadline) {
 		await new Promise((resolve) =>
@@ -99,21 +105,20 @@ export const resolveQcProject = async (params: {
 		);
 		const project = await qcFetch<QcProjectHandle>(
 			"/api/external/projects/resolve",
-			{
-				method: "POST",
-				body: JSON.stringify({ repoUrl: params.repoUrl, name: params.name }),
-			},
+			{ method: "POST", body },
 		);
 		if (project.status === "ready") {
 			return project.projectId;
 		}
 		if (project.status === "failed") {
-			throw new Error(`QC agent failed to clone ${params.repoUrl}`);
+			throw new Error(
+				`QC agent failed to clone ${params.repoUrl}@${params.branch}`,
+			);
 		}
 	}
 
 	throw new Error(
-		`QC agent project for ${params.repoUrl} is still cloning after timeout`,
+		`QC agent project for ${params.repoUrl}@${params.branch} is still cloning after timeout`,
 	);
 };
 
@@ -121,23 +126,25 @@ export const resolveQcProject = async (params: {
 // let the agent self-refine it for coverage.
 export const runTestPlanGenerate = async (params: {
 	qcProjectId: string;
+	branch: string;
 }): Promise<QcRunResult> => {
 	const { runId } = await qcFetch<QcRunHandle>(
 		`/api/external/projects/${params.qcProjectId}/test-plan/generate`,
-		{ method: "POST" },
+		{ method: "POST", body: JSON.stringify({ branch: params.branch }) },
 	);
 	return pollRun(params.qcProjectId, runId);
 };
 
-// Redeploy: QC_Agent_Tool re-syncs its own workspace copy of the repo and
-// diffs against its last-synced snapshot itself (see its "auto sync"
-// mechanism) — dokploy does not need to compute or pass commit SHAs.
+// Redeploy: QC_Agent_Tool re-syncs this branch's own clone and diffs
+// against its last-synced snapshot itself (see its "auto sync" mechanism)
+// — dokploy does not need to compute or pass commit SHAs.
 export const runTestPlanUpdate = async (params: {
 	qcProjectId: string;
+	branch: string;
 }): Promise<QcRunResult> => {
 	const { runId } = await qcFetch<QcRunHandle>(
 		`/api/external/projects/${params.qcProjectId}/test-plan/update`,
-		{ method: "POST" },
+		{ method: "POST", body: JSON.stringify({ branch: params.branch }) },
 	);
 	return pollRun(params.qcProjectId, runId);
 };

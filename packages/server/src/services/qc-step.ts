@@ -41,6 +41,16 @@ const getApplicationRepoUrl = (application: Application): string | null => {
 	return null;
 };
 
+const getApplicationBranch = (application: Application): string | null => {
+	if (application.sourceType === "github") {
+		return application.branch ?? null;
+	}
+	if (application.sourceType === "git") {
+		return application.customGitBranch ?? null;
+	}
+	return null;
+};
+
 export const isTestPlanGenerating = (
 	application: Pick<Application, "testPlanStatus" | "testPlanStartedAt">,
 ) =>
@@ -83,14 +93,49 @@ const waitForRunningTestPlan = async (
 	return { verdict: "error", testPlanVersion: latest.testPlanVersion, reason };
 };
 
+// Keyed by applicationId — a second deploy of the SAME app queued while
+// the first's QC step is still running waits for it instead of racing it
+// (dokploy's own deploy queue has no per-application concurrency limit,
+// only a per-server one, so two overlapping deploys of one app is a real,
+// reachable case: a double-click on "Deploy", or two webhook pushes
+// landing close together). Deploys of DIFFERENT applications never wait on
+// each other — this map has one entry per app, not a single global lock.
+const inFlight = new Map<string, Promise<unknown>>();
+
+const withApplicationLock = <T>(
+	applicationId: string,
+	fn: () => Promise<T>,
+): Promise<T> => {
+	const prior = inFlight.get(applicationId) ?? Promise.resolve();
+	const run = prior.then(fn, fn);
+	// Stored value must never reject — an unhandled rejection here would
+	// otherwise surface later, on some unrelated deploy that merely
+	// happened to queue up behind this one and never even inspects its
+	// result.
+	inFlight.set(
+		applicationId,
+		run.catch(() => undefined),
+	);
+	return run;
+};
+
 // Blocking QC step: generates (first deploy) or updates (redeploy) the
 // application's test-plan document via QC_Agent_Tool before the build runs.
-export const runQcStep = async (
-	initial: Application,
+export const runQcStep = (
+	application: Application,
 	options: RunQcStepOptions = {},
+): Promise<QcStepResult> =>
+	withApplicationLock(application.applicationId, () =>
+		runQcStepUnlocked(application, options),
+	);
+
+const runQcStepUnlocked = async (
+	initial: Application,
+	options: RunQcStepOptions,
 ): Promise<QcStepResult> => {
-	// The caller's copy can be minutes old (a deploy loads it before queueing),
-	// so settings changed in the meantime must win.
+	// Re-read now that it's our turn: the caller's copy can be minutes old (a
+	// deploy loads it before queueing) and a run ahead of us may have changed
+	// qcProjectId or testPlanVersion, so current settings must win.
 	const application = await findApplicationById(initial.applicationId);
 	const shouldThrow =
 		application.qcFailurePolicy === "closed" && !options.ignoreFailurePolicy;
@@ -103,40 +148,50 @@ export const runQcStep = async (
 		};
 	}
 
-	let qcProjectId = application.qcProjectId;
-	if (!qcProjectId) {
-		const repoUrl = getApplicationRepoUrl(application);
-		if (!repoUrl) {
-			console.log(
-				`QC step skipped for application ${application.applicationId}: no resolvable git repo URL for sourceType "${application.sourceType}"`,
-			);
-			return {
-				verdict: "skipped",
-				testPlanVersion: application.testPlanVersion,
-				reason: `No resolvable git repo URL for source type "${application.sourceType}"`,
-			};
-		}
-		try {
-			qcProjectId = await resolveQcProject({
-				repoUrl,
-				name: application.name,
-			});
+	const repoUrl = getApplicationRepoUrl(application);
+	const branch = getApplicationBranch(application);
+	if (!repoUrl || !branch) {
+		console.log(
+			`QC step skipped for application ${application.applicationId}: no resolvable git repo URL/branch for sourceType "${application.sourceType}"`,
+		);
+		return {
+			verdict: "skipped",
+			testPlanVersion: application.testPlanVersion,
+			reason: `No resolvable git repo URL/branch for source type "${application.sourceType}"`,
+		};
+	}
+
+	// Resolved on every run, not just once — QC_Agent_Tool get-or-creates
+	// per (repoUrl, branch) and returns immediately once that branch's own
+	// clone is ready, so this stays cheap after the first deploy. Doing it
+	// every time (rather than skipping once `qcProjectId` is cached) is
+	// what makes this correctly notice if the application's own branch
+	// setting ever changes, instead of silently generating test-plans
+	// against whatever branch happened to be configured the first time.
+	let qcProjectId: string;
+	try {
+		qcProjectId = await resolveQcProject({
+			repoUrl,
+			branch,
+			name: application.name,
+		});
+		if (qcProjectId !== application.qcProjectId) {
 			await updateApplication(application.applicationId, { qcProjectId });
-		} catch (error) {
-			console.log("QC step: failed to resolve QC_Agent_Tool project", error);
-			// Status is left alone: another run may hold the "generating" claim.
-			await updateApplication(application.applicationId, {
-				testPlanError: errorMessage(error),
-			});
-			if (shouldThrow) {
-				throw error;
-			}
-			return {
-				verdict: "error",
-				testPlanVersion: application.testPlanVersion,
-				reason: errorMessage(error),
-			};
 		}
+	} catch (error) {
+		console.log("QC step: failed to resolve QC_Agent_Tool project", error);
+		// Status is left alone: another run may hold the "generating" claim.
+		await updateApplication(application.applicationId, {
+			testPlanError: errorMessage(error),
+		});
+		if (shouldThrow) {
+			throw error;
+		}
+		return {
+			verdict: "error",
+			testPlanVersion: application.testPlanVersion,
+			reason: errorMessage(error),
+		};
 	}
 
 	const claimed = await claimTestPlanGeneration(
@@ -153,8 +208,8 @@ export const runQcStep = async (
 
 	try {
 		const result = isFirstDeploy
-			? await runTestPlanGenerate({ qcProjectId })
-			: await runTestPlanUpdate({ qcProjectId });
+			? await runTestPlanGenerate({ qcProjectId, branch })
+			: await runTestPlanUpdate({ qcProjectId, branch });
 
 		if (result.status === "error") {
 			const reason = "QC Agent reported an error while building the test plan";
