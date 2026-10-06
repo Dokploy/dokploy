@@ -18,6 +18,8 @@ export interface QcStepResult {
 	reason?: string;
 	runId?: string;
 	stages?: QcStageView[];
+	// The service generated tests and is waiting for the deploy to run them.
+	awaitingExec?: boolean;
 }
 
 // A "generating" row older than this was left behind by a crashed run.
@@ -69,6 +71,9 @@ export interface RunQcStepOptions {
 	idempotencyKey?: string;
 	// Re-plan even if this commit already has a plan (manual regenerate).
 	force?: boolean;
+	// Also have tests generated and judged, which makes the run wait for the
+	// deploy to execute them (see qc-exec.ts).
+	generateTests?: boolean;
 	// The manual regenerate path reports failures through testPlanStatus
 	// instead of aborting anything, so it opts out of the "closed" policy.
 	ignoreFailurePolicy?: boolean;
@@ -158,13 +163,18 @@ export const runQcStep = async (
 			commitSha: options.commitSha,
 			name: application.name,
 			force: options.force,
+			stages: options.generateTests
+				? ["plan", "generate", "triage"]
+				: undefined,
 			idempotencyKey:
 				options.idempotencyKey ??
 				`plan-${application.applicationId}-${options.commitSha}-${Date.now()}`,
 		});
-		const run = await waitForQcRun(created.runId);
+		const run = await waitForQcRun(created.runId, {
+			untilAwaitingExec: options.generateTests,
+		});
 
-		if (run.status !== "done") {
+		if (run.status !== "done" && run.status !== "awaiting_exec") {
 			const reason =
 				run.error?.message ?? `The QC run ended as "${run.status}"`;
 			await updateApplication(application.applicationId, {
@@ -193,6 +203,7 @@ export const runQcStep = async (
 			testPlanVersion: version,
 			runId: run.runId,
 			stages: run.stages,
+			awaitingExec: run.status === "awaiting_exec",
 		};
 	} catch (error) {
 		console.log("QC step failed", error);

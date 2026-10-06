@@ -45,6 +45,7 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	testExecSource,
 	testPlanStatus,
 	triggerType,
 	type UlimitsSwarm,
@@ -251,6 +252,8 @@ export const applications = pgTable("application", {
 	// Test-exec: runs the app's own test command inside the built image
 	testExecEnabled: boolean("testExecEnabled").notNull().default(false),
 	testCommand: text("testCommand"),
+	testExecSource: testExecSource("testExecSource").notNull().default("command"),
+	testRunnerImage: text("testRunnerImage"),
 	testExecFailurePolicy: failurePolicy("testExecFailurePolicy")
 		.notNull()
 		.default("closed"),
@@ -417,6 +420,8 @@ const createSchema = createInsertSchema(applications, {
 	testPlanError: z.string().nullable().optional(),
 	testExecEnabled: z.boolean().optional(),
 	testCommand: z.string().nullable().optional(),
+	testExecSource: z.enum(["command", "generated"]).optional(),
+	testRunnerImage: z.string().nullable().optional(),
 	testExecFailurePolicy: z.enum(["open", "closed"]).optional(),
 });
 

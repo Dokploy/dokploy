@@ -45,6 +45,15 @@ describe("getTestExecCommand", () => {
 		).toBe("");
 	});
 
+	test("stays out of the way when the tests come from the QC service", async () => {
+		expect(
+			await getTestExecCommand(
+				buildApp({ testExecSource: "generated" }),
+				"dep1",
+			),
+		).toBe("");
+	});
+
 	test("writes the marker and continues when tests fail with the open policy", async () => {
 		const snippet = await getTestExecCommand(
 			buildApp({ testExecFailurePolicy: "open" }),

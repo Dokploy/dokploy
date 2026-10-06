@@ -81,6 +81,15 @@ export const deployments = pgTable("deployment", {
 	qcVerdict: qcVerdict("qcVerdict"),
 	testExecStatus: testExecStatus("testExecStatus"),
 	testExecExitCode: integer("testExecExitCode"),
+	testExecSummary: jsonb("testExecSummary").$type<{
+		source: "command" | "generated";
+		verdict?: string;
+		headline?: string;
+		passed?: number | null;
+		failed?: number | null;
+		skipped?: number | null;
+		failures?: string[];
+	}>(),
 	qcRunId: text("qcRunId"),
 	qcStageStatus:
 		jsonb("qcStageStatus").$type<

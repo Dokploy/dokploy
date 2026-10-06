@@ -44,6 +44,8 @@ const baseApp: ApplicationNested = {
 	testPlanError: null,
 	testExecEnabled: false,
 	testCommand: null,
+	testExecSource: "command",
+	testRunnerImage: null,
 	testExecFailurePolicy: "closed",
 	createEnvFile: true,
 	bitbucketRepositorySlug: "",

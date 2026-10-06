@@ -17,7 +17,11 @@ export const getTestExecCommand = async (
 	application: ApplicationNested,
 	deploymentId: string,
 ): Promise<string> => {
-	if (!application.testExecEnabled || !application.testCommand) {
+	if (
+		!application.testExecEnabled ||
+		application.testExecSource === "generated" ||
+		!application.testCommand
+	) {
 		return "";
 	}
 

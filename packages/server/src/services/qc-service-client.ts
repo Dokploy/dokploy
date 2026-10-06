@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 const QC_SERVICE_BASE_URL = process.env.QC_SERVICE_BASE_URL;
 const QC_SERVICE_API_KEY = process.env.QC_SERVICE_API_KEY;
 export const QC_SERVICE_TIMEOUT_MS =
@@ -13,10 +15,13 @@ export type QcRunStatus =
 	| "failed"
 	| "cancelled";
 
+export type QcStageName = "plan" | "generate" | "triage";
+
 export interface QcStageView {
 	stage: string;
 	status: string;
 	error?: string | null;
+	output?: Record<string, unknown> | null;
 }
 
 export interface QcRunView {
@@ -26,6 +31,43 @@ export interface QcRunView {
 	verdict: string | null;
 	stages: QcStageView[];
 	error: { code: string; message: string } | null;
+	suite?: {
+		language: string;
+		framework: string;
+		targetDir: string;
+		files: number;
+		scenarios: number;
+	} | null;
+}
+
+// What the service needs to know about the generated tests to run them.
+export interface QcManifest {
+	language: string;
+	framework: string;
+	targetDir: string;
+	cwd: string;
+	install: string;
+	installNeedsNetwork: boolean;
+	command: string;
+	resultsFormat:
+		| "vitest-json"
+		| "jest-json"
+		| "mocha-json"
+		| "junit-xml"
+		| "go-test-json"
+		| "text";
+	timeoutSec: number;
+	needsNetwork: boolean;
+	files: string[];
+	scenarios: string[];
+}
+
+export interface QcExecResult {
+	exitCode: number;
+	durationSec: number;
+	resultsJson?: unknown;
+	resultsText?: string;
+	logTail: string;
 }
 
 const isTerminal = (status: QcRunStatus) =>
@@ -57,6 +99,9 @@ export const createQcRun = async (params: {
 	commitSha: string;
 	name?: string;
 	force?: boolean;
+	// "plan" only by default; add "generate" and "triage" to also get tests
+	// generated and judged.
+	stages?: QcStageName[];
 	idempotencyKey: string;
 }): Promise<QcRunView> => {
 	const response = await qcFetch("/v1/runs", {
@@ -67,7 +112,7 @@ export const createQcRun = async (params: {
 			branch: params.branch,
 			commitSha: params.commitSha,
 			name: params.name,
-			stages: ["plan"],
+			stages: params.stages ?? ["plan"],
 			policy: {
 				timeoutSec: Math.max(30, Math.floor(QC_SERVICE_TIMEOUT_MS / 1000)),
 				...(params.force ? { force: true } : {}),
@@ -87,14 +132,49 @@ export const cancelQcRun = async (runId: string): Promise<void> => {
 export const getQcPlanMarkdown = async (runId: string): Promise<string> =>
 	await (await qcFetch(`/v1/runs/${runId}/artifacts/test-plan.md`)).text();
 
-// Waits for the run to reach a terminal state. A run that outlives the
+export const getQcManifest = async (runId: string): Promise<QcManifest> =>
+	(await (
+		await qcFetch(`/v1/runs/${runId}/artifacts/tests.manifest.json`)
+	).json()) as QcManifest;
+
+// The tests are code the service's model wrote, so what gets executed has to
+// be exactly what the service stored: the sha256 header is checked here.
+export const getQcTestBundle = async (runId: string): Promise<Buffer> => {
+	const response = await qcFetch(`/v1/runs/${runId}/artifacts/tests.tar.gz`);
+	const bytes = Buffer.from(await response.arrayBuffer());
+	const expected = response.headers.get("x-sha256");
+	const actual = createHash("sha256").update(bytes).digest("hex");
+	if (!expected || expected !== actual) {
+		throw new Error("The test bundle does not match its sha256 checksum");
+	}
+	return bytes;
+};
+
+export const postQcExecResult = async (
+	runId: string,
+	result: QcExecResult,
+): Promise<void> => {
+	await qcFetch(`/v1/runs/${runId}/exec-result`, {
+		method: "POST",
+		body: JSON.stringify(result),
+	});
+};
+
+// Waits for the run to reach a terminal state, or (with `untilAwaitingExec`)
+// to start waiting for Dokploy's test results. A run that outlives the
 // timeout is cancelled on the service too, so it can't keep holding the
 // (repo, branch) slot after the deploy has given up on it.
-export const waitForQcRun = async (runId: string): Promise<QcRunView> => {
+export const waitForQcRun = async (
+	runId: string,
+	options: { untilAwaitingExec?: boolean } = {},
+): Promise<QcRunView> => {
 	const deadline = Date.now() + QC_SERVICE_TIMEOUT_MS;
 	while (Date.now() < deadline) {
 		const run = await getQcRun(runId);
-		if (isTerminal(run.status)) {
+		if (
+			isTerminal(run.status) ||
+			(options.untilAwaitingExec && run.status === "awaiting_exec")
+		) {
 			return run;
 		}
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));

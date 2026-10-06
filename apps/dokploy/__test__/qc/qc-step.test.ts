@@ -130,6 +130,41 @@ describe("runQcStep", () => {
 		expect(result.stages).toEqual([{ stage: "plan", status: "ok" }]);
 	});
 
+	test("asks for tests too and returns once the service wants them run", async () => {
+		mocks.waitForRun.mockResolvedValue(doneRun({ status: "awaiting_exec" }));
+		const result = await runQcStep(app(), {
+			commitSha: SHA,
+			generateTests: true,
+		});
+
+		expect(mocks.createRun).toHaveBeenCalledWith(
+			expect.objectContaining({ stages: ["plan", "generate", "triage"] }),
+		);
+		expect(mocks.waitForRun).toHaveBeenCalledWith("run1", {
+			untilAwaitingExec: true,
+		});
+		expect(result).toMatchObject({ verdict: "ready", awaitingExec: true });
+		expect(mocks.updateApplication).toHaveBeenCalledWith(
+			"app1",
+			expect.objectContaining({ testPlanStatus: "ready" }),
+		);
+	});
+
+	test("a run that ended without waiting for tests is a plan only", async () => {
+		const result = await runQcStep(app(), {
+			commitSha: SHA,
+			generateTests: true,
+		});
+		expect(result).toMatchObject({ verdict: "ready", awaitingExec: false });
+	});
+
+	test("only plans when tests were not asked for", async () => {
+		await runQcStep(app(), { commitSha: SHA });
+		expect(mocks.createRun).toHaveBeenCalledWith(
+			expect.objectContaining({ stages: undefined }),
+		);
+	});
+
 	test("passes force through for a manual regenerate", async () => {
 		await runQcStep(app(), { commitSha: SHA, force: true });
 		expect(mocks.createRun).toHaveBeenCalledWith(

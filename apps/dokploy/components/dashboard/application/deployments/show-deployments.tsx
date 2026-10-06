@@ -30,6 +30,7 @@ import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
 import { ClearDeployments } from "./clear-deployments";
 import { KillBuild } from "./kill-build";
+import { QcDeploymentBadges } from "./qc-deployment-badges";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
 
@@ -366,6 +367,7 @@ export const ShowDeployments = ({
 													)}
 												</Badge>
 											)}
+											<QcDeploymentBadges deployment={deployment} />
 										</div>
 
 										<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end">

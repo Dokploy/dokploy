@@ -133,6 +133,94 @@ describe("qc-service-client", () => {
 		expect(cancel).toBeTruthy();
 	});
 
+	test("asks for the stages it is given", async () => {
+		const client = await load();
+		fetchMock.mockResolvedValue(json(run("queued"), 202));
+		await client.createQcRun({
+			repoUrl: "u",
+			branch: "b",
+			commitSha: "a".repeat(40),
+			stages: ["plan", "generate", "triage"],
+			idempotencyKey: "k",
+		});
+		const body = JSON.parse(
+			(fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string,
+		);
+		expect(body.stages).toEqual(["plan", "generate", "triage"]);
+	});
+
+	test("can stop waiting as soon as the run wants the test results", async () => {
+		vi.useFakeTimers();
+		const client = await load();
+		fetchMock
+			.mockResolvedValueOnce(json(run("running")))
+			.mockResolvedValueOnce(json(run("awaiting_exec")));
+
+		const pending = client.waitForQcRun("run1", { untilAwaitingExec: true });
+		await vi.advanceTimersByTimeAsync(4000);
+		expect((await pending).status).toBe("awaiting_exec");
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	test("keeps waiting through awaiting_exec unless told otherwise", async () => {
+		vi.useFakeTimers();
+		const client = await load();
+		fetchMock
+			.mockResolvedValueOnce(json(run("awaiting_exec")))
+			.mockResolvedValueOnce(json(run("done")));
+		const pending = client.waitForQcRun("run1");
+		await vi.advanceTimersByTimeAsync(4000);
+		expect((await pending).status).toBe("done");
+	});
+
+	test("downloads the test bundle only if it matches its checksum", async () => {
+		const client = await load();
+		const bytes = Buffer.from("tarball");
+		const { createHash } = await import("node:crypto");
+		const sha = createHash("sha256").update(bytes).digest("hex");
+
+		fetchMock.mockResolvedValueOnce(
+			new Response(bytes, { headers: { "X-Sha256": sha } }),
+		);
+		expect((await client.getQcTestBundle("run1")).toString()).toBe("tarball");
+
+		fetchMock.mockResolvedValueOnce(
+			new Response(bytes, { headers: { "X-Sha256": "0".repeat(64) } }),
+		);
+		await expect(client.getQcTestBundle("run1")).rejects.toThrow(/checksum/);
+
+		fetchMock.mockResolvedValueOnce(new Response(bytes));
+		await expect(client.getQcTestBundle("run1")).rejects.toThrow(/checksum/);
+	});
+
+	test("reads the manifest and posts the results", async () => {
+		const client = await load();
+		fetchMock.mockResolvedValueOnce(
+			json({ language: "go", command: "go test" }),
+		);
+		expect((await client.getQcManifest("run1")).language).toBe("go");
+		expect((fetchMock.mock.calls[0] as [string])[0]).toBe(
+			"http://qc.test/v1/runs/run1/artifacts/tests.manifest.json",
+		);
+
+		fetchMock.mockResolvedValueOnce(json(run("triaging"), 202));
+		await client.postQcExecResult("run1", {
+			exitCode: 1,
+			durationSec: 3,
+			resultsText: "x",
+			logTail: "tail",
+		});
+		const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+		expect(url).toBe("http://qc.test/v1/runs/run1/exec-result");
+		expect(init.method).toBe("POST");
+		expect(JSON.parse(init.body as string)).toEqual({
+			exitCode: 1,
+			durationSec: 3,
+			resultsText: "x",
+			logTail: "tail",
+		});
+	});
+
 	test("downloads the plan markdown", async () => {
 		const client = await load();
 		fetchMock.mockResolvedValue(new Response("# plan"));
