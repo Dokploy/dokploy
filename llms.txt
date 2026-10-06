@@ -4,9 +4,9 @@
 
 ## Install and upgrade
 
-- [README: install, switch from Dokploy, features](https://github.com/DevinoSolutions/dokploy-community#readme): Fresh install with `curl -sSL https://dokploy-community.devino.ca/install.sh | sh`, one-command switch from official Dokploy with `docker service update --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.3 --with-registry-auth dokploy`, and the full feature list.
+- [README: install, switch from Dokploy, features](https://github.com/DevinoSolutions/dokploy-community#readme): Fresh install with `curl -sSL https://dokploy-community.devino.ca/install.sh | sh`, one-command switch from official Dokploy with `docker service update --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.4 --with-registry-auth dokploy`, and the full feature list.
 - [Site home](https://dokploy-community.devino.ca/): The same README as a web page, including the list of what is different from upstream Dokploy.
-- [Docker image tags](https://github.com/DevinoSolutions/dokploy-community#docker-image): ghcr.io/devinosolutions/dokploy-community with versioned tags (for example v0.30.8-community.3), `latest` for the latest release and `canary` for the latest build. Recent release images are multi-arch (linux/amd64 and linux/arm64).
+- [Docker image tags](https://github.com/DevinoSolutions/dokploy-community#docker-image): ghcr.io/devinosolutions/dokploy-community with versioned tags (for example v0.30.8-community.4), `latest` for the latest release and `canary` for the latest build. Recent release images are multi-arch (linux/amd64 and linux/arm64).
 - [Versioning](https://github.com/DevinoSolutions/dokploy-community#versioning): Tags follow the scheme v<upstream-version>-community.<release>.
 
 ## Features
