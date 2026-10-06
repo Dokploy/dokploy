@@ -41,6 +41,7 @@ export * from "./shared";
 export * from "./ssh-key";
 export * from "./sso";
 export * from "./tag";
+export * from "./test-plan-history";
 export * from "./transfer";
 export * from "./user";
 export * from "./utils";

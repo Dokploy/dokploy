@@ -11,6 +11,7 @@ import {
 	type QcStageView,
 	waitForQcRun,
 } from "./qc-service-client";
+import { recordTestPlanVersion } from "./test-plan-history";
 
 export interface QcStepResult {
 	verdict: "skipped" | "ready" | "error";
@@ -197,6 +198,14 @@ export const runQcStep = async (
 			testPlanVersion: version,
 			testPlanStatus: "ready",
 			testPlanError: null,
+		});
+		await recordTestPlanVersion({
+			applicationId: application.applicationId,
+			branch: source.branch,
+			version,
+			content,
+			commitSha: options.commitSha,
+			qcRunId: run.runId,
 		});
 		return {
 			verdict: "ready",

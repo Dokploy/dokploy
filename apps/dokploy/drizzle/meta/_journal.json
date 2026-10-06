@@ -1408,6 +1408,13 @@
       "when": 1791262573198,
       "tag": "0200_nostalgic_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 201,
+      "version": "7",
+      "when": 1791272910804,
+      "tag": "0201_striped_ben_grimm",
+      "breakpoints": true
     }
   ]
 }

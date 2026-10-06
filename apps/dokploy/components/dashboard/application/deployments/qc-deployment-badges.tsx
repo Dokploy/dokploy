@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import { FULLSCREEN_DIALOG_CLASS } from "../qc/fullscreen-dialog";
 
 const CATEGORY_LABEL: Record<string, string> = {
 	code_bug: "application bug",
@@ -88,7 +89,7 @@ const ReportDialog = ({
 	);
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+			<DialogContent className={FULLSCREEN_DIALOG_CLASS}>
 				<DialogHeader>
 					<DialogTitle>QC report</DialogTitle>
 					<DialogDescription>
@@ -106,7 +107,7 @@ const ReportDialog = ({
 						title="QC report"
 						sandbox=""
 						srcDoc={data.html}
-						className="w-full flex-1 rounded-md border bg-white"
+						className="w-full min-h-0 flex-1 rounded-md border bg-white"
 					/>
 				)}
 			</DialogContent>

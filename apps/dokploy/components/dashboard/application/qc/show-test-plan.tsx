@@ -12,6 +12,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { ShowTestPlanHistory } from "./show-test-plan-history";
 
 interface Props {
 	applicationId: string;
@@ -45,18 +46,20 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 		},
 	);
 
+	const utils = api.useUtils();
 	const previousStatus = useRef<string | undefined>(undefined);
 	useEffect(() => {
 		const status = data?.testPlanStatus;
 		if (previousStatus.current === "generating") {
 			if (status === "ready") {
 				toast.success("Test plan updated");
+				void utils.application.testPlanHistory.invalidate({ applicationId });
 			} else if (status === "error") {
 				toast.error(data?.testPlanError ?? "Error generating the test plan");
 			}
 		}
 		previousStatus.current = status;
-	}, [data?.testPlanStatus, data?.testPlanError]);
+	}, [data?.testPlanStatus, data?.testPlanError, utils, applicationId]);
 
 	const { mutateAsync, isPending } =
 		api.application.regenerateTestPlan.useMutation();
@@ -96,49 +99,55 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 		: data.testPlanError;
 
 	return (
-		<Card className="bg-background">
-			<CardHeader className="flex flex-row items-center justify-between">
-				<div>
-					<CardTitle className="text-xl flex items-center gap-2">
-						Test Plan
-						<Badge variant={statusVariant[status]}>{status}</Badge>
-						{data.testPlanVersion ? (
-							<span className="text-sm text-muted-foreground font-normal">
-								v{data.testPlanVersion}
-							</span>
-						) : null}
-					</CardTitle>
-					<CardDescription>
-						Generated/updated by the QC service on each deploy of this
-						application.
-					</CardDescription>
-				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					isLoading={isPending}
-					disabled={isGenerating}
-					onClick={onRegenerate}
-				>
-					<RefreshCw className="size-4 mr-2" />
-					Regenerate
-				</Button>
-			</CardHeader>
-			<CardContent className="flex flex-col gap-3">
-				{errorMessage && !isGenerating ? (
-					<p className="text-sm text-destructive">{errorMessage}</p>
-				) : null}
-				{data.testPlanContent ? (
-					<div className="prose prose-sm dark:prose-invert max-w-none">
-						<ReactMarkdown>{data.testPlanContent}</ReactMarkdown>
+		<div className="flex flex-col gap-4">
+			<Card className="bg-background">
+				<CardHeader className="flex flex-row items-center justify-between">
+					<div>
+						<CardTitle className="text-xl flex items-center gap-2">
+							Test Plan
+							<Badge variant={statusVariant[status]}>{status}</Badge>
+							{data.testPlanVersion ? (
+								<span className="text-sm text-muted-foreground font-normal">
+									v{data.testPlanVersion}
+								</span>
+							) : null}
+						</CardTitle>
+						<CardDescription>
+							Generated/updated by the QC service on each deploy of this
+							application.
+						</CardDescription>
 					</div>
-				) : (
-					<p className="text-sm text-muted-foreground">
-						No test plan generated yet. It will be created on the next deploy,
-						or click "Regenerate" to run it now.
-					</p>
-				)}
-			</CardContent>
-		</Card>
+					<Button
+						variant="outline"
+						size="sm"
+						isLoading={isPending}
+						disabled={isGenerating}
+						onClick={onRegenerate}
+					>
+						<RefreshCw className="size-4 mr-2" />
+						Regenerate
+					</Button>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-3">
+					{errorMessage && !isGenerating ? (
+						<p className="text-sm text-destructive">{errorMessage}</p>
+					) : null}
+					{data.testPlanContent ? (
+						<div className="prose prose-sm dark:prose-invert max-w-none">
+							<ReactMarkdown>{data.testPlanContent}</ReactMarkdown>
+						</div>
+					) : (
+						<p className="text-sm text-muted-foreground">
+							No test plan generated yet. It will be created on the next deploy,
+							or click "Regenerate" to run it now.
+						</p>
+					)}
+				</CardContent>
+			</Card>
+			<ShowTestPlanHistory
+				applicationId={applicationId}
+				currentVersion={data.testPlanVersion}
+			/>
+		</div>
 	);
 };
