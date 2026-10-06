@@ -239,7 +239,7 @@ export const createPreviewDeployment = async (
 				application.environment.project.organizationId,
 			),
 		});
-		generateDomain = await generateWildcardDomain(
+		generateDomain = await generatePreviewWildcardDomain(
 			domainTemplate,
 			appName,
 			application.server?.ipAddress || "",
@@ -382,7 +382,7 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
-export const generateWildcardDomain = async (
+export const generatePreviewWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
@@ -684,7 +684,7 @@ export const createComposePreview = async (
 			});
 			host = interpolated.replace("*", hostAppName);
 		} else {
-			host = await generateWildcardDomain(
+			host = await generatePreviewWildcardDomain(
 				domainTemplate,
 				`${appName}-${serviceSlug}`,
 				compose.server?.ipAddress || "",

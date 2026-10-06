@@ -51,7 +51,8 @@ describe("createDeploymentError", () => {
 		const error = createDeploymentError("boom");
 
 		expect(error.message).toBe("Error creating the deployment: boom");
-		expect(error.cause).toBe("boom");
+		// tRPC wraps a non-Error cause into an Error.
+		expect((error.cause as Error).message).toBe("boom");
 	});
 
 	it("supports a different base message", () => {

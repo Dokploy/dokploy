@@ -1,15 +1,15 @@
-import { TRPCError } from "@trpc/server";
-import { describe, expect, it } from "vitest";
 import {
 	apiUpdateApplication,
 	apiUpdateCompose,
 } from "@dokploy/server/db/schema";
-import { generateWildcardDomain } from "@dokploy/server/services/preview-deployment";
+import { generatePreviewWildcardDomain } from "@dokploy/server/services/preview-deployment";
 import {
 	hasPreviewTemplateVariable,
 	isValidPreviewWildcard,
 	PREVIEW_WILDCARD_GUIDANCE,
 } from "@dokploy/server/utils/preview-wildcard";
+import { TRPCError } from "@trpc/server";
+import { describe, expect, it } from "vitest";
 
 const ACCEPTED = [
 	"*.preview.example.com",
@@ -121,9 +121,9 @@ describe("previewWildcard in the update schemas", () => {
 	});
 });
 
-describe("generateWildcardDomain", () => {
+describe("generatePreviewWildcardDomain", () => {
 	it("throws a BAD_REQUEST TRPCError with guidance for an invalid base domain", async () => {
-		const error = await generateWildcardDomain(
+		const error = await generatePreviewWildcardDomain(
 			"preview.example.com",
 			"preview-app-abc123",
 			"1.2.3.4",
@@ -138,7 +138,7 @@ describe("generateWildcardDomain", () => {
 
 	it("still builds a host for a valid wildcard base domain", async () => {
 		await expect(
-			generateWildcardDomain(
+			generatePreviewWildcardDomain(
 				"*.preview.example.com",
 				"preview-app-abc123",
 				"1.2.3.4",
