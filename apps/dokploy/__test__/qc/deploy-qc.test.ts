@@ -261,7 +261,7 @@ describe("deployApplication with the QC step", () => {
 			descriptionLog: "d",
 		});
 
-		expect(qcStep.runQcStep).toHaveBeenCalledWith(expect.anything());
+		expect(qcStep.runQcStep).not.toHaveBeenCalled();
 		const withBuild = scriptsRun().filter((s) =>
 			String(s).includes("BUILD_SCRIPT"),
 		);

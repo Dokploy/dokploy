@@ -284,4 +284,38 @@ describe("deployApplication - Command Generation Tests", () => {
 
 		expect(fullCommand).toContain(">> /tmp/test-deployment.log 2>&1");
 	});
+
+	describe("an application without the QC step", () => {
+		const deployPlain = async () => {
+			vi.mocked(builders.getBuildCommand).mockResolvedValue("nixpacks build");
+			await deployApplication({
+				applicationId: "test-app-id",
+				titleLog: "Test",
+				descriptionLog: "",
+			});
+		};
+
+		it("runs the whole deploy as one script, with no test command in it", async () => {
+			await deployPlain();
+
+			expect(execProcess.execAsync).toHaveBeenCalledOnce();
+			const script = vi.mocked(execProcess.execAsync).mock.calls[0]?.[0];
+			expect(script).not.toContain("__TEST_EXIT");
+			expect(script).not.toContain("docker run");
+		});
+
+		it("never touches the QC fields of the deployment or reloads the app for QC", async () => {
+			await deployPlain();
+
+			const written = vi
+				.mocked(deploymentService.updateDeployment)
+				.mock.calls.map(([, values]) => Object.keys(values));
+			for (const keys of written) {
+				expect(keys).not.toContain("qcVerdict");
+				expect(keys).not.toContain("testPlanVersionAtDeploy");
+				expect(keys).not.toContain("testExecStatus");
+			}
+			expect(applicationService.findApplicationById).not.toHaveBeenCalled();
+		});
+	});
 });
