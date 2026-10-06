@@ -374,11 +374,13 @@ export const deployApplication = async ({
 				}
 			}
 		} else {
-			const qcResult = await runQcStep(application);
-			await updateDeployment(deployment.deploymentId, {
-				testPlanVersionAtDeploy: qcResult.testPlanVersion,
-				qcVerdict: qcResult.verdict,
-			});
+			if (application.qcEnabled) {
+				const qcResult = await runQcStep(application);
+				await updateDeployment(deployment.deploymentId, {
+					testPlanVersionAtDeploy: qcResult.testPlanVersion,
+					qcVerdict: qcResult.verdict,
+				});
+			}
 			if (usesGeneratedTests(application)) {
 				const headline =
 					"Generated tests need the QC step enabled and a GitHub or Git source";
