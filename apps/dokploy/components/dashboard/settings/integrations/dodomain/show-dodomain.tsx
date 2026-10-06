@@ -1,4 +1,5 @@
 import {
+	AlertTriangle,
 	CheckCircle2,
 	ExternalLink,
 	Loader2,
@@ -112,10 +113,32 @@ export const ShowDoDomain = () => {
 					<div className="flex flex-col sm:col-span-2">
 						<dt className="text-xs text-muted-foreground">Webhook</dt>
 						<dd className="flex items-center gap-1 break-all">
-							{integration.webhookRegistered ? (
-								<CheckCircle2 className="size-3.5 shrink-0 text-green-600" />
+							{!integration.webhookRegistered ? (
+								<>
+									<XCircle
+										className="size-3.5 shrink-0 text-red-500"
+										aria-hidden="true"
+									/>
+									<span className="sr-only">Not registered</span>
+								</>
+							) : integration.webhookReachability.likelyPrivate ? (
+								<>
+									<AlertTriangle
+										className="size-3.5 shrink-0 text-yellow-600"
+										aria-hidden="true"
+									/>
+									<span className="sr-only">
+										Registered, but DoDomain can&apos;t reach this address
+									</span>
+								</>
 							) : (
-								<XCircle className="size-3.5 shrink-0 text-red-500" />
+								<>
+									<CheckCircle2
+										className="size-3.5 shrink-0 text-green-600"
+										aria-hidden="true"
+									/>
+									<span className="sr-only">Registered</span>
+								</>
 							)}
 							<span className="font-mono text-xs">
 								{integration.webhookUrl || "Not registered"}
