@@ -15,8 +15,11 @@ import {
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
-		const { flags: rcloneFlags, path: rcloneDestination } =
-			await getRclonePathAndFlags(destination, bucketDestination);
+import {
+	getRclonePathAndFlags,
+	normalizeS3Path,
+	redactRcloneCredentials,
+} from "./utils";
 
 function formatBytes(bytes?: number) {
 	if (bytes === undefined) return "Unknown size";
