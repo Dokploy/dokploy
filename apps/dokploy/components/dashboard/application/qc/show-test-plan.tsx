@@ -78,8 +78,8 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Test Plan</CardTitle>
 					<CardDescription>
-						Enable "QC test-plan step" in Advanced settings to have QC Agent
-						generate and maintain a test plan for this application.
+						Enable "QC test-plan step" in Advanced settings to have the QC
+						service generate and maintain a test plan for this application.
 					</CardDescription>
 				</CardHeader>
 			</Card>
@@ -109,7 +109,8 @@ export const ShowTestPlan = ({ applicationId }: Props) => {
 						) : null}
 					</CardTitle>
 					<CardDescription>
-						Generated/updated by QC Agent on each deploy of this application.
+						Generated/updated by the QC service on each deploy of this
+						application.
 					</CardDescription>
 				</div>
 				<Button

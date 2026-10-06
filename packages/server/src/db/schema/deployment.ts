@@ -3,6 +3,7 @@ import {
 	type AnyPgColumn,
 	boolean,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -80,6 +81,11 @@ export const deployments = pgTable("deployment", {
 	qcVerdict: qcVerdict("qcVerdict"),
 	testExecStatus: testExecStatus("testExecStatus"),
 	testExecExitCode: integer("testExecExitCode"),
+	qcRunId: text("qcRunId"),
+	qcStageStatus:
+		jsonb("qcStageStatus").$type<
+			{ stage: string; status: string; error?: string | null }[]
+		>(),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({

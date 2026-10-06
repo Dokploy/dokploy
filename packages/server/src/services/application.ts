@@ -56,7 +56,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
-import { runQcStep } from "./qc-step";
+import { getQcRepoSource, runQcStep } from "./qc-step";
 export type Application = typeof applications.$inferSelect;
 
 const toTestExecStatus = (
@@ -64,6 +64,19 @@ const toTestExecStatus = (
 ): Deployment["testExecStatus"] => {
 	if (exitCode === null) return "skipped";
 	return exitCode === 0 ? "passed" : "failed";
+};
+
+const appendDeploymentLog = async (
+	logPath: string,
+	serverId: string | null | undefined,
+	message: string,
+) => {
+	const command = `echo "${encodeBase64(message)}" | base64 -d >> "${logPath}"; echo >> "${logPath}";`;
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
 };
 
 export const createApplication = async (
@@ -257,12 +270,6 @@ export const deployApplication = async ({
 	});
 
 	try {
-		const qcResult = await runQcStep(application);
-		await updateDeployment(deployment.deploymentId, {
-			testPlanVersionAtDeploy: qcResult.testPlanVersion,
-			qcVerdict: qcResult.verdict,
-		});
-
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository(applicationEntity);
@@ -286,18 +293,71 @@ export const deployApplication = async ({
 			});
 		}
 
+		const runScript = async (script: string) => {
+			const scriptWithLog = `(${script}) >> ${deployment.logPath} 2>&1`;
+			if (serverId) {
+				await execAsyncRemote(serverId, scriptWithLog);
+			} else {
+				await execAsync(scriptWithLog);
+			}
+		};
+
+		if (application.qcEnabled && getQcRepoSource(application)) {
+			// The plan has to describe the commit that is about to be built, and
+			// only the clone knows which one that is (and has already authenticated
+			// against the provider), so everything up to here runs first.
+			await runScript(command);
+			command = "set -e;";
+
+			const commit = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId,
+			});
+			const qcResult = await runQcStep(application, {
+				commitSha: commit?.hash,
+				idempotencyKey: deployment.deploymentId,
+			}).catch(async (error: unknown) => {
+				// "closed" policy: the deploy stops here, but the row and log should
+				// still say why.
+				const reason = error instanceof Error ? error.message : String(error);
+				await updateDeployment(deployment.deploymentId, {
+					qcVerdict: "error",
+				});
+				await appendDeploymentLog(
+					deployment.logPath,
+					serverId,
+					`== QC test plan blocked the deploy: ${reason} ==`,
+				);
+				throw error;
+			});
+			await updateDeployment(deployment.deploymentId, {
+				testPlanVersionAtDeploy: qcResult.testPlanVersion,
+				qcVerdict: qcResult.verdict,
+				qcRunId: qcResult.runId ?? null,
+				qcStageStatus: qcResult.stages ?? null,
+			});
+			await appendDeploymentLog(
+				deployment.logPath,
+				serverId,
+				qcResult.verdict === "ready"
+					? `== QC test plan v${qcResult.testPlanVersion} ready ==`
+					: `== QC test plan ${qcResult.verdict}${qcResult.reason ? `: ${qcResult.reason}` : ""} ==`,
+			);
+		} else {
+			const qcResult = await runQcStep(application);
+			await updateDeployment(deployment.deploymentId, {
+				testPlanVersionAtDeploy: qcResult.testPlanVersion,
+				qcVerdict: qcResult.verdict,
+			});
+		}
+
 		command += await getBuildCommand(application);
 		command += await getTestExecCommand(
 			applicationEntity,
 			deployment.deploymentId,
 		);
-
-		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
-		} else {
-			await execAsync(commandWithLog);
-		}
+		await runScript(command);
 
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
