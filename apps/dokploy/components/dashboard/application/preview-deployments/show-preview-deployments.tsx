@@ -7,7 +7,6 @@ import {
 	PenSquare,
 	RefreshCw,
 	RocketIcon,
-	ScanEye,
 	Trash2,
 } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
@@ -17,6 +16,7 @@ import {
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
+import { SnapvisorLogo } from "@/components/icons/product-logos";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -109,7 +109,7 @@ const SnapvisorPreviewBadge = ({
 	return (
 		<div className="flex items-center gap-1">
 			<Badge variant="outline" className="gap-1.5">
-				<ScanEye className="size-3" />
+				<SnapvisorLogo className="size-3.5" />
 				<span className={presentation?.className}>
 					{data.buildId ? (presentation?.label ?? "Unknown") : "Not registered"}
 				</span>

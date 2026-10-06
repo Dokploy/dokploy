@@ -1,8 +1,10 @@
 import { ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { INTEGRATION_LEARN_MORE_URLS } from "../integration-links";
 import { HandleUptimely } from "./handle-uptimely";
 import {
 	PoweredByUptimely,
@@ -121,7 +123,10 @@ export const ShowUptimely = () => {
 				</div>
 			)}
 
-			<PoweredByUptimely />
+			<div className="flex flex-row items-center justify-between gap-2">
+				<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.uptimely} />
+				<PoweredByUptimely />
+			</div>
 		</div>
 	);
 };

@@ -1,6 +1,8 @@
 import { Blocks } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType } from "react";
+import { NotiflyLogo, SendlyLogo } from "@/components/icons/product-logos";
+import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import {
 	Card,
 	CardContent,
@@ -8,6 +10,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { INTEGRATION_LEARN_MORE_URLS } from "./integration-links";
 import { ShowDoDomain } from "./dodomain/show-dodomain";
 import { ShowSnapvisor } from "./snapvisor/show-snapvisor";
 import { ShowUptimely } from "./uptimely/show-uptimely";
@@ -43,16 +46,23 @@ export const IntegrationsPage = () => {
 						{INTEGRATION_CARDS.map(({ id, Card: IntegrationCard }) => (
 							<IntegrationCard key={id} />
 						))}
-						<p className="text-sm text-muted-foreground">
-							Sendly and Notifly are set up as notification channels in{" "}
-							<Link
-								href="/dashboard/settings/notifications"
-								className="underline"
-							>
-								Notifications
-							</Link>
-							.
-						</p>
+						<div className="flex flex-row flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+							<span className="flex flex-row items-center gap-1">
+								<SendlyLogo className="size-5 shrink-0" />
+								<NotiflyLogo className="size-5 shrink-0" />
+							</span>
+							<p>
+								Sendly and Notifly are set up as notification channels in{" "}
+								<Link
+									href="/dashboard/settings/notifications"
+									className="underline"
+								>
+									Notifications
+								</Link>
+								.
+							</p>
+							<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.sendly} />
+						</div>
 					</CardContent>
 				</div>
 			</Card>

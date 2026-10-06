@@ -48,6 +48,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { DevinoProviderIntro } from "./devino-provider-intro";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
@@ -243,11 +244,11 @@ export const notificationsMap = {
 		label: "Resend",
 	},
 	sendly: {
-		icon: <SendlyIcon className="text-muted-foreground" />,
+		icon: <SendlyIcon />,
 		label: "Sendly",
 	},
 	notifly: {
-		icon: <NotiflyIcon className="text-muted-foreground" />,
+		icon: <NotiflyIcon />,
 		label: "Notifly",
 	},
 	gotify: {
@@ -1480,6 +1481,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 								{type === "sendly" && (
 									<>
+										<DevinoProviderIntro provider="sendly" />
 										<FormField
 											control={form.control}
 											name="apiKey"
@@ -1591,6 +1593,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 								{type === "notifly" && (
 									<>
+										<DevinoProviderIntro provider="notifly" />
 										<FormField
 											control={form.control}
 											name="apiKey"

@@ -101,12 +101,12 @@ export const ShowNotifications = () => {
 															)}
 															{notification.notificationType === "sendly" && (
 																<div className="flex  items-center justify-center rounded-lg ">
-																	<SendlyIcon className="size-6 text-muted-foreground" />
+																	<SendlyIcon className="size-6" />
 																</div>
 															)}
 															{notification.notificationType === "notifly" && (
 																<div className="flex  items-center justify-center rounded-lg ">
-																	<NotiflyIcon className="size-6 text-muted-foreground" />
+																	<NotiflyIcon className="size-6" />
 																</div>
 															)}
 															{notification.notificationType === "gotify" && (

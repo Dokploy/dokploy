@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +47,11 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { PoweredBySnapvisor } from "../../settings/integrations/snapvisor/snapvisor-logo";
+import { INTEGRATION_LEARN_MORE_URLS } from "../../settings/integrations/integration-links";
+import {
+	PoweredBySnapvisor,
+	SnapvisorMark,
+} from "../../settings/integrations/snapvisor/snapvisor-logo";
 
 const SNAPVISOR_OFF = "__off__";
 
@@ -83,6 +88,10 @@ const SnapvisorPreviewSettingSection = ({
 					</a>{" "}
 					to show visual-diff status on this application&apos;s previews.
 				</span>
+				<LearnMoreLink
+					href={INTEGRATION_LEARN_MORE_URLS.snapvisor}
+					className="shrink-0"
+				/>
 			</div>
 		);
 	}
@@ -108,12 +117,15 @@ const SnapvisorPreviewSettingSection = ({
 	return (
 		<div className="flex flex-col gap-2 p-3 border rounded-lg shadow-xs">
 			<div className="flex flex-row items-center justify-between">
-				<div className="space-y-0.5">
-					<FormLabel>Visual testing (Snapvisor)</FormLabel>
-					<FormDescription>
-						Register each preview deployment with a Snapvisor project so its
-						visual-diff status shows on the preview card.
-					</FormDescription>
+				<div className="flex flex-row items-start gap-3">
+					<SnapvisorMark className="size-8 shrink-0" />
+					<div className="space-y-0.5">
+						<FormLabel>Visual testing (Snapvisor)</FormLabel>
+						<FormDescription>
+							Register each preview deployment with a Snapvisor project so its
+							visual-diff status shows on the preview card.
+						</FormDescription>
+					</div>
 				</div>
 			</div>
 			<Select
@@ -133,7 +145,10 @@ const SnapvisorPreviewSettingSection = ({
 					))}
 				</SelectContent>
 			</Select>
-			<PoweredBySnapvisor />
+			<div className="flex flex-row items-center justify-between gap-2">
+				<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.snapvisor} />
+				<PoweredBySnapvisor />
+			</div>
 		</div>
 	);
 };

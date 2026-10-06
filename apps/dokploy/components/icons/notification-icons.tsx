@@ -1,3 +1,4 @@
+import { NotiflyLogo, SendlyLogo } from "@/components/icons/product-logos";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -322,42 +323,12 @@ export const ResendIcon = ({ className }: Props) => {
 	);
 };
 
-export const SendlyIcon = ({ className }: Props) => {
-	return (
-		<svg
-			viewBox="0 0 24 24"
-			className={cn("size-8", className)}
-			xmlns="http://www.w3.org/2000/svg"
-		>
-			<circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.12" />
-			<path
-				d="M4 6.5 12 12l8-5.5M4 17.5V6.5h16v11H4Z"
-				stroke="currentColor"
-				strokeWidth="1.6"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				fill="none"
-			/>
-		</svg>
-	);
-};
+/** Official Sendly brand mark (see `product-logos.tsx` for its source). */
+export const SendlyIcon = ({ className }: Props) => (
+	<SendlyLogo className={cn("size-8", className)} />
+);
 
-export const NotiflyIcon = ({ className }: Props) => {
-	return (
-		<svg
-			viewBox="0 0 24 24"
-			className={cn("size-8", className)}
-			xmlns="http://www.w3.org/2000/svg"
-		>
-			<circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.12" />
-			<path
-				d="M12 5a5 5 0 0 0-5 5v3l-1.5 2.5h13L17 13v-3a5 5 0 0 0-5-5Zm-1.7 12.5a1.7 1.7 0 0 0 3.4 0"
-				stroke="currentColor"
-				strokeWidth="1.6"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				fill="none"
-			/>
-		</svg>
-	);
-};
+/** Official Notifly brand mark (see `product-logos.tsx` for its source). */
+export const NotiflyIcon = ({ className }: Props) => (
+	<NotiflyLogo className={cn("size-8", className)} />
+);

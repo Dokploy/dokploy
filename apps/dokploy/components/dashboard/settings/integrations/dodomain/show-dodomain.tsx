@@ -7,8 +7,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { INTEGRATION_LEARN_MORE_URLS } from "../integration-links";
 import {
 	DODOMAIN_SITE_URL,
 	DoDomainMark,
@@ -138,7 +140,10 @@ export const ShowDoDomain = () => {
 				</div>
 			)}
 
-			<PoweredByDoDomain />
+			<div className="flex flex-row items-center justify-between gap-2">
+				<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.dodomain} />
+				<PoweredByDoDomain />
+			</div>
 		</div>
 	);
 };

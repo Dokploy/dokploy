@@ -15,7 +15,9 @@ import {
 	PoweredByUptimely,
 	UptimelyMark,
 } from "@/components/dashboard/settings/integrations/uptimely/uptimely-logo";
+import { INTEGRATION_LEARN_MORE_URLS } from "@/components/dashboard/settings/integrations/integration-links";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -318,8 +320,9 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 			<UptimelyMark className="size-8 shrink-0" />
 			<div className="flex flex-col">
 				<span className="text-sm font-medium">Uptime by Uptimely</span>
-				<span className="text-xs text-muted-foreground">
+				<span className="flex flex-row flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
 					External uptime, SSL and domain checks every 5 minutes.
+					<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.uptimely} />
 				</span>
 			</div>
 		</div>
@@ -374,6 +377,7 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 							.
 						</span>
 					)}
+					<LearnMoreLink href={INTEGRATION_LEARN_MORE_URLS.uptimely} />
 				</span>
 				<PoweredByUptimely />
 			</div>
