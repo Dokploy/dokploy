@@ -4,6 +4,12 @@ import {
 	VALID_HOSTNAME_REGEX,
 } from "../../utils/hostname-validation";
 
+// The path is written into a backtick-quoted Traefik rule, so a backtick or a
+// parenthesis would let it add a rule for another host.
+export const URL_PATH_REGEX = /^[A-Za-z0-9\-._~%!&*+,;=:@/]*$/;
+export const URL_PATH_MESSAGE =
+	"Path can only contain letters, digits and the characters - . _ ~ % ! & * + , ; = : @ /";
+
 export const domain = z
 	.object({
 		host: z
@@ -16,8 +22,8 @@ export const domain = z
 			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		path: z.string().min(1).optional(),
-		internalPath: z.string().optional(),
+		path: z.string().min(1).regex(URL_PATH_REGEX, URL_PATH_MESSAGE).optional(),
+		internalPath: z.string().regex(URL_PATH_REGEX, URL_PATH_MESSAGE).optional(),
 		stripPath: z.boolean().optional(),
 		port: z
 			.number()
@@ -82,8 +88,8 @@ export const domainCompose = z
 			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		path: z.string().min(1).optional(),
-		internalPath: z.string().optional(),
+		path: z.string().min(1).regex(URL_PATH_REGEX, URL_PATH_MESSAGE).optional(),
+		internalPath: z.string().regex(URL_PATH_REGEX, URL_PATH_MESSAGE).optional(),
 		stripPath: z.boolean().optional(),
 		port: z
 			.number()

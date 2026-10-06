@@ -15,6 +15,10 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../utils/docker/utils";
+import {
+	applyLibreDBStudioDeployOverrides,
+	getLibreDBStudioDeployOverrides,
+} from "../utils/libredb-studio/deploy";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import { withResolvedVaultRefs } from "../utils/vault";
@@ -273,6 +277,21 @@ const rollbackApplication = async (
 		resolvedContext.environment.project.env,
 		resolvedContext.environment.env,
 	);
+	// appName and serverId come from the application row, while resolvedContext
+	// is the snapshot of an earlier deploy and can still name the server the
+	// Studio ran on before a transfer.
+	const containerSpec = applyLibreDBStudioDeployOverrides(
+		{
+			env: envVariables,
+			mounts: [...volumesMount, ...bindsMount],
+			placement: Placement,
+		},
+		await getLibreDBStudioDeployOverrides({
+			applicationId: resolvedContext.applicationId,
+			appName,
+			serverId: serverId ?? null,
+		}),
+	);
 
 	let rollbackImage = image;
 	if (rollbackRegistry) {
@@ -290,8 +309,8 @@ const rollbackApplication = async (
 			ContainerSpec: {
 				HealthCheck,
 				Image: rollbackImage,
-				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount],
+				Env: containerSpec.env,
+				Mounts: containerSpec.mounts,
 				...(command
 					? {
 							Command: ["/bin/sh"],
@@ -303,7 +322,7 @@ const rollbackApplication = async (
 			},
 			Networks: resolvedNetworks,
 			RestartPolicy,
-			Placement,
+			Placement: containerSpec.placement,
 			Resources: {
 				...resources,
 			},

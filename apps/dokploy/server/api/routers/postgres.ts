@@ -18,6 +18,7 @@ import {
 	rebuildDatabase,
 	removePostgresById,
 	removeService,
+	scheduleLibreDBStudioSync,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -459,6 +460,7 @@ export const postgresRouter = createTRPCRouter({
 					await execAsync(command, { shell: "/bin/bash" });
 				}
 			});
+			scheduleLibreDBStudioSync(pg);
 
 			await audit(ctx, {
 				action: "update",
@@ -481,6 +483,11 @@ export const postgresRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const previous = await db.query.postgres.findFirst({
+				where: eq(postgresTable.postgresId, input.postgresId),
+				columns: { environmentId: true, serverId: true },
+			});
+
 			const updatedPostgres = await db
 				.update(postgresTable)
 				.set({
@@ -496,6 +503,10 @@ export const postgresRouter = createTRPCRouter({
 					message: "Failed to move postgres",
 				});
 			}
+			if (previous) {
+				scheduleLibreDBStudioSync(previous);
+			}
+			scheduleLibreDBStudioSync(updatedPostgres);
 
 			await audit(ctx, {
 				action: "move",

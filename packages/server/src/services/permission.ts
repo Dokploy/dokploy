@@ -1,6 +1,15 @@
 import { db } from "@dokploy/server/db";
-import { member, organizationRole } from "@dokploy/server/db/schema";
+import {
+	libredbStudio,
+	member,
+	organizationRole,
+} from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import {
+	type DomainTarget,
+	findDomainServerIds,
+	isLibreDBStudioHost,
+} from "@dokploy/server/utils/libredb-studio/host";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import {
@@ -241,6 +250,49 @@ export const checkProjectAccess = async (
 	}
 };
 
+export const LIBREDB_STUDIO_MEMBER_CHANGE_MESSAGE =
+	"Only owners and admins of the organization can change a LibreDB Studio. Members can open it with Open in LibreDB Studio.";
+
+// One sentence for every refused host, so a refusal never confirms that a
+// Studio, possibly of another organization, uses the host.
+export const DOMAIN_HOST_IN_USE_MESSAGE =
+	"Another service already uses this domain. Choose a domain that only this service uses.";
+
+export const isLibreDBStudioApplication = async (
+	serviceId: string,
+): Promise<boolean> => {
+	const studio = await db.query.libredbStudio.findFirst({
+		where: eq(libredbStudio.applicationId, serviceId),
+		columns: { libredbStudioId: true },
+	});
+	return !!studio;
+};
+
+export const checkLibreDBStudioHost = async (
+	ctx: PermissionCtx,
+	host: string,
+	target: DomainTarget,
+) => {
+	const memberRecord = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (memberRecord.role === "owner" || memberRecord.role === "admin") return;
+	const serverIds = await findDomainServerIds(target);
+	if (!serverIds) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "The service of this domain was not found.",
+		});
+	}
+	if (await isLibreDBStudioHost(host, serverIds)) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: DOMAIN_HOST_IN_USE_MESSAGE,
+		});
+	}
+};
+
 export const checkServicePermissionAndAccess = async (
 	ctx: PermissionCtx,
 	serviceId: string,
@@ -255,6 +307,17 @@ export const checkServicePermissionAndAccess = async (
 			throw new TRPCError({
 				code: "UNAUTHORIZED",
 				message: "You don't have access to this service",
+			});
+		}
+		// A member's non-read rights on a Studio (domains, env, deployments,
+		// schedules, volume backups) reach its secrets or an owner's launch token.
+		const changes = Object.values(permissions).some((actions) =>
+			(actions as string[]).some((action) => action !== "read"),
+		);
+		if (changes && (await isLibreDBStudioApplication(serviceId))) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: LIBREDB_STUDIO_MEMBER_CHANGE_MESSAGE,
 			});
 		}
 	}
@@ -286,6 +349,12 @@ export const checkServiceAccess = async (
 					message: "You don't have access to this service",
 				});
 			}
+		}
+		if (action === "delete" && (await isLibreDBStudioApplication(serviceId))) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: LIBREDB_STUDIO_MEMBER_CHANGE_MESSAGE,
+			});
 		}
 	}
 };

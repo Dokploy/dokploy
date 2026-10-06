@@ -33,6 +33,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowLibreDBStudio } from "@/components/dashboard/libredb-studio/show-libredb-studio";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { AssignNetworks } from "@/components/dashboard/networks/assign-networks";
@@ -290,6 +291,10 @@ const Service = (
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowLibreDBStudio
+												applicationId={applicationId}
+												icon={data?.icon}
+											/>
 											<ShowGeneralApplication applicationId={applicationId} />
 										</div>
 									</TabsContent>

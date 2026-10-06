@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { scheduleLibreDBStudioSync } from "./libredb-studio";
 import { validUniqueServerAppName } from "./project";
 
 export type MySql = typeof mysql.$inferSelect;
@@ -53,6 +54,7 @@ export const createMysql = async (input: z.infer<typeof apiCreateMySql>) => {
 		});
 	}
 
+	scheduleLibreDBStudioSync(newMysql);
 	return newMysql;
 };
 
@@ -95,6 +97,13 @@ export const updateMySqlById = async (
 	mysqlData: Partial<MySql>,
 ) => {
 	const { appName, ...rest } = mysqlData;
+	const previous =
+		rest.environmentId !== undefined || rest.serverId !== undefined
+			? await db.query.mysql.findFirst({
+					where: eq(mysql.mysqlId, mysqlId),
+					columns: { environmentId: true, serverId: true },
+				})
+			: undefined;
 	const result = await db
 		.update(mysql)
 		.set({
@@ -103,6 +112,12 @@ export const updateMySqlById = async (
 		.where(eq(mysql.mysqlId, mysqlId))
 		.returning();
 
+	if (previous) {
+		scheduleLibreDBStudioSync(previous);
+	}
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
@@ -131,6 +146,9 @@ export const removeMySqlById = async (mysqlId: string) => {
 		.where(eq(mysql.mysqlId, mysqlId))
 		.returning();
 
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 

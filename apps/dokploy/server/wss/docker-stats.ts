@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { resolveDockerStatsOverWss } from "./authorize";
 
 type AppType = "application" | "stack" | "docker-compose";
 
@@ -106,10 +106,16 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
-		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
+		const access = await resolveDockerStatsOverWss(user, session, serviceId, {
+			type: "stats",
+			appName,
+			appType,
+		});
+		if (!access) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
+		const { serviceAppName } = access;
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
@@ -127,15 +133,25 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 
+				// Docker's name filter matches a substring, so a session bound to a
+				// service also filters by that service's own label.
 				const filter = {
 					status: ["running"],
 					...(appType === "application" && {
 						label: [`com.docker.swarm.service.name=${appName}`],
 					}),
 					...(appType === "stack" && {
-						label: [`com.docker.swarm.task.name=${appName}`],
+						label: [
+							`com.docker.swarm.task.name=${appName}`,
+							...(serviceAppName
+								? [`com.docker.stack.namespace=${serviceAppName}`]
+								: []),
+						],
 					}),
 					...(appType === "docker-compose" && {
+						...(serviceAppName && {
+							label: [`com.docker.compose.project=${serviceAppName}`],
+						}),
 						name: [appName],
 					}),
 				};

@@ -16,6 +16,7 @@ import {
 	rebuildDatabase,
 	removeRedisById,
 	removeService,
+	scheduleLibreDBStudioSync,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -440,6 +441,7 @@ export const redisRouter = createTRPCRouter({
 					await execAsync(command, { shell: "/bin/bash" });
 				}
 			});
+			scheduleLibreDBStudioSync(rd);
 
 			await audit(ctx, {
 				action: "update",
@@ -462,6 +464,11 @@ export const redisRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const previous = await db.query.redis.findFirst({
+				where: eq(redisTable.redisId, input.redisId),
+				columns: { environmentId: true, serverId: true },
+			});
+
 			const updatedRedis = await db
 				.update(redisTable)
 				.set({
@@ -477,6 +484,10 @@ export const redisRouter = createTRPCRouter({
 					message: "Failed to move redis",
 				});
 			}
+			if (previous) {
+				scheduleLibreDBStudioSync(previous);
+			}
+			scheduleLibreDBStudioSync(updatedRedis);
 
 			await audit(ctx, {
 				action: "move",

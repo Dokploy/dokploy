@@ -28,6 +28,7 @@ import Link from "next/link";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import { isLibreDBStudioIcon } from "@/components/dashboard/libredb-studio/utils";
 import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
 import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
@@ -39,6 +40,7 @@ import { DuplicateProject } from "@/components/dashboard/project/duplicate-proje
 import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
+	LibreDBStudioIcon,
 	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
@@ -1692,7 +1694,11 @@ const EnvironmentPage = (
 																						<MysqlIcon className="h-7 w-7" />
 																					)}
 																					{service.type === "application" &&
-																						(service.icon ? (
+																						(isLibreDBStudioIcon(
+																							service.icon,
+																						) ? (
+																							<LibreDBStudioIcon className="h-6 w-6" />
+																						) : service.icon ? (
 																							// biome-ignore lint/performance/noImgElement: application icon is data URL
 																							<img
 																								src={service.icon}

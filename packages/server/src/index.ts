@@ -27,6 +27,7 @@ export * from "./services/git-provider";
 export * from "./services/gitea";
 export * from "./services/github";
 export * from "./services/gitlab";
+export * from "./services/libredb-studio";
 export * from "./services/libsql";
 export * from "./services/mariadb";
 export * from "./services/mongo";
