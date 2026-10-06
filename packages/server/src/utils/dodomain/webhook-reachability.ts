@@ -99,8 +99,6 @@ export const isLikelyPrivateWebhookHost = (hostOrUrl: string): boolean => {
 /** `details.reason` values DoDomain uses when it refuses a webhook URL. */
 export const DODOMAIN_WEBHOOK_REFUSAL_REASONS = [
 	"webhook_url_resolves_private",
-	// Tentative on DoDomain's side: the host does not resolve at all.
-	"webhook_url_unresolvable",
 ] as const;
 
 export type DoDomainWebhookRefusalReason =
@@ -133,10 +131,5 @@ const WEBHOOK_WARNING_TAIL =
 	"DNS status still updates when you press Re-verify DNS. Serve the panel on a public HTTPS URL to receive webhooks.";
 
 /** The readable warning for a private (or refused) webhook host. */
-export const dodomainWebhookWarning = (
-	host: string,
-	reason: DoDomainWebhookRefusalReason = "webhook_url_resolves_private",
-) =>
-	reason === "webhook_url_unresolvable"
-		? `DoDomain couldn't resolve ${host}, so domain-status webhooks won't arrive. ${WEBHOOK_WARNING_TAIL}`
-		: `DoDomain can't reach ${host}, so domain-status webhooks won't arrive. ${WEBHOOK_WARNING_TAIL}`;
+export const dodomainWebhookWarning = (host: string) =>
+	`DoDomain can't reach ${host}, so domain-status webhooks won't arrive. ${WEBHOOK_WARNING_TAIL}`;

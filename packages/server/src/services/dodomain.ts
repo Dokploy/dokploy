@@ -123,8 +123,8 @@ type WebhookRegistration =
 const refusalOf = (error: unknown) =>
 	error instanceof DoDomainError ? parseDoDomainWebhookRefusal(error) : null;
 
-const refusalWarning = (url: string, reason: DoDomainWebhookRefusalReason) =>
-	dodomainWebhookWarning(new URL(url).hostname, reason);
+const refusalWarning = (url: string) =>
+	dodomainWebhookWarning(new URL(url).hostname);
 
 /**
  * Whether DoDomain can reach this panel's webhook URL, judged from the host
@@ -196,7 +196,7 @@ const registerWebhookEndpoint = async (params: {
 			},
 		};
 	} catch (error) {
-		// A refused URL (private/unresolvable host) is not an error: the
+		// A refused URL (host resolving to private addresses) is not an error: the
 		// integration is still useful (Re-verify DNS works without webhooks).
 		const refusal = refusalOf(error);
 		if (refusal) return { refusal };
@@ -264,10 +264,7 @@ export const createDoDomain = async (
 		if (!created) throw new Error("Error creating the DoDomain integration");
 		return {
 			integration: created,
-			webhookWarning:
-				"refusal" in registration
-					? refusalWarning(url, registration.refusal)
-					: null,
+			webhookWarning: "refusal" in registration ? refusalWarning(url) : null,
 		};
 	} catch (error) {
 		// Never leave an endpoint DoDomain would deliver to with no receiver.
@@ -318,7 +315,7 @@ export const updateDoDomain = async (
 		if ("webhook" in registration) {
 			Object.assign(values, registration.webhook);
 		} else {
-			webhookWarning = refusalWarning(url, registration.refusal);
+			webhookWarning = refusalWarning(url);
 			// New credentials cannot address the old endpoint; with the same
 			// credentials the old endpoint (if any) is left as it was.
 			if (credentialsChanged) Object.assign(values, NO_WEBHOOK);

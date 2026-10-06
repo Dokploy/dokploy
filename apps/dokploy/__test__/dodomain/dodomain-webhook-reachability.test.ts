@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -124,10 +126,10 @@ describe("parseDoDomainWebhookRefusal", () => {
 		).toBe("webhook_url_resolves_private");
 	});
 
-	it("reads the tentative webhook_url_unresolvable", () => {
+	it("does not treat webhook_url_unresolvable as a refusal", () => {
 		expect(
 			parseDoDomainWebhookRefusal(refusal("webhook_url_unresolvable")),
-		).toBe("webhook_url_unresolvable");
+		).toBeNull();
 	});
 
 	it("matches on error + details.reason only, never on the message", () => {
@@ -194,12 +196,6 @@ describe("dodomainWebhookWarning", () => {
 		expect(text).toBe(
 			"DoDomain can't reach panel.tail1234.ts.net, so domain-status webhooks won't arrive. DNS status still updates when you press Re-verify DNS. Serve the panel on a public HTTPS URL to receive webhooks.",
 		);
-	});
-
-	it("words the unresolvable reason separately", () => {
-		expect(
-			dodomainWebhookWarning("nope.example.com", "webhook_url_unresolvable"),
-		).toContain("couldn't resolve nope.example.com");
 	});
 });
 
@@ -286,6 +282,23 @@ describe("createDoDomain when DoDomain refuses the webhook URL", () => {
 		expect(mocks.inserted).toHaveLength(0);
 	});
 
+	it("surfaces DoDomain's message for an invalid_request with reason webhook_url_unresolvable", async () => {
+		handler = (url, method) =>
+			method === "GET"
+				? json(200, { endpoints: [] })
+				: json(400, {
+						error: "invalid_request",
+						message: "Webhook URL could not be resolved",
+						details: { reason: "webhook_url_unresolvable" },
+					});
+
+		await expect(createDoDomain(input, "org-1")).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			message: "DoDomain: Webhook URL could not be resolved",
+		});
+		expect(mocks.inserted).toHaveLength(0);
+	});
+
 	it("registers normally when DoDomain accepts the URL", async () => {
 		handler = () =>
 			json(200, {
@@ -303,5 +316,27 @@ describe("createDoDomain when DoDomain refuses the webhook URL", () => {
 			webhookEndpointId: "we_1",
 			webhookSecret: "whsec_new",
 		});
+	});
+});
+
+describe("DoDomain card Webhook row", () => {
+	const source = fs.readFileSync(
+		path.resolve(
+			__dirname,
+			"../../components/dashboard/settings/integrations/dodomain/show-dodomain.tsx",
+		),
+		"utf8",
+	);
+
+	it("only shows the green check when registered and not likely private", () => {
+		const row = source.slice(source.indexOf("Webhook</dt>"));
+		const unregistered = row.indexOf("!integration.webhookRegistered");
+		const warning = row.indexOf("webhookReachability.likelyPrivate");
+		const check = row.indexOf("<CheckCircle2");
+		expect(unregistered).toBeGreaterThan(-1);
+		expect(warning).toBeGreaterThan(unregistered);
+		expect(check).toBeGreaterThan(warning);
+		expect(row).toContain("<AlertTriangle");
+		expect(row).toContain("DoDomain can&apos;t reach this address");
 	});
 });
