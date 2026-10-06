@@ -568,7 +568,16 @@ const createBetterAuth = () =>
 			}),
 			sso({ trustEmailVerified: true }),
 			scim({
-				beforeSCIMTokenGenerated: async ({ user }) => {
+				beforeSCIMTokenGenerated: async ({ user, member }) => {
+					// better-auth's /scim/generate-token also accepts a token with no
+					// organizationId. Before @better-auth/scim 1.7, such a provider has no
+					// owner binding and any user can take it over (GHSA-j8v8-g9cx-5qf4).
+					// Dokploy only creates organization providers, so refuse the rest.
+					if (!member) {
+						throw new APIError("BAD_REQUEST", {
+							message: "A SCIM provider must belong to an organization",
+						});
+					}
 					const dbUser = await db.query.user.findFirst({
 						where: eq(schema.user.id, user.id),
 						columns: { enableEnterpriseFeatures: true },
