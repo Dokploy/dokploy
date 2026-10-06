@@ -1,6 +1,3 @@
-import { db } from "@dokploy/server/db";
-import { deployments } from "@dokploy/server/db/schema";
-import { eq } from "drizzle-orm";
 import type { Application } from "./application";
 import { findApplicationById, updateApplication } from "./application";
 import {
@@ -12,7 +9,11 @@ import {
 export interface QcStepResult {
 	verdict: "skipped" | "ready" | "error";
 	testPlanVersion: number | null;
+	reason?: string;
 }
+
+const errorMessage = (error: unknown) =>
+	error instanceof Error ? error.message : String(error);
 
 // github/git are the only sourceTypes with a repo URL dokploy can build
 // without an extra lookup (gitlab/gitea/bitbucket need their provider
@@ -83,7 +84,11 @@ const runQcStepUnlocked = async (
 	// writing its own updates.
 	const application = await findApplicationById(staleApplication.applicationId);
 	if (!application.qcEnabled) {
-		return { verdict: "skipped", testPlanVersion: application.testPlanVersion };
+		return {
+			verdict: "skipped",
+			testPlanVersion: application.testPlanVersion,
+			reason: "QC test-plan step is disabled for this application",
+		};
 	}
 
 	const repoUrl = getApplicationRepoUrl(application);
@@ -120,10 +125,9 @@ const runQcStepUnlocked = async (
 		return { verdict: "error", testPlanVersion: application.testPlanVersion };
 	}
 
-	const priorDeployment = await db.query.deployments.findFirst({
-		where: eq(deployments.applicationId, application.applicationId),
-	});
-	const isFirstDeploy = !priorDeployment;
+	// The deployment row of the deploy that triggers this step already exists
+	// by now, so "has any deployment" can't tell a first deploy apart.
+	const isFirstDeploy = application.testPlanVersion === 0;
 
 	try {
 		await updateApplication(application.applicationId, {
@@ -138,7 +142,11 @@ const runQcStepUnlocked = async (
 			await updateApplication(application.applicationId, {
 				testPlanStatus: "error",
 			});
-			return { verdict: "error", testPlanVersion: application.testPlanVersion };
+			return {
+				verdict: "error",
+				testPlanVersion: application.testPlanVersion,
+				reason: "QC Agent reported an error while building the test plan",
+			};
 		}
 
 		await updateApplication(application.applicationId, {
@@ -156,6 +164,10 @@ const runQcStepUnlocked = async (
 		if (application.qcFailurePolicy === "closed") {
 			throw error;
 		}
-		return { verdict: "error", testPlanVersion: application.testPlanVersion };
+		return {
+			verdict: "error",
+			testPlanVersion: application.testPlanVersion,
+			reason: errorMessage(error),
+		};
 	}
 };

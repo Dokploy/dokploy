@@ -242,7 +242,10 @@ export const deployApplication = async ({
 		}
 
 		command += await getBuildCommand(application);
-		command += await getTestExecCommand(applicationEntity);
+		command += await getTestExecCommand(
+			applicationEntity,
+			deployment.deploymentId,
+		);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
@@ -310,14 +313,17 @@ export const deployApplication = async ({
 			}
 		}
 
-		const testExitCode = await readTestExecExitCode(
-			deployment.logPath,
-			serverId,
-		);
-		await updateDeployment(deployment.deploymentId, {
-			testExecStatus: toTestExecStatus(testExitCode),
-			testExecExitCode: testExitCode,
-		});
+		if (application.testExecEnabled) {
+			const testExitCode = await readTestExecExitCode(
+				deployment.logPath,
+				deployment.deploymentId,
+				serverId,
+			);
+			await updateDeployment(deployment.deploymentId, {
+				testExecStatus: toTestExecStatus(testExitCode),
+				testExecExitCode: testExitCode,
+			});
+		}
 	}
 	return true;
 };
@@ -345,7 +351,7 @@ export const rebuildApplication = async ({
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
-		command += await getTestExecCommand(application);
+		command += await getTestExecCommand(application, deployment.deploymentId);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -385,14 +391,17 @@ export const rebuildApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
 	} finally {
-		const testExitCode = await readTestExecExitCode(
-			deployment.logPath,
-			serverId,
-		);
-		await updateDeployment(deployment.deploymentId, {
-			testExecStatus: toTestExecStatus(testExitCode),
-			testExecExitCode: testExitCode,
-		});
+		if (application.testExecEnabled) {
+			const testExitCode = await readTestExecExitCode(
+				deployment.logPath,
+				deployment.deploymentId,
+				serverId,
+			);
+			await updateDeployment(deployment.deploymentId, {
+				testExecStatus: toTestExecStatus(testExitCode),
+				testExecExitCode: testExitCode,
+			});
+		}
 	}
 
 	return true;
