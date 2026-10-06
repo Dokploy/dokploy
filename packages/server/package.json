@@ -88,7 +88,8 @@
     "toml": "3.0.0",
     "ws": "8.16.0",
     "yaml": "2.8.1",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "@aws-sdk/client-s3": "^3.714.0"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",

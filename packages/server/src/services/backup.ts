@@ -98,3 +98,5 @@ export const findBackupsByDbId = async (
 	});
 	return result || [];
 };
+
+export { S3BackupProvider } from "./backup/s3-provider";
