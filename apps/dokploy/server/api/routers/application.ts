@@ -7,6 +7,7 @@ import {
 	findEnvironmentById,
 	findPreviewDeploymentsByApplicationId,
 	findProjectById,
+	findTestPlanHistoryEntry,
 	generateTraefikMeDomain,
 	getAccessibleServerIds,
 	getApplicationStats,
@@ -15,6 +16,7 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	isTestPlanGenerating,
+	listTestPlanHistory,
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
@@ -82,6 +84,25 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+
+// The same checks `application.one` makes, for procedures that only need to
+// know the caller may read the application.
+const assertCanReadApplication = async (
+	ctx: Parameters<typeof checkServiceAccess>[0],
+	applicationId: string,
+) => {
+	await checkServiceAccess(ctx, applicationId, "read");
+	const application = await findApplicationById(applicationId);
+	if (
+		application.environment.project.organizationId !==
+		ctx.session.activeOrganizationId
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this application",
+		});
+	}
+};
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -489,6 +510,34 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: application.applicationId,
 				resourceName: application.appName,
 			});
+		}),
+	// Every test plan the QC service produced for this application, newest first.
+	testPlanHistory: protectedProcedure
+		.input(apiFindOneApplication)
+		.query(async ({ input, ctx }) => {
+			await assertCanReadApplication(ctx, input.applicationId);
+			return await listTestPlanHistory(input.applicationId);
+		}),
+	testPlanHistoryEntry: protectedProcedure
+		.input(
+			z.object({
+				applicationId: z.string().min(1),
+				testPlanHistoryId: z.string().min(1),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			await assertCanReadApplication(ctx, input.applicationId);
+			const entry = await findTestPlanHistoryEntry(
+				input.applicationId,
+				input.testPlanHistoryId,
+			);
+			if (!entry) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "That test plan version does not exist.",
+				});
+			}
+			return entry;
 		}),
 	regenerateTestPlan: protectedProcedure
 		.input(apiFindOneApplication)

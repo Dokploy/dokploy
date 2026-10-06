@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+	recordVersion: vi.fn(),
 	updateApplication: vi.fn(),
 	findApplicationById: vi.fn(),
 	claim: vi.fn(),
@@ -13,6 +14,9 @@ vi.mock("@dokploy/server/services/application", () => ({
 	updateApplication: mocks.updateApplication,
 	findApplicationById: mocks.findApplicationById,
 	claimTestPlanGeneration: mocks.claim,
+}));
+vi.mock("@dokploy/server/services/test-plan-history", () => ({
+	recordTestPlanVersion: mocks.recordVersion,
 }));
 vi.mock("@dokploy/server/services/qc-service-client", () => ({
 	QC_SERVICE_TIMEOUT_MS: 10_000,
@@ -163,6 +167,26 @@ describe("runQcStep", () => {
 		expect(mocks.createRun).toHaveBeenCalledWith(
 			expect.objectContaining({ stages: undefined }),
 		);
+	});
+
+	test("keeps every plan version it produces", async () => {
+		await runQcStep(app(), { commitSha: SHA, idempotencyKey: "dep1" });
+		expect(mocks.recordVersion).toHaveBeenCalledWith({
+			applicationId: "app1",
+			branch: "main",
+			version: 3,
+			content: "# plan",
+			commitSha: SHA,
+			qcRunId: "run1",
+		});
+	});
+
+	test("does not record anything when the run failed", async () => {
+		mocks.waitForRun.mockResolvedValue(
+			doneRun({ status: "failed", error: { code: "x", message: "boom" } }),
+		);
+		await runQcStep(app(), { commitSha: SHA });
+		expect(mocks.recordVersion).not.toHaveBeenCalled();
 	});
 
 	test("passes force through for a manual regenerate", async () => {

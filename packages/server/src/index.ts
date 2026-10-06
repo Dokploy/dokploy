@@ -47,6 +47,7 @@ export * from "./services/proprietary/whitelabeling";
 export * from "./services/qc-exec";
 export * from "./services/qc-service-client";
 export * from "./services/qc-webhook";
+export * from "./services/test-plan-history";
 export * from "./services/qc-step";
 export * from "./services/redirect";
 export * from "./services/redis";
