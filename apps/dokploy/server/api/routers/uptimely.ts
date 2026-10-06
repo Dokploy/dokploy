@@ -2,6 +2,7 @@ import {
 	createUptimely,
 	findUptimelyByOrganizationId,
 	getUptimelyServiceStatus,
+	hasUptimelyMonitorableTarget,
 	IS_CLOUD,
 	linkUptimelyService,
 	listUptimelyStatusPages,
@@ -202,8 +203,27 @@ export const uptimelyRouter = createTRPCRouter({
 				serviceType: input.serviceType,
 				serviceId: input.serviceId,
 			});
+			// Only needed before the first monitor exists: lets the panel say up
+			// front that there is nothing to monitor. null = could not tell, so
+			// the panel keeps the button enabled and the server stays the judge.
+			let monitorable: boolean | null = null;
+			if (status.monitors.length === 0) {
+				try {
+					const target = await resolveUptimelyServiceTarget(
+						input.serviceType,
+						input.serviceId,
+					);
+					monitorable =
+						target.organizationId === ctx.session.activeOrganizationId
+							? hasUptimelyMonitorableTarget(target)
+							: null;
+				} catch {
+					monitorable = null;
+				}
+			}
 			return {
 				configured: true as const,
+				monitorable,
 				baseUrl: integration.baseUrl,
 				projectId: integration.projectId,
 				badgeUrl: uptimelyBadgeUrl(integration),

@@ -1603,7 +1603,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormControl>
 														<Input
 															type="password"
-															placeholder="Novu secret key"
+															placeholder="Notifly API key"
 															{...field}
 														/>
 													</FormControl>

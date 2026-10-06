@@ -323,6 +323,15 @@ export const resolveUptimelyServiceTarget = async (
 };
 
 /**
+ * Pure: true when the service has something Uptimely can watch (an HTTPS
+ * domain, or a database external endpoint). The panel uses it to explain, up
+ * front, why "Monitor with Uptimely" would be refused.
+ */
+export const hasUptimelyMonitorableTarget = (
+	target: Pick<UptimelyServiceTarget, "httpsUrls" | "externalEndpoint">,
+) => target.httpsUrls.length > 0 || target.externalEndpoint !== null;
+
+/**
  * Pure: the monitors Uptimely should get for a service. One Website monitor per
  * HTTPS URL, one Port monitor for an exposed database, plus optional SSL
  * Certificate + Domain monitors per distinct HTTPS host.

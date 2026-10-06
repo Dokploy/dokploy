@@ -7,6 +7,7 @@ import {
 	findDomainById,
 	findPreviewDeploymentById,
 	getDoDomainConnectionStatus,
+	getDoDomainWebhookReachability,
 	IS_CLOUD,
 	maskDoDomainSecretKey,
 	removeDoDomain,
@@ -124,7 +125,12 @@ export const dodomainRouter = createTRPCRouter({
 		const integration = await findDoDomainByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
-		return integration ? presentIntegration(integration) : null;
+		if (!integration) return null;
+		return {
+			...presentIntegration(integration),
+			// Whether DoDomain can reach this panel's webhook URL (host-based).
+			webhookReachability: await getDoDomainWebhookReachability(),
+		};
 	}),
 
 	/** Lets the domain dialog show DoDomain actions to non-admin members. */
@@ -140,7 +146,7 @@ export const dodomainRouter = createTRPCRouter({
 		.input(apiCreateDoDomain)
 		.mutation(async ({ input, ctx }) => {
 			assertSelfHosted();
-			const created = await createDoDomain(
+			const { integration: created, webhookWarning } = await createDoDomain(
 				input,
 				ctx.session.activeOrganizationId,
 			);
@@ -150,14 +156,16 @@ export const dodomainRouter = createTRPCRouter({
 				resourceId: created.dodomainId,
 				resourceName: created.name,
 			});
-			return presentIntegration(created);
+			// A refused webhook URL still saves the integration; the warning says why
+			// no webhooks will arrive.
+			return { ...presentIntegration(created), webhookWarning };
 		}),
 
 	update: adminProcedure
 		.input(apiUpdateDoDomain)
 		.mutation(async ({ input, ctx }) => {
 			assertSelfHosted();
-			const updated = await updateDoDomain(
+			const { integration: updated, webhookWarning } = await updateDoDomain(
 				ctx.session.activeOrganizationId,
 				input,
 			);
@@ -167,7 +175,7 @@ export const dodomainRouter = createTRPCRouter({
 				resourceId: updated.dodomainId,
 				resourceName: updated.name,
 			});
-			return presentIntegration(updated);
+			return { ...presentIntegration(updated), webhookWarning };
 		}),
 
 	remove: adminProcedure.mutation(async ({ ctx }) => {

@@ -16,6 +16,7 @@ import {
 	UptimelyMark,
 } from "@/components/dashboard/settings/integrations/uptimely/uptimely-logo";
 import { INTEGRATION_LEARN_MORE_URLS } from "@/components/dashboard/settings/integrations/integration-links";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -42,6 +43,7 @@ import {
 	formatRelativeTime,
 	formatUptimePercent,
 	isOfflineStatus,
+	nothingToMonitorMessage,
 	preflightWarning,
 } from "./uptimely-panel-helpers";
 
@@ -225,6 +227,7 @@ const PreflightResults = ({
 export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 	const [includeSslAndDomain, setIncludeSslAndDomain] = useState(false);
 	const [checkPath, setCheckPath] = useState("");
+	const [linkError, setLinkError] = useState<string | null>(null);
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
@@ -251,10 +254,13 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 		serviceType === "application" || serviceType === "compose";
 
 	const hasMonitors = !!data?.configured && data.monitors.length > 0;
+	// Server says there is nothing to watch yet (null = unknown: stay enabled).
+	const nothingToMonitor = !!data?.configured && data.monitorable === false;
 	const trimmedPath = checkPath.trim();
 	const pathError = checkPathError(trimmedPath);
 
 	const link = async () => {
+		setLinkError(null);
 		await linkMutation
 			.mutateAsync({
 				...input,
@@ -274,6 +280,9 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 				await utils.uptimely.serviceStatus.invalidate(input);
 			})
 			.catch((e) => {
+				// Inline (a toast alone vanishes before it can be read); the toast
+				// stays as the immediate cue.
+				setLinkError(e.message);
 				toast.error("Could not create Uptimely monitors", {
 					description: e.message,
 				});
@@ -411,7 +420,7 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 							</Label>
 						</div>
 					)}
-					{supportsDomains && canManage && (
+					{supportsDomains && canManage && !nothingToMonitor && (
 						<>
 							<div className="flex flex-col gap-1.5">
 								<Label
@@ -446,12 +455,22 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 							/>
 						</>
 					)}
+					{nothingToMonitor && (
+						<AlertBlock type="warning" className="w-full">
+							{nothingToMonitorMessage(supportsDomains)}
+						</AlertBlock>
+					)}
+					{linkError && (
+						<AlertBlock type="error" className="w-full">
+							{linkError}
+						</AlertBlock>
+					)}
 					{canManage ? (
 						<Button
 							className="w-fit"
 							onClick={link}
 							isLoading={linkMutation.isPending}
-							disabled={!!pathError}
+							disabled={!!pathError || nothingToMonitor}
 						>
 							<PlugZap className="size-4" />
 							Monitor with Uptimely
@@ -524,6 +543,19 @@ export const UptimelyServicePanel = ({ serviceType, serviceId }: Props) => {
 					)}
 				</div>
 			</div>
+
+			{canManage && supportsDomains && (
+				<span className="text-xs text-muted-foreground">
+					&quot;Add monitors for new domains&quot; creates a Website monitor for
+					each HTTPS domain added to this service since it was linked. Existing
+					monitors are kept.
+				</span>
+			)}
+			{linkError && (
+				<AlertBlock type="error" className="w-full">
+					{linkError}
+				</AlertBlock>
+			)}
 
 			<div className="flex flex-col divide-y rounded-lg border">
 				{data.monitors.map((monitor) => {

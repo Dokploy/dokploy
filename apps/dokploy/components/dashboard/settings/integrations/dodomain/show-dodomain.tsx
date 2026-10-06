@@ -6,6 +6,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { LearnMoreLink } from "@/components/shared/learn-more-link";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,22 @@ export const ShowDoDomain = () => {
 					</span>
 					<HandleDoDomain />
 				</div>
+			)}
+
+			{integration?.webhookReachability.warning ? (
+				<AlertBlock type="warning" className="w-full">
+					{integration.webhookReachability.warning}
+				</AlertBlock>
+			) : (
+				integration &&
+				!integration.webhookRegistered && (
+					<AlertBlock type="warning" className="w-full">
+						DoDomain did not accept this panel&apos;s webhook URL, so
+						domain-status webhooks won&apos;t arrive. DNS status still updates
+						when you press Re-verify DNS. Save the integration again once the
+						panel is served on a public HTTPS URL.
+					</AlertBlock>
+				)
 			)}
 
 			<div className="flex flex-row items-center justify-between gap-2">

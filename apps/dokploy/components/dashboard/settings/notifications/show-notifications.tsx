@@ -42,7 +42,7 @@ export const ShowNotifications = () => {
 						</CardTitle>
 						<CardDescription>
 							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Teams, Email, Resend, Lark.
+							Telegram, Teams, Email, Resend, Lark, Sendly, Notifly.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">

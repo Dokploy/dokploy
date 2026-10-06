@@ -113,10 +113,18 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 			: createMutation.mutateAsync({ ...common, secretKey });
 
 		await action
-			.then(async () => {
-				toast.success(`DoDomain ${editing ? "updated" : "connected"}`, {
-					description: "The webhook endpoint is registered with DoDomain.",
-				});
+			.then(async (saved) => {
+				if (saved.webhookWarning) {
+					// Saved, but DoDomain refused this panel's webhook URL.
+					toast.warning(
+						`DoDomain ${editing ? "updated" : "connected"}, without webhooks`,
+						{ description: saved.webhookWarning, duration: 15_000 },
+					);
+				} else {
+					toast.success(`DoDomain ${editing ? "updated" : "connected"}`, {
+						description: "The webhook endpoint is registered with DoDomain.",
+					});
+				}
 				await utils.dodomain.one.invalidate();
 				await utils.dodomain.configured.invalidate();
 				// Never keep the submitted key in form state.
@@ -213,6 +221,11 @@ export const HandleDoDomain = ({ editing = false }: Props) => {
 						DoDomain can report verification results. The panel must be
 						reachable over https (Settings → Web Server).
 					</AlertBlock>
+					{editing && integration?.webhookReachability.warning && (
+						<AlertBlock type="warning" className="w-full">
+							{integration.webhookReachability.warning}
+						</AlertBlock>
+					)}
 
 					<Form {...form}>
 						<form

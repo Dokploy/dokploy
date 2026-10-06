@@ -132,6 +132,76 @@ export const sendSendlyNotification = async (
 	}
 };
 
+const NOTIFLY_ERROR_MAX_LENGTH = 200;
+
+const capText = (text: string, max: number) =>
+	text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+
+/**
+ * Pulls the human message out of a Notifly error body: `{"message": "..."}`
+ * (a string or a list of strings), `{"error": {"message": "..."}}` or
+ * `{"error": "..."}`; anything that is not JSON is used as plain text.
+ */
+const notiflyErrorDetail = (body: string) => {
+	const text = body.trim();
+	if (!text) return "";
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text);
+	} catch {
+		return text;
+	}
+	if (!parsed || typeof parsed !== "object") return text;
+	const { message, error } = parsed as {
+		message?: unknown;
+		error?: unknown;
+	};
+	const pick = (value: unknown): string | null => {
+		if (typeof value === "string" && value.trim()) return value.trim();
+		if (Array.isArray(value)) {
+			const joined = value.filter((v) => typeof v === "string").join(", ");
+			return joined || null;
+		}
+		return null;
+	};
+	return (
+		pick(message) ??
+		pick((error as { message?: unknown } | null)?.message) ??
+		pick(error) ??
+		""
+	);
+};
+
+/**
+ * One short line for a failed Notifly call, e.g. `Notifly rejected the API key
+ * (API Key not found)`: the upstream JSON is parsed (never dumped raw) and the
+ * detail is length-capped.
+ */
+export const buildNotiflyErrorMessage = (response: {
+	status?: number;
+	statusText?: string;
+	body: string;
+}) => {
+	const detail = capText(
+		notiflyErrorDetail(response.body),
+		NOTIFLY_ERROR_MAX_LENGTH,
+	);
+	if (response.status === 401) {
+		return detail
+			? `Notifly rejected the API key (${detail})`
+			: "Notifly rejected the API key";
+	}
+	const label = [response.status, response.statusText]
+		.filter(Boolean)
+		.join(" ");
+	const head = label
+		? `Notifly request failed (${label})`
+		: "Notifly request failed";
+	return detail ? `${head}: ${detail}` : head;
+};
+
+class NotiflyRequestError extends Error {}
+
 export const sendNotiflyNotification = async (
 	connection: typeof notifly.$inferInsert,
 	payload: Record<string, any>,
@@ -154,14 +224,20 @@ export const sendNotiflyNotification = async (
 
 		if (!response.ok) {
 			const body = await response.text().catch(() => "");
-			throw new Error(
-				`Failed to send Notifly notification: ${response.statusText} ${body}`,
+			throw new NotiflyRequestError(
+				buildNotiflyErrorMessage({
+					status: response.status,
+					statusText: response.statusText,
+					body,
+				}),
 			);
 		}
 	} catch (err) {
 		console.log(err);
+		// Already a finished one-line message: do not wrap it a second time.
+		if (err instanceof NotiflyRequestError) throw err;
 		throw new Error(
-			`Failed to send Notifly notification ${err instanceof Error ? err.message : "Unknown error"}`,
+			`Could not reach Notifly: ${err instanceof Error ? err.message : "Unknown error"}`,
 		);
 	}
 };

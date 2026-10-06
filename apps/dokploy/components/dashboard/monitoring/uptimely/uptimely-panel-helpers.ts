@@ -43,6 +43,16 @@ export const preflightWarning = (result: PreflightResultLike): string | null => 
 	return `${url} returns ${result.status}, so Uptimely will report it Offline. Set a path that returns 200, such as /health.`;
 };
 
+/**
+ * Shown (and the button disabled) when the service has nothing Uptimely can
+ * watch yet: applications/compose need an HTTPS domain, databases need an
+ * external port.
+ */
+export const nothingToMonitorMessage = (supportsDomains: boolean) =>
+	supportsDomains
+		? "Add an HTTPS domain to this service to monitor it with Uptimely."
+		: "Expose an external port to add a TCP monitor for this database.";
+
 /** "just now", "5 min ago", "3 h ago", "2 d ago". */
 export const formatRelativeTime = (
 	iso: string | null | undefined,
