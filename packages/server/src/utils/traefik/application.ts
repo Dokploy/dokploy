@@ -1,10 +1,17 @@
-import fs, { createReadStream, writeFileSync } from "node:fs";
+import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
+import {
+	aggregateHourlyRequests,
+	DATE_RANGE_ENTRY_LIMIT,
+	DEFAULT_ENTRY_LIMIT,
+	type HourlyRequestCount,
+	readLastLogEntries,
+} from "../access-log/reader";
+import { processLogs } from "../access-log/utils";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -151,48 +158,50 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	}
 };
 
-export const readMonitoringConfig = async (readAll = false) => {
+export const readMonitoringConfig = async (
+	readAll = false,
+	dateRange?: { start?: string; end?: string },
+) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
-	if (fs.existsSync(configPath)) {
-		if (!readAll) {
-			// Read first 500 lines using streams
-			let content = "";
-			let validCount = 0;
-
-			const fileStream = createReadStream(configPath, { encoding: "utf8" });
-			const readline = createInterface({
-				input: fileStream,
-				crlfDelay: Number.POSITIVE_INFINITY,
-			});
-
-			for await (const line of readline) {
-				try {
-					const trimmed = line.trim();
-					if (
-						trimmed !== "" &&
-						trimmed.startsWith("{") &&
-						trimmed.endsWith("}")
-					) {
-						const log = JSON.parse(trimmed);
-						// Exclude Dokploy service app and Dashboard requests
-						if (log.ServiceName !== "dokploy-service-app@file") {
-							content += `${line}\n`;
-							validCount++;
-							if (validCount >= 500) {
-								break;
-							}
-						}
-					}
-				} catch {
-					// Ignore invalid JSON
-				}
-			}
-			return content;
-		}
-		return fs.readFileSync(configPath, "utf8");
+	if (!fs.existsSync(configPath)) {
+		return null;
 	}
-	return null;
+
+	// access.log is append-only, so the entries the UI cares about are always at the
+	// end of the file. Reading backwards keeps memory bounded by what is returned
+	// instead of by the size of the log, and never blocks the event loop.
+	//
+	// When a start date is given the walk stops there; the limit is then only a safety
+	// ceiling so that a very wide range still cannot pull an unbounded number of
+	// entries into memory.
+	return readLastLogEntries(configPath, {
+		limit: readAll ? DATE_RANGE_ENTRY_LIMIT : DEFAULT_ENTRY_LIMIT,
+		notBefore: dateRange?.start ? new Date(dateRange.start) : undefined,
+	});
+};
+
+/**
+ * Requests-per-hour series for the Requests page chart.
+ *
+ * With a date range the access log is streamed and aggregated without any entry cap,
+ * so a wide range over a very large log is neither truncated nor loaded into memory.
+ * Without a range it keeps the previous behaviour of summarising the default window
+ * of entries.
+ */
+export const readMonitoringStats = async (dateRange?: {
+	start?: string;
+	end?: string;
+}): Promise<HourlyRequestCount[]> => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
+	if (!fs.existsSync(configPath)) {
+		return [];
+	}
+	if (dateRange?.start || dateRange?.end) {
+		return aggregateHourlyRequests(configPath, dateRange);
+	}
+	return processLogs((await readMonitoringConfig(false)) as string);
 };
 
 export const readConfigInPath = async (pathFile: string, serverId?: string) => {

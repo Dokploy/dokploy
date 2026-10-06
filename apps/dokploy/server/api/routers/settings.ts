@@ -24,13 +24,13 @@ import {
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
-	processLogs,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
 	readEnvironmentVariables,
 	readMainConfig,
 	readMonitoringConfig,
+	readMonitoringStats,
 	readPorts,
 	recreateDirectory,
 	reloadDockerResource,
@@ -892,6 +892,7 @@ export const settingsRouter = createTRPCRouter({
 			}
 			const rawConfig = await readMonitoringConfig(
 				!!input.dateRange?.start && !!input.dateRange?.end,
+				input.dateRange,
 			);
 
 			const parsedConfig = parseRawConfig(
@@ -930,11 +931,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return [];
 			}
-			const rawConfig = await readMonitoringConfig(
-				!!input?.dateRange?.start || !!input?.dateRange?.end,
-			);
-			const processedLogs = processLogs(rawConfig as string, input?.dateRange);
-			return processedLogs || [];
+			return (await readMonitoringStats(input?.dateRange)) || [];
 		}),
 	haveActivateRequests: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
