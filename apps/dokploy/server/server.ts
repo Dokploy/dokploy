@@ -13,6 +13,7 @@ import {
 	initVolumeBackupsCronJobs,
 	isMcpDisabled,
 	sendDokployRestartNotifications,
+	setBackgroundErrorReporter,
 	setupDirectories,
 } from "@dokploy/server";
 import { config } from "dotenv";
@@ -27,6 +28,11 @@ import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
 
 config({ path: ".env" });
+
+// Unexpected (non-environment) failures in cron jobs, fire-and-forget work and
+// websocket handlers are caught where they happen; report them from here since
+// the server package cannot import this app's Sentry module.
+setBackgroundErrorReporter(captureError);
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
@@ -109,7 +115,14 @@ void app
 
 			if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 				createDefaultMiddlewares();
-				await initializeNetwork();
+				try {
+					await initializeNetwork();
+				} catch (e) {
+					// Do not skip the cron/schedule setup below because the overlay
+					// network could not be created.
+					console.error("Failed to initialize dokploy-network", e);
+					captureError(e, { handler: "initializeNetwork" });
+				}
 				await initCronJobs();
 				await initSchedules();
 				await initCancelDeployments();

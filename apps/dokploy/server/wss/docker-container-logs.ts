@@ -5,6 +5,7 @@ import { spawn as spawnPty } from "node-pty";
 import { Client, type ClientChannel } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { onGuardedConnection } from "./guard";
 import {
 	buildDockerLogsArguments,
 	createDockerLogsDataHandler,
@@ -37,7 +38,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 	});
 
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	wssTerm.on("connection", async (ws, req) => {
+	onGuardedConnection(wssTerm, "docker-container-logs", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail") ?? "100";

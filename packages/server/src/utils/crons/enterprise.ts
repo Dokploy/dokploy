@@ -3,6 +3,7 @@ import { and, eq, isNotNull } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import { user as userSchema } from "../../db/schema/user";
+import { backgroundJob } from "../process/background";
 
 export const LICENSE_KEY_URL =
 	// process.env.NODE_ENV === "development"
@@ -10,35 +11,39 @@ export const LICENSE_KEY_URL =
 	"https://licenses-api.dokploy.com";
 
 export const initEnterpriseBackupCronJobs = async () => {
-	scheduleJob("enterprise-check", "0 0 */3 * *", async () => {
-		const users = await db.query.user.findMany({
-			where: and(
-				isNotNull(userSchema.licenseKey),
-				isNotNull(userSchema.enableEnterpriseFeatures),
-				eq(userSchema.isValidEnterpriseLicense, true),
-			),
-		});
-		for (const user of users) {
-			if (user.isValidEnterpriseLicense) {
-				console.log(
-					"Validating license key....",
-					user.firstName,
-					user.lastName,
-				);
-				try {
-					const isValid = await validateLicenseKey(user.licenseKey || "");
-					if (!isValid) {
-						throw new Error("License key is invalid");
+	scheduleJob(
+		"enterprise-check",
+		"0 0 */3 * *",
+		backgroundJob("Enterprise license check", async () => {
+			const users = await db.query.user.findMany({
+				where: and(
+					isNotNull(userSchema.licenseKey),
+					isNotNull(userSchema.enableEnterpriseFeatures),
+					eq(userSchema.isValidEnterpriseLicense, true),
+				),
+			});
+			for (const user of users) {
+				if (user.isValidEnterpriseLicense) {
+					console.log(
+						"Validating license key....",
+						user.firstName,
+						user.lastName,
+					);
+					try {
+						const isValid = await validateLicenseKey(user.licenseKey || "");
+						if (!isValid) {
+							throw new Error("License key is invalid");
+						}
+					} catch (error) {
+						await db
+							.update(userSchema)
+							.set({ isValidEnterpriseLicense: false })
+							.where(eq(userSchema.id, user.id));
 					}
-				} catch (error) {
-					await db
-						.update(userSchema)
-						.set({ isValidEnterpriseLicense: false })
-						.where(eq(userSchema.id, user.id));
 				}
 			}
-		}
-	});
+		}),
+	);
 };
 
 export const validateLicenseKey = async (licenseKey: string) => {

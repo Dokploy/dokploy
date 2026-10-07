@@ -4,6 +4,7 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { onGuardedConnection } from "./guard";
 import {
 	isValidContainerId,
 	isValidShell,
@@ -33,7 +34,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 	});
 
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	wssTerm.on("connection", async (ws, req) => {
+	onGuardedConnection(wssTerm, "docker-container-terminal", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");

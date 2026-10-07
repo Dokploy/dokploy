@@ -28,7 +28,10 @@ export const initializeNetwork = async () => {
 	if (networkInitialized) {
 		console.log("Network is already initialized");
 	} else {
-		docker.createNetwork({
+		// Awaited so a failure rejects to the caller instead of becoming an
+		// unhandled rejection. The server catches and reports it; the install script
+		// (apps/dokploy/setup.ts) catches and logs it.
+		await docker.createNetwork({
 			Attachable: true,
 			Name: "dokploy-network",
 			Driver: "overlay",

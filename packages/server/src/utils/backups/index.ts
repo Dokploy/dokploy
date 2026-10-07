@@ -10,6 +10,7 @@ import { db } from "../../db/index";
 import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
+import { backgroundJob } from "../process/background";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import {
@@ -36,15 +37,19 @@ export const initCronJobs = async () => {
 
 	if (webServerSettings?.enableDockerCleanup) {
 		try {
-			scheduleJob("docker-cleanup", CLEANUP_CRON_JOB, async () => {
-				console.log(
-					`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
-				);
+			scheduleJob(
+				"docker-cleanup",
+				CLEANUP_CRON_JOB,
+				backgroundJob("[Backup] Docker cleanup", async () => {
+					console.log(
+						`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
+					);
 
-				await cleanupAll();
+					await cleanupAll();
 
-				await sendDockerCleanupNotifications(admin.user.id);
-			});
+					await sendDockerCleanupNotifications(admin.user.id);
+				}),
+			);
 		} catch (error) {
 			console.error("[Backup] Docker Cleanup Error", error);
 		}
@@ -56,18 +61,26 @@ export const initCronJobs = async () => {
 		const { serverId, enableDockerCleanup, name } = server;
 		if (enableDockerCleanup) {
 			try {
-				scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
-					console.log(
-						`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
-					);
+				scheduleJob(
+					serverId,
+					CLEANUP_CRON_JOB,
+					backgroundJob(
+						"[Backup] Server docker cleanup",
+						async () => {
+							console.log(
+								`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
+							);
 
-					await cleanupAll(serverId);
+							await cleanupAll(serverId);
 
-					await sendDockerCleanupNotifications(
-						admin.user.id,
-						`Docker cleanup for Server ${name} (${serverId})`,
-					);
-				});
+							await sendDockerCleanupNotifications(
+								admin.user.id,
+								`Docker cleanup for Server ${name} (${serverId})`,
+							);
+						},
+						{ serverId },
+					),
+				);
 			} catch (error) {
 				console.error(`[Backup] ${error}`);
 			}

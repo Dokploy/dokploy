@@ -5,6 +5,7 @@ import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { onGuardedConnection } from "./guard";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -27,7 +28,7 @@ export const setupDeploymentLogsWebSocketServer = (
 		}
 	});
 
-	wssTerm.on("connection", async (ws, req) => {
+	onGuardedConnection(wssTerm, "listen-deployment", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const logPath = url.searchParams.get("logPath");
 		const serverId = url.searchParams.get("serverId");

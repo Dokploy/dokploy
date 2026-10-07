@@ -46,7 +46,10 @@ export const createRedirect = async (
 
 			const application = await findApplicationById(redirect.applicationId);
 
-			createRedirectMiddleware(application, redirect);
+			// Awaited inside the transaction: if the middleware cannot be written
+			// (for example the remote server is offline) the insert is rolled back
+			// and the caller gets the error.
+			await createRedirectMiddleware(application, redirect);
 		});
 
 		return true;

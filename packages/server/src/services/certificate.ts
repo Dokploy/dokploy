@@ -53,7 +53,25 @@ export const createCertificate = async (
 
 	const cer = certificate[0];
 
-	createCertificateFiles(cer);
+	try {
+		await createCertificateFiles(cer);
+	} catch (error) {
+		// Do not leave a certificate row behind whose files were never written
+		// (for example the remote server is offline).
+		await db
+			.delete(certificates)
+			.where(eq(certificates.certificateId, cer.certificateId))
+			.catch((cleanupError) => {
+				console.error("Failed to roll back certificate", {
+					certificateId: cer.certificateId,
+					error:
+						cleanupError instanceof Error
+							? cleanupError.message
+							: String(cleanupError),
+				});
+			});
+		throw error;
+	}
 
 	return cer;
 };
