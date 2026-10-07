@@ -1,3 +1,4 @@
+import { isFreeDomain } from "@dokploy/server/utils/free-domain";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
 	ArrowUpDown,
@@ -173,7 +174,7 @@ export const createColumns = ({
 							{domain.certificateType}
 						</Badge>
 					)}
-					{!domain.host.includes("sslip.io") && (
+					{!isFreeDomain(domain.host) && (
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -299,7 +300,7 @@ export const createColumns = ({
 
 			return (
 				<div className="flex items-center gap-2">
-					{!domain.host.includes("sslip.io") && (
+					{!isFreeDomain(domain.host) && (
 						<DnsHelperModal
 							domain={{
 								host: domain.host,
