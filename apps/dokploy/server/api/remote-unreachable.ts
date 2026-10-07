@@ -158,6 +158,73 @@ export const formatRemoteUnreachableMessage = (info: {
 };
 
 /**
+ * Maps an error thrown by a stream to the error that should be thrown instead
+ * (the same error when it needs no mapping). Must not reject.
+ */
+export type StreamErrorMapper = (error: unknown) => Promise<unknown>;
+
+/**
+ * Wraps an async iterable so an error thrown while it is iterated is passed
+ * through `mapError` first. Values are forwarded as they arrive (no buffering,
+ * tracked() envelopes untouched), and `return()`/`throw()` are forwarded so a
+ * client unsubscribe still runs the source's `finally` blocks and cleanup.
+ */
+export const mapAsyncIterableErrors = <T>(
+	source: AsyncIterable<T>,
+	mapError: StreamErrorMapper,
+): AsyncIterable<T> => ({
+	[Symbol.asyncIterator]() {
+		const iterator = source[Symbol.asyncIterator]();
+		const guard = async <R>(call: () => Promise<R>): Promise<R> => {
+			try {
+				return await call();
+			} catch (error) {
+				throw await mapError(error);
+			}
+		};
+		const wrapped: AsyncIterableIterator<T> = {
+			[Symbol.asyncIterator]: () => wrapped,
+			next: (...args) => guard(() => iterator.next(...args)),
+		};
+		if (iterator.return) {
+			wrapped.return = (value) => guard(() => iterator.return!(value));
+		}
+		if (iterator.throw) {
+			wrapped.throw = (error) => guard(() => iterator.throw!(error));
+		}
+		return wrapped;
+	},
+});
+
+interface ObserverLike {
+	error: (error: unknown) => void;
+}
+
+interface ObservableLike {
+	subscribe: (observer: never) => unknown;
+}
+
+/**
+ * Same as `mapAsyncIterableErrors` for a tRPC observable: an error passed to
+ * `emit.error` is mapped before it reaches the subscriber. Everything else
+ * (next, complete, the teardown returned by subscribe) is forwarded as is.
+ */
+export const mapObservableErrors = <T extends ObservableLike>(
+	source: T,
+	mapError: StreamErrorMapper,
+): T => ({
+	...source,
+	subscribe(observer: ObserverLike) {
+		return (source.subscribe as (observer: ObserverLike) => unknown)({
+			...observer,
+			error: (error: unknown) => {
+				void mapError(error).then((mapped) => observer.error(mapped));
+			},
+		});
+	},
+});
+
+/**
  * Returns details when `error` (or anything in its cause chain) is a failure
  * to reach a remote server over SSH, otherwise `null`.
  *
