@@ -29,6 +29,7 @@ import {
 	findUserById,
 	IS_CLOUD,
 	updateProjectById,
+	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -65,6 +66,7 @@ import {
 	projects,
 	redis,
 } from "@/server/db/schema";
+import { getBillingStatus } from "@/server/utils/billing";
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -652,6 +654,35 @@ export const projectRouter = createTRPCRouter({
 			services: applicationsCount + composeCount + databasesCount,
 			status,
 		};
+	}),
+
+	onboardingStatus: protectedProcedure.query(async ({ ctx }) => {
+		const projectCountRows = await db
+			.select({ projectCount: sql<number>`count(*)::int` })
+			.from(projects)
+			.where(eq(projects.organizationId, ctx.session.activeOrganizationId));
+		const projectCount = projectCountRows[0]?.projectCount ?? 0;
+
+		const billingStatus = await getBillingStatus(ctx.user.ownerId);
+		const currentUser = await findUserById(ctx.user.id);
+
+		const isOwner = ctx.user.role === "owner";
+		const billingGatePassed = IS_CLOUD ? !billingStatus.hasActiveAccess : true;
+
+		return {
+			shouldShowOnboarding:
+				isOwner &&
+				!currentUser.onboardingCompletedAt &&
+				projectCount === 0 &&
+				billingGatePassed,
+			projectCount,
+			...billingStatus,
+		};
+	}),
+
+	completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+		await updateUser(ctx.user.id, { onboardingCompletedAt: new Date() });
+		return { ok: true };
 	}),
 
 	search: protectedProcedure

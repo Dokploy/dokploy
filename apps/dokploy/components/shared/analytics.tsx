@@ -92,5 +92,11 @@ export const useHubSpotChat = (enabled: boolean) => {
 				loadWidget,
 			];
 		}
+		return () => {
+			window.hsConversationsOnReady = window.hsConversationsOnReady?.filter(
+				(callback) => callback !== loadWidget,
+			);
+			window.HubSpotConversations?.widget.remove();
+		};
 	}, [enabled]);
 };

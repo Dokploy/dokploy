@@ -428,6 +428,7 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
 				serverId: compose.serverId ?? undefined,
+				freshVolumes: input.freshVolumes,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
@@ -477,6 +478,7 @@ export const composeRouter = createTRPCRouter({
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
 				serverId: compose.serverId ?? undefined,
+				freshVolumes: input.freshVolumes,
 			};
 			if (IS_CLOUD && compose.serverId) {
 				deploy(jobData).catch((error) => {
@@ -757,7 +759,6 @@ export const composeRouter = createTRPCRouter({
 				customGitSSHKeyId: null,
 
 				sourceType: "github", // Reset to default
-				composeStatus: "idle",
 				watchPaths: null,
 				enableSubmodules: false,
 			});

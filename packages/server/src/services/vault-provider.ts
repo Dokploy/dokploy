@@ -20,6 +20,7 @@ const SENSITIVE_FIELDS: Record<VaultProviderConfig["providerType"], string[]> =
 		hashicorp: ["token"],
 		infisical: ["clientSecret"],
 		aws: ["secretAccessKey"],
+		"aws-parameter-store": ["secretAccessKey"],
 		doppler: ["serviceToken"],
 		azure: ["clientSecret"],
 		scaleway: ["secretKey"],

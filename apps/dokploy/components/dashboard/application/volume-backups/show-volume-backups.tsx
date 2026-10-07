@@ -77,35 +77,26 @@ export const ShowVolumeBackups = ({
 	};
 
 	return (
-		<Card className=" px-6 shadow-none bg-transparent h-full min-h-[50vh]">
-			<CardHeader className="px-0">
-				<div className="flex justify-between items-center flex-wrap gap-2">
-					<div className="flex flex-col gap-2">
-						<CardTitle className="text-xl font-bold flex items-center gap-2">
-							Volume Backups
-						</CardTitle>
-						<CardDescription>
-							Schedule volume backups to run automatically at specified
-							intervals
-						</CardDescription>
-					</div>
-					<div className="flex items-center gap-2 flex-wrap">
-						{volumeBackups && volumeBackups.length > 0 && (
-							<>
-								<HandleVolumeBackups id={id} volumeBackupType={type} />
-								<div className="flex items-center gap-2">
-									<RestoreVolumeBackups
-										id={id}
-										type={type}
-										serverId={serverId}
-									/>
-								</div>
-							</>
-						)}
-					</div>
+		<Card className="bg-background h-full min-h-[50vh]">
+			<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
+				<div className="flex flex-col gap-1">
+					<CardTitle className="text-xl">Volume Backups</CardTitle>
+					<CardDescription>
+						Schedule volume backups to run automatically at specified intervals
+					</CardDescription>
+				</div>
+				<div className="flex items-center gap-2 flex-wrap">
+					{volumeBackups && volumeBackups.length > 0 && (
+						<>
+							<HandleVolumeBackups id={id} volumeBackupType={type} />
+							<div className="flex items-center gap-2">
+								<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
+							</div>
+						</>
+					)}
 				</div>
 			</CardHeader>
-			<CardContent className="px-0">
+			<CardContent>
 				{isLoadingVolumeBackups ? (
 					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />

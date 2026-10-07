@@ -43,6 +43,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { TruncateTooltip } from "@/components/shared/truncate-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
@@ -100,6 +101,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { TrialBanner } from "../dashboard/billing/trial-banner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
@@ -616,7 +618,7 @@ function SidebarLogo() {
 					)}
 				>
 					{/* Organization Logo and Selector */}
-					<SidebarMenuItem className={"w-full"}>
+					<SidebarMenuItem className={"w-full min-w-0"}>
 						<Popover
 							open={organizationSelectorOpen}
 							onOpenChange={setOrganizationSelectorOpen}
@@ -632,14 +634,13 @@ function SidebarLogo() {
 								>
 									<div
 										className={cn(
-											"flex items-center gap-2",
+											"flex min-w-0 flex-1 items-center gap-2",
 											isCollapsed && "justify-center",
 										)}
 									>
 										<div
 											className={cn(
-												"flex items-center justify-center rounded-sm border",
-												"size-6",
+												"flex size-6 shrink-0 items-center justify-center rounded-sm border",
 											)}
 										>
 											<Logo
@@ -652,22 +653,27 @@ function SidebarLogo() {
 										</div>
 										<div
 											className={cn(
-												"flex flex-col items-start",
+												"flex flex-col items-start min-w-0 flex-1",
 												isCollapsed && "hidden",
 											)}
 										>
-											<div className="flex items-center gap-1.5">
-												<p className="text-sm font-medium leading-none">
-													{activeOrganization?.name ?? "Select Organization"}
-												</p>
+											<div className="flex items-center gap-1.5 min-w-0 w-full">
+												<TruncateTooltip
+													text={
+														activeOrganization?.name ?? "Select Organization"
+													}
+													className="text-sm font-medium"
+												/>
 												{haveValidLicense && (
-													<Badge variant="blue">Enterprise</Badge>
+													<Badge variant="blue" className="shrink-0">
+														Enterprise
+													</Badge>
 												)}
 											</div>
 										</div>
 									</div>
 									<ChevronsUpDown
-										className={cn("ml-auto", isCollapsed && "hidden")}
+										className={cn("ml-auto shrink-0", isCollapsed && "hidden")}
 									/>
 								</SidebarMenuButton>
 							</PopoverTrigger>
@@ -1224,6 +1230,7 @@ export default function Page({ children }: Props) {
 				<SidebarRail />
 			</Sidebar>
 			<SidebarInset>
+				{isCloud === true && <TrialBanner />}
 				{!includesProjects && (
 					<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
 						<div className="flex items-center justify-between w-full px-4">

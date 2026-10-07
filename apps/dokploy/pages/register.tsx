@@ -1,5 +1,6 @@
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -27,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -305,6 +307,11 @@ Register.getLayout = (page: ReactElement) => {
 	);
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the onboarding logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	if (IS_CLOUD) {
 		const { user } = await validateRequest(context.req);
 
@@ -318,6 +325,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		}
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				isCloud: true,
 			},
 		};
@@ -334,6 +342,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	}
 	return {
 		props: {
+			trpcState: helpers.dehydrate(),
 			isCloud: false,
 		},
 	};
