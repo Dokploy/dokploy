@@ -5,6 +5,7 @@ interface OnboardingState {
 	stepId?: string;
 	projectId?: string;
 	environmentId?: string;
+	applicationId?: string;
 }
 
 export const isOnboardingActive = () => {
