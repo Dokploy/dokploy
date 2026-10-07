@@ -111,6 +111,7 @@ describe("enterprise resources for static roles", () => {
 		expect(perms.destination.read).toBe(false);
 		expect(perms.notification.read).toBe(false);
 		expect(perms.auditLog.read).toBe(false);
+		expect(perms.logProvider.read).toBe(false);
 	});
 });
 

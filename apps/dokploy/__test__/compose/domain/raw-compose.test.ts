@@ -33,8 +33,16 @@ services:
 volumes:
   test-data:
 `,
+			composeId: "compose-1",
+			name: "raw-stack",
 			composePath: "./docker-compose.yml",
 			composeType: "stack",
+			environment: {
+				environmentId: "env-1",
+				name: "production",
+				projectId: "project-1",
+				project: { name: "shop", organizationId: "org-1" },
+			},
 			isolatedDeployment: false,
 			isolatedDeploymentsVolume: false,
 			randomize: false,
@@ -54,6 +62,16 @@ volumes:
 			},
 		]);
 		expect(converted?.services?.test?.tmpfs).toEqual(["/cache"]);
+		expect(converted?.services?.test?.labels).toEqual(
+			expect.arrayContaining([
+				"dokploy.organization.id=org-1",
+				"dokploy.project=shop",
+				"dokploy.service=test",
+			]),
+		);
+		expect(converted?.services?.test?.deploy?.labels).toEqual(
+			expect.arrayContaining(["dokploy.organization.id=org-1"]),
+		);
 		expect(execAsyncRemote).not.toHaveBeenCalled();
 	});
 });

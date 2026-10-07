@@ -18,6 +18,7 @@ const FREE_TIER_RESOURCES = [
 	"gitProviders",
 	"traefikFiles",
 	"api",
+	"logProvider",
 ];
 
 const ENTERPRISE_RESOURCES = [

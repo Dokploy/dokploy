@@ -126,7 +126,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 			enableDockerCleanup: data.enableDockerCleanup,
 			serverId: serverId || "",
 		})
-			.then(async (_data) => {
+			.then(async () => {
 				await utils.server.all.invalidate();
 				refetchServer();
 				toast.success(serverId ? "Server Updated" : "Server Created");

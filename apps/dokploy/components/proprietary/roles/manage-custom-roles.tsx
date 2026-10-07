@@ -180,6 +180,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage DNS providers (Cloudflare, AWS Route53) and create, update, or delete their DNS records",
 	},
+	logProvider: {
+		label: "Log Providers",
+		description:
+			"Manage log management providers (Grafana Loki, Datadog, Better Stack) used to ship container logs",
+	},
 };
 
 /** Descriptions for each action within a resource */
@@ -474,6 +479,14 @@ const ACTION_META: Record<
 			label: "Delete",
 			description: "Remove DNS providers and delete their records",
 		},
+	},
+	logProvider: {
+		read: { label: "Read", description: "View configured log providers" },
+		create: {
+			label: "Create",
+			description: "Add new log providers and test their connection",
+		},
+		delete: { label: "Delete", description: "Remove log providers" },
 	},
 };
 
