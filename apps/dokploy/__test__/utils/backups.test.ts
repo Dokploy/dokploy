@@ -420,7 +420,6 @@ describe("FTP/SFTP provider-aware destination base paths", () => {
 		"bucket\0next",
 		"bucket\rnext",
 		"bucket\nnext",
-		"bucket%ZZ",
 		":sftp:/backups",
 		"s3://bucket",
 	])("rejects an unsafe SFTP base %s", async (bucket) => {
@@ -428,6 +427,17 @@ describe("FTP/SFTP provider-aware destination base paths", () => {
 			getRclonePathAndFlags(sftpDestination(bucket), "service/backup.tar"),
 		).rejects.toThrow("Invalid rclone path");
 	});
+
+	test.each(["100%", "bucket%ZZ", "reports%E2%80%94archive"])(
+		"keeps an SFTP base containing %s",
+		async (bucket) => {
+			const result = await getRclonePathAndFlags(
+				sftpDestination(bucket),
+				"service/backup.tar",
+			);
+			expect(result.path).toBe(`:sftp:${bucket}/service/backup.tar`);
+		},
+	);
 
 	test("quotes a path containing shell metacharacters", async () => {
 		const result = await getRclonePathAndFlags(

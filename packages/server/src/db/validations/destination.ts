@@ -58,14 +58,23 @@ const RCLONE_WINDOWS_DRIVE_PATH = /^[a-zA-Z]:/;
 const RCLONE_REMOTE_PREFIX = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const RCLONE_PERCENT_ESCAPE = /%[0-9a-f]{2}/i;
 const RCLONE_PERCENT_ESCAPE_GLOBAL = /%[0-9a-f]{2}/gi;
+const RCLONE_PERCENT_ESCAPE_RUN = /(?:%[0-9a-f]{2})+/gi;
+const RCLONE_PERCENT_DECODER = new TextDecoder();
 
 const decodeRclonePath = (value: string) => {
 	let decoded = value;
 	for (let index = 0; index < 8; index += 1) {
 		if (!RCLONE_PERCENT_ESCAPE.test(decoded)) return decoded;
-		decoded = decoded.replace(RCLONE_PERCENT_ESCAPE_GLOBAL, (escape) =>
-			String.fromCharCode(parseInt(escape.slice(1), 16)),
-		);
+		decoded = decoded.replace(RCLONE_PERCENT_ESCAPE_RUN, (run) => {
+			// A multi-byte character arrives as one escape per byte, so a run has
+			// to be decoded as a unit: per-escape decoding turns "%E2%80%94" into
+			// U+0080/U+0094, which the control-character check then rejects.
+			const bytes = Uint8Array.from(
+				run.match(RCLONE_PERCENT_ESCAPE_GLOBAL) ?? [],
+				(sequence) => Number.parseInt(sequence.slice(1), 16),
+			);
+			return RCLONE_PERCENT_DECODER.decode(bytes);
+		});
 	}
 	return RCLONE_PERCENT_ESCAPE.test(decoded) ? null : decoded;
 };

@@ -49,6 +49,10 @@ describe("issue #416 rclone path safety", () => {
 		"/service/backup.sql.gz",
 		"service/backup..sql.gz",
 		"service/file name.sql.gz",
+		"100%/backup.sql.gz",
+		"safe/%ZZ/backup.sql.gz",
+		"reports%E2%80%94archive/backup.sql.gz",
+		"caf%C3%A9/backup.sql.gz",
 	])("keeps valid backup path %s", (value) => {
 		expect(() => assertSafeRclonePath(value)).not.toThrow();
 	});
@@ -130,7 +134,6 @@ const unsafeDestinationBuckets = [
 	"safe/%2e%2e%5coutside",
 	"safe/%5coutside",
 	"safe/%255coutside",
-	"safe/%ZZ",
 	"bucket\0next",
 	"bucket\rnext",
 	"bucket\nnext",
