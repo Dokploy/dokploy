@@ -64,7 +64,13 @@
 			"tar-fs": ">=2.1.4 <3.0.0",
 			"uuid": ">=11.1.1 <12.0.0",
 			"valibot": ">=1.4.2 <2.0.0",
-			"proxy-addr": ">=2.0.8 <3.0.0"
+			"proxy-addr": ">=2.0.8 <3.0.0",
+			"axios": ">=1.20.0 <2.0.0",
+			"source-map-js": ">=1.2.2 <2.0.0",
+			"ip-address": ">=10.7.1 <11.0.0",
+			"sharp": ">=0.35.5 <0.36.0",
+			"@modelcontextprotocol/sdk": ">=1.31.0 <2.0.0",
+			"fast-copy": ">=3.1.0 <4.0.0"
 		},
 		"peerDependencyRules": {
 			"ignoreMissing": [
