@@ -286,6 +286,7 @@ const rollbackApplication = async (
 			serveraddress: rollbackRegistry?.registryUrl || "",
 		},
 		Name: appName,
+		Networks: resolvedNetworks,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
@@ -328,8 +329,10 @@ const rollbackApplication = async (
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			Networks: resolvedNetworks,
 			TaskTemplate: {
 				...settings.TaskTemplate,
+				Networks: resolvedNetworks,
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
