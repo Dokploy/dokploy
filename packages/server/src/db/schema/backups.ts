@@ -145,8 +145,8 @@ const customNameSchema = z
 	.trim()
 	.max(100, "Custom name must be 100 characters or less")
 	.regex(
-		/^[a-zA-Z0-9._-]*$/,
-		"Only letters, numbers, dots, hyphens and underscores are allowed",
+		/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/,
+		"Must start with a letter or number; only letters, numbers, dots, hyphens and underscores are allowed",
 	)
 	.optional();
 

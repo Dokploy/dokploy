@@ -83,8 +83,8 @@ const Schema = z
 			.trim()
 			.max(100, "Custom name must be 100 characters or less")
 			.regex(
-				/^[a-zA-Z0-9._-]*$/,
-				"Only letters, numbers, dots, hyphens and underscores are allowed",
+				/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/,
+				"Must start with a letter or number; only letters, numbers, dots, hyphens and underscores are allowed",
 			)
 			.optional(),
 		enabled: z.boolean(),
@@ -652,7 +652,8 @@ export const HandleBackup = ({
 												timestamp, e.g.
 												"my-backup-2026-08-03T20-58-22-123Z.sql.gz". Only
 												letters, numbers, dots, hyphens and underscores are
-												allowed.
+												allowed. "Keep the latest" counts every backup in the
+												same destination folder, regardless of its custom name.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
