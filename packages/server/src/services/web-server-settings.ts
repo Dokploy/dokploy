@@ -56,8 +56,7 @@ export const claimWebServerLogManagement = async (
 		.update(webServerSettings)
 		.set({
 			logProviderIds,
-			logManagementOrganizationId:
-				logProviderIds.length > 0 ? organizationId : null,
+			logManagementOrganizationId: organizationId,
 			updatedAt: new Date(),
 		})
 		.where(
@@ -72,4 +71,15 @@ export const claimWebServerLogManagement = async (
 		.returning();
 
 	return updated ?? null;
+};
+
+export const releaseWebServerLogManagement = async (organizationId: string) => {
+	await db
+		.update(webServerSettings)
+		.set({
+			logProviderIds: [],
+			logManagementOrganizationId: null,
+			updatedAt: new Date(),
+		})
+		.where(eq(webServerSettings.logManagementOrganizationId, organizationId));
 };

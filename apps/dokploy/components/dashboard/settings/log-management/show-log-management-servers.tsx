@@ -17,11 +17,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
-type Status = "running" | "stopped" | "unknown";
+type Status = "running" | "not-running" | "stopped" | "unknown";
 
 const statusBadge = (status: Status) => {
 	if (status === "running") {
 		return <Badge variant="green">Running</Badge>;
+	}
+	if (status === "not-running") {
+		return <Badge variant="yellow">Not running</Badge>;
 	}
 	if (status === "stopped") {
 		return <Badge variant="secondary">Not deployed</Badge>;
@@ -117,6 +120,9 @@ export const ShowLogManagementServers = () => {
 	};
 
 	const hasProviders = (providers?.length ?? 0) > 0;
+	const visibleTargets = hasProviders
+		? targets
+		: targets?.filter((target) => target.status !== "stopped");
 
 	return (
 		<div className="w-full">
@@ -130,7 +136,9 @@ export const ShowLogManagementServers = () => {
 						<CardDescription>
 							Pick which providers each server ships to, then deploy its Vector
 							agent. Changing a provider only takes effect on a server after you
-							redeploy it.
+							redeploy it. Services deployed before Log Management need a
+							redeploy to get the labels it uses; until then their logs are not
+							shipped from the Dokploy server.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -139,7 +147,7 @@ export const ShowLogManagementServers = () => {
 								<span>Checking servers...</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
-						) : !hasProviders ? (
+						) : !hasProviders && !visibleTargets?.length ? (
 							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
 								<ScrollText className="size-8 self-center text-muted-foreground" />
 								<span className="text-base text-muted-foreground text-center">
@@ -148,11 +156,11 @@ export const ShowLogManagementServers = () => {
 							</div>
 						) : (
 							<div className="flex flex-col gap-4">
-								{targets?.map((target) => {
+								{visibleTargets?.map((target) => {
 									const key = keyOf(target.serverId);
 									const ids = idsFor(target.serverId, target.logProviderIds);
 									const isBusy = pendingTarget === key;
-									const isDeployed = target.status === "running";
+									const isDeployed = target.status !== "stopped";
 									const hasEnabledSelected = ids.some(
 										(id) =>
 											providers?.find((p) => p.logProviderId === id)?.enabled,
@@ -196,9 +204,11 @@ export const ShowLogManagementServers = () => {
 											</div>
 
 											<div className="flex flex-col gap-2">
-												<span className="text-xs font-medium">
-													Log providers
-												</span>
+												{hasProviders && (
+													<span className="text-xs font-medium">
+														Log providers
+													</span>
+												)}
 												<div className="flex flex-col gap-2">
 													{providers?.map((provider) => {
 														const ProviderIcon =
@@ -274,27 +284,29 @@ export const ShowLogManagementServers = () => {
 												</AlertBlock>
 											)}
 
-											<div className="flex items-center justify-end gap-3">
-												{ids.length > 0 && !hasEnabledSelected && (
-													<span className="text-xs text-muted-foreground">
-														Every selected provider is disabled — nothing would
-														ship.
-													</span>
-												)}
-												<Button
-													size="sm"
-													isLoading={isBusy}
-													disabled={!hasEnabledSelected}
-													onClick={() => handleDeploy(target.serverId, ids)}
-												>
-													{isDeployed ? "Redeploy" : "Deploy"}
-												</Button>
-											</div>
+											{hasProviders && (
+												<div className="flex items-center justify-end gap-3">
+													{ids.length > 0 && !hasEnabledSelected && (
+														<span className="text-xs text-muted-foreground">
+															Every selected provider is disabled — nothing
+															would ship.
+														</span>
+													)}
+													<Button
+														size="sm"
+														isLoading={isBusy}
+														disabled={!hasEnabledSelected}
+														onClick={() => handleDeploy(target.serverId, ids)}
+													>
+														{isDeployed ? "Redeploy" : "Deploy"}
+													</Button>
+												</div>
+											)}
 										</div>
 									);
 								})}
 
-								{targets?.length === 0 && (
+								{visibleTargets?.length === 0 && (
 									<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
 										<Server className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">

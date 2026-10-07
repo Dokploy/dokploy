@@ -262,6 +262,41 @@ describe("updateLogProvider — merges partial update with existing row before v
 		);
 	});
 
+	it("clears an optional credential when it is explicitly set to null", async () => {
+		mocks.findFirst.mockResolvedValue({
+			logProviderId: "lp-1",
+			name: "loki-prod",
+			providerType: "loki",
+			endpoint: "https://loki.example.com",
+			apiKey: "old-token",
+			apiSecret: null,
+			extraConfig: { username: "user" },
+		});
+		mocks.updateSet.mockReturnValue([{ logProviderId: "lp-1" }]);
+
+		await updateLogProvider("lp-1", { apiKey: null });
+
+		expect(mocks.updateSet).toHaveBeenCalledWith(
+			expect.objectContaining({ apiKey: null }),
+		);
+	});
+
+	it("rejects clearing the elasticsearch password while a username stays saved", async () => {
+		mocks.findFirst.mockResolvedValue({
+			logProviderId: "lp-1",
+			name: "es-prod",
+			providerType: "elasticsearch",
+			endpoint: "https://es.example.com:9200",
+			apiKey: "old-password",
+			apiSecret: null,
+			extraConfig: { username: "elastic" },
+		});
+
+		await expect(updateLogProvider("lp-1", { apiKey: null })).rejects.toThrow(
+			/Password/,
+		);
+	});
+
 	it("rejects a providerType change that doesn't satisfy the new type's required fields", async () => {
 		mocks.findFirst.mockResolvedValue({
 			logProviderId: "lp-1",

@@ -7,6 +7,7 @@ import {
 import {
 	findServerById,
 	findServersByOrganizationForLogManagement,
+	getAccessibleServerIds,
 } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
@@ -315,6 +316,26 @@ const deployVectorService = async (serverId?: string) => {
 	}
 };
 
+const vectorTargetLocks = new Map<string, Promise<unknown>>();
+
+// In-process only: Dokploy runs a single dashboard process per host.
+export const withVectorTargetLock = async <T>(
+	serverId: string | undefined,
+	fn: () => Promise<T>,
+): Promise<T> => {
+	const key = serverId ?? "local";
+	const previous = vectorTargetLocks.get(key) ?? Promise.resolve();
+	const current = previous.catch(() => {}).then(fn);
+	vectorTargetLocks.set(key, current);
+	try {
+		return await current;
+	} finally {
+		if (vectorTargetLocks.get(key) === current) {
+			vectorTargetLocks.delete(key);
+		}
+	}
+};
+
 export const setupVectorAgent = async (
 	organizationId: string,
 	serverId?: string,
@@ -348,39 +369,56 @@ export const removeVectorAgent = async (serverId?: string) => {
 	}
 };
 
-const isVectorRunning = async (serverId?: string): Promise<boolean> => {
+type VectorStatus = "running" | "not-running" | "stopped" | "unknown";
+
+const inspectVectorStatus = async (
+	serverId?: string,
+): Promise<VectorStatus> => {
 	const docker = await getRemoteDocker(serverId);
 	try {
-		await docker.getService(VECTOR_SERVICE_NAME).inspect();
-		return true;
-	} catch {
-		return false;
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [VECTOR_SERVICE_NAME],
+				"desired-state": ["running"],
+			}),
+		});
+		return tasks.some((task) => task.Status?.State === "running")
+			? "running"
+			: "not-running";
+	} catch (error: any) {
+		if (error?.statusCode === 404) {
+			return "stopped";
+		}
+		throw error;
 	}
 };
 
 const VECTOR_CHECK_TIMEOUT_MS = 5000;
 
-const vectorStatus = async (
-	serverId: string | null,
-): Promise<"running" | "stopped" | "unknown"> => {
+const vectorStatus = async (serverId: string | null): Promise<VectorStatus> => {
 	try {
-		const running = await Promise.race([
-			isVectorRunning(serverId ?? undefined),
+		return await Promise.race([
+			inspectVectorStatus(serverId ?? undefined),
 			new Promise<never>((_, reject) =>
 				setTimeout(() => reject(new Error("timeout")), VECTOR_CHECK_TIMEOUT_MS),
 			),
 		]);
-		return running ? "running" : "stopped";
 	} catch {
 		return "unknown";
 	}
 };
 
-export const getLogManagementServerStatus = async (organizationId: string) => {
-	const [servers, settings] = await Promise.all([
+export const getLogManagementServerStatus = async (session: {
+	userId: string;
+	activeOrganizationId: string;
+}) => {
+	const organizationId = session.activeOrganizationId;
+	const [allServers, settings, accessibleIds] = await Promise.all([
 		findServersByOrganizationForLogManagement(organizationId),
 		IS_CLOUD ? Promise.resolve(null) : getWebServerSettings(),
+		getAccessibleServerIds(session),
 	]);
+	const servers = allServers.filter((s) => accessibleIds.has(s.serverId));
 
 	const webOwnsThisOrg =
 		!!settings &&

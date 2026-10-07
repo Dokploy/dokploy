@@ -55,8 +55,8 @@ describe("removeLogProvider", () => {
 		expect(render(mocks.updates[1]?.values.logProviderIds)).toBe(
 			'array_remove("webServerSettings"."logProviderIds", $1)',
 		);
-		expect(render(mocks.updates[1]?.values.logManagementOrganizationId)).toBe(
-			'CASE WHEN cardinality(array_remove("webServerSettings"."logProviderIds", $1)) = 0 THEN NULL ELSE "webServerSettings"."logManagementOrganizationId" END',
+		expect(mocks.updates[1]?.values).not.toHaveProperty(
+			"logManagementOrganizationId",
 		);
 	});
 

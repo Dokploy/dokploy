@@ -50,6 +50,7 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 	const [initialFieldValues, setInitialFieldValues] = useState<
 		Record<string, string>
 	>({});
+	const [clearedKeys, setClearedKeys] = useState<Record<string, boolean>>({});
 
 	const { data: availableTypes } = api.logProvider.availableTypes.useQuery();
 	const { data: provider } = api.logProvider.one.useQuery(
@@ -96,12 +97,14 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 			>;
 			setFieldValues(extraConfig);
 			setInitialFieldValues(extraConfig);
+			setClearedKeys({});
 		} else if (isOpen) {
 			setName("");
 			setProviderType("");
 			setEnabled(true);
 			setFieldValues({});
 			setInitialFieldValues({});
+			setClearedKeys({});
 		}
 	}, [provider, isOpen]);
 
@@ -114,6 +117,8 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 			if (TOP_LEVEL_KEYS.has(field.key)) {
 				if (value) {
 					payload[field.key] = value;
+				} else if (clearedKeys[field.key]) {
+					payload[field.key] = null;
 				}
 			} else {
 				hasExtraConfigFields = true;
@@ -129,7 +134,9 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 	const topLevelKeys = (selectedType?.credentialFields ?? [])
 		.filter((field) => TOP_LEVEL_KEYS.has(field.key))
 		.map((field) => field.key);
-	const touchedTopLevelKeys = topLevelKeys.filter((key) => !!fieldValues[key]);
+	const touchedTopLevelKeys = topLevelKeys.filter(
+		(key) => !!fieldValues[key] || clearedKeys[key],
+	);
 	const extraConfigKeys = (selectedType?.credentialFields ?? [])
 		.filter((field) => !TOP_LEVEL_KEYS.has(field.key))
 		.map((field) => field.key);
@@ -190,6 +197,9 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 		} as any)
 			.then(() => {
 				utils.logProvider.all.invalidate();
+				if (logProviderId) {
+					utils.logProvider.one.invalidate({ logProviderId });
+				}
 				const agents =
 					logProviderId &&
 					agentsUsingProvider(
@@ -307,24 +317,49 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 									{field.helpText}
 								</span>
 							)}
-							<Input
-								type={field.type === "password" ? "password" : "text"}
-								placeholder={
-									logProviderId && TOP_LEVEL_KEYS.has(field.key)
-										? "Leave blank to keep existing"
-										: field.placeholder
-								}
-								autoComplete={
-									field.type === "password" ? "one-time-code" : "off"
-								}
-								value={fieldValues[field.key] ?? ""}
-								onChange={(e) =>
-									setFieldValues((prev) => ({
-										...prev,
-										[field.key]: e.target.value,
-									}))
-								}
-							/>
+							<div className="flex flex-row gap-2">
+								<Input
+									type={field.type === "password" ? "password" : "text"}
+									disabled={!!clearedKeys[field.key]}
+									placeholder={
+										clearedKeys[field.key]
+											? "Will be cleared on update"
+											: logProviderId && TOP_LEVEL_KEYS.has(field.key)
+												? "Leave blank to keep existing"
+												: field.placeholder
+									}
+									autoComplete={
+										field.type === "password" ? "one-time-code" : "off"
+									}
+									value={fieldValues[field.key] ?? ""}
+									onChange={(e) =>
+										setFieldValues((prev) => ({
+											...prev,
+											[field.key]: e.target.value,
+										}))
+									}
+								/>
+								{logProviderId &&
+									TOP_LEVEL_KEYS.has(field.key) &&
+									!field.required && (
+										<Button
+											type="button"
+											variant="outline"
+											onClick={() => {
+												setClearedKeys((prev) => ({
+													...prev,
+													[field.key]: !prev[field.key],
+												}));
+												setFieldValues((prev) => ({
+													...prev,
+													[field.key]: "",
+												}));
+											}}
+										>
+											{clearedKeys[field.key] ? "Keep" : "Clear"}
+										</Button>
+									)}
+							</div>
 						</div>
 					))}
 

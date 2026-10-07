@@ -158,12 +158,11 @@ export const removeLogProvider = async (logProviderId: string) => {
 			})
 			.where(arrayContains(server.logProviderIds, [logProviderId]));
 
-		const remainingLocalIds = sql`array_remove(${webServerSettings.logProviderIds}, ${logProviderId})`;
+		// Keeps logManagementOrganizationId: the local agent keeps running until it is explicitly removed.
 		await tx
 			.update(webServerSettings)
 			.set({
-				logProviderIds: remainingLocalIds,
-				logManagementOrganizationId: sql`CASE WHEN cardinality(${remainingLocalIds}) = 0 THEN NULL ELSE ${webServerSettings.logManagementOrganizationId} END`,
+				logProviderIds: sql`array_remove(${webServerSettings.logProviderIds}, ${logProviderId})`,
 			})
 			.where(arrayContains(webServerSettings.logProviderIds, [logProviderId]));
 

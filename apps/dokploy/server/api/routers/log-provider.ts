@@ -111,7 +111,7 @@ export const logProviderRouter = createTRPCRouter({
 			});
 		}),
 	serverStatus: withPermission("logProvider", "read").query(({ ctx }) =>
-		getLogManagementServerStatus(ctx.session.activeOrganizationId),
+		getLogManagementServerStatus(ctx.session),
 	),
 	deployOnServer: withPermission("logProvider", "create")
 		.input(
@@ -122,7 +122,7 @@ export const logProviderRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			await deployLogManagement(
-				ctx.session.activeOrganizationId,
+				ctx.session,
 				input.serverId ?? undefined,
 				input.logProviderIds,
 			);
@@ -137,10 +137,7 @@ export const logProviderRouter = createTRPCRouter({
 	removeOnServer: withPermission("logProvider", "create")
 		.input(z.object({ serverId: z.string().nullable().optional() }))
 		.mutation(async ({ ctx, input }) => {
-			await removeLogManagement(
-				ctx.session.activeOrganizationId,
-				input.serverId ?? undefined,
-			);
+			await removeLogManagement(ctx.session, input.serverId ?? undefined);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "server",
