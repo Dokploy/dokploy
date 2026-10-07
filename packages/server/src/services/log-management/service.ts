@@ -2,10 +2,12 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateLogProvider,
 	logProvider,
+	server,
+	webServerSettings,
 } from "@dokploy/server/db/schema";
 import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, arrayContains, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { getLogProviderAdapter } from "./providers/registry";
 import type { LogProviderRuntimeConfig, LogProviderType } from "./types";
@@ -135,19 +137,52 @@ export const updateLogProvider = async (
 };
 
 export const removeLogProvider = async (logProviderId: string) => {
-	const removed = await db
-		.delete(logProvider)
-		.where(eq(logProvider.logProviderId, logProviderId))
-		.returning()
-		.then((rows) => rows[0]);
+	return await db.transaction(async (tx) => {
+		const removed = await tx
+			.delete(logProvider)
+			.where(eq(logProvider.logProviderId, logProviderId))
+			.returning()
+			.then((rows) => rows[0]);
 
-	if (!removed) {
+		if (!removed) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Log provider not found",
+			});
+		}
+
+		await tx
+			.update(server)
+			.set({
+				logProviderIds: sql`array_remove(${server.logProviderIds}, ${logProviderId})`,
+			})
+			.where(arrayContains(server.logProviderIds, [logProviderId]));
+
+		const remainingLocalIds = sql`array_remove(${webServerSettings.logProviderIds}, ${logProviderId})`;
+		await tx
+			.update(webServerSettings)
+			.set({
+				logProviderIds: remainingLocalIds,
+				logManagementOrganizationId: sql`CASE WHEN cardinality(${remainingLocalIds}) = 0 THEN NULL ELSE ${webServerSettings.logManagementOrganizationId} END`,
+			})
+			.where(arrayContains(webServerSettings.logProviderIds, [logProviderId]));
+
+		return removed;
+	});
+};
+
+export const findLogProviderForOrganization = async (
+	logProviderId: string,
+	organizationId: string,
+) => {
+	const provider = await findLogProviderById(logProviderId);
+	if (provider.organizationId !== organizationId) {
 		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Log provider not found",
+			code: "UNAUTHORIZED",
+			message: "You are not allowed to access this log provider",
 		});
 	}
-	return removed;
+	return provider;
 };
 
 export const findLogProviderById = async (logProviderId: string) => {

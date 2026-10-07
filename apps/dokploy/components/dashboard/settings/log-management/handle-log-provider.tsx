@@ -31,6 +31,15 @@ interface Props {
 	logProviderId?: string;
 }
 
+export const agentsUsingProvider = (
+	targets: Array<{ name: string; logProviderIds: string[] }> | undefined,
+	logProviderId: string,
+) =>
+	(targets ?? [])
+		.filter((target) => target.logProviderIds.includes(logProviderId))
+		.map((target) => target.name)
+		.join(", ");
+
 export const HandleLogProvider = ({ logProviderId }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
@@ -181,8 +190,19 @@ export const HandleLogProvider = ({ logProviderId }: Props) => {
 		} as any)
 			.then(() => {
 				utils.logProvider.all.invalidate();
+				const agents =
+					logProviderId &&
+					agentsUsingProvider(
+						utils.logProvider.serverStatus.getData(),
+						logProviderId,
+					);
 				toast.success(
 					logProviderId ? "Log provider updated" : "Log provider added",
+					agents
+						? {
+								description: `Redeploy the Vector agent on ${agents} to apply the changes.`,
+							}
+						: undefined,
 				);
 				setIsOpen(false);
 			})

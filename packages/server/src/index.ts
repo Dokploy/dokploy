@@ -31,6 +31,7 @@ export * from "./services/libsql";
 export * from "./services/log-management/providers/registry";
 export * from "./services/log-management/service";
 export * from "./services/log-management/types";
+export * from "./services/log-management/vector-agent";
 export * from "./services/mariadb";
 export * from "./services/mongo";
 export * from "./services/mount";

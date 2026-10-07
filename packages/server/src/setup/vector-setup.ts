@@ -104,9 +104,10 @@ const loadEnabledLogProviders = async (
 
 export const buildVectorConfigYaml = async (
 	providers: Array<LogProvider>,
-	options?: { dropUnmatched?: boolean },
+	options?: { organizationId?: string },
 ) => {
-	const baseTransformId = options?.dropUnmatched
+	const organizationId = options?.organizationId;
+	const baseTransformId = organizationId
 		? "dokploy_scope_local_only"
 		: "dokploy_scope";
 	const { sinks, transforms } = buildSinksAndTransforms(
@@ -128,12 +129,12 @@ export const buildVectorConfigYaml = async (
 				inputs: ["docker_logs_source"],
 				source: buildScopeTransformSource(),
 			},
-			...(options?.dropUnmatched
+			...(organizationId
 				? {
 						dokploy_scope_local_only: {
 							type: "filter",
 							inputs: ["dokploy_scope"],
-							condition: '.dokploy_project != ""',
+							condition: `.dokploy_organization == ${JSON.stringify(organizationId)}`,
 						},
 					}
 				: {}),
@@ -190,7 +191,7 @@ const syncVectorConfig = async (
 	const ids = logProviderIds ?? (await getServerLogProviderIds(serverId));
 	const providers = await loadEnabledLogProviders(organizationId, ids);
 	const yamlStr = await buildVectorConfigYaml(providers, {
-		dropUnmatched: !serverId,
+		organizationId: serverId ? undefined : organizationId,
 	});
 
 	const writeCommand = `umask 077 && mkdir -p ${quote([`${VECTOR_PATH}/data`])} && chmod 700 ${quote([VECTOR_PATH])} ${quote([`${VECTOR_PATH}/data`])} && echo "${encodeBase64(yamlStr)}" | base64 -d > ${quote([candidatePath])}`;
@@ -278,6 +279,9 @@ const deployVectorService = async (serverId?: string) => {
 				],
 			},
 			Networks: [{ Target: "host" }],
+			Placement: {
+				Constraints: ["node.role==manager"],
+			},
 		},
 		Mode: {
 			Replicated: {
@@ -321,6 +325,12 @@ export const setupVectorAgent = async (
 };
 
 export const removeVectorAgent = async (serverId?: string) => {
+	if (serverId) {
+		const server = await findServerById(serverId);
+		if (!server.sshKeyId) {
+			throw new Error(`Server ${serverId} has no SSH key`);
+		}
+	}
 	const docker = await getRemoteDocker(serverId);
 	try {
 		await docker.getService(VECTOR_SERVICE_NAME).remove();

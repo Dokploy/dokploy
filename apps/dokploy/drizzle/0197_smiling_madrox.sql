@@ -12,8 +12,8 @@ CREATE TABLE "logProvider" (
 	"organizationId" text NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "server" ADD COLUMN "enableLogManagement" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "webServerSettings" ADD COLUMN "enableLogManagement" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "server" ADD COLUMN "logProviderIds" text[] DEFAULT ARRAY[]::text[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "webServerSettings" ADD COLUMN "logProviderIds" text[] DEFAULT ARRAY[]::text[] NOT NULL;--> statement-breakpoint
 ALTER TABLE "webServerSettings" ADD COLUMN "logManagementOrganizationId" text;--> statement-breakpoint
 ALTER TABLE "logProvider" ADD CONSTRAINT "logProvider_organizationId_organization_id_fk" FOREIGN KEY ("organizationId") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "webServerSettings" ADD CONSTRAINT "webServerSettings_logManagementOrganizationId_organization_id_fk" FOREIGN KEY ("logManagementOrganizationId") REFERENCES "public"."organization"("id") ON DELETE set null ON UPDATE no action;

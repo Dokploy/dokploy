@@ -12,7 +12,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { HandleLogProvider } from "./handle-log-provider";
+import { agentsUsingProvider, HandleLogProvider } from "./handle-log-provider";
 
 interface LogProviderRowProps {
 	provider: {
@@ -36,6 +36,7 @@ const LogProviderRow = ({
 	canDelete,
 	onDeleted,
 }: LogProviderRowProps) => {
+	const utils = api.useUtils();
 	const { mutateAsync, isPending: isRemoving } =
 		api.logProvider.remove.useMutation();
 	const ProviderIcon =
@@ -65,14 +66,25 @@ const LogProviderRow = ({
 					{canDelete && (
 						<DialogAction
 							title="Delete Log Provider"
-							description="Are you sure you want to delete this log provider? Vector will stop shipping logs to it."
+							description="Are you sure you want to delete this log provider? Agents already deployed keep shipping logs to it until you redeploy or remove them."
 							type="destructive"
 							onClick={async () => {
+								const agents = agentsUsingProvider(
+									utils.logProvider.serverStatus.getData(),
+									provider.logProviderId,
+								);
 								await mutateAsync({
 									logProviderId: provider.logProviderId,
 								})
 									.then(() => {
-										toast.success("Log provider deleted successfully");
+										toast.success(
+											"Log provider deleted successfully",
+											agents
+												? {
+														description: `Redeploy or remove the Vector agent on ${agents} to stop shipping logs to it.`,
+													}
+												: undefined,
+										);
 										onDeleted();
 									})
 									.catch(() => {
@@ -151,7 +163,7 @@ export const ShowLogProviders = () => {
 													canDelete={!!permissions?.logProvider.delete}
 													onDeleted={() => {
 														refetch();
-														utils.server.all?.invalidate?.();
+														utils.logProvider.serverStatus.invalidate();
 													}}
 												/>
 											))}

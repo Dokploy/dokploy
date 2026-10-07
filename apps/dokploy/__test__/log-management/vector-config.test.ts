@@ -112,7 +112,7 @@ describe("buildVectorConfigYaml", () => {
 		expect(Object.keys(config.sinks)).toEqual(["sink_good-loki"]);
 	});
 
-	it("drops containers Dokploy did not deploy on the local host, which also runs unrelated containers", async () => {
+	it("only keeps containers of the owning organization on the local host, which is shared by every organization", async () => {
 		const yamlStr = await buildVectorConfigYaml(
 			[
 				provider({
@@ -122,21 +122,21 @@ describe("buildVectorConfigYaml", () => {
 					endpoint: "https://loki.example.com",
 				}),
 			],
-			{ dropUnmatched: true },
+			{ organizationId: "org-a" },
 		);
 
 		const config = parse(yamlStr) as any;
 		expect(config.transforms.dokploy_scope_local_only).toEqual({
 			type: "filter",
 			inputs: ["dokploy_scope"],
-			condition: '.dokploy_project != ""',
+			condition: '.dokploy_organization == "org-a"',
 		});
 		expect(config.sinks["sink_loki-1"].inputs).toEqual([
 			"dokploy_scope_local_only",
 		]);
 	});
 
-	it("does not add the drop-unmatched filter for the per-server (non-local) path", async () => {
+	it("does not add the organization filter for the per-server (non-local) path", async () => {
 		const yamlStr = await buildVectorConfigYaml([]);
 		const config = parse(yamlStr) as any;
 

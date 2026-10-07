@@ -1,21 +1,16 @@
 import {
-	assertLogProvidersBelongToOrg,
-	assertServerBelongsToOrg,
-	claimWebServerLogManagement,
 	createLogProvider,
-	findLogProviderById,
+	deployLogManagement,
+	findLogProviderForOrganization,
 	findLogProvidersByOrganization,
 	getLogManagementServerStatus,
 	logProviderAdapters,
+	removeLogManagement,
 	removeLogProvider,
-	removeVectorAgent,
 	sanitizeLogProvider,
-	setupVectorAgent,
 	testLogProviderConnection,
 	updateLogProvider,
-	updateServerLogProviders,
 } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import {
@@ -47,13 +42,10 @@ export const logProviderRouter = createTRPCRouter({
 		.input(apiUpdateLogProvider)
 		.mutation(async ({ ctx, input }) => {
 			const { logProviderId, ...rest } = input;
-			const provider = await findLogProviderById(logProviderId);
-			if (provider.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to update this log provider",
-				});
-			}
+			const provider = await findLogProviderForOrganization(
+				logProviderId,
+				ctx.session.activeOrganizationId,
+			);
 			const updated = await updateLogProvider(logProviderId, rest);
 			await audit(ctx, {
 				action: "update",
@@ -66,13 +58,10 @@ export const logProviderRouter = createTRPCRouter({
 	remove: withPermission("logProvider", "delete")
 		.input(apiRemoveLogProvider)
 		.mutation(async ({ ctx, input }) => {
-			const provider = await findLogProviderById(input.logProviderId);
-			if (provider.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to delete this log provider",
-				});
-			}
+			const provider = await findLogProviderForOrganization(
+				input.logProviderId,
+				ctx.session.activeOrganizationId,
+			);
 			const removed = await removeLogProvider(input.logProviderId);
 			await audit(ctx, {
 				action: "delete",
@@ -90,14 +79,10 @@ export const logProviderRouter = createTRPCRouter({
 	one: withPermission("logProvider", "read")
 		.input(apiFindOneLogProvider)
 		.query(async ({ ctx, input }) => {
-			const provider = await findLogProviderById(input.logProviderId);
-			if (provider.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this log provider",
-				});
-			}
-			return provider;
+			return await findLogProviderForOrganization(
+				input.logProviderId,
+				ctx.session.activeOrganizationId,
+			);
 		}),
 	testConnection: withPermission("logProvider", "create")
 		.input(apiTestLogProvider)
@@ -117,13 +102,10 @@ export const logProviderRouter = createTRPCRouter({
 	testConnectionById: withPermission("logProvider", "create")
 		.input(apiFindOneLogProvider)
 		.mutation(async ({ ctx, input }) => {
-			const provider = await findLogProviderById(input.logProviderId);
-			if (provider.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this log provider",
-				});
-			}
+			await findLogProviderForOrganization(
+				input.logProviderId,
+				ctx.session.activeOrganizationId,
+			);
 			return await testLogProviderConnection({
 				logProviderId: input.logProviderId,
 			});
@@ -139,28 +121,11 @@ export const logProviderRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.activeOrganizationId;
-			const serverId = input.serverId ?? undefined;
-			await assertServerBelongsToOrg(serverId, organizationId);
-			await assertLogProvidersBelongToOrg(input.logProviderIds, organizationId);
-
-			if (serverId) {
-				await updateServerLogProviders(serverId, input.logProviderIds);
-			} else {
-				const claimed = await claimWebServerLogManagement(
-					organizationId,
-					input.logProviderIds,
-				);
-				if (!claimed) {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message:
-							"The local Vector agent is already claimed by another organization",
-					});
-				}
-			}
-
-			await setupVectorAgent(organizationId, serverId, input.logProviderIds);
+			await deployLogManagement(
+				ctx.session.activeOrganizationId,
+				input.serverId ?? undefined,
+				input.logProviderIds,
+			);
 			await audit(ctx, {
 				action: "create",
 				resourceType: "server",
@@ -172,16 +137,10 @@ export const logProviderRouter = createTRPCRouter({
 	removeOnServer: withPermission("logProvider", "create")
 		.input(z.object({ serverId: z.string().nullable().optional() }))
 		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.session.activeOrganizationId;
-			const serverId = input.serverId ?? undefined;
-			await assertServerBelongsToOrg(serverId, organizationId);
-
-			await removeVectorAgent(serverId);
-			if (serverId) {
-				await updateServerLogProviders(serverId, []);
-			} else {
-				await claimWebServerLogManagement(organizationId, []);
-			}
+			await removeLogManagement(
+				ctx.session.activeOrganizationId,
+				input.serverId ?? undefined,
+			);
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "server",

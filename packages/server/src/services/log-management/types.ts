@@ -1,11 +1,35 @@
+import { BlockList, isIP } from "node:net";
+import { IS_CLOUD } from "@dokploy/server/constants";
+
 export const LOG_PROVIDER_REQUEST_TIMEOUT_MS = 15_000;
 
-const isMetadataAddress = (address: string): boolean => {
-	const lower = address.toLowerCase().replace(/^\[|\]$/g, "");
-	if (lower === "fd00:ec2::254") return true;
-	if (lower.startsWith("169.254.")) return true;
-	if (/^fe[89ab]/.test(lower)) return true;
-	return false;
+const metadataAddresses = new BlockList();
+metadataAddresses.addSubnet("169.254.0.0", 16, "ipv4");
+metadataAddresses.addSubnet("fe80::", 10, "ipv6");
+metadataAddresses.addAddress("fd00:ec2::254", "ipv6");
+
+const privateAddresses = new BlockList();
+privateAddresses.addSubnet("0.0.0.0", 8, "ipv4");
+privateAddresses.addSubnet("127.0.0.0", 8, "ipv4");
+privateAddresses.addSubnet("10.0.0.0", 8, "ipv4");
+privateAddresses.addSubnet("100.64.0.0", 10, "ipv4");
+privateAddresses.addSubnet("172.16.0.0", 12, "ipv4");
+privateAddresses.addSubnet("192.168.0.0", 16, "ipv4");
+privateAddresses.addAddress("::", "ipv6");
+privateAddresses.addAddress("::1", "ipv6");
+privateAddresses.addSubnet("fc00::", 7, "ipv6");
+
+const isBlockedAddress = (address: string): boolean => {
+	const ip = address.replace(/^\[|\]$/g, "");
+	const family = isIP(ip);
+	if (family === 0) {
+		return IS_CLOUD && ip.toLowerCase() === "localhost";
+	}
+	const type = family === 4 ? "ipv4" : "ipv6";
+	return (
+		metadataAddresses.check(ip, type) ||
+		(IS_CLOUD && privateAddresses.check(ip, type))
+	);
 };
 
 const METADATA_HOSTNAMES = new Set([
@@ -13,7 +37,7 @@ const METADATA_HOSTNAMES = new Set([
 	"metadata.goog",
 ]);
 
-const assertNotMetadataEndpoint = async (rawUrl: string): Promise<void> => {
+const assertNotBlockedEndpoint = async (rawUrl: string): Promise<void> => {
 	let url: URL;
 	try {
 		url = new URL(rawUrl);
@@ -22,31 +46,31 @@ const assertNotMetadataEndpoint = async (rawUrl: string): Promise<void> => {
 	}
 	const blocked = () =>
 		new Error(
-			"This endpoint resolves to a cloud metadata address and can't be used here.",
+			"This endpoint resolves to a blocked address (cloud metadata or private network) and can't be used here.",
 		);
 	if (METADATA_HOSTNAMES.has(url.hostname.toLowerCase())) {
 		throw blocked();
 	}
-	if (isMetadataAddress(url.hostname)) {
+	if (isBlockedAddress(url.hostname)) {
 		throw blocked();
 	}
+	let results: Array<{ address: string }>;
 	try {
 		const { lookup } = await import("node:dns/promises");
-		const results = await lookup(url.hostname, { all: true });
-		if (results.some((r) => isMetadataAddress(r.address))) {
-			throw blocked();
-		}
-	} catch (error) {
-		if (error instanceof Error && error.message.includes("metadata")) {
-			throw error;
-		}
+		results = await lookup(url.hostname, { all: true });
+	} catch {
+		return;
+	}
+	if (results.some((r) => isBlockedAddress(r.address))) {
+		throw blocked();
 	}
 };
 
 export const logProviderFetch = async (url: string, init: RequestInit = {}) => {
-	await assertNotMetadataEndpoint(url);
+	await assertNotBlockedEndpoint(url);
 	return await fetch(url, {
 		...init,
+		redirect: "error",
 		signal: AbortSignal.timeout(LOG_PROVIDER_REQUEST_TIMEOUT_MS),
 	});
 };

@@ -12,7 +12,7 @@ import {
 	IS_CLOUD,
 	redactServerSshKey,
 	removeDeploymentsByServerId,
-	removeVectorAgent,
+	removeServerLogManagement,
 	serverAudit,
 	serverSetup,
 	serverValidate,
@@ -474,17 +474,8 @@ export const serverRouter = createTRPCRouter({
 						message: "Server has active services, please delete them first",
 					});
 				}
-				let vectorAgentRemovalWarning: string | undefined;
-				if ((currentServer.logProviderIds?.length ?? 0) > 0) {
-					await removeVectorAgent(input.serverId).catch((error) => {
-						vectorAgentRemovalWarning =
-							error instanceof Error ? error.message : String(error);
-						console.error(
-							`[Vector] Failed to remove agent for server ${input.serverId} before deletion:`,
-							error,
-						);
-					});
-				}
+				const vectorAgentRemovalWarning =
+					await removeServerLogManagement(currentServer);
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "server",

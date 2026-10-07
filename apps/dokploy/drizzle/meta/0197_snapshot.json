@@ -1,5 +1,5 @@
 {
-  "id": "04d812fc-56cf-48bf-92a4-8afdf426b380",
+  "id": "bcb4d155-4bad-4373-bbfa-73705d3a9714",
   "prevId": "c9ad226a-7a8f-4c3b-8f04-fef6bccf9bfb",
   "version": "7",
   "dialect": "postgresql",
@@ -7765,12 +7765,12 @@
           "notNull": true,
           "default": false
         },
-        "enableLogManagement": {
-          "name": "enableLogManagement",
-          "type": "boolean",
+        "logProviderIds": {
+          "name": "logProviderIds",
+          "type": "text[]",
           "primaryKey": false,
           "notNull": true,
-          "default": false
+          "default": "ARRAY[]::text[]"
         },
         "buildsConcurrency": {
           "name": "buildsConcurrency",
@@ -8901,12 +8901,12 @@
           "notNull": false,
           "default": "'0 0 * * *'"
         },
-        "enableLogManagement": {
-          "name": "enableLogManagement",
-          "type": "boolean",
+        "logProviderIds": {
+          "name": "logProviderIds",
+          "type": "text[]",
           "primaryKey": false,
           "notNull": true,
-          "default": false
+          "default": "ARRAY[]::text[]"
         },
         "logManagementOrganizationId": {
           "name": "logManagementOrganizationId",

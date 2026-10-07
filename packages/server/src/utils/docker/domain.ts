@@ -226,8 +226,8 @@ const applyDokployLabelsToCompose = (
 			serviceName,
 		});
 
+		service.labels = mergeDokployLabels(service.labels, dokployLabels);
 		if (compose.composeType === "docker-compose") {
-			service.labels = mergeDokployLabels(service.labels, dokployLabels);
 			continue;
 		}
 		if (!service.deploy) {
