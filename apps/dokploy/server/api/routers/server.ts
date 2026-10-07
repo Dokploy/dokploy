@@ -19,7 +19,10 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { findMemberByUserId } from "@dokploy/server/services/permission";
+import {
+	checkPermission,
+	findMemberByUserId,
+} from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -216,10 +219,15 @@ export const serverRouter = createTRPCRouter({
 
 		return servers.length ?? 0;
 	}),
-	withSSHKey: withPermission("server", "read").query(async ({ ctx }) => {
+	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
+		await checkPermission(
+			ctx,
+			IS_CLOUD ? { service: ["create"] } : { server: ["read"] },
+		);
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
 		const result = await db.query.server.findMany({
+			columns: { serverId: true, name: true, ipAddress: true },
 			orderBy: desc(server.createdAt),
 			where: IS_CLOUD
 				? and(
