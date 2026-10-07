@@ -61,6 +61,13 @@ export const removeScheduleBackup = (backupId: string) => {
 export const getBackupTimestamp = () =>
 	new Date().toISOString().replace(/[:.]/g, "-");
 
+export const getBackupFileName = (
+	customName: string | null | undefined,
+	extension: string,
+	fixedPrefix?: string,
+) =>
+	`${[fixedPrefix, customName, getBackupTimestamp()].filter(Boolean).join("-")}.${extension}`;
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");

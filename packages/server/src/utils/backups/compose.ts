@@ -11,7 +11,7 @@ import { sendDatabaseBackupNotifications } from "../notifications/database-backu
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
-	getBackupTimestamp,
+	getBackupFileName,
 	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
@@ -25,7 +25,10 @@ export const runComposeBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType, serviceName } = backup;
 	const destination = await findDestinationById(backup.destinationId);
-	const backupFileName = `${getBackupTimestamp()}.${databaseType === "mongo" ? "bson" : "sql"}.gz`;
+	const backupFileName = getBackupFileName(
+		backup.customName,
+		databaseType === "mongo" ? "bson.gz" : "sql.gz",
+	);
 	const s3AppName = serviceName ? `${appName}_${serviceName}` : appName;
 	const bucketDestination = `${s3AppName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({

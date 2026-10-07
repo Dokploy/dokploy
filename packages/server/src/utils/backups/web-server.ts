@@ -16,7 +16,7 @@ import { findDestinationById } from "@dokploy/server/services/destination";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
-import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupFileName, getS3Credentials, normalizeS3Path } from "./utils";
 
 function formatBytes(bytes?: number) {
 	if (bytes === undefined) return "Unknown size";
@@ -42,10 +42,13 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 	try {
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getS3Credentials(destination);
-		const timestamp = getBackupTimestamp();
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
-		const backupFileName = `webserver-backup-${timestamp}.zip`;
+		const backupFileName = getBackupFileName(
+			backup.customName,
+			"zip",
+			"webserver-backup",
+		);
 		const s3Path = `:s3:${destination.bucket}/${backup.appName}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
 
 		try {

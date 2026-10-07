@@ -139,9 +139,10 @@ export const keepLatestNBackups = async (
 		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
+		// sort by server mtime: custom names break lexical order
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" --format "tp" --use-server-modtime ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
-		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | cut -d';' -f2- | xargs -I{}`;
 		// this command deletes the files
 		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
 		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
