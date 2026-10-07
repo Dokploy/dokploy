@@ -156,6 +156,38 @@ describe("classifyRemoteUnreachable", () => {
 		expect(classifyRemoteUnreachable(undefined)).toBeNull();
 	});
 
+	it("maps an AggregateError (autoSelectFamily) wrapping a remote connect failure", () => {
+		const err = Object.assign(
+			new AggregateError([
+				socketError("EHOSTUNREACH", { address: "2001:db8::1", port: 22 }),
+				socketError("EHOSTUNREACH", { address: "203.0.113.9", port: 22 }),
+			]),
+			{ code: "ECONNREFUSED" },
+		);
+		expect(err.message).toBe("");
+		const result = classifyRemoteUnreachable(err);
+		expect(result).toMatchObject({
+			host: "2001:db8::1",
+			port: 22,
+			code: "EHOSTUNREACH",
+		});
+		expect(result?.message).toContain("[2001:db8::1]:22");
+	});
+
+	it("does NOT map an AggregateError that only wraps local-socket errors", () => {
+		const local = Object.assign(
+			new Error("connect ECONNREFUSED /var/run/docker.sock"),
+			{
+				code: "ECONNREFUSED",
+				address: "/var/run/docker.sock",
+			},
+		);
+		const err = Object.assign(new AggregateError([local, local]), {
+			code: "ECONNREFUSED",
+		});
+		expect(classifyRemoteUnreachable(err)).toBeNull();
+	});
+
 	it("survives a cyclic cause chain", () => {
 		const a: Error & { cause?: unknown } = new Error("a");
 		const b: Error & { cause?: unknown } = new Error("b");

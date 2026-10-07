@@ -78,6 +78,7 @@ type ErrorLike = {
 	cause?: unknown;
 	originalError?: unknown;
 	context?: { originalError?: unknown } | null;
+	errors?: unknown;
 };
 
 const asErrorLike = (value: unknown): ErrorLike | null =>
@@ -85,7 +86,8 @@ const asErrorLike = (value: unknown): ErrorLike | null =>
 
 /**
  * Every error reachable through `cause`, `originalError` (ExecError) and
- * `context.originalError` (WriteFileRemoteError), outermost first.
+ * `context.originalError` (WriteFileRemoteError) and `errors` (AggregateError),
+ * outermost first.
  */
 const collectChain = (error: unknown): ErrorLike[] => {
 	const chain: ErrorLike[] = [];
@@ -98,6 +100,9 @@ const collectChain = (error: unknown): ErrorLike[] => {
 		seen.add(node);
 		chain.push(node);
 		queue.push(node.cause, node.originalError, node.context?.originalError);
+		// Node's autoSelectFamily (happy eyeballs) reports a dual-stack hostname
+		// as an AggregateError with no address/port of its own.
+		if (Array.isArray(node.errors)) queue.push(...node.errors);
 	}
 	return chain;
 };
@@ -145,8 +150,9 @@ export const formatRemoteUnreachableMessage = (info: {
 	port?: number;
 	code: string;
 }) => {
-	const target = info.host
-		? `at ${info.host}${info.port ? `:${info.port}` : ""}`
+	const host = info.host?.includes(":") ? `[${info.host}]` : info.host;
+	const target = host
+		? `at ${host}${info.port ? `:${info.port}` : ""}`
 		: "over SSH";
 	return `Couldn't reach the server ${target} (${info.code}). Check that it is online and reachable over SSH.`;
 };

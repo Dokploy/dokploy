@@ -190,30 +190,42 @@ const findConfiguredSshEndpoint = async (
  * Applied to the base procedure, so every procedure inherits it. Only
  * unexpected failures (INTERNAL_SERVER_ERROR) are inspected: deliberate
  * TRPCErrors (NOT_FOUND, UNAUTHORIZED, ...) pass through unchanged.
+ *
+ * Not covered: errors thrown while iterating a subscription (after the
+ * procedure has returned its iterable) never reach `next()`'s result.
  */
-export const remoteUnreachableMiddleware = t.middleware(async ({ next }) => {
-	const result = await next();
-	if (result.ok || result.error.code !== "INTERNAL_SERVER_ERROR") {
-		return result;
-	}
-
-	let unreachable = classifyRemoteUnreachable(result.error);
-	if (!unreachable) {
-		const endpoint = await findConfiguredSshEndpoint(result.error);
-		if (endpoint) {
-			unreachable = classifyRemoteUnreachable(result.error, {
-				sshEndpoints: [endpoint],
-			});
+export const remoteUnreachableMiddleware = t.middleware(
+	async ({ path, next }) => {
+		const result = await next();
+		if (result.ok || result.error.code !== "INTERNAL_SERVER_ERROR") {
+			return result;
 		}
-	}
-	if (!unreachable) return result;
 
-	throw new TRPCError({
-		code: "SERVICE_UNAVAILABLE",
-		message: unreachable.message,
-		cause: result.error.cause ?? result.error,
-	});
-});
+		let unreachable = classifyRemoteUnreachable(result.error);
+		if (!unreachable) {
+			const endpoint = await findConfiguredSshEndpoint(result.error);
+			if (endpoint) {
+				unreachable = classifyRemoteUnreachable(result.error, {
+					sshEndpoints: [endpoint],
+				});
+			}
+		}
+		if (!unreachable) return result;
+
+		// No longer reaches Sentry, so keep one line in the logs for operators.
+		console.warn(
+			`[trpc] ${path}: remote server unreachable (${unreachable.host ?? "unknown host"}${
+				unreachable.port ? `:${unreachable.port}` : ""
+			}, ${unreachable.code})`,
+		);
+
+		throw new TRPCError({
+			code: "SERVICE_UNAVAILABLE",
+			message: unreachable.message,
+			cause: result.error.cause ?? result.error,
+		});
+	},
+);
 
 /**
  * Base procedure. Every procedure below derives from it, so the middleware
