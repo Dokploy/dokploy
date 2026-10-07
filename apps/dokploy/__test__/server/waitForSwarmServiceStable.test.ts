@@ -172,6 +172,10 @@ describe("waitForSwarmServiceStable", () => {
 		const result = await waitForSwarmServiceStable("app", {
 			windowMs: WINDOW_MS,
 			pollMs: POLL_MS,
+			// The first poll sees `preparing`, so the window is extended; keep the
+			// post-running observation short (the production default is 30s, which
+			// is normally dwarfed by the 60s base window).
+			postRunningObserveMs: WINDOW_MS / 4,
 		});
 
 		expect(result).toEqual({ stable: true });
@@ -247,6 +251,9 @@ describe("waitForSwarmServiceStable", () => {
 		const result = await waitForSwarmServiceStable("app", {
 			windowMs: WINDOW_MS,
 			pollMs: POLL_MS,
+			// A pre-running task now extends the window up to maxWaitMs; cap it at
+			// the window so this stays a fast test.
+			maxWaitMs: WINDOW_MS,
 		});
 
 		expect(result.stable).toBe(false);
@@ -254,6 +261,127 @@ describe("waitForSwarmServiceStable", () => {
 			expect(result.reason).toContain("preparing");
 			expect(result.reason).toContain("pulling image");
 		}
+	});
+
+	describe("image pull extension", () => {
+		const PULL_WINDOW_MS = 100;
+		const PULL_MS = 350; // longer than the base window
+		const OBSERVE_MS = 200;
+
+		// Task list as a function of elapsed time since the call started.
+		const timeline = (
+			phases: Array<{ untilMs: number; tasks: () => Task[] }>,
+			last: () => Task[],
+		) => {
+			const start = Date.now();
+			listTasksMock.mockImplementation(async () => {
+				const elapsed = Date.now() - start;
+				const phase = phases.find((p) => elapsed < p.untilMs);
+				return phase ? phase.tasks() : last();
+			});
+		};
+
+		const preparing = () => [
+			startingTask({
+				Status: { State: "preparing", Message: "pulling image" },
+			}),
+		];
+
+		it("stays stable when the image pull outlasts windowMs and the task then runs", async () => {
+			timeline([{ untilMs: PULL_MS, tasks: preparing }], () => [runningTask()]);
+
+			const startedAt = Date.now();
+			const result = await waitForSwarmServiceStable("app", {
+				windowMs: PULL_WINDOW_MS,
+				pollMs: POLL_MS,
+				maxWaitMs: 5_000,
+				postRunningObserveMs: OBSERVE_MS,
+			});
+
+			expect(result).toEqual({ stable: true });
+			// It waited out the pull and then observed the post-running period.
+			expect(Date.now() - startedAt).toBeGreaterThanOrEqual(
+				PULL_MS + OBSERVE_MS - POLL_MS,
+			);
+		});
+
+		it("reports unstable when the task restarts within postRunningObserveMs of first running", async () => {
+			timeline(
+				[
+					{ untilMs: PULL_MS, tasks: preparing },
+					{ untilMs: PULL_MS + 60, tasks: () => [runningTask()] },
+				],
+				() => [startingTask()],
+			);
+
+			const result = await waitForSwarmServiceStable("app", {
+				windowMs: PULL_WINDOW_MS,
+				pollMs: POLL_MS,
+				maxWaitMs: 5_000,
+				postRunningObserveMs: 1_000,
+			});
+
+			expect(result).toEqual({
+				stable: false,
+				reason: "Container restarted after reaching running state",
+			});
+		});
+
+		it("reports unstable with the pull reason once maxWaitMs is hit without running", async () => {
+			listTasksMock.mockResolvedValue(preparing());
+
+			const result = await waitForSwarmServiceStable("app", {
+				windowMs: PULL_WINDOW_MS,
+				pollMs: POLL_MS,
+				maxWaitMs: 300,
+			});
+
+			expect(result).toEqual({
+				stable: false,
+				reason: "Task still preparing (image pull) after 300ms: pulling image",
+			});
+		});
+
+		it("does not extend the window when the newest task is not in a pre-running state", async () => {
+			listTasksMock.mockResolvedValue([
+				startingTask({ Status: { State: "complete" } }),
+			]);
+
+			const startedAt = Date.now();
+			const result = await waitForSwarmServiceStable("app", {
+				windowMs: PULL_WINDOW_MS,
+				pollMs: POLL_MS,
+				maxWaitMs: 5_000,
+			});
+
+			expect(result.stable).toBe(false);
+			expect(Date.now() - startedAt).toBeLessThan(1_000);
+		});
+
+		it("still fails immediately when a pulling task is rejected", async () => {
+			const failedAt = now();
+			listTasksMock.mockResolvedValue([
+				{
+					Status: { State: "rejected", Err: "pull access denied" },
+					DesiredState: "shutdown",
+					CreatedAt: now(),
+					UpdatedAt: failedAt,
+				},
+			]);
+
+			const startedAt = Date.now();
+			const result = await waitForSwarmServiceStable("app", {
+				windowMs: PULL_WINDOW_MS,
+				pollMs: POLL_MS,
+				maxWaitMs: 5_000,
+			});
+
+			expect(result).toEqual({
+				stable: false,
+				reason: "Task rejected: pull access denied",
+			});
+			expect(Date.now() - startedAt).toBeLessThan(1_000);
+		});
 	});
 
 	it("survives a remote daemon clock behind ours by anchoring to its clock", async () => {
