@@ -1,5 +1,4 @@
 import { docker } from "../constants";
-import { runBackgroundJob } from "../utils/process/background";
 
 export const initializeSwarm = async () => {
 	const swarmInitialized = await dockerSwarmInitialized();
@@ -29,14 +28,15 @@ export const initializeNetwork = async () => {
 	if (networkInitialized) {
 		console.log("Network is already initialized");
 	} else {
-		await runBackgroundJob("Network initialization", async () => {
-			await docker.createNetwork({
-				Attachable: true,
-				Name: "dokploy-network",
-				Driver: "overlay",
-			});
-			console.log("Network was initialized");
+		// Awaited so a failure surfaces to the caller (the install script must fail
+		// loudly; the server catches and reports it) instead of becoming an
+		// unhandled rejection.
+		await docker.createNetwork({
+			Attachable: true,
+			Name: "dokploy-network",
+			Driver: "overlay",
 		});
+		console.log("Network was initialized");
 	}
 };
 

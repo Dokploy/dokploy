@@ -359,7 +359,7 @@ export const serverRouter = createTRPCRouter({
 						emit.next(log);
 					}).catch((error: unknown) => {
 						console.error(
-							"server.setup failed",
+							"server.setupWithLogs failed",
 							{ serverId: input.serverId },
 							error instanceof Error ? error.message : String(error),
 						);

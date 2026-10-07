@@ -40,7 +40,9 @@ vi.mock("@/server/utils/backup", () => ({
 
 import {
 	backgroundJob,
+	isEnvironmentError,
 	runBackgroundJob,
+	setBackgroundErrorReporter,
 } from "@dokploy/server/utils/process/background";
 import { ExecError } from "@dokploy/server/utils/process/execAsync";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
@@ -65,6 +67,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	setBackgroundErrorReporter(undefined);
 	process.off("unhandledRejection", onUnhandled);
 	errorSpy.mockRestore();
 });
@@ -123,6 +126,130 @@ describe("runBackgroundJob", () => {
 	});
 });
 
+describe("isEnvironmentError", () => {
+	it.each([
+		["an ExecError", sshTimeout()],
+		[
+			"an ssh2 error with a level",
+			Object.assign(new Error("All configured authentication methods failed"), {
+				level: "client-authentication",
+			}),
+		],
+		...[
+			"ECONNREFUSED",
+			"EHOSTUNREACH",
+			"ENETUNREACH",
+			"EHOSTDOWN",
+			"ETIMEDOUT",
+			"ECONNRESET",
+			"EPIPE",
+		].map((code) => [
+			`a ${code} system error`,
+			Object.assign(new Error(`connect ${code}`), { code }),
+		]),
+		["an SSH connection error message", new Error("SSH connection error: x")],
+		[
+			"a handshake timeout message",
+			new Error("Timed out while waiting for handshake"),
+		],
+		[
+			"an environment error buried in the cause chain",
+			new Error("wrapper", {
+				cause: new Error("middle", {
+					cause: Object.assign(new Error("connect"), { code: "EHOSTUNREACH" }),
+				}),
+			}),
+		],
+	] as [string, unknown][])(
+		"treats %s as an environment error",
+		(_name, error) => {
+			expect(isEnvironmentError(error)).toBe(true);
+		},
+	);
+
+	it.each([
+		["a TypeError", new TypeError("x is not a function")],
+		["a plain Error", new Error("boom")],
+		[
+			"an unrelated error code",
+			Object.assign(new Error("nope"), { code: "ENOENT" }),
+		],
+		["a string", "SSH is great"],
+		["undefined", undefined],
+	] as [string, unknown][])("treats %s as a bug", (_name, error) => {
+		expect(isEnvironmentError(error)).toBe(false);
+	});
+
+	it("survives a cyclic cause chain", () => {
+		const a = new Error("a") as Error & { cause?: unknown };
+		const b = new Error("b") as Error & { cause?: unknown };
+		a.cause = b;
+		b.cause = a;
+		expect(isEnvironmentError(a)).toBe(false);
+	});
+});
+
+describe("reporting of unexpected errors", () => {
+	it("does not report an offline server, only logs it", async () => {
+		const reporter = vi.fn();
+		setBackgroundErrorReporter(reporter);
+
+		await runBackgroundJob("cleanup", async () => {
+			throw sshTimeout();
+		});
+
+		expect(errorSpy).toHaveBeenCalledTimes(1);
+		expect(reporter).not.toHaveBeenCalled();
+	});
+
+	it("reports a programmer error with the backgroundJob tag, and still resolves", async () => {
+		const reporter = vi.fn();
+		setBackgroundErrorReporter(reporter);
+		const bug = new TypeError("Cannot read properties of undefined");
+
+		await expect(
+			backgroundJob(
+				"cleanup",
+				async () => {
+					throw bug;
+				},
+				{ serverId: "srv-1" },
+			)(),
+		).resolves.toBeUndefined();
+
+		expect(errorSpy).toHaveBeenCalledWith(
+			"cleanup failed",
+			{ serverId: "srv-1" },
+			"Cannot read properties of undefined",
+		);
+		expect(reporter).toHaveBeenCalledTimes(1);
+		expect(reporter).toHaveBeenCalledWith(bug, {
+			handler: "backgroundJob",
+			label: "cleanup",
+		});
+	});
+
+	it("never rejects when the reporter itself throws", async () => {
+		setBackgroundErrorReporter(() => {
+			throw new Error("sentry down");
+		});
+
+		await expect(
+			runBackgroundJob("cleanup", () => {
+				throw new Error("boom");
+			}),
+		).resolves.toBeUndefined();
+	});
+
+	it("only logs when no reporter is registered", async () => {
+		await expect(
+			runBackgroundJob("cleanup", () => {
+				throw new Error("boom");
+			}),
+		).resolves.toBeUndefined();
+		expect(errorSpy).toHaveBeenCalledTimes(1);
+	});
+});
 describe("node-schedule callbacks", () => {
 	it("a rejecting job guarded by backgroundJob leaves no unhandled rejection", async () => {
 		// Use the real scheduler: only it can show what happens to the promise

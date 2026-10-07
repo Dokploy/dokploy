@@ -10,12 +10,12 @@ import { Client, type ConnectConfig } from "ssh2";
 import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
+import { onGuardedConnection } from "./guard";
 import {
 	parseResizeMessage,
 	parseTerminalSize,
 	setupLocalServerSSHKey,
 } from "./utils";
-import { onGuardedConnection } from "./guard";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
 # ----------------------------------------

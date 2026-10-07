@@ -227,7 +227,9 @@ export const setupDockerStatsMonitoringSocketServer = (
 					ws.close(
 						4000,
 						remoteNode
-							? `Container running on remote node "${remoteNode}"`.slice(0, 123)
+							? toCloseReason(
+									`Container running on remote node "${remoteNode}"`,
+								)
 							: "Container not running",
 					);
 					return;

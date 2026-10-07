@@ -4,13 +4,13 @@ import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { onGuardedConnection } from "./guard";
 import {
 	isValidContainerId,
 	isValidShell,
 	parseResizeMessage,
 	parseTerminalSize,
 } from "./utils";
-import { onGuardedConnection } from "./guard";
 
 export const setupDockerContainerTerminalWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

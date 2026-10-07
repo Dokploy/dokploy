@@ -5,6 +5,7 @@ import { spawn as spawnPty } from "node-pty";
 import { Client, type ClientChannel } from "ssh2";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { onGuardedConnection } from "./guard";
 import {
 	buildDockerLogsArguments,
 	createDockerLogsDataHandler,
@@ -14,7 +15,6 @@ import {
 	isValidTail,
 	terminateDockerLogsProcess,
 } from "./utils";
-import { onGuardedConnection } from "./guard";
 
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,

@@ -26,8 +26,9 @@ export const initVolumeBackupsCronJobs = async () => {
 					`Initialized volume backup: ${volumeBackup.name} ${volumeBackup.serviceType} ✅`,
 				);
 			} catch (error) {
-				console.log(
-					`Error initializing volume backup ${volumeBackup.volumeBackupId}: ${error}`,
+				console.error(
+					`Error initializing volume backup ${volumeBackup.volumeBackupId}:`,
+					error,
 				);
 			}
 		}

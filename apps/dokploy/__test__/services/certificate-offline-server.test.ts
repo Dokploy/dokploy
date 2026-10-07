@@ -1,13 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * createCertificate writes the certificate files to a remote server after the
- * row is saved, without awaiting. An offline server (SSH handshake timeout,
- * EHOSTUNREACH) used to surface as a context-free `unhandledRejection`.
+ * createCertificate is a request path: when the certificate files cannot be
+ * written to the remote server (offline: SSH handshake timeout, EHOSTUNREACH)
+ * the mutation must fail, and must not leave a certificate row behind whose
+ * files were never written.
  */
 
 const mocks = vi.hoisted(() => ({
 	execAsyncRemote: vi.fn(),
+	deleteWhere: vi.fn(),
 }));
 
 const certificate = vi.hoisted(() => ({
@@ -26,6 +28,7 @@ vi.mock("@dokploy/server/db", () => ({
 		insert: () => ({
 			values: () => ({ returning: () => Promise.resolve([certificate]) }),
 		}),
+		delete: () => ({ where: mocks.deleteWhere }),
 		query: {},
 	},
 }));
@@ -45,49 +48,57 @@ vi.mock("@dokploy/server/utils/filesystem/directory", () => ({
 	removeDirectoryIfExistsContent: vi.fn(),
 }));
 
-import { ExecError } from "@dokploy/server/utils/process/ExecError";
 import { createCertificate } from "@dokploy/server/services/certificate";
+import { ExecError } from "@dokploy/server/utils/process/ExecError";
 
-let unhandled: unknown[];
-const onUnhandled = (reason: unknown) => {
-	unhandled.push(reason);
-};
-let errorSpy: ReturnType<typeof vi.spyOn>;
+const sshTimeout = () =>
+	new ExecError("SSH connection error: Timed out while waiting for handshake", {
+		command: "mkdir -p /etc/dokploy",
+		serverId: "srv-1",
+	});
 
 beforeEach(() => {
-	unhandled = [];
-	process.on("unhandledRejection", onUnhandled);
-	errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 	vi.clearAllMocks();
+	mocks.deleteWhere.mockReturnValue(Promise.resolve([]));
 });
 
-afterEach(() => {
-	process.off("unhandledRejection", onUnhandled);
-	errorSpy.mockRestore();
-});
+describe("createCertificate on a remote server", () => {
+	it("rejects and removes the just-inserted row when the server is offline", async () => {
+		mocks.execAsyncRemote.mockRejectedValue(sshTimeout());
 
-describe("createCertificate on an offline remote server", () => {
-	it("returns the saved certificate and logs the failed file write", async () => {
-		mocks.execAsyncRemote.mockRejectedValue(
-			new ExecError(
-				"SSH connection error: Timed out while waiting for handshake",
-				{ command: "mkdir -p /etc/dokploy", serverId: "srv-1" },
-			),
+		await expect(
+			createCertificate({ name: "wildcard" } as never, "org-1"),
+		).rejects.toThrow("Timed out while waiting for handshake");
+
+		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
+		expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+	});
+
+	it("still rethrows the original error when the cleanup delete fails too", async () => {
+		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+		mocks.execAsyncRemote.mockRejectedValue(sshTimeout());
+		mocks.deleteWhere.mockReturnValue(Promise.reject(new Error("db down")));
+
+		await expect(
+			createCertificate({ name: "wildcard" } as never, "org-1"),
+		).rejects.toThrow("Timed out while waiting for handshake");
+
+		expect(errorSpy).toHaveBeenCalledWith(
+			"Failed to roll back certificate",
+			expect.objectContaining({ certificateId: "cert-1" }),
 		);
+		errorSpy.mockRestore();
+	});
+
+	it("keeps the row and returns it when the files are written", async () => {
+		mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
 
 		const created = await createCertificate(
 			{ name: "wildcard" } as never,
 			"org-1",
 		);
-		await new Promise((r) => setTimeout(r, 30));
 
 		expect(created.certificateId).toBe("cert-1");
-		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
-		expect(unhandled).toEqual([]);
-		expect(errorSpy).toHaveBeenCalledWith(
-			"Certificate files failed",
-			{ certificateId: "cert-1", serverId: "srv-1" },
-			expect.stringContaining("Timed out while waiting for handshake"),
-		);
+		expect(mocks.deleteWhere).not.toHaveBeenCalled();
 	});
 });

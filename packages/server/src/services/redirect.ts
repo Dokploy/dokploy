@@ -8,7 +8,6 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { runBackgroundJob } from "../utils/process/background";
 import { findApplicationById } from "./application";
 export type Redirect = typeof redirects.$inferSelect;
 
@@ -47,16 +46,10 @@ export const createRedirect = async (
 
 			const application = await findApplicationById(redirect.applicationId);
 
-			// Not awaited on purpose: an offline remote server must not become an
-			// unhandled rejection.
-			void runBackgroundJob(
-				"Redirect middleware",
-				() => createRedirectMiddleware(application, redirect),
-				{
-					redirectId: redirect.redirectId,
-					serverId: application.serverId ?? null,
-				},
-			);
+			// Awaited inside the transaction: if the middleware cannot be written
+			// (for example the remote server is offline) the insert is rolled back
+			// and the caller gets the error.
+			await createRedirectMiddleware(application, redirect);
 		});
 
 		return true;
