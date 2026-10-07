@@ -29,6 +29,7 @@ import {
 	selectIntegrationForHost,
 	updateDomainById,
 	validateDomain,
+	withExpiredDoDomainSessionsReset,
 } from "@dokploy/server";
 import {
 	assertProjectInOrganization,
@@ -303,7 +304,9 @@ export const domainRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				domain: ["read"],
 			});
-			return await findDomainsByApplicationId(input.applicationId);
+			return await withExpiredDoDomainSessionsReset(
+				await findDomainsByApplicationId(input.applicationId),
+			);
 		}),
 	byComposeId: protectedProcedure
 		.input(apiFindCompose)
@@ -311,7 +314,9 @@ export const domainRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				domain: ["read"],
 			});
-			return await findDomainsByComposeId(input.composeId);
+			return await withExpiredDoDomainSessionsReset(
+				await findDomainsByComposeId(input.composeId),
+			);
 		}),
 	generateDomain: withPermission("domain", "create")
 		.input(
