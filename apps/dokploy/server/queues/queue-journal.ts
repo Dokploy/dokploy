@@ -49,13 +49,17 @@ export interface JournalStore {
 	markInterrupted(): Promise<unknown>;
 }
 
+// Each call resolves the barrel export when it runs, not when this module
+// loads: a test that mocks "@dokploy/server" without the journal functions can
+// still import the queue, and a missing function only fails (and is isolated
+// as) a single journal write.
 export const dbJournalStore: JournalStore = {
-	insert: insertQueueJob,
-	markActive: markQueueJobActive,
-	remove: deleteQueueJobs,
-	list: listQueueJobs,
-	requeueInterrupted: requeueInterruptedQueueJobs,
-	markInterrupted: markInterruptedFromJournal,
+	insert: async (jobId, payload) => insertQueueJob(jobId, payload),
+	markActive: async (jobId) => markQueueJobActive(jobId),
+	remove: async (jobIds) => deleteQueueJobs(jobIds),
+	list: async () => listQueueJobs(),
+	requeueInterrupted: async (jobIds) => requeueInterruptedQueueJobs(jobIds),
+	markInterrupted: async () => markInterruptedFromJournal(),
 };
 
 /** The slice of the queue `restore` needs. */
@@ -118,6 +122,10 @@ export const createQueueJournal = (
 	let liveIds: Set<string> | null = new Set();
 	let restoring: Promise<RestoreResult> | null = null;
 	const reported = new Set<string>();
+	// Inserts issued and not yet settled. An insert can outlive its write
+	// timeout; if its job is deleted meanwhile, that delete ran first (a no-op)
+	// and the late insert would resurrect the row.
+	const inFlightInserts = new Map<string, Promise<unknown>>();
 
 	const fail = (op: string, error: unknown) => {
 		const message = error instanceof Error ? error.message : String(error);
@@ -175,16 +183,42 @@ export const createQueueJournal = (
 		enqueued: ({ journalId, data }) => {
 			liveIds?.add(journalId);
 			return withTimeout(
-				run("enqueue", () =>
-					store.insert(journalId, data as unknown as Record<string, unknown>),
-				),
+				run("enqueue", () => {
+					const insert = Promise.resolve().then(() =>
+						store.insert(journalId, data as unknown as Record<string, unknown>),
+					);
+					inFlightInserts.set(journalId, insert);
+					const done = () => {
+						if (inFlightInserts.get(journalId) === insert) {
+							inFlightInserts.delete(journalId);
+						}
+					};
+					insert.then(done, done);
+					return insert;
+				}),
 			);
 		},
 		started: (journalId) => {
 			void run("start", () => store.markActive(journalId));
 		},
 		settled: (journalIds) => {
-			void run("settle", () => store.remove(journalIds));
+			void run("settle", async () => {
+				// Inserts still pending now timed out in the chain; they may land
+				// after this delete.
+				const late = journalIds.flatMap((id) => {
+					const insert = inFlightInserts.get(id);
+					return insert ? [{ id, insert }] : [];
+				});
+				for (const { id, insert } of late) {
+					// Re-issue the delete once the late insert resolves (a no-op if
+					// the insert failed). Queued behind this task on the chain.
+					insert.then(
+						() => void run("settle-late", () => store.remove([id])),
+						() => {},
+					);
+				}
+				await store.remove(journalIds);
+			});
 		},
 	};
 

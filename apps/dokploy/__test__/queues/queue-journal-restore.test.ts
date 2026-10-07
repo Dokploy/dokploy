@@ -225,6 +225,51 @@ describe("journal writes", () => {
 	});
 });
 
+describe("late journal inserts", () => {
+	it("deletes the row of a job cancelled while its insert was still pending", async () => {
+		const store = makeStore();
+		const realInsert = store.insert;
+		let release: () => void = () => {};
+		store.insert = vi.fn((jobId, payload) => {
+			// Lands only after the write timeout and the cancel's delete.
+			return new Promise<void>((resolve) => {
+				release = () => resolve(realInsert(jobId, payload));
+			});
+		});
+		const { journal, flush: flushJournal } = createQueueJournal(store, {
+			timeoutMs: 10,
+			writeTimeoutMs: 30,
+		});
+		const queue = new InMemoryQueue({ resolveConcurrency: () => 1, journal });
+
+		await queue.add(appJob("a")); // insert is still pending
+		queue.clearWaiting(); // the delete runs behind the timed-out insert
+		await flushJournal(2_000);
+		expect(store.remove).toHaveBeenCalledTimes(1);
+		expect(store.rows).toHaveLength(0);
+
+		release(); // the slow insert finally lands
+		await flush();
+		await flushJournal(2_000);
+
+		expect(store.remove).toHaveBeenCalledTimes(2);
+		expect(store.rows).toHaveLength(0);
+	});
+
+	it("does not re-delete when the insert settled before the job did", async () => {
+		const store = makeStore();
+		const { journal, flush: flushJournal } = createQueueJournal(store);
+		const queue = new InMemoryQueue({ resolveConcurrency: () => 1, journal });
+
+		await queue.add(appJob("a"));
+		queue.clearWaiting();
+		await flushJournal();
+
+		expect(store.remove).toHaveBeenCalledTimes(1);
+		expect(store.rows).toHaveLength(0);
+	});
+});
+
 describe("boot replay", () => {
 	it("re-adds waiting jobs in their original order", async () => {
 		const store = makeStore([
