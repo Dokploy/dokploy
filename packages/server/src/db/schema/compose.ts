@@ -25,6 +25,7 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { patch } from "./patch";
 import { previewDeployments } from "./preview-deployments";
+import { registry } from "./registry";
 import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, certificateType, triggerType } from "./shared";
@@ -157,6 +158,21 @@ export const compose = pgTable("compose", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	/**
+	 * Fork columns (compose build server). When both are set, `docker compose
+	 * build` runs on `buildServerId`, the built images are pushed to
+	 * `buildRegistryId`, and the serving host only pulls and runs them. Always
+	 * set together (enforced by `assertComposeBuildSettings`).
+	 */
+	buildServerId: text("buildServerId").references(() => server.serverId, {
+		onDelete: "set null",
+	}),
+	buildRegistryId: text("buildRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
 	serviceNetworks: jsonb("serviceNetworks")
 		.$type<
 			Array<{
@@ -199,6 +215,17 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	server: one(server, {
 		fields: [compose.serverId],
 		references: [server.serverId],
+		relationName: "composeServer",
+	}),
+	buildServer: one(server, {
+		fields: [compose.buildServerId],
+		references: [server.serverId],
+		relationName: "composeBuildServer",
+	}),
+	buildRegistry: one(registry, {
+		fields: [compose.buildRegistryId],
+		references: [registry.registryId],
+		relationName: "composeBuildRegistry",
 	}),
 	backups: many(backups),
 	schedules: many(schedules),
@@ -219,6 +246,8 @@ const createSchema = createInsertSchema(compose, {
 	composeFile: z.string().optional(),
 	environmentId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
+	buildServerId: z.string().nullable().optional(),
+	buildRegistryId: z.string().nullable().optional(),
 	command: z.string().optional(),
 	createEnvFile: z.boolean().optional(),
 	composePath: z.string().min(1),

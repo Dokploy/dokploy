@@ -125,10 +125,12 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 		: `${targetPrefix}/${repositoryName}`;
 };
 
-const getRegistryCommands = async (
+/**
+ * Shell command that logs docker in to `registry` (fetching a fresh auth token
+ * for ECR). Shared by the application upload and the compose build server flow.
+ */
+export const getRegistryLoginCommand = async (
 	registry: Registry,
-	imageName: string,
-	registryTag: string,
 ): Promise<string> => {
 	let ecrAuthPassword: string | undefined;
 	if (registry.registryType === "awsEcr") {
@@ -140,13 +142,21 @@ const getRegistryCommands = async (
 		ecrAuthPassword = token.password;
 	}
 
-	const loginCommand = getSafeRegistryLoginCommand({
+	return getSafeRegistryLoginCommand({
 		registryType: registry.registryType,
 		registryUrl: registry.registryUrl,
 		username: registry.username,
 		password: registry.password,
 		ecrAuthPassword,
 	});
+};
+
+const getRegistryCommands = async (
+	registry: Registry,
+	imageName: string,
+	registryTag: string,
+): Promise<string> => {
+	const loginCommand = await getRegistryLoginCommand(registry);
 
 	return `
 echo ${quote([`📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'`])} ;

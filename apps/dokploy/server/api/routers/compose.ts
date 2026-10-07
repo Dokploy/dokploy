@@ -1,6 +1,7 @@
 import { dirname, join } from "node:path";
 import {
 	addDomainToCompose,
+	assertComposeBuildSettings,
 	// build-policy hook: required-checks support check at the API boundary.
 	assertRequiredChecksSupportedForUpdate,
 	clearOldDeployments,
@@ -26,6 +27,7 @@ import {
 	findProjectById,
 	findServerById,
 	getAccessibleServerIds,
+	getComposeBuildOverridePath,
 	getComposeContainer,
 	getContainerLogs,
 	getWebServerSettings,
@@ -217,6 +219,42 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+
+			// Build server: the caller must be allowed to use the server (same check
+			// as applications), and the settings as a whole must be valid. Checked
+			// against the merged result, so clearing the registry on its own, or
+			// adding a custom command to a build-server compose, is refused too.
+			if (
+				input.buildServerId !== undefined ||
+				input.buildRegistryId !== undefined ||
+				input.command !== undefined
+			) {
+				if (input.buildServerId) {
+					const accessibleIds = await getAccessibleServerIds(ctx.session);
+					if (!accessibleIds.has(input.buildServerId)) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You are not authorized to access this build server",
+						});
+					}
+				}
+				const existing = await findComposeById(input.composeId);
+				await assertComposeBuildSettings(
+					{
+						buildServerId:
+							input.buildServerId !== undefined
+								? input.buildServerId
+								: existing.buildServerId,
+						buildRegistryId:
+							input.buildRegistryId !== undefined
+								? input.buildRegistryId
+								: existing.buildRegistryId,
+						command:
+							input.command !== undefined ? input.command : existing.command,
+					},
+					ctx.session.activeOrganizationId,
+				);
+			}
 
 			// >>> build-policy hook: refuse a required check this compose unit can
 			// never satisfy, here rather than on every deploy. Same rule and the
@@ -612,6 +650,9 @@ export const composeRouter = createTRPCRouter({
 			const command = createCommand(
 				compose,
 				compose.mounts.length > 0 ? projectPath : undefined,
+				compose.buildServerId
+					? { overridePath: getComposeBuildOverridePath(compose) }
+					: undefined,
 			);
 			return `docker ${command}`;
 		}),
