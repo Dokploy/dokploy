@@ -53,6 +53,7 @@ const ACTION_OPTIONS = [
 	{ value: "redeploy", label: "Redeployed" },
 	{ value: "login", label: "Login" },
 	{ value: "logout", label: "Logout" },
+	{ value: "download", label: "Downloaded" },
 ];
 
 const RESOURCE_OPTIONS = [
@@ -83,7 +84,8 @@ type AuditAction =
 	| "cancel"
 	| "redeploy"
 	| "login"
-	| "logout";
+	| "logout"
+	| "download";
 type AuditResourceType =
 	| "project"
 	| "service"

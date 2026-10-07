@@ -25,7 +25,12 @@ const execAsyncBase = util.promisify(exec);
 
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: {
+		cwd?: string;
+		env?: NodeJS.ProcessEnv;
+		shell?: string;
+		maxBuffer?: number;
+	},
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, options);

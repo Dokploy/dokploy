@@ -79,6 +79,7 @@ export {
 export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
 export * from "./utils/backups/compose";
+export * from "./utils/backups/files";
 export * from "./utils/backups/index";
 export * from "./utils/backups/libsql";
 export * from "./utils/backups/mariadb";
