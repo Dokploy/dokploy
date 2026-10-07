@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { Pencil, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -61,10 +61,10 @@ type Schema = z.infer<typeof Schema>;
 
 interface Props {
 	serverId?: string;
-	asButton?: boolean;
+	children?: React.ReactNode;
 }
 
-export const HandleServers = ({ serverId, asButton = false }: Props) => {
+export const HandleServers = ({ serverId, children }: Props) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: canCreateMoreServers, refetch } =
@@ -141,24 +141,19 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			{serverId ? (
-				asButton ? (
-					<DialogTrigger asChild>
-						<Button variant="outline" size="icon" className="h-9 w-9">
-							<Pencil className="h-4 w-4" />
-						</Button>
-					</DialogTrigger>
-				) : (
+			{children ? (
+				<DialogTrigger asChild>{children}</DialogTrigger>
+			) : serverId ? (
+				<DialogTrigger asChild>
 					<DropdownMenuItem
 						className="w-full cursor-pointer "
 						onSelect={(e) => {
 							e.preventDefault();
-							setIsOpen(true);
 						}}
 					>
 						Edit Server
 					</DropdownMenuItem>
-				)
+				</DialogTrigger>
 			) : (
 				<DialogTrigger asChild>
 					<Button className="cursor-pointer space-x-3">
@@ -167,7 +162,10 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 					</Button>
 				</DialogTrigger>
 			)}
-			<DialogContent className="sm:max-w-3xl ">
+			<DialogContent
+				className="sm:max-w-3xl "
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<DialogHeader>
 					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
 					<DialogDescription>
