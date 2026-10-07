@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
@@ -633,12 +634,40 @@ export const removeCompose = async (
 	return true;
 };
 
+// Starting or stopping a compose that was never deployed has no project
+// directory to run in; without this check Node reports a misleading
+// `spawn /bin/sh ENOENT`.
+const assertComposeDirectoryExists = async (
+	serverId: string | null,
+	dir: string,
+	action: "start" | "stop",
+) => {
+	let exists = true;
+	if (serverId) {
+		try {
+			await execAsyncRemote(serverId, `test -d ${quote([dir])}`);
+		} catch {
+			exists = false;
+		}
+	} else {
+		exists = existsSync(dir);
+	}
+	if (!exists) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `This compose hasn't been deployed yet, so there is nothing to ${action}. Deploy it first.`,
+		});
+	}
+};
+
 export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	if (compose.composeType === "docker-compose") {
+		await assertComposeDirectoryExists(compose.serverId, projectPath, "start");
+	}
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
-
-		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 		const path =
 			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
 		const baseCommand = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
@@ -670,8 +699,15 @@ export const startCompose = async (composeId: string) => {
 
 export const stopCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	if (compose.composeType === "docker-compose") {
+		await assertComposeDirectoryExists(
+			compose.serverId,
+			join(COMPOSE_PATH, compose.appName),
+			"stop",
+		);
+	}
 	try {
-		const { COMPOSE_PATH } = paths(!!compose.serverId);
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
