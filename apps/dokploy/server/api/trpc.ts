@@ -24,6 +24,7 @@ import { ZodError } from "zod";
 import {
 	classifyRemoteUnreachable,
 	findTcpConnectFailure,
+	mapAsyncIterableErrors,
 	type RemoteEndpoint,
 } from "./remote-unreachable";
 
@@ -181,49 +182,87 @@ const findConfiguredSshEndpoint = async (
 };
 
 /**
- * An unreachable remote server (host down, network unreachable, SSH refused or
- * timed out) is an environment condition, not a Dokploy bug. Without this the
- * raw socket error (`connect EHOSTUNREACH 1.2.3.4:22`) escapes as an
- * INTERNAL_SERVER_ERROR, which is shown verbatim to the user and reported to
- * Sentry. Convert it to SERVICE_UNAVAILABLE with an actionable message.
+ * Turns a failure caused by an unreachable remote server (host down, network
+ * unreachable, SSH refused or timed out) into SERVICE_UNAVAILABLE with an
+ * actionable message, or returns null when `error` is anything else. Only
+ * unexpected failures are inspected: deliberate TRPCErrors (NOT_FOUND,
+ * UNAUTHORIZED, ...) are never remapped.
+ */
+const toServiceUnavailable = async (
+	path: string,
+	error: unknown,
+): Promise<TRPCError | null> => {
+	if (error instanceof TRPCError && error.code !== "INTERNAL_SERVER_ERROR") {
+		return null;
+	}
+
+	let unreachable = classifyRemoteUnreachable(error);
+	if (!unreachable) {
+		const endpoint = await findConfiguredSshEndpoint(error);
+		if (endpoint) {
+			unreachable = classifyRemoteUnreachable(error, {
+				sshEndpoints: [endpoint],
+			});
+		}
+	}
+	if (!unreachable) return null;
+
+	// No longer reaches Sentry, so keep one line in the logs for operators.
+	console.warn(
+		`[trpc] ${path}: remote server unreachable (${unreachable.host ?? "unknown host"}${
+			unreachable.port ? `:${unreachable.port}` : ""
+		}, ${unreachable.code})`,
+	);
+
+	return new TRPCError({
+		code: "SERVICE_UNAVAILABLE",
+		message: unreachable.message,
+		cause: error instanceof TRPCError ? (error.cause ?? error) : error,
+	});
+};
+
+const isAsyncIterable = (value: unknown): value is AsyncIterable<unknown> =>
+	typeof value === "object" && value !== null && Symbol.asyncIterator in value;
+
+/**
+ * An unreachable remote server is an environment condition, not a Dokploy bug.
+ * Without this the raw socket error (`connect EHOSTUNREACH 1.2.3.4:22`) escapes
+ * as an INTERNAL_SERVER_ERROR, which is shown verbatim to the user and reported
+ * to Sentry. Convert it to SERVICE_UNAVAILABLE with an actionable message.
  *
- * Applied to the base procedure, so every procedure inherits it. Only
- * unexpected failures (INTERNAL_SERVER_ERROR) are inspected: deliberate
- * TRPCErrors (NOT_FOUND, UNAUTHORIZED, ...) pass through unchanged.
+ * Applied to the base procedure, so every procedure inherits it.
  *
- * Not covered: errors thrown while iterating a subscription (after the
- * procedure has returned its iterable) never reach `next()`'s result.
+ * A subscription resolver returns its async iterable straight away, so a
+ * failure while it is being iterated never shows up in `next()`'s result.
+ * Async iterable (generator) subscriptions are wrapped so the same mapping
+ * applies to errors thrown mid-stream. Wrapping is limited to subscriptions,
+ * where the data is known to be a stream and not a plain object.
+ *
+ * Observable subscriptions are not mapped: none calls `emit.error` today (they
+ * report failures through `emit.next`). A future route that does must handle
+ * unreachable-server errors itself.
  */
 export const remoteUnreachableMiddleware = t.middleware(
-	async ({ path, next }) => {
+	async ({ path, type, next }) => {
 		const result = await next();
-		if (result.ok || result.error.code !== "INTERNAL_SERVER_ERROR") {
+
+		if (!result.ok) {
+			if (result.error.code !== "INTERNAL_SERVER_ERROR") return result;
+			const mapped = await toServiceUnavailable(path, result.error);
+			if (mapped) throw mapped;
 			return result;
 		}
 
-		let unreachable = classifyRemoteUnreachable(result.error);
-		if (!unreachable) {
-			const endpoint = await findConfiguredSshEndpoint(result.error);
-			if (endpoint) {
-				unreachable = classifyRemoteUnreachable(result.error, {
-					sshEndpoints: [endpoint],
-				});
-			}
+		if (type !== "subscription") return result;
+		const mapStreamError = async (error: unknown) =>
+			(await toServiceUnavailable(path, error)) ?? error;
+		if (isAsyncIterable(result.data)) {
+			return {
+				...result,
+				data: mapAsyncIterableErrors(result.data, mapStreamError),
+			};
 		}
-		if (!unreachable) return result;
-
-		// No longer reaches Sentry, so keep one line in the logs for operators.
-		console.warn(
-			`[trpc] ${path}: remote server unreachable (${unreachable.host ?? "unknown host"}${
-				unreachable.port ? `:${unreachable.port}` : ""
-			}, ${unreachable.code})`,
-		);
-
-		throw new TRPCError({
-			code: "SERVICE_UNAVAILABLE",
-			message: unreachable.message,
-			cause: result.error.cause ?? result.error,
-		});
+		return result;
 	},
 );
 

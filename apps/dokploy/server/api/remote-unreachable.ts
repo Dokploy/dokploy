@@ -158,6 +158,51 @@ export const formatRemoteUnreachableMessage = (info: {
 };
 
 /**
+ * Maps an error thrown by a stream to the error that should be thrown instead
+ * (the same error when it needs no mapping). Must not reject.
+ */
+export type StreamErrorMapper = (error: unknown) => Promise<unknown>;
+
+/**
+ * Wraps an async iterable so an error thrown while it is iterated is passed
+ * through `mapError` first. Values are forwarded as they arrive (no buffering,
+ * tracked() envelopes untouched), and `return()`/`throw()` are forwarded so a
+ * client unsubscribe still runs the source's `finally` blocks and cleanup.
+ *
+ * An error thrown by `return()` (for example a `finally` that throws) is mapped
+ * like one thrown by `next()`. `throw()` maps the error the source rethrows,
+ * which is the injected error unless the source handles it; tRPC never calls
+ * it. `return`/`throw` exist on the wrapper only when the source iterator has
+ * them.
+ */
+export const mapAsyncIterableErrors = <T>(
+	source: AsyncIterable<T>,
+	mapError: StreamErrorMapper,
+): AsyncIterable<T> => ({
+	[Symbol.asyncIterator]() {
+		const iterator = source[Symbol.asyncIterator]();
+		const guard = async <R>(call: () => Promise<R>): Promise<R> => {
+			try {
+				return await call();
+			} catch (error) {
+				throw await mapError(error);
+			}
+		};
+		const wrapped: AsyncIterableIterator<T> = {
+			[Symbol.asyncIterator]: () => wrapped,
+			next: (...args) => guard(() => iterator.next(...args)),
+		};
+		if (iterator.return) {
+			wrapped.return = (value) => guard(() => iterator.return!(value));
+		}
+		if (iterator.throw) {
+			wrapped.throw = (error) => guard(() => iterator.throw!(error));
+		}
+		return wrapped;
+	},
+});
+
+/**
  * Returns details when `error` (or anything in its cause chain) is a failure
  * to reach a remote server over SSH, otherwise `null`.
  *
