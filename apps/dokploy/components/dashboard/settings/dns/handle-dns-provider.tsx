@@ -88,6 +88,7 @@ const DnsProviderSchema = z.object({
 	applicationKey: z.string(),
 	applicationSecret: z.string(),
 	consumerKey: z.string(),
+	zone: z.string(),
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -104,6 +105,7 @@ const defaultValues: DnsProviderForm = {
 	applicationKey: "",
 	applicationSecret: "",
 	consumerKey: "",
+	zone: "",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -137,6 +139,7 @@ const buildConfig = (data: DnsProviderForm) => {
 				applicationKey: data.applicationKey,
 				applicationSecret: data.applicationSecret,
 				consumerKey: data.consumerKey,
+				zone: data.zone.trim() || undefined,
 			};
 	}
 };
@@ -207,6 +210,7 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					applicationKey: provider.config.applicationKey,
 					applicationSecret: provider.config.applicationSecret,
 					consumerKey: provider.config.consumerKey,
+					zone: provider.config.zone ?? "",
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -540,6 +544,24 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												The first one lists your zones and has to be granted on
 												its own: OVH matches rights per exact path, so{" "}
 												<code>/domain/zone/*</code> does not cover it.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="zone"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Zone (optional)</FormLabel>
+											<FormControl>
+												<Input placeholder="example.com" {...field} />
+											</FormControl>
+											<FormDescription>
+												Restrict this provider to a single DNS zone. Leave empty
+												to use every zone the credentials can access. When set,
+												the <code>GET /domain/zone</code> right is not needed.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

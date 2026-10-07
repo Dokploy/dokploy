@@ -166,6 +166,16 @@ describe("ovhClient.listZones", () => {
 
 		await expect(ovhClient.listZones(cfg)).rejects.toThrow("Invalid signature");
 	});
+
+	it("returns only the configured zone without listing every zone", async () => {
+		const cfg = { ...freshConfig(), zone: "example.com" };
+		mockApi();
+
+		const zones = await ovhClient.listZones(cfg);
+
+		expect(zones).toEqual([{ id: "example.com", name: "example.com" }]);
+		expect(apiCalls()).toHaveLength(0);
+	});
 });
 
 describe("ovhClient.listRecords", () => {
@@ -577,5 +587,16 @@ describe("ovhClient.testConnection", () => {
 		await expect(ovhClient.testConnection(cfg)).rejects.toThrow(
 			"Invalid signature",
 		);
+	});
+
+	it("checks the configured zone instead of listing all zones", async () => {
+		const cfg = { ...freshConfig(), zone: "example.com" };
+		mockApi(ovhSuccess({ name: "example.com" }));
+
+		await expect(ovhClient.testConnection(cfg)).resolves.toBeUndefined();
+
+		const calls = apiCalls();
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.[0]).toBe(`${cfg.baseUrl}/domain/zone/example.com`);
 	});
 });

@@ -254,6 +254,9 @@ const listZoneNames = async (config: OvhConfig) => {
 
 export const ovhClient: DnsClient<OvhConfig> = {
 	async listZones(config) {
+		if (config.zone) {
+			return [{ id: config.zone, name: config.zone }];
+		}
 		const zones = await listZoneNames(config);
 		return zones.map((zone) => ({ id: zone, name: zone }));
 	},
@@ -372,6 +375,10 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	},
 
 	async testConnection(config) {
+		if (config.zone) {
+			await ovhFetch(config, `/domain/zone/${encodeURIComponent(config.zone)}`);
+			return;
+		}
 		await listZoneNames(config);
 	},
 };
