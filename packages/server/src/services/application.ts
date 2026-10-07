@@ -36,8 +36,8 @@ import {
 	createDeployment,
 	createDeploymentPreview,
 	updateDeployment,
-	updateDeploymentStatus,
 } from "./deployment";
+import { finishDeployment } from "./deployment-lifecycle";
 import { type Domain, getDomainHost } from "./domain";
 import {
 	createPreviewDeploymentComment,
@@ -176,13 +176,15 @@ export const updateApplicationStatus = async (
 };
 
 export const deployApplication = async ({
+	deploymentId,
 	applicationId,
 	titleLog = "Manual deployment",
 	descriptionLog = "",
 }: {
+	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
@@ -193,10 +195,12 @@ export const deployApplication = async ({
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
+		deploymentId,
 		applicationId: applicationId,
 		title: titleLog,
 		description: descriptionLog,
 	});
+	if (!deployment) return false;
 
 	try {
 		let command = "set -e;";
@@ -232,8 +236,8 @@ export const deployApplication = async ({
 		}
 
 		await mechanizeDockerContainer(application);
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateApplicationStatus(applicationId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -260,15 +264,13 @@ export const deployApplication = async ({
 		} else {
 			await execAsync(command);
 		}
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateApplicationStatus(applicationId, "error");
+		await finishDeployment(deployment.deploymentId, "error");
 
 		await sendBuildErrorNotifications({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
+			errorMessage: error instanceof Error ? error.message : "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 		});
@@ -294,23 +296,27 @@ export const deployApplication = async ({
 };
 
 export const rebuildApplication = async ({
+	deploymentId,
 	applicationId,
 	titleLog = "Rebuild deployment",
 	descriptionLog = "",
 }: {
+	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
 	const deployment = await createDeployment({
+		deploymentId,
 		applicationId: applicationId,
 		title: titleLog,
 		description: descriptionLog,
 	});
+	if (!deployment) return false;
 
 	try {
 		let command = "set -e;";
@@ -323,8 +329,8 @@ export const rebuildApplication = async ({
 			await execAsync(commandWithLog);
 		}
 		await mechanizeDockerContainer(application);
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateApplicationStatus(applicationId, "done");
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -351,8 +357,7 @@ export const rebuildApplication = async ({
 		} else {
 			await execAsync(command);
 		}
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateApplicationStatus(applicationId, "error");
+		await finishDeployment(deployment.deploymentId, "error");
 		throw error;
 	}
 
@@ -360,23 +365,27 @@ export const rebuildApplication = async ({
 };
 
 export const deployPreviewApplication = async ({
+	deploymentId,
 	applicationId,
 	titleLog = "Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
 }: {
+	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
 
 	const deployment = await createDeploymentPreview({
+		deploymentId,
 		title: titleLog,
 		description: descriptionLog,
 		previewDeploymentId: previewDeploymentId,
 	});
+	if (!deployment) return false;
 
 	const previewDeployment =
 		await findPreviewDeploymentById(previewDeploymentId);
@@ -459,20 +468,15 @@ export const deployPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "done",
-		});
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 	} catch (error) {
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${comment}`,
 		});
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "error",
-		});
+		await finishDeployment(deployment.deploymentId, "error");
 		throw error;
 	}
 
@@ -480,14 +484,16 @@ export const deployPreviewApplication = async ({
 };
 
 export const rebuildPreviewApplication = async ({
+	deploymentId,
 	applicationId,
 	titleLog = "Rebuild Preview Deployment",
 	descriptionLog = "",
 	previewDeploymentId,
 }: {
+	deploymentId?: string;
 	applicationId: string;
-	titleLog: string;
-	descriptionLog: string;
+	titleLog?: string;
+	descriptionLog?: string;
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
@@ -495,10 +501,12 @@ export const rebuildPreviewApplication = async ({
 		await findPreviewDeploymentById(previewDeploymentId);
 
 	const deployment = await createDeploymentPreview({
+		deploymentId,
 		title: titleLog,
 		description: descriptionLog,
 		previewDeploymentId: previewDeploymentId,
 	});
+	if (!deployment) return false;
 
 	const previewDomain = getDomainHost(previewDeployment?.domain as Domain);
 	const issueParams = {
@@ -573,10 +581,8 @@ export const rebuildPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "done",
-		});
+		if (!(await finishDeployment(deployment.deploymentId, "done")))
+			return false;
 	} catch (error) {
 		let command = "";
 
@@ -600,10 +606,7 @@ export const rebuildPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${comment}`,
 		});
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updatePreviewDeployment(previewDeploymentId, {
-			previewStatus: "error",
-		});
+		await finishDeployment(deployment.deploymentId, "error");
 		throw error;
 	}
 

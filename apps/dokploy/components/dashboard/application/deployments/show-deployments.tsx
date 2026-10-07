@@ -25,7 +25,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api, type RouterOutputs } from "@/utils/api";
+import { api } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
 import { ClearDeployments } from "./clear-deployments";
@@ -60,9 +60,7 @@ export const ShowDeployments = ({
 	refreshToken,
 	serverId,
 }: Props) => {
-	const [activeLog, setActiveLog] = useState<
-		RouterOutputs["deployment"]["all"][number] | null
-	>(null);
+	const [activeLogId, setActiveLogId] = useState<string | null>(null);
 	const [removingDeploymentIds, setRemovingDeploymentIds] = useState<
 		Set<string>
 	>(new Set());
@@ -78,6 +76,10 @@ export const ShowDeployments = ({
 			},
 		);
 
+	const activeLog = deployments?.find(
+		(deployment) => deployment.deploymentId === activeLogId,
+	);
+
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { mutateAsync: rollback, isPending: isRollingBack } =
@@ -86,16 +88,6 @@ export const ShowDeployments = ({
 		api.deployment.killProcess.useMutation();
 	const { mutateAsync: removeDeployment } =
 		api.deployment.removeDeployment.useMutation();
-
-	// Cancel deployment mutations
-	const {
-		mutateAsync: cancelApplicationDeployment,
-		isPending: isCancellingApp,
-	} = api.application.cancelDeployment.useMutation();
-	const {
-		mutateAsync: cancelComposeDeployment,
-		isPending: isCancellingCompose,
-	} = api.compose.cancelDeployment.useMutation();
 
 	const [url, setUrl] = React.useState("");
 	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
@@ -122,28 +114,17 @@ export const ShowDeployments = ({
 		return `${truncated}...`;
 	};
 
-	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
+	// Queued attempts can be newer than the running build.
 	const stuckDeployment = useMemo(() => {
 		if (!isCloud || !deployments || deployments.length === 0) return null;
 
 		const now = Date.now();
-		const NINE_MINUTES = 10 * 60 * 1000; // 9 minutes in milliseconds
-
-		// Get the most recent deployment (first in the list since they're sorted by date)
-		const mostRecentDeployment = deployments[0];
-
-		if (
-			!mostRecentDeployment ||
-			mostRecentDeployment.status !== "running" ||
-			!mostRecentDeployment.startedAt
-		) {
-			return null;
-		}
-
-		const startTime = new Date(mostRecentDeployment.startedAt).getTime();
-		const elapsed = now - startTime;
-
-		return elapsed > NINE_MINUTES ? mostRecentDeployment : null;
+		return deployments.find(
+			(deployment) =>
+				deployment.status === "running" &&
+				deployment.startedAt &&
+				now - new Date(deployment.startedAt).getTime() > 10 * 60 * 1000,
+		);
 	}, [isCloud, deployments]);
 	useEffect(() => {
 		setUrl(document.location.origin);
@@ -165,7 +146,9 @@ export const ShowDeployments = ({
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
-					{(type === "application" || type === "compose") && (
+					{(type === "application" ||
+						type === "compose" ||
+						type === "previewDeployment") && (
 						<CancelQueues id={id} type={type} />
 					)}
 					{type === "application" && (
@@ -189,39 +172,18 @@ export const ShowDeployments = ({
 									Build appears to be stuck
 								</div>
 								<p className="text-sm">
-									Hey! Looks like the build has been running for more than 10
-									minutes. Would you like to cancel this deployment?
+									This build has been running for more than 10 minutes. Check
+									its logs before starting another deployment. Cancelling queued
+									deployments does not stop this running build.
 								</p>
 							</div>
 							<Button
-								variant="destructive"
+								variant="outline"
 								size="sm"
 								className="w-fit"
-								isLoading={
-									type === "application" ? isCancellingApp : isCancellingCompose
-								}
-								onClick={async () => {
-									try {
-										if (type === "application") {
-											await cancelApplicationDeployment({
-												applicationId: id,
-											});
-										} else if (type === "compose") {
-											await cancelComposeDeployment({
-												composeId: id,
-											});
-										}
-										toast.success("Deployment cancellation requested");
-									} catch (error) {
-										toast.error(
-											error instanceof Error
-												? error.message
-												: "Failed to cancel deployment",
-										);
-									}
-								}}
+								onClick={() => setActiveLogId(stuckDeployment.deploymentId)}
 							>
-								Cancel Deployment
+								View running build logs
 							</Button>
 						</div>
 					</AlertBlock>
@@ -286,7 +248,9 @@ export const ShowDeployments = ({
 								deployment.deploymentId,
 							);
 							const canDelete =
-								deployment.status === "done" || deployment.status === "error";
+								deployment.status === "done" ||
+								deployment.status === "error" ||
+								deployment.status === "cancelled";
 
 							return (
 								<div
@@ -398,7 +362,7 @@ export const ShowDeployments = ({
 											)}
 											<Button
 												onClick={() => {
-													setActiveLog(deployment);
+													setActiveLogId(deployment.deploymentId);
 												}}
 												className="w-full sm:w-auto"
 											>
@@ -502,8 +466,9 @@ export const ShowDeployments = ({
 				)}
 				<ShowDeployment
 					serverId={activeLog?.buildServerId || serverId}
-					open={Boolean(activeLog && activeLog.logPath !== null)}
-					onClose={() => setActiveLog(null)}
+					open={Boolean(activeLog)}
+					status={activeLog?.status}
+					onClose={() => setActiveLogId(null)}
 					logPath={activeLog?.logPath || ""}
 					errorMessage={activeLog?.errorMessage || ""}
 				/>

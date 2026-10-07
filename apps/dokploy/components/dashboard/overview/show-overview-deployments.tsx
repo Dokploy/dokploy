@@ -91,6 +91,7 @@ export const ShowOverviewDeployments = () => {
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem value="all">All statuses</SelectItem>
+											<SelectItem value="queued">Queued</SelectItem>
 											<SelectItem value="running">Running</SelectItem>
 											<SelectItem value="done">Done</SelectItem>
 											<SelectItem value="error">Error</SelectItem>

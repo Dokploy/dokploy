@@ -56,14 +56,12 @@ void app.prepare().then(async () => {
 			setupDockerStatsMonitoringSocketServer(server);
 		}
 
-		server.listen(PORT, HOST);
-		console.log(`Server Started on: http://${HOST}:${PORT}`);
+		if (!IS_CLOUD) await initCancelDeployments();
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
 			await initCronJobs();
 			await initSchedules();
-			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
 		}
@@ -74,6 +72,8 @@ void app.prepare().then(async () => {
 			const { startDeploymentWorker } = await import("./queues/queueSetup");
 			await startDeploymentWorker();
 		}
+		server.listen(PORT, HOST);
+		console.log(`Server Started on: http://${HOST}:${PORT}`);
 	} catch (e) {
 		console.error("Main Server Error", e);
 	}

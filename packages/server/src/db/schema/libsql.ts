@@ -136,7 +136,7 @@ const createSchema = createInsertSchema(libsql, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(applicationStatus.enumValues),
 	externalPort: z.number(),
 	externalGRPCPort: z.number(),
 	externalAdminPort: z.number(),
