@@ -20,10 +20,16 @@ export const initVolumeBackupsCronJobs = async () => {
 
 		console.log(`Initializing ${volumeBackupsResult.length} volume backups`);
 		for (const volumeBackup of volumeBackupsResult) {
-			scheduleVolumeBackup(volumeBackup.volumeBackupId);
-			console.log(
-				`Initialized volume backup: ${volumeBackup.name} ${volumeBackup.serviceType} ✅`,
-			);
+			try {
+				await scheduleVolumeBackup(volumeBackup.volumeBackupId);
+				console.log(
+					`Initialized volume backup: ${volumeBackup.name} ${volumeBackup.serviceType} ✅`,
+				);
+			} catch (error) {
+				console.log(
+					`Error initializing volume backup ${volumeBackup.volumeBackupId}: ${error}`,
+				);
+			}
 		}
 	} catch (error) {
 		console.log(`Error initializing volume backups: ${error}`);

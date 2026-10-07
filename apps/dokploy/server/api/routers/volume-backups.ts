@@ -229,10 +229,10 @@ export const volumeBackupsRouter = createTRPCRouter({
 				}
 			} else {
 				if (updatedVolumeBackup?.enabled) {
-					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
-					scheduleVolumeBackup(updatedVolumeBackup.volumeBackupId);
+					await removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
+					await scheduleVolumeBackup(updatedVolumeBackup.volumeBackupId);
 				} else {
-					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
+					await removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
 				}
 			}
 			await audit(ctx, {

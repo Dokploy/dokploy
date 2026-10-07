@@ -17,6 +17,7 @@ import { hasPermission } from "@dokploy/server/services/permission";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
+import { onGuardedConnection, toCloseReason } from "./guard";
 
 // serverIds are nanoid-generated (alphanumeric + `_` and `-`). Reject anything
 // else at the WS boundary so user input cannot reach filesystem paths or SSH
@@ -91,7 +92,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 		}
 	});
 
-	wssTerm.on("connection", async (ws, req) => {
+	onGuardedConnection(wssTerm, "docker-stats", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 
 		if (IS_CLOUD) {
@@ -256,8 +257,12 @@ export const setupDockerStatsMonitoringSocketServer = (
 					clearInterval(intervalId);
 					intervalId = null;
 				}
-				// @ts-ignore
-				ws.close(4000, `Error: ${error.message}`);
+				ws.close(
+					4000,
+					toCloseReason(
+						`Error: ${error instanceof Error ? error.message : String(error)}`,
+					),
+				);
 			} finally {
 				inFlight = false;
 			}

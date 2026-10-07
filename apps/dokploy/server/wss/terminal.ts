@@ -15,6 +15,7 @@ import {
 	parseTerminalSize,
 	setupLocalServerSSHKey,
 } from "./utils";
+import { onGuardedConnection } from "./guard";
 
 const COMMAND_TO_ALLOW_LOCAL_ACCESS = `
 # ----------------------------------------
@@ -89,7 +90,7 @@ export const setupTerminalWebSocketServer = (
 		}
 	});
 
-	wssTerm.on("connection", async (ws, req) => {
+	onGuardedConnection(wssTerm, "terminal", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const serverId = url.searchParams.get("serverId");
 		const { cols, rows } = parseTerminalSize(
@@ -199,7 +200,15 @@ export const setupTerminalWebSocketServer = (
 				ws.send("\x1bc");
 
 				conn.shell({ cols, rows }, (err, stream) => {
-					if (err) throw err;
+					if (err) {
+						// Throwing here would escape ssh2's callback as an uncaught
+						// exception and take the whole process down.
+						console.error("SSH shell error:", err.message);
+						ws.send(`SSH shell error: ${err.message}\n`);
+						conn.end();
+						ws.close();
+						return;
+					}
 
 					stream
 						.on("close", (code: number, _signal: string) => {

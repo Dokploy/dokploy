@@ -1,4 +1,5 @@
 import { docker } from "../constants";
+import { runBackgroundJob } from "../utils/process/background";
 
 export const initializeSwarm = async () => {
 	const swarmInitialized = await dockerSwarmInitialized();
@@ -28,12 +29,14 @@ export const initializeNetwork = async () => {
 	if (networkInitialized) {
 		console.log("Network is already initialized");
 	} else {
-		docker.createNetwork({
-			Attachable: true,
-			Name: "dokploy-network",
-			Driver: "overlay",
+		await runBackgroundJob("Network initialization", async () => {
+			await docker.createNetwork({
+				Attachable: true,
+				Name: "dokploy-network",
+				Driver: "overlay",
+			});
+			console.log("Network was initialized");
 		});
-		console.log("Network was initialized");
 	}
 };
 

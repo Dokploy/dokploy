@@ -10,6 +10,7 @@ import {
 	parseResizeMessage,
 	parseTerminalSize,
 } from "./utils";
+import { onGuardedConnection } from "./guard";
 
 export const setupDockerContainerTerminalWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -33,7 +34,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 	});
 
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	wssTerm.on("connection", async (ws, req) => {
+	onGuardedConnection(wssTerm, "docker-container-terminal", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");

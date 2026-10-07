@@ -13,6 +13,7 @@ import { quote } from "shell-quote";
 import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
+import { runBackgroundJob } from "../utils/process/background";
 import { execAsyncRemote } from "../utils/process/execAsync";
 
 export type Certificate = typeof certificates.$inferSelect;
@@ -53,7 +54,13 @@ export const createCertificate = async (
 
 	const cer = certificate[0];
 
-	createCertificateFiles(cer);
+	// Not awaited on purpose (the files are written after the row exists), so a
+	// remote server that is offline must not become an unhandled rejection.
+	void runBackgroundJob(
+		"Certificate files",
+		() => createCertificateFiles(cer),
+		{ certificateId: cer.certificateId, serverId: cer.serverId },
+	);
 
 	return cer;
 };

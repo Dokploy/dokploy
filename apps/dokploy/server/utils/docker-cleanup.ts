@@ -1,4 +1,5 @@
 import {
+	backgroundJob,
 	CLEANUP_CRON_JOB,
 	cleanupAll,
 	IS_CLOUD,
@@ -20,10 +21,18 @@ export const applyDockerCleanupSchedule = async (
 				type: "server",
 			});
 		} else {
-			scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
-				await cleanupAll(serverId);
-				await sendDockerCleanupNotifications(organizationId);
-			});
+			scheduleJob(
+				serverId,
+				CLEANUP_CRON_JOB,
+				backgroundJob(
+					"Docker cleanup",
+					async () => {
+						await cleanupAll(serverId);
+						await sendDockerCleanupNotifications(organizationId);
+					},
+					{ serverId },
+				),
+			);
 		}
 	} else {
 		if (IS_CLOUD) {
