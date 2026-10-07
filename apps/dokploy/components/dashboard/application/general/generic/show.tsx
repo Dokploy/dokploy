@@ -14,6 +14,7 @@ import {
 	GitIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
+import { ScrollFadeContainer } from "@/components/shared/scroll-fade-container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
@@ -153,7 +154,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between w-full overflow-auto">
+					<ScrollFadeContainer className="flex flex-row items-center justify-between w-full">
 						<TabsList
 							variant="line"
 							className="flex gap-4 justify-start bg-transparent"
@@ -208,7 +209,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 								Drop
 							</TabsTrigger>
 						</TabsList>
-					</div>
+					</ScrollFadeContainer>
 
 					<TabsContent value="github" className="w-full p-2">
 						{githubProviders && githubProviders?.length > 0 ? (
