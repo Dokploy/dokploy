@@ -168,6 +168,12 @@ export type StreamErrorMapper = (error: unknown) => Promise<unknown>;
  * through `mapError` first. Values are forwarded as they arrive (no buffering,
  * tracked() envelopes untouched), and `return()`/`throw()` are forwarded so a
  * client unsubscribe still runs the source's `finally` blocks and cleanup.
+ *
+ * An error thrown by `return()` (for example a `finally` that throws) is mapped
+ * like one thrown by `next()`. `throw()` maps the error the source rethrows,
+ * which is the injected error unless the source handles it; tRPC never calls
+ * it. `return`/`throw` exist on the wrapper only when the source iterator has
+ * them.
  */
 export const mapAsyncIterableErrors = <T>(
 	source: AsyncIterable<T>,
@@ -193,34 +199,6 @@ export const mapAsyncIterableErrors = <T>(
 			wrapped.throw = (error) => guard(() => iterator.throw!(error));
 		}
 		return wrapped;
-	},
-});
-
-interface ObserverLike {
-	error: (error: unknown) => void;
-}
-
-interface ObservableLike {
-	subscribe: (observer: never) => unknown;
-}
-
-/**
- * Same as `mapAsyncIterableErrors` for a tRPC observable: an error passed to
- * `emit.error` is mapped before it reaches the subscriber. Everything else
- * (next, complete, the teardown returned by subscribe) is forwarded as is.
- */
-export const mapObservableErrors = <T extends ObservableLike>(
-	source: T,
-	mapError: StreamErrorMapper,
-): T => ({
-	...source,
-	subscribe(observer: ObserverLike) {
-		return (source.subscribe as (observer: ObserverLike) => unknown)({
-			...observer,
-			error: (error: unknown) => {
-				void mapError(error).then((mapped) => observer.error(mapped));
-			},
-		});
 	},
 });
 

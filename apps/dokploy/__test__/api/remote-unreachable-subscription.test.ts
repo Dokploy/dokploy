@@ -1,5 +1,4 @@
 import { TRPCError, tracked } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { createCallerFactory, createTRPCRouter, publicProcedure } = await import(
@@ -51,17 +50,32 @@ const router = createTRPCRouter({
 		yield tracked("evt-1", { n: 1 });
 		yield tracked("evt-2", { n: 2 });
 	}),
-	observableUnreachable: publicProcedure.subscription(() =>
-		observable<string>((emit) => {
-			emit.next("first");
-			emit.error(socketError("EHOSTUNREACH", "31.57.34.138", 22));
-		}),
-	),
-	observableOrdinary: publicProcedure.subscription(() =>
-		observable<string>((emit) => {
-			emit.error(new Error("boom"));
-		}),
-	),
+	unreachableInFinally: publicProcedure.subscription(async function* () {
+		try {
+			yield "first";
+		} finally {
+			throw socketError("EHOSTUNREACH", "31.57.34.138", 22);
+		}
+	}),
+	ordinaryInFinally: publicProcedure.subscription(async function* () {
+		try {
+			yield "first";
+		} finally {
+			throw new Error("cleanup failed");
+		}
+	}),
+	// A bare async iterator with no return()/throw(), unlike a generator.
+	noReturn: publicProcedure.subscription(() => ({
+		[Symbol.asyncIterator]() {
+			let i = 0;
+			return {
+				next: async (): Promise<IteratorResult<number>> =>
+					i < 3
+						? { done: false, value: i++ }
+						: { done: true, value: undefined },
+			};
+		},
+	})),
 	// Not a subscription: a plain object with a `subscribe` key is data.
 	looksLikeObservable: publicProcedure.query(() => ({
 		subscribe: "weekly",
@@ -180,24 +194,41 @@ describe("remote-unreachable tRPC middleware (subscriptions)", () => {
 		expect(values[1]).toEqual(tracked("evt-2", { n: 2 }));
 	});
 
-	it("maps an unreachable server passed to an observable's emit.error", async () => {
-		const source = await caller.observableUnreachable();
-		const next = vi.fn();
-		const error = await new Promise<TRPCError>((resolve) => {
-			source.subscribe({ next, error: resolve, complete: () => {} });
-		});
-		expect(next).toHaveBeenCalledWith("first");
+	it("maps an unreachable server thrown by return() (a throwing finally)", async () => {
+		const iterator = (await caller.unreachableInFinally())[
+			Symbol.asyncIterator
+		]();
+		await iterator.next();
+		const error = await failure(async () => iterator.return?.());
+		expect(error).toBeInstanceOf(TRPCError);
 		expect(error.code).toBe("SERVICE_UNAVAILABLE");
 		expect(error.message).toContain("31.57.34.138:22");
 	});
 
-	it("passes other observable errors through unchanged", async () => {
-		const source = await caller.observableOrdinary();
-		const error = await new Promise<Error>((resolve) => {
-			source.subscribe({ next: () => {}, error: resolve, complete: () => {} });
-		});
+	it("passes a non-network error thrown by return() through unchanged", async () => {
+		const iterator = (await caller.ordinaryInFinally())[Symbol.asyncIterator]();
+		await iterator.next();
+		const error = await failure(async () => iterator.return?.());
 		expect(error).not.toBeInstanceOf(TRPCError);
-		expect(error.message).toBe("boom");
+		expect(error.message).toBe("cleanup failed");
+	});
+
+	it("copes with a source iterator that has no return()", async () => {
+		const iterator = (await caller.noReturn())[Symbol.asyncIterator]();
+		expect(iterator.return).toBeUndefined();
+		expect(iterator.throw).toBeUndefined();
+		await expect(iterator.next()).resolves.toEqual({ done: false, value: 0 });
+
+		const seen: number[] = [];
+		for await (const value of await caller.noReturn()) {
+			seen.push(value);
+			if (value === 1) break;
+		}
+		expect(seen).toEqual([0, 1]);
+
+		const all: number[] = [];
+		for await (const value of await caller.noReturn()) all.push(value);
+		expect(all).toEqual([0, 1, 2]);
 	});
 
 	it("does not wrap data returned by a query", async () => {

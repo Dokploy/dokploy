@@ -17,7 +17,6 @@ import { checkPermission } from "@dokploy/server/services/permission";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
-import { isObservable } from "@trpc/server/observable";
 import type { Session, User } from "better-auth";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
@@ -26,7 +25,6 @@ import {
 	classifyRemoteUnreachable,
 	findTcpConnectFailure,
 	mapAsyncIterableErrors,
-	mapObservableErrors,
 	type RemoteEndpoint,
 } from "./remote-unreachable";
 
@@ -234,11 +232,15 @@ const isAsyncIterable = (value: unknown): value is AsyncIterable<unknown> =>
  *
  * Applied to the base procedure, so every procedure inherits it.
  *
- * A subscription resolver returns its async iterable (or observable) straight
- * away, so a failure while it is being iterated never shows up in `next()`'s
- * result. Those streams are wrapped so the same mapping applies to errors
- * thrown mid-stream. Wrapping is limited to subscriptions, where the data is
- * known to be a stream and not a plain object that happens to look like one.
+ * A subscription resolver returns its async iterable straight away, so a
+ * failure while it is being iterated never shows up in `next()`'s result.
+ * Async iterable (generator) subscriptions are wrapped so the same mapping
+ * applies to errors thrown mid-stream. Wrapping is limited to subscriptions,
+ * where the data is known to be a stream and not a plain object.
+ *
+ * Observable subscriptions are not mapped: none calls `emit.error` today (they
+ * report failures through `emit.next`). A future route that does must handle
+ * unreachable-server errors itself.
  */
 export const remoteUnreachableMiddleware = t.middleware(
 	async ({ path, type, next }) => {
@@ -258,12 +260,6 @@ export const remoteUnreachableMiddleware = t.middleware(
 			return {
 				...result,
 				data: mapAsyncIterableErrors(result.data, mapStreamError),
-			};
-		}
-		if (isObservable(result.data)) {
-			return {
-				...result,
-				data: mapObservableErrors(result.data, mapStreamError),
 			};
 		}
 		return result;
