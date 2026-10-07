@@ -304,16 +304,21 @@ export const getBackupCommand = (
 	`;
 };
 
-export const getBackupFolder = (backup: BackupSchedule) => {
-	const appName = backup.compose?.appName
-		? backup.serviceName
+const getServiceAppName = (backup: BackupSchedule) => {
+	if (backup.compose?.appName) {
+		return backup.serviceName
 			? `${backup.compose.appName}_${backup.serviceName}`
-			: backup.compose.appName
-		: backup.postgres?.appName ||
-			backup.mysql?.appName ||
-			backup.mariadb?.appName ||
-			backup.mongo?.appName ||
-			backup.libsql?.appName ||
-			backup.appName;
-	return `${appName}/${normalizeS3Path(backup.prefix)}`;
+			: backup.compose.appName;
+	}
+	return (
+		backup.postgres?.appName ||
+		backup.mysql?.appName ||
+		backup.mariadb?.appName ||
+		backup.mongo?.appName ||
+		backup.libsql?.appName ||
+		backup.appName
+	);
 };
+
+export const getBackupFolder = (backup: BackupSchedule) =>
+	`${getServiceAppName(backup)}/${normalizeS3Path(backup.prefix)}`;

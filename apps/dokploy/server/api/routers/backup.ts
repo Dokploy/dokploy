@@ -15,8 +15,11 @@ import {
 	findPostgresByBackupId,
 	findPostgresById,
 	findServerById,
+	getBackupDownloadUrl,
 	IS_CLOUD,
 	keepLatestNBackups,
+	listBackupFilesByBackupId,
+	type RcloneFile,
 	removeBackupById,
 	removeScheduleBackup,
 	runLibsqlBackup,
@@ -57,11 +60,6 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
-import type { RcloneFile } from "@/server/api/utils/backup-files";
-import {
-	listRcloneFiles,
-	resolveBackupAccess,
-} from "@/server/api/utils/backup-files";
 import { assertDatabaseBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateBackup,
@@ -558,12 +556,23 @@ export const backupRouter = createTRPCRouter({
 
 	listBackupFilesByBackupId: withPermission("backup", "read")
 		.input(z.object({ backupId: z.string() }))
-		.query(async ({ input, ctx }) => {
-			const { destination, folder } = await resolveBackupAccess(
+		.query(({ input, ctx }) => listBackupFilesByBackupId(ctx, input.backupId)),
+
+	getDownloadUrl: withPermission("backup", "read")
+		.input(z.object({ backupId: z.string(), fileName: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const result = await getBackupDownloadUrl(
 				ctx,
 				input.backupId,
+				input.fileName,
 			);
-			return await listRcloneFiles(destination, folder);
+			await audit(ctx, {
+				action: "download",
+				resourceType: "backup",
+				resourceId: input.backupId,
+				metadata: { file: input.fileName },
+			});
+			return result;
 		}),
 
 	restoreBackupWithLogs: protectedProcedure

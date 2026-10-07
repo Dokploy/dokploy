@@ -1,5 +1,6 @@
 import { DatabaseBackup, Download, FolderOpen, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +35,6 @@ interface Props {
 
 export const ShowBackupFiles = ({ backupId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [startingDownload, setStartingDownload] = useState<string | null>(null);
 
 	const {
 		data: files,
@@ -45,6 +45,11 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 		{ backupId },
 		{ enabled: isOpen },
 	);
+
+	const download = api.backup.getDownloadUrl.useMutation({
+		onSuccess: ({ url }) => window.open(url, "_blank", "noopener"),
+		onError: (error) => toast.error(error.message),
+	});
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -116,31 +121,17 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 												variant="ghost"
 												size="icon"
 												className="size-8"
-												asChild
+												disabled={download.isPending}
+												onClick={() =>
+													download.mutate({ backupId, fileName: file.Name })
+												}
 											>
-												{/* NextTopLoader starts on any anchor click and only stops on a route change */}
-												<a
-													href={`/api/backups/download?backupId=${encodeURIComponent(backupId)}&file=${encodeURIComponent(file.Name)}`}
-													download
-													onClick={(e) => {
-														e.stopPropagation();
-														setStartingDownload(file.Name);
-														// the browser owns the transfer, so this only acknowledges the click
-														setTimeout(
-															() =>
-																setStartingDownload((current) =>
-																	current === file.Name ? null : current,
-																),
-															2500,
-														);
-													}}
-												>
-													{startingDownload === file.Name ? (
-														<Loader2 className="size-4 animate-spin" />
-													) : (
-														<Download className="size-4" />
-													)}
-												</a>
+												{download.isPending &&
+												download.variables?.fileName === file.Name ? (
+													<Loader2 className="size-4 animate-spin" />
+												) : (
+													<Download className="size-4" />
+												)}
 											</Button>
 										</TableCell>
 									</TableRow>
