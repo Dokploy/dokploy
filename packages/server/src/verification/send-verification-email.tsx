@@ -54,20 +54,25 @@ export const sendVerificationEmail = async ({
 	});
 };
 
+interface InvitationEmailInput {
+	email: string;
+	inviteLink: string;
+	organizationName: string;
+	require2FA?: boolean;
+}
+
 export const renderInvitationEmail = async ({
 	email,
 	inviteLink,
 	organizationName,
-}: {
-	email: string;
-	inviteLink: string;
-	organizationName: string;
-}) => {
+	require2FA,
+}: InvitationEmailInput) => {
 	return render(
 		InvitationEmail({
 			inviteLink,
 			toEmail: email,
 			organizationName,
+			require2FA,
 		}),
 	);
 };
@@ -76,15 +81,13 @@ export const sendInvitationEmail = async ({
 	email,
 	inviteLink,
 	organizationName,
-}: {
-	email: string;
-	inviteLink: string;
-	organizationName: string;
-}) => {
+	require2FA,
+}: InvitationEmailInput) => {
 	const html = await renderInvitationEmail({
 		email,
 		inviteLink,
 		organizationName,
+		require2FA,
 	});
 	await sendEmail({
 		email,

@@ -82,7 +82,11 @@ Generated on: ${DATE_PLACEHOLDER}
 ${BACKUP_CODES_PLACEHOLDER}
 `;
 
-export const Enable2FA = () => {
+interface Props {
+	onEnabled?: () => void;
+}
+
+export const Enable2FA = ({ onEnabled }: Props = {}) => {
 	const utils = api.useUtils();
 	const [data, setData] = useState<TwoFactorSetupData | null>(null);
 	const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -115,6 +119,7 @@ export const Enable2FA = () => {
 			toast.success("2FA configured successfully");
 			utils.user.get.invalidate();
 			setIsDialogOpen(false);
+			onEnabled?.();
 		} catch (error) {
 			if (error instanceof Error) {
 				const errorMessage =

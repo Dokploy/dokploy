@@ -40,7 +40,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { authClient } from "@/lib/auth-client";
+import { requiresTwoFactor } from "@/lib/two-factor";
 import { api } from "@/utils/api";
 import {
 	BACKUP_CODES_PLACEHOLDER,
@@ -61,6 +67,8 @@ type Step = "password" | "actions" | "backup-codes";
 export const Configure2FA = () => {
 	const utils = api.useUtils();
 	const { data: currentUser } = api.user.get.useQuery();
+	const { data: organizations } = api.organization.all.useQuery();
+	const requiredByOrganization = !!organizations?.some(requiresTwoFactor);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [step, setStep] = useState<Step>("password");
 	const [password, setPassword] = useState("");
@@ -328,14 +336,35 @@ export const Configure2FA = () => {
 											</p>
 										</div>
 									</div>
-									<Button
-										onClick={() => setShowDisableConfirm(true)}
-										variant="destructive"
-										className="w-full mt-2"
-									>
-										<ShieldOff className="size-4 mr-2" />
-										Disable 2FA
-									</Button>
+									{requiredByOrganization ? (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<span className="w-full mt-2">
+													<Button
+														variant="destructive"
+														className="w-full"
+														disabled
+													>
+														<ShieldOff className="size-4 mr-2" />
+														Disable 2FA
+													</Button>
+												</span>
+											</TooltipTrigger>
+											<TooltipContent>
+												One of your organizations requires two-factor
+												authentication.
+											</TooltipContent>
+										</Tooltip>
+									) : (
+										<Button
+											onClick={() => setShowDisableConfirm(true)}
+											variant="destructive"
+											className="w-full mt-2"
+										>
+											<ShieldOff className="size-4 mr-2" />
+											Disable 2FA
+										</Button>
+									)}
 								</div>
 							</div>
 

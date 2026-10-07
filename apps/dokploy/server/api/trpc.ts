@@ -19,6 +19,7 @@ import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { TWO_FACTOR_SETUP_REQUIRED } from "@/lib/two-factor";
 
 type Resource = keyof typeof statements;
 type ActionOf<R extends Resource> = (typeof statements)[R][number];
@@ -38,6 +39,7 @@ interface CreateContextOptions {
 				ownerId: string;
 				enableEnterpriseFeatures: boolean;
 				isValidEnterpriseLicense: boolean;
+				twoFactorSetupRequired?: boolean;
 		  })
 		| null;
 	session:
@@ -77,7 +79,9 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
 
 	// Get from the request
-	const { session, user } = await validateRequest(req);
+	const { session, user } = await validateRequest(req, {
+		allowPending: true,
+	});
 
 	return createInnerTRPCContext({
 		req,
@@ -151,6 +155,38 @@ export const createTRPCRouter = t.router;
 export const publicProcedure = t.procedure;
 
 /**
+ * What a user who must enable 2FA can still call: enough for the
+ * /two-factor-setup page to render and enroll.
+ */
+export const TWO_FACTOR_SETUP_ALLOWED_PATHS = new Set([
+	"user.get",
+	"user.session",
+	"organization.all",
+]);
+
+const requireAuth = t.middleware(({ ctx, next, path }) => {
+	if (!ctx.session || !ctx.user) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	if (
+		ctx.user.twoFactorSetupRequired &&
+		!TWO_FACTOR_SETUP_ALLOWED_PATHS.has(path)
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: TWO_FACTOR_SETUP_REQUIRED,
+		});
+	}
+	return next({
+		ctx: {
+			// infers the `session` as non-nullable
+			session: ctx.session,
+			user: ctx.user,
+		},
+	});
+});
+
+/**
  * Protected (authenticated) procedure
  *
  * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
@@ -158,88 +194,40 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-	if (!ctx.session || !ctx.user) {
+export const protectedProcedure = t.procedure.use(requireAuth);
+
+const ownerOrAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
+	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
-	return next({
-		ctx: {
-			// infers the `session` as non-nullable
-			session: ctx.session,
-			user: ctx.user,
-			// session: { ...ctx.session, user: ctx.user },
-		},
-	});
+	return next();
 });
 
-export const cliProcedure = t.procedure.use(({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
-		throw new TRPCError({ code: "UNAUTHORIZED" });
-	}
-	return next({
-		ctx: {
-			// infers the `session` as non-nullable
-			session: ctx.session,
-			user: ctx.user,
-			// session: { ...ctx.session, user: ctx.user },
-		},
-	});
-});
+export const cliProcedure = ownerOrAdminProcedure;
 
-export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
-		throw new TRPCError({ code: "UNAUTHORIZED" });
-	}
-	return next({
-		ctx: {
-			// infers the `session` as non-nullable
-			session: ctx.session,
-			user: ctx.user,
-			// session: { ...ctx.session, user: ctx.user },
-		},
-	});
-});
+export const adminProcedure = ownerOrAdminProcedure;
 
 /**
  * Requires admin/owner role AND enterprise enabled with a license key in DB.
  * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
  * is used in the UI gate and when activating/validating keys.
  */
-export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
-	) {
-		throw new TRPCError({ code: "UNAUTHORIZED" });
-	}
+export const enterpriseProcedure = ownerOrAdminProcedure.use(
+	async ({ ctx, next }) => {
+		const hasValidLicenseResult = await hasValidLicense(
+			ctx.session.activeOrganizationId,
+		);
 
-	const hasValidLicenseResult = await hasValidLicense(
-		ctx.session.activeOrganizationId,
-	);
+		if (!hasValidLicenseResult) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Valid enterprise license required",
+			});
+		}
 
-	if (!hasValidLicenseResult) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Valid enterprise license required",
-		});
-	}
-
-	return next({
-		ctx: {
-			session: ctx.session,
-			user: ctx.user,
-		},
-	});
-});
+		return next();
+	},
+);
 
 /**
  * Permission-checked procedure factory.

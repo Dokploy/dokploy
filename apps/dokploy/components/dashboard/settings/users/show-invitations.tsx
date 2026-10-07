@@ -115,6 +115,12 @@ export const ShowInvitations = () => {
 																>
 																	{invitation.status}
 																</Badge>
+																{invitation.status === "pending" &&
+																	invitation.require2FA && (
+																		<Badge variant="outline" className="ml-1">
+																			2FA required
+																		</Badge>
+																	)}
 															</TableCell>
 															<TableCell className="text-center">
 																{format(new Date(invitation.expiresAt), "PPpp")}{" "}

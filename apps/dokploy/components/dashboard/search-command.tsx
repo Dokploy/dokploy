@@ -57,7 +57,7 @@ export const SearchCommand = () => {
 	const [search, setSearch] = React.useState("");
 	const { data: session } = api.user.session.useQuery();
 	const { data } = api.project.all.useQuery(undefined, {
-		enabled: !!session,
+		enabled: !!session && !session.twoFactorSetupRequired,
 	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 

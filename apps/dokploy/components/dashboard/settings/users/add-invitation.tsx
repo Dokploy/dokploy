@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -45,6 +46,7 @@ const addInvitation = z
 		notificationId: z.string().optional(),
 		password: z.string().optional(),
 		confirmPassword: z.string().optional(),
+		require2FA: z.boolean(),
 	})
 	.superRefine((value, ctx) => {
 		if (value.mode !== "credentials") {
@@ -117,11 +119,13 @@ export const AddInvitation = () => {
 			notificationId: "",
 			password: "",
 			confirmPassword: "",
+			require2FA: false,
 		},
 		resolver: zodResolver(addInvitation),
 	});
 
 	const mode = form.watch("mode");
+	const requiredByOrganization = !!activeOrganization?.require2FA;
 
 	useEffect(() => {
 		if (!open) {
@@ -155,6 +159,7 @@ export const AddInvitation = () => {
 					email: data.email.toLowerCase(),
 					password: data.password!,
 					role: data.role,
+					require2FA: data.require2FA,
 				});
 				toast.success("User created with initial credentials");
 				setOpen(false);
@@ -162,6 +167,7 @@ export const AddInvitation = () => {
 				const result = await inviteMember({
 					email: data.email.toLowerCase(),
 					role: data.role,
+					require2FA: data.require2FA,
 				});
 
 				if (!isCloud && data.notificationId) {
@@ -393,6 +399,36 @@ export const AddInvitation = () => {
 								/>
 							</>
 						)}
+
+						<FormField
+							control={form.control}
+							name="require2FA"
+							render={({ field }) => (
+								<FormItem>
+									<FormControl>
+										<div className="flex items-center gap-x-2">
+											<Checkbox
+												id="checkboxRequire2FA"
+												checked={requiredByOrganization || field.value}
+												disabled={requiredByOrganization}
+												onCheckedChange={(checked) =>
+													field.onChange(checked === true)
+												}
+											/>
+											<FormLabel htmlFor="checkboxRequire2FA">
+												Require two-factor authentication
+											</FormLabel>
+										</div>
+									</FormControl>
+									<FormDescription>
+										{requiredByOrganization
+											? "Required by organization policy"
+											: "If the user has a password, they must enable 2FA before they can use Dokploy"}
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						<DialogFooter className="flex w-full flex-row">
 							<Button

@@ -1,3 +1,4 @@
+import { MutationCache, QueryCache } from "@tanstack/react-query";
 import {
 	createWSClient,
 	httpBatchLink,
@@ -8,6 +9,7 @@ import {
 import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
+import { TWO_FACTOR_SETUP_REQUIRED } from "@/lib/two-factor";
 import type { AppRouter } from "@/server/api/root";
 
 const getBaseUrl = () => {
@@ -71,9 +73,31 @@ const links =
 				}),
 			];
 
+// Catches a 2FA requirement switched on mid-session.
+const redirectIfTwoFactorSetupRequired = (error: unknown) => {
+	if (
+		typeof window !== "undefined" &&
+		error instanceof Error &&
+		error.message === TWO_FACTOR_SETUP_REQUIRED &&
+		window.location.pathname !== "/two-factor-setup"
+	) {
+		window.location.href = "/two-factor-setup";
+	}
+};
+
 export const api = createTRPCNext<AppRouter>({
 	config() {
-		return { links };
+		return {
+			links,
+			queryClientConfig: {
+				queryCache: new QueryCache({
+					onError: redirectIfTwoFactorSetupRequired,
+				}),
+				mutationCache: new MutationCache({
+					onError: redirectIfTwoFactorSetupRequired,
+				}),
+			},
+		};
 	},
 	ssr: false,
 	transformer: superjson,
