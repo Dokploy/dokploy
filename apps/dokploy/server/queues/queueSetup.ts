@@ -1,4 +1,9 @@
-import { IS_CLOUD } from "@dokploy/server";
+import {
+	IS_CLOUD,
+	updateApplicationStatus,
+	updateCompose,
+	updatePreviewDeployment,
+} from "@dokploy/server";
 import { isCoalescableDeployJob } from "@dokploy/server/services/build-policy/coalesce";
 import {
 	execAsync,
@@ -7,6 +12,11 @@ import {
 import { resolveBuildsConcurrency } from "./concurrency";
 import { processDeploymentJob } from "./deployments-queue";
 import { type InMemoryJob, InMemoryQueue } from "./in-memory-queue";
+import {
+	createQueueJournal,
+	dbJournalStore,
+	type RestoreResult,
+} from "./queue-journal";
 import type { DeploymentJob } from "./queue-types";
 
 /**
@@ -15,7 +25,15 @@ import type { DeploymentJob } from "./queue-types";
  * Self-hosted uses an in-memory, per-group FIFO queue with configurable
  * concurrency per server. Cloud does not use the queue at all — deployments
  * run directly in the background — so we expose a no-op.
+ *
+ * The in-memory queue is the executor; every job is also journaled in Postgres
+ * (table `deployment_queue_job`, see queue-journal.ts) so a restart of the
+ * Dokploy service re-enqueues what was waiting or running instead of silently
+ * dropping it. Remote-server jobs (`serverId`) share the same queue and journal.
  */
+
+/** How long a SIGTERM waits for running jobs before exiting (swarm stops at 10s). */
+const SHUTDOWN_GRACE_MS = 8_000;
 
 interface DeploymentQueue {
 	add: (
@@ -29,6 +47,10 @@ interface DeploymentQueue {
 	run: () => Promise<void>;
 	removeWaiting: (predicate: (data: DeploymentJob) => boolean) => number;
 	clearWaiting: () => number;
+	/** Re-enqueue the jobs the previous process left unfinished. Never throws. */
+	restore: () => Promise<RestoreResult>;
+	/** Stop taking jobs, give running ones `graceMs` to finish, flush the journal. */
+	shutdown: (graceMs: number) => Promise<void>;
 }
 
 const createNoopQueue = (): DeploymentQueue => ({
@@ -39,13 +61,34 @@ const createNoopQueue = (): DeploymentQueue => ({
 	run: () => Promise.resolve(),
 	removeWaiting: () => 0,
 	clearWaiting: () => 0,
+	restore: () => Promise.resolve({ restored: 0, interrupted: 0, dropped: 0 }),
+	shutdown: () => Promise.resolve(),
 });
 
+/** A dropped job must not leave its service showing "running". */
+const failDroppedJob = async (data: DeploymentJob) => {
+	if (data.applicationType === "application") {
+		await updateApplicationStatus(data.applicationId, "error");
+	} else if (data.applicationType === "compose") {
+		await updateCompose(data.composeId, { composeStatus: "error" });
+	} else {
+		await updatePreviewDeployment(data.previewDeploymentId, {
+			previewStatus: "error",
+		});
+	}
+};
+
 const createInMemoryQueue = (): DeploymentQueue => {
+	const durable = createQueueJournal(dbJournalStore, {
+		onDropped: failDroppedJob,
+	});
 	const queue = new InMemoryQueue({
 		resolveConcurrency: resolveBuildsConcurrency,
+		journal: durable.journal,
 	});
 	queue.process(processDeploymentJob);
+
+	let shuttingDown: Promise<void> | null = null;
 
 	return {
 		add: (_name, data) => queue.add(data),
@@ -55,6 +98,17 @@ const createInMemoryQueue = (): DeploymentQueue => {
 		run: () => queue.run(),
 		removeWaiting: (predicate) => queue.removeWaiting(predicate),
 		clearWaiting: () => queue.clearWaiting(),
+		restore: () => durable.restore(queue),
+		shutdown: (graceMs) => {
+			shuttingDown ??= (async () => {
+				// Nothing new starts; anything still running when the grace period
+				// ends stays in the journal as `active` and is re-run on the next boot.
+				await queue.close();
+				await queue.waitForIdle(graceMs);
+				await durable.flush();
+			})();
+			return shuttingDown;
+		},
 	};
 };
 
@@ -77,6 +131,12 @@ const myQueue: DeploymentQueue = globalForQueue.__dokployDeploymentQueue;
 /** Start processing jobs. Called once on server startup (self-hosted). */
 export const startDeploymentWorker = () => myQueue.run();
 
+/**
+ * Re-enqueue the jobs the previous process left unfinished (self-hosted).
+ * Called once on startup after the worker is running; safe to call again.
+ */
+export const restoreQueuedDeployments = () => myQueue.restore();
+
 export const getJobsByApplicationId = async (applicationId: string) => {
 	const jobs = await myQueue.getJobs();
 	return jobs.filter(
@@ -91,8 +151,12 @@ export const getJobsByComposeId = async (composeId: string) => {
 
 if (!IS_CLOUD) {
 	process.on("SIGTERM", () => {
-		myQueue.close();
-		process.exit(0);
+		// The journal is the real guarantee: whatever is still running when the
+		// grace period ends is re-run on the next boot.
+		void myQueue
+			.shutdown(SHUTDOWN_GRACE_MS)
+			.catch((error) => console.error("Queue shutdown failed", error))
+			.finally(() => process.exit(0));
 	});
 }
 

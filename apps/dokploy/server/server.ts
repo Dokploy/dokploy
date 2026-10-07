@@ -137,8 +137,12 @@ void app
 
 			if (!IS_CLOUD) {
 				console.log("Starting Deployment Worker");
-				const { startDeploymentWorker } = await import("./queues/queueSetup");
+				const { startDeploymentWorker, restoreQueuedDeployments } =
+					await import("./queues/queueSetup");
 				await startDeploymentWorker();
+				// Jobs the previous process left waiting or running. Never throws:
+				// failures are logged and reported inside, startup carries on.
+				await restoreQueuedDeployments();
 			}
 		} catch (e) {
 			console.error("Main Server Error", e);
