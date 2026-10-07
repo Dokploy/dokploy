@@ -169,6 +169,22 @@ describe("isEnvironmentError", () => {
 
 	it.each([
 		["a TypeError", new TypeError("x is not a function")],
+		[
+			"an ExecError for a command that exited non-zero",
+			new ExecError("Remote command failed with exit code 1: no such file", {
+				command: "cat /nope",
+				serverId: "srv-1",
+				exitCode: 1,
+			}),
+		],
+		[
+			"a duplicate-copy ExecError that exited non-zero",
+			Object.assign(new Error("Command failed with exit code 2"), {
+				name: "ExecError",
+				command: "ls",
+				exitCode: 2,
+			}),
+		],
 		["a plain Error", new Error("boom")],
 		[
 			"an unrelated error code",
@@ -178,6 +194,75 @@ describe("isEnvironmentError", () => {
 		["undefined", undefined],
 	] as [string, unknown][])("treats %s as a bug", (_name, error) => {
 		expect(isEnvironmentError(error)).toBe(false);
+	});
+
+	it("treats an ExecError without an exit code (connection failure) as environmental", () => {
+		for (const message of [
+			"SSH connection closed before the command finished",
+			"Remote command execution failed: Channel open failure",
+			"Authentication failed: Invalid SSH private key.",
+		]) {
+			expect(
+				isEnvironmentError(
+					new ExecError(message, { command: "x", serverId: "srv-1" }),
+				),
+			).toBe(true);
+		}
+	});
+
+	it("recognises an ExecError from a duplicate module copy by name", () => {
+		const copy = Object.assign(new Error("Remote command stream error"), {
+			name: "ExecError",
+			command: "x",
+		});
+		expect(isEnvironmentError(copy)).toBe(true);
+	});
+
+	it("still treats a non-zero exit as environmental when its message names a connection failure", () => {
+		const error = new ExecError(
+			"Remote command failed with exit code 255: ssh: connect to host 10.0.0.2 port 22: EHOSTUNREACH",
+			{ command: "x", serverId: "srv-1", exitCode: 255 },
+		);
+		expect(isEnvironmentError(error)).toBe(true);
+	});
+
+	it("walks originalError, context.originalError and AggregateError.errors", () => {
+		const offline = Object.assign(new Error("connect"), {
+			code: "EHOSTUNREACH",
+		});
+		const exited = (extra: Record<string, unknown>) =>
+			Object.assign(new Error("wrapper"), extra);
+
+		expect(isEnvironmentError(exited({ originalError: offline }))).toBe(true);
+		expect(
+			isEnvironmentError(exited({ context: { originalError: offline } })),
+		).toBe(true);
+		expect(
+			isEnvironmentError(new AggregateError([new Error("x"), offline], "many")),
+		).toBe(true);
+		expect(
+			isEnvironmentError(
+				new AggregateError([new Error("x"), new Error("y")], "many"),
+			),
+		).toBe(false);
+	});
+
+	it("stops at the depth cap", () => {
+		let error: unknown = Object.assign(new Error("deep"), {
+			code: "EHOSTUNREACH",
+		});
+		for (let i = 0; i < 10; i++) {
+			error = new Error(`level ${i}`, { cause: error });
+		}
+		expect(isEnvironmentError(error)).toBe(false);
+	});
+
+	it("survives cycles through originalError and errors", () => {
+		const a = new Error("a") as Error & Record<string, unknown>;
+		const b = new AggregateError([a], "b") as AggregateError &
+			Record<string, unknown>;
+		a.originalError = b;
+		expect(isEnvironmentError(a)).toBe(false);
 	});
 
 	it("survives a cyclic cause chain", () => {
@@ -241,6 +326,56 @@ describe("reporting of unexpected errors", () => {
 		).resolves.toBeUndefined();
 	});
 
+	it("reports an ExecError for a command that exited non-zero", async () => {
+		const reporter = vi.fn();
+		setBackgroundErrorReporter(reporter);
+		const failed = new ExecError("Remote command failed with exit code 1", {
+			command: "docker system prune -f",
+			serverId: "srv-1",
+			exitCode: 1,
+		});
+
+		await runBackgroundJob("cleanup", async () => {
+			throw failed;
+		});
+
+		expect(reporter).toHaveBeenCalledWith(failed, {
+			handler: "backgroundJob",
+			label: "cleanup",
+		});
+	});
+
+	it("shares the reporter between module copies", async () => {
+		const reporter = vi.fn();
+		setBackgroundErrorReporter(reporter);
+
+		// A second, independent copy of the module, like the one a bundled deep
+		// import creates next to the `@dokploy/server` barrel.
+		vi.resetModules();
+		const copy = await import("@dokploy/server/utils/process/background");
+		expect(copy.setBackgroundErrorReporter).not.toBe(
+			setBackgroundErrorReporter,
+		);
+
+		const bug = new TypeError("copy bug");
+		copy.reportUnexpectedError(bug, { handler: "wss", label: "x" });
+		expect(reporter).toHaveBeenCalledWith(bug, { handler: "wss", label: "x" });
+
+		// And the other direction: a reporter set through the copy is seen by the
+		// original.
+		const second = vi.fn();
+		copy.setBackgroundErrorReporter(second);
+		const another = new TypeError("another bug");
+		await runBackgroundJob("cleanup", async () => {
+			throw another;
+		});
+		expect(second).toHaveBeenCalledWith(another, {
+			handler: "backgroundJob",
+			label: "cleanup",
+		});
+		expect(reporter).toHaveBeenCalledTimes(1);
+	});
+
 	it("only logs when no reporter is registered", async () => {
 		await expect(
 			runBackgroundJob("cleanup", () => {
@@ -256,9 +391,6 @@ describe("node-schedule callbacks", () => {
 		// the callback returns.
 		const real =
 			await vi.importActual<typeof import("node-schedule")>("node-schedule");
-		const fired = new Promise<void>((resolve) => {
-			real.scheduleJob("probe", new Date(Date.now() + 100), () => resolve());
-		});
 		const job = real.scheduleJob(
 			new Date(Date.now() + 100),
 			backgroundJob(
@@ -270,16 +402,22 @@ describe("node-schedule callbacks", () => {
 			),
 		);
 		expect(job).not.toBeNull();
-		await fired;
-		await settle();
-		job?.cancel();
+		try {
+			await vi.waitFor(() => expect(errorSpy).toHaveBeenCalled(), {
+				timeout: 3000,
+			});
+		} finally {
+			job?.cancel();
+		}
+		// An unhandled rejection is emitted once the microtask queue drains.
+		await new Promise((resolve) => setImmediate(resolve));
 
-		expect(unhandled).toEqual([]);
 		expect(errorSpy).toHaveBeenCalledWith(
 			"cron failed",
 			{ serverId: "srv-1" },
 			expect.stringContaining("Timed out while waiting for handshake"),
 		);
+		expect(unhandled).toEqual([]);
 	});
 });
 

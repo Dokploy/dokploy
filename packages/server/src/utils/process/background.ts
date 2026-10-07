@@ -29,51 +29,89 @@ const ENVIRONMENT_ERROR_CODES = new Set([
 const ENVIRONMENT_ERROR_MESSAGES = [
 	"SSH connection error",
 	"Timed out while waiting for handshake",
+	...ENVIRONMENT_ERROR_CODES,
 ];
 
 const MAX_CAUSE_DEPTH = 5;
+// Hard stop for a pathological (very wide) error graph.
+const MAX_VISITED_ERRORS = 50;
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
+/**
+ * An ExecError, also recognised by name so a duplicate copy of this package
+ * (for example one bundled into the app next to the dist build) still counts.
+ */
+const isExecError = (error: Record<string, unknown>): boolean =>
+	error instanceof ExecError || error.name === "ExecError";
+
+const matchesEnvironmentMessage = (message: unknown): boolean =>
+	typeof message === "string" &&
+	ENVIRONMENT_ERROR_MESSAGES.some((fragment) => message.includes(fragment));
 
 const isEnvironmentErrorShallow = (error: unknown): boolean => {
-	if (error instanceof ExecError) {
-		return true;
-	}
-	if (typeof error !== "object" || error === null) {
+	if (!isObject(error)) {
 		return false;
 	}
-	const { code, level, message } = error as {
-		code?: unknown;
-		level?: unknown;
-		message?: unknown;
-	};
 	// ssh2 tags its failures with a `level` ("client-socket", "handshake", ...).
-	if (typeof level === "string" && level.length > 0) {
+	if (typeof error.level === "string" && error.level.length > 0) {
 		return true;
 	}
-	if (typeof code === "string" && ENVIRONMENT_ERROR_CODES.has(code)) {
+	if (
+		typeof error.code === "string" &&
+		ENVIRONMENT_ERROR_CODES.has(error.code)
+	) {
 		return true;
 	}
-	return (
-		typeof message === "string" &&
-		ENVIRONMENT_ERROR_MESSAGES.some((fragment) => message.includes(fragment))
-	);
+	if (matchesEnvironmentMessage(error.message)) {
+		return true;
+	}
+	// An ExecError without a numeric exit code never ran to completion: the
+	// connection (or the spawn) failed. One that carries an exit code is a
+	// command that really failed, which is not an environment condition.
+	return isExecError(error) && typeof error.exitCode !== "number";
+};
+
+/** The errors wrapped by `error`, in the shapes this codebase uses. */
+const wrappedErrors = (error: Record<string, unknown>): unknown[] => {
+	const wrapped: unknown[] = [error.cause, error.originalError];
+	if (isObject(error.context)) {
+		wrapped.push(error.context.originalError);
+	}
+	if (Array.isArray(error.errors)) {
+		wrapped.push(...error.errors);
+	}
+	return wrapped;
 };
 
 /**
  * True for failures that come from the environment rather than from a bug: an
- * ExecError, an ssh2 error (it carries a `level`), a network error code such
- * as ECONNREFUSED/EHOSTUNREACH/ETIMEDOUT, or an SSH connection/handshake
- * message. The `cause` chain is walked as well.
+ * ExecError that never got an exit code (the connection failed), an ssh2 error
+ * (it carries a `level`), a network error code such as ECONNREFUSED /
+ * EHOSTUNREACH / ETIMEDOUT, or an SSH connection / handshake message. Wrapped
+ * errors (`cause`, `originalError`, `context.originalError`, AggregateError
+ * `errors`) are searched too, to a bounded depth and safely against cycles.
  */
 export const isEnvironmentError = (error: unknown): boolean => {
-	let current: unknown = error;
+	const seen = new Set<unknown>();
+	let frontier: unknown[] = [error];
 	for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
-		if (isEnvironmentErrorShallow(current)) {
-			return true;
+		const next: unknown[] = [];
+		for (const candidate of frontier) {
+			if (!isObject(candidate) || seen.has(candidate)) {
+				continue;
+			}
+			if (seen.size >= MAX_VISITED_ERRORS) {
+				return false;
+			}
+			seen.add(candidate);
+			if (isEnvironmentErrorShallow(candidate)) {
+				return true;
+			}
+			next.push(...wrappedErrors(candidate));
 		}
-		if (typeof current !== "object" || current === null) {
-			return false;
-		}
-		current = (current as { cause?: unknown }).cause;
+		frontier = next;
 	}
 	return false;
 };
@@ -87,13 +125,28 @@ export type BackgroundErrorReporter = (
 	tags: Record<string, string>,
 ) => void;
 
-let reporter: BackgroundErrorReporter | undefined;
+// The app can end up with more than one copy of this module (the dist build
+// behind the `@dokploy/server` barrel and a bundled deep import), so the
+// reporter lives in a process-wide slot that every copy shares.
+const REPORTER_SLOT = Symbol.for("dokploy.backgroundErrorReporter");
+
+type ReporterSlot = { reporter?: BackgroundErrorReporter };
+
+const reporterSlot = (): ReporterSlot => {
+	const registry = globalThis as unknown as Record<symbol, ReporterSlot>;
+	let slot = registry[REPORTER_SLOT];
+	if (!slot) {
+		slot = {};
+		registry[REPORTER_SLOT] = slot;
+	}
+	return slot;
+};
 
 /** Registers where unexpected background errors are reported (e.g. Sentry). */
 export const setBackgroundErrorReporter = (
 	fn: BackgroundErrorReporter | undefined,
 ): void => {
-	reporter = fn;
+	reporterSlot().reporter = fn;
 };
 
 /**
@@ -104,6 +157,7 @@ export const reportUnexpectedError = (
 	error: unknown,
 	tags: Record<string, string>,
 ): void => {
+	const reporter = reporterSlot().reporter;
 	if (!reporter || isEnvironmentError(error)) {
 		return;
 	}

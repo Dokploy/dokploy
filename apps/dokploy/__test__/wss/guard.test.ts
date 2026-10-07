@@ -8,6 +8,14 @@ import {
 	toCloseReason,
 } from "@/server/wss/guard";
 
+// guard.ts imports the helpers from the @dokploy/server barrel, like the other
+// wss files; the real barrel pulls in the whole server (database, native
+// modules), so stand in only the module under test.
+vi.mock(
+	"@dokploy/server",
+	() => import("@dokploy/server/utils/process/background"),
+);
+
 /**
  * EventEmitter drops the promise an async `connection` listener returns, so a
  * failure inside one (auth lookup, offline remote server, ...) used to reach

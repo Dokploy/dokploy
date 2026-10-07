@@ -1,5 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import { reportUnexpectedError } from "@dokploy/server/utils/process/background";
+import { reportUnexpectedError } from "@dokploy/server";
 import type { WebSocket, WebSocketServer } from "ws";
 
 // RFC 6455: a close reason is limited to 123 bytes and `ws.close` throws a
