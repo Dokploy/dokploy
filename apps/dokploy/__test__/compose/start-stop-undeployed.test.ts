@@ -31,7 +31,6 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsyncRemote: mocks.execAsyncRemote,
 }));
 
-
 const compose = (overrides: Record<string, unknown> = {}) => ({
 	composeId: "c1",
 	appName: "my-app",
@@ -92,28 +91,49 @@ describe("startCompose / stopCompose on a never-deployed compose", () => {
 
 		await expect(stopCompose("c1")).resolves.toBe(true);
 		expect(mocks.execAsync).toHaveBeenCalledTimes(1);
-		expect(mocks.execAsync.mock.calls[0]?.[0]).toContain("compose -p my-app stop");
+		expect(mocks.execAsync.mock.calls[0]?.[0]).toContain(
+			"compose -p my-app stop",
+		);
 	});
 
-	it("start: remote failing test -d throws BAD_REQUEST without running compose", async () => {
+	it("start: remote missing directory throws BAD_REQUEST without running compose", async () => {
 		mocks.findFirst.mockResolvedValue(compose({ serverId: "s1" }));
-		mocks.execAsyncRemote.mockRejectedValueOnce(new Error("exit 1"));
+		mocks.execAsyncRemote.mockResolvedValueOnce({
+			stdout: "missing\n",
+			stderr: "",
+		});
 
 		await expectNotDeployed(startCompose("c1"), "start");
 		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
-		expect(mocks.execAsyncRemote.mock.calls[0]?.[1]).toMatch(/^test -d .*code/);
+		expect(mocks.execAsyncRemote.mock.calls[0]?.[1]).toMatch(/-d .*code/);
 	});
 
-	it("stop: remote failing test -d throws BAD_REQUEST without running compose", async () => {
+	it("stop: remote missing directory throws BAD_REQUEST without running compose", async () => {
 		mocks.findFirst.mockResolvedValue(compose({ serverId: "s1" }));
-		mocks.execAsyncRemote.mockRejectedValueOnce(new Error("exit 1"));
+		mocks.execAsyncRemote.mockResolvedValueOnce({
+			stdout: "missing\n",
+			stderr: "",
+		});
 
 		await expectNotDeployed(stopCompose("c1"), "stop");
 		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
 	});
 
+	it("start: remote SSH failure propagates instead of reporting not deployed", async () => {
+		mocks.findFirst.mockResolvedValue(compose({ serverId: "s1" }));
+		const sshError = new Error("connect ECONNREFUSED");
+		mocks.execAsyncRemote.mockRejectedValueOnce(sshError);
+
+		await expect(startCompose("c1")).rejects.toBe(sshError);
+		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
+	});
+
 	it("start: remote existing directory proceeds to docker compose up", async () => {
 		mocks.findFirst.mockResolvedValue(compose({ serverId: "s1" }));
+		mocks.execAsyncRemote.mockResolvedValueOnce({
+			stdout: "present\n",
+			stderr: "",
+		});
 
 		await expect(startCompose("c1")).resolves.toBe(true);
 		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(2);

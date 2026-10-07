@@ -644,11 +644,13 @@ const assertComposeDirectoryExists = async (
 ) => {
 	let exists = true;
 	if (serverId) {
-		try {
-			await execAsyncRemote(serverId, `test -d ${quote([dir])}`);
-		} catch {
-			exists = false;
-		}
+		// Report through stdout so an SSH failure surfaces as itself instead of
+		// being mistaken for a missing directory.
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`if [ -d ${quote([dir])} ]; then echo present; else echo missing; fi`,
+		);
+		exists = stdout.trim() !== "missing";
 	} else {
 		exists = existsSync(dir);
 	}
