@@ -118,7 +118,7 @@ export const CompleteStep = ({
 							// Navigating away ends onboarding; close it without blocking the link.
 							void onFinish();
 						}}
-						className="group -mx-4 flex items-start gap-6 rounded-lg px-4 py-5 first:pt-0 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						className="group -mx-4 flex items-start gap-6 rounded-lg px-4 py-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					>
 						<span className="font-mono text-xs text-muted-foreground pt-1 shrink-0 w-6">
 							{String(index + 1).padStart(2, "0")}
