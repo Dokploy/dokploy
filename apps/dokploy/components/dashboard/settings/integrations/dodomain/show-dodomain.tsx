@@ -140,7 +140,10 @@ export const ShowDoDomain = () => {
 									<span className="sr-only">Registered</span>
 								</>
 							)}
-							<span className="font-mono text-xs">
+							<span
+								className="font-mono text-xs"
+								aria-hidden={!integration.webhookUrl}
+							>
 								{integration.webhookUrl || "Not registered"}
 							</span>
 						</dd>
