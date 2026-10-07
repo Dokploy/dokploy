@@ -9,10 +9,12 @@ import {
 	compose,
 } from "@dokploy/server/db/schema";
 import { resyncBackupPoliciesForEnvironment } from "@dokploy/server/services/backup-policy";
+import { prepareComposeBuildServerDeploy } from "@dokploy/server/services/compose-build-server";
 import {
 	type ComposePathLike,
 	getBackupCurrentDeploymentCommand,
 	getBuildComposeCommand,
+	getComposeBuildOverridePath,
 	getRollbackMarkerProbeCommand,
 } from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
@@ -175,6 +177,17 @@ export const runComposeBuild = async (
 	await waitForComposeRequiredChecks({ compose: entity, serverId });
 	// <<< build-policy hook (compose)
 
+	// Build-server composes build and push their images before the running
+	// release is touched, so a failed build never reaches `down --volumes`.
+	// A no-op (undefined) for every compose without a `buildServerId`.
+	const remoteBuild = await prepareComposeBuildServerDeploy({
+		entity,
+		deployment,
+		runStep,
+		applyPatches,
+		freshVolumes,
+	});
+
 	if (freshVolumes && entity.composeType === "docker-compose") {
 		const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${entity.appName} down --volumes 2>&1 || true;`;
 		await runStep(downCommand);
@@ -184,6 +197,7 @@ export const runComposeBuild = async (
 	command += await getBuildComposeCommand(entity, {
 		deploymentId: deployment.deploymentId,
 		freshVolumes,
+		remoteBuild,
 	});
 	await runStep(command);
 };
@@ -537,6 +551,22 @@ export const rebuildCompose = async ({
 		});
 		// <<< build-policy hook (compose rebuild)
 
+		// Build-server composes: build and push first (see runComposeBuild).
+		const runRebuildStep = async (rawCommand: string) => {
+			const stepWithLog = `(${rawCommand}) >> ${deployment.logPath} 2>&1`;
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, stepWithLog);
+			} else {
+				await execAsync(stepWithLog);
+			}
+		};
+		const remoteBuild = await prepareComposeBuildServerDeploy({
+			entity: compose,
+			deployment,
+			runStep: runRebuildStep,
+			freshVolumes,
+		});
+
 		if (freshVolumes && compose.composeType === "docker-compose") {
 			const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
 			const downWithLog = `(${downCommand}) >> ${deployment.logPath} 2>&1`;
@@ -551,6 +581,7 @@ export const rebuildCompose = async ({
 		command += await getBuildComposeCommand(compose, {
 			deploymentId: deployment.deploymentId,
 			freshVolumes,
+			remoteBuild,
 		});
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
@@ -672,7 +703,14 @@ export const startCompose = async (composeId: string) => {
 	try {
 		const path =
 			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const baseCommand = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
+		// A compose built on a build server starts from the pushed images: merge
+		// the override (when the last deploy wrote one) and never build here.
+		let baseCommand = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
+		if (compose.buildServerId) {
+			const overridePath = quote([getComposeBuildOverridePath(compose)]);
+			const upBase = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])}`;
+			baseCommand = `if [ -f ${overridePath} ]; then ${upBase} -f ${overridePath} up -d --no-build; else ${upBase} up -d --no-build; fi`;
+		}
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(

@@ -33,6 +33,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { PullImagesCompose } from "@/components/dashboard/compose/advanced/pull-images";
+import { ShowComposeBuildServer } from "@/components/dashboard/compose/advanced/show-build-server";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -583,6 +584,7 @@ const Service = (
 													currentServerId={data?.serverId}
 												/>
 												<PullImagesCompose composeId={composeId} />
+												<ShowComposeBuildServer composeId={composeId} />
 											</div>
 										</TabsContent>
 									)}

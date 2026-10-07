@@ -37,6 +37,8 @@ export type ComposePathLike = {
 	sourceType: string;
 	composePath: string;
 	serverId?: string | null;
+	/** Set when the images are built on a build server (see compose-remote-build). */
+	buildServerId?: string | null;
 };
 
 /**
@@ -80,12 +82,30 @@ export const getComposeBackupDir = (compose: ComposePathLike) => {
 	return join(COMPOSE_PATH, compose.appName, ".deploy-backup");
 };
 
+/**
+ * Name of the generated compose override that points every service built on a
+ * build server at the image that was pushed for it.
+ */
+export const COMPOSE_BUILD_OVERRIDE_FILE = "docker-compose.dokploy-build.yml";
+
+/**
+ * Absolute path of the build override on the serving host. It lives next to
+ * `code/` (not inside it) so a `git clone` of the code directory can never
+ * delete the file the running release was started with.
+ */
+export const getComposeBuildOverridePath = (compose: ComposePathLike) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	return join(COMPOSE_PATH, compose.appName, COMPOSE_BUILD_OVERRIDE_FILE);
+};
+
 /** Snapshot of the release that was on disk when this deploy started. */
 export const PRE_DEPLOY_COMPOSE_BAK = "docker-compose.yml.bak";
 export const PRE_DEPLOY_ENV_BAK = "env.bak";
+export const PRE_DEPLOY_OVERRIDE_BAK = `${COMPOSE_BUILD_OVERRIDE_FILE}.bak`;
 /** Snapshot of the last release that actually deployed successfully. */
 export const LAST_GOOD_COMPOSE_BAK = "last-good-docker-compose.yml.bak";
 export const LAST_GOOD_ENV_BAK = "last-good-env.bak";
+export const LAST_GOOD_OVERRIDE_BAK = `last-good-${COMPOSE_BUILD_OVERRIDE_FILE}.bak`;
 
 /**
  * Shell snippet that snapshots the release currently on disk (compose file and
@@ -100,9 +120,7 @@ export const LAST_GOOD_ENV_BAK = "last-good-env.bak";
  * Every interpolated path goes through shell-quote: `composePath` and `appName`
  * are user-controlled fields.
  */
-export const getBackupCurrentDeploymentCommand = (
-	compose: ComposePathLike,
-) => {
+export const getBackupCurrentDeploymentCommand = (compose: ComposePathLike) => {
 	const backupDir = getComposeBackupDir(compose);
 	const qBackupDir = quote([backupDir]);
 	const qComposeFile = quote([getComposeFilePath(compose)]);
@@ -110,11 +128,21 @@ export const getBackupCurrentDeploymentCommand = (
 	const qComposeBak = quote([join(backupDir, PRE_DEPLOY_COMPOSE_BAK)]);
 	const qEnvBak = quote([join(backupDir, PRE_DEPLOY_ENV_BAK)]);
 
+	// A release deployed through a build server is only restorable together with
+	// the override that pins its images, so that file is part of the snapshot.
+	let overrideSnapshot = "";
+	if (compose.buildServerId) {
+		const qOverrideFile = quote([getComposeBuildOverridePath(compose)]);
+		const qOverrideBak = quote([join(backupDir, PRE_DEPLOY_OVERRIDE_BAK)]);
+		overrideSnapshot = `if [ -f ${qOverrideFile} ]; then cp ${qOverrideFile} ${qOverrideBak} || exit 1; else rm -f ${qOverrideBak}; fi
+`;
+	}
+
 	return `
 mkdir -p ${qBackupDir} 2>/dev/null || exit 1;
 if [ -f ${qComposeFile} ]; then cp ${qComposeFile} ${qComposeBak} || exit 1; else echo "No previous compose file found"; rm -f ${qComposeBak}; fi
 if [ -f ${qEnvFile} ]; then cp ${qEnvFile} ${qEnvBak} || exit 1; else echo "No previous env file found"; rm -f ${qEnvBak}; fi
-	`;
+${overrideSnapshot}	`;
 };
 
 /**
@@ -141,20 +169,173 @@ export interface BuildComposeCommandOptions {
 	 * no restorable pre-state, so the transactional wrapper is switched off.
 	 */
 	freshVolumes?: boolean;
+	/**
+	 * Result of building the images on the compose's build server. Required when
+	 * `compose.buildServerId` is set: the serving host then only logs in, pulls
+	 * and runs (`up --no-build`), and refuses to build on its own.
+	 */
+	remoteBuild?: RemoteBuildDeployInfo;
 }
+
+/** One service whose image was built on the build server and pushed. */
+export interface RemoteBuildImage {
+	service: string;
+	/** Registry reference the serving host pulls and runs. */
+	image: string;
+}
+
+export interface RemoteBuildDeployInfo {
+	images: RemoteBuildImage[];
+	/** Shell command that logs the serving host in to the build registry. */
+	loginCommand: string;
+	/** Human readable name of the serving host, for the deployment log. */
+	servingHostLabel: string;
+}
+
+/**
+ * Shell snippet that restores the compose file, the `.env` and (for a compose
+ * deployed through a build server) the build override from the snapshots, then
+ * re-runs the previous release. Empty when the deploy is not transactional.
+ *
+ * Shared by the deploy script (docker command failed) and by the caller that
+ * fails before the deploy script even starts (the build server stage), so both
+ * leave the serving host in exactly the same state.
+ */
+const getRestoreCommands = (
+	compose: ComposeNested,
+	{
+		command,
+		deploymentId,
+		isTransactional,
+		exportEnvCommand,
+		projectPath,
+	}: {
+		command: string;
+		deploymentId?: string;
+		isTransactional: boolean;
+		exportEnvCommand: string;
+		projectPath: string;
+	},
+) => {
+	if (!isTransactional) return "";
+	const backupDir = getComposeBackupDir(compose);
+	const qComposeFile = quote([getComposeFilePath(compose)]);
+	const qEnvFile = quote([getComposeEnvFilePath(compose)]);
+	const qPreCompose = quote([join(backupDir, PRE_DEPLOY_COMPOSE_BAK)]);
+	const qPreEnv = quote([join(backupDir, PRE_DEPLOY_ENV_BAK)]);
+	const qLastGoodCompose = quote([join(backupDir, LAST_GOOD_COMPOSE_BAK)]);
+	const qLastGoodEnv = quote([join(backupDir, LAST_GOOD_ENV_BAK)]);
+	const qRollbackMarker = quote([
+		deploymentId ? `${ROLLBACK_OK_MARKER}:${deploymentId}` : ROLLBACK_OK_MARKER,
+	]);
+
+	// The restore re-runs the very command that deploys, minus the flags that
+	// would rebuild or re-pull: the restored release is a known-good artifact,
+	// and `--pull always` is frequently the thing that broke the deploy in the
+	// first place.
+	const stripFlags = (value: string) =>
+		value.replace(/ --build\b/g, "").replace(/ --pull always\b/g, "");
+	const restoreCommand = stripFlags(command);
+
+	// When the service generates its own `.env`, a restore that could not put
+	// the previous `.env` back is not a real rollback — the restored compose
+	// file would run against the new (possibly broken) environment.
+	const isEnvRequired = compose.createEnvFile ? "1" : "0";
+
+	const runRestore = (restoreArgs: string) =>
+		`env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreArgs} 2>&1 && echo ${qRollbackMarker} || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";`;
+
+	let upRestore = runRestore(restoreCommand);
+	let overrideRestore = "";
+	if (compose.buildServerId) {
+		// The previous release may predate the build server (no override to put
+		// back); it was built on this host, so it comes back with a plain `up`.
+		const qOverrideFile = quote([getComposeBuildOverridePath(compose)]);
+		const qPreOverride = quote([join(backupDir, PRE_DEPLOY_OVERRIDE_BAK)]);
+		const qLastGoodOverride = quote([join(backupDir, LAST_GOOD_OVERRIDE_BAK)]);
+		const plainCommand = stripFlags(
+			createCommand({ ...compose, buildServerId: null }, projectPath),
+		);
+		overrideRestore = `
+		OVERRIDE_RESTORED=1;
+		cp ${qLastGoodOverride} ${qOverrideFile} 2>/dev/null || cp ${qPreOverride} ${qOverrideFile} 2>/dev/null || { OVERRIDE_RESTORED=0; rm -f ${qOverrideFile}; };`;
+		upRestore = `if [ "$OVERRIDE_RESTORED" = "1" ]; then
+				${runRestore(restoreCommand)}
+			else
+				${runRestore(plainCommand)}
+			fi`;
+	}
+
+	return `
+		echo "Restoring previous working deployment... ⏪";
+		RESTORE_FILES_OK=1;
+		cp ${qLastGoodCompose} ${qComposeFile} 2>/dev/null || cp ${qPreCompose} ${qComposeFile} 2>/dev/null || RESTORE_FILES_OK=0;
+		RESTORE_ENV_OK=1;
+		cp ${qLastGoodEnv} ${qEnvFile} 2>/dev/null || cp ${qPreEnv} ${qEnvFile} 2>/dev/null || RESTORE_ENV_OK=0;${overrideRestore}
+		if [ "$RESTORE_ENV_OK" = "0" ] && { [ "${isEnvRequired}" = "1" ] || [ -f ${qLastGoodEnv} ] || [ -f ${qPreEnv} ]; }; then RESTORE_FILES_OK=0; echo "Warning: ⚠️ Previous .env could not be restored"; fi
+		if [ "$RESTORE_FILES_OK" = "1" ]; then
+			${upRestore}
+		else
+			echo "Warning: ⚠️ No previous release to restore, leaving the stack as-is";
+		fi
+		`;
+};
+
+/**
+ * Restore script for a deploy that failed *before* the deploy script ran (the
+ * build on the build server). The running containers were never touched, but
+ * the clone already replaced the compose file and `.env`, so put the previous
+ * release's files back and confirm it is still serving. Same markers as a
+ * failed `docker compose up`, so `didRollbackSucceed` treats it identically.
+ */
+export const getRestoreAfterFailedBuildCommand = async (
+	rawCompose: ComposeNested,
+	options: { deploymentId?: string; freshVolumes?: boolean } = {},
+) => {
+	const compose = await withResolvedVaultRefs(rawCompose);
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const isTransactional =
+		compose.composeType === "docker-compose" && !options.freshVolumes;
+	const effectiveProjectPath = compose.mounts.length > 0 ? projectPath : "";
+	return getRestoreCommands(compose, {
+		command: createCommand(compose, effectiveProjectPath || undefined, {
+			overridePath: getComposeBuildOverridePath(compose),
+		}),
+		deploymentId: options.deploymentId,
+		isTransactional,
+		exportEnvCommand: getExportEnvCommand(compose),
+		projectPath: effectiveProjectPath,
+	});
+};
 
 export const getBuildComposeCommand = async (
 	rawCompose: ComposeNested,
 	options: BuildComposeCommandOptions = {},
 ) => {
-	const { deploymentId, freshVolumes = false } = options;
+	const { deploymentId, freshVolumes = false, remoteBuild } = options;
 	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	if (compose.buildServerId && !remoteBuild) {
+		// Fail closed: a compose that opted into a build server must never fall
+		// back to building on the serving host.
+		throw new Error(
+			"This compose builds on a build server, but no remote build result was provided; refusing to build on the serving host.",
+		);
+	}
 	const command = createCommand(
 		compose,
 		mounts.length > 0 ? projectPath : undefined,
+		remoteBuild
+			? {
+					overridePath:
+						remoteBuild.images.length > 0
+							? getComposeBuildOverridePath(compose)
+							: undefined,
+				}
+			: undefined,
 	);
 	const envCommand = compose.createEnvFile
 		? getCreateEnvFileCommand(compose)
@@ -195,52 +376,55 @@ Compose Type: ${composeType} ✅`;
 	const qBackupDir = quote([backupDir]);
 	const qComposeFile = quote([composeFilePath]);
 	const qEnvFile = quote([envFilePath]);
-	const qPreCompose = quote([join(backupDir, PRE_DEPLOY_COMPOSE_BAK)]);
-	const qPreEnv = quote([join(backupDir, PRE_DEPLOY_ENV_BAK)]);
 	const qLastGoodCompose = quote([join(backupDir, LAST_GOOD_COMPOSE_BAK)]);
 	const qLastGoodEnv = quote([join(backupDir, LAST_GOOD_ENV_BAK)]);
-	const qRollbackMarker = quote([
-		deploymentId ? `${ROLLBACK_OK_MARKER}:${deploymentId}` : ROLLBACK_OK_MARKER,
-	]);
 
-	// The restore re-runs the very command that deploys, minus the flags that
-	// would rebuild or re-pull: the restored release is a known-good artifact,
-	// and `--pull always` is frequently the thing that broke the deploy in the
-	// first place.
-	const restoreCommand = command
-		.replace(/ --build\b/g, "")
-		.replace(/ --pull always\b/g, "");
-
-	// When the service generates its own `.env`, a restore that could not put
-	// the previous `.env` back is not a real rollback — the restored compose
-	// file would run against the new (possibly broken) environment.
-	const isEnvRequired = compose.createEnvFile ? "1" : "0";
-
-	const restoreCommands = isTransactional
-		? `
-		echo "Restoring previous working deployment... ⏪";
-		RESTORE_FILES_OK=1;
-		cp ${qLastGoodCompose} ${qComposeFile} 2>/dev/null || cp ${qPreCompose} ${qComposeFile} 2>/dev/null || RESTORE_FILES_OK=0;
-		RESTORE_ENV_OK=1;
-		cp ${qLastGoodEnv} ${qEnvFile} 2>/dev/null || cp ${qPreEnv} ${qEnvFile} 2>/dev/null || RESTORE_ENV_OK=0;
-		if [ "$RESTORE_ENV_OK" = "0" ] && { [ "${isEnvRequired}" = "1" ] || [ -f ${qLastGoodEnv} ] || [ -f ${qPreEnv} ]; }; then RESTORE_FILES_OK=0; echo "Warning: ⚠️ Previous .env could not be restored"; fi
-		if [ "$RESTORE_FILES_OK" = "1" ]; then
-			env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreCommand} 2>&1 && echo ${qRollbackMarker} || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";
-		else
-			echo "Warning: ⚠️ No previous release to restore, leaving the stack as-is";
-		fi
-		`
-		: "";
+	const restoreCommands = getRestoreCommands(compose, {
+		command,
+		deploymentId,
+		isTransactional,
+		exportEnvCommand,
+		projectPath: mounts.length > 0 ? projectPath : "",
+	});
 
 	// Refresh the known-good snapshot after a successful deploy. Wrapped so it
 	// can never turn a successful deploy into a failed one, and so a partial
 	// refresh drops the snapshot entirely instead of leaving a compose file
 	// paired with a stale `.env`.
-	const persistLastGood = isTransactional
-		? `
-		{ mkdir -p ${qBackupDir} && cp ${qComposeFile} ${qLastGoodCompose} && { { [ -f ${qEnvFile} ] && cp ${qEnvFile} ${qLastGoodEnv}; } || rm -f ${qLastGoodEnv}; }; } 2>/dev/null || { rm -f ${qLastGoodCompose} ${qLastGoodEnv} 2>/dev/null; echo "Warning: ⚠️ Could not refresh the last-good snapshot"; true; }
-		`
-		: "";
+	let persistLastGood = "";
+	if (isTransactional) {
+		let overrideSnapshot = "";
+		let overrideCleanup = "";
+		if (compose.buildServerId) {
+			const qOverrideFile = quote([getComposeBuildOverridePath(compose)]);
+			const qLastGoodOverride = quote([
+				join(backupDir, LAST_GOOD_OVERRIDE_BAK),
+			]);
+			overrideSnapshot = ` && { { [ -f ${qOverrideFile} ] && cp ${qOverrideFile} ${qLastGoodOverride}; } || rm -f ${qLastGoodOverride}; }`;
+			overrideCleanup = ` ${qLastGoodOverride}`;
+		}
+		persistLastGood = `
+		{ mkdir -p ${qBackupDir} && cp ${qComposeFile} ${qLastGoodCompose} && { { [ -f ${qEnvFile} ] && cp ${qEnvFile} ${qLastGoodEnv}; } || rm -f ${qLastGoodEnv}; }${overrideSnapshot}; } 2>/dev/null || { rm -f ${qLastGoodCompose} ${qLastGoodEnv}${overrideCleanup} 2>/dev/null; echo "Warning: ⚠️ Could not refresh the last-good snapshot"; true; }
+		`;
+	}
+
+	// Serving side of a build-server deploy: log in, pull exactly the images the
+	// build server pushed, then `up --no-build`. Inside the guarded line below,
+	// so a failed login or pull restores the previous release like a failed `up`.
+	let remotePullBlock = "";
+	if (remoteBuild && remoteBuild.images.length > 0) {
+		const pulls = remoteBuild.images
+			.map((image) => `docker pull ${quote([image.image])}`)
+			.join(" && ");
+		remotePullBlock = `
+		PULL_OK=1;
+		echo ${quote([`Pulling images on ${remoteBuild.servingHostLabel} (${remoteBuild.images.length} built on the build server)`])};
+		${remoteBuild.loginCommand} || { echo "Error: ❌ Registry login failed on the serving host"; PULL_OK=0; }
+		if [ "$PULL_OK" = "1" ]; then { ${pulls}; } 2>&1 || PULL_OK=0; fi`;
+	}
+	const upLine = remotePullBlock
+		? `if [ "$PULL_OK" = "1" ]; then env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1; else false; fi`
+		: `env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1`;
 
 	const bashCommand = `
 	set -e
@@ -263,7 +447,8 @@ Compose Type: ${composeType} ✅`;
 			fi`
 				: ""
 		}
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
+		${remotePullBlock}
+		${upLine} || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 		${persistLastGood}
 
@@ -324,14 +509,61 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
-export const createCommand = (compose: ComposeNested, projectPath?: string) => {
-	const { composeType, appName, sourceType } = compose;
+/** The `-f` / `-c` argument shared by every command that reads the compose file. */
+const getComposeFileArg = (compose: ComposeNested) => {
+	const path =
+		compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	return quote([path]);
+};
+
+/**
+ * `compose -p <app> [--project-directory ..] [--env-file ..] -f <file>`: the
+ * invocation prefix every `docker compose` command for this service shares, so
+ * the build on a build server resolves the project exactly like the deploy.
+ */
+export const getComposeBaseArgs = (
+	compose: ComposeNested,
+	projectPath?: string,
+) => {
+	const projectDirectoryFlag = projectPath
+		? `--project-directory ${quote([projectPath])} `
+		: "";
+	const envFileFlag = compose.createEnvFile
+		? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+		: "";
+	return `compose -p ${quote([compose.appName])} ${projectDirectoryFlag}${envFileFlag}-f ${getComposeFileArg(compose)}`;
+};
+
+export interface CreateCommandRemoteOptions {
+	/**
+	 * Absolute path of the build override to merge on top of the compose file.
+	 * Omitted when no service of the compose has a `build:` section.
+	 */
+	overridePath?: string;
+}
+
+export const createCommand = (
+	compose: ComposeNested,
+	projectPath?: string,
+	remote?: CreateCommandRemoteOptions,
+) => {
+	const { composeType, appName } = compose;
+	if (compose.buildServerId) {
+		if (compose.command) {
+			throw new Error(
+				"A custom compose command cannot be combined with a build server.",
+			);
+		}
+		if (!remote) {
+			throw new Error(
+				"This compose builds on a build server; the serving host never builds.",
+			);
+		}
+	}
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
 	}
 
-	const path =
-		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
 	let command = "";
 
 	if (composeType === "docker-compose") {
@@ -339,15 +571,20 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 		// redeploy picks up updated tags instead of reusing the local cache.
 		// (`stack deploy` already resolves+pulls, so this only applies here.)
 		const pullFlag = compose.pullImagesOnDeploy ? " --pull always" : "";
-		const projectDirectoryFlag = projectPath
-			? `--project-directory ${quote([projectPath])} `
+		// With a build server the images already exist in the registry, so the
+		// serving host must never build: `--no-build` turns a missing image into a
+		// pull (or an error) instead of a local build.
+		const buildFlag = remote ? " --no-build" : " --build";
+		const overrideFlag = remote?.overridePath
+			? ` -f ${quote([remote.overridePath])}`
 			: "";
-		const envFileFlag = compose.createEnvFile
-			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
-			: "";
-		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d${pullFlag} --build --remove-orphans`;
+		command = `${getComposeBaseArgs(compose, projectPath)}${overrideFlag} up -d${pullFlag}${buildFlag} --remove-orphans`;
 	} else if (composeType === "stack") {
-		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
+		// `stack deploy` ignores `build:`; the override swaps in the pushed images.
+		const overrideFlag = remote?.overridePath
+			? ` -c ${quote([remote.overridePath])}`
+			: "";
+		command = `stack deploy -c ${getComposeFileArg(compose)}${overrideFlag} ${quote([appName])} --prune --with-registry-auth`;
 	}
 
 	return command;
@@ -389,7 +626,7 @@ echo "${encodedContent}" | base64 -d > ${quote([envFilePath])};
 	`;
 };
 
-const getExportEnvCommand = (compose: ComposeNested) => {
+export const getExportEnvCommand = (compose: ComposeNested) => {
 	if (compose.composeType !== "stack") return "";
 
 	const envVars = getEnvironmentVariablesObject(
