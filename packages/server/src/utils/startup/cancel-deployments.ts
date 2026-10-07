@@ -6,10 +6,17 @@ import {
 } from "@dokploy/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db/index";
+import { markInterruptedFromJournal } from "../../services/deployment-queue-journal";
 
 export const initCancelDeployments = async () => {
 	try {
 		console.log("Setting up cancel deployments....");
+
+		// Deployments whose queue job was active when the previous process died are
+		// closed as "Interrupted by a Dokploy restart; re-queued" (error) before
+		// the sweep below would label them "cancelled": the queue restore re-runs
+		// those jobs, so "cancelled" would be misleading.
+		await markInterruptedFromJournal();
 
 		const runningDeployments = await db
 			.select({
