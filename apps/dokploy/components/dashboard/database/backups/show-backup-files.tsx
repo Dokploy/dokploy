@@ -47,7 +47,7 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 	);
 
 	const download = api.backup.getDownloadUrl.useMutation({
-		onSuccess: ({ url }) => window.open(url, "_blank", "noopener"),
+		onSuccess: ({ url }) => window.location.assign(url),
 		onError: (error) => toast.error(error.message),
 	});
 
@@ -92,7 +92,7 @@ export const ShowBackupFiles = ({ backupId }: Props) => {
 				)}
 
 				{!isError && !!files?.length && (
-					<ScrollArea className="max-h-[60vh]">
+					<ScrollArea className="h-[60vh]">
 						<Table>
 							<TableHeader>
 								<TableRow>
