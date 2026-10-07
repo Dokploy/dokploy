@@ -49,7 +49,7 @@
 			"js-yaml@4": "4.3.2",
 			"sharp@<0.35.5": "^0.35.5",
 			"esbuild": "0.25.0",
-			"better-call": "1.3.7",
+			"better-call": "1.4.0",
 			"@better-fetch/fetch": "1.3.1",
 			"@ai-sdk/provider-utils@<4.0.33": "4.0.33",
 			"@babel/core@<7.29.6": "7.29.6",
@@ -119,7 +119,7 @@
 			"tree-sitter-json"
 		],
 		"patchedDependencies": {
-			"@better-auth/drizzle-adapter@1.6.23": "patches/@better-auth__drizzle-adapter@1.6.23.patch"
+			"@better-auth/drizzle-adapter@1.6.33": "patches/@better-auth__drizzle-adapter@1.6.33.patch"
 		}
 	}
 }
