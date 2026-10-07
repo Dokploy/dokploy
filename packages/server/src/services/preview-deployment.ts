@@ -11,13 +11,16 @@ import type { z } from "zod";
 import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
-import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
-import { findGithubById, getIssueComment } from "./github";
+import { getIssueComment } from "./github";
+import {
+	createPreviewComment,
+	getPreviewCommentContext,
+} from "./preview-comment";
 import { getWebServerSettings } from "./web-server-settings";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
@@ -142,17 +145,15 @@ export const createPreviewDeployment = async (
 		org?.ownerId || "",
 	);
 
-	if (!application.githubId) {
+	const commentContext = getPreviewCommentContext(application);
+
+	if (!commentContext) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: "Github Account not configured correctly",
+			message:
+				"Preview deployments require a GitHub or Gitea provider with a repository and owner configured",
 		});
 	}
-
-	// `findApplicationById` redacts `githubPrivateKey` from the `github`
-	// relation, so the provider must be refetched to authenticate.
-	const githubProvider = await findGithubById(application.githubId);
-	const octokit = authGithub(githubProvider);
 
 	const runningComment = getIssueComment(
 		application.name,
@@ -160,10 +161,8 @@ export const createPreviewDeployment = async (
 		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
 	);
 
-	const issue = await octokit.rest.issues.createComment({
-		owner: application?.owner || "",
-		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
+	const pullRequestCommentId = await createPreviewComment(commentContext, {
+		issueNumber: schema.pullRequestNumber,
 		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 	});
 
@@ -172,7 +171,7 @@ export const createPreviewDeployment = async (
 		.values({
 			...schema,
 			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
+			pullRequestCommentId,
 		})
 		.returning()
 		.then((value) => value[0]);

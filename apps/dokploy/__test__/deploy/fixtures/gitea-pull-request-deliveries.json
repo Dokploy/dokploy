@@ -1,0 +1,230 @@
+[
+	{
+		"headers": {
+			"content-type": "application/json",
+			"x-github-event": "pull_request",
+			"x-gitea-delivery": "00000000-0000-0000-0000-000000000000",
+			"x-gitea-event": "pull_request",
+			"x-gitea-event-type": "pull_request"
+		},
+		"body": {
+			"action": "opened",
+			"number": 1,
+			"repository": {
+				"name": "web",
+				"full_name": "repoowner/web",
+				"owner": {
+					"login": "repoowner"
+				}
+			},
+			"pull_request": {
+				"id": 1,
+				"number": 1,
+				"title": "Add a thing",
+				"html_url": "http://localhost:3939/repoowner/web/pulls/1",
+				"merged": false,
+				"user": {
+					"login": "writer"
+				},
+				"labels": [],
+				"base": {
+					"ref": "main"
+				},
+				"head": {
+					"ref": "feature/thing",
+					"sha": "d2253306c8cccbc2b76bbaea89092d23db7778f3",
+					"repo": {
+						"name": "web",
+						"owner": {
+							"login": "repoowner"
+						}
+					}
+				}
+			}
+		}
+	},
+	{
+		"headers": {
+			"content-type": "application/json",
+			"x-github-event": "pull_request",
+			"x-gitea-delivery": "00000000-0000-0000-0000-000000000001",
+			"x-gitea-event": "pull_request",
+			"x-gitea-event-type": "pull_request_sync"
+		},
+		"body": {
+			"action": "synchronized",
+			"number": 1,
+			"repository": {
+				"name": "web",
+				"full_name": "repoowner/web",
+				"owner": {
+					"login": "repoowner"
+				}
+			},
+			"pull_request": {
+				"id": 1,
+				"number": 1,
+				"title": "Add a thing",
+				"html_url": "http://localhost:3939/repoowner/web/pulls/1",
+				"merged": false,
+				"user": {
+					"login": "writer"
+				},
+				"labels": [],
+				"base": {
+					"ref": "main"
+				},
+				"head": {
+					"ref": "feature/thing",
+					"sha": "03ed76d4fc6b09b7e793dc009f918f47aeca45c1",
+					"repo": {
+						"name": "web",
+						"owner": {
+							"login": "repoowner"
+						}
+					}
+				}
+			}
+		}
+	},
+	{
+		"headers": {
+			"content-type": "application/json",
+			"x-github-event": "pull_request",
+			"x-gitea-delivery": "00000000-0000-0000-0000-000000000002",
+			"x-gitea-event": "pull_request",
+			"x-gitea-event-type": "pull_request_label"
+		},
+		"body": {
+			"action": "label_updated",
+			"number": 1,
+			"repository": {
+				"name": "web",
+				"full_name": "repoowner/web",
+				"owner": {
+					"login": "repoowner"
+				}
+			},
+			"pull_request": {
+				"id": 1,
+				"number": 1,
+				"title": "Add a thing",
+				"html_url": "http://localhost:3939/repoowner/web/pulls/1",
+				"merged": false,
+				"user": {
+					"login": "writer"
+				},
+				"labels": [
+					{
+						"name": "preview"
+					}
+				],
+				"base": {
+					"ref": "main"
+				},
+				"head": {
+					"ref": "feature/thing",
+					"sha": "03ed76d4fc6b09b7e793dc009f918f47aeca45c1",
+					"repo": {
+						"name": "web",
+						"owner": {
+							"login": "repoowner"
+						}
+					}
+				}
+			}
+		}
+	},
+	{
+		"headers": {
+			"content-type": "application/json",
+			"x-github-event": "pull_request",
+			"x-gitea-delivery": "00000000-0000-0000-0000-000000000003",
+			"x-gitea-event": "pull_request",
+			"x-gitea-event-type": "pull_request_label"
+		},
+		"body": {
+			"action": "label_cleared",
+			"number": 1,
+			"repository": {
+				"name": "web",
+				"full_name": "repoowner/web",
+				"owner": {
+					"login": "repoowner"
+				}
+			},
+			"pull_request": {
+				"id": 1,
+				"number": 1,
+				"title": "Add a thing",
+				"html_url": "http://localhost:3939/repoowner/web/pulls/1",
+				"merged": false,
+				"user": {
+					"login": "writer"
+				},
+				"labels": [
+					{
+						"name": "preview"
+					}
+				],
+				"base": {
+					"ref": "main"
+				},
+				"head": {
+					"ref": "feature/thing",
+					"sha": "03ed76d4fc6b09b7e793dc009f918f47aeca45c1",
+					"repo": {
+						"name": "web",
+						"owner": {
+							"login": "repoowner"
+						}
+					}
+				}
+			}
+		}
+	},
+	{
+		"headers": {
+			"content-type": "application/json",
+			"x-github-event": "issue_comment",
+			"x-gitea-delivery": "00000000-0000-0000-0000-000000000004",
+			"x-gitea-event": "issue_comment",
+			"x-gitea-event-type": "pull_request_comment"
+		},
+		"body": {
+			"action": "created",
+			"number": null,
+			"repository": {
+				"name": "web",
+				"full_name": "repoowner/web",
+				"owner": {
+					"login": "repoowner"
+				}
+			},
+			"pull_request": {
+				"id": 1,
+				"number": 1,
+				"title": "Add a thing",
+				"html_url": "http://localhost:3939/repoowner/web/pulls/1",
+				"merged": false,
+				"user": {
+					"login": "writer"
+				},
+				"labels": [],
+				"base": {
+					"ref": "main"
+				},
+				"head": {
+					"ref": "feature/thing",
+					"sha": "03ed76d4fc6b09b7e793dc009f918f47aeca45c1",
+					"repo": {
+						"name": "web",
+						"owner": {
+							"login": "repoowner"
+						}
+					}
+				}
+			}
+		}
+	}
+]
