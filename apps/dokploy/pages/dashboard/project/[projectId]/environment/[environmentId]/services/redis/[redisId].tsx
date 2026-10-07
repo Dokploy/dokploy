@@ -23,7 +23,7 @@ import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/gener
 import { UpdateRedis } from "@/components/dashboard/redis/update-redis";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { TransferService } from "@/components/dashboard/shared/transfer-service";
-import { RedisIcon } from "@/components/icons/data-tools-icons";
+import { RedisIcon, ValkeyIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -98,7 +98,11 @@ const Redis = (
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
-										<RedisIcon className="h-6 w-6 text-muted-foreground" />
+										{data?.engine === "valkey" ? (
+											<ValkeyIcon className="h-6 w-6 text-muted-foreground" />
+										) : (
+											<RedisIcon className="h-6 w-6 text-muted-foreground" />
+										)}
 									</div>
 									{data?.name}
 								</CardTitle>
