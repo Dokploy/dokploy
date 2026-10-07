@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.7**
+Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.8**
 
 Everything in upstream Dokploy **v0.30.8**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
@@ -17,7 +17,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.7 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.8 \
   --with-registry-auth \
   dokploy
 ```
@@ -131,6 +131,16 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/latest)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.8-community.8
+
+**Restarting Dokploy no longer loses queued deployments** ([#288](https://github.com/DevinoSolutions/dokploy-community/pull/288)). Every queued deployment is now also saved in the database. When Dokploy restarts, for example during an update, waiting deployments are queued again in their original order. A deployment that was running at the moment of the restart is marked "Interrupted by a Dokploy restart; re-queued" and runs again. A deployment that keeps crashing Dokploy is dropped after 3 attempts. On shutdown, Dokploy stops starting new jobs and gives the running ones a few seconds to finish.
+
+**better-auth 1.6.33** ([#287](https://github.com/DevinoSolutions/dokploy-community/pull/287)) fixes the SSO advisory GHSA-8c5h-wx78-2cfg. Signing in with GitHub or Google no longer adds you to an SSO provider's organization just because your email domain matches. That now needs a verified domain.
+
+**Smaller fixes:** live log and status streams now return a clear "server unreachable" error instead of a 500 ([#286](https://github.com/DevinoSolutions/dokploy-community/pull/286)), and screen readers no longer read the DoDomain webhook address twice ([#285](https://github.com/DevinoSolutions/dokploy-community/pull/285)).
+
+> Database migration 0207 adds the `deployment_queue_job` table. The image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.8-community.7
 
@@ -600,7 +610,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.8-community.7
+export DOKPLOY_VERSION=v0.30.8-community.8
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -613,7 +623,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.7      # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.8      # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```

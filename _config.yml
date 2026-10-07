@@ -15,7 +15,7 @@ lang: en
 
 # Release the site describes. Shown as softwareVersion in the home page JSON-LD and
 # kept equal to apps/dokploy/package.json by a test.
-version: v0.30.8-community.7
+version: v0.30.8-community.8
 
 # Social preview. jekyll-seo-tag only reads `image` from the page, so it is set
 # for every page through front matter defaults (it then emits og:image and
