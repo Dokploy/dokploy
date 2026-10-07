@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TWO_FACTOR_SETUP_REQUIRED } from "@/lib/two-factor";
 
 vi.mock("@dokploy/server/lib/auth", () => ({
@@ -13,6 +13,12 @@ vi.mock("@dokploy/server/services/permission", () => ({
 	checkPermission: vi.fn(async () => undefined),
 }));
 
+const isTwoFactorSetupPendingForUserId = vi.hoisted(() => vi.fn());
+
+vi.mock("@dokploy/server/services/two-factor-policy", () => ({
+	isTwoFactorSetupPendingForUserId,
+}));
+
 const {
 	adminProcedure,
 	cliProcedure,
@@ -25,6 +31,7 @@ const {
 const router = createTRPCRouter({
 	user: createTRPCRouter({
 		get: protectedProcedure.query(() => "ok"),
+		session: protectedProcedure.query(() => "ok"),
 	}),
 	organization: createTRPCRouter({
 		all: protectedProcedure.query(() => "ok"),
@@ -67,6 +74,7 @@ describe("tRPC two-factor gate", () => {
 
 	it("lets a gated user call allow-listed procedures", async () => {
 		await expect(gated.user.get()).resolves.toBe("ok");
+		await expect(gated.user.session()).resolves.toBe("ok");
 		await expect(gated.organization.all()).resolves.toBe("ok");
 	});
 
@@ -86,5 +94,63 @@ describe("tRPC two-factor gate", () => {
 		await expect(anonymous.user.get()).rejects.toMatchObject({
 			code: "UNAUTHORIZED",
 		});
+	});
+
+	it("doesn't query the policy for request-scoped contexts", async () => {
+		await compliant.project.all();
+		expect(isTwoFactorSetupPendingForUserId).not.toHaveBeenCalled();
+	});
+});
+
+describe("tRPC two-factor gate on long-lived contexts", () => {
+	const longLivedCaller = (twoFactorSetupRequired: boolean) =>
+		router.createCaller({
+			session: { activeOrganizationId: "org-1" },
+			user: { id: "u1", role: "owner", twoFactorSetupRequired },
+			longLived: true,
+		} as Parameters<typeof router.createCaller>[0]);
+
+	beforeEach(() => {
+		isTwoFactorSetupPendingForUserId.mockReset();
+	});
+
+	it("blocks calls once the requirement applies after the connection opened", async () => {
+		isTwoFactorSetupPendingForUserId.mockResolvedValue(true);
+		const caller = longLivedCaller(false);
+
+		await expect(caller.organization.setDefault()).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: TWO_FACTOR_SETUP_REQUIRED,
+		});
+		await expect(caller.project.create()).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: TWO_FACTOR_SETUP_REQUIRED,
+		});
+		expect(isTwoFactorSetupPendingForUserId).toHaveBeenCalledWith("u1");
+	});
+
+	it("allows calls once the user has enrolled after the connection opened", async () => {
+		isTwoFactorSetupPendingForUserId.mockResolvedValue(false);
+
+		await expect(longLivedCaller(true).project.all()).resolves.toBe("ok");
+	});
+
+	it("keeps allow-listed procedures available without a policy lookup", async () => {
+		await expect(longLivedCaller(true).user.get()).resolves.toBe("ok");
+		expect(isTwoFactorSetupPendingForUserId).not.toHaveBeenCalled();
+	});
+
+	it("rejects calls from a user who no longer exists", async () => {
+		isTwoFactorSetupPendingForUserId.mockResolvedValue(null);
+
+		await expect(longLivedCaller(false).project.all()).rejects.toMatchObject({
+			code: "UNAUTHORIZED",
+		});
+	});
+
+	it("fails closed when the policy lookup fails", async () => {
+		isTwoFactorSetupPendingForUserId.mockRejectedValue(new Error("db down"));
+
+		await expect(longLivedCaller(false).project.all()).rejects.toThrow();
 	});
 });

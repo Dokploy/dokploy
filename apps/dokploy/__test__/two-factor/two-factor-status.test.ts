@@ -1,3 +1,4 @@
+import type { SQL } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type AccountRow = {
@@ -16,7 +17,14 @@ let accounts: AccountRow[] = [];
 let memberships: MembershipRow[] = [];
 
 let invitationRow: { require2FA: boolean } | undefined;
+let userRow: { id: string; twoFactorEnabled: boolean } | undefined;
 const memberUpdateSet = vi.fn(() => ({ where: vi.fn(async () => undefined) }));
+const txDelete = vi.fn((_table: unknown) => ({
+	where: vi.fn(async () => undefined),
+}));
+const txUpdateSet = vi.fn((_values: unknown) => ({
+	where: vi.fn(async () => undefined),
+}));
 
 const accountFindFirst = vi.fn(
 	async () =>
@@ -35,21 +43,34 @@ vi.mock("@dokploy/server/db", () => ({
 			invitation: {
 				findFirst: vi.fn(async () => invitationRow),
 			},
+			user: { findFirst: vi.fn(async () => userRow) },
 		},
 		update: vi.fn(() => ({ set: memberUpdateSet })),
+		transaction: vi.fn(async (run: (tx: unknown) => Promise<void>) =>
+			run({
+				delete: txDelete,
+				update: vi.fn(() => ({ set: txUpdateSet })),
+			}),
+		),
 	},
 }));
 
 const {
 	applyInvitationTwoFactorRequirement,
+	applyInvitationTwoFactorRequirementOrRevert,
+	enforceTwoFactorSetupOnAuthPath,
 	assertTwoFactorCanBeDisabled,
 	assertTwoFactorSetupComplete,
 	getTwoFactorStatuses,
 	getUserTwoFactorStatus,
 	isTwoFactorRequiredByAnyMembership,
 	isTwoFactorSetupAuthPath,
+	isTwoFactorSetupPendingForUserId,
 	resolveTwoFactorStatus,
+	revertInvitationAcceptance,
 } = await import("@dokploy/server/services/two-factor-policy");
+const { PgDialect } = await import("drizzle-orm/pg-core");
+const { member: memberTable } = await import("@dokploy/server/db/schema");
 
 const membership = (
 	userId: string,
@@ -69,6 +90,7 @@ beforeEach(() => {
 	accounts = [];
 	memberships = [];
 	invitationRow = undefined;
+	userRow = undefined;
 });
 
 describe("resolveTwoFactorStatus", () => {
@@ -219,6 +241,40 @@ describe("getTwoFactorStatuses", () => {
 		expect((await getTwoFactorStatuses([])).size).toBe(0);
 		expect(accountFindMany).not.toHaveBeenCalled();
 	});
+
+	it("only counts the given organization's memberships", async () => {
+		await getTwoFactorStatuses([{ id: "u1", twoFactorEnabled: false }], {
+			organizationId: "org-1",
+		});
+
+		const [[{ where }]] = memberFindMany.mock.calls as unknown as [
+			[{ where: SQL }],
+		];
+		const query = new PgDialect().sqlToQuery(where);
+		expect(query.sql).toContain('"organization_id"');
+		expect(query.params).toEqual(["u1", "org-1"]);
+	});
+});
+
+describe("isTwoFactorSetupPendingForUserId", () => {
+	it("reads twoFactorEnabled from the database", async () => {
+		userRow = { id: "u1", twoFactorEnabled: false };
+		withPassword();
+		memberships = [membership("u1", { org: true })];
+
+		expect(await isTwoFactorSetupPendingForUserId("u1")).toBe(true);
+	});
+
+	it("isn't pending once the stored user has 2FA", async () => {
+		userRow = { id: "u1", twoFactorEnabled: true };
+		memberships = [membership("u1", { org: true })];
+
+		expect(await isTwoFactorSetupPendingForUserId("u1")).toBe(false);
+	});
+
+	it("returns null for a user that no longer exists", async () => {
+		expect(await isTwoFactorSetupPendingForUserId("gone")).toBeNull();
+	});
 });
 
 describe("isTwoFactorRequiredByAnyMembership", () => {
@@ -306,5 +362,105 @@ describe("applyInvitationTwoFactorRequirement", () => {
 			memberId: "m1",
 		});
 		expect(memberUpdateSet).not.toHaveBeenCalled();
+	});
+});
+
+describe("revertInvitationAcceptance", () => {
+	it("removes the member, reopens the invitation and clears the active organization", async () => {
+		await revertInvitationAcceptance({
+			invitationId: "inv-1",
+			memberId: "m1",
+			userId: "u1",
+			organizationId: "org-1",
+		});
+
+		expect(txDelete).toHaveBeenCalledWith(memberTable);
+		expect(txUpdateSet).toHaveBeenCalledWith({ status: "pending" });
+		expect(txUpdateSet).toHaveBeenCalledWith({ activeOrganizationId: null });
+	});
+});
+
+describe("enforceTwoFactorSetupOnAuthPath", () => {
+	const pendingSession = async () => ({
+		user: { id: "u1", twoFactorEnabled: false },
+	});
+
+	it("doesn't look up the session on allow-listed paths", async () => {
+		const getSession = vi.fn(pendingSession);
+
+		await enforceTwoFactorSetupOnAuthPath("/two-factor/enable", getSession);
+
+		expect(getSession).not.toHaveBeenCalled();
+	});
+
+	it("lets requests without a session through", async () => {
+		await expect(
+			enforceTwoFactorSetupOnAuthPath("/sign-in/email", async () => null),
+		).resolves.toBeUndefined();
+	});
+
+	it("rejects a pending user off the allow-list", async () => {
+		withPassword();
+		memberships = [membership("u1", { org: true })];
+
+		await expect(
+			enforceTwoFactorSetupOnAuthPath(
+				"/organization/set-active",
+				pendingSession,
+			),
+		).rejects.toMatchObject({ statusCode: 403 });
+	});
+
+	it("refuses /two-factor/disable while a membership requires 2FA", async () => {
+		memberships = [membership("u1", { member: true })];
+
+		await expect(
+			enforceTwoFactorSetupOnAuthPath("/two-factor/disable", async () => ({
+				user: { id: "u1", twoFactorEnabled: true },
+			})),
+		).rejects.toMatchObject({ statusCode: 403 });
+	});
+
+	it("allows /two-factor/disable when nothing requires 2FA", async () => {
+		await expect(
+			enforceTwoFactorSetupOnAuthPath("/two-factor/disable", async () => ({
+				user: { id: "u1", twoFactorEnabled: true },
+			})),
+		).resolves.toBeUndefined();
+	});
+});
+
+describe("applyInvitationTwoFactorRequirementOrRevert", () => {
+	const acceptedMember = { id: "m1", userId: "u1", organizationId: "org-1" };
+
+	it("doesn't revert when the flag is copied", async () => {
+		invitationRow = { require2FA: true };
+
+		await applyInvitationTwoFactorRequirementOrRevert({
+			invitationId: "inv-1",
+			member: acceptedMember,
+		});
+
+		expect(memberUpdateSet).toHaveBeenCalledWith({ require2FA: true });
+		expect(txDelete).not.toHaveBeenCalled();
+	});
+
+	it("reverts the acceptance and rethrows when the copy fails", async () => {
+		invitationRow = { require2FA: true };
+		const failure = new Error("db down");
+		memberUpdateSet.mockImplementationOnce(() => {
+			throw failure;
+		});
+		vi.spyOn(console, "error").mockImplementationOnce(() => undefined);
+
+		await expect(
+			applyInvitationTwoFactorRequirementOrRevert({
+				invitationId: "inv-1",
+				member: acceptedMember,
+			}),
+		).rejects.toBe(failure);
+
+		expect(txDelete).toHaveBeenCalledWith(memberTable);
+		expect(txUpdateSet).toHaveBeenCalledWith({ status: "pending" });
 	});
 });

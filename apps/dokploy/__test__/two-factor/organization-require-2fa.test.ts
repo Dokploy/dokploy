@@ -7,6 +7,8 @@ const memberFindFirst = vi.hoisted(() => vi.fn());
 const memberFindMany = vi.hoisted(() => vi.fn());
 const orgFindFirst = vi.hoisted(() => vi.fn());
 const updateSet = vi.hoisted(() => vi.fn());
+const insertValues = vi.hoisted(() => vi.fn());
+const invitationFindFirst = vi.hoisted(() => vi.fn());
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
@@ -15,7 +17,14 @@ vi.mock("@dokploy/server/db", () => ({
 			account: { findFirst: accountFindFirst, findMany: accountFindMany },
 			member: { findFirst: memberFindFirst, findMany: memberFindMany },
 			organization: { findFirst: orgFindFirst },
+			invitation: { findFirst: invitationFindFirst },
 		},
+		insert: vi.fn(() => ({
+			values: (values: Record<string, unknown>) => {
+				insertValues(values);
+				return { returning: async () => [{ id: "inv-1", ...values }] };
+			},
+		})),
 		update: vi.fn(() => ({
 			set: (values: unknown) => {
 				updateSet(values);
@@ -179,6 +188,41 @@ describe("organization.setMemberRequire2FA", () => {
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
 	});
 
+	it("refuses a custom role targeting an admin", async () => {
+		memberFindFirst.mockResolvedValue({
+			id: "m-3",
+			userId: "admin-2",
+			organizationId: "org-1",
+			role: "admin",
+			user: { email: "admin2@example.com" },
+		});
+
+		await expect(
+			callerAs("support", "support-1").setMemberRequire2FA({
+				memberId: "m-3",
+				require2FA: false,
+			}),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		expect(updateSet).not.toHaveBeenCalled();
+	});
+
+	it("lets the owner set the flag on an admin", async () => {
+		memberFindFirst.mockResolvedValue({
+			id: "m-3",
+			userId: "admin-2",
+			organizationId: "org-1",
+			role: "admin",
+			user: { email: "admin2@example.com" },
+		});
+
+		await callerAs("owner").setMemberRequire2FA({
+			memberId: "m-3",
+			require2FA: true,
+		});
+
+		expect(updateSet).toHaveBeenCalledWith({ require2FA: true });
+	});
+
 	it("sets the flag on a member", async () => {
 		memberFindFirst.mockResolvedValue({
 			id: "m-4",
@@ -194,5 +238,134 @@ describe("organization.setMemberRequire2FA", () => {
 		});
 
 		expect(updateSet).toHaveBeenCalledWith({ require2FA: true });
+	});
+});
+
+const memberRow = (role: string, userId = "target-1") => ({
+	id: "m-target",
+	userId,
+	organizationId: "org-1",
+	role,
+	require2FA: false,
+	user: { email: `${userId}@example.com` },
+});
+
+describe("organization.updateMemberRole", () => {
+	it("refuses to change the owner", async () => {
+		memberFindFirst.mockResolvedValue(memberRow("owner"));
+
+		await expect(
+			callerAs("owner").updateMemberRole({
+				memberId: "m-target",
+				role: "member",
+			}),
+		).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "The organization owner's role cannot be changed",
+		});
+		expect(updateSet).not.toHaveBeenCalled();
+	});
+
+	it("refuses to make anyone owner", async () => {
+		memberFindFirst.mockResolvedValue(memberRow("member"));
+
+		await expect(
+			callerAs("owner").updateMemberRole({
+				memberId: "m-target",
+				role: "owner",
+			}),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		expect(updateSet).not.toHaveBeenCalled();
+	});
+
+	it("refuses to change your own role", async () => {
+		memberFindFirst.mockResolvedValue(memberRow("admin", "admin-1"));
+
+		await expect(
+			callerAs("admin", "admin-1").updateMemberRole({
+				memberId: "m-target",
+				role: "member",
+			}),
+		).rejects.toMatchObject({
+			code: "FORBIDDEN",
+			message: "You cannot change your own role",
+		});
+	});
+
+	it.each(["admin", "support"])(
+		"refuses a %s changing an admin's role",
+		async (role) => {
+			memberFindFirst.mockResolvedValue(memberRow("admin"));
+
+			await expect(
+				callerAs(role, `${role}-1`).updateMemberRole({
+					memberId: "m-target",
+					role: "member",
+				}),
+			).rejects.toMatchObject({
+				code: "FORBIDDEN",
+				message: "Only the organization owner can change an admin's role",
+			});
+			expect(updateSet).not.toHaveBeenCalled();
+		},
+	);
+
+	it("lets the owner change an admin's role", async () => {
+		memberFindFirst.mockResolvedValue(memberRow("admin"));
+
+		await callerAs("owner").updateMemberRole({
+			memberId: "m-target",
+			role: "member",
+		});
+
+		expect(updateSet).toHaveBeenCalledWith({ role: "member" });
+	});
+
+	it("lets an admin change a member's role", async () => {
+		memberFindFirst.mockResolvedValue(memberRow("member"));
+
+		await callerAs("admin", "admin-1").updateMemberRole({
+			memberId: "m-target",
+			role: "admin",
+		});
+
+		expect(updateSet).toHaveBeenCalledWith({ role: "admin" });
+	});
+});
+
+describe("organization.inviteMember", () => {
+	beforeEach(() => {
+		userFindFirst.mockResolvedValue(undefined);
+		invitationFindFirst.mockResolvedValue(undefined);
+	});
+
+	it.each([true, false])(
+		"stores require2FA=%s on the invitation",
+		async (require2FA) => {
+			await callerAs("owner").inviteMember({
+				email: "New@Example.com",
+				role: "member",
+				require2FA,
+			});
+
+			expect(insertValues).toHaveBeenCalledWith(
+				expect.objectContaining({
+					email: "new@example.com",
+					organizationId: "org-1",
+					require2FA,
+				}),
+			);
+		},
+	);
+
+	it("defaults require2FA to false", async () => {
+		await callerAs("owner").inviteMember({
+			email: "new@example.com",
+			role: "member",
+		});
+
+		expect(insertValues).toHaveBeenCalledWith(
+			expect.objectContaining({ require2FA: false }),
+		);
 	});
 });

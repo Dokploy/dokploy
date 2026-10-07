@@ -26,7 +26,8 @@ import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
 /**
  * The checks shared by every mutation that changes another member: same
- * organization, not yourself, not the owner, and admins can't touch admins.
+ * organization, not yourself, not the owner, and only the owner can change
+ * admins. `setting` names what's being changed, for the error messages.
  */
 const findManageableMember = async (
 	ctx: {
@@ -34,6 +35,7 @@ const findManageableMember = async (
 		session: { activeOrganizationId: string };
 	},
 	memberId: string,
+	setting: string,
 ) => {
 	const target = await db.query.member.findFirst({
 		where: eq(member.id, memberId),
@@ -47,28 +49,28 @@ const findManageableMember = async (
 	if (target.organizationId !== ctx.session.activeOrganizationId) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "You are not allowed to update this member",
+			message: `You are not allowed to update this member's ${setting}`,
 		});
 	}
 
 	if (target.userId === ctx.user.id) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "You cannot change this for yourself",
+			message: `You cannot change your own ${setting}`,
 		});
 	}
 
 	if (target.role === "owner") {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "The owner cannot be changed",
+			message: `The organization owner's ${setting} cannot be changed`,
 		});
 	}
 
-	if (ctx.user.role === "admin" && target.role === "admin") {
+	if (target.role === "admin" && ctx.user.role !== "owner") {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only the organization owner can change admins",
+			message: `Only the organization owner can change an admin's ${setting}`,
 		});
 	}
 
@@ -532,7 +534,7 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const target = await findManageableMember(ctx, input.memberId);
+			const target = await findManageableMember(ctx, input.memberId, "role");
 
 			// If assigning a custom role (not admin/member), verify it exists
 			if (input.role !== "admin" && input.role !== "member") {
@@ -577,7 +579,11 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const target = await findManageableMember(ctx, input.memberId);
+			const target = await findManageableMember(
+				ctx,
+				input.memberId,
+				"2FA requirement",
+			);
 
 			await db
 				.update(member)

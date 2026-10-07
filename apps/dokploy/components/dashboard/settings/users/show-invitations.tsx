@@ -34,6 +34,8 @@ import { AddInvitation } from "./add-invitation";
 export const ShowInvitations = () => {
 	const { data, isPending, refetch } =
 		api.organization.allInvitations.useQuery();
+	const { data: activeOrganization } = api.organization.active.useQuery();
+	const orgRequires2FA = !!activeOrganization?.require2FA;
 
 	const { mutateAsync: removeInvitation } =
 		api.organization.removeInvitation.useMutation();
@@ -116,7 +118,7 @@ export const ShowInvitations = () => {
 																	{invitation.status}
 																</Badge>
 																{invitation.status === "pending" &&
-																	invitation.require2FA && (
+																	(invitation.require2FA || orgRequires2FA) && (
 																		<Badge variant="outline" className="ml-1">
 																			2FA required
 																		</Badge>

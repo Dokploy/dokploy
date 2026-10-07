@@ -73,12 +73,14 @@ const links =
 				}),
 			];
 
+const isTwoFactorSetupRequiredError = (error: unknown) =>
+	error instanceof Error && error.message === TWO_FACTOR_SETUP_REQUIRED;
+
 // Catches a 2FA requirement switched on mid-session.
 const redirectIfTwoFactorSetupRequired = (error: unknown) => {
 	if (
 		typeof window !== "undefined" &&
-		error instanceof Error &&
-		error.message === TWO_FACTOR_SETUP_REQUIRED &&
+		isTwoFactorSetupRequiredError(error) &&
 		window.location.pathname !== "/two-factor-setup"
 	) {
 		window.location.href = "/two-factor-setup";
@@ -90,6 +92,14 @@ export const api = createTRPCNext<AppRouter>({
 		return {
 			links,
 			queryClientConfig: {
+				defaultOptions: {
+					queries: {
+						// React Query's default of 3 retries, except for this error:
+						// retrying it only delays the redirect.
+						retry: (failureCount, error) =>
+							!isTwoFactorSetupRequiredError(error) && failureCount < 3,
+					},
+				},
 				queryCache: new QueryCache({
 					onError: redirectIfTwoFactorSetupRequired,
 				}),

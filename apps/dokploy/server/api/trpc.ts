@@ -13,6 +13,7 @@ import { hasValidLicense } from "@dokploy/server/index";
 import type { statements } from "@dokploy/server/lib/access-control";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { checkPermission } from "@dokploy/server/services/permission";
+import { isTwoFactorSetupPendingForUserId } from "@dokploy/server/services/two-factor-policy";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -47,6 +48,7 @@ interface CreateContextOptions {
 		| null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
+	longLived?: boolean;
 }
 
 /**
@@ -66,6 +68,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 		req: opts.req,
 		res: opts.res,
 		user: opts.user,
+		...(opts.longLived && { longLived: true }),
 	};
 };
 
@@ -75,7 +78,10 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
  *
  * @see https://trpc.io/docs/context
  */
-export const createTRPCContext = async (opts: CreateNextContextOptions) => {
+export const createTRPCContext = async (
+	opts: CreateNextContextOptions,
+	{ longLived = false }: { longLived?: boolean } = {},
+) => {
 	const { req, res } = opts;
 
 	// Get from the request
@@ -86,6 +92,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	return createInnerTRPCContext({
 		req,
 		res,
+		longLived,
 		// @ts-ignore
 		session: session
 			? {
@@ -164,13 +171,32 @@ export const TWO_FACTOR_SETUP_ALLOWED_PATHS = new Set([
 	"organization.all",
 ]);
 
-const requireAuth = t.middleware(({ ctx, next, path }) => {
+/**
+ * A WebSocket connection keeps the context it was opened with, so its
+ * twoFactorSetupRequired can be stale: re-read the policy on every call.
+ */
+const isTwoFactorSetupPendingNow = async (ctx: {
+	user: { id: string; twoFactorSetupRequired?: boolean };
+	longLived?: boolean;
+}) => {
+	if (!ctx.longLived) return !!ctx.user.twoFactorSetupRequired;
+	const pending = await isTwoFactorSetupPendingForUserId(ctx.user.id);
+	if (pending === null) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+	return pending;
+};
+
+const requireAuth = t.middleware(async ({ ctx, next, path }) => {
 	if (!ctx.session || !ctx.user) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	if (
-		ctx.user.twoFactorSetupRequired &&
-		!TWO_FACTOR_SETUP_ALLOWED_PATHS.has(path)
+		!TWO_FACTOR_SETUP_ALLOWED_PATHS.has(path) &&
+		(await isTwoFactorSetupPendingNow({
+			user: ctx.user,
+			longLived: ctx.longLived,
+		}))
 	) {
 		throw new TRPCError({
 			code: "FORBIDDEN",

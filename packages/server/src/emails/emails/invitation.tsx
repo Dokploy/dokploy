@@ -60,8 +60,9 @@ export const InvitationEmail = ({
 							</Text>
 							{require2FA && (
 								<Text className="text-[#71717a] text-[14px] leading-[22px] m-0 mb-[24px]">
-									This organization requires two-factor authentication. You'll
-									be asked to set it up after you sign in.
+									Two-factor authentication is required to use this
+									organization. If you sign in with a password, you'll be asked
+									to set it up after you sign in.
 								</Text>
 							)}
 

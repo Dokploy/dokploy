@@ -24,10 +24,8 @@ import {
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
 import {
-	applyInvitationTwoFactorRequirement,
-	assertTwoFactorCanBeDisabled,
-	assertTwoFactorSetupComplete,
-	isTwoFactorSetupAuthPath,
+	applyInvitationTwoFactorRequirementOrRevert,
+	enforceTwoFactorSetupOnAuthPath,
 	isTwoFactorSetupPending,
 } from "../services/two-factor-policy";
 import {
@@ -157,15 +155,9 @@ const createBetterAuth = () =>
 					});
 				}
 
-				if (!isTwoFactorSetupAuthPath(ctx.path)) {
-					const session = await getSessionFromCtx(ctx);
-					if (session) {
-						await assertTwoFactorSetupComplete(session.user);
-						if (ctx.path === "/two-factor/disable") {
-							await assertTwoFactorCanBeDisabled(session.user.id);
-						}
-					}
-				}
+				await enforceTwoFactorSetupOnAuthPath(ctx.path, () =>
+					getSessionFromCtx(ctx, { disableRefresh: true }),
+				);
 
 				const isBlockedAuthPath =
 					ctx.path.startsWith("/sign-in/email") ||
@@ -532,22 +524,11 @@ const createBetterAuth = () =>
 				},
 				schema: twoFactorRequirementSchema,
 				organizationHooks: {
-					afterAcceptInvitation: async ({ invitation, member }) => {
-						// better-auth has already committed the member, so a failure here
-						// leaves them without the invitation's 2FA requirement.
-						try {
-							await applyInvitationTwoFactorRequirement({
-								invitationId: invitation.id,
-								memberId: member.id,
-							});
-						} catch (error) {
-							console.error(
-								`Failed to apply the 2FA requirement of invitation ${invitation.id} to member ${member.id}`,
-								error,
-							);
-							throw error;
-						}
-					},
+					afterAcceptInvitation: ({ invitation, member }) =>
+						applyInvitationTwoFactorRequirementOrRevert({
+							invitationId: invitation.id,
+							member,
+						}),
 				},
 			}),
 			// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)

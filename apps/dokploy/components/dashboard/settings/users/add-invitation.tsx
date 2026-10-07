@@ -409,8 +409,7 @@ export const AddInvitation = () => {
 										<div className="flex items-center gap-x-2">
 											<Checkbox
 												id="checkboxRequire2FA"
-												checked={requiredByOrganization || field.value}
-												disabled={requiredByOrganization}
+												checked={field.value}
 												onCheckedChange={(checked) =>
 													field.onChange(checked === true)
 												}
@@ -422,7 +421,7 @@ export const AddInvitation = () => {
 									</FormControl>
 									<FormDescription>
 										{requiredByOrganization
-											? "Required by organization policy"
+											? "The organization already requires 2FA for every member. Check this to keep requiring it for this user if that setting is turned off."
 											: "If the user has a password, they must enable 2FA before they can use Dokploy"}
 									</FormDescription>
 									<FormMessage />

@@ -240,9 +240,13 @@ export const ShowUsers = () => {
 																							: "Require 2FA"
 																					}
 																					description={
-																						member.require2FA
-																							? `${member.user.email} will no longer be required to use two-factor authentication in this organization.`
-																							: `${member.user.email} must enable two-factor authentication before using Dokploy if they have a password. ${API_KEY_2FA_WARNING}`
+																						orgRequires2FA
+																							? member.require2FA
+																								? `The organization requires two-factor authentication for every member, so this only takes effect if that setting is turned off. ${member.user.email} would then no longer be required to use it.`
+																								: `The organization requires two-factor authentication for every member, so this only takes effect if that setting is turned off. ${member.user.email} would still be required to use it.`
+																							: member.require2FA
+																								? `${member.user.email} will no longer be required to use two-factor authentication in this organization.`
+																								: `${member.user.email} must enable two-factor authentication before using Dokploy if they have a password. ${API_KEY_2FA_WARNING}`
 																					}
 																					type="default"
 																					disabled={isSettingRequire2FA}
@@ -267,14 +271,11 @@ export const ShowUsers = () => {
 																				>
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer"
-																						disabled={orgRequires2FA}
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						{orgRequires2FA
-																							? "Required by organization"
-																							: member.require2FA
-																								? "Don't require 2FA"
-																								: "Require 2FA"}
+																						{member.require2FA
+																							? "Don't require 2FA"
+																							: "Require 2FA"}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			)}

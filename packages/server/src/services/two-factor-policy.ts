@@ -1,5 +1,11 @@
 import { db } from "@dokploy/server/db";
-import { account, invitation, member } from "@dokploy/server/db/schema";
+import {
+	account,
+	invitation,
+	member,
+	session,
+	user,
+} from "@dokploy/server/db/schema";
 import { APIError } from "better-auth/api";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -13,6 +19,15 @@ interface TwoFactorUser {
 interface StatusOptions {
 	/** Evaluate as if 2FA were required, to preview switching it on. */
 	assumeRequired?: boolean;
+}
+
+interface StatusesOptions extends StatusOptions {
+	/**
+	 * Only count this organization's requirement, for showing an
+	 * organization's members without revealing what other organizations
+	 * require of them.
+	 */
+	organizationId?: string;
 }
 
 export const isTwoFactorRequired = ({
@@ -85,9 +100,23 @@ export const getUserTwoFactorStatus = async (
 export const isTwoFactorSetupPending = async (user: TwoFactorUser) =>
 	(await getUserTwoFactorStatus(user)) === "pending";
 
+/**
+ * Reads twoFactorEnabled from the database rather than a session snapshot,
+ * for contexts that outlive a single request such as tRPC WebSocket
+ * connections. Returns null when the user no longer exists.
+ */
+export const isTwoFactorSetupPendingForUserId = async (userId: string) => {
+	const current = await db.query.user.findFirst({
+		where: eq(user.id, userId),
+		columns: { id: true, twoFactorEnabled: true },
+	});
+	if (!current) return null;
+	return isTwoFactorSetupPending(current);
+};
+
 export const getTwoFactorStatuses = async (
 	users: TwoFactorUser[],
-	{ assumeRequired = false }: StatusOptions = {},
+	{ assumeRequired = false, organizationId }: StatusesOptions = {},
 ) => {
 	const userIds = users.map((u) => u.id);
 	const [accounts, memberships] = userIds.length
@@ -99,7 +128,12 @@ export const getTwoFactorStatuses = async (
 				assumeRequired
 					? []
 					: db.query.member.findMany({
-							where: inArray(member.userId, userIds),
+							where: and(
+								inArray(member.userId, userIds),
+								organizationId
+									? eq(member.organizationId, organizationId)
+									: undefined,
+							),
 							columns: { userId: true, require2FA: true },
 							with: { organization: { columns: { require2FA: true } } },
 						}),
@@ -176,6 +210,23 @@ export const assertTwoFactorSetupComplete = async (user: TwoFactorUser) => {
 	}
 };
 
+/**
+ * The better-auth hooks.before gate. getSession is only called off the
+ * allow-list, so setup endpoints don't pay for the lookup.
+ */
+export const enforceTwoFactorSetupOnAuthPath = async (
+	path: string,
+	getSession: () => Promise<{ user: TwoFactorUser } | null>,
+) => {
+	if (isTwoFactorSetupAuthPath(path)) return;
+	const current = await getSession();
+	if (!current) return;
+	await assertTwoFactorSetupComplete(current.user);
+	if (path === "/two-factor/disable") {
+		await assertTwoFactorCanBeDisabled(current.user.id);
+	}
+};
+
 export const applyInvitationTwoFactorRequirement = async ({
 	invitationId,
 	memberId,
@@ -195,4 +246,69 @@ export const applyInvitationTwoFactorRequirement = async ({
 		.update(member)
 		.set({ require2FA: true })
 		.where(eq(member.id, memberId));
+};
+
+/**
+ * better-auth 1.6 commits the membership before afterAcceptInvitation runs,
+ * so if the invitation's requirement can't be copied, undo the acceptance
+ * instead of leaving a membership without it. Reverting the invitation to
+ * pending lets the user accept again. Acceptance also switched the session
+ * to the new organization, so clear that and let the default membership
+ * apply.
+ */
+export const revertInvitationAcceptance = async ({
+	invitationId,
+	memberId,
+	userId,
+	organizationId,
+}: {
+	invitationId: string;
+	memberId: string;
+	userId: string;
+	organizationId: string;
+}) => {
+	await db.transaction(async (tx) => {
+		await tx.delete(member).where(eq(member.id, memberId));
+		await tx
+			.update(invitation)
+			.set({ status: "pending" })
+			.where(eq(invitation.id, invitationId));
+		await tx
+			.update(session)
+			.set({ activeOrganizationId: null })
+			.where(
+				and(
+					eq(session.userId, userId),
+					eq(session.activeOrganizationId, organizationId),
+				),
+			);
+	});
+};
+
+/** The afterAcceptInvitation hook. */
+export const applyInvitationTwoFactorRequirementOrRevert = async ({
+	invitationId,
+	member,
+}: {
+	invitationId: string;
+	member: { id: string; userId: string; organizationId: string };
+}) => {
+	try {
+		await applyInvitationTwoFactorRequirement({
+			invitationId,
+			memberId: member.id,
+		});
+	} catch (error) {
+		console.error(
+			`Failed to apply the 2FA requirement of invitation ${invitationId} to member ${member.id}, reverting the acceptance`,
+			error,
+		);
+		await revertInvitationAcceptance({
+			invitationId,
+			memberId: member.id,
+			userId: member.userId,
+			organizationId: member.organizationId,
+		});
+		throw error;
+	}
 };

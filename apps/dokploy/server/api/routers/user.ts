@@ -121,7 +121,10 @@ export const userRouter = createTRPCRouter({
 			},
 			orderBy: [asc(member.createdAt)],
 		});
-		const statuses = await getTwoFactorStatuses(members.map((m) => m.user));
+		const statuses = await getTwoFactorStatuses(
+			members.map((m) => m.user),
+			{ organizationId: ctx.session.activeOrganizationId },
+		);
 		return members.map((m) => {
 			const twoFactor = statuses.get(m.userId);
 			return {
@@ -868,13 +871,26 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			return await createOrganizationUserWithCredentials({
+			const created = await createOrganizationUserWithCredentials({
 				organizationId: ctx.session.activeOrganizationId,
 				email: input.email,
 				password: input.password,
 				role: input.role,
 				require2FA: input.require2FA,
 			});
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "user",
+				resourceId: created.userId,
+				resourceName: created.email,
+				metadata: {
+					type: "createUserWithCredentials",
+					role: input.role,
+					require2FA: input.require2FA,
+				},
+			});
+			return created;
 		}),
 	sendInvitation: withPermission("member", "create")
 		.input(

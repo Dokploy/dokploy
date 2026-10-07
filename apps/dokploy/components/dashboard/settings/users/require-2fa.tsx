@@ -35,10 +35,13 @@ export const Require2FA = () => {
 	const { data: activeOrganization } = api.organization.active.useQuery();
 	const { data: currentUser } = api.user.get.useQuery();
 	const { data: hasPassword } = api.user.hasPassword.useQuery();
-	const { data: impact, isPending: isImpactPending } =
-		api.organization.require2FAImpact.useQuery(undefined, {
-			enabled: confirmOpen,
-		});
+	const {
+		data: impact,
+		isPending: isImpactPending,
+		isError: isImpactError,
+	} = api.organization.require2FAImpact.useQuery(undefined, {
+		enabled: confirmOpen,
+	});
 	const { mutateAsync, isPending } =
 		api.organization.setRequire2FA.useMutation();
 
@@ -128,11 +131,13 @@ export const Require2FA = () => {
 						<AlertDialogDescription asChild>
 							<div className="space-y-2">
 								<p>
-									{isImpactPending
-										? "Checking which members are affected..."
-										: impact?.affectedMembers === 1
-											? "1 member has a password and hasn't enabled 2FA yet."
-											: `${impact?.affectedMembers ?? 0} members have a password and haven't enabled 2FA yet.`}
+									{isImpactError
+										? "Couldn't check which members are affected. Close this dialog and try again."
+										: isImpactPending
+											? "Checking which members are affected..."
+											: impact.affectedMembers === 1
+												? "1 member has a password and hasn't enabled 2FA yet."
+												: `${impact.affectedMembers} members have a password and haven't enabled 2FA yet.`}
 								</p>
 								<p>{API_KEY_2FA_WARNING}</p>
 							</div>
@@ -141,7 +146,7 @@ export const Require2FA = () => {
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
-							disabled={isPending}
+							disabled={isPending || isImpactPending || isImpactError}
 							onClick={(e) => {
 								e.preventDefault();
 								void save(true);
