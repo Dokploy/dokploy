@@ -27,7 +27,17 @@ import { sendDomainVerificationFailedNotifications } from "@dokploy/server/utils
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
-import { desc, eq, or } from "drizzle-orm";
+import {
+	and,
+	desc,
+	eq,
+	gt,
+	inArray,
+	isNull,
+	notExists,
+	or,
+	sql,
+} from "drizzle-orm";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
 import { getDokployUrl } from "./admin";
@@ -551,6 +561,86 @@ export const findLatestDoDomainSession = async (domainId: string) => {
 };
 
 /**
+ * Treats an expired, unfinished connect session like an abandoned one
+ * (`session.abandoned`): a domain still "pending" whose current session is no
+ * longer live goes back to "unverified" and drops its session id. Without
+ * this a domain whose owner let the link expire stays on "Awaiting domain
+ * owner" forever when the webhook never arrives (an instance on a private
+ * network has no webhook endpoint registered).
+ *
+ * One conditional UPDATE, so it cannot clobber a status a webhook just set
+ * (verified/failed are never touched) or a session created a moment ago:
+ * - "live" is the session the domain currently points at, with a future
+ *   `expiresAt`. A pointer to a missing row (the integration was removed and
+ *   its sessions cascaded) or no pointer at all counts as not live too.
+ * - a domain that already holds a DoDomain connection id is skipped: that id
+ *   is only ever stored by the `session.completed` webhook, so the owner
+ *   finished the flow and the domain is waiting for DNS verification, which
+ *   the session's own expiry says nothing about.
+ *
+ * Returns the ids of the domains that were reset. Normally updates no rows.
+ */
+export const expireStaleDoDomainSessions = async (
+	domainIds: string[],
+): Promise<string[]> => {
+	if (domainIds.length === 0) return [];
+	const reset = await db
+		.update(domains)
+		.set({ dnsVerificationStatus: "unverified", dodomainSessionId: null })
+		.where(
+			and(
+				inArray(domains.domainId, domainIds),
+				eq(domains.dnsVerificationStatus, "pending"),
+				isNull(domains.dodomainConnectionId),
+				notExists(
+					db
+						.select({ live: sql`1` })
+						.from(dodomainConnectSession)
+						.where(
+							and(
+								eq(dodomainConnectSession.sessionId, domains.dodomainSessionId),
+								gt(dodomainConnectSession.expiresAt, new Date()),
+							),
+						),
+				),
+			),
+		)
+		.returning({ domainId: domains.domainId });
+	return reset.map((row) => row.domainId);
+};
+
+/**
+ * Domain-list companion of {@link expireStaleDoDomainSessions}: resets the
+ * pending rows whose connect session expired and returns the list as it now
+ * stands in the database, without re-reading it. Skips the write entirely
+ * when nothing in the list is pending.
+ */
+export const withExpiredDoDomainSessionsReset = async <
+	T extends Pick<
+		Domain,
+		"domainId" | "dnsVerificationStatus" | "dodomainSessionId"
+	>,
+>(
+	rows: T[],
+): Promise<T[]> => {
+	const pending = rows
+		.filter((row) => row.dnsVerificationStatus === "pending")
+		.map((row) => row.domainId);
+	if (pending.length === 0) return rows;
+	const reset = new Set(await expireStaleDoDomainSessions(pending));
+	if (reset.size === 0) return rows;
+	return rows.map((row) =>
+		reset.has(row.domainId)
+			? {
+					...row,
+					dnsVerificationStatus: "unverified" as const,
+					dodomainSessionId: null,
+				}
+			: row,
+	);
+};
+
+/**
  * Creates a DoDomain connect session for a domain's host asking for the
  * records the panel expects, stores the session on the domain (status
  * pending) and returns the hosted connect URL to hand to the end user.
@@ -648,8 +738,13 @@ export const getDoDomainConnectionStatus = async (params: {
 	integration: DoDomainIntegration | null;
 	domainId: string;
 }) => {
-	const { domain, service } = await loadConnectableDomain(params.domainId);
+	const loaded = await loadConnectableDomain(params.domainId);
+	const { service } = loaded;
 	if (params.integration) assertSameOrganization(params.integration, service);
+	// An expired, unfinished connect link must not keep reading "pending".
+	const [domain = loaded.domain] = await withExpiredDoDomainSessionsReset([
+		loaded.domain,
+	]);
 	const session = domain.dodomainSessionId
 		? await findLatestDoDomainSession(domain.domainId)
 		: null;
