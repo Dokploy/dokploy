@@ -40,6 +40,7 @@ afterAll(() => rmSync(directory, { recursive: true, force: true }));
 const run = (command: string, exitCode = 0) =>
 	spawnSync("bash", ["-c", command], {
 		env: {
+			NODE_ENV: "test",
 			PATH: `${directory}:/usr/bin:/bin`,
 			CONTAINER_ID: "synthetic-mysql",
 			DUMP_EXIT_CODE: String(exitCode),
