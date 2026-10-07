@@ -1,7 +1,9 @@
+import type { Destination } from "@dokploy/server/services/destination";
 import {
 	getSafeRcloneErrorMessage,
 	redactRcloneCredentials,
 } from "@dokploy/server/utils/backups/redact";
+import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
 import { quote } from "shell-quote";
 import { describe, expect, it } from "vitest";
 
