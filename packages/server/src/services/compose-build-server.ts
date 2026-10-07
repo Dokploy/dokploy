@@ -25,7 +25,10 @@ import {
 	getRegistryTag,
 } from "@dokploy/server/utils/cluster/upload";
 import { writeDomainsToCompose } from "@dokploy/server/utils/docker/domain";
-import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
+import {
+	encodeBase64,
+	getCreateFileCommand,
+} from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
@@ -262,6 +265,27 @@ const buildImagesOnBuildServer = async (
 			: "";
 		await run(`set -e;${writeCompose}${envCommand}`);
 
+		// File mounts live in `<compose>/files` on the serving host, where
+		// `env_file:` / build secrets reach them as `../files/...`. Without them
+		// `compose config` and `compose build` fail on a missing file.
+		const filesDir = join(COMPOSE_PATH, entity.appName, "files");
+		const fileMounts = (resolved.mounts ?? []).filter(
+			(mount) => mount.type === "file" && mount.filePath,
+		);
+		if (fileMounts.length > 0) {
+			await run(
+				`set -e;${fileMounts
+					.map((mount) =>
+						getCreateFileCommand(
+							filesDir,
+							mount.filePath || "",
+							mount.content || "",
+						),
+					)
+					.join("")}`,
+			);
+		}
+
 		// Not streamed: the resolved configuration contains the environment.
 		const { stdout } = await execAsyncRemote(
 			buildServerId,
@@ -281,19 +305,28 @@ const buildImagesOnBuildServer = async (
 		const tag = getBuiltImageTag(
 			deployment.deploymentId ?? Date.now().toString(36),
 		);
+		// Services that share one image (the same `image:` name, e.g. through a
+		// YAML anchor) are one build and one push: they all run the same
+		// reference, named after the first service that uses it.
+		const byLocalImage = new Map<string, ComposePushedImage>();
 		const images: ComposePushedImage[] = builtServices.map((built) => {
+			const shared = byLocalImage.get(built.localImage);
+			if (shared)
+				return { ...built, ref: shared.ref, latestRef: shared.latestRef };
 			const repo = getBuiltImageRepoName(entity.appName, built.service);
-			return {
+			const pushed = {
 				...built,
 				ref: getRegistryTag(registry, `${repo}:${tag}`),
 				latestRef: getRegistryTag(registry, `${repo}:latest`),
 			};
+			byLocalImage.set(built.localImage, pushed);
+			return pushed;
 		});
 
 		const loginCommand = await getRegistryLoginCommand(registry);
 		await run(
 			getTagAndPushCommand({
-				images,
+				images: [...byLocalImage.values()],
 				loginCommand,
 				registryLabel: registry.registryUrl || registry.registryName,
 			}),
@@ -327,7 +360,17 @@ export const prepareComposeBuildServerDeploy = async ({
 	applyPatches?: boolean;
 	freshVolumes?: boolean;
 }): Promise<RemoteBuildDeployInfo | undefined> => {
-	if (!entity.buildServerId) return undefined;
+	if (!entity.buildServerId) {
+		// Deleting a build server nulls `buildServerId` (ON DELETE SET NULL) but
+		// leaves the registry behind. That compose was set up to never build on
+		// its serving host, so do not silently start doing it.
+		if (entity.buildRegistryId) {
+			throw new Error(
+				"This compose has a Build Registry but its Build Server no longer exists. Pick a build server again, or set both to None to build on the serving host.",
+			);
+		}
+		return undefined;
+	}
 
 	try {
 		const { images, loginCommand } = await buildImagesOnBuildServer(

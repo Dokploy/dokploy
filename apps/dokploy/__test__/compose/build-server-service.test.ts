@@ -195,6 +195,19 @@ describe("prepareComposeBuildServerDeploy", () => {
 		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
 	});
 
+	it("refuses to fall back to a local build when the build server was deleted", async () => {
+		const runStep = vi.fn();
+		await expect(
+			prepareComposeBuildServerDeploy({
+				entity: { ...compose, buildServerId: null },
+				deployment: { logPath: "/tmp/log", deploymentId: "dep1" },
+				runStep,
+			}),
+		).rejects.toThrow(/Build Server no longer exists/);
+		expect(runStep).not.toHaveBeenCalled();
+		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
+	});
+
 	it("clones, builds, tags and pushes on the build server and writes the override on the serving host", async () => {
 		mocks.execAsyncRemote.mockImplementation(
 			async (_serverId: string, command: string) => ({
@@ -264,6 +277,78 @@ describe("prepareComposeBuildServerDeploy", () => {
 			loginCommand: expect.stringContaining("docker login reg.example.com"),
 			servingHostLabel: "prod-1",
 		});
+	});
+
+	it("writes the file mounts to the build server before reading the configuration", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => ({
+				stdout: command.includes("config --format json")
+					? configJson({ web: { build: { context: "." } } })
+					: "",
+				stderr: "",
+			}),
+		);
+
+		await prepareComposeBuildServerDeploy({
+			entity: {
+				...compose,
+				mounts: [
+					{ type: "file", filePath: "prod.env", content: "SECRET=hunter2" },
+					{ type: "bind", hostPath: "/srv/data", mountPath: "/data" },
+				],
+			},
+			deployment: { logPath: "/tmp/log", deploymentId: "dep1" },
+			runStep: vi.fn().mockResolvedValue(undefined),
+		});
+
+		const commands = callsOn("build-1").map((call) => call[1] as string);
+		// (path separators are normalized so the test also runs on Windows)
+		const mountIndex = commands.findIndex((c) =>
+			c.replace(/\\/g, "/").includes("/my-app/files/prod.env"),
+		);
+		const configIndex = commands.findIndex((c) =>
+			c.includes("config --format json"),
+		);
+		expect(mountIndex).toBeGreaterThan(-1);
+		expect(mountIndex).toBeLessThan(configIndex);
+		// The content travels base64-encoded, never as plain text in the command.
+		expect(commands[mountIndex]).toContain(
+			Buffer.from("SECRET=hunter2").toString("base64"),
+		);
+		expect(commands[mountIndex]).not.toContain("hunter2");
+		expect(commands.some((c) => c.includes("/srv/data"))).toBe(false);
+	});
+
+	it("builds and pushes an image shared by several services once", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => ({
+				stdout: command.includes("config --format json")
+					? configJson({
+							web: { image: "app-local", build: { context: "." } },
+							worker: { image: "app-local", build: { context: "." } },
+							cron: { build: { context: "./cron" } },
+						})
+					: "",
+				stderr: "",
+			}),
+		);
+		const runStep = vi.fn().mockResolvedValue(undefined);
+
+		const result = await prepareComposeBuildServerDeploy({
+			entity: compose,
+			deployment: { logPath: "/tmp/log", deploymentId: "dep1" },
+			runStep,
+		});
+
+		const joined = callsOn("build-1")
+			.map((call) => call[1] as string)
+			.join("\n");
+		expect(joined.match(/docker push \S+dpl-dep1/g)).toHaveLength(2);
+		expect(result?.images).toEqual([
+			{ service: "web", image: "reg.example.com/acme/my-app-web:dpl-dep1" },
+			{ service: "worker", image: "reg.example.com/acme/my-app-web:dpl-dep1" },
+			{ service: "cron", image: "reg.example.com/acme/my-app-cron:dpl-dep1" },
+		]);
 	});
 
 	it("streams the build log to the deployment log on the serving host", async () => {

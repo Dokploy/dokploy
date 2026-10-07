@@ -170,6 +170,35 @@ describe("getBuildComposeCommand on the serving host", () => {
 		expect(script).not.toMatch(/docker compose[^\n]* -f \S*dokploy-build\.yml/);
 	});
 
+	it("pulls an image shared by several services once", async () => {
+		const shared = "reg.example.com/acme/my-app-web:dpl-1";
+		const script = await getBuildComposeCommand(base, {
+			deploymentId: "dep1",
+			remoteBuild: {
+				...remoteBuild,
+				images: [
+					{ service: "web", image: shared },
+					{ service: "worker", image: shared },
+					{ service: "beat", image: shared },
+				],
+			},
+		});
+		expect(script.match(/docker pull /g)).toHaveLength(1);
+		expect(script).toContain("(1 built on the build server)");
+	});
+
+	it("keeps the deploy line of a plain compose exactly as it was", async () => {
+		const script = await getBuildComposeCommand(
+			{ ...base, buildServerId: null, buildRegistryId: null } as typeof base,
+			{ deploymentId: "d" },
+		);
+		// No leftover blank block from the (absent) pull section: the docker line
+		// follows the isolated-deployment slot directly, like before the feature.
+		expect(script).toMatch(
+			/";\n\n\t\t\n\t\tenv -i PATH="\$PATH" HOME="\$HOME" /,
+		);
+	});
+
 	it("fails closed when a build server is set but no remote build result is given", async () => {
 		await expect(
 			getBuildComposeCommand(base, { deploymentId: "d" }),
@@ -208,6 +237,20 @@ describe("getRestoreAfterFailedBuildCommand", () => {
 		expect(restore).toContain("docker-compose.dokploy-build.yml.bak");
 		expect(restore).toContain("OVERRIDE_RESTORED");
 		expect(restore).toContain("__DOKPLOY_ROLLBACK_OK__\\:dep1");
+	});
+
+	it("runs from the code directory so the relative -f / --env-file paths resolve", async () => {
+		const restore = await getRestoreAfterFailedBuildCommand(
+			{ ...base, createEnvFile: true } as typeof base,
+			{ deploymentId: "dep1" },
+		);
+		expect(restore).toMatch(
+			/^cd '?[^;]*my-app[\\/]+code'? 2>\/dev\/null \|\| true;/,
+		);
+		expect(restore.indexOf("cd ")).toBeLessThan(
+			restore.indexOf("docker compose"),
+		);
+		expect(restore).toContain("--env-file .env");
 	});
 
 	it("is empty for a stack (not transactional) and for fresh volumes", async () => {

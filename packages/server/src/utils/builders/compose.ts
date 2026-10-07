@@ -298,7 +298,7 @@ export const getRestoreAfterFailedBuildCommand = async (
 	const isTransactional =
 		compose.composeType === "docker-compose" && !options.freshVolumes;
 	const effectiveProjectPath = compose.mounts.length > 0 ? projectPath : "";
-	return getRestoreCommands(compose, {
+	const restore = getRestoreCommands(compose, {
 		command: createCommand(compose, effectiveProjectPath || undefined, {
 			overridePath: getComposeBuildOverridePath(compose),
 		}),
@@ -307,6 +307,11 @@ export const getRestoreAfterFailedBuildCommand = async (
 		exportEnvCommand: getExportEnvCommand(compose),
 		projectPath: effectiveProjectPath,
 	});
+	if (!restore) return restore;
+	// The deploy script runs from the code directory (it `cd`s there before the
+	// docker command) and the restored `-f` / `--env-file` paths are relative to
+	// it. This script runs as a step of its own, so it has to change there too.
+	return `cd ${quote([projectPath])} 2>/dev/null || true;${restore}`;
 };
 
 export const getBuildComposeCommand = async (
@@ -413,18 +418,23 @@ Compose Type: ${composeType} ✅`;
 	// so a failed login or pull restores the previous release like a failed `up`.
 	let remotePullBlock = "";
 	if (remoteBuild && remoteBuild.images.length > 0) {
-		const pulls = remoteBuild.images
-			.map((image) => `docker pull ${quote([image.image])}`)
-			.join(" && ");
+		// Services that share one image share one reference: pull it once.
+		const refs = [...new Set(remoteBuild.images.map((image) => image.image))];
+		const pulls = refs.map((ref) => `docker pull ${quote([ref])}`).join(" && ");
 		remotePullBlock = `
 		PULL_OK=1;
-		echo ${quote([`Pulling images on ${remoteBuild.servingHostLabel} (${remoteBuild.images.length} built on the build server)`])};
+		echo ${quote([`Pulling images on ${remoteBuild.servingHostLabel} (${refs.length} built on the build server)`])};
 		${remoteBuild.loginCommand} || { echo "Error: ❌ Registry login failed on the serving host"; PULL_OK=0; }
 		if [ "$PULL_OK" = "1" ]; then { ${pulls}; } 2>&1 || PULL_OK=0; fi`;
 	}
 	const upLine = remotePullBlock
 		? `if [ "$PULL_OK" = "1" ]; then env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1; else false; fi`
 		: `env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1`;
+
+	// Without a build server this is the single docker line it always was.
+	const upSection = remotePullBlock
+		? `${remotePullBlock}\n\t\t${upLine}`
+		: upLine;
 
 	const bashCommand = `
 	set -e
@@ -447,8 +457,7 @@ Compose Type: ${composeType} ✅`;
 			fi`
 				: ""
 		}
-		${remotePullBlock}
-		${upLine} || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
+		${upSection} || { echo "Error: ❌ Docker command failed"; ${restoreCommands} exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 		${persistLastGood}
 

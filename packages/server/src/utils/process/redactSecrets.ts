@@ -77,6 +77,19 @@ const redactAssignments = (value: string): string =>
 		(_m, name, v) => name + quoteLike(v),
 	);
 
+// Registry logins are generated as `printf %s '<password>' | docker login ...
+// --password-stdin` (see getSafeDockerLoginCommand). The whole script travels
+// in the command line, so a failing deploy repeats it on the error message.
+// Matches `docker login` and the ECR form `docker login --username AWS`.
+const redactRegistryPasswords = (value: string): string =>
+	value.replace(
+		new RegExp(
+			`(printf\\s+%s\\s+)${QUOTED_OR_BARE}(\\s*\\|\\s*docker\\s+login\\b)`,
+			"g",
+		),
+		'$1"[REDACTED]"$3',
+	);
+
 const redactAuthHeaders = (value: string): string =>
 	value.replace(/(Authorization:\s*)([^"'\r\n]+)/gi, "$1[REDACTED]");
 
@@ -106,12 +119,11 @@ export const redactSecrets = (value: string): string =>
 			redactAuthHeaders(
 				redactAssignments(
 					redactFlags(
-						value
-							.replace(PRIVATE_KEY_BLOCK, "[REDACTED PRIVATE KEY]")
-							.replace(
-								BASE64_DECODE_PIPE,
-								'echo "[REDACTED]" | base64 -d',
-							),
+						redactRegistryPasswords(
+							value
+								.replace(PRIVATE_KEY_BLOCK, "[REDACTED PRIVATE KEY]")
+								.replace(BASE64_DECODE_PIPE, 'echo "[REDACTED]" | base64 -d'),
+						),
 					),
 				),
 			),
