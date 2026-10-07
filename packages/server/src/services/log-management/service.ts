@@ -7,7 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { findServerById } from "@dokploy/server/services/server";
 import { TRPCError } from "@trpc/server";
-import { and, arrayContains, eq, sql } from "drizzle-orm";
+import { and, arrayContains, eq, inArray, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { getLogProviderAdapter } from "./providers/registry";
 import type { LogProviderRuntimeConfig, LogProviderType } from "./types";
@@ -315,6 +315,18 @@ export const assertServerBelongsToOrg = async (
 			message: "You are not authorized to access this server",
 		});
 	}
+};
+
+export const filterExistingLogProviderIds = async (
+	logProviderIds: string[],
+): Promise<string[]> => {
+	if (logProviderIds.length === 0) return [];
+	const rows = await db
+		.select({ logProviderId: logProvider.logProviderId })
+		.from(logProvider)
+		.where(inArray(logProvider.logProviderId, logProviderIds));
+	const existing = new Set(rows.map((row) => row.logProviderId));
+	return logProviderIds.filter((id) => existing.has(id));
 };
 
 export const assertLogProvidersBelongToOrg = async (

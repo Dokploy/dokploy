@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 	setupVectorAgent: vi.fn(),
 	assertServerBelongsToOrg: vi.fn(),
 	assertLogProvidersBelongToOrg: vi.fn(),
+	filterExistingLogProviderIds: vi.fn(),
 }));
 
 const loadAgent = async (isCloud: boolean) => {
@@ -33,6 +34,7 @@ const loadAgent = async (isCloud: boolean) => {
 	vi.doMock("@dokploy/server/services/log-management/service", () => ({
 		assertServerBelongsToOrg: mocks.assertServerBelongsToOrg,
 		assertLogProvidersBelongToOrg: mocks.assertLogProvidersBelongToOrg,
+		filterExistingLogProviderIds: mocks.filterExistingLogProviderIds,
 	}));
 	return await import("@dokploy/server/services/log-management/vector-agent");
 };
@@ -43,6 +45,9 @@ const sessionB = { userId: "user-b", activeOrganizationId: "org-b" };
 describe("local Vector agent guards", () => {
 	beforeEach(() => {
 		for (const mock of Object.values(mocks)) mock.mockReset();
+		mocks.filterExistingLogProviderIds.mockImplementation(
+			async (ids: string[]) => ids,
+		);
 		mocks.getAccessibleServerIds.mockResolvedValue(new Set(["server-1"]));
 	});
 
@@ -132,6 +137,9 @@ describe("local Vector agent guards", () => {
 describe("remote server access", () => {
 	beforeEach(() => {
 		for (const mock of Object.values(mocks)) mock.mockReset();
+		mocks.filterExistingLogProviderIds.mockImplementation(
+			async (ids: string[]) => ids,
+		);
 		mocks.getAccessibleServerIds.mockResolvedValue(new Set(["server-1"]));
 	});
 
@@ -167,6 +175,20 @@ describe("remote server access", () => {
 		]);
 	});
 
+	it("does not save a provider deleted while the server deploy ran", async () => {
+		mocks.filterExistingLogProviderIds.mockResolvedValue(["lp-1"]);
+		const { deployLogManagement } = await loadAgent(false);
+
+		await deployLogManagement(sessionA, "server-1", ["lp-1", "lp-2"]);
+		expect(mocks.filterExistingLogProviderIds).toHaveBeenCalledWith([
+			"lp-1",
+			"lp-2",
+		]);
+		expect(mocks.updateServerLogProviders).toHaveBeenCalledWith("server-1", [
+			"lp-1",
+		]);
+	});
+
 	it("keeps the saved providers when the server deploy fails", async () => {
 		mocks.setupVectorAgent.mockRejectedValue(new Error("validation failed"));
 		const { deployLogManagement } = await loadAgent(false);
@@ -192,6 +214,9 @@ describe("remote server access", () => {
 describe("local agent deploy", () => {
 	beforeEach(() => {
 		for (const mock of Object.values(mocks)) mock.mockReset();
+		mocks.filterExistingLogProviderIds.mockImplementation(
+			async (ids: string[]) => ids,
+		);
 		mocks.claimWebServerLogManagement.mockResolvedValue({});
 	});
 
@@ -215,6 +240,21 @@ describe("local agent deploy", () => {
 		);
 		expect(mocks.setupVectorAgent.mock.invocationCallOrder[0]).toBeLessThan(
 			mocks.claimWebServerLogManagement.mock.invocationCallOrder[1] ?? 0,
+		);
+	});
+
+	it("does not save a provider deleted while the local deploy ran", async () => {
+		mocks.getWebServerSettings.mockResolvedValue({
+			logManagementOrganizationId: "org-a",
+			logProviderIds: ["lp-1"],
+		});
+		mocks.filterExistingLogProviderIds.mockResolvedValue(["lp-1"]);
+		const { deployLogManagement } = await loadAgent(false);
+
+		await deployLogManagement(sessionA, undefined, ["lp-1", "lp-2"]);
+		expect(mocks.claimWebServerLogManagement).toHaveBeenLastCalledWith(
+			"org-a",
+			["lp-1"],
 		);
 	});
 

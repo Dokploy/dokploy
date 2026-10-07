@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	listTasks: vi.fn(),
+	inspectService: vi.fn(),
 	findServersByOrganizationForLogManagement: vi.fn(),
 	getAccessibleServerIds: vi.fn(),
 	getWebServerSettings: vi.fn(),
@@ -22,7 +23,10 @@ vi.mock("@dokploy/server/services/web-server-settings", () => ({
 	getWebServerSettings: mocks.getWebServerSettings,
 }));
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
-	getRemoteDocker: async () => ({ listTasks: mocks.listTasks }),
+	getRemoteDocker: async () => ({
+		listTasks: mocks.listTasks,
+		getService: () => ({ inspect: mocks.inspectService }),
+	}),
 }));
 
 const { getLogManagementServerStatus, withVectorTargetLock } = await import(
@@ -35,6 +39,7 @@ describe("getLogManagementServerStatus", () => {
 	beforeEach(() => {
 		for (const mock of Object.values(mocks)) mock.mockReset();
 		mocks.findServersByOrganizationForLogManagement.mockResolvedValue([]);
+		mocks.inspectService.mockResolvedValue({});
 		mocks.getAccessibleServerIds.mockResolvedValue(new Set());
 		mocks.getWebServerSettings.mockResolvedValue({
 			logManagementOrganizationId: "org-1",
@@ -63,16 +68,18 @@ describe("getLogManagementServerStatus", () => {
 	});
 
 	it("reports stopped when the service does not exist", async () => {
-		mocks.listTasks.mockRejectedValue(
+		mocks.inspectService.mockRejectedValue(
 			Object.assign(new Error("not found"), { statusCode: 404 }),
 		);
+		mocks.listTasks.mockResolvedValue([]);
 
 		const [local] = await getLogManagementServerStatus(session);
 		expect(local?.status).toBe("stopped");
+		expect(mocks.listTasks).not.toHaveBeenCalled();
 	});
 
 	it("reports unknown on any other docker error", async () => {
-		mocks.listTasks.mockRejectedValue(new Error("connect ECONNREFUSED"));
+		mocks.inspectService.mockRejectedValue(new Error("connect ECONNREFUSED"));
 
 		const [local] = await getLogManagementServerStatus(session);
 		expect(local?.status).toBe("unknown");

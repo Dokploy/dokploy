@@ -375,22 +375,24 @@ const inspectVectorStatus = async (
 	serverId?: string,
 ): Promise<VectorStatus> => {
 	const docker = await getRemoteDocker(serverId);
+	// listTasks returns [] instead of 404 for a missing service, so inspect first.
 	try {
-		const tasks = await docker.listTasks({
-			filters: JSON.stringify({
-				service: [VECTOR_SERVICE_NAME],
-				"desired-state": ["running"],
-			}),
-		});
-		return tasks.some((task) => task.Status?.State === "running")
-			? "running"
-			: "not-running";
+		await docker.getService(VECTOR_SERVICE_NAME).inspect();
 	} catch (error: any) {
 		if (error?.statusCode === 404) {
 			return "stopped";
 		}
 		throw error;
 	}
+	const tasks = await docker.listTasks({
+		filters: JSON.stringify({
+			service: [VECTOR_SERVICE_NAME],
+			"desired-state": ["running"],
+		}),
+	});
+	return tasks.some((task) => task.Status?.State === "running")
+		? "running"
+		: "not-running";
 };
 
 const VECTOR_CHECK_TIMEOUT_MS = 5000;

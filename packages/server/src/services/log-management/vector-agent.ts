@@ -18,6 +18,7 @@ import { TRPCError } from "@trpc/server";
 import {
 	assertLogProvidersBelongToOrg,
 	assertServerBelongsToOrg,
+	filterExistingLogProviderIds,
 } from "./service";
 
 const assertLocalAgentAllowed = (serverId: string | undefined) => {
@@ -59,7 +60,11 @@ export const deployLogManagement = async (
 	await withVectorTargetLock(serverId, async () => {
 		if (serverId) {
 			await setupVectorAgent(organizationId, serverId, logProviderIds);
-			await updateServerLogProviders(serverId, logProviderIds);
+			// A provider deleted during the deploy must not be written back.
+			await updateServerLogProviders(
+				serverId,
+				await filterExistingLogProviderIds(logProviderIds),
+			);
 			return;
 		}
 
@@ -86,7 +91,10 @@ export const deployLogManagement = async (
 			}
 			throw error;
 		}
-		await claimWebServerLogManagement(organizationId, logProviderIds);
+		await claimWebServerLogManagement(
+			organizationId,
+			await filterExistingLogProviderIds(logProviderIds),
+		);
 	});
 };
 
