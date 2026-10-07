@@ -101,11 +101,8 @@ export const removeMonitoringDirectory = async (
 	}
 };
 
-export const getBuildAppDirectory = (application: Application) => {
-	const serverId = application.buildServerId || application.serverId;
-	const { APPLICATIONS_PATH } = paths(!!serverId);
-	const { appName, buildType, sourceType, customGitBuildPath, dockerfile } =
-		application;
+export const getBuildPath = (application: Application) => {
+	const { sourceType, customGitBuildPath } = application;
 	let buildPath = "";
 
 	if (sourceType === "github") {
@@ -121,6 +118,16 @@ export const getBuildAppDirectory = (application: Application) => {
 	} else if (sourceType === "git") {
 		buildPath = customGitBuildPath || "";
 	}
+
+	return buildPath;
+};
+
+export const getBuildAppDirectory = (application: Application) => {
+	const serverId = application.buildServerId || application.serverId;
+	const { APPLICATIONS_PATH } = paths(!!serverId);
+	const { appName, buildType, dockerfile } = application;
+	const buildPath = getBuildPath(application);
+
 	if (buildType === "dockerfile") {
 		return path.join(
 			APPLICATIONS_PATH,
@@ -135,13 +142,17 @@ export const getBuildAppDirectory = (application: Application) => {
 };
 
 export const getDockerContextPath = (application: Application) => {
-	const { APPLICATIONS_PATH } = paths(!!application.serverId);
+	const serverId = application.buildServerId || application.serverId;
+	const { APPLICATIONS_PATH } = paths(!!serverId);
 	const { appName, dockerContextPath } = application;
 
-	return path.join(
-		APPLICATIONS_PATH,
-		appName,
-		"code",
-		dockerContextPath || ".",
-	);
+	if (!dockerContextPath) {
+		// Default to the build directory (code/<buildPath>), not the code root:
+		// static builds generate their Dockerfile into code/<buildPath> and its
+		// COPY instructions are relative to the context.
+		const buildPath = getBuildPath(application);
+		return path.join(APPLICATIONS_PATH, appName, "code", buildPath || ".");
+	}
+
+	return path.join(APPLICATIONS_PATH, appName, "code", dockerContextPath);
 };

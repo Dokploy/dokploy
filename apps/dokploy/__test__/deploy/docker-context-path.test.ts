@@ -1,6 +1,11 @@
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
+import { getStaticCommand } from "@dokploy/server/utils/builders/static";
+import {
+	getBuildAppDirectory,
+	getDockerContextPath,
+} from "@dokploy/server/utils/filesystem/directory";
 import { describe, expect, it } from "vitest";
 
 // Regression test for https://github.com/Dokploy/dokploy/issues/5417
@@ -73,5 +78,37 @@ describe("getDockerCommand - docker context path (issue #5417)", () => {
 			createMockApplication({ dockerfile: "Dockerfile" }) as any,
 		);
 		expect(extractCdTarget(command)).toBe(codeRoot);
+	});
+});
+
+describe("getDockerContextPath - Greptile P1 findings on #5605", () => {
+	it("static builds: defaults to the build directory (code/<buildPath>), not the code root", () => {
+		// getStaticCommand writes its Dockerfile into code/<buildPath> (via
+		// getBuildAppDirectory) and its COPY instructions are relative to the
+		// build context, so the default context must be code/<buildPath>.
+		const command = getStaticCommand(
+			createMockApplication({
+				buildType: "static",
+				buildPath: "site",
+				isStaticSpa: true,
+			}) as any,
+		);
+		expect(extractCdTarget(command)).toBe(path.join(codeRoot, "site"));
+	});
+
+	it("remote builds: resolves the context under the same root as the Dockerfile path", () => {
+		// serverId null + buildServerId set: getBuildAppDirectory resolves under
+		// the remote root, so the context must too (else `cd` targets a local
+		// path that does not exist).
+		const app = createMockApplication({
+			serverId: null,
+			buildServerId: "remote-server-id",
+		});
+		const { APPLICATIONS_PATH: REMOTE_APPLICATIONS_PATH } = paths(true);
+		const dockerfilePath = getBuildAppDirectory(app as any);
+		expect(dockerfilePath.startsWith(REMOTE_APPLICATIONS_PATH)).toBe(true);
+		expect(getDockerContextPath(app as any)).toBe(
+			path.join(REMOTE_APPLICATIONS_PATH, "test-app", "code"),
+		);
 	});
 });
