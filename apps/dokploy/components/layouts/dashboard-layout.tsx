@@ -28,6 +28,15 @@ export const DashboardLayout = ({ children, metaName }: Props) => {
 	const isChatEnabled = isCloud === true && currentPlan === "startup";
 	useHubSpotChat(isChatEnabled);
 
+	const { data: session } = api.user.session.useQuery();
+	const twoFactorSetupRequired = !!session?.twoFactorSetupRequired;
+
+	useEffect(() => {
+		if (twoFactorSetupRequired) {
+			router.replace("/two-factor-setup");
+		}
+	}, [twoFactorSetupRequired, router]);
+
 	const { data: onboardingStatus } = api.project.onboardingStatus.useQuery();
 	const shouldRedirectToOnboarding =
 		router.pathname !== "/dashboard/home" &&
@@ -39,7 +48,7 @@ export const DashboardLayout = ({ children, metaName }: Props) => {
 		}
 	}, [shouldRedirectToOnboarding, router]);
 
-	if (shouldRedirectToOnboarding) {
+	if (twoFactorSetupRequired || shouldRedirectToOnboarding) {
 		return null;
 	}
 

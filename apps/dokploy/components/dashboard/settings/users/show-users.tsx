@@ -31,6 +31,8 @@ import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
+import { API_KEY_2FA_WARNING } from "./require-2fa";
+import { TwoFactorStatus } from "./two-factor-status";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -42,6 +44,10 @@ export const ShowUsers = () => {
 
 	const utils = api.useUtils();
 	const { data: session } = api.user.session.useQuery();
+	const { data: activeOrganization } = api.organization.active.useQuery();
+	const { mutateAsync: setMemberRequire2FA, isPending: isSettingRequire2FA } =
+		api.organization.setMemberRequire2FA.useMutation();
+	const orgRequires2FA = !!activeOrganization?.require2FA;
 
 	const FREE_ROLES = ["owner", "admin", "member"];
 	const membersWithCustomRoles = data?.filter(
@@ -188,9 +194,10 @@ export const ShowUsers = () => {
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{member.user.twoFactorEnabled
-																	? "Enabled"
-																	: "Disabled"}
+																<TwoFactorStatus
+																	status={member.twoFactorStatus}
+																	providers={member.authProviders}
+																/>
 															</TableCell>
 															<TableCell className="text-center">
 																<span className="text-sm text-muted-foreground">
@@ -223,6 +230,54 @@ export const ShowUsers = () => {
 																					currentRole={member.role}
 																					userEmail={member.user.email}
 																				/>
+																			)}
+
+																			{canChangeRole && (
+																				<DialogAction
+																					title={
+																						member.require2FA
+																							? "Stop requiring 2FA"
+																							: "Require 2FA"
+																					}
+																					description={
+																						orgRequires2FA
+																							? member.require2FA
+																								? `The organization requires two-factor authentication for every member, so this only takes effect if that setting is turned off. ${member.user.email} would then no longer be required to use it.`
+																								: `The organization requires two-factor authentication for every member, so this only takes effect if that setting is turned off. ${member.user.email} would still be required to use it.`
+																							: member.require2FA
+																								? `${member.user.email} will no longer be required to use two-factor authentication in this organization.`
+																								: `${member.user.email} must enable two-factor authentication before using Dokploy if they have a password. ${API_KEY_2FA_WARNING}`
+																					}
+																					type="default"
+																					disabled={isSettingRequire2FA}
+																					onClick={async () => {
+																						await setMemberRequire2FA({
+																							memberId: member.id,
+																							require2FA: !member.require2FA,
+																						})
+																							.then(() => {
+																								toast.success(
+																									"2FA requirement updated",
+																								);
+																								refetch();
+																							})
+																							.catch((err) => {
+																								toast.error(
+																									err?.message ||
+																										"Error updating 2FA requirement",
+																								);
+																							});
+																					}}
+																				>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer"
+																						onSelect={(e) => e.preventDefault()}
+																					>
+																						{member.require2FA
+																							? "Don't require 2FA"
+																							: "Require 2FA"}
+																					</DropdownMenuItem>
+																				</DialogAction>
 																			)}
 
 																			{canEditPermissions && (

@@ -17,7 +17,8 @@ export const setupDrawerLogsWebSocketServer = (
 	applyWSSHandler({
 		wss: wssTerm,
 		router: appRouter,
-		createContext: createTRPCContext as any,
+		createContext: (opts) =>
+			createTRPCContext(opts as any, { longLived: true }),
 	});
 
 	server.on("upgrade", (req, socket, head) => {

@@ -875,7 +875,13 @@ function SidebarLogo() {
 												</DropdownMenuItem>
 												<DialogAction
 													title="Accept Invitation"
-													description="Are you sure you want to accept this invitation?"
+													description={
+														(invitation.require2FA ||
+															invitation.organization.require2FA) &&
+														!user?.user.twoFactorEnabled
+															? "This organization requires two-factor authentication. If you sign in with a password, you'll have to set it up before you can use Dokploy again, in any organization."
+															: "Are you sure you want to accept this invitation?"
+													}
 													type="default"
 													onClick={async () => {
 														const { error } =

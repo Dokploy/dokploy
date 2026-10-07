@@ -9,7 +9,9 @@ import { appRouter } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-	const { session, user } = await validateRequest(req);
+	// Pending 2FA users get through so the tRPC gate can answer with
+	// TWO_FACTOR_SETUP_REQUIRED.
+	const { session, user } = await validateRequest(req, { allowPending: true });
 
 	if (!user || !session) {
 		res.status(401).json({ message: "Unauthorized" });

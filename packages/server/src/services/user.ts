@@ -417,11 +417,13 @@ export const createOrganizationUserWithCredentials = async ({
 	email,
 	password,
 	role,
+	require2FA = false,
 }: {
 	organizationId: string;
 	email: string;
 	password: string;
 	role: string;
+	require2FA?: boolean;
 }) => {
 	const normalizedEmail = email.trim().toLowerCase();
 	const now = new Date();
@@ -476,6 +478,7 @@ export const createOrganizationUserWithCredentials = async ({
 			role,
 			createdAt: now,
 			isDefault: true,
+			require2FA,
 		});
 
 		await tx

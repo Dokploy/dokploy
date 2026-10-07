@@ -19,12 +19,14 @@ interface InvitationEmailProps {
 	inviteLink: string;
 	toEmail: string;
 	organizationName: string;
+	require2FA?: boolean;
 }
 
 export const InvitationEmail = ({
 	inviteLink,
 	toEmail,
 	organizationName = "an organization",
+	require2FA = false,
 }: InvitationEmailProps) => {
 	const previewText = `You've been invited to join ${organizationName} on Dokploy`;
 	return (
@@ -56,6 +58,13 @@ export const InvitationEmail = ({
 								on Dokploy, the platform for deploying your apps to the cloud.
 								Click the button below to accept the invitation.
 							</Text>
+							{require2FA && (
+								<Text className="text-[#71717a] text-[14px] leading-[22px] m-0 mb-[24px]">
+									Two-factor authentication is required to use this
+									organization. If you sign in with a password, you'll be asked
+									to set it up after you sign in.
+								</Text>
+							)}
 
 							{/* CTA Button */}
 							<Section className="text-center mb-[24px]">
