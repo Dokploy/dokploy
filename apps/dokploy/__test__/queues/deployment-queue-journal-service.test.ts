@@ -10,6 +10,23 @@ const mocks = vi.hoisted(() => ({
 	selectRows: vi.fn(),
 	appendFile: vi.fn(),
 	execAsyncRemote: vi.fn(),
+	updateApplicationStatus: vi.fn(),
+	updateCompose: vi.fn(),
+	updatePreviewDeployment: vi.fn(),
+	findPreviewDeploymentById: vi.fn(),
+}));
+
+vi.mock("@dokploy/server/services/application", () => ({
+	updateApplicationStatus: mocks.updateApplicationStatus,
+}));
+
+vi.mock("@dokploy/server/services/compose", () => ({
+	updateCompose: mocks.updateCompose,
+}));
+
+vi.mock("@dokploy/server/services/preview-deployment", () => ({
+	updatePreviewDeployment: mocks.updatePreviewDeployment,
+	findPreviewDeploymentById: mocks.findPreviewDeploymentById,
 }));
 
 vi.mock("@dokploy/server/db", () => ({
@@ -52,6 +69,7 @@ import {
 	deleteQueueJobs,
 	insertQueueJob,
 	INTERRUPTED_DEPLOYMENT_MESSAGE,
+	LOG_NOTE_TIMEOUT_MS,
 	listQueueJobs,
 	markInterruptedFromJournal,
 	markInterruptedQueueDeployments,
@@ -63,6 +81,10 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(console, "log").mockImplementation(() => {});
 	vi.spyOn(console, "error").mockImplementation(() => {});
+	mocks.updateApplicationStatus.mockReset().mockResolvedValue(undefined);
+	mocks.updateCompose.mockReset().mockResolvedValue(undefined);
+	mocks.updatePreviewDeployment.mockReset().mockResolvedValue(undefined);
+	mocks.findPreviewDeploymentById.mockReset();
 	mocks.onConflictDoNothing.mockResolvedValue(undefined);
 	mocks.deleteWhere.mockResolvedValue(undefined);
 	mocks.updateReturning.mockResolvedValue([]);
@@ -175,6 +197,118 @@ describe("markInterruptedQueueDeployments", () => {
 		expect(closed).toBe(0);
 		// Only the preview job produced an UPDATE.
 		expect(mocks.updateSet).toHaveBeenCalledTimes(1);
+	});
+
+	it("puts the service, compose or preview back to idle", async () => {
+		await markInterruptedQueueDeployments([
+			active({ applicationType: "application", applicationId: "a" }),
+			active({ applicationType: "compose", composeId: "c" }),
+			active({
+				applicationType: "compose-preview",
+				composeId: "c",
+				previewDeploymentId: "p",
+			}),
+		]);
+
+		expect(mocks.updateApplicationStatus).toHaveBeenCalledWith("a", "idle");
+		expect(mocks.updateCompose).toHaveBeenCalledWith("c", {
+			composeStatus: "idle",
+		});
+		expect(mocks.updatePreviewDeployment).toHaveBeenCalledWith("p", {
+			previewStatus: "idle",
+		});
+	});
+
+	it("resets the status even when the payload is not a runnable job", async () => {
+		await markInterruptedQueueDeployments([
+			active({ applicationId: "a", type: "garbage" }),
+		]);
+		expect(mocks.updateApplicationStatus).toHaveBeenCalledWith("a", "idle");
+	});
+
+	it("a failing status reset does not stop the marking", async () => {
+		mocks.updateApplicationStatus.mockRejectedValue(new Error("db"));
+		mocks.updateReturning.mockResolvedValue([
+			{ logPath: "/logs/a.log", serverId: null, buildServerId: null },
+		]);
+		await expect(
+			markInterruptedQueueDeployments([
+				active({ applicationType: "application", applicationId: "a" }),
+			]),
+		).resolves.toBe(1);
+	});
+
+	it("derives a preview's log host like createDeploymentPreview does", async () => {
+		mocks.updateReturning.mockResolvedValue([
+			{
+				logPath: "/logs/p.log",
+				serverId: "app-server",
+				buildServerId: null,
+				previewDeploymentId: "p",
+			},
+		]);
+		mocks.findPreviewDeploymentById.mockResolvedValue({
+			application: { buildServerId: "build-srv", serverId: "app-server" },
+			compose: null,
+		});
+
+		await markInterruptedQueueDeployments([
+			active({
+				applicationType: "application-preview",
+				previewDeploymentId: "p",
+			}),
+		]);
+
+		expect(mocks.execAsyncRemote).toHaveBeenCalledWith(
+			"build-srv",
+			expect.stringContaining("/logs/p.log"),
+		);
+		expect(mocks.appendFile).not.toHaveBeenCalled();
+	});
+
+	it("skips the log write when a preview's host cannot be resolved", async () => {
+		mocks.updateReturning.mockResolvedValue([
+			{
+				logPath: "/logs/p.log",
+				serverId: null,
+				buildServerId: null,
+				previewDeploymentId: "p",
+			},
+		]);
+		mocks.findPreviewDeploymentById.mockRejectedValue(new Error("not found"));
+
+		await expect(
+			markInterruptedQueueDeployments([
+				active({
+					applicationType: "application-preview",
+					previewDeploymentId: "p",
+				}),
+			]),
+		).resolves.toBe(1);
+		expect(mocks.appendFile).not.toHaveBeenCalled();
+		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
+	});
+
+	it("bounds every log write and runs them in parallel, so unreachable servers cost one timeout", async () => {
+		vi.useFakeTimers();
+		try {
+			mocks.updateReturning.mockResolvedValue([
+				{ logPath: "/logs/1.log", serverId: "s1", buildServerId: null },
+				{ logPath: "/logs/2.log", serverId: "s2", buildServerId: null },
+				{ logPath: "/logs/3.log", serverId: "s3", buildServerId: null },
+			]);
+			mocks.execAsyncRemote.mockReturnValue(new Promise(() => {})); // hangs
+
+			const done = markInterruptedQueueDeployments([
+				active({ applicationType: "application", applicationId: "a" }),
+			]);
+			await vi.advanceTimersByTimeAsync(LOG_NOTE_TIMEOUT_MS + 10);
+
+			await expect(done).resolves.toBe(3);
+			expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(3);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("a log write failure does not stop the marking", async () => {

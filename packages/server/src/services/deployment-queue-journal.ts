@@ -7,6 +7,12 @@ import {
 } from "@dokploy/server/db/schema";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { updateApplicationStatus } from "./application";
+import { updateCompose } from "./compose";
+import {
+	findPreviewDeploymentById,
+	updatePreviewDeployment,
+} from "./preview-deployment";
 
 /**
  * Persistence for the deployment queue journal (table `deployment_queue_job`).
@@ -105,6 +111,9 @@ const runningDeploymentsOf = (payload: QueueJobPayload) => {
 	);
 };
 
+/** Longest a single restart note may take (a remote host can be unreachable). */
+export const LOG_NOTE_TIMEOUT_MS = 4_000;
+
 const appendLogLine = async (
 	logPath: string,
 	serverId: string | null,
@@ -121,20 +130,95 @@ const appendLogLine = async (
 	await appendFile(logPath, `${line}\n`);
 };
 
+const withDeadline = async (task: Promise<unknown>, ms: number) => {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		await Promise.race([
+			task,
+			new Promise<never>((_, reject) => {
+				timer = setTimeout(
+					() => reject(new Error(`timed out after ${ms}ms`)),
+					ms,
+				);
+			}),
+		]);
+	} finally {
+		clearTimeout(timer);
+	}
+};
+
+/**
+ * The host a deployment's log file lives on. Previews do not store their build
+ * server on the row, so it is derived the way createDeploymentPreview does:
+ * build server, else the application's server, else the compose server. Null
+ * means a local file; undefined means the host cannot be told (skip the write).
+ */
+const resolveLogHost = async (row: {
+	serverId: string | null;
+	buildServerId: string | null;
+	previewDeploymentId: string | null;
+}): Promise<string | null | undefined> => {
+	if (row.buildServerId) return row.buildServerId;
+	if (!row.previewDeploymentId) return row.serverId ?? null;
+	try {
+		const preview = await findPreviewDeploymentById(row.previewDeploymentId);
+		return (
+			preview.application?.buildServerId ||
+			preview.application?.serverId ||
+			preview.compose?.serverId ||
+			null
+		);
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * Put the service (or preview) back to `idle` so it is not stuck on "running"
+ * when the job that owned that state died with the previous process. Works from
+ * whatever ids the payload carries, so an unreadable payload is still reset.
+ */
+export const resetServiceStatus = async (payload: QueueJobPayload) => {
+	const type = payload.applicationType;
+	const previewDeploymentId = str(payload.previewDeploymentId);
+	const applicationId = str(payload.applicationId);
+	const composeId = str(payload.composeId);
+	try {
+		if (previewDeploymentId) {
+			await updatePreviewDeployment(previewDeploymentId, {
+				previewStatus: "idle",
+			});
+		} else if (type === "compose" && composeId) {
+			await updateCompose(composeId, { composeStatus: "idle" });
+		} else if (applicationId) {
+			await updateApplicationStatus(applicationId, "idle");
+		}
+	} catch (error) {
+		console.error(
+			"Could not reset the status of an interrupted service",
+			error,
+		);
+	}
+};
+
 /**
  * For jobs that were `active` when the previous process died: close the
- * `deployment` row that was left `running` as an error and write a clear line
- * into its log. Returns how many deployment rows were closed.
+ * `deployment` row that was left `running` as an error, put the service back to
+ * `idle`, and write a clear line into the deployment's log. Returns how many
+ * deployment rows were closed.
  *
  * Must run BEFORE `initCancelDeployments`, which turns every leftover
- * `running` deployment into `cancelled` (and the service into `idle`).
- * Never throws.
+ * `running` deployment into `cancelled`. The log notes are best effort: they run
+ * in parallel, each bounded by LOG_NOTE_TIMEOUT_MS, so an unreachable server
+ * cannot hold up the boot. Never throws.
  */
 export const markInterruptedQueueDeployments = async (
 	activeJobs: Array<Pick<DeploymentQueueJobRow, "payload">>,
 ): Promise<number> => {
 	let closed = 0;
+	const notes: Array<Promise<unknown>> = [];
 	for (const job of activeJobs) {
+		await resetServiceStatus(job.payload);
 		try {
 			const where = runningDeploymentsOf(job.payload);
 			if (!where) continue;
@@ -150,26 +234,35 @@ export const markInterruptedQueueDeployments = async (
 					logPath: deployments.logPath,
 					serverId: deployments.serverId,
 					buildServerId: deployments.buildServerId,
+					previewDeploymentId: deployments.previewDeploymentId,
 				});
 			closed += rows.length;
 			for (const row of rows) {
-				try {
-					await appendLogLine(
-						row.logPath,
-						row.buildServerId ?? row.serverId ?? null,
-						INTERRUPTED_DEPLOYMENT_MESSAGE,
-					);
-				} catch (error) {
-					console.error(
-						"Could not write the restart note to the deployment log",
-						error instanceof Error ? error.message : error,
-					);
-				}
+				notes.push(
+					withDeadline(
+						(async () => {
+							const host = await resolveLogHost(row);
+							if (host === undefined) return;
+							await appendLogLine(
+								row.logPath,
+								host,
+								INTERRUPTED_DEPLOYMENT_MESSAGE,
+							);
+						})(),
+						LOG_NOTE_TIMEOUT_MS,
+					).catch((error) => {
+						console.error(
+							"Could not write the restart note to the deployment log",
+							error instanceof Error ? error.message : error,
+						);
+					}),
+				);
 			}
 		} catch (error) {
 			console.error("Could not mark an interrupted deployment", error);
 		}
 	}
+	await Promise.all(notes);
 	return closed;
 };
 

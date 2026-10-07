@@ -5,6 +5,17 @@ const mocks = vi.hoisted(() => ({ captureError: vi.fn() }));
 
 vi.mock("../../server/sentry", () => ({ captureError: mocks.captureError }));
 
+// queue-journal imports the journal functions from the barrel; the tests inject
+// a fake store, so keep the heavy barrel (and its db) out of the picture.
+vi.mock("@dokploy/server", () => ({
+	deleteQueueJobs: vi.fn(),
+	insertQueueJob: vi.fn(),
+	listQueueJobs: vi.fn(),
+	markInterruptedFromJournal: vi.fn(),
+	markQueueJobActive: vi.fn(),
+	requeueInterruptedQueueJobs: vi.fn(),
+}));
+
 import { InMemoryQueue } from "../../server/queues/in-memory-queue";
 import {
 	createQueueJournal,
@@ -172,6 +183,46 @@ describe("journal writes", () => {
 		await expect(queue.add(appJob("a"))).resolves.toBeDefined();
 		expect(await queue.getJobs(["waiting"])).toHaveLength(1);
 	});
+
+	it("one hung write does not wedge the chain: later inserts and deletes still land", async () => {
+		const store = makeStore();
+		const realInsert = store.insert;
+		let first = true;
+		store.insert = vi.fn((jobId, payload) => {
+			if (first) {
+				first = false;
+				return new Promise<void>(() => {}); // never settles
+			}
+			return realInsert(jobId, payload);
+		});
+		const { journal, flush: flushJournal } = createQueueJournal(store, {
+			timeoutMs: 10,
+			writeTimeoutMs: 30,
+		});
+		const queue = new InMemoryQueue({ resolveConcurrency: () => 1, journal });
+
+		await queue.add(appJob("hung")); // its insert never returns
+		await queue.add(appJob("later"));
+		await flushJournal(2_000);
+
+		// The second insert landed behind the hung one...
+		expect(
+			store.rows.map(
+				(r) => (r.payload as { applicationId: string }).applicationId,
+			),
+		).toEqual(["later"]);
+
+		// ...and so does a delete.
+		queue.clearWaiting();
+		await flushJournal(2_000);
+		expect(store.rows).toHaveLength(0);
+		expect(mocks.captureError).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringContaining("timed out"),
+			}),
+			expect.objectContaining({ op: "enqueue" }),
+		);
+	});
 });
 
 describe("boot replay", () => {
@@ -303,7 +354,7 @@ describe("boot replay", () => {
 	});
 
 	it("gives up on a job that was running for too many crashes", async () => {
-		const dropped: DeploymentJob[] = [];
+		const dropped: Record<string, unknown>[] = [];
 		const store = makeStore([
 			row("j1", appJob("loop"), "active", MAX_REPLAY_ATTEMPTS),
 			row("j2", appJob("fine")),
@@ -322,18 +373,24 @@ describe("boot replay", () => {
 		expect(store.rows.map((r) => r.jobId)).toEqual(["j2"]);
 	});
 
-	it("drops rows whose payload cannot be run", async () => {
+	it("drops rows whose payload cannot be run, still handing them to onDropped", async () => {
+		const dropped: Record<string, unknown>[] = [];
 		const store = makeStore([
-			row("bad", { hello: "world" }),
+			row("bad", { applicationId: "svc", type: "garbage" }),
 			row("ok", appJob("a")),
 		]);
-		const { restore } = createQueueJournal(store);
+		const { restore } = createQueueJournal(store, {
+			onDropped: (payload) => {
+				dropped.push(payload);
+			},
+		});
 		const queue = new InMemoryQueue({ resolveConcurrency: () => 1 });
 
 		const result = await restore(queue);
 
 		expect(result).toEqual({ restored: 1, interrupted: 0, dropped: 1 });
 		expect(store.rows.map((r) => r.jobId)).toEqual(["ok"]);
+		expect(dropped).toEqual([{ applicationId: "svc", type: "garbage" }]);
 	});
 
 	it("a replay failure is logged, reported and does not throw", async () => {

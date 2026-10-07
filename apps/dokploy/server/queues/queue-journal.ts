@@ -1,4 +1,5 @@
-import type { DeploymentQueueJobRow } from "@dokploy/server/db/schema";
+// The barrel, not a deep import: the esbuild build (packages: "external") would
+// otherwise bundle a second copy of the module next to the one the barrel loads.
 import {
 	deleteQueueJobs,
 	insertQueueJob,
@@ -6,7 +7,9 @@ import {
 	markInterruptedFromJournal,
 	markQueueJobActive,
 	requeueInterruptedQueueJobs,
-} from "@dokploy/server/services/deployment-queue-journal";
+} from "@dokploy/server";
+// Type-only, erased at build time: no second module copy.
+import type { DeploymentQueueJobRow } from "@dokploy/server/db/schema";
 import { captureError } from "../sentry";
 import type { QueueJournal, RestoredJob } from "./in-memory-queue";
 import type { DeploymentJob } from "./queue-types";
@@ -30,6 +33,11 @@ import type { DeploymentJob } from "./queue-types";
 export const MAX_REPLAY_ATTEMPTS = 3;
 /** Longest `add()` waits for the journal write before moving on. */
 export const ENQUEUE_JOURNAL_TIMEOUT_MS = 5_000;
+/**
+ * Longest any single journal write may hold the serial chain. Without it one
+ * hung Postgres call would wedge every later write behind it.
+ */
+export const WRITE_TIMEOUT_MS = 5_000;
 
 export interface JournalStore {
 	insert(jobId: string, payload: Record<string, unknown>): Promise<void>;
@@ -66,9 +74,15 @@ export interface RestoreResult {
 }
 
 export interface QueueJournalOptions {
-	/** Called for jobs dropped on restore, to fail the service's status. */
-	onDropped?: (data: DeploymentJob) => Promise<void> | void;
+	/**
+	 * Called for every job dropped on restore (including unreadable payloads, so
+	 * it receives the raw payload), to fail the service's status.
+	 */
+	onDropped?: (payload: Record<string, unknown>) => Promise<void> | void;
+	/** Cap on how long `add()` waits for the journal write. */
 	timeoutMs?: number;
+	/** Cap on any single journal write; see WRITE_TIMEOUT_MS. */
+	writeTimeoutMs?: number;
 }
 
 const EMPTY_RESULT: RestoreResult = { restored: 0, interrupted: 0, dropped: 0 };
@@ -97,6 +111,7 @@ export const createQueueJournal = (
 	options: QueueJournalOptions = {},
 ) => {
 	const timeoutMs = options.timeoutMs ?? ENQUEUE_JOURNAL_TIMEOUT_MS;
+	const writeTimeoutMs = options.writeTimeoutMs ?? WRITE_TIMEOUT_MS;
 	let chain: Promise<unknown> = Promise.resolve();
 	// Ids of jobs enqueued by this process until the restore has read the
 	// journal: the restore must not mistake them for leftovers of a previous run.
@@ -115,12 +130,30 @@ export const createQueueJournal = (
 		captureError(error, { handler: "deploymentQueueJournal", op });
 	};
 
-	/** Run `task` after every earlier journal write. Never rejects. */
+	/** Reject if `task` has not settled within the write timeout. */
+	const bounded = (op: string, task: () => Promise<unknown>) => {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timeout = new Promise<never>((_, reject) => {
+			timer = setTimeout(
+				() =>
+					reject(new Error(`${op} write timed out after ${writeTimeoutMs}ms`)),
+				writeTimeoutMs,
+			);
+		});
+		return Promise.race([task(), timeout]).finally(() => clearTimeout(timer));
+	};
+
+	/**
+	 * Run `task` after every earlier journal write. Never rejects, and always
+	 * settles within the write timeout so the chain keeps advancing.
+	 */
 	const run = (op: string, task: () => Promise<unknown>): Promise<void> => {
-		const next = chain.then(task).then(
-			() => undefined,
-			(error) => fail(op, error),
-		);
+		const next = chain
+			.then(() => bounded(op, task))
+			.then(
+				() => undefined,
+				(error) => fail(op, error),
+			);
 		chain = next;
 		return next;
 	};
@@ -189,12 +222,12 @@ export const createQueueJournal = (
 			console.error(
 				`Deployment queue journal: dropping job ${row.jobId} (${why})`,
 			);
-			if (isRestorableJob(row.payload)) {
-				try {
-					await options.onDropped?.(row.payload);
-				} catch (error) {
-					fail("drop", error);
-				}
+			try {
+				await options.onDropped?.(
+					(row.payload ?? {}) as Record<string, unknown>,
+				);
+			} catch (error) {
+				fail("drop", error);
 			}
 		}
 		if (drop.length > 0) {

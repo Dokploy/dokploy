@@ -127,6 +127,7 @@ export class InMemoryQueue {
 	private partitions = new Map<string, Partition>();
 	private processor: Processor | null = null;
 	private running = false;
+	private paused = false;
 	private seq = 0;
 	private idleWaiters: Array<() => void> = [];
 	private readonly resolveConcurrency: InMemoryQueueOptions["resolveConcurrency"];
@@ -343,6 +344,21 @@ export class InMemoryQueue {
 	}
 
 	/**
+	 * Hold back processing: jobs can still be added (and journaled) but none
+	 * starts until `resume()`. Used to keep the worker idle until the boot replay
+	 * has put the previous process's jobs ahead of anything that arrived since.
+	 */
+	pause() {
+		this.paused = true;
+	}
+
+	resume() {
+		if (!this.paused) return;
+		this.paused = false;
+		this.schedule();
+	}
+
+	/**
 	 * Resolve `true` once no job is running, or `false` after `timeoutMs`. Used
 	 * by the graceful shutdown: after `close()` nothing new starts, so this only
 	 * waits for the jobs already in flight.
@@ -371,7 +387,7 @@ export class InMemoryQueue {
 	}
 
 	private schedule() {
-		if (!this.running || !this.processor) return;
+		if (!this.running || this.paused || !this.processor) return;
 		for (const key of this.partitions.keys()) {
 			void this.drainPartition(key);
 		}
@@ -384,7 +400,11 @@ export class InMemoryQueue {
 		const concurrency = Math.max(1, await this.resolveConcurrency(key));
 
 		// A shutdown can land while the concurrency was being resolved.
-		while (this.running && partition.active.length < concurrency) {
+		while (
+			this.running &&
+			!this.paused &&
+			partition.active.length < concurrency
+		) {
 			// First waiting job whose group is not already running.
 			const index = partition.waiting.findIndex(
 				(job) => !partition.activeGroups.has(job.group),
