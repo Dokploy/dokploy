@@ -50,6 +50,15 @@ describe("getRailpackCommand", () => {
 		expect(command).toContain("--build-arg cache-key=");
 	});
 
+	it("installs Railpack through sudo for non-root users", () => {
+		const command = getRailpackCommand(createApplication());
+
+		expect(command).toContain(
+			'$SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"',
+		);
+		expect(command).toContain("sudo -n true 2>/dev/null");
+	});
+
 	it("changes secrets-hash when an environment value changes", () => {
 		const firstCommand = getRailpackCommand(
 			createApplication({

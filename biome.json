@@ -16,8 +16,10 @@
 			"!node_modules/**",
 			"!packages/server/package.json"
 		],
-		"maxSize": 2097152
+		"maxSize": 2097152,
+		"experimentalScannerIgnores": [".next", "node_modules", ".docker", "dist"]
 	},
+	"css": { "parser": { "tailwindDirectives": true } },
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"rules": {

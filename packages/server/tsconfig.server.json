@@ -8,9 +8,8 @@
 		"isolatedModules": false,
 		"noEmit": false,
 		"declaration": true,
-		"moduleResolution": "Node",
+		"moduleResolution": "bundler",
 		"rootDir": "./src",
-		"baseUrl": ".",
 		"jsx": "react-jsx",
 		"paths": {
 			"@dokploy/server/*": ["./src/*"]

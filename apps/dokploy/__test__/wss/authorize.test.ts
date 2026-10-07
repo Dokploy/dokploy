@@ -95,10 +95,35 @@ describe("canAccessTerminalOverWss", () => {
 	});
 
 	it("gates a remote server terminal on server access", async () => {
+		mockHasPermission.mockResolvedValue(true);
 		mockGetAccessibleServerIds.mockResolvedValue(new Set(["srv-1"]));
 		expect(await canAccessTerminalOverWss(USER, SESSION, "srv-1")).toBe(true);
 		expect(await canAccessTerminalOverWss(USER, SESSION, "srv-2")).toBe(false);
-		// role lookup must not be needed for the remote path
+		// the remote path must never fall through to the owner/admin local branch
 		expect(mockFindMember).not.toHaveBeenCalled();
+	});
+
+	it("denies a remote server terminal without the server.terminal permission", async () => {
+		// Reaching a server (to deploy on it) must not imply a root shell on it.
+		mockGetAccessibleServerIds.mockResolvedValue(new Set(["srv-1"]));
+		mockHasPermission.mockResolvedValue(false);
+		expect(await canAccessTerminalOverWss(USER, SESSION, "srv-1")).toBe(false);
+		expect(mockHasPermission).toHaveBeenCalledWith(
+			{ user: { id: USER.id }, session: { activeOrganizationId: "org-1" } },
+			{ server: ["terminal"] },
+		);
+	});
+
+	it("allows a remote server terminal with the server.terminal permission", async () => {
+		mockGetAccessibleServerIds.mockResolvedValue(new Set(["srv-1"]));
+		mockHasPermission.mockResolvedValue(true);
+		expect(await canAccessTerminalOverWss(USER, SESSION, "srv-1")).toBe(true);
+	});
+
+	it("does not check permissions for a server the caller cannot access", async () => {
+		mockGetAccessibleServerIds.mockResolvedValue(new Set(["srv-1"]));
+		mockHasPermission.mockResolvedValue(true);
+		expect(await canAccessTerminalOverWss(USER, SESSION, "srv-2")).toBe(false);
+		expect(mockHasPermission).not.toHaveBeenCalled();
 	});
 });

@@ -106,6 +106,7 @@ export const AddInvitation = () => {
 	const { mutateAsync: createUserWithCredentials, isPending: isCreating } =
 		api.user.createUserWithCredentials.useMutation();
 	const { data: customRoles } = api.customRole.all.useQuery();
+	const { data: activeOrganization } = api.organization.active.useQuery();
 	const [error, setError] = useState<string | null>(null);
 
 	const form = useForm<AddInvitation>({
@@ -123,14 +124,27 @@ export const AddInvitation = () => {
 	const mode = form.watch("mode");
 
 	useEffect(() => {
-		form.reset();
-	}, [form, form.formState.isSubmitSuccessful, form.reset]);
+		if (!open) {
+			form.reset();
+			setError(null);
+		}
+	}, [open, form, form.reset]);
 
 	useEffect(() => {
 		if (isCloud && form.getValues("mode") === "credentials") {
 			form.setValue("mode", "invitation");
 		}
 	}, [form, isCloud]);
+
+	useEffect(() => {
+		if (
+			activeOrganization?.defaultRole &&
+			activeOrganization.defaultRole !== "owner" &&
+			!form.formState.dirtyFields.role
+		) {
+			form.setValue("role", activeOrganization.defaultRole);
+		}
+	}, [form, activeOrganization?.defaultRole]);
 
 	const onSubmit = async (data: AddInvitation) => {
 		setError(null);
@@ -214,7 +228,7 @@ export const AddInvitation = () => {
 											<FormLabel>Invite Method</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												defaultValue={field.value}
+												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
@@ -267,10 +281,7 @@ export const AddInvitation = () => {
 								return (
 									<FormItem>
 										<FormLabel>Role</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											defaultValue={field.value}
-										>
+										<Select onValueChange={field.onChange} value={field.value}>
 											<FormControl>
 												<SelectTrigger>
 													<SelectValue placeholder="Select a role" />
@@ -305,7 +316,7 @@ export const AddInvitation = () => {
 											<FormLabel>Email Provider</FormLabel>
 											<Select
 												onValueChange={field.onChange}
-												defaultValue={field.value}
+												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>

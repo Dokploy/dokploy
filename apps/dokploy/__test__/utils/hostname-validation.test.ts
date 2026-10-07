@@ -9,6 +9,9 @@ describe("VALID_HOSTNAME_REGEX", () => {
 		"a.b.c.example.co",
 		"xn--80ak6aa92e.com",
 		"123.example.com",
+		"example",
+		"dokploy-server",
+		"localhost",
 	])("accepts valid hostname %s", (host) => {
 		expect(VALID_HOSTNAME_REGEX.test(host)).toBe(true);
 	});
@@ -17,7 +20,6 @@ describe("VALID_HOSTNAME_REGEX", () => {
 		"bbn_client.example.com",
 		"-example.com",
 		"example-.com",
-		"example",
 		"exa mple.com",
 		"example..com",
 		"",

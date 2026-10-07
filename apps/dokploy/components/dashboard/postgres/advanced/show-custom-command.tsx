@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -17,6 +18,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import type { ServiceType } from "../../application/advanced/show-resources";
+
+const getPostgresMountPath = (dockerImage: string): string => {
+	const versionMatch = dockerImage.match(/postgres:(\d+)/);
+	if (versionMatch?.[1]) {
+		const version = Number.parseInt(versionMatch[1], 10);
+		if (version >= 18) {
+			return `/var/lib/postgresql/${version}/docker`;
+		}
+	}
+	return "/var/lib/postgresql/data";
+};
+
+const POSTGRES_DATA_PATH_REGEX = /^\/var\/lib\/postgresql(\/|$)/;
 
 const addDockerImage = z.object({
 	dockerImage: z.string().min(1, "Docker image is required"),
@@ -91,6 +105,27 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 		}
 	}, [data, form]);
 
+	const dockerImage = form.watch("dockerImage");
+
+	const mountPathWarning = (() => {
+		if (type !== "postgres" || !dockerImage) return null;
+		const mounts = data && "mounts" in data ? data.mounts : [];
+		const dataMounts = mounts.filter(
+			(mount) =>
+				mount.type === "volume" &&
+				POSTGRES_DATA_PATH_REGEX.test(mount.mountPath),
+		);
+		if (dataMounts.length === 0) return null;
+		const expectedPath = getPostgresMountPath(dockerImage);
+		if (dataMounts.some((mount) => mount.mountPath === expectedPath)) {
+			return null;
+		}
+		return {
+			expectedPath,
+			currentPath: dataMounts.map((mount) => mount.mountPath).join(", "),
+		};
+	})();
+
 	const onSubmit = async (formData: AddDockerImage) => {
 		await mutateAsync({
 			mongoId: id || "",
@@ -139,6 +174,18 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 											</FormItem>
 										)}
 									/>
+									{mountPathWarning && (
+										<AlertBlock type="warning">
+											This image expects its data directory under{" "}
+											<code>{mountPathWarning.expectedPath}</code>, but the
+											volume of this database is mounted at{" "}
+											<code>{mountPathWarning.currentPath}</code>. Changing the
+											image does not migrate existing data — Postgres may
+											crash-loop or start with an empty database. Adjust the
+											volume mount path in the Volumes section or keep a
+											compatible image before saving.
+										</AlertBlock>
+									)}
 								</div>
 								<FormField
 									control={form.control}

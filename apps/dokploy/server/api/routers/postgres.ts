@@ -12,7 +12,7 @@ import {
 	getAccessibleServerIds,
 	getContainerLogs,
 	getMountPath,
-	getServiceContainerCommand,
+	getServiceContainer,
 	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -437,15 +437,15 @@ export const postgresRouter = createTRPCRouter({
 			const pg = await findPostgresById(postgresId);
 			const { appName, serverId, databaseUser } = pg;
 
-			const containerCmd = getServiceContainerCommand(appName);
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" psql -U ${databaseUser} -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"
-			`;
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
+			const command = `docker exec ${container.Id} psql -U ${databaseUser} -d postgres -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"`;
 
 			await db.transaction(async (tx) => {
 				await tx

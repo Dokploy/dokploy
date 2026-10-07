@@ -12,17 +12,20 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   generate-and-commit:
     name: Generate OpenAPI and commit to Dokploy repo
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Dokploy repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24.4.0
           cache: "pnpm"

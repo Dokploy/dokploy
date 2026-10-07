@@ -50,6 +50,7 @@ interface Props {
 	id: string;
 	type: "application" | "compose";
 	serverId?: string;
+	trigger?: React.ReactNode;
 }
 
 const RestoreBackupSchema = z.object({
@@ -64,7 +65,12 @@ const RestoreBackupSchema = z.object({
 	}),
 });
 
-export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
+export const RestoreVolumeBackups = ({
+	id,
+	type,
+	serverId,
+	trigger,
+}: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -144,10 +150,12 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">
-					<RotateCcw className="mr-2 size-4" />
-					Restore Volume Backup
-				</Button>
+				{trigger ?? (
+					<Button variant="outline">
+						<RotateCcw className="mr-2 size-4" />
+						Restore Volume Backup
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>

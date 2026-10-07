@@ -303,7 +303,7 @@ export const ShowSwarmContainers = ({ serverId }: Props) => {
 						<p className="mt-2 text-xs">
 							Manage nodes in{" "}
 							<Link
-								href="/dashboard/settings/cluster"
+								href="/dashboard/docker?tab=swarm&subtab=nodes"
 								className="underline underline-offset-4"
 							>
 								Cluster Settings

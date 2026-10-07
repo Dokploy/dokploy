@@ -50,6 +50,7 @@ export function SignInWithSSO({
 			const { data, error } = await authClient.signIn.sso({
 				email: values.email,
 				callbackURL: "/dashboard/home",
+				errorCallbackURL: "/",
 			});
 			if (error) {
 				toast.error(error.message ?? "Failed to sign in with SSO");

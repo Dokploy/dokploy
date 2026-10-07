@@ -91,6 +91,7 @@ export const RequestDistributionChart = ({
 				<Area
 					dataKey="count"
 					type="monotone"
+					isAnimationActive={false}
 					fill="hsl(var(--chart-1))"
 					fillOpacity={0.4}
 					stroke="hsl(var(--chart-1))"

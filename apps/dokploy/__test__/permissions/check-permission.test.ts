@@ -126,6 +126,13 @@ describe("member is denied org-level enterprise resources (CVE: bypass via stati
 		await expect(checkPermission(ctx, { server: ["read"] })).rejects.toThrow();
 	});
 
+	it("member is denied server.terminal", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { server: ["terminal"] }),
+		).rejects.toThrow();
+	});
+
 	it("member is denied registry.create", async () => {
 		memberToReturn = mockMemberData("member");
 		await expect(

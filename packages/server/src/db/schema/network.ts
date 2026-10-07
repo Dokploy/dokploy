@@ -21,6 +21,7 @@ export const network = pgTable("network", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
+	dockerId: text("dockerId"),
 	driver: networkDriver("driver").notNull().default("bridge"),
 	internal: boolean("internal").notNull().default(false),
 	attachable: boolean("attachable").notNull().default(false),

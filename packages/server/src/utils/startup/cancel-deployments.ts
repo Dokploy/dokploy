@@ -1,4 +1,9 @@
-import { applications, compose, deployments } from "@dokploy/server/db/schema";
+import {
+	applications,
+	compose,
+	deployments,
+	schedules,
+} from "@dokploy/server/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db/index";
 
@@ -6,15 +11,37 @@ export const initCancelDeployments = async () => {
 	try {
 		console.log("Setting up cancel deployments....");
 
+		const runningDeployments = await db
+			.select({
+				deploymentId: deployments.deploymentId,
+				scheduleId: deployments.scheduleId,
+				scheduleType: schedules.scheduleType,
+			})
+			.from(deployments)
+			.leftJoin(schedules, eq(deployments.scheduleId, schedules.scheduleId))
+			.where(eq(deployments.status, "running"));
+
+		const deploymentIdsToCancel = runningDeployments
+			.filter(
+				(deployment) =>
+					!deployment.scheduleId ||
+					deployment.scheduleType === "dokploy-server",
+			)
+			.map((deployment) => deployment.deploymentId);
+
+		if (deploymentIdsToCancel.length === 0) {
+			console.log("Cancelled 0 deployments");
+			return;
+		}
+
 		const result = await db
 			.update(deployments)
 			.set({
 				status: "cancelled",
 			})
-			.where(eq(deployments.status, "running"))
+			.where(inArray(deployments.deploymentId, deploymentIdsToCancel))
 			.returning();
 
-		// Reset the related services so they don't stay stuck in "running".
 		const applicationIds = [
 			...new Set(
 				result

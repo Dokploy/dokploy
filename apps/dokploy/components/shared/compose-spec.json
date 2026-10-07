@@ -35,6 +35,16 @@
 			"additionalProperties": false
 		},
 
+		"models": {
+			"id": "#/properties/models",
+			"type": "object",
+			"patternProperties": {
+				"^[a-zA-Z0-9._-]+$": {
+					"$ref": "#/definitions/model"
+				}
+			}
+		},
+
 		"networks": {
 			"id": "#/properties/networks",
 			"type": "object",
@@ -335,6 +345,30 @@
 				"mem_swappiness": { "type": ["integer", "string"] },
 				"memswap_limit": { "type": ["number", "string"] },
 				"network_mode": { "type": "string" },
+				"models": {
+					"oneOf": [
+						{ "$ref": "#/definitions/list_of_strings" },
+						{
+							"type": "object",
+							"patternProperties": {
+								"^[a-zA-Z0-9._-]+$": {
+									"oneOf": [
+										{
+											"type": "object",
+											"properties": {
+												"endpoint_var": { "type": "string" },
+												"model_var": { "type": "string" }
+											},
+											"additionalProperties": false,
+											"patternProperties": { "^x-": {} }
+										},
+										{ "type": "null" }
+									]
+								}
+							}
+						}
+					]
+				},
 				"networks": {
 					"oneOf": [
 						{ "$ref": "#/definitions/list_of_strings" },
@@ -886,6 +920,23 @@
 				"labels": { "$ref": "#/definitions/list_or_dict" },
 				"template_driver": { "type": "string" }
 			},
+			"additionalProperties": false,
+			"patternProperties": { "^x-": {} }
+		},
+
+		"model": {
+			"id": "#/definitions/model",
+			"type": "object",
+			"properties": {
+				"name": { "type": "string" },
+				"model": { "type": "string" },
+				"context_size": { "type": "integer" },
+				"runtime_flags": {
+					"type": "array",
+					"items": { "type": "string" }
+				}
+			},
+			"required": ["model"],
 			"additionalProperties": false,
 			"patternProperties": { "^x-": {} }
 		},

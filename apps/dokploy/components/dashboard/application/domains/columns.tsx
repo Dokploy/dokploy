@@ -14,6 +14,7 @@ import Link from "next/link";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -35,7 +36,9 @@ interface ColumnsProps {
 	validationStates: ValidationStates;
 	handleValidateDomain: (host: string) => Promise<void>;
 	handleDeleteDomain: (domainId: string) => Promise<void>;
+	handleToggleEnable: (domainId: string) => Promise<void>;
 	isDeleting: boolean;
+	isToggling: boolean;
 	serverIp?: string;
 	canCreateDomain: boolean;
 	canDeleteDomain: boolean;
@@ -47,7 +50,9 @@ export const createColumns = ({
 	validationStates,
 	handleValidateDomain,
 	handleDeleteDomain,
+	handleToggleEnable,
 	isDeleting,
+	isToggling,
 	serverIp,
 	canCreateDomain,
 	canDeleteDomain,
@@ -246,6 +251,42 @@ export const createColumns = ({
 				<div className="text-sm text-muted-foreground">
 					{new Date(createdAt).toLocaleDateString()}
 				</div>
+			);
+		},
+	},
+	{
+		id: "status",
+		header: "Status",
+		cell: ({ row }) => {
+			const domain = row.original;
+			if (!canCreateDomain) {
+				return (
+					<Badge variant={domain.enabled ? "outline" : "secondary"}>
+						{domain.enabled ? "Enabled" : "Disabled"}
+					</Badge>
+				);
+			}
+			return (
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<div className="flex items-center">
+								<Switch
+									checked={domain.enabled}
+									onCheckedChange={() => handleToggleEnable(domain.domainId)}
+									disabled={isToggling}
+								/>
+							</div>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>
+								{domain.enabled
+									? "Domain is active. Toggle to disable routing without deleting it."
+									: "Domain is disabled and not routed. Toggle to enable it again."}
+							</p>
+						</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
 			);
 		},
 	},

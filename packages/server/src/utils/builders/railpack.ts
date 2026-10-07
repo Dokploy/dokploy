@@ -87,7 +87,15 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 # Ensure we have a builder with containerd (isolated per build)
 
 export RAILPACK_VERSION=${application.railpackVersion}
-bash -c "$(curl -fsSL https://railpack.com/install.sh)"
+# use sudo for non-root so the install can write to /usr/local/bin
+if [ "$(id -u)" -eq 0 ]; then
+	SUDO_CMD=""
+elif sudo -n true 2>/dev/null; then
+	SUDO_CMD="sudo"
+else
+	SUDO_CMD=""
+fi
+$SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 docker buildx create --name ${builderName} --driver docker-container || true
 
 echo "Preparing Railpack build plan..." ;

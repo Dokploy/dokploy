@@ -98,6 +98,7 @@ export function CPUChart({ data }: CPUChartProps) {
 							name="CPU"
 							dataKey="cpu"
 							type="monotone"
+							isAnimationActive={false}
 							fill="url(#fillCPU)"
 							stroke="hsl(var(--chart-1))"
 							strokeWidth={2}

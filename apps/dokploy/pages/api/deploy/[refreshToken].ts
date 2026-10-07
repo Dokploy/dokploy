@@ -32,6 +32,14 @@ const getPackageVersion = (headers: any, body: any) => {
 	return null;
 };
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -119,9 +127,11 @@ export default async function handler(
 			}
 			// If webhook doesn't provide image info, we'll use the configured image (old behavior)
 		} else if (sourceType === "github") {
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -150,21 +160,29 @@ export default async function handler(
 			let normalizedCommits: string[] = [];
 
 			if (provider === "github") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "gitlab") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "gitea") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			} else if (provider === "soft-serve") {
-				normalizedCommits = req.body?.commits?.flatMap(
-					(commit: any) => commit.modified,
-				);
+				normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+					...(commit.added || []),
+					...(commit.modified || []),
+					...(commit.removed || []),
+				]);
 			}
 
 			const shouldDeployPaths = shouldDeploy(
@@ -179,9 +197,11 @@ export default async function handler(
 		} else if (sourceType === "gitlab") {
 			const branchName = extractBranchName(req.headers, req.body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
@@ -225,9 +245,11 @@ export default async function handler(
 		} else if (sourceType === "gitea") {
 			const branchName = extractBranchName(req.headers, req.body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
-				(commit: any) => commit.modified,
-			);
+			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
+				...(commit.added || []),
+				...(commit.modified || []),
+				...(commit.removed || []),
+			]);
 
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,

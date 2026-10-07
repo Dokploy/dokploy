@@ -1,5 +1,6 @@
 import {
 	assertGitProviderAccess,
+	canViewGitProviderSecrets,
 	createGitlab,
 	findGitlabById,
 	getAccessibleGitProviderIds,
@@ -57,6 +58,16 @@ export const gitlabRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const gitlab = await findGitlabById(input.gitlabId);
 			await assertGitProviderAccess(ctx.session, gitlab.gitProvider);
+
+			if (!(await canViewGitProviderSecrets(ctx.session, gitlab.gitProvider))) {
+				return {
+					...gitlab,
+					secret: null,
+					accessToken: null,
+					refreshToken: null,
+				};
+			}
+
 			return gitlab;
 		}),
 	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {

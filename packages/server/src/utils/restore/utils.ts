@@ -79,6 +79,10 @@ const generateRestoreCommand = (
 	}
 };
 
+// Dumps taken with `--databases` carry `USE`/`CREATE DATABASE` statements that
+// would redirect the restore away from the database selected in the dialog.
+export const stripDatabaseSwitchCommand = `grep -viE '^[[:space:]]*(use|create[[:space:]]+database)[[:space:]]'`;
+
 const getMongoSpecificCommand = (
 	rcloneCommand: string,
 	restoreCommand: string,
@@ -125,7 +129,9 @@ export const getRestoreCommand = ({
 	const restoreCommand = generateRestoreCommand(type, credentials);
 	let cmd = `CONTAINER_ID=$(${containerSearch})`;
 
-	if (type !== "mongo") {
+	if (type === "mysql" || type === "mariadb") {
+		cmd += ` && ${rcloneCommand} | ${stripDatabaseSwitchCommand} | ${restoreCommand}`;
+	} else if (type !== "mongo") {
 		cmd += ` && ${rcloneCommand} | ${restoreCommand}`;
 	} else {
 		cmd += ` && ${getMongoSpecificCommand(rcloneCommand, restoreCommand, backupFile || "")}`;

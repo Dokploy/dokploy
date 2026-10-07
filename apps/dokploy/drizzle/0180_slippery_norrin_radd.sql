@@ -1,0 +1,1 @@
+ALTER TABLE "compose" ADD COLUMN "createEnvFile" boolean DEFAULT true NOT NULL;

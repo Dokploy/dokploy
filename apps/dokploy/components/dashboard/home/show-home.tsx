@@ -223,7 +223,7 @@ export const ShowHome = () => {
 							</div>
 							{canReadDeployments && (
 								<Link
-									href="/dashboard/deployments"
+									href="/dashboard/overview?tab=deployments"
 									className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 								>
 									view all →
