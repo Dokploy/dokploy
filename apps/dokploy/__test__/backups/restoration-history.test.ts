@@ -15,6 +15,7 @@ vi.mock("@dokploy/server/db", () => ({
 	db: {
 		insert: () => ({
 			values: (row: Restoration) => ({
+				// biome-ignore lint/suspicious/noThenProperty: Drizzle queries are intentionally awaitable in this mock.
 				then: (resolve: (value: unknown) => void) => {
 					state.rows.set(row.restorationId, { ...row });
 					resolve(row);

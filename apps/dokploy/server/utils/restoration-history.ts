@@ -16,8 +16,9 @@ export const restorationHistoryDirectory = () =>
 const runtime = globalThis as unknown as {
 	dokployActiveRestorations?: Set<string>;
 };
-const activeRestorations = (runtime.dokployActiveRestorations ??=
-	new Set<string>());
+if (!runtime.dokployActiveRestorations)
+	runtime.dokployActiveRestorations = new Set<string>();
+const activeRestorations = runtime.dokployActiveRestorations;
 const historySchema = z.object({
 	restorationId: z.string().regex(/^[\w-]+$/),
 	organizationId: z.string().nullable(),
