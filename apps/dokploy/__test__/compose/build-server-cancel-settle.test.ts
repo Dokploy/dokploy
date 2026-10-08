@@ -326,7 +326,7 @@ describe("a cancelled build-server compose deployment", () => {
 			expect(mocks.statusAfterCancelledDeploy).not.toHaveBeenCalled();
 			expect(
 				loggedCommands().some((command) =>
-					command.includes("could not stop this deployment"),
+					command.includes("cancel was requested earlier"),
 				),
 			).toBe(true);
 		});
@@ -374,7 +374,7 @@ describe("a cancelled build-server compose deployment", () => {
 
 			expect(
 				loggedCommands().some((command) =>
-					command.includes("could not stop this deployment"),
+					command.includes("cancel was requested earlier"),
 				),
 			).toBe(false);
 		});
@@ -415,5 +415,27 @@ describe("a cancelled build-server compose deployment", () => {
 
 		expect(mocks.isDeploymentCancelled).not.toHaveBeenCalled();
 		expect(mocks.statusAfterCancelledDeploy).not.toHaveBeenCalled();
+	});
+});
+
+describe("rebuild reuses the build server's clone", () => {
+	it("rebuildCompose asks for the existing clone; deployCompose does not", async () => {
+		mocks.prepareComposeBuildServerDeploy.mockResolvedValue(undefined);
+
+		await rebuild().catch(() => {});
+		expect(mocks.prepareComposeBuildServerDeploy).toHaveBeenCalledWith(
+			expect.objectContaining({ reuseClone: true }),
+		);
+
+		mocks.prepareComposeBuildServerDeploy.mockClear();
+		await deployCompose({
+			composeId: "compose-1",
+			titleLog: "Manual deployment",
+			descriptionLog: "",
+		}).catch(() => {});
+		expect(mocks.prepareComposeBuildServerDeploy).toHaveBeenCalledTimes(1);
+		expect(
+			mocks.prepareComposeBuildServerDeploy.mock.calls[0]![0],
+		).not.toHaveProperty("reuseClone");
 	});
 });

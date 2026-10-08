@@ -425,7 +425,7 @@ describe.each([
 			vi
 				.mocked(execProcess.execAsyncRemote)
 				.mock.calls.map((call) => String(call[1]))
-				.find((command) => command.includes("could not stop this deployment"));
+				.find((command) => command.includes("cancel was requested earlier"));
 
 		// The service status is written through the database (the mocked
 		// `updateApplicationStatus` export is not what the flow calls).

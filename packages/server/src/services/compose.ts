@@ -699,6 +699,9 @@ export const rebuildCompose = async ({
 			deployment,
 			runStep: runRebuildStep,
 			freshVolumes,
+			// A rebuild does not pull on the serving host, so it must not
+			// build newer code on the build server either.
+			reuseClone: true,
 		});
 
 		if (freshVolumes && compose.composeType === "docker-compose") {
