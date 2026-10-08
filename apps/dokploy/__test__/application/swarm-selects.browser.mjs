@@ -32,10 +32,12 @@ try {
       assert(fixture.saved[key].Order === "start-first", key + ": order lost on submit");
       await act(async () => [...document.querySelectorAll("button")].find(el => el.textContent === "Clear").click());
       assert(JSON.stringify(selectedLabels()) === JSON.stringify(["Select failure action", "Select order"]), key + ": clear left stale selections");
+      await act(async () => document.querySelector("form").requestSubmit());
+      assert(fixture.saved[key] === null, key + ": cleared settings were not submitted as null");
       await act(async () => root.render(null));
     }
   }
-  output.textContent = "PASS: Update and Rollback preserve cached and asynchronously loaded selections on submit; Clear resets both selects.";
+  output.textContent = "PASS: Update and Rollback preserve cached and asynchronously loaded selections on submit; Clear resets both selects and submits null.";
   document.title = "PASS: Swarm selects";
 } catch (error) {
   output.textContent = "FAIL: " + error.message;
