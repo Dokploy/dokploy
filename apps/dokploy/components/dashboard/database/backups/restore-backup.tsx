@@ -9,11 +9,12 @@ import {
 	RefreshCw,
 	RotateCcw,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { DrawerLogs } from "@/components/shared/drawer-logs";
+import { RestorationLogs } from "@/components/dashboard/overview/restoration-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,7 +64,6 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { ServiceType } from "../../application/advanced/show-resources";
-import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 type DatabaseType =
 	| Exclude<ServiceType, "application" | "redis">
@@ -229,7 +229,6 @@ export const RestoreBackup = ({
 
 	const destinationId = form.watch("destinationId");
 	const currentDatabaseType = form.watch("databaseType");
-	const metadata = form.watch("metadata");
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -252,45 +251,28 @@ export const RestoreBackup = ({
 	);
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
-	const [isDeploying, setIsDeploying] = useState(false);
-
-	api.backup.restoreBackupWithLogs.useSubscription(
-		{
-			databaseId: id,
-			databaseType: currentDatabaseType as DatabaseType,
-			databaseName: form.watch("databaseName"),
-			backupFile: form.watch("backupFile"),
-			destinationId: form.watch("destinationId"),
-			backupType: backupType,
-			metadata: metadata,
+	const [restorationId, setRestorationId] = useState<string | null>(null);
+	const startRestore = api.restoration.startDatabase.useMutation({
+		onSuccess(result) {
+			setRestorationId(result.restorationId);
+			setIsOpen(false);
+			setIsDrawerOpen(true);
 		},
-		{
-			enabled: isDeploying,
-			onData(log) {
-				if (!isDrawerOpen) {
-					setIsDrawerOpen(true);
-				}
-
-				if (log === "Restore completed successfully!") {
-					setIsDeploying(false);
-				}
-				const parsedLogs = parseLogs(log);
-				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
-			},
-			onError(error) {
-				console.error("Restore logs error:", error);
-				setIsDeploying(false);
-			},
+		onError(error) {
+			toast.error(error.message);
 		},
-	);
+	});
 
 	const onSubmit = async (data: z.infer<typeof RestoreBackupSchema>) => {
-		if (backupType === "compose" && !data.databaseType) {
-			toast.error("Please select a database type");
-			return;
-		}
-		setIsDeploying(true);
+		startRestore.mutate({
+			databaseId: id,
+			databaseType: data.databaseType ?? "postgres",
+			databaseName: data.databaseName,
+			backupFile: data.backupFile,
+			destinationId: data.destinationId,
+			backupType,
+			metadata: data.metadata,
+		});
 	};
 
 	const [cacheType, setCacheType] = useState<"fetch" | "cache">("cache");
@@ -788,8 +770,14 @@ export const RestoreBackup = ({
 						)}
 
 						<DialogFooter>
+							<Link
+								href={`/dashboard/overview?tab=restorations${databaseType === "web-server" ? "" : `&service=${encodeURIComponent(id)}`}`}
+								className="text-sm text-primary hover:underline self-center mr-auto"
+							>
+								Restoration history
+							</Link>
 							<Button
-								isLoading={isDeploying}
+								isLoading={startRestore.isPending}
 								form="hook-form-restore-backup"
 								type="submit"
 								// disabled={
@@ -802,18 +790,14 @@ export const RestoreBackup = ({
 						</DialogFooter>
 					</form>
 				</Form>
-
-				<DrawerLogs
-					isOpen={isDrawerOpen}
-					onClose={() => {
-						setIsDrawerOpen(false);
-						setFilteredLogs([]);
-						setIsDeploying(false);
-						// refetch();
-					}}
-					filteredLogs={filteredLogs}
-				/>
 			</DialogContent>
+			{restorationId && (
+				<RestorationLogs
+					restorationId={restorationId}
+					open={isDrawerOpen}
+					onOpenChange={setIsDrawerOpen}
+				/>
+			)}
 		</Dialog>
 	);
 };

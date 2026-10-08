@@ -3,17 +3,11 @@ import {
 	findBackupById,
 	findBackupsByDbId,
 	findComposeByBackupId,
-	findComposeById,
 	findLibsqlByBackupId,
-	findLibsqlById,
 	findMariadbByBackupId,
-	findMariadbById,
 	findMongoByBackupId,
-	findMongoById,
 	findMySqlByBackupId,
-	findMySqlById,
 	findPostgresByBackupId,
-	findPostgresById,
 	findServerById,
 	IS_CLOUD,
 	keepLatestNBackups,
@@ -39,15 +33,6 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import {
-	restoreComposeBackup,
-	restoreLibsqlBackup,
-	restoreMariadbBackup,
-	restoreMongoBackup,
-	restoreMySqlBackup,
-	restorePostgresBackup,
-	restoreWebServerBackup,
-} from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import { z } from "zod";
@@ -62,7 +47,6 @@ import {
 	apiCreateBackup,
 	apiFindOneBackup,
 	apiRemoveBackup,
-	apiRestoreBackup,
 	apiUpdateBackup,
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
@@ -560,73 +544,6 @@ export const backupRouter = createTRPCRouter({
 							: "Error listing backup files",
 					cause: error,
 				});
-			}
-		}),
-
-	restoreBackupWithLogs: protectedProcedure
-		.meta({
-			openapi: {
-				enabled: false,
-				path: "/restore-backup-with-logs",
-				method: "POST",
-				override: true,
-			},
-		})
-		.input(apiRestoreBackup)
-		.subscription(async function* ({ input, ctx, signal }) {
-			if (input.databaseId) {
-				await checkServicePermissionAndAccess(ctx, input.databaseId, {
-					backup: ["restore"],
-				});
-			}
-			const destination = await findDestinationById(input.destinationId);
-			const queue: string[] = [];
-			let done = false;
-			const onLog = (log: string) => queue.push(log);
-			const runRestore = async () => {
-				if (input.backupType === "database") {
-					if (input.databaseType === "postgres") {
-						const postgres = await findPostgresById(input.databaseId);
-						await restorePostgresBackup(postgres, destination, input, onLog);
-					} else if (input.databaseType === "mysql") {
-						const mysql = await findMySqlById(input.databaseId);
-						await restoreMySqlBackup(mysql, destination, input, onLog);
-					} else if (input.databaseType === "mariadb") {
-						const mariadb = await findMariadbById(input.databaseId);
-						await restoreMariadbBackup(mariadb, destination, input, onLog);
-					} else if (input.databaseType === "mongo") {
-						const mongo = await findMongoById(input.databaseId);
-						await restoreMongoBackup(mongo, destination, input, onLog);
-					} else if (input.databaseType === "libsql") {
-						const libsql = await findLibsqlById(input.databaseId);
-						await restoreLibsqlBackup(libsql, destination, input, onLog);
-					} else if (input.databaseType === "web-server") {
-						await restoreWebServerBackup(destination, input.backupFile, onLog);
-					}
-				} else if (input.backupType === "compose") {
-					const compose = await findComposeById(input.databaseId);
-					await restoreComposeBackup(compose, destination, input, onLog);
-				}
-			};
-			runRestore()
-				.catch((error) => {
-					onLog(
-						`Error: ${error instanceof Error ? error.message : String(error)}`,
-					);
-				})
-				.finally(() => {
-					done = true;
-				});
-			while (!done || queue.length > 0) {
-				if (queue.length > 0) {
-					yield queue.shift()!;
-				} else {
-					await new Promise((r) => setTimeout(r, 50));
-				}
-
-				if (signal?.aborted) {
-					return;
-				}
 			}
 		}),
 });

@@ -2,12 +2,13 @@ import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/stand
 import copy from "copy-to-clipboard";
 import debounce from "lodash/debounce";
 import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { RestorationLogs } from "@/components/dashboard/overview/restoration-logs";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +45,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { formatBytes } from "../../database/backups/restore-backup";
-import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
 	id: string;
@@ -111,40 +111,26 @@ export const RestoreVolumeBackups = ({
 	);
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
-	const [isDeploying, setIsDeploying] = useState(false);
+	const [restorationId, setRestorationId] = useState<string | null>(null);
+	const startRestore = api.restoration.startVolume.useMutation({
+		onSuccess(result) {
+			setRestorationId(result.restorationId);
+			setIsOpen(false);
+			setIsDrawerOpen(true);
+		},
+		onError(error) {
+			toast.error(error.message);
+		},
+	});
 
-	api.volumeBackups.restoreVolumeBackupWithLogs.useSubscription(
-		{
+	const onSubmit = async () => {
+		startRestore.mutate({
 			id,
 			serviceType: type,
-			serverId,
 			destinationId,
 			volumeName,
 			backupFileName: backupFile,
-		},
-		{
-			enabled: isDeploying,
-			onData(log) {
-				if (!isDrawerOpen) {
-					setIsDrawerOpen(true);
-				}
-
-				if (log === "Restore completed successfully!") {
-					setIsDeploying(false);
-				}
-				const parsedLogs = parseLogs(log);
-				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
-			},
-			onError(error) {
-				console.error("Restore logs error:", error);
-				setIsDeploying(false);
-			},
-		},
-	);
-
-	const onSubmit = async () => {
-		setIsDeploying(true);
+		});
 	};
 
 	return (
@@ -376,8 +362,14 @@ export const RestoreVolumeBackups = ({
 						/>
 
 						<DialogFooter>
+							<Link
+								href={`/dashboard/overview?tab=restorations&service=${encodeURIComponent(id)}`}
+								className="text-sm text-primary hover:underline self-center mr-auto"
+							>
+								Restoration history
+							</Link>
 							<Button
-								isLoading={isDeploying}
+								isLoading={startRestore.isPending}
 								form="hook-form-restore-backup"
 								type="submit"
 								// disabled={
@@ -390,18 +382,14 @@ export const RestoreVolumeBackups = ({
 						</DialogFooter>
 					</form>
 				</Form>
-
-				<DrawerLogs
-					isOpen={isDrawerOpen}
-					onClose={() => {
-						setIsDrawerOpen(false);
-						setFilteredLogs([]);
-						setIsDeploying(false);
-						// refetch();
-					}}
-					filteredLogs={filteredLogs}
-				/>
 			</DialogContent>
+			{restorationId && (
+				<RestorationLogs
+					restorationId={restorationId}
+					open={isDrawerOpen}
+					onOpenChange={setIsDrawerOpen}
+				/>
+			)}
 		</Dialog>
 	);
 };
