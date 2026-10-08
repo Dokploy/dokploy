@@ -36,7 +36,6 @@ const remoteBuild = {
 		{ service: "web", image: "reg.example.com/acme/my-app-web:dpl-1" },
 		{ service: "api", image: "reg.example.com/acme/my-app-api:dpl-1" },
 	],
-	loginCommand: "echo pw | docker login reg.example.com -u u --password-stdin",
 	servingHostLabel: "prod-1",
 };
 
@@ -113,7 +112,7 @@ describe("createCommand with a build server", () => {
 });
 
 describe("getBuildComposeCommand on the serving host", () => {
-	it("logs in, pulls the pushed images, then runs up --no-build with the override", async () => {
+	it("pulls the pushed images, then runs up --no-build with the override", async () => {
 		const script = await getBuildComposeCommand(base, {
 			deploymentId: "dep1",
 			remoteBuild,
@@ -123,23 +122,22 @@ describe("getBuildComposeCommand on the serving host", () => {
 		expect(script).toContain(
 			"Pulling images on prod-1 (2 built on the build server)",
 		);
-		expect(script).toContain("docker login reg.example.com");
+		// The login runs beforehand as its own command, password on stdin.
+		expect(script).not.toContain("docker login");
 		expect(script).toContain(
 			`docker pull ${q("reg.example.com/acme/my-app-web:dpl-1")} && docker pull ${q("reg.example.com/acme/my-app-api:dpl-1")}`,
 		);
 		expect(script).toContain("--no-build");
 		expect(script).toContain(`-f ${q(overridePath)}`);
 
-		// Order: login, pull, up.
-		const login = script.indexOf("echo pw | docker login");
+		// Order: pull, up.
 		const pull = script.indexOf("docker pull reg.example.com");
 		const up = script.indexOf('if [ "$PULL_OK" = "1" ]; then env -i');
-		expect(login).toBeGreaterThan(-1);
-		expect(login).toBeLessThan(pull);
+		expect(pull).toBeGreaterThan(-1);
 		expect(pull).toBeLessThan(up);
 	});
 
-	it("skips up and restores the previous release when login or pull fails", async () => {
+	it("skips up and restores the previous release when the pull fails", async () => {
 		const script = await getBuildComposeCommand(base, {
 			deploymentId: "dep1",
 			remoteBuild,
@@ -161,7 +159,7 @@ describe("getBuildComposeCommand on the serving host", () => {
 	it("only pulls and runs when no service has a build section", async () => {
 		const script = await getBuildComposeCommand(base, {
 			deploymentId: "dep1",
-			remoteBuild: { images: [], loginCommand: "", servingHostLabel: "prod-1" },
+			remoteBuild: { images: [], servingHostLabel: "prod-1" },
 		});
 		expect(script).toContain("--no-build");
 		expect(script).not.toContain("docker pull");

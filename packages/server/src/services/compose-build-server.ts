@@ -25,8 +25,8 @@ import {
 } from "@dokploy/server/utils/builders/compose-remote-build";
 import { getRemoteBuildCancelTarget } from "@dokploy/server/utils/builders/remote-build-cancel";
 import {
-	getRegistryLoginCommand,
 	getRegistryTag,
+	loginDockerRegistry,
 } from "@dokploy/server/utils/cluster/upload";
 import { writeDomainsToCompose } from "@dokploy/server/utils/docker/domain";
 import {
@@ -223,7 +223,7 @@ const buildImagesOnBuildServer = async (
 	applyPatches: boolean,
 	cancellable: boolean,
 	reuseClone: boolean,
-): Promise<{ images: ComposePushedImage[]; loginCommand: string }> => {
+): Promise<{ images: ComposePushedImage[] }> => {
 	const { buildServerId, buildRegistryId } = entity;
 	if (!buildServerId || !buildRegistryId) {
 		throw new Error("Build Server and Build Registry must be set together.");
@@ -378,7 +378,7 @@ const buildImagesOnBuildServer = async (
 			log.line(
 				"No service has a build section, so there is nothing to build; the serving host will only pull.",
 			);
-			return { images: [], loginCommand: "" };
+			return { images: [] };
 		}
 
 		await run(getComposeBuildCommand(buildEntity, codePath, projectPath));
@@ -404,15 +404,18 @@ const buildImagesOnBuildServer = async (
 			return pushed;
 		});
 
-		const loginCommand = await getRegistryLoginCommand(registry);
+		// The logins run as their own commands, with the password on stdin: a
+		// password inside a script would show in the host's process list.
+		await loginDockerRegistry(registry, buildServerId);
 		await run(
 			getTagAndPushCommand({
 				images: [...byLocalImage.values()],
-				loginCommand,
 				registryLabel: registry.registryUrl || registry.registryName,
 			}),
 		);
-		return { images, loginCommand };
+		// The serving host pulls the images it was just told about.
+		await loginDockerRegistry(registry, entity.serverId);
+		return { images };
 	} finally {
 		await log.close();
 	}
@@ -469,7 +472,7 @@ export const prepareComposeBuildServerDeploy = async ({
 	}
 
 	try {
-		const { images, loginCommand } = await buildImagesOnBuildServer(
+		const { images } = await buildImagesOnBuildServer(
 			entity,
 			deployment,
 			applyPatches,
@@ -517,7 +520,6 @@ export const prepareComposeBuildServerDeploy = async ({
 				service: image.service,
 				image: image.ref,
 			})),
-			loginCommand,
 			servingHostLabel: entity.server?.name ?? "the Dokploy host",
 		};
 	} catch (error) {

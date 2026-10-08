@@ -249,7 +249,6 @@ describe("a cancelled build-server compose deployment", () => {
 			}) as any);
 			mocks.prepareComposeBuildServerDeploy.mockResolvedValue({
 				images: [],
-				loginCommand: "",
 				servingHostLabel: "the Dokploy host",
 			});
 			return finalWrites;

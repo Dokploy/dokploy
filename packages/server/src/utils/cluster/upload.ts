@@ -1,16 +1,17 @@
-import { getSafeRegistryLoginCommand } from "@dokploy/server/db/schema";
 import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
 import {
 	findRegistryByIdWithCredentials,
 	type Registry,
 } from "@dokploy/server/services/registry";
 import { createRollback } from "@dokploy/server/services/rollbacks";
+import { runDockerLogin } from "@dokploy/server/utils/process/dockerLogin";
 import { getECRAuthToken } from "../aws/ecr";
 import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 
 export const uploadImageRemoteCommand = async (
 	application: ApplicationNested,
+	serverId: string | null | undefined,
 ) => {
 	const registry = application.registry;
 	const buildRegistry = application.buildRegistry;
@@ -32,7 +33,9 @@ export const uploadImageRemoteCommand = async (
 		const registryTag = getRegistryTag(r, imageName);
 		if (registryTag) {
 			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
-			commands.push(await getRegistryCommands(r, imageName, registryTag));
+			commands.push(
+				await getRegistryCommands(r, imageName, registryTag, serverId),
+			);
 		}
 	}
 	if (buildRegistry) {
@@ -40,7 +43,9 @@ export const uploadImageRemoteCommand = async (
 		const buildRegistryTag = getRegistryTag(r, imageName);
 		if (buildRegistryTag) {
 			commands.push(`echo "🔑 [Enabled Build Registry]"`);
-			commands.push(await getRegistryCommands(r, imageName, buildRegistryTag));
+			commands.push(
+				await getRegistryCommands(r, imageName, buildRegistryTag, serverId),
+			);
 			commands.push(
 				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
 			);
@@ -70,7 +75,7 @@ export const uploadImageRemoteCommand = async (
 		if (rollbackRegistryTag) {
 			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
 			commands.push(
-				await getRegistryCommands(r, imageName, rollbackRegistryTag),
+				await getRegistryCommands(r, imageName, rollbackRegistryTag, serverId),
 			);
 		}
 	}
@@ -126,12 +131,16 @@ export const getRegistryTag = (registry: Registry, imageName: string) => {
 };
 
 /**
- * Shell command that logs docker in to `registry` (fetching a fresh auth token
- * for ECR). Shared by the application upload and the compose build server flow.
+ * Logs docker in to `registry` on `serverId` (this host without one), fetching
+ * a fresh auth token for ECR. It runs as its own command, ahead of the script
+ * that pushes or pulls, so the password travels on stdin and never lands in a
+ * command line; docker keeps the credentials in the host's config for that
+ * script. Shared by the application upload and the compose build server flow.
  */
-export const getRegistryLoginCommand = async (
+export const loginDockerRegistry = async (
 	registry: Registry,
-): Promise<string> => {
+	serverId: string | null | undefined,
+): Promise<void> => {
 	let ecrAuthPassword: string | undefined;
 	if (registry.registryType === "awsEcr") {
 		const token = await getECRAuthToken({
@@ -142,28 +151,28 @@ export const getRegistryLoginCommand = async (
 		ecrAuthPassword = token.password;
 	}
 
-	return getSafeRegistryLoginCommand({
-		registryType: registry.registryType,
-		registryUrl: registry.registryUrl,
-		username: registry.username,
-		password: registry.password,
-		ecrAuthPassword,
-	});
+	await runDockerLogin(
+		{
+			registryType: registry.registryType,
+			registryUrl: registry.registryUrl,
+			username: registry.username,
+			password: registry.password,
+			ecrAuthPassword,
+		},
+		serverId,
+	);
 };
 
 const getRegistryCommands = async (
 	registry: Registry,
 	imageName: string,
 	registryTag: string,
+	serverId: string | null | undefined,
 ): Promise<string> => {
-	const loginCommand = await getRegistryLoginCommand(registry);
+	await loginDockerRegistry(registry, serverId);
 
 	return `
 echo ${quote([`📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'`])} ;
-${loginCommand} || {
-	echo "❌ Registry Login Failed" ;
-	exit 1;
-}
 echo "✅ Registry Login Success" ;
 docker tag ${quote([imageName])} ${quote([registryTag])} || {
 	echo "❌ Error tagging image" ;

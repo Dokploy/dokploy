@@ -288,7 +288,7 @@ export const deployApplication = async ({
 		} else if (application.sourceType === "git") {
 			command += await cloneGitRepository(applicationEntity);
 		} else if (application.sourceType === "docker") {
-			command += await buildRemoteDocker(application);
+			command += await buildRemoteDocker(application, serverId);
 		}
 
 		if (application.sourceType !== "docker") {
@@ -312,7 +312,7 @@ export const deployApplication = async ({
 		});
 		// <<< build-policy hook 2a/4
 
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, serverId);
 
 		// >>> build-policy hook 2/4: tag `<repository>:<sha>`, push to the
 		// organization registry and echo the digest. Empty when not enforcing.
@@ -540,7 +540,7 @@ export const rebuildApplication = async ({
 		});
 		// <<< build-policy hook 2a/4 (rebuild)
 		// Check case for docker only
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, serverId);
 		// >>> build-policy hook 2/4 (rebuild)
 		command += await getBuildPolicyPushCommand(buildPolicy, {
 			appName: application.appName,
@@ -918,7 +918,7 @@ export const deployPreviewApplication = async ({
 		});
 		// <<< build-policy hook 2a/4 (preview)
 
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, buildServerId);
 
 		// >>> build-policy hook 2/4 (preview): tag and push the preview image by
 		// sha. Empty when not enforcing.
@@ -1121,7 +1121,7 @@ export const rebuildPreviewApplication = async ({
 			appName: previewDeployment.appName,
 		});
 		// <<< build-policy hook 2a/4 (preview rebuild)
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, buildServerId);
 		// >>> build-policy hook 2/4 (preview rebuild)
 		command += await getBuildPolicyPushCommand(buildPolicy, {
 			appName: previewDeployment.appName,

@@ -190,24 +190,22 @@ export const getComposeBuildCommand = (
 	`set -e; cd ${quote([codePath])}; echo "🔨 Building images with docker compose build"; ${getComposeRunPrefix(compose)} docker ${getComposeBaseArgs(compose, projectPath)} build 2>&1;`;
 
 /**
- * Runs on the build server after a successful build: logs in, tags the image
- * compose produced for each built service, pushes the per-deployment tag and
+ * Runs on the build server after a successful build (and the registry login,
+ * which runs as its own command): tags the image compose produced for each
+ * built service, pushes the per-deployment tag and
  * `:latest`, then drops dangling images older than a day. Volumes are never
  * pruned, and neither are images that are still referenced.
  */
 export const getTagAndPushCommand = ({
 	images,
-	loginCommand,
 	registryLabel,
 }: {
 	images: ComposePushedImage[];
-	loginCommand: string;
 	registryLabel: string;
 }) => {
 	const lines: string[] = [
 		"set -e;",
 		`echo ${quote([`🔑 Logging in to registry ${registryLabel}`])};`,
-		`${loginCommand} || { echo "❌ Registry Login Failed"; exit 1; }`,
 		'echo "✅ Registry Login Success";',
 	];
 	for (const image of images) {

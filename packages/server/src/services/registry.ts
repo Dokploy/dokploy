@@ -1,13 +1,11 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateRegistry,
-	getSafeRegistryLoginCommand,
+	type RegistryLoginData,
 	registry,
 } from "@dokploy/server/db/schema";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
+import { runDockerLogin } from "@dokploy/server/utils/process/dockerLogin";
+import { execAsync } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -19,17 +17,6 @@ export type Registry = typeof registry.$inferSelect;
 function shEscape(s: string | undefined): string {
 	if (!s) return "''";
 	return `'${s.replace(/'/g, `'\\''`)}'`;
-}
-
-export function safeDockerLoginCommand(
-	registry: string | undefined,
-	user: string | undefined,
-	pass: string | undefined,
-) {
-	const escapedRegistry = shEscape(registry);
-	const escapedUser = shEscape(user);
-	const escapedPassword = shEscape(pass);
-	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
 }
 
 function sanitizeRegistryError(
@@ -80,21 +67,21 @@ export const createRegistry = async (
 			});
 			ecrAuthPassword = token.password;
 		}
-		const loginCommand = getSafeRegistryLoginCommand({
+		const login: RegistryLoginData = {
 			registryType: newRegistry.registryType,
 			registryUrl: input.registryUrl,
 			username: input.username,
 			password: input.password,
 			ecrAuthPassword,
-		});
+		};
 		try {
 			if (input.serverId && input.serverId !== "none") {
-				await execAsyncRemote(input.serverId, loginCommand);
+				await runDockerLogin(login, input.serverId);
 			} else if (
 				newRegistry.registryType === "cloud" ||
 				newRegistry.registryType === "awsEcr"
 			) {
-				await execAsync(loginCommand);
+				await runDockerLogin(login);
 			}
 		} catch (error) {
 			const sanitized = sanitizeRegistryError(error, input.password);
@@ -157,13 +144,13 @@ export const updateRegistry = async (
 			});
 			ecrAuthPassword = token.password;
 		}
-		const loginCommand = getSafeRegistryLoginCommand({
+		const login: RegistryLoginData = {
 			registryType: response?.registryType || "cloud",
 			registryUrl: response?.registryUrl || undefined,
 			username: response?.username || undefined,
 			password: response?.password || undefined,
 			ecrAuthPassword,
-		});
+		};
 
 		if (
 			IS_CLOUD &&
@@ -178,12 +165,12 @@ export const updateRegistry = async (
 
 		try {
 			if (registryData?.serverId && registryData?.serverId !== "none") {
-				await execAsyncRemote(registryData.serverId, loginCommand);
+				await runDockerLogin(login, registryData.serverId);
 			} else if (
 				response?.registryType === "cloud" ||
 				response?.registryType === "awsEcr"
 			) {
-				await execAsync(loginCommand);
+				await runDockerLogin(login);
 			}
 		} catch (execError) {
 			throw new Error(sanitizeRegistryError(execError, response?.password));

@@ -106,7 +106,6 @@ describe("build registry prune: call site", () => {
 		mocks.pruneComposeBuildRegistry.mockResolvedValue(undefined);
 		mocks.prepareComposeBuildServerDeploy.mockResolvedValue({
 			images: [],
-			loginCommand: "",
 			servingHostLabel: "the Dokploy host",
 		});
 		mocks.createDeploymentCompose.mockResolvedValue({

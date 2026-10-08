@@ -267,27 +267,34 @@ export interface RegistryLoginData {
 	ecrAuthPassword?: string | null;
 }
 
-export const getSafeDockerLoginCommand = (data: RegistryLoginData): string => {
-	const { registryUrl, username, password } = data;
-	const escapedRegistry = shEscape(registryUrl);
-	const escapedUser = shEscape(username);
-	const escapedPassword = shEscape(password);
-
-	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
-};
+/**
+ * A `docker login` that is safe to run anywhere: `command` holds no secret,
+ * `stdin` is the password and must be fed to the command's stdin. A password in
+ * the command line would show up in `ps` for every user on the host.
+ */
+export interface DockerLogin {
+	command: string;
+	stdin: string;
+}
 
 /**
- * Returns a safe shell command to log Docker into a registry.
- * For ECR registries, expects `ecrAuthPassword` (fetched via getECRAuthToken)
- * rather than raw AWS credentials — the SDK handles token acquisition.
+ * Returns the command (and the stdin to feed it) that logs Docker into a
+ * registry. For ECR registries, expects `ecrAuthPassword` (fetched via
+ * getECRAuthToken) rather than raw AWS credentials — the SDK handles token
+ * acquisition.
  */
 export const getSafeRegistryLoginCommand = (
 	data: RegistryLoginData,
-): string => {
+): DockerLogin => {
+	const escapedRegistry = shEscape(data.registryUrl);
 	if (data.registryType === "awsEcr") {
-		const escapedPassword = shEscape(data.ecrAuthPassword);
-		const escapedRegistry = shEscape(data.registryUrl);
-		return `printf %s ${escapedPassword} | docker login --username AWS --password-stdin ${escapedRegistry}`;
+		return {
+			command: `docker login --username AWS --password-stdin ${escapedRegistry}`,
+			stdin: data.ecrAuthPassword ?? "",
+		};
 	}
-	return getSafeDockerLoginCommand(data);
+	return {
+		command: `docker login ${escapedRegistry} -u ${shEscape(data.username)} --password-stdin`,
+		stdin: data.password ?? "",
+	};
 };

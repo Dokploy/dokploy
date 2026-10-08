@@ -41,7 +41,7 @@ vi.mock("@dokploy/server", async (importOriginal) => {
 		cleanPatchRepos: vi.fn(async () => {}),
 		execAsync: vi.fn(async () => ({ stdout: "", stderr: "" })),
 		execAsyncRemote: vi.fn(async () => ({ stdout: "", stderr: "" })),
-		execFileAsync: vi.fn(async () => ({ stdout: "", stderr: "" })),
+		runDockerLogin: vi.fn(async () => {}),
 		getRclonePathAndFlags: vi.fn(async () => ({
 			flags: [] as string[],
 			path: ":s3:bucket/",
@@ -58,7 +58,7 @@ const {
 	createCertificate,
 	execAsync,
 	execAsyncRemote,
-	execFileAsync,
+	runDockerLogin,
 	findServerById,
 } = await import("@dokploy/server");
 
@@ -180,16 +180,16 @@ describe("registry.testRegistry is organization-scoped", () => {
 		await expect(caller.registry.testRegistry(input)).rejects.toMatchObject({
 			code: "UNAUTHORIZED",
 		});
-		expect(execAsyncRemote).not.toHaveBeenCalled();
+		expect(runDockerLogin).not.toHaveBeenCalled();
 	});
 
 	it("allows a serverId from the caller's organization", async () => {
 		const caller = createCaller(ownerCtx);
 
 		await expect(caller.registry.testRegistry(input)).resolves.toBe(true);
-		expect(execAsyncRemote).toHaveBeenCalledWith(
+		expect(runDockerLogin).toHaveBeenCalledWith(
+			expect.objectContaining({ password: "pass" }),
 			"srv-1",
-			expect.stringContaining("docker login"),
 		);
 	});
 
@@ -200,7 +200,10 @@ describe("registry.testRegistry is organization-scoped", () => {
 			caller.registry.testRegistry({ ...input, serverId: undefined }),
 		).resolves.toBe(true);
 		expect(findServerById).not.toHaveBeenCalled();
-		expect(execFileAsync).toHaveBeenCalled();
+		expect(runDockerLogin).toHaveBeenCalledWith(
+			expect.objectContaining({ password: "pass" }),
+			undefined,
+		);
 	});
 });
 
@@ -216,7 +219,7 @@ describe("registry.testRegistryById is organization-scoped", () => {
 		await expect(caller.registry.testRegistryById(input)).rejects.toMatchObject(
 			{ code: "UNAUTHORIZED" },
 		);
-		expect(execAsyncRemote).not.toHaveBeenCalled();
+		expect(runDockerLogin).not.toHaveBeenCalled();
 	});
 
 	it("rejects a serverId from another organization", async () => {
@@ -226,16 +229,16 @@ describe("registry.testRegistryById is organization-scoped", () => {
 		await expect(caller.registry.testRegistryById(input)).rejects.toMatchObject(
 			{ code: "UNAUTHORIZED" },
 		);
-		expect(execAsyncRemote).not.toHaveBeenCalled();
+		expect(runDockerLogin).not.toHaveBeenCalled();
 	});
 
 	it("allows a registry and serverId from the caller's organization", async () => {
 		const caller = createCaller(ownerCtx);
 
 		await expect(caller.registry.testRegistryById(input)).resolves.toBe(true);
-		expect(execAsyncRemote).toHaveBeenCalledWith(
+		expect(runDockerLogin).toHaveBeenCalledWith(
+			expect.objectContaining({ password: "pass" }),
 			"srv-1",
-			expect.stringContaining("docker login"),
 		);
 	});
 });

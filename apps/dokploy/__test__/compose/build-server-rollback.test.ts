@@ -56,7 +56,6 @@ const noBuildServer = {
 
 const remoteBuild = {
 	images: [{ service: "web", image: "reg.example.com/acme/my-app-web:dpl-9" }],
-	loginCommand: "echo pw | docker login reg.example.com -u u --password-stdin",
 	servingHostLabel: "prod-1",
 };
 
@@ -175,7 +174,7 @@ describe("compose rollback on a unit with a build server", () => {
 	it("keeps --no-build in both restore branches when no service had a build section", async () => {
 		const script = await getBuildComposeCommand(base, {
 			deploymentId: "dep1",
-			remoteBuild: { images: [], loginCommand: "", servingHostLabel: "prod-1" },
+			remoteBuild: { images: [], servingHostLabel: "prod-1" },
 		});
 		expect(script).not.toContain("docker pull");
 		const restore = restorePart(script);

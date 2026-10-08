@@ -1,4 +1,3 @@
-import { getSafeRegistryLoginCommand } from "@dokploy/server/db/schema";
 import type { CreateServiceOptions } from "dockerode";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -17,6 +16,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../utils/docker/utils";
+import { runDockerLogin } from "../utils/process/dockerLogin";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import { withResolvedVaultRefs } from "../utils/vault";
@@ -194,19 +194,16 @@ const dockerLoginForRegistry = async (
 		ecrAuthPassword = token.password;
 	}
 
-	const loginCommand = getSafeRegistryLoginCommand({
-		registryType: registry.registryType,
-		registryUrl: registry.registryUrl,
-		username: registry.username,
-		password: registry.password,
-		ecrAuthPassword,
-	});
-
-	if (serverId) {
-		await execAsyncRemote(serverId, loginCommand);
-	} else {
-		await execAsync(loginCommand);
-	}
+	await runDockerLogin(
+		{
+			registryType: registry.registryType,
+			registryUrl: registry.registryUrl,
+			username: registry.username,
+			password: registry.password,
+			ecrAuthPassword,
+		},
+		serverId,
+	);
 
 	return ecrAuthPassword;
 };

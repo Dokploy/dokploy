@@ -4,8 +4,7 @@ import {
 	ECRClient,
 	GetAuthorizationTokenCommand,
 } from "@aws-sdk/client-ecr";
-import { shEscape } from "../../db/schema/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { runDockerLogin } from "../process/dockerLogin";
 
 export interface ECRCredentials {
 	awsAccessKeyId: string;
@@ -115,15 +114,12 @@ export async function loginDockerToECR(
 	serverId?: string,
 ): Promise<void> {
 	const { password } = await getECRAuthToken(credentials);
-	const registryUrl = credentials.registryUrl || "";
-	const escapedPassword = shEscape(password);
-	const escapedRegistry = shEscape(registryUrl);
-
-	const loginCommand = `printf %s ${escapedPassword} | docker login --username AWS --password-stdin ${escapedRegistry}`;
-
-	if (serverId && serverId !== "none") {
-		await execAsyncRemote(serverId, loginCommand);
-	} else {
-		await execAsync(loginCommand);
-	}
+	await runDockerLogin(
+		{
+			registryType: "awsEcr",
+			registryUrl: credentials.registryUrl || "",
+			ecrAuthPassword: password,
+		},
+		serverId && serverId !== "none" ? serverId : undefined,
+	);
 }
