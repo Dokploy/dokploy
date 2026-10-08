@@ -22,7 +22,10 @@ const cases: Record<string, string> = {
 	UNICODE: "héllo wörld 日本語 🚀",
 };
 
-describe("createEnvFileCommand", () => {
+// `bash` on Windows is usually the WSL launcher, which reads the Windows paths
+// in the generated command as relative POSIX paths and writes mangled-name
+// files into the repo. The command targets a POSIX host, so only run it there.
+describe.skipIf(process.platform === "win32")("createEnvFileCommand", () => {
 	it("writes special environment values that a generic dotenv parser reads back literally", () => {
 		mkdirSync(codePath, { recursive: true });
 
