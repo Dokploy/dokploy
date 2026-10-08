@@ -112,11 +112,17 @@ The serving host still clones the repo, for bind mounts and configs.
 
 Limits:
 
-- Rebuild re-clones on the build server.
-- Cancelling does not stop a remote build.
+- Retention keeps the 5 newest `dpl-` tags per service. Blob garbage collection in
+  the registry is still manual.
+- Cancel kills the remote build, but it cannot interrupt a pull or `up` that is
+  already in progress. Railpack/Nixpacks builder containers may leak on cancel.
 - Multi-node swarm needs the tunnel on each node.
 - Build contexts outside the repo fail.
-- Old `dpl-` tags are not garbage-collected.
+- Composes that use `include:` or `extends:` were missed by the first scan. Five were
+  found and enabled on 2026-10-08 (compose-index-solid-state-card-r7vuvd = upAPI iii,
+  compose-input-back-end-transmitter-ekyor4, compose-quantify-auxiliary-bus-i23qr7,
+  voicelabs-engine-laqy0x, voicelabs-web-dev-xp2syk), making 51 composes on the
+  build server. Scan with `docker compose config`, not a grep of the main file.
 
 46 of the 94 composes have `build:` sections. They are enabled per compose; prior
 values are logged in `/root/build-offload-20261007/compose.log`.
