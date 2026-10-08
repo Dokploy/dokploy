@@ -405,6 +405,13 @@ export interface RemoteInputSession {
 export const openRemoteInputSession = async (
 	serverId: string,
 	command: string,
+	options: {
+		/**
+		 * Receives the command's stdout as it arrives (stderr is not passed on).
+		 * For commands whose output the caller needs, not just their exit status.
+		 */
+		onStdout?: (text: string) => void;
+	} = {},
 ): Promise<RemoteInputSession> => {
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
@@ -449,7 +456,10 @@ export const openRemoteInputSession = async (
 					opened = true;
 					stream.setEncoding("utf8");
 					stream.stderr.setEncoding("utf8");
-					stream.on("data", (data: string) => output.add(data));
+					stream.on("data", (data: string) => {
+						output.add(data);
+						options.onStdout?.(data);
+					});
 					stream.stderr.on("data", (data: string) => output.add(data));
 					stream.on("close", (code: number | undefined) => {
 						if (code === 0) {
