@@ -215,6 +215,45 @@ describe("prepareComposeBuildServerDeploy and cancellation", () => {
 		expectOnlyTheRestore(runStep);
 	});
 
+	it("a cancel during the override write restores the serving host", async () => {
+		// The SSH round trip that writes the override is where the cancel lands:
+		// the new compose file, .env and override are already on the serving host.
+		const runStep = vi.fn().mockImplementation(async (command: string) => {
+			if (String(command).includes("base64 -d")) {
+				mocks.deploymentStatus.mockResolvedValue({ status: "cancelled" });
+			}
+		});
+
+		await expect(prepare(runStep).promise).rejects.toMatchObject({
+			deploymentCancelled: true,
+		});
+
+		const commands = runStep.mock.calls.map((call) => String(call[0]));
+		expect(commands).toHaveLength(2);
+		expect(commands[0]).toContain("base64 -d");
+		// ... and the restore runs after it, putting the previous release back.
+		expect(commands[1]).toContain("Restoring previous working deployment");
+		expect(commands[1]).not.toContain("base64 -d");
+	});
+
+	it("a cancellable:false deployment (compose preview) keeps the exact pre-cancel behaviour", async () => {
+		const runStep = vi.fn().mockResolvedValue(undefined);
+		await prepareComposeBuildServerDeploy({
+			entity: compose,
+			deployment: { logPath: "/tmp/log", deploymentId: "dep1" },
+			runStep,
+			cancellable: false,
+		});
+
+		// Nothing is wrapped, nothing registers, nothing reads the cancel flag.
+		expect(mocks.execAsyncRemote.mock.calls.length).toBeGreaterThan(2);
+		for (const call of mocks.execAsyncRemote.mock.calls) {
+			expect(call[3]).toBeUndefined();
+		}
+		expect(mocks.deploymentStatus).not.toHaveBeenCalled();
+		expect(runStep).toHaveBeenCalledTimes(1);
+	});
+
 	it("a compose without a build server never looks at the cancel flag", async () => {
 		const runStep = vi.fn();
 		await prepareComposeBuildServerDeploy({

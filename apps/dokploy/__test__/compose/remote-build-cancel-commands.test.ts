@@ -40,9 +40,16 @@ describe("wrapCancelableRemoteBuild", () => {
 		expect(wrapped).toContain("setsid");
 		expect(wrapped).toContain("'/logs/.build-pids/dep1.pid'");
 		expect(wrapped).toContain("'dep1'");
-		// <pgid> <start time> <deployment id>
-		expect(wrapped).toContain('printf "%s %s %s\\n" "$$" "$s" "$2"');
+		// <pgid> <start time> <deployment id> <boot id>
+		expect(wrapped).toContain('printf "%s %s %s %s\\n" "$$" "$s" "$2" "$b"');
 		expect(wrapped).toContain("/proc/$$/stat");
+		expect(wrapped).toContain("/proc/sys/kernel/random/boot_id");
+	});
+
+	it("scopes the umask to the pid-file write so the build keeps the session umask", () => {
+		// `umask 077` must only ever appear inside a subshell around the write.
+		expect(wrapped).toContain("( umask 077; printf");
+		expect(wrapped.replace("( umask 077;", "")).not.toContain("umask");
 	});
 
 	it("keeps the command verbatim, single-quoted, and runs it in the login shell", () => {
@@ -125,6 +132,16 @@ describe("getKillRemoteBuildCommand", () => {
 		expect(script).toContain('[ "$owner" = "$id" ]');
 		expect(script).toContain('"$cur" = "$start"');
 		expect(script).toContain('case "$pgid" in ""|*[!0-9]*|0|1)');
+	});
+
+	it("refuses a pid file written in another boot", () => {
+		expect(script).toContain("read -r pgid start owner boot");
+		expect(script).toContain("/proc/sys/kernel/random/boot_id");
+		expect(script).toContain('[ "$boot" = "$curboot" ]');
+		// checked before anything is signalled
+		expect(script.indexOf('"$boot" = "$curboot"')).toBeLessThan(
+			script.indexOf("kill -s TERM"),
+		);
 	});
 
 	it("is scoped to the pid file: no pattern kills, no blanket docker kills, no argv", () => {
@@ -281,14 +298,66 @@ describe.skipIf(!hasSetsid)("stub processes on a real shell", () => {
 		const bystander = spawn("sleep", ["305"], { stdio: "ignore" });
 		spawned.push(bystander);
 		const pidFile = join(dir, "reused.pid");
-		// A pid file whose start time cannot match the live process.
+		// A pid file from this boot whose start time cannot match the live process.
 		spawnSync("sh", [
 			"-c",
-			`printf '%s %s %s\\n' ${bystander.pid} 1 reused > ${shSingleQuote(pidFile)}`,
+			`printf '%s %s %s %s\\n' ${bystander.pid} 1 reused "$(cat /proc/sys/kernel/random/boot_id)" > ${shSingleQuote(pidFile)}`,
 		]);
 		expect(kill({ pidFile, deploymentId: "reused" })).toBe("GONE");
 		expect(() => process.kill(bystander.pid as number, 0)).not.toThrow();
 		expect(existsSync(pidFile)).toBe(false);
+	});
+
+	it("does not signal a process when the pid file is from another boot", async () => {
+		const bystander = spawn("sleep", ["306"], { stdio: "ignore" });
+		spawned.push(bystander);
+		const pidFile = join(dir, "oldboot.pid");
+		// Same pid, and even the right start time, but a different boot id: after
+		// a reboot the pid belongs to something unrelated.
+		spawnSync("sh", [
+			"-c",
+			`s=$(sed "s/^.*) //" /proc/${bystander.pid}/stat | cut -d" " -f20); printf '%s %s %s %s\\n' ${bystander.pid} "$s" oldboot 00000000-0000-0000-0000-000000000000 > ${shSingleQuote(pidFile)}`,
+		]);
+		expect(kill({ pidFile, deploymentId: "oldboot" })).toBe("GONE");
+		expect(() => process.kill(bystander.pid as number, 0)).not.toThrow();
+		expect(existsSync(pidFile)).toBe(false);
+	});
+
+	it("records the boot id and the build keeps the session's umask", async () => {
+		const target = { pidFile: join(dir, "umask.pid"), deploymentId: "umask1" };
+		// Under a 022 session umask, a file made by the wrapped command must get
+		// the same mode as one made outside the wrapper (not 0600 from the
+		// pid-file umask), and the pid file itself stays private.
+		const script = [
+			"umask 022",
+			`touch ${shSingleQuote(join(dir, "outside.txt"))}`,
+			`mkdir ${shSingleQuote(join(dir, "outside-dir"))}`,
+			wrapCancelableRemoteBuild(
+				`touch ${shSingleQuote(join(dir, "inside.txt"))}; mkdir ${shSingleQuote(join(dir, "inside-dir"))}; cp ${shSingleQuote(target.pidFile)} ${shSingleQuote(join(dir, "pidcopy.txt"))}; umask > ${shSingleQuote(join(dir, "umask.txt"))}`,
+				target,
+			),
+		].join("\n");
+		spawnSync("sh", ["-c", script], {
+			env: { ...process.env, SHELL: "/bin/sh" },
+		});
+		const mode = (name: string) =>
+			spawnSync("stat", ["-c", "%a", join(dir, name)], {
+				encoding: "utf8",
+			}).stdout.trim();
+		expect(mode("outside.txt")).toBe("644");
+		expect(mode("inside.txt")).toBe(mode("outside.txt"));
+		expect(mode("inside-dir")).toBe(mode("outside-dir"));
+		expect(readFileSync(join(dir, "umask.txt"), "utf8").trim()).toMatch(
+			/^0*22$/,
+		);
+		// The recorded line carries the boot id as its fourth field.
+		const fields = readFileSync(join(dir, "pidcopy.txt"), "utf8")
+			.trim()
+			.split(" ");
+		expect(fields).toHaveLength(4);
+		expect(fields[3]).toBe(
+			readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim(),
+		);
 	});
 
 	it("does not run a hostile deployment id", async () => {

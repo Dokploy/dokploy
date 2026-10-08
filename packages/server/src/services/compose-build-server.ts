@@ -214,6 +214,7 @@ const buildImagesOnBuildServer = async (
 	entity: ComposeBuildEntity,
 	deployment: { logPath: string; deploymentId?: string },
 	applyPatches: boolean,
+	cancellable: boolean,
 ): Promise<{ images: ComposePushedImage[]; loginCommand: string }> => {
 	const { buildServerId, buildRegistryId } = entity;
 	if (!buildServerId || !buildRegistryId) {
@@ -241,12 +242,20 @@ const buildImagesOnBuildServer = async (
 	// deployment id, so a cancel can stop exactly this deployment's build. The
 	// cancel flag is checked before each step: a cancel between two steps (no
 	// process to kill) must still stop the next one from starting.
-	const cancelable = deployment.deploymentId
-		? getRemoteBuildCancelTarget(deployment.deploymentId)
-		: undefined;
+	const cancelable =
+		cancellable && deployment.deploymentId
+			? getRemoteBuildCancelTarget(deployment.deploymentId)
+			: undefined;
+	const checkpoint = () =>
+		cancellable
+			? assertDeploymentNotCancelled(deployment.deploymentId)
+			: Promise.resolve();
 	const run = async (command: string) => {
-		await assertDeploymentNotCancelled(deployment.deploymentId);
-		return execAsyncRemote(buildServerId, command, log.push, { cancelable });
+		await checkpoint();
+		// Not cancelable (a preview): exactly the call it always was.
+		return cancelable
+			? execAsyncRemote(buildServerId, command, log.push, { cancelable })
+			: execAsyncRemote(buildServerId, command, log.push);
 	};
 
 	try {
@@ -298,13 +307,17 @@ const buildImagesOnBuildServer = async (
 		}
 
 		// Not streamed: the resolved configuration contains the environment.
-		await assertDeploymentNotCancelled(deployment.deploymentId);
-		const { stdout } = await execAsyncRemote(
-			buildServerId,
-			getComposeConfigJsonCommand(buildEntity, codePath, projectPath),
-			undefined,
-			{ cancelable },
+		await checkpoint();
+		const configCommand = getComposeConfigJsonCommand(
+			buildEntity,
+			codePath,
+			projectPath,
 		);
+		const { stdout } = cancelable
+			? await execAsyncRemote(buildServerId, configCommand, undefined, {
+					cancelable,
+				})
+			: await execAsyncRemote(buildServerId, configCommand);
 		const builtServices = parseBuiltServices(stdout, entity.appName);
 
 		if (builtServices.length === 0) {
@@ -366,6 +379,7 @@ export const prepareComposeBuildServerDeploy = async ({
 	runStep,
 	applyPatches = true,
 	freshVolumes = false,
+	cancellable = true,
 }: {
 	entity: ComposeBuildEntity;
 	deployment: { logPath: string; deploymentId?: string };
@@ -373,6 +387,13 @@ export const prepareComposeBuildServerDeploy = async ({
 	runStep: (command: string) => Promise<unknown>;
 	applyPatches?: boolean;
 	freshVolumes?: boolean;
+	/**
+	 * Whether this deployment can be cancelled (pid file + cancel checkpoints).
+	 * False for compose previews: their deployment rows carry no composeId, so
+	 * nothing could ever find them to cancel, and they keep the exact commands
+	 * and database reads they had before cancellation existed.
+	 */
+	cancellable?: boolean;
 }): Promise<RemoteBuildDeployInfo | undefined> => {
 	if (!entity.buildServerId) {
 		// Deleting a build server nulls `buildServerId` (ON DELETE SET NULL) but
@@ -391,13 +412,14 @@ export const prepareComposeBuildServerDeploy = async ({
 			entity,
 			deployment,
 			applyPatches,
+			cancellable,
 		);
 
 		// The images are pushed, but the serving host has not been told about
 		// them yet. A cancel that landed after the last build-server step (so
 		// there was nothing left to kill) stops here, before anything is written
 		// or pulled: a cancelled deploy never runs a half-pushed or unwanted set.
-		await assertDeploymentNotCancelled(deployment.deploymentId);
+		if (cancellable) await assertDeploymentNotCancelled(deployment.deploymentId);
 
 		if (images.length > 0) {
 			await runStep(
@@ -417,6 +439,12 @@ export const prepareComposeBuildServerDeploy = async ({
 			// release no longer has (an override entry creates the service).
 			await runStep(`rm -f ${quote([getComposeBuildOverridePath(entity)])};`);
 		}
+
+		// A cancel that landed while the serving host was being written to (an
+		// SSH round trip) must not go on to pull and run the new set. Checked
+		// inside the try so the restore below puts the previous release's files
+		// back and removes the override that was just written.
+		if (cancellable) await assertDeploymentNotCancelled(deployment.deploymentId);
 
 		return {
 			images: images.map((image) => ({

@@ -782,7 +782,10 @@ const executeComposePreview = async ({
 
 		// Previews always re-clone (latest PR tip on every synchronize) and never
 		// apply patches (patch paths key off the base compose appName).
-		await runComposeBuild(entity, deployment, { applyPatches: false });
+		await runComposeBuild(entity, deployment, {
+			applyPatches: false,
+			cancellable: false,
+		});
 
 		await postComposePreviewComment(
 			compose,

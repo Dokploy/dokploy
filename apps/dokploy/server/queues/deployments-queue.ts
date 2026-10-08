@@ -5,6 +5,8 @@ import {
 	// build-policy hook: see the pinnedImage branch below.
 	deployPinnedApplicationImage,
 	deployPreviewApplication,
+	findApplicationById,
+	findComposeById,
 	isDeploymentCancelledError,
 	rebuildApplication,
 	rebuildCompose,
@@ -17,11 +19,33 @@ import {
 import type { InMemoryJob } from "./in-memory-queue";
 
 /**
+ * The status a service had before this job flipped it to "running", so a
+ * cancelled deployment can put exactly that back. Best effort: undefined when
+ * it cannot be read, in which case the deploy flow's own fallback applies.
+ */
+const readStatusBeforeJob = async (job: InMemoryJob) => {
+	try {
+		if (job.data.applicationType === "application") {
+			return (await findApplicationById(job.data.applicationId))
+				.applicationStatus;
+		}
+		if (job.data.applicationType === "compose") {
+			return (await findComposeById(job.data.composeId)).composeStatus;
+		}
+	} catch {
+		// Not worth failing the deployment for.
+	}
+	return undefined;
+};
+
+/**
  * Processes a single deployment job. Shared by the in-memory queue worker and
  * (in cloud) the direct background execution path.
  */
 export const processDeploymentJob = async (job: InMemoryJob) => {
+	let statusBeforeJob: string | undefined;
 	try {
+		statusBeforeJob = await readStatusBeforeJob(job);
 		if (job.data.applicationType === "application") {
 			await updateApplicationStatus(job.data.applicationId, "running");
 
@@ -116,6 +140,24 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 		// service's group lock.
 		if (isDeploymentCancelledError(error)) {
 			console.log(`Deployment cancelled: ${(error as Error).message}`);
+			// Back to the status the service had when this job started (the deploy
+			// flow already set done/idle as a fallback).
+			if (
+				statusBeforeJob === "idle" ||
+				statusBeforeJob === "done" ||
+				statusBeforeJob === "error"
+			) {
+				if (job.data.applicationType === "application") {
+					await updateApplicationStatus(
+						job.data.applicationId,
+						statusBeforeJob,
+					).catch(() => {});
+				} else if (job.data.applicationType === "compose") {
+					await updateCompose(job.data.composeId, {
+						composeStatus: statusBeforeJob,
+					}).catch(() => {});
+				}
+			}
 			return;
 		}
 		console.log("Error", error);

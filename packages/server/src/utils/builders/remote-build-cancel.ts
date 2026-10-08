@@ -62,9 +62,11 @@ export const getRemoteBuildCancelTarget = (
  * Arguments: $1 pid file, $2 deployment id, $3 the build command.
  */
 const SESSION_LAUNCHER = [
-	"umask 077",
 	's=$(sed "s/^.*) //" /proc/$$/stat 2>/dev/null | cut -d" " -f20)',
-	'printf "%s %s %s\\n" "$$" "$s" "$2" > "$1.$$" 2>/dev/null && mv -f "$1.$$" "$1" 2>/dev/null',
+	"b=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)",
+	// The umask is scoped to the pid-file write: the build itself must keep the
+	// session's normal umask, or clones and COPY'd files end up root-only.
+	'( umask 077; printf "%s %s %s %s\\n" "$$" "$s" "$2" "$b" > "$1.$$" ) 2>/dev/null && mv -f "$1.$$" "$1" 2>/dev/null',
 	'exec "${SHELL:-sh}" -c "$3"',
 ].join("; ");
 
@@ -135,11 +137,15 @@ export const getKillRemoteBuildCommand = (
 		`f=${shSingleQuote(pidFile)}`,
 		`id=${shSingleQuote(deploymentId)}`,
 		'[ -f "$f" ] || { echo NONE; exit 0; }',
-		'read -r pgid start owner < "$f" || { echo STALE; exit 0; }',
+		'read -r pgid start owner boot < "$f" || { echo STALE; exit 0; }',
 		'[ "$owner" = "$id" ] || { echo STALE; exit 0; }',
 		'case "$pgid" in ""|*[!0-9]*|0|1) echo STALE; exit 0;; esac',
 		'[ "$pgid" != "$$" ] || { echo STALE; exit 0; }',
 		'[ -r "/proc/$pgid/stat" ] || { [ -d /proc/self ] && { rm -f "$f"; echo GONE; exit 0; }; echo UNVERIFIED; exit 0; }',
+		// A pid file left over from before a reboot names a pid that now belongs to
+		// something else; the boot id tells the two boots apart.
+		'curboot=$(cat /proc/sys/kernel/random/boot_id 2>/dev/null)',
+		'[ "$boot" = "$curboot" ] || { rm -f "$f"; echo GONE; exit 0; }',
 		'cur=$(sed "s/^.*) //" "/proc/$pgid/stat" 2>/dev/null | cut -d" " -f20)',
 		'[ -n "$start" ] && [ "$cur" = "$start" ] || { rm -f "$f"; echo GONE; exit 0; }',
 		'kill -s TERM -- "-$pgid" 2>/dev/null',

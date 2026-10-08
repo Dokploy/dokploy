@@ -50,6 +50,7 @@ import {
 	DeploymentCancelledError,
 	isDeploymentCancelled,
 	isDeploymentCancelledError,
+	markDeploymentDoneUnlessCancelled,
 	runRemoteBuildScript,
 	statusAfterCancelledDeploy,
 } from "@dokploy/server/services/deployment-cancel";
@@ -243,6 +244,45 @@ describe("cancelBuildServerDeployment", () => {
 		expect(kills).toBe(2);
 		expect(outcome).toMatchObject({ status: "cancelled", result: "KILLED" });
 	}, 15000);
+
+	it("does not call it finished when a command of this deployment is still running but left no pid file", async () => {
+		mocks.execAsyncRemote.mockImplementation(async (_s, command: string) =>
+			command.includes("kill -s TERM")
+				? { stdout: "NONE\n", stderr: "" }
+				: { stdout: "", stderr: "" },
+		);
+		const unregister = registerRemoteBuild("dep-1", () => {});
+
+		const outcome = await cancelBuildServerDeployment(target);
+		unregister();
+
+		expect(outcome).toMatchObject({ status: "cancelled", result: "NONE" });
+		const warning = (outcome as any).warning as string;
+		expect(warning).toContain("pid file was not found");
+		expect(warning).toContain("may still be running");
+		const log = decodedLogLines().join("\n");
+		expect(log).toContain("pid file was not found");
+		expect(log).not.toContain("No build was running");
+		expect(mocks.updateSets).toContainEqual({ errorMessage: warning });
+	}, 15000);
+});
+
+describe("markDeploymentDoneUnlessCancelled", () => {
+	it("a build-server deployment is marked done only while it is not cancelled", async () => {
+		mocks.returning.mockResolvedValueOnce([{ deploymentId: "dep-1" }]);
+		await expect(markDeploymentDoneUnlessCancelled("dep-1")).resolves.toBe(
+			true,
+		);
+		expect(mocks.updateSets).toContainEqual(
+			expect.objectContaining({ status: "done" }),
+		);
+
+		// The cancel got there first: the conditional update matches no row.
+		mocks.returning.mockResolvedValueOnce([]);
+		await expect(markDeploymentDoneUnlessCancelled("dep-1")).resolves.toBe(
+			false,
+		);
+	});
 });
 
 describe("hostile ids", () => {

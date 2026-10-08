@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
 	deployApplication: vi.fn(),
 	updateCompose: vi.fn(),
 	updateApplicationStatus: vi.fn(),
+	findComposeById: vi.fn(),
+	findApplicationById: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", () => ({
@@ -18,6 +20,8 @@ vi.mock("@dokploy/server", () => ({
 	deployComposePreview: vi.fn(),
 	deployPinnedApplicationImage: vi.fn(),
 	deployPreviewApplication: vi.fn(),
+	findApplicationById: mocks.findApplicationById,
+	findComposeById: mocks.findComposeById,
 	// The real predicate matches by property, so any module copy's error works.
 	isDeploymentCancelledError: (error: unknown) =>
 		typeof error === "object" &&
@@ -66,10 +70,38 @@ beforeEach(() => {
 	vi.spyOn(console, "log").mockImplementation(() => {});
 	mocks.updateCompose.mockResolvedValue(undefined);
 	mocks.updateApplicationStatus.mockResolvedValue(undefined);
+	mocks.findComposeById.mockResolvedValue({ composeStatus: "done" });
+	mocks.findApplicationById.mockResolvedValue({ applicationStatus: "done" });
 });
 
 describe("processDeploymentJob", () => {
 	it("a cancelled compose deployment resolves and is not marked error", async () => {
+		mocks.deployCompose.mockRejectedValue(cancelled());
+
+		await expect(processDeploymentJob(composeJob)).resolves.toBeUndefined();
+
+		// "running" for the job, then back to what the service had before it.
+		expect(composeStatuses()).toEqual(["running", "done"]);
+	});
+
+	it("puts back the status the service had when the job started, not a guess", async () => {
+		mocks.findComposeById.mockResolvedValue({ composeStatus: "error" });
+		mocks.findApplicationById.mockResolvedValue({ applicationStatus: "idle" });
+		mocks.deployCompose.mockRejectedValue(cancelled());
+		mocks.deployApplication.mockRejectedValue(cancelled());
+
+		await processDeploymentJob(composeJob);
+		await processDeploymentJob(applicationJob);
+
+		expect(composeStatuses()).toEqual(["running", "error"]);
+		expect(mocks.updateApplicationStatus.mock.calls).toEqual([
+			["a1", "running"],
+			["a1", "idle"],
+		]);
+	});
+
+	it("leaves the deploy flow's own fallback status when the earlier one cannot be read", async () => {
+		mocks.findComposeById.mockRejectedValue(new Error("db down"));
 		mocks.deployCompose.mockRejectedValue(cancelled());
 
 		await expect(processDeploymentJob(composeJob)).resolves.toBeUndefined();
@@ -82,7 +114,10 @@ describe("processDeploymentJob", () => {
 
 		await expect(processDeploymentJob(applicationJob)).resolves.toBeUndefined();
 
-		expect(mocks.updateApplicationStatus.mock.calls).toEqual([["a1", "running"]]);
+		expect(mocks.updateApplicationStatus.mock.calls).toEqual([
+			["a1", "running"],
+			["a1", "done"],
+		]);
 	});
 
 	it("any other failure still marks the service as error", async () => {

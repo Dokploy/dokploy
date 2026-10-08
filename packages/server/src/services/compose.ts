@@ -57,9 +57,11 @@ import {
 	updateDeploymentStatus,
 } from "./deployment";
 import {
-	assertDeploymentNotCancelled,
+	appendLogLine,
+	CANCELLED_TOO_LATE_NOTE,
 	DeploymentCancelledError,
 	isDeploymentCancelled,
+	markDeploymentDoneUnlessCancelled,
 	statusAfterCancelledDeploy,
 } from "./deployment-cancel";
 import { generateApplyPatchesCommand } from "./patch";
@@ -168,9 +170,14 @@ export const didRollbackSucceed = async (
 export const runComposeBuild = async (
 	entity: ComposeBuildEntity,
 	deployment: { logPath: string; deploymentId?: string },
-	options: { freshVolumes?: boolean; applyPatches?: boolean } = {},
+	options: {
+		freshVolumes?: boolean;
+		applyPatches?: boolean;
+		/** False for compose previews, which cannot be cancelled (see prepare). */
+		cancellable?: boolean;
+	} = {},
 ) => {
-	const { freshVolumes = false, applyPatches = true } = options;
+	const { freshVolumes = false, applyPatches = true, cancellable } = options;
 	const serverId = entity.serverId;
 
 	const runStep = async (rawCommand: string) => {
@@ -230,10 +237,8 @@ export const runComposeBuild = async (
 		runStep,
 		applyPatches,
 		freshVolumes,
+		cancellable,
 	});
-	// Build-server composes only: a cancel that landed while the serving host
-	// was being told about the new images must not go on to pull and run them.
-	if (remoteBuild) await assertDeploymentNotCancelled(deployment.deploymentId);
 
 	if (freshVolumes && entity.composeType === "docker-compose") {
 		const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${entity.appName} down --volumes 2>&1 || true;`;
@@ -498,20 +503,37 @@ export const deployCompose = async ({
 
 		await runComposeBuild(entity, deployment, { freshVolumes });
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// A cancel that landed during the pull/up cannot be honoured (the release
+		// is already running); it stays recorded as cancelled, not "done".
+		let finished = true;
+		if (compose.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
 
-		await sendBuildSuccessNotifications({
-			projectName: compose.environment.project.name,
-			applicationName: compose.name,
-			applicationType: "compose",
-			buildLink,
-			organizationId: compose.environment.project.organizationId,
-			domains: compose.domains,
-			environmentName: compose.environment.name,
-		});
+		if (!finished) {
+			await appendLogLine(
+				compose.serverId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		} else {
+			await sendBuildSuccessNotifications({
+				projectName: compose.environment.project.name,
+				applicationName: compose.name,
+				applicationType: "compose",
+				buildLink,
+				organizationId: compose.environment.project.organizationId,
+				domains: compose.domains,
+				environmentName: compose.environment.name,
+			});
+		}
 
 		// Build-server composes: drop old per-deployment registry tags, detached
 		// (see scheduleComposeBuildRegistryPrune).
@@ -658,8 +680,6 @@ export const rebuildCompose = async ({
 			runStep: runRebuildStep,
 			freshVolumes,
 		});
-		// See runComposeBuild: a cancel after the build must stop the deploy here.
-		if (remoteBuild) await assertDeploymentNotCancelled(deployment.deploymentId);
 
 		if (freshVolumes && compose.composeType === "docker-compose") {
 			const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
@@ -684,10 +704,25 @@ export const rebuildCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// See deployCompose: a cancel during the pull/up stays recorded as cancelled.
+		let finished = true;
+		if (compose.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
+		if (!finished) {
+			await appendLogLine(
+				compose.serverId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		}
 
 		// Build-server composes: drop old per-deployment registry tags, detached
 		// (see scheduleComposeBuildRegistryPrune).

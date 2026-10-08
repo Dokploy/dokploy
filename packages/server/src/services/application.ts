@@ -53,9 +53,12 @@ import {
 	updateDeploymentStatus,
 } from "./deployment";
 import {
+	appendLogLine,
 	assertBuildNotCancelled,
+	CANCELLED_TOO_LATE_NOTE,
 	DeploymentCancelledError,
 	isDeploymentCancelled,
+	markDeploymentDoneUnlessCancelled,
 	runRemoteBuildScript,
 	statusAfterCancelledDeploy,
 } from "./deployment-cancel";
@@ -341,6 +344,7 @@ export const deployApplication = async ({
 		// on the deploy host. `serverId` above is `buildServerId || serverId` —
 		// using it here would target the build server, where the container is
 		// absent (pre would silently no-op, post would throw).
+		await assertBuildNotCancelled(deployment);
 		await runDeployHook({
 			kind: "pre",
 			appName: application.appName,
@@ -352,6 +356,9 @@ export const deployApplication = async ({
 
 		// build-policy hook 4/4: `deployTarget` is `application` plus the pinned
 		// digest when a remote build was enforced. See hook 3/4 above.
+		// The pre-deploy hook can take a while: a cancel meanwhile must stop the
+		// container from being replaced.
+		await assertBuildNotCancelled(deployment);
 		await mechanizeDockerContainer(deployTarget);
 
 		const stability = await waitForSwarmServiceStable(application.appName, {
@@ -375,18 +382,36 @@ export const deployApplication = async ({
 			});
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// A cancel that landed while the container was being replaced cannot be
+		// honoured (the release is already running); it stays recorded as
+		// cancelled instead of being overwritten by "done".
+		let finished = true;
+		if (deployment.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateApplicationStatus(applicationId, "done");
 
-		await sendBuildSuccessNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-			domains: application.domains,
-			environmentName: application.environment.name,
-		});
+		if (!finished) {
+			await appendLogLine(
+				deployment.buildServerId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		} else {
+			await sendBuildSuccessNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+				domains: application.domains,
+				environmentName: application.environment.name,
+			});
+		}
 	} catch (error) {
 		const cancelled = await settleCancelledApplicationDeploy(
 			applicationId,
@@ -532,6 +557,7 @@ export const rebuildApplication = async ({
 
 		// See deployApplication: hooks must target the deploy host
 		// (`application.serverId`), never the build server.
+		await assertBuildNotCancelled(deployment);
 		await runDeployHook({
 			kind: "pre",
 			appName: application.appName,
@@ -542,6 +568,9 @@ export const rebuildApplication = async ({
 		});
 
 		// build-policy hook 4/4 (rebuild): see hook 3/4 above.
+		// The pre-deploy hook can take a while: a cancel meanwhile must stop the
+		// container from being replaced.
+		await assertBuildNotCancelled(deployment);
 		await mechanizeDockerContainer(deployTarget);
 
 		const stability = await waitForSwarmServiceStable(application.appName, {
@@ -565,18 +594,36 @@ export const rebuildApplication = async ({
 			});
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// A cancel that landed while the container was being replaced cannot be
+		// honoured (the release is already running); it stays recorded as
+		// cancelled instead of being overwritten by "done".
+		let finished = true;
+		if (deployment.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateApplicationStatus(applicationId, "done");
 
-		await sendBuildSuccessNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-			domains: application.domains,
-			environmentName: application.environment.name,
-		});
+		if (!finished) {
+			await appendLogLine(
+				deployment.buildServerId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		} else {
+			await sendBuildSuccessNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+				domains: application.domains,
+				environmentName: application.environment.name,
+			});
+		}
 	} catch (error) {
 		const cancelled = await settleCancelledApplicationDeploy(
 			applicationId,

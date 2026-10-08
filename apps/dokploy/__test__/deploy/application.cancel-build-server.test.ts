@@ -330,6 +330,94 @@ describe.each([
 		);
 	});
 
+	it("does not replace the container when the cancel lands during the pre-deploy hook", async () => {
+		vi.mocked(hooks.runDeployHook).mockImplementation((async (options: {
+			kind: string;
+		}) => {
+			if (options.kind === "pre") cancelFlag("cancelled");
+		}) as any);
+
+		const outcome = await run(args).catch((error) => error);
+
+		expect(outcome).toMatchObject({ deploymentCancelled: true });
+		expect(builders.mechanizeDockerContainer).not.toHaveBeenCalled();
+		expect(deploymentService.updateDeploymentStatus).not.toHaveBeenCalledWith(
+			"deployment-id",
+			"done",
+		);
+	});
+
+	it("does not run the pre-deploy hook for a deployment cancelled right after the build", async () => {
+		vi.mocked(execProcess.execAsyncRemote).mockImplementation(async () => {
+			cancelFlag("cancelled");
+			return { stdout: "", stderr: "" } as any;
+		});
+
+		await run(args).catch(() => {});
+
+		expect(hooks.runDeployHook).not.toHaveBeenCalled();
+	});
+
+	describe("a cancel during the container swap", () => {
+		// The final write is conditional: a cancelled row matches nothing.
+		let allSets: Array<Record<string, unknown>> = [];
+		const finishRowsOf = (rows: unknown[]) => {
+			const writes: Array<Record<string, unknown>> = [];
+			allSets = [];
+			vi.mocked(db.update).mockImplementation((() => {
+				let values: Record<string, unknown> = {};
+				const chain: any = {
+					set: (next: Record<string, unknown>) => {
+						values = next;
+						allSets.push(next);
+						return chain;
+					},
+					where: () => chain,
+					returning: () => {
+						if (values.status === "done") {
+							writes.push(values);
+							return Promise.resolve(rows);
+						}
+						return Promise.resolve([{}]);
+					},
+					then: (resolve: (v: unknown) => void) => resolve([]),
+				};
+				return chain;
+			}) as any);
+			return writes;
+		};
+
+		it("stays cancelled instead of being overwritten by done, and announces no success", async () => {
+			const writes = finishRowsOf([]);
+			vi.spyOn(console, "error").mockImplementation(() => {});
+
+			await run(args);
+
+			expect(builders.mechanizeDockerContainer).toHaveBeenCalledTimes(1);
+			expect(writes).toHaveLength(1);
+			expect(deploymentService.updateDeploymentStatus).not.toHaveBeenCalledWith(
+				"deployment-id",
+				"done",
+			);
+			// The new release is running, so the service reflects that.
+			expect(allSets).toContainEqual({ applicationStatus: "done" });
+			expect(
+				successNotifications.sendBuildSuccessNotifications,
+			).not.toHaveBeenCalled();
+		});
+
+		it("an uncancelled deployment is marked done and announced", async () => {
+			const writes = finishRowsOf([{ deploymentId: "deployment-id" }]);
+
+			await run(args);
+
+			expect(writes).toHaveLength(1);
+			expect(
+				successNotifications.sendBuildSuccessNotifications,
+			).toHaveBeenCalledTimes(1);
+		});
+	});
+
 	it("never starts a build for a deployment cancelled while it waited", async () => {
 		cancelFlag("cancelled");
 

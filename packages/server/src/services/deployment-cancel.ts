@@ -12,7 +12,7 @@ import {
 	abortRemoteBuild,
 	hasRunningRemoteBuild,
 } from "@dokploy/server/utils/process/remote-build-registry";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 /**
  * Cancelling a deployment whose build runs on a build server.
@@ -71,9 +71,39 @@ export const isDeploymentCancelled = async (
 };
 
 /**
+ * Records a finished deployment as `done` without overwriting a cancel that
+ * landed while the serving host was pulling and starting the release (that part
+ * cannot be interrupted). Returns false when the deployment is cancelled, so
+ * the caller can say so instead of reporting a success. Only build-server
+ * deployments can be cancelled; every other one keeps using
+ * `updateDeploymentStatus` unchanged.
+ */
+export const markDeploymentDoneUnlessCancelled = async (
+	deploymentId: string,
+): Promise<boolean> => {
+	const updated = await db
+		.update(deployments)
+		.set({ status: "done", finishedAt: new Date().toISOString() })
+		.where(
+			and(
+				eq(deployments.deploymentId, deploymentId),
+				ne(deployments.status, "cancelled"),
+			),
+		)
+		.returning({ deploymentId: deployments.deploymentId });
+	return updated.length > 0;
+};
+
+/** What the log says when a cancel arrived too late to stop the release. */
+export const CANCELLED_TOO_LATE_NOTE =
+	"Deployment cancelled ⛔ The cancel arrived while the release was being started, which cannot be interrupted: the new release is running.";
+
+/**
  * The status a service returns to after a cancelled deploy. Nothing from the
  * cancelled build was pulled or started, so a service that has deployed before
  * is still serving its last release ("done"); one that never has stays "idle".
+ * This is the fallback: the deployment queue, which knows the status the
+ * service had when the job started, puts that exact status back afterwards.
  */
 export const statusAfterCancelledDeploy = async (
 	service: { applicationId: string } | { composeId: string },
@@ -157,7 +187,7 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, what: string) => {
 };
 
 /** Appends a line to a deployment log, wherever it lives. Never throws. */
-const appendLogLine = async (
+export const appendLogLine = async (
 	logServerId: string | null,
 	logPath: string,
 	line: string,
@@ -256,7 +286,13 @@ export const cancelBuildServerDeployment = async (
 			}
 			break;
 		}
-		if (result === "FAILED") {
+		if (result === "NONE" && hasRunningRemoteBuild(deploymentId)) {
+			// A command of this deployment is still running here but left no pid
+			// file after the retries: the launcher is missing on that server or
+			// the file could not be written. That is not "finished".
+			warning =
+				"A build command of this deployment is running on the build server but its pid file was not found (not written yet, or the launcher is missing there), so it could not be signalled. The local connection to it is being dropped; the build may still be running on the build server.";
+		} else if (result === "FAILED") {
 			warning =
 				"The build process on the build server did not stop after SIGKILL; it may still be running.";
 		} else if (result === "UNVERIFIED") {

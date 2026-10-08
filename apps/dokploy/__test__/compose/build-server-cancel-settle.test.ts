@@ -79,7 +79,11 @@ vi.mock("@dokploy/server/services/deployment-cancel", async () => {
 	};
 });
 
-import { deployCompose, rebuildCompose } from "@dokploy/server/services/compose";
+import {
+	deployCompose,
+	rebuildCompose,
+	runComposeBuild,
+} from "@dokploy/server/services/compose";
 import { DeploymentCancelledError } from "@dokploy/server/services/deployment-cancel";
 
 const COMPOSE = {
@@ -215,6 +219,97 @@ describe("a cancelled build-server compose deployment", () => {
 		expect(statuses().deployment).toContain("error");
 		expect(statuses().compose).toContain("error");
 		expect(mocks.getBuildComposeCommand).not.toHaveBeenCalled();
+	});
+
+	describe("a cancel that lands during the pull/up", () => {
+		// The final write is conditional (`status <> 'cancelled'`): when the cancel
+		// already flipped the row, it matches nothing and returns no row.
+		const finishWith = async (rows: unknown[]) => {
+			const { db } = await import("@dokploy/server/db");
+			const finalWrites: unknown[] = [];
+			vi.mocked(db.update).mockImplementation((() => {
+				let values: Record<string, unknown> = {};
+				const chain: any = {
+					set: (next: Record<string, unknown>) => {
+						values = next;
+						mocks.updateCompose("compose", next);
+						return chain;
+					},
+					where: () => chain,
+					returning: () => {
+						if (values.status === "done") {
+							finalWrites.push(values);
+							return Promise.resolve(rows);
+						}
+						return Promise.resolve([{}]);
+					},
+				};
+				return chain;
+			}) as any);
+			mocks.prepareComposeBuildServerDeploy.mockResolvedValue({
+				images: [],
+				loginCommand: "",
+				servingHostLabel: "the Dokploy host",
+			});
+			return finalWrites;
+		};
+
+		it("stays cancelled: the done write matches no row, so no success is reported", async () => {
+			const finalWrites = await finishWith([]);
+			const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+			await expect(
+				deployCompose({
+					composeId: "compose-1",
+					titleLog: "Manual deployment",
+					descriptionLog: "",
+				}),
+			).resolves.toBeUndefined();
+
+			// A conditional write was attempted instead of the unconditional one.
+			expect(finalWrites).toHaveLength(1);
+			expect(mocks.updateDeploymentStatus).not.toHaveBeenCalledWith(
+				"dep-1",
+				"done",
+			);
+			// The release is up, so the service itself is "done"...
+			expect(statuses().compose).toContain("done");
+			// ... but the cancelled deployment is not announced as a success.
+			expect(mocks.sendBuildSuccessNotifications).not.toHaveBeenCalled();
+			errors.mockRestore();
+		});
+
+		it("an uncancelled build-server deployment is marked done and announced", async () => {
+			const finalWrites = await finishWith([{ deploymentId: "dep-1" }]);
+
+			await deployCompose({
+				composeId: "compose-1",
+				titleLog: "Manual deployment",
+				descriptionLog: "",
+			});
+
+			expect(finalWrites).toHaveLength(1);
+			expect(mocks.sendBuildSuccessNotifications).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it("runComposeBuild hands the preview's cancellable:false straight to the build-server prepare", async () => {
+		mocks.prepareComposeBuildServerDeploy.mockResolvedValue(undefined);
+
+		await runComposeBuild(
+			{ ...COMPOSE, type: "compose" } as any,
+			{ logPath: "/var/log/p.log", deploymentId: "dep-p" },
+			{ applyPatches: false, cancellable: false },
+		);
+		await runComposeBuild(
+			{ ...COMPOSE, type: "compose" } as any,
+			{ logPath: "/var/log/p.log", deploymentId: "dep-p" },
+		);
+
+		const [preview, regular] = mocks.prepareComposeBuildServerDeploy.mock.calls;
+		expect(preview?.[0]).toMatchObject({ cancellable: false });
+		// A regular deploy leaves it unset: cancellable by default.
+		expect(regular?.[0].cancellable).toBeUndefined();
 	});
 
 	it("a compose without a build server never consults the cancel flag", async () => {
