@@ -66,12 +66,26 @@ export const scheduleRouter = createTRPCRouter({
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
-					schedule({
-						scheduleId: newSchedule.scheduleId,
-						type: "schedule",
-						cronSchedule: newSchedule.cronExpression,
-						timezone: newSchedule.timezone,
-					});
+					try {
+						await schedule({
+							scheduleId: newSchedule.scheduleId,
+							type: "schedule",
+							cronSchedule: newSchedule.cronExpression,
+							timezone: newSchedule.timezone,
+						});
+					} catch (error) {
+						await removeJob({
+							scheduleId: newSchedule.scheduleId,
+							type: "schedule",
+							cronSchedule: newSchedule.cronExpression,
+							timezone: newSchedule.timezone,
+						}).catch(() => {});
+						await deleteSchedule(newSchedule.scheduleId);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to register schedule with job service",
+						});
+					}
 				} else {
 					scheduleJob(newSchedule);
 				}
@@ -126,25 +140,70 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				await checkPermission(ctx, { schedule: ["update"] });
 			}
-			const updatedSchedule = await updateSchedule(input);
-
 			if (IS_CLOUD) {
-				if (updatedSchedule?.enabled) {
+				const effectiveCron =
+					input.cronExpression ?? existingSchedule.cronExpression;
+				const effectiveTimezone =
+					input.timezone !== undefined
+						? input.timezone
+						: existingSchedule.timezone;
+				const effectiveEnabled =
+					input.enabled !== undefined
+						? input.enabled
+						: existingSchedule.enabled;
+
+				if (effectiveEnabled) {
 					await updateJob({
-						scheduleId: updatedSchedule.scheduleId,
+						scheduleId: input.scheduleId,
 						type: "schedule",
-						cronSchedule: updatedSchedule.cronExpression,
-						timezone: updatedSchedule.timezone,
+						cronSchedule: effectiveCron,
+						timezone: effectiveTimezone,
 					});
-				} else {
+				} else if (existingSchedule.enabled) {
 					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
-						scheduleId: updatedSchedule.scheduleId,
+						cronSchedule: existingSchedule.cronExpression,
+						scheduleId: input.scheduleId,
 						type: "schedule",
-						timezone: updatedSchedule.timezone,
+						timezone: existingSchedule.timezone,
 					});
 				}
-			} else {
+			}
+
+			let updatedSchedule;
+			try {
+				updatedSchedule = await updateSchedule(input);
+			} catch (error) {
+				// Compensate queue if persistence fails
+				if (IS_CLOUD) {
+					if (existingSchedule.enabled) {
+						await updateJob({
+							scheduleId: existingSchedule.scheduleId,
+							type: "schedule",
+							cronSchedule: existingSchedule.cronExpression,
+							timezone: existingSchedule.timezone,
+						}).catch(() => {});
+					} else {
+						const effectiveCron =
+							input.cronExpression ?? existingSchedule.cronExpression;
+						const effectiveTimezone =
+							input.timezone !== undefined
+								? input.timezone
+								: existingSchedule.timezone;
+						await removeJob({
+							cronSchedule: effectiveCron,
+							scheduleId: input.scheduleId,
+							type: "schedule",
+							timezone: effectiveTimezone,
+						}).catch(() => {});
+					}
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to save schedule update to database",
+				});
+			}
+
+			if (!IS_CLOUD) {
 				if (updatedSchedule?.enabled) {
 					removeScheduleJob(updatedSchedule.scheduleId);
 					scheduleJob(updatedSchedule);
@@ -179,17 +238,31 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				await checkPermission(ctx, { schedule: ["delete"] });
 			}
-			await deleteSchedule(input.scheduleId);
-
-			if (IS_CLOUD) {
+			if (IS_CLOUD && scheduleItem.enabled) {
 				await removeJob({
 					cronSchedule: scheduleItem.cronExpression,
 					scheduleId: scheduleItem.scheduleId,
 					type: "schedule",
 					timezone: scheduleItem.timezone,
 				});
-			} else {
+			} else if (!IS_CLOUD) {
 				removeScheduleJob(scheduleItem.scheduleId);
+			}
+
+			try {
+				await deleteSchedule(input.scheduleId);
+			} catch (error) {
+				if (IS_CLOUD && scheduleItem.enabled) {
+					await schedule({
+						scheduleId: scheduleItem.scheduleId,
+						type: "schedule",
+						cronSchedule: scheduleItem.cronExpression,
+						timezone: scheduleItem.timezone,
+					}).catch(() => {});
+				} else if (!IS_CLOUD && scheduleItem.enabled) {
+					scheduleJob(scheduleItem);
+				}
+				throw error;
 			}
 			await audit(ctx, {
 				action: "delete",
