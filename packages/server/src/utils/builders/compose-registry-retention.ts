@@ -84,7 +84,8 @@ export const parseRegistryEndpoint = (
 		.replace(/^https?:\/\//i, "")
 		.replace(/\/.*$/, "")
 		.toLowerCase();
-	if (!host || /[\s"'\\]/.test(host)) return null;
+	// `@` would turn what precedes it into userinfo and move the real host.
+	if (!host || /[\s"'\\@]/.test(host)) return null;
 	return { host, scheme: scheme ?? null };
 };
 
@@ -304,6 +305,8 @@ export const buildRegistryCurlConfig = ({
 		const lines = [
 			`url = ${curlConfigQuote(request.url)}`,
 			"silent",
+			// No URL globbing: `[` `]` `{` `}` must reach the registry as written.
+			"globoff",
 			`max-time = ${timeoutSeconds}`,
 		];
 		if (username || password) {

@@ -61,6 +61,43 @@ import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
+/** How long after a deploy returns its registry prune starts. */
+export const REGISTRY_PRUNE_START_DELAY_MS = 3_000;
+
+/**
+ * Starts the build-registry cleanup of a build-server compose *after* the
+ * deploy that triggered it has returned, never as part of it.
+ *
+ * The deployment queue holds a concurrency slot and the compose's group lock
+ * until `deployCompose` / `rebuildCompose` resolve, so awaiting the prune there
+ * would keep the next deploy of the same compose (and one of the LOCAL slots)
+ * waiting on housekeeping. Here nothing is awaited: the prune is a timer, its
+ * outcome is only ever logged, and it is not journaled (a prune lost to a
+ * restart is simply retried by the next deploy). Whatever it does, including
+ * throwing, cannot change the deployment's or the compose's status, because it
+ * runs outside the deploy's try/catch and outside the queue job.
+ *
+ * A no-op (no timer at all) for a compose without a build server.
+ */
+export const scheduleComposeBuildRegistryPrune = (
+	args: Parameters<typeof pruneComposeBuildRegistry>[0],
+) => {
+	if (!args.entity.buildServerId) return;
+	try {
+		const timer = setTimeout(() => {
+			Promise.resolve()
+				.then(() => pruneComposeBuildRegistry(args))
+				.catch((error) => {
+					console.error("Build registry cleanup failed", error);
+				});
+		}, REGISTRY_PRUNE_START_DELAY_MS);
+		// Never keep the process alive (shutdown) for housekeeping.
+		timer.unref?.();
+	} catch (error) {
+		console.error("Could not schedule the build registry cleanup", error);
+	}
+};
+
 type ComposeBuildEntity = Awaited<ReturnType<typeof findComposeById>> & {
 	type: "compose";
 };
@@ -432,9 +469,9 @@ export const deployCompose = async ({
 			environmentName: compose.environment.name,
 		});
 
-		// Build-server composes: drop old per-deployment registry tags once this
-		// release is live. Best effort, never throws; a no-op without a build server.
-		await pruneComposeBuildRegistry({ entity, deployment });
+		// Build-server composes: drop old per-deployment registry tags, detached
+		// (see scheduleComposeBuildRegistryPrune).
+		scheduleComposeBuildRegistryPrune({ entity, deployment });
 	} catch (error) {
 		let command = "";
 
@@ -603,9 +640,9 @@ export const rebuildCompose = async ({
 			composeStatus: "done",
 		});
 
-		// Build-server composes: drop old per-deployment registry tags once this
-		// release is live. Best effort, never throws; a no-op without a build server.
-		await pruneComposeBuildRegistry({ entity: compose, deployment });
+		// Build-server composes: drop old per-deployment registry tags, detached
+		// (see scheduleComposeBuildRegistryPrune).
+		scheduleComposeBuildRegistryPrune({ entity: compose, deployment });
 	} catch (error) {
 		let command = "";
 

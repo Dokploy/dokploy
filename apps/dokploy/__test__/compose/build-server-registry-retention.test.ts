@@ -291,6 +291,9 @@ describe("registry addressing", () => {
 		expect(parseRegistryEndpoint("")).toBeNull();
 		expect(parseRegistryEndpoint(null)).toBeNull();
 		expect(parseRegistryEndpoint('reg" --evil')).toBeNull();
+		// userinfo would move the real host: https://reg.example.com@evil.test
+		expect(parseRegistryEndpoint("reg.example.com@evil.test")).toBeNull();
+		expect(parseRegistryEndpoint("https://user:pw@reg.example.com")).toBeNull();
 	});
 });
 
@@ -333,6 +336,7 @@ describe("curl config and command", () => {
 		expect(blocks[2]).toContain('request = "DELETE"');
 		expect(blocks[2]).not.toContain("Accept");
 		for (const [id, block] of blocks.entries()) {
+			expect(block).toMatch(/^globoff$/m);
 			expect(block).toContain(`@@DPL ${id} %{http_code}`);
 		}
 	});
