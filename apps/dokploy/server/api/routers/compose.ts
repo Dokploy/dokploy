@@ -4,6 +4,7 @@ import {
 	assertComposeBuildSettings,
 	// build-policy hook: required-checks support check at the API boundary.
 	assertRequiredChecksSupportedForUpdate,
+	cancelBuildServerDeploymentsForService,
 	clearOldDeployments,
 	cloneBitbucketRepository,
 	cloneCompose,
@@ -403,6 +404,17 @@ export const composeRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const compose = await findComposeById(input.composeId);
+			// A compose that builds on a build server is cancelled there, by
+			// deployment (see deployment-cancel.ts). The `pkill "docker compose"`
+			// below only ever runs on the serving host, where it would hit every
+			// other compose operation running there.
+			if (compose.buildServerId) {
+				await cancelBuildServerDeploymentsForService({
+					type: "compose",
+					composeId: input.composeId,
+				});
+				return;
+			}
 			await killDockerBuild("compose", compose.serverId);
 		}),
 

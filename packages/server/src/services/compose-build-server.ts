@@ -20,6 +20,7 @@ import {
 	getWriteFileCommand,
 	parseBuiltServices,
 } from "@dokploy/server/utils/builders/compose-remote-build";
+import { getRemoteBuildCancelTarget } from "@dokploy/server/utils/builders/remote-build-cancel";
 import {
 	getRegistryLoginCommand,
 	getRegistryTag,
@@ -39,6 +40,11 @@ import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw
 import { withResolvedVaultRefs } from "@dokploy/server/utils/vault";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
+import {
+	assertDeploymentNotCancelled,
+	isDeploymentCancelledError,
+	toCancelledErrorIfCancelled,
+} from "./deployment-cancel";
 import { generateApplyPatchesCommand } from "./patch";
 import { findRegistryByIdWithCredentials } from "./registry";
 import { findServerById } from "./server";
@@ -212,6 +218,7 @@ const buildImagesOnBuildServer = async (
 	entity: ComposeBuildEntity,
 	deployment: { logPath: string; deploymentId?: string },
 	applyPatches: boolean,
+	cancellable: boolean,
 ): Promise<{ images: ComposePushedImage[]; loginCommand: string }> => {
 	const { buildServerId, buildRegistryId } = entity;
 	if (!buildServerId || !buildRegistryId) {
@@ -235,8 +242,42 @@ const buildImagesOnBuildServer = async (
 	const projectPath = resolved.mounts.length > 0 ? codePath : undefined;
 
 	const log = createDeploymentLogWriter(entity.serverId, deployment.logPath);
-	const run = (command: string) =>
-		execAsyncRemote(buildServerId, command, log.push);
+	// Every command runs in its own session with a pid file keyed by the
+	// deployment id, so a cancel can stop exactly this deployment's build. The
+	// cancel flag is checked before each step: a cancel between two steps (no
+	// process to kill) must still stop the next one from starting.
+	const cancelable =
+		cancellable && deployment.deploymentId
+			? getRemoteBuildCancelTarget(deployment.deploymentId)
+			: undefined;
+	const checkpoint = () =>
+		cancellable
+			? assertDeploymentNotCancelled(deployment.deploymentId)
+			: Promise.resolve();
+	const execOnBuildServer = async (
+		command: string,
+		onData?: (data: string) => void,
+	) => {
+		// Not cancelable (a preview): exactly the call it always was.
+		if (!cancelable) {
+			return onData
+				? execAsyncRemote(buildServerId, command, onData)
+				: execAsyncRemote(buildServerId, command);
+		}
+		try {
+			return await execAsyncRemote(buildServerId, command, onData, {
+				cancelable,
+			});
+		} catch (error) {
+			// A cancel kills the step (or drops its connection): that failure is
+			// the cancellation, not a build error.
+			throw await toCancelledErrorIfCancelled(deployment.deploymentId, error);
+		}
+	};
+	const run = async (command: string) => {
+		await checkpoint();
+		return execOnBuildServer(command, log.push);
+	};
 
 	try {
 		log.line(
@@ -287,10 +328,13 @@ const buildImagesOnBuildServer = async (
 		}
 
 		// Not streamed: the resolved configuration contains the environment.
-		const { stdout } = await execAsyncRemote(
-			buildServerId,
-			getComposeConfigJsonCommand(buildEntity, codePath, projectPath),
+		await checkpoint();
+		const configCommand = getComposeConfigJsonCommand(
+			buildEntity,
+			codePath,
+			projectPath,
 		);
+		const { stdout } = await execOnBuildServer(configCommand);
 		const builtServices = parseBuiltServices(stdout, entity.appName);
 
 		if (builtServices.length === 0) {
@@ -352,6 +396,7 @@ export const prepareComposeBuildServerDeploy = async ({
 	runStep,
 	applyPatches = true,
 	freshVolumes = false,
+	cancellable = true,
 }: {
 	entity: ComposeBuildEntity;
 	deployment: { logPath: string; deploymentId?: string };
@@ -359,6 +404,13 @@ export const prepareComposeBuildServerDeploy = async ({
 	runStep: (command: string) => Promise<unknown>;
 	applyPatches?: boolean;
 	freshVolumes?: boolean;
+	/**
+	 * Whether this deployment can be cancelled (pid file + cancel checkpoints).
+	 * False for compose previews: their deployment rows carry no composeId, so
+	 * nothing could ever find them to cancel, and they keep the exact commands
+	 * and database reads they had before cancellation existed.
+	 */
+	cancellable?: boolean;
 }): Promise<RemoteBuildDeployInfo | undefined> => {
 	if (!entity.buildServerId) {
 		// Deleting a build server nulls `buildServerId` (ON DELETE SET NULL) but
@@ -377,7 +429,16 @@ export const prepareComposeBuildServerDeploy = async ({
 			entity,
 			deployment,
 			applyPatches,
+			cancellable,
 		);
+
+		// The images are pushed, but the serving host has not been told about
+		// them yet. A cancel that landed after the last build-server step (so
+		// there was nothing left to kill) stops here, before anything is written
+		// or pulled: a cancelled deploy never runs a half-pushed or unwanted set.
+		if (cancellable) {
+			await assertDeploymentNotCancelled(deployment.deploymentId);
+		}
 
 		if (images.length > 0) {
 			await runStep(
@@ -396,6 +457,14 @@ export const prepareComposeBuildServerDeploy = async ({
 			// An override left by an earlier deploy would resurrect services this
 			// release no longer has (an override entry creates the service).
 			await runStep(`rm -f ${quote([getComposeBuildOverridePath(entity)])};`);
+		}
+
+		// A cancel that landed while the serving host was being written to (an
+		// SSH round trip) must not go on to pull and run the new set. Checked
+		// inside the try so the restore below puts the previous release's files
+		// back and removes the override that was just written.
+		if (cancellable) {
+			await assertDeploymentNotCancelled(deployment.deploymentId);
 		}
 
 		return {
@@ -418,6 +487,19 @@ export const prepareComposeBuildServerDeploy = async ({
 				"Could not restore the previous compose release after a failed build",
 				restoreError,
 			);
+			if (isDeploymentCancelledError(error)) {
+				// The cancel itself is real, but the serving host was left with the
+				// new compose files instead of the previous release's. That is a
+				// failure to report, not a clean cancel (which says "nothing was
+				// changed"), so it is thrown as an ordinary error.
+				const reason =
+					restoreError instanceof Error
+						? restoreError.message
+						: String(restoreError);
+				throw new Error(
+					`Deployment cancelled, but the previous release could not be restored on the serving host (${reason}). Its compose files may still be the new ones; check them or redeploy.`,
+				);
+			}
 		}
 		throw error;
 	}

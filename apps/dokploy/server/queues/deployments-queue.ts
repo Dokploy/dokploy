@@ -5,10 +5,13 @@ import {
 	// build-policy hook: see the pinnedImage branch below.
 	deployPinnedApplicationImage,
 	deployPreviewApplication,
+	isDeploymentCancelledError,
+	readServiceStatus,
 	rebuildApplication,
 	rebuildCompose,
 	rebuildComposePreview,
 	rebuildPreviewApplication,
+	restoreServiceStatusIfUnchanged,
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
@@ -16,11 +19,37 @@ import {
 import type { InMemoryJob } from "./in-memory-queue";
 
 /**
+ * The status a service had before this job flipped it to "running", so a
+ * cancelled deployment can put exactly that back. Best effort: undefined when
+ * it cannot be read, in which case the deploy flow's own fallback applies.
+ */
+const readStatusBeforeJob = async (job: InMemoryJob) => {
+	try {
+		if (job.data.applicationType === "application") {
+			return await readServiceStatus({ applicationId: job.data.applicationId });
+		}
+		if (job.data.applicationType === "compose") {
+			return await readServiceStatus({ composeId: job.data.composeId });
+		}
+	} catch {
+		// Not worth failing the deployment for.
+	}
+	return undefined;
+};
+
+const isRestorableStatus = (
+	status: unknown,
+): status is "idle" | "done" | "error" =>
+	status === "idle" || status === "done" || status === "error";
+
+/**
  * Processes a single deployment job. Shared by the in-memory queue worker and
  * (in cloud) the direct background execution path.
  */
 export const processDeploymentJob = async (job: InMemoryJob) => {
+	let statusBeforeJob: string | undefined;
 	try {
+		statusBeforeJob = await readStatusBeforeJob(job);
 		if (job.data.applicationType === "application") {
 			await updateApplicationStatus(job.data.applicationId, "running");
 
@@ -108,6 +137,38 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 			}
 		}
 	} catch (error) {
+		// A build-server deployment the user cancelled: the deploy flow already
+		// recorded `cancelled` and put the service back to the state of the
+		// release that is still serving, so it must not be flipped to "error".
+		// Returning here ends the job normally, releasing its queue slot and the
+		// service's group lock.
+		if (isDeploymentCancelledError(error)) {
+			console.log(`Deployment cancelled: ${(error as Error).message}`);
+			// Back to the status the service had when this job started. The deploy
+			// flow already set done/idle (`settledStatus`) as a fallback; moving on
+			// from it only if the service is still in that status keeps a Stop or
+			// Start clicked in the meantime.
+			const { settledStatus } = error as { settledStatus?: unknown };
+			if (
+				isRestorableStatus(statusBeforeJob) &&
+				isRestorableStatus(settledStatus)
+			) {
+				if (job.data.applicationType === "application") {
+					await restoreServiceStatusIfUnchanged(
+						{ applicationId: job.data.applicationId },
+						settledStatus,
+						statusBeforeJob,
+					).catch(() => {});
+				} else if (job.data.applicationType === "compose") {
+					await restoreServiceStatusIfUnchanged(
+						{ composeId: job.data.composeId },
+						settledStatus,
+						statusBeforeJob,
+					).catch(() => {});
+				}
+			}
+			return;
+		}
 		console.log("Error", error);
 		// Roll back the status set at the start of the job so a failed deployment
 		// does not leave the service stuck in "running".

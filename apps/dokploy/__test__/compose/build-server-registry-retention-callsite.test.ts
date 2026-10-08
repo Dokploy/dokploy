@@ -119,6 +119,10 @@ describe("build registry prune: call site", () => {
 		vi.mocked(db.update).mockImplementation((() => {
 			const chain: any = {
 				set: (values: unknown) => {
+					// A build-server deployment is finished with a conditional update
+					// (never over a cancel) rather than updateDeploymentStatus.
+					const status = (values as { status?: string }).status;
+					if (status) mocks.updateDeploymentStatus("dep-1", status);
 					mocks.updateCompose("compose", values);
 					return chain;
 				},

@@ -56,6 +56,16 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import {
+	appendLogLine,
+	CANCELLED_THEN_FAILED_NOTE,
+	CANCELLED_TOO_LATE_NOTE,
+	DeploymentCancelledError,
+	isDeploymentCancelled,
+	isDeploymentCancelledError,
+	markDeploymentDoneUnlessCancelled,
+	statusAfterCancelledDeploy,
+} from "./deployment-cancel";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
@@ -162,9 +172,14 @@ export const didRollbackSucceed = async (
 export const runComposeBuild = async (
 	entity: ComposeBuildEntity,
 	deployment: { logPath: string; deploymentId?: string },
-	options: { freshVolumes?: boolean; applyPatches?: boolean } = {},
+	options: {
+		freshVolumes?: boolean;
+		applyPatches?: boolean;
+		/** False for compose previews, which cannot be cancelled (see prepare). */
+		cancellable?: boolean;
+	} = {},
 ) => {
-	const { freshVolumes = false, applyPatches = true } = options;
+	const { freshVolumes = false, applyPatches = true, cancellable } = options;
 	const serverId = entity.serverId;
 
 	const runStep = async (rawCommand: string) => {
@@ -224,6 +239,7 @@ export const runComposeBuild = async (
 		runStep,
 		applyPatches,
 		freshVolumes,
+		cancellable,
 	});
 
 	if (freshVolumes && entity.composeType === "docker-compose") {
@@ -424,6 +440,47 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
+/**
+ * A build-server deploy that was cancelled (see `deployment-cancel.ts`) ends
+ * here instead of in the generic failure path: the deployment already says
+ * `cancelled` and must not become `error`, no build-error notification goes
+ * out for something the user asked for, and the service returns to the state
+ * of the release that is still serving.
+ *
+ * Returns the error to rethrow, or `null` when this was not a cancellation.
+ *
+ * Only a `DeploymentCancelledError` counts. A cancel that arrives too late
+ * (the pull/up is already running) leaves the row `cancelled`, but if the
+ * release then genuinely fails, that failure takes the normal failure path
+ * (error status, rollback handling, notification) and the log notes the
+ * earlier cancel request. The same goes for a cancel inside prepare whose
+ * restore of the previous release failed: that is thrown as a plain error.
+ */
+const settleCancelledComposeDeploy = async (
+	entity: Pick<Compose, "composeId" | "buildServerId" | "serverId">,
+	deployment: { deploymentId: string; logPath: string },
+	error: unknown,
+) => {
+	if (!entity.buildServerId) return null;
+	if (!isDeploymentCancelledError(error)) return null;
+
+	try {
+		const command = `echo "\nDeployment cancelled ⛔ Nothing was pulled or started from this build; the previous release keeps serving." >> ${quote([deployment.logPath])};`;
+		if (entity.serverId) {
+			await execAsyncRemote(entity.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (logError) {
+		console.error("Could not log the cancelled deployment", logError);
+	}
+	const settledStatus = await statusAfterCancelledDeploy({
+		composeId: entity.composeId,
+	});
+	await updateCompose(entity.composeId, { composeStatus: settledStatus });
+	return new DeploymentCancelledError(undefined, { settledStatus });
+};
+
 export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
@@ -454,25 +511,49 @@ export const deployCompose = async ({
 
 		await runComposeBuild(entity, deployment, { freshVolumes });
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// A cancel that landed during the pull/up cannot be honoured (the release
+		// is already running); it stays recorded as cancelled, not "done".
+		let finished = true;
+		if (compose.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
 
-		await sendBuildSuccessNotifications({
-			projectName: compose.environment.project.name,
-			applicationName: compose.name,
-			applicationType: "compose",
-			buildLink,
-			organizationId: compose.environment.project.organizationId,
-			domains: compose.domains,
-			environmentName: compose.environment.name,
-		});
+		if (!finished) {
+			await appendLogLine(
+				compose.serverId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		} else {
+			await sendBuildSuccessNotifications({
+				projectName: compose.environment.project.name,
+				applicationName: compose.name,
+				applicationType: "compose",
+				buildLink,
+				organizationId: compose.environment.project.organizationId,
+				domains: compose.domains,
+				environmentName: compose.environment.name,
+			});
+		}
 
 		// Build-server composes: drop old per-deployment registry tags, detached
 		// (see scheduleComposeBuildRegistryPrune).
 		scheduleComposeBuildRegistryPrune({ entity, deployment });
 	} catch (error) {
+		const cancelled = await settleCancelledComposeDeploy(
+			compose,
+			deployment,
+			error,
+		);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -482,6 +563,14 @@ export const deployCompose = async ({
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
+		// A cancel that came too late, followed by a real failure: say so, the
+		// deployment ends as `error` (it did fail), not `cancelled`.
+		if (
+			compose.buildServerId &&
+			(await isDeploymentCancelled(deployment.deploymentId))
+		) {
+			command += `echo "\n${CANCELLED_THEN_FAILED_NOTE}" >> ${deployment.logPath};`;
+		}
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, command);
@@ -635,15 +724,37 @@ export const rebuildCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// See deployCompose: a cancel during the pull/up stays cancelled.
+		let finished = true;
+		if (compose.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
+		if (!finished) {
+			await appendLogLine(
+				compose.serverId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		}
 
 		// Build-server composes: drop old per-deployment registry tags, detached
 		// (see scheduleComposeBuildRegistryPrune).
 		scheduleComposeBuildRegistryPrune({ entity: compose, deployment });
 	} catch (error) {
+		const cancelled = await settleCancelledComposeDeploy(
+			compose,
+			deployment,
+			error,
+		);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -653,6 +764,14 @@ export const rebuildCompose = async ({
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
+		// A cancel that came too late, followed by a real failure: say so, the
+		// deployment ends as `error` (it did fail), not `cancelled`.
+		if (
+			compose.buildServerId &&
+			(await isDeploymentCancelled(deployment.deploymentId))
+		) {
+			command += `echo "\n${CANCELLED_THEN_FAILED_NOTE}" >> ${deployment.logPath};`;
+		}
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, command);

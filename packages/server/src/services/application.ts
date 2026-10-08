@@ -52,6 +52,18 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import {
+	appendLogLine,
+	assertBuildNotCancelled,
+	CANCELLED_THEN_FAILED_NOTE,
+	CANCELLED_TOO_LATE_NOTE,
+	DeploymentCancelledError,
+	isDeploymentCancelled,
+	isDeploymentCancelledError,
+	markDeploymentDoneUnlessCancelled,
+	runRemoteBuildScript,
+	statusAfterCancelledDeploy,
+} from "./deployment-cancel";
 import { type Domain, getDomainHost } from "./domain";
 import { getIssueComment } from "./github";
 import { generateApplyPatchesCommand } from "./patch";
@@ -192,6 +204,29 @@ export const updateApplicationStatus = async (
 	return application;
 };
 
+/**
+ * A cancelled build-server deployment ends here instead of in the generic
+ * failure path: it stays `cancelled` (not `error`), sends no build-error
+ * notification, and the application goes back to idle. Returns the error to
+ * rethrow, or `null` when this was not a cancellation.
+ *
+ * Only a `DeploymentCancelledError` counts. A cancel that arrives too late
+ * (the release is already starting) leaves the row `cancelled`, but if the
+ * release then genuinely fails, that failure must not read as a cancel: it
+ * takes the normal failure path (error status, notification) and the log notes
+ * the earlier cancel request.
+ */
+const settleCancelledApplicationDeploy = async (
+	applicationId: string,
+	deployment: { deploymentId: string; buildServerId?: string | null },
+	error: unknown,
+) => {
+	if (!deployment.buildServerId) return null;
+	if (!isDeploymentCancelledError(error)) return null;
+	const settledStatus = await statusAfterCancelledDeploy({ applicationId });
+	await updateApplicationStatus(applicationId, settledStatus);
+	return new DeploymentCancelledError(undefined, { settledStatus });
+};
 export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
@@ -289,10 +324,11 @@ export const deployApplication = async ({
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await runRemoteBuildScript(serverId, commandWithLog, deployment);
 		} else {
 			await execAsync(commandWithLog);
 		}
+		await assertBuildNotCancelled(deployment);
 
 		// >>> build-policy hook 3/4: gate on required checks, then pin the deploy
 		// to the digest that was just published. Identity when not enforcing.
@@ -313,6 +349,7 @@ export const deployApplication = async ({
 		// on the deploy host. `serverId` above is `buildServerId || serverId` —
 		// using it here would target the build server, where the container is
 		// absent (pre would silently no-op, post would throw).
+		await assertBuildNotCancelled(deployment);
 		await runDeployHook({
 			kind: "pre",
 			appName: application.appName,
@@ -324,6 +361,9 @@ export const deployApplication = async ({
 
 		// build-policy hook 4/4: `deployTarget` is `application` plus the pinned
 		// digest when a remote build was enforced. See hook 3/4 above.
+		// The pre-deploy hook can take a while: a cancel meanwhile must stop the
+		// container from being replaced.
+		await assertBuildNotCancelled(deployment);
 		await mechanizeDockerContainer(deployTarget);
 
 		const stability = await waitForSwarmServiceStable(application.appName, {
@@ -347,19 +387,44 @@ export const deployApplication = async ({
 			});
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// A cancel that landed while the container was being replaced cannot be
+		// honoured (the release is already running); it stays recorded as
+		// cancelled instead of being overwritten by "done".
+		let finished = true;
+		if (deployment.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateApplicationStatus(applicationId, "done");
 
-		await sendBuildSuccessNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-			domains: application.domains,
-			environmentName: application.environment.name,
-		});
+		if (!finished) {
+			await appendLogLine(
+				deployment.buildServerId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		} else {
+			await sendBuildSuccessNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+				domains: application.domains,
+				environmentName: application.environment.name,
+			});
+		}
 	} catch (error) {
+		const cancelled = await settleCancelledApplicationDeploy(
+			applicationId,
+			deployment,
+			error,
+		);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -369,6 +434,14 @@ export const deployApplication = async ({
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
+		// A cancel that came too late, followed by a real failure: say so, the
+		// deployment ends as `error` (it did fail), not `cancelled`.
+		if (
+			deployment.buildServerId &&
+			(await isDeploymentCancelled(deployment.deploymentId))
+		) {
+			command += `echo "\n${CANCELLED_THEN_FAILED_NOTE}" >> ${deployment.logPath};`;
+		}
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
@@ -476,10 +549,11 @@ export const rebuildApplication = async ({
 		// <<< build-policy hook 2/4
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await runRemoteBuildScript(serverId, commandWithLog, deployment);
 		} else {
 			await execAsync(commandWithLog);
 		}
+		await assertBuildNotCancelled(deployment);
 
 		// >>> build-policy hook 3/4 (rebuild)
 		const deployTarget = await prepareBuildPolicyDeploy({
@@ -497,6 +571,7 @@ export const rebuildApplication = async ({
 
 		// See deployApplication: hooks must target the deploy host
 		// (`application.serverId`), never the build server.
+		await assertBuildNotCancelled(deployment);
 		await runDeployHook({
 			kind: "pre",
 			appName: application.appName,
@@ -507,6 +582,9 @@ export const rebuildApplication = async ({
 		});
 
 		// build-policy hook 4/4 (rebuild): see hook 3/4 above.
+		// The pre-deploy hook can take a while: a cancel meanwhile must stop the
+		// container from being replaced.
+		await assertBuildNotCancelled(deployment);
 		await mechanizeDockerContainer(deployTarget);
 
 		const stability = await waitForSwarmServiceStable(application.appName, {
@@ -530,19 +608,44 @@ export const rebuildApplication = async ({
 			});
 		}
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+		// A cancel that landed while the container was being replaced cannot be
+		// honoured (the release is already running); it stays recorded as
+		// cancelled instead of being overwritten by "done".
+		let finished = true;
+		if (deployment.buildServerId) {
+			finished = await markDeploymentDoneUnlessCancelled(
+				deployment.deploymentId,
+			);
+		} else {
+			await updateDeploymentStatus(deployment.deploymentId, "done");
+		}
 		await updateApplicationStatus(applicationId, "done");
 
-		await sendBuildSuccessNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-			domains: application.domains,
-			environmentName: application.environment.name,
-		});
+		if (!finished) {
+			await appendLogLine(
+				deployment.buildServerId,
+				deployment.logPath,
+				CANCELLED_TOO_LATE_NOTE,
+			);
+		} else {
+			await sendBuildSuccessNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+				domains: application.domains,
+				environmentName: application.environment.name,
+			});
+		}
 	} catch (error) {
+		const cancelled = await settleCancelledApplicationDeploy(
+			applicationId,
+			deployment,
+			error,
+		);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -552,6 +655,14 @@ export const rebuildApplication = async ({
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
+		// A cancel that came too late, followed by a real failure: say so, the
+		// deployment ends as `error` (it did fail), not `cancelled`.
+		if (
+			deployment.buildServerId &&
+			(await isDeploymentCancelled(deployment.deploymentId))
+		) {
+			command += `echo "\n${CANCELLED_THEN_FAILED_NOTE}" >> ${deployment.logPath};`;
+		}
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
