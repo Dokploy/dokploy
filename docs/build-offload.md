@@ -29,8 +29,10 @@ render daemon.
 
 - Dokploy registry id `24DULWxAFrk80EcWleSFb`, URL `localhost:5000`. It is a
   registry:2 container on devino-first, bound to 127.0.0.1:5000 with basic auth.
-- The registry username is `registry.devino.ca`, so images are
-  `localhost:5000/registry.devino.ca/<appName>:latest`.
+- The registry image prefix is `registry.devino.ca`, so images are
+  `localhost:5000/registry.devino.ca/<appName>:latest`. The login user is
+  `dokploy` since the 2026-10-08 rotation
+  ([registry-password-rotation.md](registry-password-rotation.md)).
 - The public hostname registry.devino.ca goes through Cloudflare and does not reach
   the registry. Cloudflare's request-size limits would break layer uploads anyway.
 
