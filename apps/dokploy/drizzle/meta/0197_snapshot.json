@@ -1,5 +1,5 @@
 {
-  "id": "9dec1d38-1781-41e4-a210-f80f27037a41",
+  "id": "723532e1-8e96-425c-9aef-ce05bef3ca6a",
   "prevId": "c9ad226a-7a8f-4c3b-8f04-fef6bccf9bfb",
   "version": "7",
   "dialect": "postgresql",
@@ -7331,6 +7331,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "heartbeatAt": {
+          "name": "heartbeatAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
         "finishedAt": {
           "name": "finishedAt",

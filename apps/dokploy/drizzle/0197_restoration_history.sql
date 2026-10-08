@@ -11,6 +11,7 @@ CREATE TABLE "restoration" (
 	"destinationName" text NOT NULL,
 	"status" "deploymentStatus" DEFAULT 'running' NOT NULL,
 	"createdAt" text NOT NULL,
+	"heartbeatAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"finishedAt" text,
 	"errorMessage" text
 );

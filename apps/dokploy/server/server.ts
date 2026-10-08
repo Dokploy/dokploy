@@ -16,7 +16,10 @@ import {
 import { config } from "dotenv";
 import next from "next";
 import packageInfo from "../package.json";
-import { recoverRestorationHistory } from "./utils/restoration-history";
+import {
+	recoverRestorationHistory,
+	startCloudRestorationRecovery,
+} from "./utils/restoration-history";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -57,7 +60,11 @@ void app.prepare().then(async () => {
 			setupDockerStatsMonitoringSocketServer(server);
 		}
 
-		if (!IS_CLOUD) await recoverRestorationHistory(true);
+		if (IS_CLOUD) {
+			await startCloudRestorationRecovery();
+		} else {
+			await recoverRestorationHistory(true);
+		}
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {

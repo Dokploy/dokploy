@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { restorations } from "@dokploy/server/db/schema";
 import type { inferRouterContext } from "@trpc/server";
-import { inArray, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 type TestContext = {
@@ -44,6 +44,7 @@ import {
 	getAccessibleRestoration,
 	restorationRouter,
 } from "@/server/api/routers/restoration";
+import { recoverAbandonedRestorations } from "@/server/utils/restoration-history";
 
 const context = (id: string, org = "org-a"): TestContext => ({
 	user: { id, role: id.startsWith("owner") ? "owner" : "member" },
@@ -167,6 +168,71 @@ describe.skipIf(!process.env.RESTORATION_TEST_DATABASE_URL)(
 			const page = await caller("owner-a").list({ limit: 1, offset: 1 });
 			expect(page.total).toBe(3);
 			expect(page.rows[0]?.restorationId).toBe("a-database");
+		});
+		it("releases an interrupted cloud target while retaining a concurrent worker's heartbeat", async () => {
+			const ids = ["cloud-abandoned", "cloud-active", "cloud-retry"];
+			const fixture = {
+				organizationId: "org-a",
+				kind: "volume" as const,
+				serviceId: "cloud-service",
+				serviceType: "compose",
+				serviceName: "Cloud",
+				backupFile: "uploads.tar",
+				destinationName: "S3",
+				status: "running" as const,
+			};
+			await db
+				.delete(restorations)
+				.where(inArray(restorations.restorationId, ids));
+			try {
+				await db.insert(restorations).values([
+					{
+						...fixture,
+						restorationId: ids[0]!,
+						targetName: "abandoned",
+						heartbeatAt: sql`clock_timestamp() - interval '4 minutes'`,
+					},
+					{
+						...fixture,
+						restorationId: ids[1]!,
+						targetName: "active",
+						heartbeatAt: sql`clock_timestamp() - interval '4 minutes'`,
+					},
+				]);
+				// Hold the active row lock while the recovery UPDATE starts. PostgreSQL
+				// must recheck its stale-heartbeat predicate after this renewal commits.
+				let recovery!: Promise<void>;
+				await db.transaction(async (tx) => {
+					await tx
+						.update(restorations)
+						.set({ heartbeatAt: sql`clock_timestamp()` })
+						.where(eq(restorations.restorationId, ids[1]!));
+					recovery = recoverAbandonedRestorations();
+					await new Promise((resolve) => setTimeout(resolve, 50));
+				});
+				await recovery;
+				const rows = await db
+					.select()
+					.from(restorations)
+					.where(inArray(restorations.restorationId, ids));
+				expect(rows.find((row) => row.restorationId === ids[0])?.status).toBe(
+					"error",
+				);
+				expect(rows.find((row) => row.restorationId === ids[1])?.status).toBe(
+					"running",
+				);
+				await expect(
+					db.insert(restorations).values({
+						...fixture,
+						restorationId: ids[2]!,
+						targetName: "abandoned",
+					}),
+				).resolves.toBeDefined();
+			} finally {
+				await db
+					.delete(restorations)
+					.where(inArray(restorations.restorationId, ids));
+			}
 		});
 	},
 );

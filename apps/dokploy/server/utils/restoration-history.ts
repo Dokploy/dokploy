@@ -5,7 +5,7 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type Restoration, restorations } from "@dokploy/server/db/schema";
 import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { quote } from "shell-quote";
 import { z } from "zod";
@@ -15,6 +15,7 @@ export const restorationHistoryDirectory = () =>
 	path.join(paths().BASE_PATH, ".restorations");
 const runtime = globalThis as unknown as {
 	dokployActiveRestorations?: Set<string>;
+	dokployRestorationRecoveryTimer?: ReturnType<typeof setInterval>;
 };
 if (!runtime.dokployActiveRestorations)
 	runtime.dokployActiveRestorations = new Set<string>();
@@ -35,6 +36,7 @@ const historySchema = z.object({
 	destinationName: z.string(),
 	status: z.enum(["running", "done", "error", "cancelled"]),
 	createdAt: z.string(),
+	heartbeatAt: z.string(),
 	finishedAt: z.string().nullable(),
 	errorMessage: z.string().nullable(),
 });
@@ -75,7 +77,12 @@ export const restorationLogPath = (id: string) => {
 export async function startTrackedRestoration(
 	metadata: Omit<
 		Restoration,
-		"restorationId" | "status" | "createdAt" | "finishedAt" | "errorMessage"
+		| "restorationId"
+		| "status"
+		| "createdAt"
+		| "heartbeatAt"
+		| "finishedAt"
+		| "errorMessage"
 	>,
 	run: (append: (chunk: string) => void) => Promise<void>,
 	secrets: string[] = [],
@@ -86,10 +93,13 @@ export async function startTrackedRestoration(
 		restorationId: nanoid(),
 		status: "running",
 		createdAt: new Date().toISOString(),
+		heartbeatAt: new Date().toISOString(),
 		finishedAt: null,
 		errorMessage: null,
 	};
-	await db.insert(restorations).values(row);
+	await db
+		.insert(restorations)
+		.values({ ...row, heartbeatAt: sql`clock_timestamp()` });
 	try {
 		journal(row);
 		writeFileSync(restorationLogPath(row.restorationId), "", { mode: 0o600 });
@@ -116,6 +126,27 @@ export async function executeTrackedRestoration(
 	afterRestore?: () => Promise<void>,
 ) {
 	const file = restorationLogPath(row.restorationId);
+	// Each worker refreshes only its own task. Other cloud processes may stay alive
+	// while this process restarts, so startup must not cancel all running rows.
+	let heartbeatUpdate: Promise<unknown> = Promise.resolve();
+	const heartbeat = setInterval(() => {
+		heartbeatUpdate = heartbeatUpdate
+			.then(async () => {
+				await db
+					.update(restorations)
+					.set({ heartbeatAt: sql`clock_timestamp()` })
+					.where(
+						and(
+							eq(restorations.restorationId, row.restorationId),
+							eq(restorations.status, "running"),
+						),
+					);
+			})
+			.catch(() => {
+				console.error("Unable to refresh restoration state", row.restorationId);
+			});
+	}, 30_000);
+	heartbeat.unref();
 	let pending = "";
 	let logError: unknown;
 	let recoveryAttempted = false;
@@ -161,6 +192,8 @@ export async function executeTrackedRestoration(
 			}
 		}
 	} finally {
+		clearInterval(heartbeat);
+		await heartbeatUpdate;
 		if (pending && !logError) save(`${pending}\n`);
 		row.finishedAt = new Date().toISOString();
 		journal(row);
@@ -176,6 +209,37 @@ export async function executeTrackedRestoration(
 				},
 			});
 	}
+}
+
+export async function recoverAbandonedRestorations() {
+	await db
+		.update(restorations)
+		.set({
+			status: "error",
+			finishedAt: sql`clock_timestamp()::text`,
+			errorMessage:
+				"The restoration worker stopped reporting progress. Verify the restored data before retrying.",
+		})
+		.where(
+			and(
+				eq(restorations.status, "running"),
+				lt(
+					restorations.heartbeatAt,
+					sql`clock_timestamp() - interval '3 minutes'`,
+				),
+			),
+		);
+}
+
+export async function startCloudRestorationRecovery() {
+	if (runtime.dokployRestorationRecoveryTimer) return;
+	await recoverAbandonedRestorations();
+	runtime.dokployRestorationRecoveryTimer = setInterval(() => {
+		void recoverAbandonedRestorations().catch(() => {
+			console.error("Unable to recover abandoned restorations");
+		});
+	}, 30_000);
+	runtime.dokployRestorationRecoveryTimer.unref();
 }
 
 export async function readRestorationLog(id: string) {

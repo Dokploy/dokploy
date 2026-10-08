@@ -1,5 +1,11 @@
 import { sql } from "drizzle-orm";
-import { index, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+	index,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { organization } from "./account";
 import { deploymentStatus } from "./deployment";
@@ -25,6 +31,12 @@ export const restorations = pgTable(
 		createdAt: text("createdAt")
 			.notNull()
 			.$defaultFn(() => new Date().toISOString()),
+		heartbeatAt: timestamp("heartbeatAt", {
+			mode: "string",
+			withTimezone: true,
+		})
+			.notNull()
+			.defaultNow(),
 		finishedAt: text("finishedAt"),
 		errorMessage: text("errorMessage"),
 	},
