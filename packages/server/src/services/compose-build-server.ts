@@ -13,12 +13,15 @@ import {
 	type ComposePushedImage,
 	getBuiltImageRepoName,
 	getBuiltImageTag,
+	getCloneCompleteCommand,
 	getComposeBuildCommand,
 	getComposeBuildSettingsError,
 	getComposeConfigJsonCommand,
+	getReusableCloneProbeCommand,
 	getTagAndPushCommand,
 	getWriteFileCommand,
 	parseBuiltServices,
+	REUSABLE_CLONE_ANSWER,
 } from "@dokploy/server/utils/builders/compose-remote-build";
 import { getRemoteBuildCancelTarget } from "@dokploy/server/utils/builders/remote-build-cancel";
 import {
@@ -219,6 +222,7 @@ const buildImagesOnBuildServer = async (
 	deployment: { logPath: string; deploymentId?: string },
 	applyPatches: boolean,
 	cancellable: boolean,
+	reuseClone: boolean,
 ): Promise<{ images: ComposePushedImage[]; loginCommand: string }> => {
 	const { buildServerId, buildRegistryId } = entity;
 	if (!buildServerId || !buildRegistryId) {
@@ -278,13 +282,41 @@ const buildImagesOnBuildServer = async (
 		await checkpoint();
 		return execOnBuildServer(command, log.push);
 	};
+	// Raw composes have no checkout (the clone step only writes the file), so
+	// they always take the normal path. Any probe failure falls back to cloning,
+	// as a deploy does; only a cancel is let through.
+	const hasUsableCheckout = async (path: string) => {
+		if (entity.sourceType === "raw") return false;
+		try {
+			await checkpoint();
+			const { stdout } = await execOnBuildServer(
+				getReusableCloneProbeCommand(path),
+			);
+			return stdout.includes(REUSABLE_CLONE_ANSWER);
+		} catch (error) {
+			if (isDeploymentCancelledError(error)) throw error;
+			return false;
+		}
+	};
 
 	try {
 		log.line(
 			`Building on build server ${buildServer.name} (${buildServer.ipAddress})`,
 		);
 
-		await run(`set -e;${await getCloneCommand(buildEntity)}`);
+		// A rebuild means "build the code already on disk", and the serving host
+		// does not re-clone on one. Re-cloning here would build commits newer
+		// than the serving host's bind mounts and config files, so reuse the
+		// checkout from the last deploy when it is usable.
+		const reusing = reuseClone && (await hasUsableCheckout(codePath));
+		if (reusing) {
+			log.line(`Rebuilding from the existing clone on ${buildServer.name}`);
+		} else {
+			if (reuseClone) {
+				log.line(`No reusable clone on ${buildServer.name}, cloning`);
+			}
+			await run(`set -e;${await getCloneCommand(buildEntity)}`);
+		}
 
 		if (applyPatches && entity.sourceType !== "raw") {
 			const patches = await generateApplyPatchesCommand({
@@ -293,6 +325,11 @@ const buildImagesOnBuildServer = async (
 				serverId: buildServerId,
 			});
 			if (patches) await run(`set -e;${patches}`);
+		}
+
+		// Only now is the checkout complete; see getCloneCompleteCommand.
+		if (!reusing && entity.sourceType !== "raw") {
+			await run(`set -e;${getCloneCompleteCommand(codePath)}`);
 		}
 
 		// Same compose file the serving host will run (domains, randomize,
@@ -397,6 +434,7 @@ export const prepareComposeBuildServerDeploy = async ({
 	applyPatches = true,
 	freshVolumes = false,
 	cancellable = true,
+	reuseClone = false,
 }: {
 	entity: ComposeBuildEntity;
 	deployment: { logPath: string; deploymentId?: string };
@@ -411,6 +449,12 @@ export const prepareComposeBuildServerDeploy = async ({
 	 * and database reads they had before cancellation existed.
 	 */
 	cancellable?: boolean;
+	/**
+	 * Rebuild: skip the clone when the build server already holds a usable
+	 * checkout for this compose, so it builds the same code the serving host
+	 * has on disk. Falls back to cloning when there is none.
+	 */
+	reuseClone?: boolean;
 }): Promise<RemoteBuildDeployInfo | undefined> => {
 	if (!entity.buildServerId) {
 		// Deleting a build server nulls `buildServerId` (ON DELETE SET NULL) but
@@ -430,6 +474,7 @@ export const prepareComposeBuildServerDeploy = async ({
 			deployment,
 			applyPatches,
 			cancellable,
+			reuseClone,
 		);
 
 		// The images are pushed, but the serving host has not been told about

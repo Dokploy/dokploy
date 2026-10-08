@@ -319,6 +319,134 @@ describe("prepareComposeBuildServerDeploy", () => {
 		expect(commands.some((c) => c.includes("/srv/data"))).toBe(false);
 	});
 
+	describe("reuseClone (rebuild)", () => {
+		const answer = (usable: boolean) =>
+			mocks.execAsyncRemote.mockImplementation(
+				async (_serverId: string, command: string) => ({
+					stdout: command.includes("rev-parse --verify")
+						? usable
+							? "dokploy-reusable-clone\n"
+							: ""
+						: command.includes("config --format json")
+							? configJson({ web: { build: { context: "." } } })
+							: "",
+					stderr: "",
+				}),
+			);
+		const rebuild = (entity = compose) =>
+			prepareComposeBuildServerDeploy({
+				entity,
+				deployment: { logPath: "/tmp/log", deploymentId: "dep2" },
+				runStep: vi.fn().mockResolvedValue(undefined),
+				reuseClone: true,
+			});
+		const joinedCommands = () =>
+			callsOn("build-1")
+				.map((call) => call[1] as string)
+				.join("\n----\n");
+
+		it("skips the clone when the build server has a usable checkout, and still rewrites compose and builds", async () => {
+			answer(true);
+			await rebuild();
+			const joined = joinedCommands();
+			expect(joined).toContain("rev-parse --verify");
+			expect(joined).not.toContain("echo clone;");
+			expect(mocks.cloneGitRepository).not.toHaveBeenCalled();
+			expect(joined).toContain("echo write-compose;");
+			expect(joined).toMatch(/ build 2>&1/);
+			expect(joined).toContain("docker push");
+		});
+
+		it("clones as a deploy does when there is no usable checkout", async () => {
+			answer(false);
+			await rebuild();
+			const joined = joinedCommands();
+			expect(joined).toContain("echo clone;");
+			expect(joined.indexOf("echo clone;")).toBeLessThan(
+				joined.indexOf(" build 2>&1"),
+			);
+		});
+
+		it("a clone writes the completion marker last, after the patches, and a reuse does not", async () => {
+			mocks.generateApplyPatchesCommand.mockResolvedValue("echo patches;");
+			answer(false);
+			await rebuild();
+			const commands = callsOn("build-1").map((call) => call[1] as string);
+			const at = (needle: string) =>
+				commands.findIndex((c) => c.includes(needle));
+			const marker = commands.findIndex((c) => c.startsWith("set -e;touch"));
+			expect(marker).toBeGreaterThan(-1);
+			// (path separators are normalized so the test also runs on Windows)
+			expect(commands[marker]!.replace(/\\/g, "/")).toMatch(
+				/touch '?\/etc\/dokploy\/compose\/my-app\/code\/\.git\/dokploy-clone-ok'?;$/,
+			);
+			expect(at("echo clone;")).toBeLessThan(at("echo patches;"));
+			expect(at("echo patches;")).toBeLessThan(marker);
+			expect(marker).toBeLessThan(at("echo write-compose;"));
+
+			vi.clearAllMocks();
+			mocks.cloneGitRepository.mockResolvedValue("echo clone;");
+			answer(true);
+			await rebuild();
+			expect(
+				callsOn("build-1").some((c) => String(c[1]).startsWith("set -e;touch")),
+			).toBe(false);
+		});
+
+		it("logs why it is cloning when there is nothing to reuse", async () => {
+			answer(false);
+			await rebuild({ ...compose, serverId: "serve-1" });
+			const logged = callsOn("serve-1")
+				.map((call) =>
+					Buffer.from(
+						(call[1] as string).match(/echo "([A-Za-z0-9+/=]+)"/)?.[1] ?? "",
+						"base64",
+					).toString("utf8"),
+				)
+				.join("");
+			expect(logged).toContain("No reusable clone on builder, cloning");
+		});
+
+		it("clones when the probe itself fails", async () => {
+			mocks.execAsyncRemote.mockImplementation(
+				async (_serverId: string, command: string) => {
+					if (command.includes("rev-parse --verify")) {
+						throw new Error("ssh: connection reset");
+					}
+					return {
+						stdout: command.includes("config --format json")
+							? configJson({ web: { build: { context: "." } } })
+							: "",
+						stderr: "",
+					};
+				},
+			);
+			await rebuild();
+			expect(joinedCommands()).toContain("echo clone;");
+		});
+
+		it("never probes for a raw compose, which always rewrites its file", async () => {
+			answer(true);
+			mocks.getCreateComposeFileCommand.mockReturnValue("echo raw-file;");
+			await rebuild({ ...compose, sourceType: "raw" });
+			const joined = joinedCommands();
+			expect(joined).not.toContain("rev-parse --verify");
+			expect(joined).toContain("echo raw-file;");
+		});
+
+		it("a deploy (no reuseClone) never probes and always clones", async () => {
+			answer(true);
+			await prepareComposeBuildServerDeploy({
+				entity: compose,
+				deployment: { logPath: "/tmp/log", deploymentId: "dep3" },
+				runStep: vi.fn().mockResolvedValue(undefined),
+			});
+			const joined = joinedCommands();
+			expect(joined).not.toContain("rev-parse --verify");
+			expect(joined).toContain("echo clone;");
+		});
+	});
+
 	it("builds and pushes an image shared by several services once", async () => {
 		mocks.execAsyncRemote.mockImplementation(
 			async (_serverId: string, command: string) => ({

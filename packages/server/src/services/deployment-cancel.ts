@@ -130,11 +130,13 @@ export const CANCELLED_TOO_LATE_NOTE =
 	"Deployment cancelled ⛔ The cancel arrived while the release was being started, which cannot be interrupted: the new release is running.";
 
 /**
- * What the log says when the release failed after a cancel that came too late
- * to stop it: the deployment ends as `error` (it did fail), not `cancelled`.
+ * What the log says when the release failed after a cancel was requested but
+ * did not end it as cancelled: the deployment ends as `error` (it did fail),
+ * not `cancelled`. Neutral on why, since a cancel that landed in time can still
+ * be followed by a failed restore of the previous release.
  */
 export const CANCELLED_THEN_FAILED_NOTE =
-	"A cancel was requested earlier, but it could not stop this deployment (it arrived too late), and the deployment then failed.";
+	"A cancel was requested earlier, and the deployment then failed.";
 
 /**
  * The status a service returns to after a cancelled deploy. Nothing from the
