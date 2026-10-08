@@ -121,7 +121,10 @@ export const DeleteServerModal = ({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-w-lg">
+			<DialogContent
+				className="max-w-lg"
+				onCloseAutoFocus={(e) => e.preventDefault()}
+			>
 				<DialogHeader>
 					<DialogTitle>Delete Server</DialogTitle>
 					<DialogDescription>
