@@ -166,6 +166,16 @@ describe("ovhClient.listZones", () => {
 
 		await expect(ovhClient.listZones(cfg)).rejects.toThrow("Invalid signature");
 	});
+
+	it("returns only the configured zone without listing every zone", async () => {
+		const cfg = { ...freshConfig(), zone: "example.com" };
+		mockApi();
+
+		const zones = await ovhClient.listZones(cfg);
+
+		expect(zones).toEqual([{ id: "example.com", name: "example.com" }]);
+		expect(apiCalls()).toHaveLength(0);
+	});
 });
 
 describe("ovhClient.listRecords", () => {
@@ -576,6 +586,57 @@ describe("ovhClient.testConnection", () => {
 
 		await expect(ovhClient.testConnection(cfg)).rejects.toThrow(
 			"Invalid signature",
+		);
+	});
+
+	it("checks the configured zone instead of listing all zones", async () => {
+		const cfg = { ...freshConfig(), zone: "example.com" };
+		mockApi(ovhSuccess({ name: "example.com" }));
+
+		await expect(ovhClient.testConnection(cfg)).resolves.toBeUndefined();
+
+		const calls = apiCalls();
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.[0]).toBe(`${cfg.baseUrl}/domain/zone/example.com`);
+	});
+});
+
+describe("ovhClient with a configured zone", () => {
+	const record = {
+		type: "A" as const,
+		name: "app.other.org",
+		content: "1.2.3.4",
+	};
+
+	it("refuses record operations on any other zone without calling OVH", async () => {
+		const cfg = { ...freshConfig(), zone: "example.com" };
+		mockApi();
+
+		const message = /restricted to the zone "example.com"/;
+		await expect(ovhClient.listRecords(cfg, "other.org")).rejects.toThrow(
+			message,
+		);
+		await expect(
+			ovhClient.upsertRecord(cfg, { ...record, zoneId: "other.org" }),
+		).rejects.toThrow(message);
+		await expect(
+			ovhClient.updateRecord(cfg, "other.org", "1", record),
+		).rejects.toThrow(message);
+		await expect(ovhClient.deleteRecord(cfg, "other.org", "1")).rejects.toThrow(
+			message,
+		);
+		expect(apiCalls()).toHaveLength(0);
+	});
+
+	it("still allows operations on the configured zone", async () => {
+		const cfg = { ...freshConfig(), zone: "example.com" };
+		mockApi(ovhSuccess(null), ovhSuccess(null));
+
+		await expect(
+			ovhClient.deleteRecord(cfg, "example.com", "1"),
+		).resolves.toBeUndefined();
+		expect(apiCalls()[0]?.[0]).toBe(
+			`${cfg.baseUrl}/domain/zone/example.com/record/1`,
 		);
 	});
 });
