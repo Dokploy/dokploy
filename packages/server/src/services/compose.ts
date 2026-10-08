@@ -302,6 +302,9 @@ export const findComposeById = async (composeId: string) => {
 				},
 			},
 			server: true,
+			// Only its name: the restore step quotes it in "redeploy, which builds
+			// on <name>" when it refuses to rebuild a pre-build-server release.
+			buildServer: { columns: { serverId: true, name: true } },
 			backups: {
 				with: {
 					destination: {
