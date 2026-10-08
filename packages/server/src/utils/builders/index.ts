@@ -53,7 +53,10 @@ export type ApplicationNested = InferResultType<
 	buildPolicyImage?: string | null;
 };
 
-export const getBuildCommand = async (rawApplication: ApplicationNested) => {
+export const getBuildCommand = async (
+	rawApplication: ApplicationNested,
+	serverId: string | null | undefined,
+) => {
 	const application = await withResolvedVaultRefs(rawApplication);
 	let command = "";
 
@@ -86,7 +89,7 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 		application.buildRegistry ||
 		application.rollbackRegistry
 	) {
-		command += await uploadImageRemoteCommand(application);
+		command += await uploadImageRemoteCommand(application, serverId);
 	}
 
 	return command;

@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
 	deploymentStatus: vi.fn(),
 	findServerById: vi.fn(),
 	findRegistryByIdWithCredentials: vi.fn(),
-	getRegistryLoginCommand: vi.fn(),
+	loginDockerRegistry: vi.fn(),
 	cloneGitRepository: vi.fn(),
 }));
 
@@ -29,7 +29,7 @@ vi.mock("@dokploy/server/services/registry", () => ({
 	findRegistryByIdWithCredentials: mocks.findRegistryByIdWithCredentials,
 }));
 vi.mock("@dokploy/server/utils/cluster/upload", () => ({
-	getRegistryLoginCommand: mocks.getRegistryLoginCommand,
+	loginDockerRegistry: mocks.loginDockerRegistry,
 	getRegistryTag: (
 		registry: { registryUrl: string; username: string },
 		image: string,
@@ -106,7 +106,7 @@ beforeEach(() => {
 		username: "acme",
 		organizationId: "org-1",
 	});
-	mocks.getRegistryLoginCommand.mockResolvedValue("echo login;");
+	mocks.loginDockerRegistry.mockResolvedValue(undefined);
 	mocks.cloneGitRepository.mockResolvedValue("echo clone;");
 	mocks.deploymentStatus.mockResolvedValue({ status: "running" });
 	mocks.execAsyncRemote.mockImplementation(

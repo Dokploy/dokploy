@@ -186,8 +186,6 @@ export interface RemoteBuildImage {
 
 export interface RemoteBuildDeployInfo {
 	images: RemoteBuildImage[];
-	/** Shell command that logs the serving host in to the build registry. */
-	loginCommand: string;
 	/** Human readable name of the serving host, for the deployment log. */
 	servingHostLabel: string;
 }
@@ -430,9 +428,10 @@ Compose Type: ${composeType} ✅`;
 		`;
 	}
 
-	// Serving side of a build-server deploy: log in, pull exactly the images the
-	// build server pushed, then `up --no-build`. Inside the guarded line below,
-	// so a failed login or pull restores the previous release like a failed `up`.
+	// Serving side of a build-server deploy: pull exactly the images the
+	// build server pushed (already logged in, see prepareComposeBuildServerDeploy),
+	// then `up --no-build`. Inside the guarded line below, so a failed pull restores
+	// the previous release like a failed `up`.
 	let remotePullBlock = "";
 	if (remoteBuild && remoteBuild.images.length > 0) {
 		// Services that share one image share one reference: pull it once.
@@ -441,7 +440,6 @@ Compose Type: ${composeType} ✅`;
 		remotePullBlock = `
 		PULL_OK=1;
 		echo ${quote([`Pulling images on ${remoteBuild.servingHostLabel} (${refs.length} built on the build server)`])};
-		${remoteBuild.loginCommand} || { echo "Error: ❌ Registry login failed on the serving host"; PULL_OK=0; }
 		if [ "$PULL_OK" = "1" ]; then { ${pulls}; } 2>&1 || PULL_OK=0; fi`;
 	}
 	const upLine = remotePullBlock

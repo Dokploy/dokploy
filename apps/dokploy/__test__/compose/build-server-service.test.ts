@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({
 	execAsyncRemote: vi.fn(),
 	findServerById: vi.fn(),
 	findRegistryByIdWithCredentials: vi.fn(),
-	getRegistryLoginCommand: vi.fn(),
+	loginDockerRegistry: vi.fn(),
 	cloneGitRepository: vi.fn(),
 	getCreateComposeFileCommand: vi.fn(),
 	generateApplyPatchesCommand: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock("@dokploy/server/services/registry", () => ({
 	findRegistryByIdWithCredentials: mocks.findRegistryByIdWithCredentials,
 }));
 vi.mock("@dokploy/server/utils/cluster/upload", () => ({
-	getRegistryLoginCommand: mocks.getRegistryLoginCommand,
+	loginDockerRegistry: mocks.loginDockerRegistry,
 	getRegistryTag: (
 		registry: { registryUrl: string; username: string },
 		image: string,
@@ -172,9 +172,7 @@ describe("prepareComposeBuildServerDeploy", () => {
 		vi.clearAllMocks();
 		mocks.findServerById.mockResolvedValue(buildServer);
 		mocks.findRegistryByIdWithCredentials.mockResolvedValue(registry);
-		mocks.getRegistryLoginCommand.mockResolvedValue(
-			"echo pw | docker login reg.example.com -u acme --password-stdin",
-		);
+		mocks.loginDockerRegistry.mockResolvedValue(undefined);
 		mocks.cloneGitRepository.mockResolvedValue("echo clone;");
 		mocks.generateApplyPatchesCommand.mockResolvedValue("");
 		mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
@@ -274,9 +272,16 @@ describe("prepareComposeBuildServerDeploy", () => {
 			images: [
 				{ service: "web", image: "reg.example.com/acme/my-app-web:dpl-dep1" },
 			],
-			loginCommand: expect.stringContaining("docker login reg.example.com"),
 			servingHostLabel: "prod-1",
 		});
+
+		// Logged in on the build server before the push, then on the serving host
+		// (no server id: the Dokploy host), each as its own command.
+		expect(mocks.loginDockerRegistry.mock.calls).toEqual([
+			[registry, "build-1"],
+			[registry, null],
+		]);
+		expect(joined).not.toContain("docker login");
 	});
 
 	it("writes the file mounts to the build server before reading the configuration", async () => {
@@ -534,7 +539,8 @@ describe("prepareComposeBuildServerDeploy", () => {
 			runStep,
 		});
 
-		expect(result).toMatchObject({ images: [], loginCommand: "" });
+		expect(result).toMatchObject({ images: [] });
+		expect(mocks.loginDockerRegistry).not.toHaveBeenCalled();
 		const joined = mocks.execAsyncRemote.mock.calls
 			.map((call) => call[1] as string)
 			.join("\n");

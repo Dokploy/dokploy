@@ -44,10 +44,21 @@ export const execAsync = async (
 		env?: NodeJS.ProcessEnv;
 		shell?: string;
 		maxBuffer?: number;
+		// Written to the command's stdin. Secrets go here, never in `command`:
+		// the command line is visible to every user on the host through ps.
+		stdin?: string;
 	},
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
-		const result = await execAsyncBase(command, options);
+		const { stdin, ...execOptions } = options ?? {};
+		const pending = execAsyncBase(command, execOptions);
+		if (stdin !== undefined) {
+			// A command that exits without reading its input must not crash the
+			// process with an unhandled EPIPE; its exit status is what we report.
+			pending.child.stdin?.on("error", () => {});
+			pending.child.stdin?.end(stdin);
+		}
+		const result = await pending;
 		return {
 			stdout: result.stdout.toString(),
 			stderr: result.stderr.toString(),
@@ -271,6 +282,11 @@ export const execAsyncRemote = async (
 		 * runs exactly as before.
 		 */
 		cancelable?: RemoteBuildCancelTarget;
+		/**
+		 * Written to the command's stdin, then closed. Secrets go here, never in
+		 * `command`: the command line is visible to every user on the host.
+		 */
+		stdin?: string;
 	} = {},
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
@@ -325,6 +341,10 @@ export const execAsyncRemote = async (
 							}),
 						);
 						return;
+					}
+					if (options.stdin !== undefined) {
+						stream.write(options.stdin);
+						stream.end();
 					}
 					stream
 						.on("close", (code: number, _signal: string) => {

@@ -265,17 +265,13 @@ describe("getTagAndPushCommand", () => {
 	];
 	const command = getTagAndPushCommand({
 		images,
-		loginCommand:
-			"echo secret | docker login reg.example.com -u u --password-stdin",
 		registryLabel: "reg.example.com",
 	});
 
-	it("logs in before anything is pushed", () => {
-		expect(command.indexOf("docker login")).toBeGreaterThan(-1);
-		expect(command.indexOf("docker login")).toBeLessThan(
-			command.indexOf("docker push"),
-		);
-		expect(command).toContain("Registry Login Failed");
+	it("does not log in itself: the login runs beforehand, on stdin", () => {
+		expect(command).not.toContain("docker login");
+		expect(command).not.toContain("--password");
+		expect(command).toContain("Registry Login Success");
 	});
 
 	it("tags and pushes both the deployment tag and :latest for every service", () => {

@@ -77,9 +77,9 @@ const redactAssignments = (value: string): string =>
 		(_m, name, v) => name + quoteLike(v),
 	);
 
-// Registry logins are generated as `printf %s '<password>' | docker login ...
-// --password-stdin` (see getSafeDockerLoginCommand). The whole script travels
-// in the command line, so a failing deploy repeats it on the error message.
+// Registry logins used to be generated as `printf %s '<password>' | docker login ...
+// --password-stdin`; the password now travels on stdin (see runDockerLogin). Kept
+// for older logs and errors, where the script repeated it on the error message.
 // Matches `docker login` and the ECR form `docker login --username AWS`.
 const redactRegistryPasswords = (value: string): string =>
 	value.replace(

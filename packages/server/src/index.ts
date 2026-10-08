@@ -149,6 +149,7 @@ export * from "./utils/notifications/schedule-failure";
 export * from "./utils/notifications/server-threshold";
 export * from "./utils/notifications/utils";
 export * from "./utils/process/background";
+export * from "./utils/process/dockerLogin";
 export * from "./utils/process/execAsync";
 export * from "./utils/process/spawnAsync";
 export * from "./utils/providers/bitbucket";
