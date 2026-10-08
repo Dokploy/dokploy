@@ -388,7 +388,7 @@ export const readPorts = async (
 			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
 
 			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
-			const firstMapping = containerPortMappings[0];
+			const firstMapping = containerPortMappings?.[0];
 			if (firstMapping) {
 				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
 				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
