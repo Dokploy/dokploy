@@ -4,7 +4,6 @@ import {
 	IS_CLOUD,
 	removeVolumeBackup,
 	removeVolumeBackupJob,
-	restoreVolume,
 	runVolumeBackup,
 	scheduleVolumeBackup,
 	updateVolumeBackup,
@@ -13,25 +12,16 @@ import { db } from "@dokploy/server/db";
 import {
 	createVolumeBackupSchema,
 	updateVolumeBackupSchema,
-	VOLUME_NAME_MESSAGE,
-	VOLUME_NAME_REGEX,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
-import { findDestinationById } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
-import { findServerById } from "@dokploy/server/services/server";
-import {
-	execAsyncRemote,
-	execAsyncStream,
-} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { assertVolumeBackupLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
-import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -273,97 +263,5 @@ export const volumeBackupsRouter = createTRPCRouter({
 				console.error(error);
 				return false;
 			}
-		}),
-	restoreVolumeBackupWithLogs: withPermission("volumeBackup", "restore")
-		.meta({
-			openapi: {
-				enabled: false,
-				path: "/restore-volume-backup-with-logs",
-				method: "POST",
-				override: true,
-			},
-		})
-		.input(
-			z.object({
-				backupFileName: z.string().min(1),
-				destinationId: z.string().min(1),
-				volumeName: z
-					.string()
-					.min(1)
-					.regex(VOLUME_NAME_REGEX, VOLUME_NAME_MESSAGE),
-				id: z.string().min(1),
-				serviceType: z.enum(["application", "compose"]),
-				serverId: z.string().optional(),
-			}),
-		)
-		.subscription(async ({ input, ctx }) => {
-			const destination = await findDestinationById(input.destinationId);
-			if (destination.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You don't have access to this destination.",
-				});
-			}
-			if (input.serverId) {
-				const targetServer = await findServerById(input.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this server.",
-					});
-				}
-			}
-			return observable<string>((emit) => {
-				const runRestore = async () => {
-					try {
-						emit.next("🚀 Starting volume restore process...");
-						emit.next(`📂 Backup File: ${input.backupFileName}`);
-						emit.next(`🔧 Volume Name: ${input.volumeName}`);
-						emit.next(`🏷️ Service Type: ${input.serviceType}`);
-						emit.next(""); // Empty line for better readability
-
-						// Generate the restore command
-						const restoreCommand = await restoreVolume(
-							input.id,
-							input.destinationId,
-							input.volumeName,
-							input.backupFileName,
-							input.serverId || "",
-							input.serviceType,
-						);
-
-						emit.next("📋 Generated restore command:");
-						emit.next("▶️ Executing restore...");
-						emit.next(""); // Empty line
-
-						// Execute the restore command with real-time output
-						if (input.serverId) {
-							emit.next(`🌐 Executing on remote server: ${input.serverId}`);
-							await execAsyncRemote(input.serverId, restoreCommand, (data) => {
-								emit.next(data);
-							});
-						} else {
-							emit.next("🖥️ Executing on local server");
-							await execAsyncStream(restoreCommand, (data) => {
-								emit.next(data);
-							});
-						}
-
-						emit.next("");
-						emit.next("✅ Volume restore completed successfully!");
-						emit.next(
-							"🎉 All containers/services have been restarted with the restored volume.",
-						);
-					} catch {
-						emit.next("");
-						emit.next("❌ Volume restore failed!");
-					} finally {
-						emit.complete();
-					}
-				};
-
-				// Start the restore process
-				runRestore();
-			});
 		}),
 });

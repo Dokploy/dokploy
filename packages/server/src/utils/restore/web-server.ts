@@ -1,4 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
+import { cp, mkdtemp, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
@@ -65,6 +65,17 @@ export const restoreWebServerBackup = async (
 			// Copy files preserving permissions
 			emit("Copying files...");
 			await execAsync(`cp -rp "${tempDir}/filesystem/"* "${BASE_PATH}/"`);
+			const archivedHistory = join(tempDir, "filesystem", ".restorations");
+			if (
+				await stat(archivedHistory)
+					.then((entry) => entry.isDirectory())
+					.catch(() => false)
+			) {
+				await cp(archivedHistory, join(BASE_PATH, ".restorations"), {
+					recursive: true,
+					force: false,
+				});
+			}
 
 			// Now handle database restore
 			emit("Starting database restore...");

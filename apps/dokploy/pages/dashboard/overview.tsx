@@ -7,6 +7,7 @@ import superjson from "superjson";
 import { ShowOverviewBackups } from "@/components/dashboard/overview/show-overview-backups";
 import { ShowOverviewDeployments } from "@/components/dashboard/overview/show-overview-deployments";
 import { ShowOverviewDomains } from "@/components/dashboard/overview/show-overview-domains";
+import { ShowOverviewRestorations } from "@/components/dashboard/overview/show-overview-restorations";
 import { ShowOverviewServices } from "@/components/dashboard/overview/show-overview-services";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,13 +23,16 @@ const Overview = () => {
 		!!permissions?.backup.read && !!permissions?.volumeBackup.read;
 	const canSeeDomains = !!permissions?.domain.read;
 	const canSeeDeployments = !!permissions?.deployment.read;
+	const canSeeRestorations =
+		!!permissions?.backup.read || !!permissions?.volumeBackup.read;
 
 	const queryTab =
 		typeof router.query.tab === "string" ? router.query.tab : DEFAULT_TAB;
 	const activeTab =
 		(queryTab === "backups" && !canSeeBackups) ||
 		(queryTab === "domains" && !canSeeDomains) ||
-		(queryTab === "deployments" && !canSeeDeployments)
+		(queryTab === "deployments" && !canSeeDeployments) ||
+		(queryTab === "restorations" && !canSeeRestorations)
 			? DEFAULT_TAB
 			: queryTab;
 
@@ -46,9 +50,12 @@ const Overview = () => {
 
 	return (
 		<Tabs value={activeTab} onValueChange={setTab}>
-			<TabsList>
+			<TabsList className="max-w-full overflow-x-auto">
 				<TabsTrigger value="services">Services</TabsTrigger>
 				{canSeeBackups && <TabsTrigger value="backups">Backups</TabsTrigger>}
+				{canSeeRestorations && (
+					<TabsTrigger value="restorations">Restorations</TabsTrigger>
+				)}
 				{canSeeDomains && <TabsTrigger value="domains">Domains</TabsTrigger>}
 				{canSeeDeployments && (
 					<TabsTrigger value="deployments">Deployments</TabsTrigger>
@@ -65,6 +72,11 @@ const Overview = () => {
 			{canSeeDomains && (
 				<TabsContent value="domains">
 					<ShowOverviewDomains />
+				</TabsContent>
+			)}
+			{canSeeRestorations && (
+				<TabsContent value="restorations">
+					<ShowOverviewRestorations />
 				</TabsContent>
 			)}
 			{canSeeDeployments && (
