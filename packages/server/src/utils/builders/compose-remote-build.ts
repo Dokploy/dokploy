@@ -229,3 +229,29 @@ export const getTagAndPushCommand = ({
 	);
 	return lines.join("\n");
 };
+
+export const REUSABLE_CLONE_ANSWER = "dokploy-reusable-clone";
+const CLONE_COMPLETE_FILE = ".git/dokploy-clone-ok";
+
+/**
+ * Written as the very last step of a build-server clone (after the clone and
+ * any patches), so a clone that was killed part-way (a cancel can SIGKILL it
+ * after the ref is written but before checkout finishes) is never mistaken for
+ * a finished one. Checkouts made before this marker existed have none and are
+ * cloned once more on their next rebuild.
+ */
+export const getCloneCompleteCommand = (codePath: string) =>
+	`touch ${quote([`${codePath}/${CLONE_COMPLETE_FILE}`])};`;
+
+/**
+ * Prints `dokploy-reusable-clone` when `codePath` is a finished checkout of its
+ * own: the completion marker exists, HEAD resolves, and the repository's git
+ * dir is the relative `.git`, which git only prints when `codePath` is the top
+ * level (a plain `git -C` would walk up into any ancestor repository, such as
+ * etckeeper, for an empty directory, and print an absolute path).
+ */
+export const getReusableCloneProbeCommand = (codePath: string) => {
+	const dir = quote([codePath]);
+	const marker = quote([`${codePath}/${CLONE_COMPLETE_FILE}`]);
+	return `if [ -f ${marker} ] && [ "$(git -C ${dir} rev-parse --git-dir 2>/dev/null)" = .git ] && git -C ${dir} rev-parse --verify -q HEAD >/dev/null 2>&1; then echo ${REUSABLE_CLONE_ANSWER}; fi`;
+};

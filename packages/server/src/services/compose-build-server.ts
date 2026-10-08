@@ -13,12 +13,15 @@ import {
 	type ComposePushedImage,
 	getBuiltImageRepoName,
 	getBuiltImageTag,
+	getCloneCompleteCommand,
 	getComposeBuildCommand,
 	getComposeBuildSettingsError,
 	getComposeConfigJsonCommand,
+	getReusableCloneProbeCommand,
 	getTagAndPushCommand,
 	getWriteFileCommand,
 	parseBuiltServices,
+	REUSABLE_CLONE_ANSWER,
 } from "@dokploy/server/utils/builders/compose-remote-build";
 import { getRemoteBuildCancelTarget } from "@dokploy/server/utils/builders/remote-build-cancel";
 import {
@@ -119,9 +122,7 @@ export const assertComposeBuildSettings = async (
 	}
 };
 
-const REUSABLE_CLONE_MARKER = "dokploy-reusable-clone";
-
-const MAX_LOG_CHUNK =24 * 1024;
+const MAX_LOG_CHUNK = 24 * 1024;
 const LOG_FLUSH_MS = 1500;
 
 /**
@@ -289,9 +290,9 @@ const buildImagesOnBuildServer = async (
 		try {
 			await checkpoint();
 			const { stdout } = await execOnBuildServer(
-				`if git -C ${quote([path])} rev-parse --verify -q HEAD >/dev/null 2>&1; then echo ${REUSABLE_CLONE_MARKER}; fi`,
+				getReusableCloneProbeCommand(path),
 			);
-			return stdout.includes(REUSABLE_CLONE_MARKER);
+			return stdout.includes(REUSABLE_CLONE_ANSWER);
 		} catch (error) {
 			if (isDeploymentCancelledError(error)) throw error;
 			return false;
@@ -307,9 +308,13 @@ const buildImagesOnBuildServer = async (
 		// does not re-clone on one. Re-cloning here would build commits newer
 		// than the serving host's bind mounts and config files, so reuse the
 		// checkout from the last deploy when it is usable.
-		if (reuseClone && (await hasUsableCheckout(codePath))) {
+		const reusing = reuseClone && (await hasUsableCheckout(codePath));
+		if (reusing) {
 			log.line(`Rebuilding from the existing clone on ${buildServer.name}`);
 		} else {
+			if (reuseClone) {
+				log.line(`No reusable clone on ${buildServer.name}, cloning`);
+			}
 			await run(`set -e;${await getCloneCommand(buildEntity)}`);
 		}
 
@@ -320,6 +325,11 @@ const buildImagesOnBuildServer = async (
 				serverId: buildServerId,
 			});
 			if (patches) await run(`set -e;${patches}`);
+		}
+
+		// Only now is the checkout complete; see getCloneCompleteCommand.
+		if (!reusing && entity.sourceType !== "raw") {
+			await run(`set -e;${getCloneCompleteCommand(codePath)}`);
 		}
 
 		// Same compose file the serving host will run (domains, randomize,

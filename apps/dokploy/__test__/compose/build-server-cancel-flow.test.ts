@@ -164,6 +164,36 @@ describe("prepareComposeBuildServerDeploy and cancellation", () => {
 		expectOnlyTheRestore(runStep);
 	});
 
+	it("a cancel during the reuse probe rethrows the cancel instead of cloning", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => {
+				if (command.includes("rev-parse --verify")) {
+					// The kill drops the probe's connection; the row says cancelled.
+					mocks.deploymentStatus.mockResolvedValue({ status: "cancelled" });
+					throw new Error("ssh: connection closed");
+				}
+				return { stdout: "", stderr: "" };
+			},
+		);
+		const runStep = vi.fn().mockResolvedValue(undefined);
+
+		await expect(
+			prepareComposeBuildServerDeploy({
+				entity: compose,
+				deployment: { logPath: "/tmp/log", deploymentId: "dep1" },
+				runStep,
+				reuseClone: true,
+			}),
+		).rejects.toMatchObject({ deploymentCancelled: true });
+
+		expect(
+			mocks.execAsyncRemote.mock.calls.some((call) =>
+				String(call[1]).includes("echo clone;"),
+			),
+		).toBe(false);
+		expectOnlyTheRestore(runStep);
+	});
+
 	it("does not run any step after a cancel that lands between two steps", async () => {
 		let seen = 0;
 		mocks.execAsyncRemote.mockImplementation(

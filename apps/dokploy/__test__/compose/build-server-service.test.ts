@@ -367,6 +367,46 @@ describe("prepareComposeBuildServerDeploy", () => {
 			);
 		});
 
+		it("a clone writes the completion marker last, after the patches, and a reuse does not", async () => {
+			mocks.generateApplyPatchesCommand.mockResolvedValue("echo patches;");
+			answer(false);
+			await rebuild();
+			const commands = callsOn("build-1").map((call) => call[1] as string);
+			const at = (needle: string) =>
+				commands.findIndex((c) => c.includes(needle));
+			const marker = commands.findIndex((c) => c.startsWith("set -e;touch"));
+			expect(marker).toBeGreaterThan(-1);
+			// (path separators are normalized so the test also runs on Windows)
+			expect(commands[marker]!.replace(/\\/g, "/")).toMatch(
+				/touch '?\/etc\/dokploy\/compose\/my-app\/code\/\.git\/dokploy-clone-ok'?;$/,
+			);
+			expect(at("echo clone;")).toBeLessThan(at("echo patches;"));
+			expect(at("echo patches;")).toBeLessThan(marker);
+			expect(marker).toBeLessThan(at("echo write-compose;"));
+
+			vi.clearAllMocks();
+			mocks.cloneGitRepository.mockResolvedValue("echo clone;");
+			answer(true);
+			await rebuild();
+			expect(
+				callsOn("build-1").some((c) => String(c[1]).startsWith("set -e;touch")),
+			).toBe(false);
+		});
+
+		it("logs why it is cloning when there is nothing to reuse", async () => {
+			answer(false);
+			await rebuild({ ...compose, serverId: "serve-1" });
+			const logged = callsOn("serve-1")
+				.map((call) =>
+					Buffer.from(
+						(call[1] as string).match(/echo "([A-Za-z0-9+/=]+)"/)?.[1] ?? "",
+						"base64",
+					).toString("utf8"),
+				)
+				.join("");
+			expect(logged).toContain("No reusable clone on builder, cloning");
+		});
+
 		it("clones when the probe itself fails", async () => {
 			mocks.execAsyncRemote.mockImplementation(
 				async (_serverId: string, command: string) => {
