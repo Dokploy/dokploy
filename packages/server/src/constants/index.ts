@@ -134,6 +134,7 @@ export const paths = (isServer = false) => {
 		CERTIFICATES_PATH: `${DYNAMIC_TRAEFIK_PATH}/certificates`,
 		MONITORING_PATH: `${BASE_PATH}/monitoring`,
 		REGISTRY_PATH: `${BASE_PATH}/registry`,
+		VECTOR_PATH: `${BASE_PATH}/vector`,
 		SCHEDULES_PATH: `${BASE_PATH}/schedules`,
 		VOLUME_BACKUPS_PATH: `${BASE_PATH}/volume-backups`,
 		VOLUME_BACKUP_LOCK_PATH: `${BASE_PATH}/volume-backup-lock`,

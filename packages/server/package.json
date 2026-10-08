@@ -37,6 +37,8 @@
     "@ai-sdk/mistral": "^3.0.20",
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/openai-compatible": "^2.0.30",
+    "@aws-sdk/client-cloudwatch": "^3.1108.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1108.0",
     "@aws-sdk/client-route-53": "^3.1108.0",
     "@aws-sdk/client-secrets-manager": "^3.1108.0",
     "@aws-sdk/client-ssm": "3.1108.0",
@@ -86,6 +88,7 @@
     "slugify": "^1.6.6",
     "ssh2": "~1.16.0",
     "toml": "3.0.0",
+    "undici": "^6.21.3",
     "ws": "8.16.0",
     "yaml": "2.8.1",
     "zod": "^4.3.6"
