@@ -158,12 +158,16 @@ then 2 to 3 on 2026-10-08 00:03Z, once compose offload was live.
 
 At 3, devino-third (32 threads, 125 GiB) showed:
 
-- CPU pressure: some avg10 about 4%
-- IO pressure: full avg10 about 4%
-- the slot controller: psi_full60 0.00, CPU 30 to 50%, about 80 GiB available
+| Reading | Quiet | Busy (9 CI runners + builds, 00:30Z) |
+|---|---|---|
+| CPU pressure, some avg300 | about 4% | about 28 to 35% |
+| IO pressure, full avg300 | about 4% | about 2 to 5% |
+| Load average | about 20 | 40 to 55 |
+| Memory available | about 80 GiB | about 85 GiB |
 
-Raise it further only while CPU pressure, IO full pressure and available memory
-stay in that range with CI busy. Log every change (time, prior value, new value) in
+Memory and IO have room, but busy CPU is already contended, so 3 is the ceiling
+for now. Raise it only if CPU some-pressure stays under about 15% with CI busy, or
+if CI's share of the node shrinks. Log every change (time, prior value, new value) in
 `/root/build-offload-20261007/concurrency.log`.
 
 ## 7. Sharing devino-third with CI
