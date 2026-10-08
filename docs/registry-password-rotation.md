@@ -155,6 +155,7 @@ uses it.
 | 09:37 | `docker` with the old password got 401 on `/v2/` on both hosts, and `docker login` as `docker` failed. `dokploy` got 200 and `docker login` succeeded on both hosts. |
 | 09:39 | Pull by digest with the new auth succeeded. A forced roll of `bioflow-dev-landing-bkd2ps` without `--with-registry-auth`, which used the stored auth from step 4, completed with the task running and no auth errors in the dockerd log. |
 | 09:56–09:59 | A build-server deploy after retirement (`postify-compose-prod-udff6e`) logged "Registry Login Success". Five images were built on devino-third and pushed, then pulled on devino-first, and the deployment finished `done`. |
+| 09:58–10:02 | A deploy queued on purpose (`postify-compose-dev-bshqct`) had the same result: "Registry Login Success", 5 images pushed as `dpl-<deploymentId>` tags, pulled on devino-first, and the deployment finished `done`. Compose deploy logs that run on the build server are relayed to `/etc/dokploy/logs/<appName>/` on devino-first, not devino-third. |
 
 The registry container was not restarted at any point (`StartedAt`
 2026-09-12T05:19:21Z). Anonymous `/v2/` stayed 401 on both hosts throughout.
