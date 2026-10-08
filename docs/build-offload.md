@@ -128,11 +128,17 @@ Rollout on 2026-10-07/08:
   pulled and run on devino-first as
   `localhost:5000/registry.devino.ca/postify-compose-dev-bshqct-<service>:dpl-<deploymentId>`.
 - 00:00Z: 44 more composes were enabled, 45 in total. Their next deploy builds on
-  devino-third.
-- uprank-efcpwb is not offloaded yet. Its custom command (start postgres, run
-  migrate from the `ops` profile, then `up --build`) is rejected by the build-server
-  path. The migration needs to become a `service_completed_successfully` dependency
-  so the custom command can be cleared.
+  devino-third. A second test deploy, of notifly-dev-wfg8rh, ran its five built
+  services from `dpl-` images.
+- uprank-efcpwb had a custom command (start postgres, run migrate from the `ops`
+  profile, then `up --build`), which the build-server path rejects. uprank PR #88
+  made `migrate` part of the `app` and `workers` profiles, and made web and the
+  workers depend on it with `service_completed_successfully`. The custom command
+  was then cleared (the old one is saved in
+  `/root/build-offload-20261007/uprank-prior-command.txt`) and the build server
+  was set. That makes 46 of 46.
+- A compose with a custom command cannot use a build server. Express any extra
+  steps as compose dependencies instead.
 - Two composes (compose-bypass-optical-firewall-n4knx9 and
   compose-synthesize-1080p-hard-drive-ocxesi) have never been cloned, so whether they
   have `build:` sections is unknown. Check and enable them after their first clone.
