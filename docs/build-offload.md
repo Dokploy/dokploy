@@ -121,6 +121,24 @@ Limits:
 46 of the 94 composes have `build:` sections. They are enabled per compose; prior
 values are logged in `/root/build-offload-20261007/compose.log`.
 
+Rollout on 2026-10-07/08:
+
+- First, postify-compose-dev-bshqct was enabled and deployed on its own (deployment
+  23:53Z to 23:59Z). Its five services were built and pushed on devino-third, then
+  pulled and run on devino-first as
+  `localhost:5000/registry.devino.ca/postify-compose-dev-bshqct-<service>:dpl-<deploymentId>`.
+- 00:00Z: 44 more composes were enabled, 45 in total. Their next deploy builds on
+  devino-third.
+- uprank-efcpwb is not offloaded yet. Its custom command (start postgres, run
+  migrate from the `ops` profile, then `up --build`) is rejected by the build-server
+  path. The migration needs to become a `service_completed_successfully` dependency
+  so the custom command can be cleared.
+- Two composes (compose-bypass-optical-firewall-n4knx9 and
+  compose-synthesize-1080p-hard-drive-ocxesi) have never been cloned, so whether they
+  have `build:` sections is unknown. Check and enable them after their first clone.
+
+To revert one compose, set `buildServerId` and `buildRegistryId` back to NULL.
+
 ## 6. Concurrency
 
 Queue partitions follow the serving server. Locally served apps and composes share
@@ -130,8 +148,16 @@ change applies without a restart. A build server's own buildsConcurrency is not
 read.
 
 History: 1 to 2 on 2026-10-07 23:42Z (while composes still built on devino-first),
-then 3 once compose offload is live. Raise it further only while devino-third CPU,
-RAM and disk IO stay sane. Log every change in
+then 2 to 3 on 2026-10-08 00:03Z, once compose offload was live.
+
+At 3, devino-third (32 threads, 125 GiB) showed:
+
+- CPU pressure: some avg10 about 4%
+- IO pressure: full avg10 about 4%
+- the slot controller: psi_full60 0.00, CPU 30 to 50%, about 80 GiB available
+
+Raise it further only while CPU pressure, IO full pressure and available memory
+stay in that range with CI busy. Log every change (time, prior value, new value) in
 `/root/build-offload-20261007/concurrency.log`.
 
 ## 7. Sharing devino-third with CI
