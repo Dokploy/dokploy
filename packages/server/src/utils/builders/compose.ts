@@ -192,6 +192,13 @@ export interface RemoteBuildDeployInfo {
 	servingHostLabel: string;
 }
 
+/** Name of the compose's build server for user-facing messages. */
+const getBuildServerLabel = (compose: ComposeNested) => {
+	const name = (compose as { buildServer?: { name?: string | null } | null })
+		.buildServer?.name;
+	return name ? `build server ${name}` : "the build server";
+};
+
 /**
  * Shell snippet that restores the compose file, the `.env` and (for a compose
  * deployed through a build server) the build override from the snapshots, then
@@ -242,27 +249,36 @@ const getRestoreCommands = (
 	// file would run against the new (possibly broken) environment.
 	const isEnvRequired = compose.createEnvFile ? "1" : "0";
 
-	const runRestore = (restoreArgs: string) =>
-		`env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreArgs} 2>&1 && echo ${qRollbackMarker} || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";`;
+	// `failureMessage` is only ever overridden by the build-server branch; the
+	// default stays the literal string every other compose has always logged.
+	const runRestore = (restoreArgs: string, failureMessage?: string) =>
+		`env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${restoreArgs} 2>&1 && echo ${qRollbackMarker} || echo ${failureMessage ? quote([failureMessage]) : '"Warning: ⚠️ Automatic restore failed, manual intervention may be required"'};`;
 
 	let upRestore = runRestore(restoreCommand);
 	let overrideRestore = "";
 	if (compose.buildServerId) {
 		// The previous release may predate the build server (no override to put
-		// back); it was built on this host, so it comes back with a plain `up`.
+		// back); it was built on this host. It still must not be rebuilt here: a
+		// plain `up` builds any service whose image was pruned since, which is
+		// exactly what a unit with a build server promises never to do on its
+		// serving host. `--no-build` brings it back from the images still on this
+		// host (or pulls them) and otherwise fails with the message below, so the
+		// operator redeploys, which builds on the build server.
 		const qOverrideFile = quote([getComposeBuildOverridePath(compose)]);
 		const qPreOverride = quote([join(backupDir, PRE_DEPLOY_OVERRIDE_BAK)]);
 		const qLastGoodOverride = quote([join(backupDir, LAST_GOOD_OVERRIDE_BAK)]);
-		const plainCommand = stripFlags(
+		const plainCommand = `${stripFlags(
 			createCommand({ ...compose, buildServerId: null }, projectPath),
-		);
+		)} --no-build`;
+		const buildServerLabel = getBuildServerLabel(compose);
+		const preBuildServerFailure = `Error: ❌ This release was deployed before builds moved to ${buildServerLabel}; its images are most likely no longer on this host and the serving host never builds. Automatic restore failed. Redeploy instead, which builds on ${buildServerLabel}.`;
 		overrideRestore = `
 		OVERRIDE_RESTORED=1;
 		cp ${qLastGoodOverride} ${qOverrideFile} 2>/dev/null || cp ${qPreOverride} ${qOverrideFile} 2>/dev/null || { OVERRIDE_RESTORED=0; rm -f ${qOverrideFile}; };`;
 		upRestore = `if [ "$OVERRIDE_RESTORED" = "1" ]; then
 				${runRestore(restoreCommand)}
 			else
-				${runRestore(plainCommand)}
+				${runRestore(plainCommand, preBuildServerFailure)}
 			fi`;
 	}
 
