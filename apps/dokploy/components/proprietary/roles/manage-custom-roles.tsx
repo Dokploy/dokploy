@@ -180,6 +180,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage DNS providers (Cloudflare, AWS Route53) and create, update, or delete their DNS records",
 	},
+	telemetryProvider: {
+		label: "Logs & Metrics",
+		description:
+			"Manage the providers (Grafana Loki, Prometheus, Datadog, New Relic, etc.) that container logs and metrics are shipped to",
+	},
 };
 
 /** Descriptions for each action within a resource */
@@ -473,6 +478,21 @@ const ACTION_META: Record<
 		delete: {
 			label: "Delete",
 			description: "Remove DNS providers and delete their records",
+		},
+	},
+	telemetryProvider: {
+		read: {
+			label: "Read",
+			description: "View configured logs and metrics providers",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Add new providers, test their connection and deploy the Vector agent",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove logs and metrics providers",
 		},
 	},
 };
