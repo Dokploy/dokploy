@@ -173,7 +173,13 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 						<FormItem>
 							<FormLabel>Failure Action</FormLabel>
 							<FormDescription>Action on update failure</FormDescription>
-							<Select onValueChange={field.onChange} value={field.value}>
+							<Select
+								onValueChange={(value) => {
+									if (!value) return;
+									field.onChange(value);
+								}}
+								value={field.value ?? ""}
+							>
 								<FormControl>
 									<SelectTrigger>
 										<SelectValue placeholder="Select failure action" />
@@ -231,7 +237,13 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 						<FormItem>
 							<FormLabel>Order</FormLabel>
 							<FormDescription>Update order strategy</FormDescription>
-							<Select onValueChange={field.onChange} value={field.value}>
+							<Select
+								onValueChange={(value) => {
+									if (!value) return;
+									field.onChange(value);
+								}}
+								value={field.value ?? ""}
+							>
 								<FormControl>
 									<SelectTrigger>
 										<SelectValue placeholder="Select order" />
