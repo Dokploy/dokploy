@@ -296,15 +296,18 @@ export const execAsyncRemote = async (
 		if (cancelable) {
 			// Dropping the connection rejects this command so the deployment job
 			// ends; the build on the server is stopped separately, by pid file.
-			const unregister = registerRemoteBuild(cancelable.deploymentId, (reason) => {
-				conn.destroy();
-				reject(
-					new ExecError(`Remote build was cancelled: ${reason}`, {
-						command,
-						serverId,
-					}),
-				);
-			});
+			const unregister = registerRemoteBuild(
+				cancelable.deploymentId,
+				(reason) => {
+					conn.destroy();
+					reject(
+						new ExecError(`Remote build was cancelled: ${reason}`, {
+							command,
+							serverId,
+						}),
+					);
+				},
+			);
 			conn.once("close", unregister);
 		}
 

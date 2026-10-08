@@ -118,6 +118,7 @@ const statuses = () => ({
 
 beforeEach(async () => {
 	vi.clearAllMocks();
+	mocks.execAsync.mockReset().mockResolvedValue({ stdout: "", stderr: "" });
 	mocks.isDeploymentCancelled.mockResolvedValue(false);
 	mocks.statusAfterCancelledDeploy.mockResolvedValue("done");
 	mocks.createDeploymentCompose.mockResolvedValue({
@@ -290,6 +291,92 @@ describe("a cancelled build-server compose deployment", () => {
 
 			expect(finalWrites).toHaveLength(1);
 			expect(mocks.sendBuildSuccessNotifications).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe("a cancel that came too late, followed by a genuine failure", () => {
+		const loggedCommands = () =>
+			mocks.execAsync.mock.calls.map((call) => String(call[0]));
+		const failOnUp = () =>
+			mocks.execAsync.mockImplementation(async (command: string) => {
+				if (command.includes("docker compose up")) {
+					throw new Error("up failed");
+				}
+				return { stdout: "", stderr: "" };
+			});
+
+		it("a failing pull/up is an error with a notification, not a cancel", async () => {
+			mocks.prepareComposeBuildServerDeploy.mockResolvedValue(undefined);
+			// The cancel landed during the pull/up: the row says cancelled.
+			mocks.isDeploymentCancelled.mockResolvedValue(true);
+			failOnUp();
+
+			const outcome = await deployCompose({
+				composeId: "compose-1",
+				titleLog: "Manual deployment",
+				descriptionLog: "",
+			}).catch((error) => error);
+
+			expect(outcome).toBeInstanceOf(Error);
+			expect(outcome).not.toMatchObject({ deploymentCancelled: true });
+			expect(outcome.message).toBe("up failed");
+			expect(statuses().deployment).toContain("error");
+			expect(mocks.sendBuildErrorNotifications).toHaveBeenCalledTimes(1);
+			// No pure-cancel handling: the service status is not "settled" by it.
+			expect(mocks.statusAfterCancelledDeploy).not.toHaveBeenCalled();
+			expect(
+				loggedCommands().some((command) =>
+					command.includes("could not stop this deployment"),
+				),
+			).toBe(true);
+		});
+
+		it("rebuildCompose takes the same failure path", async () => {
+			mocks.prepareComposeBuildServerDeploy.mockResolvedValue(undefined);
+			mocks.isDeploymentCancelled.mockResolvedValue(true);
+			failOnUp();
+
+			const outcome = await rebuild().catch((error) => error);
+
+			expect(outcome).not.toMatchObject({ deploymentCancelled: true });
+			expect(statuses().deployment).toContain("error");
+			expect(mocks.statusAfterCancelledDeploy).not.toHaveBeenCalled();
+		});
+
+		it("a cancel inside prepare whose restore failed is a failure, not a clean cancel", async () => {
+			// What prepare throws when the cancel was real but putting the previous
+			// release back failed: an ordinary error.
+			mocks.prepareComposeBuildServerDeploy.mockRejectedValue(
+				new Error(
+					"Deployment cancelled, but the previous release could not be restored on the serving host (ssh down).",
+				),
+			);
+			mocks.isDeploymentCancelled.mockResolvedValue(true);
+
+			const outcome = await deployCompose({
+				composeId: "compose-1",
+				titleLog: "Manual deployment",
+				descriptionLog: "",
+			}).catch((error) => error);
+
+			expect(outcome).not.toMatchObject({ deploymentCancelled: true });
+			expect(outcome.message).toContain("could not be restored");
+			expect(statuses().deployment).toContain("error");
+			expect(mocks.sendBuildErrorNotifications).toHaveBeenCalledTimes(1);
+			expect(mocks.statusAfterCancelledDeploy).not.toHaveBeenCalled();
+		});
+
+		it("a failure with no cancel carries no cancel note", async () => {
+			mocks.prepareComposeBuildServerDeploy.mockResolvedValue(undefined);
+			failOnUp();
+
+			await rebuild().catch(() => {});
+
+			expect(
+				loggedCommands().some((command) =>
+					command.includes("could not stop this deployment"),
+				),
+			).toBe(false);
 		});
 	});
 

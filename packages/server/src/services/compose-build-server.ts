@@ -40,7 +40,11 @@ import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw
 import { withResolvedVaultRefs } from "@dokploy/server/utils/vault";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
-import { assertDeploymentNotCancelled } from "./deployment-cancel";
+import {
+	assertDeploymentNotCancelled,
+	isDeploymentCancelledError,
+	toCancelledErrorIfCancelled,
+} from "./deployment-cancel";
 import { generateApplyPatchesCommand } from "./patch";
 import { findRegistryByIdWithCredentials } from "./registry";
 import { findServerById } from "./server";
@@ -250,12 +254,29 @@ const buildImagesOnBuildServer = async (
 		cancellable
 			? assertDeploymentNotCancelled(deployment.deploymentId)
 			: Promise.resolve();
+	const execOnBuildServer = async (
+		command: string,
+		onData?: (data: string) => void,
+	) => {
+		// Not cancelable (a preview): exactly the call it always was.
+		if (!cancelable) {
+			return onData
+				? execAsyncRemote(buildServerId, command, onData)
+				: execAsyncRemote(buildServerId, command);
+		}
+		try {
+			return await execAsyncRemote(buildServerId, command, onData, {
+				cancelable,
+			});
+		} catch (error) {
+			// A cancel kills the step (or drops its connection): that failure is
+			// the cancellation, not a build error.
+			throw await toCancelledErrorIfCancelled(deployment.deploymentId, error);
+		}
+	};
 	const run = async (command: string) => {
 		await checkpoint();
-		// Not cancelable (a preview): exactly the call it always was.
-		return cancelable
-			? execAsyncRemote(buildServerId, command, log.push, { cancelable })
-			: execAsyncRemote(buildServerId, command, log.push);
+		return execOnBuildServer(command, log.push);
 	};
 
 	try {
@@ -313,11 +334,7 @@ const buildImagesOnBuildServer = async (
 			codePath,
 			projectPath,
 		);
-		const { stdout } = cancelable
-			? await execAsyncRemote(buildServerId, configCommand, undefined, {
-					cancelable,
-				})
-			: await execAsyncRemote(buildServerId, configCommand);
+		const { stdout } = await execOnBuildServer(configCommand);
 		const builtServices = parseBuiltServices(stdout, entity.appName);
 
 		if (builtServices.length === 0) {
@@ -419,7 +436,9 @@ export const prepareComposeBuildServerDeploy = async ({
 		// them yet. A cancel that landed after the last build-server step (so
 		// there was nothing left to kill) stops here, before anything is written
 		// or pulled: a cancelled deploy never runs a half-pushed or unwanted set.
-		if (cancellable) await assertDeploymentNotCancelled(deployment.deploymentId);
+		if (cancellable) {
+			await assertDeploymentNotCancelled(deployment.deploymentId);
+		}
 
 		if (images.length > 0) {
 			await runStep(
@@ -444,7 +463,9 @@ export const prepareComposeBuildServerDeploy = async ({
 		// SSH round trip) must not go on to pull and run the new set. Checked
 		// inside the try so the restore below puts the previous release's files
 		// back and removes the override that was just written.
-		if (cancellable) await assertDeploymentNotCancelled(deployment.deploymentId);
+		if (cancellable) {
+			await assertDeploymentNotCancelled(deployment.deploymentId);
+		}
 
 		return {
 			images: images.map((image) => ({
@@ -466,6 +487,19 @@ export const prepareComposeBuildServerDeploy = async ({
 				"Could not restore the previous compose release after a failed build",
 				restoreError,
 			);
+			if (isDeploymentCancelledError(error)) {
+				// The cancel itself is real, but the serving host was left with the
+				// new compose files instead of the previous release's. That is a
+				// failure to report, not a clean cancel (which says "nothing was
+				// changed"), so it is thrown as an ordinary error.
+				const reason =
+					restoreError instanceof Error
+						? restoreError.message
+						: String(restoreError);
+				throw new Error(
+					`Deployment cancelled, but the previous release could not be restored on the serving host (${reason}). Its compose files may still be the new ones; check them or redeploy.`,
+				);
+			}
 		}
 		throw error;
 	}

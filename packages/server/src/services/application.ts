@@ -55,9 +55,11 @@ import {
 import {
 	appendLogLine,
 	assertBuildNotCancelled,
+	CANCELLED_THEN_FAILED_NOTE,
 	CANCELLED_TOO_LATE_NOTE,
 	DeploymentCancelledError,
 	isDeploymentCancelled,
+	isDeploymentCancelledError,
 	markDeploymentDoneUnlessCancelled,
 	runRemoteBuildScript,
 	statusAfterCancelledDeploy,
@@ -206,22 +208,25 @@ export const updateApplicationStatus = async (
  * A cancelled build-server deployment ends here instead of in the generic
  * failure path: it stays `cancelled` (not `error`), sends no build-error
  * notification, and the application goes back to idle. Returns the error to
- * rethrow, or `null` when this deployment was not cancelled (every deployment
- * without a build server).
+ * rethrow, or `null` when this was not a cancellation.
+ *
+ * Only a `DeploymentCancelledError` counts. A cancel that arrives too late
+ * (the release is already starting) leaves the row `cancelled`, but if the
+ * release then genuinely fails, that failure must not read as a cancel: it
+ * takes the normal failure path (error status, notification) and the log notes
+ * the earlier cancel request.
  */
 const settleCancelledApplicationDeploy = async (
 	applicationId: string,
 	deployment: { deploymentId: string; buildServerId?: string | null },
+	error: unknown,
 ) => {
 	if (!deployment.buildServerId) return null;
-	if (!(await isDeploymentCancelled(deployment.deploymentId))) return null;
-	await updateApplicationStatus(
-		applicationId,
-		await statusAfterCancelledDeploy({ applicationId }),
-	);
-	return new DeploymentCancelledError();
+	if (!isDeploymentCancelledError(error)) return null;
+	const settledStatus = await statusAfterCancelledDeploy({ applicationId });
+	await updateApplicationStatus(applicationId, settledStatus);
+	return new DeploymentCancelledError(undefined, { settledStatus });
 };
-
 export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
@@ -416,6 +421,7 @@ export const deployApplication = async ({
 		const cancelled = await settleCancelledApplicationDeploy(
 			applicationId,
 			deployment,
+			error,
 		);
 		if (cancelled) throw cancelled;
 
@@ -428,6 +434,14 @@ export const deployApplication = async ({
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
+		// A cancel that came too late, followed by a real failure: say so, the
+		// deployment ends as `error` (it did fail), not `cancelled`.
+		if (
+			deployment.buildServerId &&
+			(await isDeploymentCancelled(deployment.deploymentId))
+		) {
+			command += `echo "\n${CANCELLED_THEN_FAILED_NOTE}" >> ${deployment.logPath};`;
+		}
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
@@ -628,6 +642,7 @@ export const rebuildApplication = async ({
 		const cancelled = await settleCancelledApplicationDeploy(
 			applicationId,
 			deployment,
+			error,
 		);
 		if (cancelled) throw cancelled;
 
@@ -640,6 +655,14 @@ export const rebuildApplication = async ({
 			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
 		}
 
+		// A cancel that came too late, followed by a real failure: say so, the
+		// deployment ends as `error` (it did fail), not `cancelled`.
+		if (
+			deployment.buildServerId &&
+			(await isDeploymentCancelled(deployment.deploymentId))
+		) {
+			command += `echo "\n${CANCELLED_THEN_FAILED_NOTE}" >> ${deployment.logPath};`;
+		}
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

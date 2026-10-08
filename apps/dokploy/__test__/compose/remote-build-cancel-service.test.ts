@@ -5,9 +5,11 @@ const mocks = vi.hoisted(() => ({
 	appendFile: vi.fn(),
 	returning: vi.fn(),
 	updateSets: [] as any[],
+	updateWheres: [] as any[],
 	deploymentsFindFirst: vi.fn(),
 	deploymentsFindMany: vi.fn(),
 	composeFindFirst: vi.fn(),
+	applicationsFindFirst: vi.fn(),
 }));
 
 vi.mock("node:fs/promises", () => ({ appendFile: mocks.appendFile }));
@@ -19,7 +21,8 @@ vi.mock("@dokploy/server/db", () => {
 	const update = vi.fn(() => ({
 		set: (values: any) => {
 			mocks.updateSets.push(values);
-			const where = () => {
+			const where = (condition: unknown) => {
+				mocks.updateWheres.push(condition);
 				const result: any = Promise.resolve([]);
 				result.returning = mocks.returning;
 				return result;
@@ -36,6 +39,7 @@ vi.mock("@dokploy/server/db", () => {
 					findMany: mocks.deploymentsFindMany,
 				},
 				compose: { findFirst: mocks.composeFindFirst },
+				applications: { findFirst: mocks.applicationsFindFirst },
 			},
 		},
 	};
@@ -51,10 +55,14 @@ import {
 	isDeploymentCancelled,
 	isDeploymentCancelledError,
 	markDeploymentDoneUnlessCancelled,
+	readServiceStatus,
+	restoreServiceStatusIfUnchanged,
 	runRemoteBuildScript,
 	statusAfterCancelledDeploy,
+	toCancelledErrorIfCancelled,
 } from "@dokploy/server/services/deployment-cancel";
 import { registerRemoteBuild } from "@dokploy/server/utils/process/remote-build-registry";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 const PID_DIR = "/etc/dokploy/logs/.build-pids";
 
@@ -82,6 +90,7 @@ const decodedLogLines = () =>
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.updateSets.length = 0;
+	mocks.updateWheres.length = 0;
 	mocks.returning.mockResolvedValue([{ deploymentId: "dep-1" }]);
 	mocks.execAsyncRemote.mockImplementation(async (_serverId, command: string) =>
 		command.includes("kill -s TERM")
@@ -285,6 +294,90 @@ describe("markDeploymentDoneUnlessCancelled", () => {
 	});
 });
 
+describe("service status helpers", () => {
+	const sqlOf = (condition: unknown) =>
+		new PgDialect().sqlToQuery(condition as any);
+
+	it("readServiceStatus selects just the status column", async () => {
+		mocks.applicationsFindFirst.mockResolvedValue({ applicationStatus: "done" });
+		mocks.composeFindFirst.mockResolvedValue({ composeStatus: "error" });
+
+		expect(await readServiceStatus({ applicationId: "a1" })).toBe("done");
+		expect(await readServiceStatus({ composeId: "c1" })).toBe("error");
+
+		expect(mocks.applicationsFindFirst.mock.calls[0]?.[0].columns).toEqual({
+			applicationStatus: true,
+		});
+		expect(mocks.composeFindFirst.mock.calls[0]?.[0].columns).toEqual({
+			composeStatus: true,
+		});
+		mocks.applicationsFindFirst.mockResolvedValue(undefined);
+		expect(await readServiceStatus({ applicationId: "gone" })).toBeUndefined();
+	});
+
+	it("restoreServiceStatusIfUnchanged only moves a service that is still in the settled status", async () => {
+		mocks.returning.mockResolvedValueOnce([{ applicationId: "a1" }]);
+		await expect(
+			restoreServiceStatusIfUnchanged({ applicationId: "a1" }, "done", "idle"),
+		).resolves.toBe(true);
+
+		expect(mocks.updateSets).toEqual([{ applicationStatus: "idle" }]);
+		// The WHERE names both the service and the status it must still be in.
+		const where = sqlOf(mocks.updateWheres[0]);
+		expect(where.sql).toContain('"applicationId"');
+		expect(where.sql).toContain('"applicationStatus"');
+		expect(where.params).toEqual(["a1", "done"]);
+	});
+
+	it("a Stop or Start in between (status no longer the settled one) matches no row", async () => {
+		mocks.returning.mockResolvedValueOnce([]);
+
+		await expect(
+			restoreServiceStatusIfUnchanged({ composeId: "c1" }, "done", "error"),
+		).resolves.toBe(false);
+
+		expect(mocks.updateSets).toEqual([{ composeStatus: "error" }]);
+		const where = sqlOf(mocks.updateWheres[0]);
+		expect(where.sql).toContain('"composeStatus"');
+		expect(where.params).toEqual(["c1", "done"]);
+	});
+
+	it("writes nothing when the status is already the wanted one", async () => {
+		await expect(
+			restoreServiceStatusIfUnchanged({ composeId: "c1" }, "done", "done"),
+		).resolves.toBe(false);
+
+		expect(mocks.updateSets).toHaveLength(0);
+	});
+});
+
+describe("toCancelledErrorIfCancelled", () => {
+	it("turns the failure of a build whose deployment was cancelled into the cancellation", async () => {
+		mocks.deploymentsFindFirst.mockResolvedValue({ status: "cancelled" });
+
+		const result = await toCancelledErrorIfCancelled(
+			"dep-1",
+			new Error("Remote build was cancelled: cancelled by user"),
+		);
+
+		expect(result).toBeInstanceOf(DeploymentCancelledError);
+	});
+
+	it("leaves every failure of a deployment that was not cancelled alone", async () => {
+		mocks.deploymentsFindFirst.mockResolvedValue({ status: "running" });
+		const failure = new Error("docker build failed");
+
+		expect(await toCancelledErrorIfCancelled("dep-1", failure)).toBe(failure);
+	});
+
+	it("keeps an existing cancellation as it is, without reading anything", async () => {
+		const existing = new DeploymentCancelledError();
+
+		expect(await toCancelledErrorIfCancelled("dep-1", existing)).toBe(existing);
+		expect(mocks.deploymentsFindFirst).not.toHaveBeenCalled();
+	});
+});
+
 describe("hostile ids", () => {
 	it("keeps a hostile deployment id inside quotes in the kill command", async () => {
 		const id = "x'; touch /tmp/pwned; echo '";
@@ -464,6 +557,32 @@ describe("runRemoteBuildScript", () => {
 			undefined,
 			{ cancelable: { pidFile: `${PID_DIR}/dep-1.pid`, deploymentId: "dep-1" } },
 		);
+	});
+
+	it("the failure caused by a cancel is the cancellation, any other failure stays itself", async () => {
+		const cancelledByUser = new Error("Remote build was cancelled: cancelled by user");
+		mocks.execAsyncRemote.mockRejectedValueOnce(cancelledByUser);
+		mocks.deploymentsFindFirst
+			.mockResolvedValueOnce({ status: "running" })
+			.mockResolvedValueOnce({ status: "cancelled" });
+
+		await expect(
+			runRemoteBuildScript("build-1", "docker build .", {
+				deploymentId: "dep-1",
+				buildServerId: "build-1",
+			}),
+		).rejects.toMatchObject({ deploymentCancelled: true });
+
+		const failure = new Error("docker build failed");
+		mocks.execAsyncRemote.mockRejectedValueOnce(failure);
+		mocks.deploymentsFindFirst.mockResolvedValue({ status: "running" });
+
+		await expect(
+			runRemoteBuildScript("build-1", "docker build .", {
+				deploymentId: "dep-1",
+				buildServerId: "build-1",
+			}),
+		).rejects.toBe(failure);
 	});
 
 	it("does not start a build for a deployment cancelled while it was queued", async () => {

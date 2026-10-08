@@ -5,13 +5,13 @@ import {
 	// build-policy hook: see the pinnedImage branch below.
 	deployPinnedApplicationImage,
 	deployPreviewApplication,
-	findApplicationById,
-	findComposeById,
 	isDeploymentCancelledError,
+	readServiceStatus,
 	rebuildApplication,
 	rebuildCompose,
 	rebuildComposePreview,
 	rebuildPreviewApplication,
+	restoreServiceStatusIfUnchanged,
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
@@ -26,17 +26,21 @@ import type { InMemoryJob } from "./in-memory-queue";
 const readStatusBeforeJob = async (job: InMemoryJob) => {
 	try {
 		if (job.data.applicationType === "application") {
-			return (await findApplicationById(job.data.applicationId))
-				.applicationStatus;
+			return await readServiceStatus({ applicationId: job.data.applicationId });
 		}
 		if (job.data.applicationType === "compose") {
-			return (await findComposeById(job.data.composeId)).composeStatus;
+			return await readServiceStatus({ composeId: job.data.composeId });
 		}
 	} catch {
 		// Not worth failing the deployment for.
 	}
 	return undefined;
 };
+
+const isRestorableStatus = (
+	status: unknown,
+): status is "idle" | "done" | "error" =>
+	status === "idle" || status === "done" || status === "error";
 
 /**
  * Processes a single deployment job. Shared by the in-memory queue worker and
@@ -140,22 +144,27 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 		// service's group lock.
 		if (isDeploymentCancelledError(error)) {
 			console.log(`Deployment cancelled: ${(error as Error).message}`);
-			// Back to the status the service had when this job started (the deploy
-			// flow already set done/idle as a fallback).
+			// Back to the status the service had when this job started. The deploy
+			// flow already set done/idle (`settledStatus`) as a fallback; moving on
+			// from it only if the service is still in that status keeps a Stop or
+			// Start clicked in the meantime.
+			const { settledStatus } = error as { settledStatus?: unknown };
 			if (
-				statusBeforeJob === "idle" ||
-				statusBeforeJob === "done" ||
-				statusBeforeJob === "error"
+				isRestorableStatus(statusBeforeJob) &&
+				isRestorableStatus(settledStatus)
 			) {
 				if (job.data.applicationType === "application") {
-					await updateApplicationStatus(
-						job.data.applicationId,
+					await restoreServiceStatusIfUnchanged(
+						{ applicationId: job.data.applicationId },
+						settledStatus,
 						statusBeforeJob,
 					).catch(() => {});
 				} else if (job.data.applicationType === "compose") {
-					await updateCompose(job.data.composeId, {
-						composeStatus: statusBeforeJob,
-					}).catch(() => {});
+					await restoreServiceStatusIfUnchanged(
+						{ composeId: job.data.composeId },
+						settledStatus,
+						statusBeforeJob,
+					).catch(() => {});
 				}
 			}
 			return;

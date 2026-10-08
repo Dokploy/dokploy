@@ -236,6 +236,54 @@ describe("prepareComposeBuildServerDeploy and cancellation", () => {
 		expect(commands[1]).not.toContain("base64 -d");
 	});
 
+	it("a build step killed by the cancel ends as the cancellation, a genuine failure stays itself", async () => {
+		// The cancel marks the row, then kills the step: it fails with an ordinary
+		// error that is the cancellation, not a build error.
+		mocks.execAsyncRemote.mockImplementation(async () => {
+			mocks.deploymentStatus.mockResolvedValue({ status: "cancelled" });
+			throw new Error("Remote build was cancelled: cancelled by user");
+		});
+		const killed = prepare();
+		await expect(killed.promise).rejects.toMatchObject({
+			deploymentCancelled: true,
+		});
+		expectOnlyTheRestore(killed.runStep);
+
+		mocks.deploymentStatus.mockResolvedValue({ status: "running" });
+		const failure = new Error("docker build failed");
+		mocks.execAsyncRemote.mockRejectedValue(failure);
+		await expect(prepare().promise).rejects.toBe(failure);
+	});
+
+	it("a cancel whose restore failed is reported as a failure, not a clean cancel", async () => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const runStep = vi.fn().mockImplementation(async (command: string) => {
+			if (String(command).includes("base64 -d")) {
+				mocks.deploymentStatus.mockResolvedValue({ status: "cancelled" });
+				return;
+			}
+			throw new Error("ssh: connection lost");
+		});
+
+		const outcome = await prepare(runStep).promise.catch((error) => error);
+
+		expect(outcome).toBeInstanceOf(Error);
+		expect(outcome).not.toMatchObject({ deploymentCancelled: true });
+		expect(outcome.message).toContain("could not be restored");
+		expect(outcome.message).toContain("ssh: connection lost");
+		errors.mockRestore();
+	});
+
+	it("a genuine failure whose restore also failed still throws the original error", async () => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const failure = new Error("docker build failed");
+		mocks.execAsyncRemote.mockRejectedValue(failure);
+		const runStep = vi.fn().mockRejectedValue(new Error("ssh: connection lost"));
+
+		await expect(prepare(runStep).promise).rejects.toBe(failure);
+		errors.mockRestore();
+	});
+
 	it("a cancellable:false deployment (compose preview) keeps the exact pre-cancel behaviour", async () => {
 		const runStep = vi.fn().mockResolvedValue(undefined);
 		await prepareComposeBuildServerDeploy({

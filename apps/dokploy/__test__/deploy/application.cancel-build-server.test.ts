@@ -305,6 +305,8 @@ describe.each([
 		const outcome = await run(args).catch((error) => error);
 
 		expect(outcome).toMatchObject({ deploymentCancelled: true });
+		// The queue moves the service on from the status the flow settled it in.
+		expect(outcome.settledStatus).toBe("done");
 		expect(deploymentService.updateDeploymentStatus).not.toHaveBeenCalled();
 		expect(applicationService.updateApplicationStatus).not.toHaveBeenCalledWith(
 			"test-app-id",
@@ -415,6 +417,89 @@ describe.each([
 			expect(
 				successNotifications.sendBuildSuccessNotifications,
 			).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe("a cancel that came too late, followed by a genuine failure", () => {
+		const failureLog = () =>
+			vi
+				.mocked(execProcess.execAsyncRemote)
+				.mock.calls.map((call) => String(call[1]))
+				.find((command) => command.includes("could not stop this deployment"));
+
+		// The service status is written through the database (the mocked
+		// `updateApplicationStatus` export is not what the flow calls).
+		const recordSets = () => {
+			const sets: Array<Record<string, unknown>> = [];
+			vi.mocked(db.update).mockImplementation((() => {
+				const chain: any = {
+					set: (next: Record<string, unknown>) => {
+						sets.push(next);
+						return chain;
+					},
+					where: () => chain,
+					returning: () => Promise.resolve([{}]),
+					then: (resolve: (v: unknown) => void) => resolve([]),
+				};
+				return chain;
+			}) as any);
+			return sets;
+		};
+
+		it("a failed container swap is an error, not a cancel: status, notification and a log note", async () => {
+			const sets = recordSets();
+			vi.mocked(builders.mechanizeDockerContainer).mockImplementation((async () => {
+				cancelFlag("cancelled");
+				throw new Error("swap failed");
+			}) as any);
+
+			const outcome = await run(args).catch((error) => error);
+
+			expect(outcome).toBeInstanceOf(Error);
+			expect(outcome).not.toMatchObject({ deploymentCancelled: true });
+			expect((outcome as Error).message).toBe("swap failed");
+			expect(deploymentService.updateDeploymentStatus).toHaveBeenCalledWith(
+				"deployment-id",
+				"error",
+			);
+			expect(sets).toContainEqual({ applicationStatus: "error" });
+			expect(sets).not.toContainEqual({ applicationStatus: "done" });
+			expect(notifications.sendBuildErrorNotifications).toHaveBeenCalledTimes(
+				_name === "deployApplication" ? 1 : 0, // a rebuild never notified
+			);
+			expect(failureLog()).toBeDefined();
+		});
+
+		it("an unstable container after a late cancel is an error too", async () => {
+			const sets = recordSets();
+			vi.mocked(builders.mechanizeDockerContainer).mockImplementation((async () => {
+				cancelFlag("cancelled");
+			}) as any);
+			vi.mocked(dockerUtils.waitForSwarmServiceStable).mockResolvedValue({
+				stable: false,
+				reason: "exited",
+			} as any);
+
+			const outcome = await run(args).catch((error) => error);
+
+			expect(outcome).not.toMatchObject({ deploymentCancelled: true });
+			expect((outcome as Error).message).toContain(
+				"Container did not stay running",
+			);
+			expect(sets).toContainEqual({ applicationStatus: "error" });
+			expect(notifications.sendBuildErrorNotifications).toHaveBeenCalledTimes(
+				_name === "deployApplication" ? 1 : 0, // a rebuild never notified
+			);
+		});
+
+		it("a failure with no cancel carries no cancel note", async () => {
+			vi.mocked(builders.mechanizeDockerContainer).mockRejectedValue(
+				new Error("swap failed"),
+			);
+
+			await run(args).catch(() => {});
+
+			expect(failureLog()).toBeUndefined();
 		});
 	});
 

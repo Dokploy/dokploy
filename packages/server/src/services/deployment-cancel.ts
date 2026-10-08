@@ -1,6 +1,6 @@
 import { appendFile } from "node:fs/promises";
 import { db } from "@dokploy/server/db";
-import { compose, deployments } from "@dokploy/server/db/schema";
+import { applications, compose, deployments } from "@dokploy/server/db/schema";
 import {
 	getKillRemoteBuildCommand,
 	getRemoteBuildCancelTarget,
@@ -33,10 +33,20 @@ import { and, eq, ne } from "drizzle-orm";
  */
 export class DeploymentCancelledError extends Error {
 	readonly deploymentCancelled = true;
+	/**
+	 * The status the deploy flow put the service in when it settled the cancel.
+	 * The deployment queue only moves the service on from there if it is still
+	 * in that status (a Stop or Start clicked meanwhile must not be undone).
+	 */
+	readonly settledStatus?: string;
 
-	constructor(message = "Deployment cancelled.") {
+	constructor(
+		message = "Deployment cancelled.",
+		options: { settledStatus?: string } = {},
+	) {
 		super(message);
 		this.name = "DeploymentCancelledError";
+		this.settledStatus = options.settledStatus;
 	}
 }
 
@@ -44,6 +54,27 @@ export const isDeploymentCancelledError = (error: unknown): boolean =>
 	typeof error === "object" &&
 	error !== null &&
 	(error as { deploymentCancelled?: unknown }).deploymentCancelled === true;
+
+/**
+ * What an error from a cancelable build step means. Cancelling kills the build
+ * (or drops its connection), which surfaces as an ordinary exec error; once the
+ * deployment row says `cancelled`, that error IS the cancellation. Anything
+ * else is returned untouched, so a deploy only takes the cancelled path for a
+ * `DeploymentCancelledError`, never for a genuine failure that merely happened
+ * after a cancel (see `settleCancelled*Deploy`).
+ */
+export const toCancelledErrorIfCancelled = async (
+	deploymentId: string | undefined,
+	error: unknown,
+): Promise<unknown> => {
+	if (isDeploymentCancelledError(error)) return error;
+	if (await isDeploymentCancelled(deploymentId)) {
+		return new DeploymentCancelledError(
+			"Deployment cancelled: the build was stopped.",
+		);
+	}
+	return error;
+};
 
 /**
  * True once the deployment has been marked cancelled. A failed lookup counts
@@ -99,6 +130,13 @@ export const CANCELLED_TOO_LATE_NOTE =
 	"Deployment cancelled ⛔ The cancel arrived while the release was being started, which cannot be interrupted: the new release is running.";
 
 /**
+ * What the log says when the release failed after a cancel that came too late
+ * to stop it: the deployment ends as `error` (it did fail), not `cancelled`.
+ */
+export const CANCELLED_THEN_FAILED_NOTE =
+	"A cancel was requested earlier, but it could not stop this deployment (it arrived too late), and the deployment then failed.";
+
+/**
  * The status a service returns to after a cancelled deploy. Nothing from the
  * cancelled build was pulled or started, so a service that has deployed before
  * is still serving its last release ("done"); one that never has stays "idle".
@@ -117,6 +155,68 @@ export const statusAfterCancelledDeploy = async (
 		columns: { deploymentId: true },
 	});
 	return previous ? "done" : "idle";
+};
+
+type StatusOwner = { applicationId: string } | { composeId: string };
+
+/**
+ * Just the status column of an application or compose, for the deployment
+ * queue to remember what the service was before a job flipped it to "running".
+ * One narrow select instead of loading the whole service with its relations.
+ */
+export const readServiceStatus = async (
+	service: StatusOwner,
+): Promise<string | undefined> => {
+	if ("applicationId" in service) {
+		const row = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, service.applicationId),
+			columns: { applicationStatus: true },
+		});
+		return row?.applicationStatus;
+	}
+	const row = await db.query.compose.findFirst({
+		where: eq(compose.composeId, service.composeId),
+		columns: { composeStatus: true },
+	});
+	return row?.composeStatus;
+};
+
+/**
+ * Moves a service from the status a cancelled deploy settled it in to the one
+ * it had before the job, only if it is still in the settled status: a Stop or
+ * Start clicked in between is the user's latest word and stays. Returns whether
+ * the status was changed.
+ */
+export const restoreServiceStatusIfUnchanged = async (
+	service: StatusOwner,
+	from: "idle" | "done" | "running" | "error",
+	to: "idle" | "done" | "error",
+): Promise<boolean> => {
+	if (from === to) return false;
+	if ("applicationId" in service) {
+		const updated = await db
+			.update(applications)
+			.set({ applicationStatus: to })
+			.where(
+				and(
+					eq(applications.applicationId, service.applicationId),
+					eq(applications.applicationStatus, from),
+				),
+			)
+			.returning({ applicationId: applications.applicationId });
+		return updated.length > 0;
+	}
+	const updated = await db
+		.update(compose)
+		.set({ composeStatus: to })
+		.where(
+			and(
+				eq(compose.composeId, service.composeId),
+				eq(compose.composeStatus, from),
+			),
+		)
+		.returning({ composeId: compose.composeId });
+	return updated.length > 0;
 };
 
 /** Throws `DeploymentCancelledError` when the deployment was cancelled. */
@@ -146,9 +246,15 @@ export const runRemoteBuildScript = async (
 		return;
 	}
 	await assertDeploymentNotCancelled(deployment.deploymentId);
-	await execAsyncRemote(serverId, commandWithLog, undefined, {
-		cancelable: getRemoteBuildCancelTarget(deployment.deploymentId),
-	});
+	try {
+		await execAsyncRemote(serverId, commandWithLog, undefined, {
+			cancelable: getRemoteBuildCancelTarget(deployment.deploymentId),
+		});
+	} catch (error) {
+		// A cancel kills the build (or drops its connection): that failure is the
+		// cancellation itself, not a build error.
+		throw await toCancelledErrorIfCancelled(deployment.deploymentId, error);
+	}
 };
 
 /**
@@ -209,7 +315,10 @@ export const appendLogLine = async (
 			await appendFile(logPath, text);
 		}
 	} catch (error) {
-		console.error("Could not write the cancellation to the deployment log", error);
+		console.error(
+			"Could not write the cancellation to the deployment log",
+			error,
+		);
 	}
 };
 
@@ -335,11 +444,14 @@ export const cancelBuildServerDeployment = async (
  * generic `pkill` on the serving host (it would hit unrelated deployments).
  */
 export const cancelBuildServerDeploymentsForService = async (
-	service: { type: "application"; applicationId: string } | {
-		type: "compose";
-		composeId: string;
-	},
-): Promise<{ usesBuildServer: boolean; cancelled: number; warnings: string[] }> => {
+	service:
+		| { type: "application"; applicationId: string }
+		| { type: "compose"; composeId: string },
+): Promise<{
+	usesBuildServer: boolean;
+	cancelled: number;
+	warnings: string[];
+}> => {
 	const warnings: string[] = [];
 	let cancelled = 0;
 
