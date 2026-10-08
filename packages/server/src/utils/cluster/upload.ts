@@ -28,13 +28,14 @@ export const uploadImageRemoteCommand = async (
 			: `${appName}:latest`;
 
 	const commands: string[] = [];
+	const logins = createLoginSession(serverId);
 	if (registry) {
 		const r = await findRegistryByIdWithCredentials(registry.registryId);
 		const registryTag = getRegistryTag(r, imageName);
 		if (registryTag) {
 			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
 			commands.push(
-				await getRegistryCommands(r, imageName, registryTag, serverId),
+				await getRegistryCommands(r, imageName, registryTag, logins),
 			);
 		}
 	}
@@ -44,7 +45,7 @@ export const uploadImageRemoteCommand = async (
 		if (buildRegistryTag) {
 			commands.push(`echo "🔑 [Enabled Build Registry]"`);
 			commands.push(
-				await getRegistryCommands(r, imageName, buildRegistryTag, serverId),
+				await getRegistryCommands(r, imageName, buildRegistryTag, logins),
 			);
 			commands.push(
 				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
@@ -75,7 +76,7 @@ export const uploadImageRemoteCommand = async (
 		if (rollbackRegistryTag) {
 			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
 			commands.push(
-				await getRegistryCommands(r, imageName, rollbackRegistryTag, serverId),
+				await getRegistryCommands(r, imageName, rollbackRegistryTag, logins),
 			);
 		}
 	}
@@ -163,13 +164,46 @@ export const loginDockerRegistry = async (
 	);
 };
 
+type LoginSession = (registry: Registry) => Promise<void>;
+
+/**
+ * Logs in each registry of one upload, once. The logins all run while the
+ * script is generated, ahead of every push, and docker keeps a single login per
+ * registry URL in the host config, so two registries on one URL with different
+ * accounts would leave the later account in place for both pushes. That is
+ * refused with a clear error instead of pushing under the wrong credential.
+ */
+const createLoginSession = (
+	serverId: string | null | undefined,
+): LoginSession => {
+	const seen = new Map<string, { account: string; name: string }>();
+	return async (registry) => {
+		const url = (registry.registryUrl || "").toLowerCase();
+		const account =
+			registry.registryType === "awsEcr"
+				? `aws:${registry.awsAccessKeyId}`
+				: `${registry.username}:${registry.password}`;
+		const previous = seen.get(url);
+		if (previous) {
+			if (previous.account !== account) {
+				throw new Error(
+					`Registries "${previous.name}" and "${registry.registryName}" both use ${url || "Docker Hub"} with different accounts. Docker keeps one login per registry URL on a host, so the second login would replace the first before its push. Use the same account for both, or a different registry URL.`,
+				);
+			}
+			return;
+		}
+		await loginDockerRegistry(registry, serverId);
+		seen.set(url, { account, name: registry.registryName });
+	};
+};
+
 const getRegistryCommands = async (
 	registry: Registry,
 	imageName: string,
 	registryTag: string,
-	serverId: string | null | undefined,
+	logins: LoginSession,
 ): Promise<string> => {
-	await loginDockerRegistry(registry, serverId);
+	await logins(registry);
 
 	return `
 echo ${quote([`📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'`])} ;

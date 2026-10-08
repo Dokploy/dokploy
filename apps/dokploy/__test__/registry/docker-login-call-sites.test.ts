@@ -123,6 +123,64 @@ describe("uploadImageRemoteCommand", () => {
 		expectNoSecretIn(script, ...executedCommands());
 	});
 
+	it("logs in once when two registries share a URL and an account", async () => {
+		await uploadImageRemoteCommand(
+			{
+				...(application as object),
+				buildRegistry: { registryId: "reg-2" },
+			} as never,
+			"srv-1",
+		);
+
+		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
+	});
+
+	it("refuses two accounts on one registry URL: the later login would win", async () => {
+		mocks.findRegistryByIdWithCredentials.mockImplementation(
+			async (id: string) =>
+				id === "reg-2"
+					? {
+							...registryRow,
+							registryId: "reg-2",
+							registryName: "other",
+							username: "someone-else",
+							password: "another-pass",
+						}
+					: registryRow,
+		);
+
+		await expect(
+			uploadImageRemoteCommand(
+				{
+					...(application as object),
+					buildRegistry: { registryId: "reg-2" },
+				} as never,
+				"srv-1",
+			),
+		).rejects.toThrow(
+			/"main" and "other" both use registry\.example\.com with different accounts/,
+		);
+		expect(mocks.execAsyncRemote).toHaveBeenCalledTimes(1);
+	});
+
+	it("reports a failed login with docker's output, never the password", async () => {
+		mocks.execAsyncRemote.mockRejectedValue(
+			Object.assign(new Error("Command failed"), {
+				stderr: `unauthorized: bad credentials ${PASSWORD}`,
+			}),
+		);
+
+		const failure = await uploadImageRemoteCommand(application, "srv-1").catch(
+			(e: Error) => e,
+		);
+
+		expect(failure).toBeInstanceOf(Error);
+		expect((failure as Error).message).toMatch(
+			/^Registry login failed for registry\.example\.com: /,
+		);
+		expect((failure as Error).message).not.toContain(PASSWORD);
+	});
+
 	it("sends the ECR token on stdin", async () => {
 		mocks.findRegistryByIdWithCredentials.mockResolvedValue({
 			...registryRow,
@@ -145,9 +203,9 @@ describe("uploadImageRemoteCommand", () => {
 
 	it("fails the deploy before the script when the login is refused", async () => {
 		mocks.execAsyncRemote.mockRejectedValue(new Error("unauthorized"));
-		await expect(uploadImageRemoteCommand(application, "srv-1")).rejects.toThrow(
-			"unauthorized",
-		);
+		await expect(
+			uploadImageRemoteCommand(application, "srv-1"),
+		).rejects.toThrow("unauthorized");
 	});
 });
 
@@ -178,7 +236,10 @@ describe("buildRemoteDocker", () => {
 
 	it("logs in with an attached registry's stored credentials on stdin", async () => {
 		const script = await buildRemoteDocker(
-			{ ...base, registry: { registryId: "reg-1", registryType: "cloud" } } as never,
+			{
+				...base,
+				registry: { registryId: "reg-1", registryType: "cloud" },
+			} as never,
 			null,
 		);
 
