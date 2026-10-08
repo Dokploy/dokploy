@@ -2,7 +2,12 @@ import { exec, execFile, spawn } from "node:child_process";
 import { StringDecoder } from "node:string_decoder";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
+import {
+	type RemoteBuildCancelTarget,
+	wrapCancelableRemoteBuild,
+} from "@dokploy/server/utils/builders/remote-build-cancel";
 import { Client } from "ssh2";
+import { registerRemoteBuild } from "./remote-build-registry";
 import {
 	ExecError,
 	MAX_EXEC_OUTPUT_TAIL,
@@ -256,7 +261,17 @@ export const execAsyncRemote = async (
 	command: string,
 	onData?: (data: string) => void,
 	// The caller consumes the output through onData; keep only its tail.
-	options: { streamOnly?: boolean } = {},
+	options: {
+		streamOnly?: boolean;
+		/**
+		 * A build on a build server that Dokploy must be able to cancel: the
+		 * command runs in its own session with a pid file (see
+		 * `builders/remote-build-cancel.ts`), and `abortRemoteBuild(deploymentId)`
+		 * can drop this connection. Omitted for every other command, which then
+		 * runs exactly as before.
+		 */
+		cancelable?: RemoteBuildCancelTarget;
+	} = {},
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -272,13 +287,31 @@ export const execAsyncRemote = async (
 		output.add(text);
 		onData?.(text);
 	};
+	const { cancelable } = options;
+	const remoteCommand = cancelable
+		? wrapCancelableRemoteBuild(command, cancelable)
+		: command;
 	return new Promise((resolve, reject) => {
 		const conn = new Client();
+		if (cancelable) {
+			// Dropping the connection rejects this command so the deployment job
+			// ends; the build on the server is stopped separately, by pid file.
+			const unregister = registerRemoteBuild(cancelable.deploymentId, (reason) => {
+				conn.destroy();
+				reject(
+					new ExecError(`Remote build was cancelled: ${reason}`, {
+						command,
+						serverId,
+					}),
+				);
+			});
+			conn.once("close", unregister);
+		}
 
 		sleep(1000);
 		conn
 			.once("ready", () => {
-				conn.exec(command, (err, stream) => {
+				conn.exec(remoteCommand, (err, stream) => {
 					if (err) {
 						onData?.(err.message);
 						reject(

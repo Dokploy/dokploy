@@ -56,6 +56,12 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import {
+	assertDeploymentNotCancelled,
+	DeploymentCancelledError,
+	isDeploymentCancelled,
+	statusAfterCancelledDeploy,
+} from "./deployment-cancel";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
 
@@ -225,6 +231,9 @@ export const runComposeBuild = async (
 		applyPatches,
 		freshVolumes,
 	});
+	// Build-server composes only: a cancel that landed while the serving host
+	// was being told about the new images must not go on to pull and run them.
+	if (remoteBuild) await assertDeploymentNotCancelled(deployment.deploymentId);
 
 	if (freshVolumes && entity.composeType === "docker-compose") {
 		const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${entity.appName} down --volumes 2>&1 || true;`;
@@ -424,6 +433,41 @@ export const updateCompose = async (
 	return composeResult[0];
 };
 
+/**
+ * A build-server deploy that was cancelled (see `deployment-cancel.ts`) ends
+ * here instead of in the generic failure path: the deployment already says
+ * `cancelled` and must not become `error`, no build-error notification goes
+ * out for something the user asked for, and the service returns to the state
+ * of the release that is still serving.
+ *
+ * Returns the error to rethrow, or `null` when this deploy was not cancelled
+ * (every compose without a build server).
+ */
+const settleCancelledComposeDeploy = async (
+	entity: Pick<Compose, "composeId" | "buildServerId" | "serverId">,
+	deployment: { deploymentId: string; logPath: string },
+) => {
+	if (!entity.buildServerId) return null;
+	if (!(await isDeploymentCancelled(deployment.deploymentId))) return null;
+
+	try {
+		const command = `echo "\nDeployment cancelled ⛔ Nothing was pulled or started from this build; the previous release keeps serving." >> ${quote([deployment.logPath])};`;
+		if (entity.serverId) {
+			await execAsyncRemote(entity.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (logError) {
+		console.error("Could not log the cancelled deployment", logError);
+	}
+	await updateCompose(entity.composeId, {
+		composeStatus: await statusAfterCancelledDeploy({
+			composeId: entity.composeId,
+		}),
+	});
+	return new DeploymentCancelledError();
+};
+
 export const deployCompose = async ({
 	composeId,
 	titleLog = "Manual deployment",
@@ -473,6 +517,9 @@ export const deployCompose = async ({
 		// (see scheduleComposeBuildRegistryPrune).
 		scheduleComposeBuildRegistryPrune({ entity, deployment });
 	} catch (error) {
+		const cancelled = await settleCancelledComposeDeploy(compose, deployment);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -611,6 +658,8 @@ export const rebuildCompose = async ({
 			runStep: runRebuildStep,
 			freshVolumes,
 		});
+		// See runComposeBuild: a cancel after the build must stop the deploy here.
+		if (remoteBuild) await assertDeploymentNotCancelled(deployment.deploymentId);
 
 		if (freshVolumes && compose.composeType === "docker-compose") {
 			const downCommand = `set -e; env -i PATH="$PATH" docker compose -p ${compose.appName} down --volumes 2>&1 || true;`;
@@ -644,6 +693,9 @@ export const rebuildCompose = async ({
 		// (see scheduleComposeBuildRegistryPrune).
 		scheduleComposeBuildRegistryPrune({ entity: compose, deployment });
 	} catch (error) {
+		const cancelled = await settleCancelledComposeDeploy(compose, deployment);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors

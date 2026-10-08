@@ -20,6 +20,7 @@ import {
 	getWriteFileCommand,
 	parseBuiltServices,
 } from "@dokploy/server/utils/builders/compose-remote-build";
+import { getRemoteBuildCancelTarget } from "@dokploy/server/utils/builders/remote-build-cancel";
 import {
 	getRegistryLoginCommand,
 	getRegistryTag,
@@ -39,6 +40,7 @@ import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw
 import { withResolvedVaultRefs } from "@dokploy/server/utils/vault";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
+import { assertDeploymentNotCancelled } from "./deployment-cancel";
 import { generateApplyPatchesCommand } from "./patch";
 import { findRegistryByIdWithCredentials } from "./registry";
 import { findServerById } from "./server";
@@ -235,8 +237,17 @@ const buildImagesOnBuildServer = async (
 	const projectPath = resolved.mounts.length > 0 ? codePath : undefined;
 
 	const log = createDeploymentLogWriter(entity.serverId, deployment.logPath);
-	const run = (command: string) =>
-		execAsyncRemote(buildServerId, command, log.push);
+	// Every command runs in its own session with a pid file keyed by the
+	// deployment id, so a cancel can stop exactly this deployment's build. The
+	// cancel flag is checked before each step: a cancel between two steps (no
+	// process to kill) must still stop the next one from starting.
+	const cancelable = deployment.deploymentId
+		? getRemoteBuildCancelTarget(deployment.deploymentId)
+		: undefined;
+	const run = async (command: string) => {
+		await assertDeploymentNotCancelled(deployment.deploymentId);
+		return execAsyncRemote(buildServerId, command, log.push, { cancelable });
+	};
 
 	try {
 		log.line(
@@ -287,9 +298,12 @@ const buildImagesOnBuildServer = async (
 		}
 
 		// Not streamed: the resolved configuration contains the environment.
+		await assertDeploymentNotCancelled(deployment.deploymentId);
 		const { stdout } = await execAsyncRemote(
 			buildServerId,
 			getComposeConfigJsonCommand(buildEntity, codePath, projectPath),
+			undefined,
+			{ cancelable },
 		);
 		const builtServices = parseBuiltServices(stdout, entity.appName);
 
@@ -378,6 +392,12 @@ export const prepareComposeBuildServerDeploy = async ({
 			deployment,
 			applyPatches,
 		);
+
+		// The images are pushed, but the serving host has not been told about
+		// them yet. A cancel that landed after the last build-server step (so
+		// there was nothing left to kill) stops here, before anything is written
+		// or pulled: a cancelled deploy never runs a half-pushed or unwanted set.
+		await assertDeploymentNotCancelled(deployment.deploymentId);
 
 		if (images.length > 0) {
 			await runStep(

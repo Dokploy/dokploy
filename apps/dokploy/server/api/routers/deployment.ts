@@ -1,4 +1,5 @@
 import {
+	cancelBuildServerDeploymentById,
 	execAsync,
 	execAsyncRemote,
 	findAllDeploymentsByApplicationId,
@@ -196,6 +197,20 @@ export const deploymentRouter = createTRPCRouter({
 						message: "You don't have access to this deployment.",
 					});
 				}
+			}
+
+			// A build that runs on a build server has no local pid: it is stopped
+			// there, by deployment (see deployment-cancel.ts).
+			const remote = await cancelBuildServerDeploymentById(
+				deployment.deploymentId,
+			);
+			if (remote?.status === "cancelled") {
+				await audit(ctx, {
+					action: "cancel",
+					resourceType: "deployment",
+					resourceId: deployment.deploymentId,
+				});
+				return;
 			}
 
 			if (!deployment.pid) {

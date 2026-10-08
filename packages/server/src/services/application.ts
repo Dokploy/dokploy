@@ -52,6 +52,13 @@ import {
 	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import {
+	assertBuildNotCancelled,
+	DeploymentCancelledError,
+	isDeploymentCancelled,
+	runRemoteBuildScript,
+	statusAfterCancelledDeploy,
+} from "./deployment-cancel";
 import { type Domain, getDomainHost } from "./domain";
 import { getIssueComment } from "./github";
 import { generateApplyPatchesCommand } from "./patch";
@@ -192,6 +199,26 @@ export const updateApplicationStatus = async (
 	return application;
 };
 
+/**
+ * A cancelled build-server deployment ends here instead of in the generic
+ * failure path: it stays `cancelled` (not `error`), sends no build-error
+ * notification, and the application goes back to idle. Returns the error to
+ * rethrow, or `null` when this deployment was not cancelled (every deployment
+ * without a build server).
+ */
+const settleCancelledApplicationDeploy = async (
+	applicationId: string,
+	deployment: { deploymentId: string; buildServerId?: string | null },
+) => {
+	if (!deployment.buildServerId) return null;
+	if (!(await isDeploymentCancelled(deployment.deploymentId))) return null;
+	await updateApplicationStatus(
+		applicationId,
+		await statusAfterCancelledDeploy({ applicationId }),
+	);
+	return new DeploymentCancelledError();
+};
+
 export const deployApplication = async ({
 	applicationId,
 	titleLog = "Manual deployment",
@@ -289,10 +316,11 @@ export const deployApplication = async ({
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await runRemoteBuildScript(serverId, commandWithLog, deployment);
 		} else {
 			await execAsync(commandWithLog);
 		}
+		await assertBuildNotCancelled(deployment);
 
 		// >>> build-policy hook 3/4: gate on required checks, then pin the deploy
 		// to the digest that was just published. Identity when not enforcing.
@@ -360,6 +388,12 @@ export const deployApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
+		const cancelled = await settleCancelledApplicationDeploy(
+			applicationId,
+			deployment,
+		);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -476,10 +510,11 @@ export const rebuildApplication = async ({
 		// <<< build-policy hook 2/4
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await runRemoteBuildScript(serverId, commandWithLog, deployment);
 		} else {
 			await execAsync(commandWithLog);
 		}
+		await assertBuildNotCancelled(deployment);
 
 		// >>> build-policy hook 3/4 (rebuild)
 		const deployTarget = await prepareBuildPolicyDeploy({
@@ -543,6 +578,12 @@ export const rebuildApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
+		const cancelled = await settleCancelledApplicationDeploy(
+			applicationId,
+			deployment,
+		);
+		if (cancelled) throw cancelled;
+
 		let command = "";
 
 		// Only log details for non-ExecError errors

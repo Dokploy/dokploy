@@ -5,6 +5,7 @@ import {
 	// build-policy hook: see the pinnedImage branch below.
 	deployPinnedApplicationImage,
 	deployPreviewApplication,
+	isDeploymentCancelledError,
 	rebuildApplication,
 	rebuildCompose,
 	rebuildComposePreview,
@@ -108,6 +109,15 @@ export const processDeploymentJob = async (job: InMemoryJob) => {
 			}
 		}
 	} catch (error) {
+		// A build-server deployment the user cancelled: the deploy flow already
+		// recorded `cancelled` and put the service back to the state of the
+		// release that is still serving, so it must not be flipped to "error".
+		// Returning here ends the job normally, releasing its queue slot and the
+		// service's group lock.
+		if (isDeploymentCancelledError(error)) {
+			console.log(`Deployment cancelled: ${(error as Error).message}`);
+			return;
+		}
 		console.log("Error", error);
 		// Roll back the status set at the start of the job so a failed deployment
 		// does not leave the service stuck in "running".

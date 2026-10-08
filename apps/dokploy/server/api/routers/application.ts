@@ -2,6 +2,7 @@ import {
 	assertNetworkIdsAttachableToResource,
 	// build-policy hook: required-checks support check at the API boundary.
 	assertRequiredChecksSupportedForUpdate,
+	cancelBuildServerDeploymentsForService,
 	clearOldDeployments,
 	createApplication,
 	createDomain,
@@ -1032,7 +1033,16 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const application = await findApplicationById(input.applicationId);
-			await killDockerBuild("application", application.serverId);
+			// A build on a build server is stopped there, by deployment (see
+			// deployment-cancel.ts). The `pkill` below only ever runs on the host
+			// that serves the application, where it would hit unrelated builds.
+			const remote = await cancelBuildServerDeploymentsForService({
+				type: "application",
+				applicationId: input.applicationId,
+			});
+			if (!remote.usesBuildServer && !application.buildServerId) {
+				await killDockerBuild("application", application.serverId);
+			}
 			await audit(ctx, {
 				action: "stop",
 				resourceType: "application",
