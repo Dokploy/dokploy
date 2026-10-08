@@ -2,6 +2,16 @@ import {
 	getBuildComposeCommand,
 	getRestoreAfterFailedBuildCommand,
 } from "@dokploy/server/utils/builders/compose";
+import { spawnSync } from "node:child_process";
+import {
+	existsSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { quote } from "shell-quote";
 import { describe, expect, it, vi } from "vitest";
 
@@ -54,6 +64,37 @@ const remoteBuild = {
 const upInvocations = (script: string) =>
 	script.match(/docker compose [^\n]*? up -d[^\n]*/g) ?? [];
 
+/** The two `up` lines of the restore, picked by their OVERRIDE_RESTORED guard. */
+const restoreBranches = (restore: string) => {
+	const lines = restore.split("\n");
+	const guard = lines.findIndex((line) =>
+		line.includes('if [ "$OVERRIDE_RESTORED" = "1" ]; then'),
+	);
+	expect(guard).toBeGreaterThan(-1);
+	const elseLine = lines.findIndex(
+		(line, i) => i > guard && line.trim() === "else",
+	);
+	expect(elseLine).toBeGreaterThan(guard);
+	const fiLine = lines.findIndex(
+		(line, i) => i > elseLine && line.trim() === "fi",
+	);
+	expect(fiLine).toBeGreaterThan(elseLine);
+	return {
+		withOverride: upInvocations(lines.slice(guard + 1, elseLine).join("\n"))[0],
+		noOverride: upInvocations(lines.slice(elseLine + 1, fiLine).join("\n"))[0],
+	};
+};
+
+const TAIL_START = 'if [ "$RESTORE_FILES_OK" = "1" ]; then';
+/** The final `if [ "$RESTORE_FILES_OK" = "1" ]; then ... fi` block, nothing after it. */
+const restoreTail = (restore: string) => {
+	const at = restore.lastIndexOf(TAIL_START);
+	expect(at).toBeGreaterThan(-1);
+	const end = restore.indexOf("\n\t\tfi", at);
+	expect(end).toBeGreaterThan(at);
+	return restore.slice(at, end + "\n\t\tfi".length);
+};
+
 const restorePart = (script: string) => {
 	const start = script.indexOf("Restoring previous working deployment");
 	expect(start).toBeGreaterThan(-1);
@@ -85,10 +126,8 @@ describe("compose rollback on a unit with a build server", () => {
 			deploymentId: "dep1",
 			remoteBuild,
 		});
-		const restore = restorePart(script);
-		const [, elseBranch] = restore.split("else\n");
 		// The branch taken when no build override could be put back.
-		const plain = upInvocations(elseBranch ?? "")[0];
+		const plain = restoreBranches(restorePart(script)).noOverride;
 
 		expect(plain).toBeDefined();
 		expect(plain).toContain("--no-build");
@@ -107,7 +146,7 @@ describe("compose rollback on a unit with a build server", () => {
 		for (const up of ups) expect(up).toContain("--no-build");
 	});
 
-	it("refuses with a message naming the build server when the old release's images are gone", async () => {
+	it("fails with a neutral warning naming the build server when the no-override restore fails", async () => {
 		const script = await getBuildComposeCommand(base, {
 			deploymentId: "dep1",
 			remoteBuild,
@@ -115,12 +154,12 @@ describe("compose rollback on a unit with a build server", () => {
 		const restore = restorePart(script);
 
 		expect(restore).toContain(
-			"This release was deployed before builds moved to build server devino-third",
+			"Warning: ⚠️ Automatic restore failed. The serving host never builds images (build server devino-third). If this release's images were pruned, redeploy to rebuild them on build server devino-third; otherwise manual intervention may be required. Some services may already be restarted.",
 		);
-		expect(restore).toContain(
-			"Redeploy instead, which builds on build server devino-third.",
-		);
-		expect(restore).toContain("the serving host never builds");
+		// Neutral: it must not claim the release predates the build server.
+		expect(restore).not.toContain("before builds moved");
+		// Same severity as the sibling OVERRIDE_RESTORED=1 failure branch.
+		expect(restore).not.toContain("Error: ❌ This release");
 	});
 
 	it("falls back to a generic name when the build server was not loaded", async () => {
@@ -129,8 +168,25 @@ describe("compose rollback on a unit with a build server", () => {
 			{ deploymentId: "dep1", remoteBuild },
 		);
 		expect(restorePart(script)).toContain(
-			"Redeploy instead, which builds on the build server.",
+			"never builds images (the build server). If this release's images were pruned, redeploy to rebuild them on the build server;",
 		);
+	});
+
+	it("keeps --no-build in both restore branches when no service had a build section", async () => {
+		const script = await getBuildComposeCommand(base, {
+			deploymentId: "dep1",
+			remoteBuild: { images: [], loginCommand: "", servingHostLabel: "prod-1" },
+		});
+		expect(script).not.toContain("docker pull");
+		const restore = restorePart(script);
+		const { withOverride, noOverride } = restoreBranches(restore);
+		for (const up of [withOverride, noOverride]) {
+			expect(up).toBeDefined();
+			expect(up).toContain("--no-build");
+			expect(up).not.toMatch(/ --build\b/);
+		}
+		for (const up of upInvocations(script)) expect(up).toContain("--no-build");
+		expect(restore).toContain("never builds images (build server devino-third)");
 	});
 
 	it("quotes a build server name so it cannot break out of the echo", async () => {
@@ -146,7 +202,7 @@ describe("compose rollback on a unit with a build server", () => {
 		// The whole message is one shell-quote'd word, so the metacharacters in
 		// the name (quote, ;, $(), backtick) stay literal text.
 		const label = `build server ${evil}`;
-		const message = `Error: ❌ This release was deployed before builds moved to ${label}; its images are most likely no longer on this host and the serving host never builds. Automatic restore failed. Redeploy instead, which builds on ${label}.`;
+		const message = `Warning: ⚠️ Automatic restore failed. The serving host never builds images (${label}). If this release's images were pruned, redeploy to rebuild them on ${label}; otherwise manual intervention may be required. Some services may already be restarted.`;
 		expect(restore).toContain(`echo ${quote([message])};`);
 	});
 
@@ -166,7 +222,7 @@ describe("compose rollback on a unit with a build server", () => {
 		const ups = upInvocations(restore);
 		expect(ups.length).toBe(2);
 		for (const up of ups) expect(up).toContain("--no-build");
-		expect(restore).toContain("deployed before builds moved to build server");
+		expect(restore).toContain("never builds images (build server devino-third)");
 	});
 
 	it("also pins the restore when the compose pulls images on deploy", async () => {
@@ -210,6 +266,22 @@ describe("compose rollback on a unit without a build server", () => {
 		);
 	});
 
+	it("emits the exact restore tail it always has (golden)", async () => {
+		const script = await getBuildComposeCommand(noBuildServer, {
+			deploymentId: "dep1",
+		});
+		const restore = restorePart(script);
+		expect(restoreTail(restore)).toBe(
+			[
+				'if [ "$RESTORE_FILES_OK" = "1" ]; then',
+				'\t\t\tenv -i PATH="$PATH" HOME="$HOME"  docker compose -p my-app -f docker-compose.yml up -d --remove-orphans 2>&1 && echo __DOKPLOY_ROLLBACK_OK__\\:dep1 || echo "Warning: ⚠️ Automatic restore failed, manual intervention may be required";',
+				"\t\telse",
+				'\t\t\techo "Warning: ⚠️ No previous release to restore, leaving the stack as-is";',
+				"\t\tfi",
+			].join("\n"),
+		);
+	});
+
 	it("still builds on deploy, since it has no build server", async () => {
 		const script = await getBuildComposeCommand(noBuildServer, {
 			deploymentId: "dep1",
@@ -230,3 +302,89 @@ describe("compose rollback on a unit without a build server", () => {
 		expect(withRelation).toBe(without);
 	});
 });
+
+/**
+ * Runs the generated restore tail under a real shell with a stub `docker`, so
+ * the assertion is about what executes rather than about the text of the script.
+ */
+// On Windows a bare `bash` is usually WSL, which cannot see the stub: prefer Git Bash.
+const GIT_BASH = "C:\\Program Files\\Git\\bin\\bash.exe";
+const BASH =
+	process.platform === "win32" && existsSync(GIT_BASH) ? GIT_BASH : "bash";
+const hasBash = spawnSync(BASH, ["-c", "true"]).status === 0;
+
+describe.skipIf(!hasBash)(
+	"restore script executed under bash with a stub docker",
+	() => {
+		const run = (
+			restore: string,
+			opts: { upSucceeds: boolean; override: "0" | "1" },
+		) => {
+			const dir = mkdtempSync(join(tmpdir(), "stub-docker-"));
+			// Git Bash wants /c/Users/... in PATH, not C:/Users/...
+			const posixDir = dir.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+			try {
+				const stub = [
+					"#!/bin/sh",
+					`echo "$@" >> '${posixDir}/calls.log'`,
+					// Any `up` fails, as it would on a registry outage or port conflict.
+					opts.upSucceeds
+						? "exit 0"
+						: 'case " $* " in *" up "*) exit 1;; esac; exit 0',
+					"",
+				].join("\n");
+				writeFileSync(join(dir, "docker"), stub, { mode: 0o755 });
+				const tail = restoreTail(restore);
+				// Script goes over stdin: Windows argv quoting mangles the embedded quotes.
+				const result = spawnSync(BASH, ["-s"], {
+					input: `RESTORE_FILES_OK=1; OVERRIDE_RESTORED=${opts.override}; ${tail}\n`,
+					env: {
+						...process.env,
+						PATH: `${posixDir}:${process.env.PATH}`,
+						HOME: posixDir,
+					},
+					encoding: "utf8",
+				});
+				const logFile = join(dir, "calls.log");
+				const calls = existsSync(logFile) ? readFileSync(logFile, "utf8") : "";
+				return { stdout: result.stdout, calls };
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
+		};
+
+		it.each(["0", "1"] as const)(
+			"a failing up (override restored=%s) emits no rollback marker and never builds",
+			async (override) => {
+				const script = await getBuildComposeCommand(base, {
+					deploymentId: "dep1",
+					remoteBuild,
+				});
+				const { stdout, calls } = run(restorePart(script), {
+					upSucceeds: false,
+					override,
+				});
+				expect(calls).toContain(" up ");
+				expect(stdout).not.toContain("__DOKPLOY_ROLLBACK_OK__");
+				expect(stdout).toContain("Automatic restore failed");
+				for (const line of calls.trim().split("\n")) {
+					expect(line).toContain("--no-build");
+					expect(line).not.toMatch(/--build\b/);
+				}
+			},
+		);
+
+		it("emits the rollback marker when the --no-build up succeeds", async () => {
+			const script = await getBuildComposeCommand(base, {
+				deploymentId: "dep1",
+				remoteBuild,
+			});
+			const { stdout, calls } = run(restorePart(script), {
+				upSucceeds: true,
+				override: "0",
+			});
+			expect(stdout).toContain("__DOKPLOY_ROLLBACK_OK__:dep1");
+			expect(calls).toContain("--no-build");
+		});
+	},
+);

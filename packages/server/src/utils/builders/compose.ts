@@ -257,13 +257,14 @@ const getRestoreCommands = (
 	let upRestore = runRestore(restoreCommand);
 	let overrideRestore = "";
 	if (compose.buildServerId) {
-		// The previous release may predate the build server (no override to put
-		// back); it was built on this host. It still must not be rebuilt here: a
-		// plain `up` builds any service whose image was pruned since, which is
-		// exactly what a unit with a build server promises never to do on its
-		// serving host. `--no-build` brings it back from the images still on this
-		// host (or pulls them) and otherwise fails with the message below, so the
-		// operator redeploys, which builds on the build server.
+		// No override could be put back: the previous release predates the build
+		// server, or it had no `build:` services (so no override was ever written).
+		// It still must not be rebuilt here: a plain `up` builds any service whose
+		// image was pruned since, which a unit with a build server promises never
+		// to do on its serving host. `--no-build` brings it back from the images
+		// still on this host (or pulls them). If that fails the cause is unknown
+		// (pruned images, registry outage, port conflict...), so the message below
+		// stays neutral instead of blaming a missing image.
 		const qOverrideFile = quote([getComposeBuildOverridePath(compose)]);
 		const qPreOverride = quote([join(backupDir, PRE_DEPLOY_OVERRIDE_BAK)]);
 		const qLastGoodOverride = quote([join(backupDir, LAST_GOOD_OVERRIDE_BAK)]);
@@ -271,14 +272,14 @@ const getRestoreCommands = (
 			createCommand({ ...compose, buildServerId: null }, projectPath),
 		)} --no-build`;
 		const buildServerLabel = getBuildServerLabel(compose);
-		const preBuildServerFailure = `Error: ❌ This release was deployed before builds moved to ${buildServerLabel}; its images are most likely no longer on this host and the serving host never builds. Automatic restore failed. Redeploy instead, which builds on ${buildServerLabel}.`;
+		const noBuildRestoreFailure = `Warning: ⚠️ Automatic restore failed. The serving host never builds images (${buildServerLabel}). If this release's images were pruned, redeploy to rebuild them on ${buildServerLabel}; otherwise manual intervention may be required. Some services may already be restarted.`;
 		overrideRestore = `
 		OVERRIDE_RESTORED=1;
 		cp ${qLastGoodOverride} ${qOverrideFile} 2>/dev/null || cp ${qPreOverride} ${qOverrideFile} 2>/dev/null || { OVERRIDE_RESTORED=0; rm -f ${qOverrideFile}; };`;
 		upRestore = `if [ "$OVERRIDE_RESTORED" = "1" ]; then
 				${runRestore(restoreCommand)}
 			else
-				${runRestore(plainCommand, preBuildServerFailure)}
+				${runRestore(plainCommand, noBuildRestoreFailure)}
 			fi`;
 	}
 
