@@ -10,6 +10,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { resyncBackupPoliciesForEnvironment } from "@dokploy/server/services/backup-policy";
 import { prepareComposeBuildServerDeploy } from "@dokploy/server/services/compose-build-server";
+import { pruneComposeBuildRegistry } from "@dokploy/server/services/compose-registry-retention";
 import {
 	type ComposePathLike,
 	getBackupCurrentDeploymentCommand,
@@ -430,6 +431,10 @@ export const deployCompose = async ({
 			domains: compose.domains,
 			environmentName: compose.environment.name,
 		});
+
+		// Build-server composes: drop old per-deployment registry tags once this
+		// release is live. Best effort, never throws; a no-op without a build server.
+		await pruneComposeBuildRegistry({ entity, deployment });
 	} catch (error) {
 		let command = "";
 
@@ -597,6 +602,10 @@ export const rebuildCompose = async ({
 		await updateCompose(composeId, {
 			composeStatus: "done",
 		});
+
+		// Build-server composes: drop old per-deployment registry tags once this
+		// release is live. Best effort, never throws; a no-op without a build server.
+		await pruneComposeBuildRegistry({ entity: compose, deployment });
 	} catch (error) {
 		let command = "";
 
