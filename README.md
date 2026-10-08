@@ -2,7 +2,7 @@
 
 > **This is a community fork of [Dokploy](https://github.com/Dokploy/dokploy).** We are **not** affiliated with or competing against the Dokploy project. This fork exists to make new features available faster.
 
-Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.9**
+Based on **Dokploy v0.30.8** | Fork version **v0.30.8-community.10**
 
 Everything in upstream Dokploy **v0.30.8**, plus **100+ community features and fixes** that haven't landed upstream yet — each one ported **1:1 with credit to its original author** — plus **fork-only security hardening**. When a fix exists as an open upstream PR or issue, we port it now instead of waiting for it to merge; when it merges upstream later, you lose nothing by switching back.
 
@@ -17,7 +17,7 @@ One command. Keeps every app, database, domain, and setting — the extra migrat
 
 ```bash
 docker service update \
-  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.9 \
+  --image ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.10 \
   --with-registry-auth \
   dokploy
 ```
@@ -131,6 +131,18 @@ Beyond the ported features, this fork carries **7 direct security commits** and 
 Every item above is ported 1:1 and credited to its original upstream author. See the **[full release notes](https://github.com/DevinoSolutions/dokploy-community/releases/latest)** for the complete, per-PR credited list, migration details, and known caveats.
 
 > Concurrent deployments — previously a fork-only feature — shipped natively in upstream Dokploy v0.29.11, so this fork now uses the official implementation.
+
+### New in v0.30.8-community.10
+
+**Compose rollback and restore never build on the serving host** ([#293](https://github.com/DevinoSolutions/dokploy-community/pull/293)). Restoring a previous release of a compose service uses `--no-build`. If the restore fails, Dokploy prints a neutral warning telling you to redeploy instead of building on the host that serves traffic.
+
+**Old build-server image tags are cleaned up** ([#294](https://github.com/DevinoSolutions/dokploy-community/pull/294)). After a build-server compose deploy, the `dpl-` image tags in the build registry are pruned. It keeps `latest`, every non-`dpl-` tag, every tag referenced by an override file, and the 5 newest `dpl-` tags. A digest is deleted only when no kept tag resolves to it, with at most 50 deletions per run. ECR registries are skipped. Set `DOKPLOY_DISABLE_BUILD_REGISTRY_RETENTION=true` to turn it off. Blob garbage collection is not included.
+
+**Cancelling stops a build running on a build server** ([#295](https://github.com/DevinoSolutions/dokploy-community/pull/295)). Remote builds run under `setsid` with a pid file, and cancel sends TERM and then KILL to the process group.
+
+**A compose rebuild on a build server reuses the existing clone** ([#296](https://github.com/DevinoSolutions/dokploy-community/pull/296)). The clone is reused only when a completion marker (`.git/dokploy-clone-ok`) exists and the directory is a top-level repo. Otherwise it clones again. A real failure after a cancel now logs neutral wording.
+
+> No database migration in this release. The image is multi-arch (`linux/amd64` and `linux/arm64`), built by CI from the release commit.
 
 ### New in v0.30.8-community.9
 
@@ -618,7 +630,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 Install a specific version:
 
 ```bash
-export DOKPLOY_VERSION=v0.30.8-community.9
+export DOKPLOY_VERSION=v0.30.8-community.10
 curl -sSL https://dokploy-community.devino.ca/install.sh | sh
 ```
 
@@ -631,7 +643,7 @@ curl -sSL https://dokploy-community.devino.ca/install.sh | sh -s update
 ## Docker Image
 
 ```
-ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.9      # versioned (recommended)
+ghcr.io/devinosolutions/dokploy-community:v0.30.8-community.10      # versioned (recommended)
 ghcr.io/devinosolutions/dokploy-community:latest                  # latest release
 ghcr.io/devinosolutions/dokploy-community:canary                  # latest build
 ```
