@@ -181,6 +181,10 @@ export const mechanizeDockerContainer = async (
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			// Dokploy sets no service-level labels of its own. A service update
+			// replaces the whole spec, so labels added outside Dokploy (e.g.
+			// traefik.* for the Swarm provider) are dropped unless carried over.
+			Labels: inspect.Spec?.Labels ?? {},
 			TaskTemplate: {
 				...settings.TaskTemplate,
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
