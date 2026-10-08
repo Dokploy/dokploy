@@ -559,9 +559,12 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<Input placeholder="example.com" {...field} />
 											</FormControl>
 											<FormDescription>
-												Restrict this provider to a single DNS zone. Leave empty
-												to use every zone the credentials can access. When set,
-												the <code>GET /domain/zone</code> right is not needed.
+												Restrict this provider to a single DNS zone: Dokploy
+												will only list and change records in it. Leave empty to
+												use every zone the credentials can access. When set, the{" "}
+												<code>GET /domain/zone</code> right is not needed. This
+												is enforced by Dokploy only, so also limit the OVH token
+												to that zone if you need a hard guarantee.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
