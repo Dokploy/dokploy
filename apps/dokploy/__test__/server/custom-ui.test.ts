@@ -2,6 +2,7 @@ import http from "node:http";
 import net, { type AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+	type CompatibilityCheck,
 	type CompatibilityResult,
 	checkManifest,
 	createCompatibilityCheck,
@@ -183,6 +184,21 @@ describe("createCompatibilityCheck", () => {
 		expect((await check()).ok).toBe(false);
 		await flush();
 		expect((await check()).ok).toBe(true);
+	});
+
+	it("treats a manifest that is not JSON as a final verdict, even for an active UI", async () => {
+		const html = () => new Response("<html>not json</html>");
+		expect(await setup([html]).check()).toMatchObject({
+			ok: false,
+			transient: false,
+		});
+
+		const { check, advance, flush } = setup([ok, html]);
+		expect((await check()).ok).toBe(true);
+		advance(31_000);
+		await check();
+		await flush();
+		expect(await check()).toMatchObject({ ok: false, transient: false });
 	});
 
 	it("fails right away when the UI is unreachable before it was ever active", async () => {
@@ -456,6 +472,109 @@ describe("createUiRequestHandler", () => {
 			"GET / HTTP/1.1\r\nHost: x\r\nConnection: close, x-secret\r\nx-secret: 1\r\n\r\n",
 		);
 		expect(response).toContain('{"secret":null}');
+	});
+
+	const customHandler = (
+		target: string,
+		check: CompatibilityCheck = compatible,
+		handleNext: http.RequestListener = nextHandler,
+	) =>
+		createUiRequestHandler({
+			mode: { kind: "custom", target: new URL(target) },
+			handleNext,
+			checkCompatibility: check,
+		});
+
+	it("serves the built-in UI for GET when the custom UI answers 5xx, and passes 5xx through for POST", async () => {
+		const uiUrl = await listen((_req, res) => {
+			res.writeHead(503);
+			res.end("ui-503");
+		});
+		const invalidate = vi.fn();
+		const handler = customHandler(
+			uiUrl,
+			Object.assign(() => compatible(), { invalidate }),
+		);
+		const url = await listen((req, res) => handler(req, res));
+		expect(await (await fetch(`${url}/dashboard`)).text()).toBe(
+			"next:/dashboard",
+		);
+		const post = await fetch(`${url}/dashboard`, { method: "POST", body: "x" });
+		expect(post.status).toBe(503);
+		expect(invalidate).toHaveBeenCalledTimes(2);
+	});
+
+	it("serves /_next/ assets that the custom UI does not have from the built-in UI", async () => {
+		const uiUrl = await listen((_req, res) => {
+			res.writeHead(404);
+			res.end("ui-404");
+		});
+		const invalidate = vi.fn();
+		const handler = customHandler(
+			uiUrl,
+			Object.assign(() => compatible(), { invalidate }),
+		);
+		const url = await listen((req, res) => handler(req, res));
+		expect(
+			await (await fetch(`${url}/_next/static/chunks/main.js`)).text(),
+		).toBe("next:/_next/static/chunks/main.js");
+		const page = await fetch(`${url}/missing-page`);
+		expect(page.status).toBe(404);
+		expect(await page.text()).toBe("ui-404");
+		expect(invalidate).not.toHaveBeenCalled();
+	});
+
+	it("connects to an IPv6 custom UI address", async () => {
+		const server = http.createServer((_req, res) => res.end("ui-v6"));
+		const listening = await new Promise<boolean>((resolve) => {
+			server.once("error", () => resolve(false));
+			server.listen(0, "::1", () => resolve(true));
+		});
+		if (!listening) return;
+		servers.push(server);
+		const { port } = server.address() as AddressInfo;
+		const handler = customHandler(`http://[::1]:${port}`);
+		const url = await listen((req, res) => handler(req, res));
+		expect(await (await fetch(`${url}/`)).text()).toBe("ui-v6");
+	});
+
+	it("does not open an upstream request when the client left during the first check", async () => {
+		let hits = 0;
+		const uiUrl = await listen((_req, res) => {
+			hits += 1;
+			res.end("ui");
+		});
+		const slowCheck = () =>
+			new Promise<CompatibilityResult>((resolve) =>
+				setTimeout(() => resolve({ ok: true, manifest: MANIFEST }), 150),
+			);
+		const handler = customHandler(uiUrl, slowCheck);
+		const url = await listen((req, res) => handler(req, res));
+		const controller = new AbortController();
+		const request = fetch(`${url}/`, { signal: controller.signal });
+		setTimeout(() => controller.abort(), 30);
+		await expect(request).rejects.toThrow();
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		expect(hits).toBe(0);
+	});
+
+	it("forwards the body of a GET request that has one", async () => {
+		const uiUrl = await listen((req, res) => {
+			let body = "";
+			req.on("data", (chunk) => {
+				body += chunk;
+			});
+			req.on("end", () => res.end(`body=${body}`));
+		});
+		const handler = customHandler(uiUrl);
+		const url = await listen((req, res) => {
+			void handler(req, res);
+		});
+		const response = await rawRequest(
+			url,
+			"GET / HTTP/1.1\r\nHost: x\r\nConnection: close\r\nContent-Length: 5\r\n\r\nhello",
+		);
+		expect(response).toContain("body=hello");
 	});
 
 	it.each([

@@ -168,7 +168,18 @@ export const createCompatibilityCheck = ({
 					transient: response.status >= 500,
 				};
 			}
-			return checkManifest(await response.json(), dokployVersion);
+			const text = await response.text();
+			let manifest: unknown;
+			try {
+				manifest = JSON.parse(text);
+			} catch {
+				return {
+					ok: false,
+					reason: `${manifestUrl.href} is not valid JSON`,
+					transient: false,
+				};
+			}
+			return checkManifest(manifest, dokployVersion);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			return {
@@ -286,19 +297,29 @@ const withSecurityHeaders = (
 	return { ...result, ...SECURITY_HEADERS };
 };
 
-const hasNoBody = (req: IncomingMessage) =>
-	req.method === "GET" || req.method === "HEAD";
+// A GET or HEAD request without a body can be answered again by the built-in
+// UI, because the proxy never reads its stream.
+const isReplayable = (req: IncomingMessage) =>
+	(req.method === "GET" || req.method === "HEAD") &&
+	!req.headers["transfer-encoding"] &&
+	Number(req.headers["content-length"] ?? 0) === 0;
 
-// onUnreachable runs when the UI fails before it sends a response. It returns
-// true when it has answered the request itself (for example with the
-// built-in UI), so the proxy does not send a 502.
+export type ProxyFailure = "unreachable" | "server-error" | "missing-asset";
+
+// onFailure runs when the custom UI cannot answer: it is unreachable, it
+// returns a 5xx, or it has no file for a /_next/ asset (for example a script
+// of a built-in page that was served as a fallback). It returns true when it
+// has answered the request itself, which is possible only for replayable
+// requests.
 export const proxyRequest = (
 	req: IncomingMessage,
 	res: ServerResponse,
 	target: URL,
-	onUnreachable?: () => boolean,
+	onFailure?: (failure: ProxyFailure, replayable: boolean) => boolean,
 ) => {
 	let clientGone = false;
+	const replayable = isReplayable(req);
+	const isNextAsset = (getPathname(req.url) ?? "").startsWith("/_next/");
 	const client = target.protocol === "https:" ? https : http;
 	const forwardedFor = [
 		req.headers["x-forwarded-for"],
@@ -321,7 +342,8 @@ export const proxyRequest = (
 
 	const upstream = client.request({
 		protocol: target.protocol,
-		hostname: target.hostname,
+		// URL keeps IPv6 addresses in brackets; http.request expects them bare.
+		hostname: target.hostname.replace(/^\[|\]$/g, ""),
 		port: target.port || undefined,
 		method: req.method,
 		path: joinTargetPath(target, req.url ?? "/"),
@@ -332,10 +354,21 @@ export const proxyRequest = (
 	upstream.on("response", (upstreamRes) => {
 		// The timeout guards the connection phase only, so slow streams survive.
 		upstream.setTimeout(0);
+		const status = upstreamRes.statusCode ?? 502;
+		const failure: ProxyFailure | null =
+			status >= 500
+				? "server-error"
+				: status === 404 && isNextAsset
+					? "missing-asset"
+					: null;
+		if (failure && !clientGone && onFailure?.(failure, replayable)) {
+			upstreamRes.resume();
+			return;
+		}
 		upstreamRes.on("error", () => res.destroy());
 		upstreamRes.on("aborted", () => res.destroy());
 		res.writeHead(
-			upstreamRes.statusCode ?? 502,
+			status,
 			withSecurityHeaders(cleanHeaders(upstreamRes.headers)),
 		);
 		upstreamRes.pipe(res);
@@ -352,7 +385,7 @@ export const proxyRequest = (
 			res.destroy();
 			return;
 		}
-		if (onUnreachable?.()) return;
+		if (onFailure?.("unreachable", replayable)) return;
 		res.writeHead(502, { "content-type": "text/plain; charset=utf-8" });
 		res.end("The custom UI is not reachable.");
 	});
@@ -364,9 +397,7 @@ export const proxyRequest = (
 		}
 	});
 
-	// GET and HEAD carry no body. Leaving the request stream unread lets the
-	// built-in UI still read it if the custom UI turns out to be unreachable.
-	if (hasNoBody(req)) {
+	if (replayable) {
 		upstream.end();
 	} else {
 		req.pipe(upstream);
@@ -422,13 +453,16 @@ export const createUiRequestHandler = ({
 			const compatibility = checkCompatibility
 				? await checkCompatibility()
 				: null;
+			if (res.destroyed || req.socket.destroyed) return;
 			if (!compatibility?.ok) {
 				await handleNext(req, res);
 				return;
 			}
-			proxyRequest(req, res, mode.target, () => {
-				checkCompatibility?.invalidate?.();
-				if (!hasNoBody(req)) return false;
+			proxyRequest(req, res, mode.target, (failure, replayable) => {
+				if (failure !== "missing-asset") {
+					checkCompatibility?.invalidate?.();
+				}
+				if (!replayable) return false;
 				serveBuiltInUi(req, res);
 				return true;
 			});
