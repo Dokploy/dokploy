@@ -518,11 +518,16 @@ export const addDokployNetworkToService = (
 	networkService: DefinitionsService["networks"],
 	networkName = "dokploy-network",
 ) => {
-	let networks = networkService;
 	const network = networkName;
 	const defaultNetwork = "default";
+	let networks = networkService;
+
 	if (!networks) {
 		networks = [];
+	} else if (Array.isArray(networks)) {
+		networks = [...networks];
+	} else if (typeof networks === "object") {
+		networks = { ...networks };
 	}
 
 	if (Array.isArray(networks)) {
