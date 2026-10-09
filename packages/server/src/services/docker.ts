@@ -456,13 +456,13 @@ export const getContainerLogs = async (
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
 	const baseCommand = isService
-		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
-		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
+		? `docker service logs --timestamps --raw ${sinceFlag} ${target}`
+		: `docker container logs --timestamps ${sinceFlag} ${target}`;
 
 	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
 	const command = search
-		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
-		: `${baseCommand} 2>&1`;
+		? `${baseCommand} 2>&1 | { grep -iF -- '${escapedSearch}' || test $? -eq 1; } | tail -n ${tail}`
+		: `${baseCommand} --tail ${tail} 2>&1`;
 
 	try {
 		const result = await exec(command);
