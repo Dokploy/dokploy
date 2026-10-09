@@ -16,6 +16,11 @@ import {
 import { config } from "dotenv";
 import next from "next";
 import packageInfo from "../package.json";
+import {
+	createCompatibilityCheck,
+	createUiRequestHandler,
+	resolveUiMode,
+} from "./utils/custom-ui";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -27,6 +32,7 @@ config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
+const uiMode = resolveUiMode(process.env);
 
 // Initialize critical directories and Traefik config BEFORE Next.js starts
 // This prevents race conditions with the install script
@@ -42,8 +48,26 @@ const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
 	try {
 		console.log("Running DokployVersion: ", packageInfo.version);
+		if (uiMode.kind !== "default") {
+			console.log(
+				uiMode.kind === "disabled"
+					? "UI mode: disabled, only the API is served"
+					: `UI mode: custom UI from ${uiMode.target.origin}`,
+			);
+		}
+		const requestHandler = createUiRequestHandler({
+			mode: uiMode,
+			handleNext: handle,
+			checkCompatibility:
+				uiMode.kind === "custom"
+					? createCompatibilityCheck({
+							target: uiMode.target,
+							dokployVersion: packageInfo.version,
+						})
+					: undefined,
+		});
 		const server = http.createServer((req, res) => {
-			handle(req, res);
+			void requestHandler(req, res);
 		});
 
 		// WEBSOCKET
