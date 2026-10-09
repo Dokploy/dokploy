@@ -461,7 +461,7 @@ export const getContainerLogs = async (
 
 	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
 	const command = search
-		? `${baseCommand} 2>&1 | grep -iF -- '${escapedSearch}' | tail -n ${tail} || true`
+		? `${baseCommand} 2>&1 | { grep -iF -- '${escapedSearch}' || test $? -eq 1; } | tail -n ${tail}`
 		: `${baseCommand} --tail ${tail} 2>&1`;
 
 	try {
