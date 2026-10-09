@@ -69,6 +69,7 @@ export const loadDockerCompose = async (
 		const yamlStr = readFileSync(path, "utf8");
 		const parsedConfig = parse(yamlStr, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsedConfig;
 	}
@@ -94,6 +95,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = parse(stdout, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
@@ -163,6 +165,7 @@ export const applyComposeFilePatch = async (
 	try {
 		const parsed = parse(composeFilePatch.content, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsed ?? null;
 	} catch {
@@ -207,6 +210,7 @@ export const addDomainToCompose = async (
 	if (compose.sourceType === "raw") {
 		result = parse(compose.composeFile, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 	} else if (compose.serverId) {
 		result = await loadDockerComposeRemote(compose);
@@ -514,11 +518,16 @@ export const addDokployNetworkToService = (
 	networkService: DefinitionsService["networks"],
 	networkName = "dokploy-network",
 ) => {
-	let networks = networkService;
 	const network = networkName;
 	const defaultNetwork = "default";
+	let networks = networkService;
+
 	if (!networks) {
 		networks = [];
+	} else if (Array.isArray(networks)) {
+		networks = [...networks];
+	} else if (typeof networks === "object") {
+		networks = { ...networks };
 	}
 
 	if (Array.isArray(networks)) {
