@@ -26,11 +26,10 @@ export type Domain = typeof domains.$inferSelect;
 export const normalizeDomainPath = (path?: string | null): string => {
 	if (!path) return "/";
 	const trimmed = path.trim();
-	if (!trimmed || trimmed === "/") return "/";
+	if (!trimmed) return "/";
 	const withLeading = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-	return withLeading.length > 1 && withLeading.endsWith("/")
-		? withLeading.slice(0, -1)
-		: withLeading;
+	const cleaned = withLeading.replace(/\/+$/, "");
+	return cleaned || "/";
 };
 
 export const resolveDomainServerId = async (input: {
@@ -83,17 +82,25 @@ export const findConflictingDomain = async ({
 	path,
 	serverId,
 	excludeDomainId,
+	dbClient = db,
 }: {
 	host: string;
 	path?: string | null;
 	serverId?: string | null;
 	excludeDomainId?: string;
+	dbClient?: {
+		query: {
+			domains: {
+				findMany: typeof db.query.domains.findMany;
+			};
+		};
+	};
 }) => {
 	const normalizedHost = host.trim().toLowerCase();
 	const targetPath = normalizeDomainPath(path);
 	const targetServerId = serverId || null;
 
-	const matchingDomains = await db.query.domains.findMany({
+	const matchingDomains = await dbClient.query.domains.findMany({
 		where: sql`lower(${domains.host}) = ${normalizedHost}`,
 		with: {
 			application: {
@@ -156,6 +163,7 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 			host: cleanHost,
 			path: input.path,
 			serverId,
+			dbClient: tx,
 		});
 
 		if (conflictingDomain) {
@@ -173,6 +181,7 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 			.values({
 				...input,
 				host: cleanHost,
+				path: normalizeDomainPath(input.path),
 			} as typeof domains.$inferInsert)
 			.returning()
 			.then((response) => response[0]);
@@ -361,12 +370,17 @@ export const updateDomainById = async (
 	}
 
 	const cleanHost = domainData.host ? domainData.host.trim() : undefined;
+	const cleanPath =
+		domainData.path !== undefined
+			? normalizeDomainPath(domainData.path)
+			: undefined;
 
 	const domain = await db
 		.update(domains)
 		.set({
 			...domainData,
 			...(cleanHost && { host: cleanHost }),
+			...(cleanPath && { path: cleanPath }),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();

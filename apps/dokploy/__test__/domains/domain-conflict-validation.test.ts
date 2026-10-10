@@ -54,6 +54,11 @@ describe("Domain duplicate conflict validation", () => {
 		mockDb.transaction.mockImplementation(async (callback: any) =>
 			callback({
 				insert: mockDb.insert,
+				query: {
+					domains: {
+						findMany: mockDb.findMany,
+					},
+				},
 			}),
 		);
 		mockDb.insert.mockReturnValue({
@@ -80,6 +85,7 @@ describe("Domain duplicate conflict validation", () => {
 		expect(normalizeDomainPath("api")).toBe("/api");
 		expect(normalizeDomainPath("/api")).toBe("/api");
 		expect(normalizeDomainPath("/api/")).toBe("/api");
+		expect(normalizeDomainPath("/api///")).toBe("/api");
 	});
 
 	it("throws CONFLICT error when creating a domain with matching host and path on the same server", async () => {
