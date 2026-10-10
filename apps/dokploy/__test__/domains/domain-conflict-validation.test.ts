@@ -54,6 +54,7 @@ describe("Domain duplicate conflict validation", () => {
 		mockDb.transaction.mockImplementation(async (callback: any) =>
 			callback({
 				insert: mockDb.insert,
+				update: mockDb.update,
 				query: {
 					domains: {
 						findMany: mockDb.findMany,
@@ -242,5 +243,60 @@ describe("Domain duplicate conflict validation", () => {
 			domainId: "my-domain-id",
 			host: "same.example.com",
 		});
+	});
+
+	it("persists normalized paths on create and update", async () => {
+		const insertValuesSpy = vi.fn().mockReturnValue({
+			returning: vi.fn().mockResolvedValue([
+				{
+					domainId: "persisted-domain",
+					host: "normalize.example.com",
+					path: "/api",
+				},
+			]),
+		});
+		mockDb.insert.mockReturnValue({ values: insertValuesSpy });
+		mockDb.findMany.mockResolvedValue([]);
+
+		await createDomain({
+			host: "normalize.example.com",
+			path: "/api///",
+			applicationId: "app-1",
+		});
+
+		expect(insertValuesSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				host: "normalize.example.com",
+				path: "/api",
+			}),
+		);
+
+		mockDb.findFirst.mockResolvedValue({
+			domainId: "persisted-domain",
+			host: "normalize.example.com",
+			path: "/api",
+			application: { serverId: "server-1" },
+		});
+		const updateSetSpy = vi.fn().mockReturnValue({
+			where: vi.fn().mockReturnValue({
+				returning: vi.fn().mockResolvedValue([
+					{
+						domainId: "persisted-domain",
+						path: "/v2",
+					},
+				]),
+			}),
+		});
+		mockDb.update.mockReturnValue({ set: updateSetSpy });
+
+		await updateDomainById("persisted-domain", {
+			path: "v2///",
+		});
+
+		expect(updateSetSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				path: "/v2",
+			}),
+		);
 	});
 });

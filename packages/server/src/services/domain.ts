@@ -320,72 +320,76 @@ export const updateDomainById = async (
 ) => {
 	const currentDomain = await findDomainById(domainId);
 
-	if (domainData.host !== undefined) {
-		const cleanHost = domainData.host.trim();
-		if (!cleanHost) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Host cannot be empty",
+	return await db.transaction(async (tx) => {
+		if (domainData.host !== undefined) {
+			const cleanHost = domainData.host.trim();
+			if (!cleanHost) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Host cannot be empty",
+				});
+			}
+
+			const targetPath =
+				domainData.path !== undefined ? domainData.path : currentDomain.path;
+			const serverId = await resolveDomainServerId(currentDomain);
+
+			const conflictingDomain = await findConflictingDomain({
+				host: cleanHost,
+				path: targetPath,
+				serverId,
+				excludeDomainId: domainId,
+				dbClient: tx,
 			});
+
+			if (conflictingDomain) {
+				const normalizedTarget = normalizeDomainPath(targetPath);
+				const pathDisplay =
+					normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `Domain '${cleanHost}'${pathDisplay} is already in use on this server`,
+				});
+			}
+		} else if (domainData.path !== undefined) {
+			const serverId = await resolveDomainServerId(currentDomain);
+			const conflictingDomain = await findConflictingDomain({
+				host: currentDomain.host,
+				path: domainData.path,
+				serverId,
+				excludeDomainId: domainId,
+				dbClient: tx,
+			});
+
+			if (conflictingDomain) {
+				const normalizedTarget = normalizeDomainPath(domainData.path);
+				const pathDisplay =
+					normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `Domain '${currentDomain.host}'${pathDisplay} is already in use on this server`,
+				});
+			}
 		}
 
-		const targetPath =
-			domainData.path !== undefined ? domainData.path : currentDomain.path;
-		const serverId = await resolveDomainServerId(currentDomain);
+		const cleanHost = domainData.host ? domainData.host.trim() : undefined;
+		const cleanPath =
+			domainData.path !== undefined
+				? normalizeDomainPath(domainData.path)
+				: undefined;
 
-		const conflictingDomain = await findConflictingDomain({
-			host: cleanHost,
-			path: targetPath,
-			serverId,
-			excludeDomainId: domainId,
-		});
+		const domain = await tx
+			.update(domains)
+			.set({
+				...domainData,
+				...(cleanHost && { host: cleanHost }),
+				...(cleanPath && { path: cleanPath }),
+			})
+			.where(eq(domains.domainId, domainId))
+			.returning();
 
-		if (conflictingDomain) {
-			const normalizedTarget = normalizeDomainPath(targetPath);
-			const pathDisplay =
-				normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: `Domain '${cleanHost}'${pathDisplay} is already in use on this server`,
-			});
-		}
-	} else if (domainData.path !== undefined) {
-		const serverId = await resolveDomainServerId(currentDomain);
-		const conflictingDomain = await findConflictingDomain({
-			host: currentDomain.host,
-			path: domainData.path,
-			serverId,
-			excludeDomainId: domainId,
-		});
-
-		if (conflictingDomain) {
-			const normalizedTarget = normalizeDomainPath(domainData.path);
-			const pathDisplay =
-				normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: `Domain '${currentDomain.host}'${pathDisplay} is already in use on this server`,
-			});
-		}
-	}
-
-	const cleanHost = domainData.host ? domainData.host.trim() : undefined;
-	const cleanPath =
-		domainData.path !== undefined
-			? normalizeDomainPath(domainData.path)
-			: undefined;
-
-	const domain = await db
-		.update(domains)
-		.set({
-			...domainData,
-			...(cleanHost && { host: cleanHost }),
-			...(cleanPath && { path: cleanPath }),
-		})
-		.where(eq(domains.domainId, domainId))
-		.returning();
-
-	return domain[0];
+		return domain[0];
+	});
 };
 
 export const removeDomainById = async (domainId: string) => {
