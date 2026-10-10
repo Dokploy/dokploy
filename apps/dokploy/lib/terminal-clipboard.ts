@@ -5,14 +5,19 @@ import type { Terminal } from "@xterm/xterm";
 // set up. Those are exactly the installs where copying matters most, so the
 // old execCommand path stays as a fallback rather than letting the copy fail
 // silently.
-const writeWithExecCommand = (text: string): boolean => {
+const writeWithExecCommand = (text: string, host: HTMLElement): boolean => {
 	const textarea = document.createElement("textarea");
 	textarea.value = text;
 	textarea.setAttribute("readonly", "");
 	textarea.style.position = "fixed";
 	textarea.style.opacity = "0";
 	textarea.style.pointerEvents = "none";
-	document.body.appendChild(textarea);
+
+	// Appended next to the terminal rather than to the body: both terminals
+	// open inside a modal dialog, whose focus trap pulls the focus straight
+	// back out of anything placed outside it, dropping the very selection
+	// execCommand is about to read.
+	host.appendChild(textarea);
 
 	// Selecting the textarea takes the focus away from the terminal, and
 	// without giving it back the next keystroke would go nowhere.
@@ -31,7 +36,11 @@ const writeWithExecCommand = (text: string): boolean => {
 	}
 };
 
-export const writeToClipboard = async (text: string): Promise<boolean> => {
+export const writeToClipboard = async (
+	text: string,
+	/** Where the fallback puts its textarea, so a focus trap cannot reject it. */
+	host: HTMLElement,
+): Promise<boolean> => {
 	if (window.isSecureContext && navigator.clipboard) {
 		try {
 			await navigator.clipboard.writeText(text);
@@ -42,7 +51,7 @@ export const writeToClipboard = async (text: string): Promise<boolean> => {
 		}
 	}
 
-	return writeWithExecCommand(text);
+	return writeWithExecCommand(text, host);
 };
 
 /**
@@ -76,7 +85,7 @@ export const attachSelectionCopy = (
 			return;
 		}
 
-		void writeToClipboard(selection).then((copied) => {
+		void writeToClipboard(selection, element).then((copied) => {
 			if (copied) {
 				onCopied?.();
 			}
