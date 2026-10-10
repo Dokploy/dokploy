@@ -9,22 +9,170 @@ import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { z } from "zod";
-import { type apiCreateDomain, domains } from "../db/schema";
+import {
+	type apiCreateDomain,
+	domains,
+	previewDeployments,
+} from "../db/schema";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { findComposeById } from "./compose";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+export const normalizeDomainPath = (path?: string | null): string => {
+	if (!path) return "/";
+	const trimmed = path.trim();
+	if (!trimmed || trimmed === "/") return "/";
+	const withLeading = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+	return withLeading.length > 1 && withLeading.endsWith("/")
+		? withLeading.slice(0, -1)
+		: withLeading;
+};
+
+export const resolveDomainServerId = async (input: {
+	applicationId?: string | null;
+	composeId?: string | null;
+	previewDeploymentId?: string | null;
+}): Promise<string | null> => {
+	if (input.applicationId) {
+		const app = await findApplicationById(input.applicationId);
+		return app?.serverId || null;
+	}
+	if (input.composeId) {
+		const comp = await findComposeById(input.composeId);
+		return comp?.serverId || null;
+	}
+	if (input.previewDeploymentId) {
+		const preview = await db.query.previewDeployments.findFirst({
+			where: eq(
+				previewDeployments.previewDeploymentId,
+				input.previewDeploymentId,
+			),
+			with: {
+				application: {
+					columns: { serverId: true },
+				},
+			},
+		});
+		return preview?.application?.serverId || null;
+	}
+	return null;
+};
+
+const extractDomainServerId = (domainRecord: {
+	application?: { serverId?: string | null } | null;
+	compose?: { serverId?: string | null } | null;
+	previewDeployment?: {
+		application?: { serverId?: string | null } | null;
+	} | null;
+}): string | null => {
+	return (
+		domainRecord.application?.serverId ||
+		domainRecord.compose?.serverId ||
+		domainRecord.previewDeployment?.application?.serverId ||
+		null
+	);
+};
+
+export const findConflictingDomain = async ({
+	host,
+	path,
+	serverId,
+	excludeDomainId,
+}: {
+	host: string;
+	path?: string | null;
+	serverId?: string | null;
+	excludeDomainId?: string;
+}) => {
+	const normalizedHost = host.trim().toLowerCase();
+	const targetPath = normalizeDomainPath(path);
+	const targetServerId = serverId || null;
+
+	const matchingDomains = await db.query.domains.findMany({
+		where: sql`lower(${domains.host}) = ${normalizedHost}`,
+		with: {
+			application: {
+				columns: {
+					applicationId: true,
+					appName: true,
+					name: true,
+					serverId: true,
+				},
+			},
+			compose: {
+				columns: { composeId: true, appName: true, name: true, serverId: true },
+			},
+			previewDeployment: {
+				columns: { previewDeploymentId: true, appName: true },
+				with: {
+					application: {
+						columns: {
+							applicationId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	for (const candidate of matchingDomains) {
+		if (excludeDomainId && candidate.domainId === excludeDomainId) {
+			continue;
+		}
+		const candidatePath = normalizeDomainPath(candidate.path);
+		if (candidatePath !== targetPath) {
+			continue;
+		}
+		const candidateServerId = extractDomainServerId(candidate);
+		if (candidateServerId === targetServerId) {
+			return candidate;
+		}
+	}
+
+	return null;
+};
+
 export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
+	const cleanHost = input.host?.trim();
+	if (!cleanHost) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Host cannot be empty",
+		});
+	}
+
+	const serverId = await resolveDomainServerId(input);
+
 	const result = await db.transaction(async (tx) => {
+		const conflictingDomain = await findConflictingDomain({
+			host: cleanHost,
+			path: input.path,
+			serverId,
+		});
+
+		if (conflictingDomain) {
+			const targetPath = normalizeDomainPath(input.path);
+			const pathDisplay =
+				targetPath === "/" ? "" : ` with path '${targetPath}'`;
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `Domain '${cleanHost}'${pathDisplay} is already in use on this server`,
+			});
+		}
+
 		const domain = await tx
 			.insert(domains)
 			.values({
 				...input,
-				host: input.host?.trim(),
+				host: cleanHost,
 			} as typeof domains.$inferInsert)
 			.returning()
 			.then((response) => response[0]);
@@ -124,15 +272,101 @@ export const findDomainsByComposeId = async (composeId: string) => {
 	return domainsArray;
 };
 
+export const findDomainByHost = async (host: string) => {
+	const domain = await db.query.domains.findFirst({
+		where: sql`lower(${domains.host}) = ${host.trim().toLowerCase()}`,
+		with: {
+			application: {
+				columns: {
+					applicationId: true,
+					appName: true,
+					name: true,
+					serverId: true,
+				},
+			},
+			compose: {
+				columns: { composeId: true, appName: true, name: true, serverId: true },
+			},
+			previewDeployment: {
+				columns: { previewDeploymentId: true, appName: true },
+				with: {
+					application: {
+						columns: {
+							applicationId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+				},
+			},
+		},
+	});
+	return domain;
+};
+
 export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
+	const currentDomain = await findDomainById(domainId);
+
+	if (domainData.host !== undefined) {
+		const cleanHost = domainData.host.trim();
+		if (!cleanHost) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Host cannot be empty",
+			});
+		}
+
+		const targetPath =
+			domainData.path !== undefined ? domainData.path : currentDomain.path;
+		const serverId = await resolveDomainServerId(currentDomain);
+
+		const conflictingDomain = await findConflictingDomain({
+			host: cleanHost,
+			path: targetPath,
+			serverId,
+			excludeDomainId: domainId,
+		});
+
+		if (conflictingDomain) {
+			const normalizedTarget = normalizeDomainPath(targetPath);
+			const pathDisplay =
+				normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `Domain '${cleanHost}'${pathDisplay} is already in use on this server`,
+			});
+		}
+	} else if (domainData.path !== undefined) {
+		const serverId = await resolveDomainServerId(currentDomain);
+		const conflictingDomain = await findConflictingDomain({
+			host: currentDomain.host,
+			path: domainData.path,
+			serverId,
+			excludeDomainId: domainId,
+		});
+
+		if (conflictingDomain) {
+			const normalizedTarget = normalizeDomainPath(domainData.path);
+			const pathDisplay =
+				normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `Domain '${currentDomain.host}'${pathDisplay} is already in use on this server`,
+			});
+		}
+	}
+
+	const cleanHost = domainData.host ? domainData.host.trim() : undefined;
+
 	const domain = await db
 		.update(domains)
 		.set({
 			...domainData,
-			...(domainData.host && { host: domainData.host.trim() }),
+			...(cleanHost && { host: cleanHost }),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();
