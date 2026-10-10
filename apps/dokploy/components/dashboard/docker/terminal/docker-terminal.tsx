@@ -5,7 +5,9 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { attachSelectionCopy } from "@/lib/terminal-clipboard";
 import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
 
 interface Props {
@@ -37,6 +39,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		let term: Terminal | null = null;
 		let ws: WebSocket | null = null;
 		let resizeObserver: ResizeObserver | null = null;
+		let detachSelectionCopy: (() => void) | null = null;
 
 		// Deferred a frame so React StrictMode's dev-only phantom mount+cleanup
 		// (which runs synchronously, before anything paints) never creates a
@@ -86,6 +89,14 @@ export const DockerTerminal: React.FC<Props> = ({
 			resizeObserver = new ResizeObserver(() => addonFit.fit());
 			if (termRef.current) {
 				resizeObserver.observe(termRef.current);
+				detachSelectionCopy = attachSelectionCopy(term, termRef.current, () =>
+					// One id for every copy of this terminal, so dragging over
+					// several lines in a row replaces the toast instead of stacking.
+					toast.success("Copied to clipboard", {
+						id: `terminal-copy-${id}`,
+						duration: 2000,
+					}),
+				);
 			}
 		});
 
@@ -93,6 +104,7 @@ export const DockerTerminal: React.FC<Props> = ({
 			cancelled = true;
 			cancelAnimationFrame(frame);
 			resizeObserver?.disconnect();
+			detachSelectionCopy?.();
 			if (ws && ws.readyState === WebSocket.OPEN) {
 				ws.close();
 			}
