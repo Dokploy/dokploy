@@ -1,6 +1,6 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import { redactRcloneCredentials } from "@dokploy/server/utils/backups/redact";
-import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
+import { getRcloneConfig } from "@dokploy/server/utils/backups/utils";
 import { describe, expect, it } from "vitest";
 
 describe("redactRcloneCredentials (#4621)", () => {
@@ -53,7 +53,7 @@ describe("redactRcloneCredentials (#4621)", () => {
 
 describe("redactRcloneCredentials with getS3Credentials output (#5519)", () => {
 	const buildCommand = (accessKey: string, secretAccessKey: string) =>
-		`rclone rcat ${getS3Credentials({
+		`rclone rcat ${getRcloneConfig({
 			accessKey,
 			secretAccessKey,
 			region: "us-west-001",
@@ -93,5 +93,46 @@ describe("redactRcloneCredentials with getS3Credentials output (#5519)", () => {
 		expect(redacted).not.toContain("MYKEY");
 		expect(redacted).not.toContain("MY/SECRET");
 		expect(redacted).toContain("[REDACTED]");
+	});
+	it("redacts Google Drive and OneDrive OAuth flags", () => {
+		const command = [
+			"rclone copy file",
+			"--drive-client-id=google-client",
+			"--drive-client-secret=google-secret",
+			`--drive-token='{"access_token":"google-token"}'`,
+			"--onedrive-client-id=microsoft-client",
+			"--onedrive-client-secret=microsoft-secret",
+			`--onedrive-token='{"access_token":"microsoft-token"}'`,
+		].join(" ");
+		const redacted = redactRcloneCredentials(command);
+		expect(redacted).not.toContain("google-secret");
+		expect(redacted).not.toContain("google-token");
+		expect(redacted).not.toContain("microsoft-secret");
+		expect(redacted).not.toContain("microsoft-token");
+		expect(redacted).toContain('--drive-token="[REDACTED]"');
+		expect(redacted).toContain('--onedrive-token="[REDACTED]"');
+	});
+
+	it("redacts FTP and SFTP host, user and password flags", () => {
+		const command = [
+			"rclone copy file",
+			"--ftp-host=ftp.example.com",
+			"--ftp-user=ftpuser",
+			"--ftp-pass=obscured-ftp-pass",
+			"--ftp-port=2121",
+			"--sftp-host=sftp.example.com",
+			"--sftp-user=sftpuser",
+			"--sftp-pass=obscured-sftp-pass",
+		].join(" ");
+		const redacted = redactRcloneCredentials(command);
+		expect(redacted).not.toContain("ftp.example.com");
+		expect(redacted).not.toContain("ftpuser");
+		expect(redacted).not.toContain("obscured-ftp-pass");
+		expect(redacted).not.toContain("sftp.example.com");
+		expect(redacted).not.toContain("sftpuser");
+		expect(redacted).not.toContain("obscured-sftp-pass");
+		expect(redacted).toContain('--ftp-pass="[REDACTED]"');
+		expect(redacted).toContain('--sftp-pass="[REDACTED]"');
+		expect(redacted).toContain("--ftp-port=2121");
 	});
 });

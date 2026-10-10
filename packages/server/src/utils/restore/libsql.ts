@@ -3,7 +3,11 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Libsql } from "@dokploy/server/services/libsql";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { getS3Credentials, getServiceContainerCommand } from "../backups/utils";
+import {
+	getRcloneConfig,
+	getRcloneDestinationPath,
+	getServiceContainerCommand,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 export const restoreLibsqlBackup = async (
@@ -15,8 +19,8 @@ export const restoreLibsqlBackup = async (
 	try {
 		const { appName, serverId } = libsql;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
+		const rcloneFlags = getRcloneConfig(destination);
+		const bucketPath = getRcloneDestinationPath(destination, "");
 
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 

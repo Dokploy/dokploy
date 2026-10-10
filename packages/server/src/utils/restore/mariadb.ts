@@ -3,7 +3,7 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import { getRcloneConfig, getRcloneDestinationPath } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -16,8 +16,8 @@ export const restoreMariadbBackup = async (
 	try {
 		const { appName, serverId, databaseUser, databasePassword } = mariadb;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
+		const rcloneFlags = getRcloneConfig(destination);
+		const bucketPath = getRcloneDestinationPath(destination, "");
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
 		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;

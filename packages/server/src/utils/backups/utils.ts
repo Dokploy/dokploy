@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -68,27 +69,122 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const getRcloneProviderPrefix = (
+	provider: Destination["provider"],
+): string => {
+	if (provider === "ftp" || provider === "sftp") return provider;
+	if (provider === "google-drive") return "drive";
+	if (provider === "onedrive") return "onedrive";
+	return "s3";
+};
+
+type OAuthSecretBundle = {
+	clientSecret?: string;
+	token?: string;
+};
+
+const parseOAuthSecretBundle = (value: string): OAuthSecretBundle => {
+	try {
+		const parsed = JSON.parse(value) as OAuthSecretBundle;
+		if (!parsed || typeof parsed !== "object")
+			throw new Error("invalid oauth bundle");
+		return {
+			clientSecret:
+				typeof parsed.clientSecret === "string" ? parsed.clientSecret : "",
+			token: typeof parsed.token === "string" ? parsed.token : "",
+		};
+	} catch {
+		throw new Error(
+			"Cloud destination credentials are invalid. Re-save the destination with a valid OAuth token.",
+		);
+	}
+};
+
+export const getRcloneDestinationPath = (
+	destination: Destination,
+	path: string,
+): string => {
+	const prefix = getRcloneProviderPrefix(destination.provider);
+	const root = String(destination.bucket || "").replace(/^\/+|\/+$/g, "");
+	const child = String(path || "").replace(/^\/+/, "");
+	const joined = [root, child].filter(Boolean).join("/");
+	return `:${prefix}:${joined}`;
+};
+
+const obscureRclonePassword = (password: string): string => {
+	if (!password) return "";
+	try {
+		return String(
+			execFileSync("rclone", ["obscure", "-"], {
+				input: `${password}\n`,
+				encoding: "utf8",
+			}),
+		).trim();
+	} catch (error) {
+		throw new Error(
+			`Failed to obscure destination password: rclone binary unavailable or failed (${error instanceof Error ? error.message : String(error)})`,
+		);
+	}
+};
+
+export const getRcloneConfig = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
-	const rcloneFlags = [
-		`--s3-access-key-id=${quote([accessKey])}`,
-		`--s3-secret-access-key=${quote([secretAccessKey])}`,
-		`--s3-region=${quote([region])}`,
-		`--s3-endpoint=${quote([endpoint])}`,
-		"--s3-no-check-bucket",
-		"--s3-force-path-style",
-	];
+	const rcloneConfig: string[] = [];
 
-	if (provider) {
-		rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
+	if (provider === "ftp") {
+		rcloneConfig.push(
+			`--ftp-host=${quote([endpoint])}`,
+			`--ftp-user=${quote([accessKey])}`,
+			`--ftp-port=${quote([region || "21"])}`,
+			`--ftp-pass=${quote([obscureRclonePassword(secretAccessKey)])}`,
+		);
+	} else if (provider === "sftp") {
+		rcloneConfig.push(
+			`--sftp-host=${quote([endpoint])}`,
+			`--sftp-user=${quote([accessKey])}`,
+			`--sftp-port=${quote([region || "22"])}`,
+			`--sftp-pass=${quote([obscureRclonePassword(secretAccessKey)])}`,
+		);
+	} else if (provider === "google-drive") {
+		const oauth = parseOAuthSecretBundle(secretAccessKey);
+		if (!oauth.token) throw new Error("Google Drive OAuth token is required");
+		if (accessKey) rcloneConfig.push(`--drive-client-id=${quote([accessKey])}`);
+		if (oauth.clientSecret)
+			rcloneConfig.push(`--drive-client-secret=${quote([oauth.clientSecret])}`);
+		rcloneConfig.push(`--drive-token=${quote([oauth.token])}`);
+		if (endpoint)
+			rcloneConfig.push(`--drive-root-folder-id=${quote([endpoint])}`);
+	} else if (provider === "onedrive") {
+		const oauth = parseOAuthSecretBundle(secretAccessKey);
+		if (!oauth.token) throw new Error("OneDrive OAuth token is required");
+		if (!endpoint) throw new Error("OneDrive drive ID is required");
+		if (accessKey)
+			rcloneConfig.push(`--onedrive-client-id=${quote([accessKey])}`);
+		if (oauth.clientSecret)
+			rcloneConfig.push(
+				`--onedrive-client-secret=${quote([oauth.clientSecret])}`,
+			);
+		rcloneConfig.push(
+			`--onedrive-token=${quote([oauth.token])}`,
+			`--onedrive-drive-id=${quote([endpoint])}`,
+			`--onedrive-drive-type=${quote([region || "personal"])}`,
+		);
+	} else {
+		rcloneConfig.push(
+			`--s3-provider=${quote([provider || "Other"])}`,
+			`--s3-access-key-id=${quote([accessKey])}`,
+			`--s3-secret-access-key=${quote([secretAccessKey])}`,
+			`--s3-region=${quote([region])}`,
+			`--s3-endpoint=${quote([endpoint])}`,
+			"--s3-no-check-bucket",
+			"--s3-force-path-style",
+		);
 	}
 
-	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
-	}
-
-	return rcloneFlags;
+	if (destination.additionalFlags?.length)
+		rcloneConfig.push(...destination.additionalFlags);
+	return rcloneConfig;
 };
 
 // User-controlled values (database name, user, password) are passed to the

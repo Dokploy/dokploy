@@ -12,7 +12,8 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getBackupTimestamp,
-	getS3Credentials,
+	getRcloneConfig,
+	getRcloneDestinationPath,
 	normalizeS3Path,
 } from "./utils";
 
@@ -30,8 +31,11 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		description: "MongoDB Backup",
 	});
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const rcloneFlags = getRcloneConfig(destination);
+		const rcloneDestination = getRcloneDestinationPath(
+			destination,
+			bucketDestination,
+		);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneFlags,

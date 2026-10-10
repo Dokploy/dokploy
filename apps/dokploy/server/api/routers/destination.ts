@@ -8,6 +8,10 @@ import {
 	updateDestinationById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	getRcloneConfig,
+	getRcloneDestinationPath,
+} from "@dokploy/server/utils/backups/utils";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
@@ -48,35 +52,20 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: withPermission("destination", "create")
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const {
-				secretAccessKey,
-				bucket,
-				region,
-				endpoint,
-				accessKey,
-				provider,
-				additionalFlags,
-			} = input;
+			const { provider } = input;
 			try {
+				const destination = {
+					...input,
+					provider: provider || "s3",
+				} as typeof destinations.$inferSelect;
 				const rcloneFlags = [
-					`--s3-access-key-id=${quote([accessKey])}`,
-					`--s3-secret-access-key=${quote([secretAccessKey])}`,
-					`--s3-region=${quote([region])}`,
-					`--s3-endpoint=${quote([endpoint])}`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
+					...getRcloneConfig(destination),
 					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
 				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
-				}
-				if (additionalFlags?.length) {
-					rcloneFlags.push(...additionalFlags);
-				}
-				const rcloneDestination = `:s3:${bucket}`;
+				const rcloneDestination = getRcloneDestinationPath(destination, "");
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 
 				if (IS_CLOUD && !input.serverId) {
@@ -97,7 +86,7 @@ export const destinationRouter = createTRPCRouter({
 					message:
 						error instanceof Error
 							? error?.message
-							: "Error connecting to bucket",
+							: "Error connecting to destination",
 					cause: error,
 				});
 			}
