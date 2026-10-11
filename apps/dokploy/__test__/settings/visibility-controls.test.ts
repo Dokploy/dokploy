@@ -1,35 +1,119 @@
+import { webServerSettings } from "@dokploy/server/db/schema";
+import type { PublicWhitelabelingConfig } from "@dokploy/server/services/proprietary/whitelabeling";
 import { describe, expect, it } from "vitest";
 
 /**
- * Tests for the visibility controls feature that allows self-hosted
+ * Integration tests for the visibility controls feature that allows self-hosted
  * enterprise instances to hide unused UI elements.
  */
 
-describe("Visibility Controls - Server-side validation", () => {
+describe("Visibility Controls - Database schema", () => {
+	it("should have hideSocialIcons column in webServerSettings schema", () => {
+		expect(webServerSettings.hideSocialIcons).toBeDefined();
+		expect(webServerSettings.hideSocialIcons.dataType).toBe("boolean");
+		expect(webServerSettings.hideSocialIcons.notNull).toBe(true);
+		expect(webServerSettings.hideSocialIcons.default).toBe(false);
+	});
+
+	it("should have hideDocsLink column in webServerSettings schema", () => {
+		expect(webServerSettings.hideDocsLink).toBeDefined();
+		expect(webServerSettings.hideDocsLink.dataType).toBe("boolean");
+		expect(webServerSettings.hideDocsLink.notNull).toBe(true);
+		expect(webServerSettings.hideDocsLink.default).toBe(false);
+	});
+
+	it("should have hideSupportLink column in webServerSettings schema", () => {
+		expect(webServerSettings.hideSupportLink).toBeDefined();
+		expect(webServerSettings.hideSupportLink.dataType).toBe("boolean");
+		expect(webServerSettings.hideSupportLink.notNull).toBe(true);
+		expect(webServerSettings.hideSupportLink.default).toBe(false);
+	});
+
+	it("should have hideSSOButton column in webServerSettings schema", () => {
+		expect(webServerSettings.hideSSOButton).toBeDefined();
+		expect(webServerSettings.hideSSOButton.dataType).toBe("boolean");
+		expect(webServerSettings.hideSSOButton.notNull).toBe(true);
+		expect(webServerSettings.hideSSOButton.default).toBe(false);
+	});
+
+	it("should have hidePasskeyButton column in webServerSettings schema", () => {
+		expect(webServerSettings.hidePasskeyButton).toBeDefined();
+		expect(webServerSettings.hidePasskeyButton.dataType).toBe("boolean");
+		expect(webServerSettings.hidePasskeyButton.notNull).toBe(true);
+		expect(webServerSettings.hidePasskeyButton.default).toBe(false);
+	});
+
+	it("should have all 5 visibility control columns with consistent schema", () => {
+		const columns = [
+			webServerSettings.hideSocialIcons,
+			webServerSettings.hideDocsLink,
+			webServerSettings.hideSupportLink,
+			webServerSettings.hideSSOButton,
+			webServerSettings.hidePasskeyButton,
+		];
+
+		for (const column of columns) {
+			expect(column.dataType).toBe("boolean");
+			expect(column.notNull).toBe(true);
+			expect(column.default).toBe(false);
+		}
+	});
+});
+
+describe("Visibility Controls - PublicWhitelabelingConfig interface", () => {
+	it("should expose hideSocialIcons in PublicWhitelabelingConfig type", () => {
+		// Type test: this will fail to compile if the property doesn't exist
+		const config: Partial<PublicWhitelabelingConfig> = {
+			hideSocialIcons: false,
+			hideSSOButton: false,
+			hidePasskeyButton: false,
+		};
+
+		expect(config.hideSocialIcons).toBeDefined();
+		expect(typeof config.hideSocialIcons).toBe("boolean");
+	});
+
+	it("should expose hideSSOButton in PublicWhitelabelingConfig type", () => {
+		const config: Partial<PublicWhitelabelingConfig> = {
+			hideSSOButton: true,
+		};
+
+		expect(config.hideSSOButton).toBeDefined();
+		expect(typeof config.hideSSOButton).toBe("boolean");
+	});
+
+	it("should expose hidePasskeyButton in PublicWhitelabelingConfig type", () => {
+		const config: Partial<PublicWhitelabelingConfig> = {
+			hidePasskeyButton: true,
+		};
+
+		expect(config.hidePasskeyButton).toBeDefined();
+		expect(typeof config.hidePasskeyButton).toBe("boolean");
+	});
+});
+
+describe("Visibility Controls - Validation logic", () => {
 	/**
-	 * These tests verify the validation rules for hiding UI elements.
-	 * The actual mutations are in apps/dokploy/server/api/routers/settings.ts
+	 * Tests for the business logic behind visibility controls.
+	 * These test the intended behavior documented in the mutations.
 	 */
 
-	describe("Hide SSO Button validation", () => {
-		it("should allow hiding SSO button when no SSO providers exist and enforceSSO is false", () => {
-			// Validation logic: can hide if no ssoProvider records AND enforceSSO is false
+	describe("SSO button validation logic", () => {
+		it("should allow hiding when no providers and enforceSSO is false", () => {
 			const hasSSOProviders = false;
 			const enforceSSO = false;
 			const canHide = !hasSSOProviders && !enforceSSO;
 			expect(canHide).toBe(true);
 		});
 
-		it("should prevent hiding SSO button when SSO providers exist", () => {
-			// Validation logic: cannot hide if ssoProvider records exist
+		it("should prevent hiding when providers exist", () => {
 			const hasSSOProviders = true;
 			const enforceSSO = false;
 			const canHide = !hasSSOProviders && !enforceSSO;
 			expect(canHide).toBe(false);
 		});
 
-		it("should prevent hiding SSO button when enforceSSO is enabled", () => {
-			// Validation logic: cannot hide if enforceSSO is true
+		it("should prevent hiding when enforceSSO is enabled", () => {
 			const hasSSOProviders = false;
 			const enforceSSO = true;
 			const canHide = !hasSSOProviders && !enforceSSO;
@@ -37,130 +121,48 @@ describe("Visibility Controls - Server-side validation", () => {
 		});
 	});
 
-	describe("Hide Passkey Button validation", () => {
-		it("should allow hiding passkey button when no users have passkeys", () => {
-			// Validation logic: can hide if no passkey records exist
+	describe("Passkey button validation logic", () => {
+		it("should allow hiding when no passkeys exist", () => {
 			const hasPasskeys = false;
 			const canHide = !hasPasskeys;
 			expect(canHide).toBe(true);
 		});
 
-		it("should prevent hiding passkey button when users have passkeys configured", () => {
-			// Validation logic: cannot hide if passkey records exist
+		it("should prevent hiding when passkeys exist", () => {
 			const hasPasskeys = true;
 			const canHide = !hasPasskeys;
 			expect(canHide).toBe(false);
 		});
 	});
 
-	describe("Hide Documentation Link validation", () => {
-		it("should allow hiding docs link when no custom docs URL is set", () => {
-			// Validation logic: can hide if whitelabelingConfig.docsUrl is null/undefined
+	describe("Docs/Support link validation logic", () => {
+		it("should allow hiding docs when no custom URL", () => {
 			const customDocsUrl = null;
 			const canHide = !customDocsUrl;
 			expect(canHide).toBe(true);
 		});
 
-		it("should prevent hiding docs link when custom docs URL exists", () => {
-			// Validation logic: cannot hide if whitelabelingConfig.docsUrl exists
+		it("should prevent hiding docs when custom URL exists", () => {
 			const customDocsUrl = "https://custom.docs.com";
 			const canHide = !customDocsUrl;
 			expect(canHide).toBe(false);
 		});
-	});
 
-	describe("Hide Support Link validation", () => {
-		it("should allow hiding support link when no custom support URL is set", () => {
-			// Validation logic: can hide if whitelabelingConfig.supportUrl is null/undefined
+		it("should allow hiding support when no custom URL", () => {
 			const customSupportUrl = null;
 			const canHide = !customSupportUrl;
 			expect(canHide).toBe(true);
 		});
 
-		it("should prevent hiding support link when custom support URL exists", () => {
-			// Validation logic: cannot hide if whitelabelingConfig.supportUrl exists
+		it("should prevent hiding support when custom URL exists", () => {
 			const customSupportUrl = "https://custom.support.com";
 			const canHide = !customSupportUrl;
 			expect(canHide).toBe(false);
 		});
 	});
 
-	describe("Hide Social Icons validation", () => {
-		it("should always allow hiding social icons (no validation required)", () => {
-			// Social icons have no server-side validation - they can always be hidden
-			const canHide = true;
-			expect(canHide).toBe(true);
-		});
-	});
-});
-
-describe("Visibility Controls - IS_CLOUD restriction", () => {
-	/**
-	 * All visibility control toggles are restricted to self-hosted instances.
-	 * IS_CLOUD guard throws TRPCError with code "BAD_REQUEST" when called from cloud.
-	 */
-
-	it("should restrict visibility controls to self-hosted instances", () => {
-		const IS_CLOUD = true;
-		const shouldThrowError = IS_CLOUD;
-		expect(shouldThrowError).toBe(true);
-	});
-
-	it("should allow visibility controls on self-hosted instances", () => {
-		const IS_CLOUD = false;
-		const shouldThrowError = IS_CLOUD;
-		expect(shouldThrowError).toBe(false);
-	});
-
-	it("all 5 visibility control mutations have the same IS_CLOUD guard", () => {
-		// All mutations follow the same pattern:
-		// if (IS_CLOUD) throw new TRPCError({ code: "BAD_REQUEST", message: "..." })
-		const mutations = [
-			"updateHideSocialIcons",
-			"updateHideDocsLink",
-			"updateHideSupportLink",
-			"updateHideSSOButton",
-			"updateHidePasskeyButton",
-		];
-		expect(mutations.length).toBe(5);
-	});
-});
-
-describe("Visibility Controls - Database schema", () => {
-	/**
-	 * Tests for the database columns added to webServerSettings table
-	 */
-
-	it("should have all 5 visibility control columns in schema", () => {
-		const columns = [
-			"hideSocialIcons",
-			"hideDocsLink",
-			"hideSupportLink",
-			"hideSSOButton",
-			"hidePasskeyButton",
-		];
-		expect(columns.length).toBe(5);
-		// All columns are boolean with notNull().default(false)
-		for (const column of columns) {
-			expect(column).toBeTruthy();
-		}
-	});
-
-	it("should default all visibility controls to false (visible by default)", () => {
-		// All columns have .default(false), meaning features are visible by default
-		const defaultValue = false;
-		expect(defaultValue).toBe(false);
-	});
-});
-
-describe("Visibility Controls - UI behavior", () => {
-	/**
-	 * Tests for how the visibility controls affect the UI
-	 */
-
-	describe("Social icons rendering", () => {
-		it("should use invisible class to preserve layout when hidden", () => {
-			// Uses cn("...", hideSocialIcons && "invisible") to hide without layout jump
+	describe("UI rendering logic", () => {
+		it("should include invisible class when social icons are hidden", () => {
 			const hideSocialIcons = true;
 			const classNames = [
 				"flex",
@@ -170,7 +172,7 @@ describe("Visibility Controls - UI behavior", () => {
 			expect(classNames).toContain("invisible");
 		});
 
-		it("should render normally when not hidden", () => {
+		it("should not include invisible class when social icons are visible", () => {
 			const hideSocialIcons = false;
 			const classNames = [
 				"flex",
@@ -179,114 +181,36 @@ describe("Visibility Controls - UI behavior", () => {
 			].filter(Boolean);
 			expect(classNames).not.toContain("invisible");
 		});
-	});
 
-	describe("Sidebar Extra section filtering", () => {
-		it("should show docs link when custom URL exists (regardless of toggle)", () => {
+		it("should show docs link when custom URL exists regardless of toggle", () => {
 			const customDocsUrl = "https://custom.docs.com";
 			const hideDocsLink = true;
-			const shouldShowDocs = !!customDocsUrl || !hideDocsLink;
-			expect(shouldShowDocs).toBe(true);
+			const shouldShow = !!customDocsUrl || !hideDocsLink;
+			expect(shouldShow).toBe(true);
 		});
 
 		it("should hide docs link when toggle is on and no custom URL", () => {
 			const customDocsUrl = null;
 			const hideDocsLink = true;
-			const shouldShowDocs = !!customDocsUrl || !hideDocsLink;
-			expect(shouldShowDocs).toBe(false);
+			const shouldShow = !!customDocsUrl || !hideDocsLink;
+			expect(shouldShow).toBe(false);
 		});
 
-		it("should hide Extra section when both docs and support are hidden", () => {
-			const helpItems = []; // Both filtered out
-			const shouldShowExtraSection = helpItems.length > 0;
-			expect(shouldShowExtraSection).toBe(false);
-		});
-
-		it("should show Extra section when at least one link is visible", () => {
-			const helpItems = ["Documentation"]; // At least one visible
-			const shouldShowExtraSection = helpItems.length > 0;
-			expect(shouldShowExtraSection).toBe(true);
-		});
-	});
-
-	describe("Login page conditionals", () => {
-		it("should hide passkey button when hidePasskeyButton is enabled", () => {
-			const hidePasskeyButton = true;
-			const shouldShowPasskey = !hidePasskeyButton;
-			expect(shouldShowPasskey).toBe(false);
-		});
-
-		it("should hide SSO option when hideSSOButton is enabled", () => {
-			const hideSSOButton = true;
+		it("should show SSO when providers exist even if hide flag is on", () => {
 			const enforceSSO = false;
 			const showSignInWithSSO = true;
-			const shouldShowSSO = enforceSSO || (showSignInWithSSO && !hideSSOButton);
-			expect(shouldShowSSO).toBe(false);
-		});
-
-		it("should always show SSO when enforceSSO is true", () => {
 			const hideSSOButton = true;
-			const enforceSSO = true;
-			const showSignInWithSSO = true;
-			const shouldShowSSO = enforceSSO || (showSignInWithSSO && !hideSSOButton);
-			expect(shouldShowSSO).toBe(true);
+			// After fix: SSO always shows when providers exist
+			const shouldShow = enforceSSO || showSignInWithSSO;
+			expect(shouldShow).toBe(true);
 		});
-	});
 
-	describe("Profile settings passkey visibility", () => {
-		it("should hide passkey setup when hidePasskeyButton is enabled", () => {
+		it("should show passkey management when user has passkeys even if hide flag is on", () => {
 			const hidePasskeyButton = true;
-			const shouldShowPasskeySetup = !hidePasskeyButton;
-			expect(shouldShowPasskeySetup).toBe(false);
+			const hasPasskeys = true;
+			// After fix: Management always shows when passkeys exist
+			const shouldShow = !hidePasskeyButton || hasPasskeys;
+			expect(shouldShow).toBe(true);
 		});
-
-		it("should show passkey setup when hidePasskeyButton is disabled", () => {
-			const hidePasskeyButton = false;
-			const shouldShowPasskeySetup = !hidePasskeyButton;
-			expect(shouldShowPasskeySetup).toBe(true);
-		});
-	});
-});
-
-describe("Visibility Controls - PublicWhitelabelingConfig", () => {
-	/**
-	 * Tests for the public config that exposes visibility settings to unauthenticated pages
-	 */
-
-	it("should expose hideSocialIcons in public config", () => {
-		const settings = { hideSocialIcons: true };
-		const publicConfig = {
-			hideSocialIcons: settings?.hideSocialIcons ?? false,
-		};
-		expect(publicConfig.hideSocialIcons).toBe(true);
-	});
-
-	it("should expose hideSSOButton in public config", () => {
-		const settings = { hideSSOButton: true };
-		const publicConfig = {
-			hideSSOButton: settings?.hideSSOButton ?? false,
-		};
-		expect(publicConfig.hideSSOButton).toBe(true);
-	});
-
-	it("should expose hidePasskeyButton in public config", () => {
-		const settings = { hidePasskeyButton: true };
-		const publicConfig = {
-			hidePasskeyButton: settings?.hidePasskeyButton ?? false,
-		};
-		expect(publicConfig.hidePasskeyButton).toBe(true);
-	});
-
-	it("should default to false when settings properties are undefined", () => {
-		// Test the fallback behavior with nullish coalescing
-		const undefinedValue = undefined;
-		const publicConfig = {
-			hideSocialIcons: undefinedValue ?? false,
-			hideSSOButton: undefinedValue ?? false,
-			hidePasskeyButton: undefinedValue ?? false,
-		};
-		expect(publicConfig.hideSocialIcons).toBe(false);
-		expect(publicConfig.hideSSOButton).toBe(false);
-		expect(publicConfig.hidePasskeyButton).toBe(false);
 	});
 });

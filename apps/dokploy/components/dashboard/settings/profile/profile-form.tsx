@@ -67,6 +67,7 @@ export const ProfileForm = () => {
 	const { data, refetch, isPending } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: webSettings } = api.settings.getWebServerSettings.useQuery();
+	const { data: passkeys } = api.user.listPasskeys.useQuery();
 
 	const {
 		mutateAsync,
@@ -165,7 +166,8 @@ export const ProfileForm = () => {
 						</div>
 
 						<div className="flex flex-row gap-2 flex-wrap">
-							{!webSettings?.hidePasskeyButton && <ManagePasskeys />}
+							{(!webSettings?.hidePasskeyButton ||
+								(passkeys && passkeys.length > 0)) && <ManagePasskeys />}
 							{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
 						</div>
 					</CardHeader>
