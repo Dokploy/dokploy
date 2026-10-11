@@ -6,7 +6,7 @@ import { AttachAddon } from "@xterm/addon-attach";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
+import { setupTerminalKeyboard } from "@/lib/terminal-keyboard";
 
 interface Props {
 	id: string;
@@ -63,7 +63,7 @@ export const DockerTerminal: React.FC<Props> = ({
 			const addonFit = new FitAddon();
 			const clipboardAddon = new ClipboardAddon();
 			term.loadAddon(clipboardAddon);
-			fixMacOsAltKeys(term);
+			setupTerminalKeyboard(term);
 			// @ts-expect-error
 			term.open(termRef.current);
 			term.loadAddon(addonFit);
