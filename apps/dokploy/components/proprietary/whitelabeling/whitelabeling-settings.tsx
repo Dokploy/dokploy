@@ -37,24 +37,42 @@ const safeUrlField = z
 		message: "Only http:// and https:// URLs are allowed",
 	});
 
-const formSchema = z.object({
-	appName: z.string(),
-	appDescription: z.string(),
-	logoUrl: safeUrlField,
-	faviconUrl: safeUrlField,
-	customCss: z.string(),
-	loginLogoUrl: safeUrlField,
-	supportUrl: safeUrlField,
-	docsUrl: safeUrlField,
-	errorPageTitle: z.string(),
-	errorPageDescription: z.string(),
-	footerText: z.string(),
-	ogImageUrl: safeUrlField,
-	logoLightUrl: safeUrlField,
-	loginLogoLightUrl: safeUrlField,
-	faviconLightUrl: safeUrlField,
-	dualModeBranding: z.boolean(),
-});
+const formSchema = z
+	.object({
+		appName: z.string(),
+		appDescription: z.string(),
+		logoUrl: safeUrlField,
+		faviconUrl: safeUrlField,
+		customCss: z.string(),
+		loginLogoUrl: safeUrlField,
+		supportUrl: safeUrlField,
+		docsUrl: safeUrlField,
+		errorPageTitle: z.string(),
+		errorPageDescription: z.string(),
+		footerText: z.string(),
+		ogImageUrl: safeUrlField,
+		logoLightUrl: z.string(),
+		loginLogoLightUrl: z.string(),
+		faviconLightUrl: z.string(),
+		dualModeBranding: z.boolean(),
+	})
+	.superRefine((data, ctx) => {
+		if (!data.dualModeBranding) return;
+		for (const field of [
+			"logoLightUrl",
+			"loginLogoLightUrl",
+			"faviconLightUrl",
+		] as const) {
+			const val = data[field];
+			if (val !== "" && !/^https?:\/\//i.test(val)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Only http:// and https:// URLs are allowed",
+					path: [field],
+				});
+			}
+		}
+	});
 
 type FormSchema = z.infer<typeof formSchema>;
 
@@ -452,9 +470,6 @@ export function WhitelabelingSettings() {
 													onCheckedChange={(checked) => {
 														field.onChange(checked);
 														if (!checked) {
-															form.setValue("logoLightUrl", "");
-															form.setValue("loginLogoLightUrl", "");
-															form.setValue("faviconLightUrl", "");
 															form.clearErrors([
 																"logoLightUrl",
 																"loginLogoLightUrl",
