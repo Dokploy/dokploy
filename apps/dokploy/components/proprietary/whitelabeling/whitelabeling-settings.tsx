@@ -26,6 +26,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { WhitelabelingPreview } from "./whitelabeling-preview";
@@ -49,6 +50,10 @@ const formSchema = z.object({
 	errorPageDescription: z.string(),
 	footerText: z.string(),
 	ogImageUrl: safeUrlField,
+	logoLightUrl: safeUrlField,
+	loginLogoLightUrl: safeUrlField,
+	faviconLightUrl: safeUrlField,
+	dualModeBranding: z.boolean(),
 });
 
 type FormSchema = z.infer<typeof formSchema>;
@@ -195,6 +200,10 @@ export function WhitelabelingSettings() {
 			errorPageDescription: "",
 			footerText: "",
 			ogImageUrl: "",
+			logoLightUrl: "",
+			loginLogoLightUrl: "",
+			faviconLightUrl: "",
+			dualModeBranding: false,
 		},
 		resolver: zodResolver(formSchema),
 	});
@@ -214,6 +223,10 @@ export function WhitelabelingSettings() {
 				errorPageDescription: data.errorPageDescription ?? "",
 				footerText: data.footerText ?? "",
 				ogImageUrl: data.ogImageUrl ?? "",
+				logoLightUrl: data.logoLightUrl ?? "",
+				loginLogoLightUrl: data.loginLogoLightUrl ?? "",
+				faviconLightUrl: data.faviconLightUrl ?? "",
+				dualModeBranding: data.dualModeBranding ?? false,
 			});
 		}
 	}, [data, form]);
@@ -244,6 +257,10 @@ export function WhitelabelingSettings() {
 				errorPageDescription: values.errorPageDescription || null,
 				footerText: values.footerText || null,
 				ogImageUrl: values.ogImageUrl || null,
+				logoLightUrl: values.logoLightUrl || null,
+				loginLogoLightUrl: values.loginLogoLightUrl || null,
+				faviconLightUrl: values.faviconLightUrl || null,
+				dualModeBranding: values.dualModeBranding,
 			},
 		})
 			.then(async () => {
@@ -410,6 +427,101 @@ export function WhitelabelingSettings() {
 								)}
 							/>
 						</CardContent>
+					</Card>
+
+					{/* Light Mode Logos Section */}
+					<Card className="bg-transparent">
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1.5">
+									<CardTitle>Light Mode Logos</CardTitle>
+									<CardDescription>
+										Use separate logos for light and dark themes. When enabled,
+										the logos in Branding are used for dark mode.
+									</CardDescription>
+								</div>
+								<FormField
+									control={form.control}
+									name="dualModeBranding"
+									render={({ field }) => (
+										<FormItem>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						</CardHeader>
+						<div
+							className="grid transition-all duration-300 ease-in-out"
+							style={{
+								gridTemplateRows: form.watch("dualModeBranding")
+									? "1fr"
+									: "0fr",
+							}}
+						>
+							<div className="overflow-hidden">
+								<CardContent className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="logoLightUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Logo URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://example.com/logo-light.svg"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="loginLogoLightUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Login Page Logo URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://example.com/login-logo-light.svg"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="faviconLightUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Favicon URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://example.com/favicon-light.ico"
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription>
+													Follows the browser/OS theme, not the website theme.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</CardContent>
+							</div>
+						</div>
 					</Card>
 
 					{/* Appearance Section */}
