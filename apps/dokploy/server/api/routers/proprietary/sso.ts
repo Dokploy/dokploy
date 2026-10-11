@@ -9,7 +9,10 @@ import {
 } from "@dokploy/server/index";
 import { auth } from "@dokploy/server/lib/auth";
 import { invalidateTrustedOriginsCache } from "@dokploy/server/services/admin";
-import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import {
+	getWebServerSettings,
+	updateWebServerSettings,
+} from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -292,6 +295,13 @@ export const ssoRouter = createTRPCRouter({
 				},
 				headers: requestToHeaders(ctx.req),
 			});
+
+			// Auto-clear hideSSOButton flag when provider is added
+			const settings = await getWebServerSettings();
+			if (settings?.hideSSOButton) {
+				await updateWebServerSettings({ hideSSOButton: false });
+			}
+
 			return { success: true };
 		}),
 	addTrustedOrigin: enterpriseProcedure
