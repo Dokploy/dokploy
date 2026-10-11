@@ -18,6 +18,9 @@ export interface PublicWhitelabelingConfig {
 	loginLogoLightUrl: string | null;
 	faviconLightUrl: string | null;
 	dualModeBranding: boolean;
+	hideSocialIcons: boolean;
+	hideSSOButton: boolean;
+	hidePasskeyButton: boolean;
 }
 
 // Self-hosted is single-tenant; gate on the oldest organization's license,
@@ -68,5 +71,8 @@ export const getPublicWhitelabelingConfig =
 			faviconLightUrl: config.dualModeBranding
 				? (config.faviconLightUrl ?? null)
 				: null,
+			hideSocialIcons: settings?.hideSocialIcons ?? false,
+			hideSSOButton: settings?.hideSSOButton ?? false,
+			hidePasskeyButton: settings?.hidePasskeyButton ?? false,
 		};
 	};

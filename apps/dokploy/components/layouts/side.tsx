@@ -485,6 +485,10 @@ function createMenuForAuthUser(opts: {
 		docsUrl?: string | null;
 		supportUrl?: string | null;
 	} | null;
+	webSettings?: {
+		hideDocsLink?: boolean;
+		hideSupportLink?: boolean;
+	} | null;
 }): Menu {
 	const filterEnabled = <
 		T extends {
@@ -503,16 +507,27 @@ function createMenuForAuthUser(opts: {
 					}),
 		) as T[];
 
-	// Apply whitelabeling URL overrides to help items
-	const helpItems = filterEnabled(MENU.help).map((item) => {
-		if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
-			return { ...item, url: opts.whitelabeling.docsUrl };
-		}
-		if (opts.whitelabeling?.supportUrl && item.name === "Support") {
-			return { ...item, url: opts.whitelabeling.supportUrl };
-		}
-		return item;
-	});
+	const helpItems = filterEnabled(MENU.help)
+		.filter((item) => {
+			if (item.name === "Documentation") {
+				if (opts.whitelabeling?.docsUrl) return true;
+				return !opts.webSettings?.hideDocsLink;
+			}
+			if (item.name === "Support") {
+				if (opts.whitelabeling?.supportUrl) return true;
+				return !opts.webSettings?.hideSupportLink;
+			}
+			return true;
+		})
+		.map((item) => {
+			if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
+				return { ...item, url: opts.whitelabeling.docsUrl };
+			}
+			if (opts.whitelabeling?.supportUrl && item.name === "Support") {
+				return { ...item, url: opts.whitelabeling.supportUrl };
+			}
+			return item;
+		});
 
 	return {
 		home: filterEnabled(MENU.home),
@@ -966,6 +981,7 @@ export default function Page({ children }: Props) {
 		staleTime: 5 * 60 * 1000,
 		refetchOnWindowFocus: false,
 	});
+	const { data: webSettings } = api.settings.getWebServerSettings.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -979,6 +995,7 @@ export default function Page({ children }: Props) {
 		permissions,
 		isCloud: !!isCloud,
 		whitelabeling,
+		webSettings,
 	});
 
 	const activeItem = findActiveNavItem(
@@ -1196,28 +1213,30 @@ export default function Page({ children }: Props) {
 							})}
 						</SidebarMenu>
 					</SidebarGroup>
-					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-						<SidebarGroupLabel>Extra</SidebarGroupLabel>
-						<SidebarMenu>
-							{help.map((item: ExternalLink) => (
-								<SidebarMenuItem key={item.name}>
-									<SidebarMenuButton asChild>
-										<a
-											href={item.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="flex w-full items-center gap-2"
-										>
-											<span className="mr-2">
-												<item.icon className="h-4 w-4" />
-											</span>
-											<span>{item.name}</span>
-										</a>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroup>
+					{help.length > 0 && (
+						<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+							<SidebarGroupLabel>Extra</SidebarGroupLabel>
+							<SidebarMenu>
+								{help.map((item: ExternalLink) => (
+									<SidebarMenuItem key={item.name}>
+										<SidebarMenuButton asChild>
+											<a
+												href={item.url}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex w-full items-center gap-2"
+											>
+												<span className="mr-2">
+													<item.icon className="h-4 w-4" />
+												</span>
+												<span>{item.name}</span>
+											</a>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						</SidebarGroup>
+					)}
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu className="flex flex-col gap-2">
