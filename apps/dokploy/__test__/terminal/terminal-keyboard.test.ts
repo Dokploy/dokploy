@@ -61,6 +61,7 @@ describe("Terminal Keyboard Handler", () => {
 
 		mockClipboard = {
 			writeText: vi.fn().mockResolvedValue(undefined),
+			readText: vi.fn().mockResolvedValue(""),
 		};
 
 		const textareaMock = {
@@ -222,35 +223,9 @@ describe("Terminal Keyboard Handler", () => {
 		expect(mockClipboard.writeText).not.toHaveBeenCalled();
 	});
 
-	it("Test 4d: Shift+Insert reads clipboard and pastes into terminal", async () => {
-		mockClipboard.readText = vi.fn().mockResolvedValue("pasted command");
-		const term = {
-			...createMockTerminal("", false),
-			paste: vi.fn(),
-		};
+	it("Test 4d: Shift+Insert passes through to allow native browser paste on HTTP and HTTPS", () => {
+		const term = createMockTerminal("", false);
 		const event = createKeyboardEvent({
-			key: "Insert",
-			code: "Insert",
-			shiftKey: true,
-		});
-
-		const result = handleTerminalKeyDown(event, term);
-
-		expect(result).toBe(false);
-		expect(event.preventDefault).toHaveBeenCalledTimes(1);
-		await Promise.resolve();
-		expect(mockClipboard.readText).toHaveBeenCalledTimes(1);
-		expect(term.paste).toHaveBeenCalledWith("pasted command");
-	});
-
-	it("Test 4e: Shift+Insert keyup event returns true and does not paste", () => {
-		mockClipboard.readText = vi.fn().mockResolvedValue("pasted command");
-		const term = {
-			...createMockTerminal("", false),
-			paste: vi.fn(),
-		};
-		const event = createKeyboardEvent({
-			type: "keyup",
 			key: "Insert",
 			code: "Insert",
 			shiftKey: true,
@@ -261,28 +236,25 @@ describe("Terminal Keyboard Handler", () => {
 		expect(result).toBe(true);
 		expect(event.preventDefault).not.toHaveBeenCalled();
 		expect(mockClipboard.readText).not.toHaveBeenCalled();
-		expect(term.paste).not.toHaveBeenCalled();
 	});
 
-	it("Test 4f: Shift+Insert key-repeat suppresses repeated paste calls", () => {
-		mockClipboard.readText = vi.fn().mockResolvedValue("pasted command");
-		const term = {
-			...createMockTerminal("", false),
-			paste: vi.fn(),
-		};
+	it("Test 4e: Dvorak layout does not hijack Ctrl+J when physical key is KeyC", () => {
+		const term = createMockTerminal("selected text", true);
+		// On Dvorak, physical KeyC produces 'j'
 		const event = createKeyboardEvent({
-			key: "Insert",
-			code: "Insert",
-			shiftKey: true,
-			repeat: true,
+			key: "j",
+			code: "KeyC",
+			ctrlKey: true,
 		});
+
+		expect(isCopyEvent(event)).toBe(false);
 
 		const result = handleTerminalKeyDown(event, term);
 
-		expect(result).toBe(false);
-		expect(event.preventDefault).toHaveBeenCalledTimes(1);
-		expect(mockClipboard.readText).not.toHaveBeenCalled();
-		expect(term.paste).not.toHaveBeenCalled();
+		// Must return true to allow Ctrl+J (newline/LF) to propagate to shell
+		expect(result).toBe(true);
+		expect(event.preventDefault).not.toHaveBeenCalled();
+		expect(mockClipboard.writeText).not.toHaveBeenCalled();
 	});
 
 	it("Test 5: macOS Cmd+C is not intercepted and returns true (leaving native macOS copy intact)", () => {
@@ -400,6 +372,35 @@ describe("Terminal Keyboard Handler", () => {
 			expect(success).toBe(false);
 			expect(mockDocument.body.appendChild).toHaveBeenCalled();
 			expect(mockDocument.body.removeChild).toHaveBeenCalled();
+			expect(term.focus).toHaveBeenCalledTimes(1);
+		});
+
+		it("attaches textarea inside term.element when inside a dialog container", async () => {
+			Object.defineProperty(global, "navigator", {
+				value: {
+					platform: "Linux x86_64",
+					clipboard: undefined,
+				},
+				configurable: true,
+				writable: true,
+			});
+
+			const mockContainer = {
+				appendChild: vi.fn(),
+				removeChild: vi.fn(),
+			};
+
+			const term = {
+				...createMockTerminal("dialog terminal selection", true),
+				element: mockContainer as unknown as HTMLElement,
+			};
+
+			const success = await copyToClipboard("dialog terminal selection", term);
+
+			expect(success).toBe(true);
+			expect(mockContainer.appendChild).toHaveBeenCalled();
+			expect(mockContainer.removeChild).toHaveBeenCalled();
+			expect(mockDocument.body.appendChild).not.toHaveBeenCalled();
 			expect(term.focus).toHaveBeenCalledTimes(1);
 		});
 	});

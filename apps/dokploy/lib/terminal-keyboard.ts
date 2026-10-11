@@ -3,6 +3,7 @@ import type { Terminal } from "@xterm/xterm";
 export interface TerminalSelectionTarget {
 	hasSelection(): boolean;
 	getSelection(): string;
+	element?: HTMLElement;
 	input?(data: string): void;
 	paste?(data: string): void;
 	focus?(): void;
@@ -37,6 +38,11 @@ export const copyToClipboard = async (
 		typeof document !== "undefined" &&
 		typeof document.execCommand === "function"
 	) {
+		const container =
+			term && "element" in term && term.element
+				? term.element
+				: (document.body ?? document.documentElement);
+
 		try {
 			const textarea = document.createElement("textarea");
 			textarea.value = text;
@@ -45,13 +51,13 @@ export const copyToClipboard = async (
 			textarea.style.left = "-9999px";
 			textarea.style.top = "-9999px";
 			textarea.setAttribute("readonly", "");
-			document.body.appendChild(textarea);
+			container.appendChild(textarea);
 			try {
 				textarea.focus();
 				textarea.select();
 				return document.execCommand("copy");
 			} finally {
-				document.body.removeChild(textarea);
+				container.removeChild(textarea);
 				if (term?.focus) {
 					term.focus();
 				}
@@ -111,8 +117,7 @@ export const isCopyEvent = (event: KeyboardEvent): boolean => {
 	) {
 		return false;
 	}
-	const isKeyC =
-		event.key === "c" || event.key === "C" || event.code === "KeyC";
+	const isKeyC = event.key === "c" || event.key === "C";
 	const isKeyInsert = event.key === "Insert" || event.code === "Insert";
 	return isKeyC || isKeyInsert;
 };
@@ -159,12 +164,13 @@ export const handleTerminalKeyDown = (
 		isMacPlatform() &&
 		event.ctrlKey &&
 		!event.shiftKey &&
-		(event.key === "c" || event.key === "C" || event.code === "KeyC")
+		(event.key === "c" || event.key === "C")
 	) {
 		return true;
 	}
 
-	// Handle Shift+Insert for paste on Windows/Linux
+	// Allow Shift+Insert paste to pass through to the browser and xterm native paste pipeline.
+	// This ensures paste works on non-secure HTTP pages without requiring navigator.clipboard.readText permissions.
 	if (
 		event.shiftKey &&
 		!event.ctrlKey &&
@@ -172,11 +178,7 @@ export const handleTerminalKeyDown = (
 		!event.metaKey &&
 		(event.key === "Insert" || event.code === "Insert")
 	) {
-		if (!event.repeat) {
-			void pasteFromClipboard(term);
-		}
-		event.preventDefault();
-		return false;
+		return true;
 	}
 
 	// Handle Ctrl+C, Ctrl+Shift+C, and Ctrl+Insert for Linux/Windows
