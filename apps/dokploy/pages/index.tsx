@@ -5,13 +5,18 @@ import {
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
+import {
+	type ReactElement,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -49,6 +54,7 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const LoginSchema = z.object({
@@ -79,6 +85,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const [twoFactorCode, setTwoFactorCode] = useState("");
 	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
 	const [backupCode, setBackupCode] = useState("");
+	const hasSubmittedTotpRef = useRef<string | null>(null);
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -136,6 +143,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 
 			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
+				hasSubmittedTotpRef.current = null;
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
 				return;
@@ -177,32 +185,53 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		}
 	};
 
+	const handleVerifyTotp = useCallback(
+		async (codeToVerify: string) => {
+			const sanitized = codeToVerify.replace(/\D/g, "");
+			if (sanitized.length !== 6) {
+				return;
+			}
+			if (hasSubmittedTotpRef.current === sanitized || isTwoFactorLoading) {
+				return;
+			}
+
+			hasSubmittedTotpRef.current = sanitized;
+			setIsTwoFactorLoading(true);
+			try {
+				const { error } = await authClient.twoFactor.verifyTotp({
+					code: sanitized,
+				});
+
+				if (error) {
+					hasSubmittedTotpRef.current = null;
+					toast.error(error.message);
+					setError(
+						error.message || "An error occurred while verifying 2FA code",
+					);
+					return;
+				}
+
+				toast.success("Logged in successfully");
+				router.push("/dashboard/home");
+			} catch {
+				hasSubmittedTotpRef.current = null;
+				toast.error("An error occurred while verifying 2FA code");
+			} finally {
+				setIsTwoFactorLoading(false);
+			}
+		},
+		[isTwoFactorLoading, router],
+	);
+
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (twoFactorCode.length !== 6) {
+		const sanitized = twoFactorCode.replace(/\D/g, "");
+		if (sanitized.length !== 6) {
 			toast.error("Please enter a valid 6-digit code");
 			return;
 		}
 
-		setIsTwoFactorLoading(true);
-		try {
-			const { error } = await authClient.twoFactor.verifyTotp({
-				code: twoFactorCode.replace(/\s/g, ""),
-			});
-
-			if (error) {
-				toast.error(error.message);
-				setError(error.message || "An error occurred while verifying 2FA code");
-				return;
-			}
-
-			toast.success("Logged in successfully");
-			router.push("/dashboard/home");
-		} catch {
-			toast.error("An error occurred while verifying 2FA code");
-		} finally {
-			setIsTwoFactorLoading(false);
-		}
+		await handleVerifyTotp(sanitized);
 	};
 
 	const onBackupCodeSubmit = async (e: React.FormEvent) => {
@@ -345,9 +374,27 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									id="totp-code"
 									name="totp"
 									value={twoFactorCode}
-									onChange={setTwoFactorCode}
+									onChange={(val) => {
+										const sanitized = val.replace(/\D/g, "");
+										setTwoFactorCode(sanitized);
+										if (sanitized.length < 6) {
+											hasSubmittedTotpRef.current = null;
+										} else if (sanitized.length === 6) {
+											handleVerifyTotp(sanitized);
+										}
+									}}
+									onComplete={(code) => {
+										const sanitized = code.replace(/\D/g, "");
+										if (sanitized.length === 6) {
+											handleVerifyTotp(sanitized);
+										}
+									}}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
+									autoComplete="one-time-code"
+									inputMode="numeric"
+									pushPasswordManagerStrategy="none"
+									pasteTransformer={(pasted) => pasted.replace(/\D/g, "")}
 									autoFocus
 								>
 									<InputOTPGroup>
@@ -382,6 +429,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									onClick={() => {
 										setIsTwoFactor(false);
 										setTwoFactorCode("");
+										hasSubmittedTotpRef.current = null;
 									}}
 								>
 									Back
