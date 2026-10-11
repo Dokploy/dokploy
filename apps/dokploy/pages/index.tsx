@@ -492,7 +492,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							>
 								Lost your password?
 							</Link>
-						) : hasCustomPasswordReset ? (
+						) : hasCustomPasswordReset && !isTwoFactor ? (
 							<button
 								type="button"
 								className="hover:underline text-muted-foreground"
