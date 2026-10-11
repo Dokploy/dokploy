@@ -331,7 +331,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					<>
 						{enforceSSO ? (
 							<SignInWithSSO enforce />
-						) : showSignInWithSSO ? (
+						) : showSignInWithSSO && !whitelabeling?.hideSSOButton ? (
 							<SignInWithSSO>{loginContent}</SignInWithSSO>
 						) : (
 							loginContent
