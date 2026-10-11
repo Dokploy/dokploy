@@ -62,6 +62,8 @@ const baseSettings: WebServerSettings = {
 		errorPageDescription: null,
 		ogImageUrl: null,
 		footerText: null,
+		passwordResetGuide: null,
+		supportEmail: null,
 	},
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,

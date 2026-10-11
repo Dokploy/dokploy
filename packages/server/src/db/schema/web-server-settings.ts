@@ -88,6 +88,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 			errorPageDescription: string | null;
 			footerText: string | null;
 			ogImageUrl: string | null;
+			passwordResetGuide: string | null;
+			supportEmail: string | null;
 		}>()
 		.default({
 			appName: null,
@@ -102,6 +104,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 			errorPageDescription: null,
 			footerText: null,
 			ogImageUrl: null,
+			passwordResetGuide: null,
+			supportEmail: null,
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
@@ -225,6 +229,8 @@ export const whitelabelingConfigSchema = z.object({
 	errorPageDescription: z.string().nullable(),
 	footerText: z.string().nullable(),
 	ogImageUrl: safeUrl,
+	passwordResetGuide: z.string().nullable(),
+	supportEmail: z.string().email().nullable(),
 });
 
 export const apiUpdateWhitelabeling = z.object({

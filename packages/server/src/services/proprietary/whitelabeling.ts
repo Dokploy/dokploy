@@ -14,6 +14,8 @@ export interface PublicWhitelabelingConfig {
 	errorPageTitle: string | null;
 	errorPageDescription: string | null;
 	footerText: string | null;
+	passwordResetGuide: string | null;
+	supportEmail: string | null;
 }
 
 // Self-hosted is single-tenant; gate on the oldest organization's license,
@@ -54,5 +56,7 @@ export const getPublicWhitelabelingConfig =
 			errorPageTitle: config.errorPageTitle,
 			errorPageDescription: config.errorPageDescription,
 			footerText: config.footerText,
+			passwordResetGuide: config.passwordResetGuide ?? null,
+			supportEmail: config.supportEmail ?? null,
 		};
 	};

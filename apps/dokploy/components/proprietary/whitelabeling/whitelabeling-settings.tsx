@@ -36,6 +36,12 @@ const safeUrlField = z
 		message: "Only http:// and https:// URLs are allowed",
 	});
 
+const safeEmailField = z
+	.string()
+	.refine((val) => val === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+		message: "Enter a valid email address",
+	});
+
 const formSchema = z.object({
 	appName: z.string(),
 	appDescription: z.string(),
@@ -49,6 +55,8 @@ const formSchema = z.object({
 	errorPageDescription: z.string(),
 	footerText: z.string(),
 	ogImageUrl: safeUrlField,
+	passwordResetGuide: z.string(),
+	supportEmail: safeEmailField,
 });
 
 type FormSchema = z.infer<typeof formSchema>;
@@ -195,6 +203,8 @@ export function WhitelabelingSettings() {
 			errorPageDescription: "",
 			footerText: "",
 			ogImageUrl: "",
+			passwordResetGuide: "",
+			supportEmail: "",
 		},
 		resolver: zodResolver(formSchema),
 	});
@@ -214,6 +224,8 @@ export function WhitelabelingSettings() {
 				errorPageDescription: data.errorPageDescription ?? "",
 				footerText: data.footerText ?? "",
 				ogImageUrl: data.ogImageUrl ?? "",
+				passwordResetGuide: data.passwordResetGuide ?? "",
+				supportEmail: data.supportEmail ?? "",
 			});
 		}
 	}, [data, form]);
@@ -244,6 +256,8 @@ export function WhitelabelingSettings() {
 				errorPageDescription: values.errorPageDescription || null,
 				footerText: values.footerText || null,
 				ogImageUrl: values.ogImageUrl || null,
+				passwordResetGuide: values.passwordResetGuide || null,
+				supportEmail: values.supportEmail || null,
 			},
 		})
 			.then(async () => {
@@ -566,6 +580,60 @@ export function WhitelabelingSettings() {
 												{...field}
 											/>
 										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</CardContent>
+					</Card>
+
+					{/* Forgot Password Section */}
+					<Card className="bg-transparent">
+						<CardHeader>
+							<CardTitle>Forgot Password</CardTitle>
+							<CardDescription>
+								Customize the password reset flow on the login page. When a
+								support email is set, the "Lost your password?" link shows your
+								guide and a "Get Support" button instead of the default Dokploy
+								reset guide.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="flex flex-col gap-4">
+							<FormField
+								control={form.control}
+								name="passwordResetGuide"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Password Reset Guide</FormLabel>
+										<FormControl>
+											<Textarea
+												placeholder="To reset your password, please contact your administrator. They will help you regain access to your account."
+												className="min-h-[80px]"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Instructions shown to users when they click "Lost your
+											password?" on the login page.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="supportEmail"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Support Email</FormLabel>
+										<FormControl>
+											<Input placeholder="support@example.com" {...field} />
+										</FormControl>
+										<FormDescription>
+											Email address for the "Get Support" button. Required to
+											enable the custom password reset flow.
+										</FormDescription>
 										<FormMessage />
 									</FormItem>
 								)}
