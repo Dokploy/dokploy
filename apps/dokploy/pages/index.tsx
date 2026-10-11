@@ -502,7 +502,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									? "Go back to login"
 									: "Lost your password?"}
 							</button>
-						) : (
+						) : !hasCustomPasswordReset ? (
 							<Link
 								className="hover:underline text-muted-foreground"
 								href="https://docs.dokploy.com/docs/core/reset-password"
@@ -510,7 +510,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							>
 								Lost your password?
 							</Link>
-						)}
+						) : null}
 					</div>
 				</div>
 				<div className="p-2" />
