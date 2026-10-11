@@ -447,8 +447,21 @@ export function WhitelabelingSettings() {
 										<FormItem>
 											<FormControl>
 												<Switch
+													aria-label="Enable light mode logos"
 													checked={field.value}
-													onCheckedChange={field.onChange}
+													onCheckedChange={(checked) => {
+														field.onChange(checked);
+														if (!checked) {
+															form.setValue("logoLightUrl", "");
+															form.setValue("loginLogoLightUrl", "");
+															form.setValue("faviconLightUrl", "");
+															form.clearErrors([
+																"logoLightUrl",
+																"loginLogoLightUrl",
+																"faviconLightUrl",
+															]);
+														}
+													}}
 												/>
 											</FormControl>
 										</FormItem>
