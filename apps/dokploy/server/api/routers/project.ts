@@ -947,11 +947,21 @@ export const projectRouter = createTRPCRouter({
 
 								for (const domain of domains) {
 									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										applicationId: newApplication.applicationId,
-										domainType: "application",
-									});
+									try {
+										await createDomain({
+											...rest,
+											applicationId: newApplication.applicationId,
+											domainType: "application",
+										});
+									} catch (error) {
+										if (
+											error instanceof TRPCError &&
+											error.code === "CONFLICT"
+										) {
+											continue;
+										}
+										throw error;
+									}
 								}
 
 								for (const port of ports) {
@@ -1033,11 +1043,21 @@ export const projectRouter = createTRPCRouter({
 
 								for (const domain of domains) {
 									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										composeId: newCompose.composeId,
-										domainType: "compose",
-									});
+									try {
+										await createDomain({
+											...rest,
+											composeId: newCompose.composeId,
+											domainType: "compose",
+										});
+									} catch (error) {
+										if (
+											error instanceof TRPCError &&
+											error.code === "CONFLICT"
+										) {
+											continue;
+										}
+										throw error;
+									}
 								}
 
 								break;

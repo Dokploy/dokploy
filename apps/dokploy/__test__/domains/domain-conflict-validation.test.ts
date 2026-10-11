@@ -299,4 +299,60 @@ describe("Domain duplicate conflict validation", () => {
 			}),
 		);
 	});
+
+	it("allows updating settings without re-checking conflict when host and path are unchanged", async () => {
+		mockDb.findFirst.mockResolvedValue({
+			domainId: "my-domain-id",
+			host: "unchanged.example.com",
+			path: "/",
+			application: { serverId: "server-1" },
+		});
+
+		mockDb.update.mockReturnValue({
+			set: vi.fn().mockReturnValue({
+				where: vi.fn().mockReturnValue({
+					returning: vi.fn().mockResolvedValue([
+						{
+							domainId: "my-domain-id",
+							host: "unchanged.example.com",
+							port: 8080,
+						},
+					]),
+				}),
+			}),
+		});
+
+		// findMany should not be called when route has not changed
+		const result = await updateDomainById("my-domain-id", {
+			host: "unchanged.example.com",
+			port: 8080,
+		});
+
+		expect(result).toMatchObject({
+			domainId: "my-domain-id",
+			port: 8080,
+		});
+		expect(mockDb.findMany).not.toHaveBeenCalled();
+	});
+
+	it("rejects conflict when host casing differs (case-insensitive matching)", async () => {
+		mockDb.findMany.mockResolvedValue([
+			{
+				domainId: "existing-id",
+				host: "app.example.com",
+				path: "/",
+				application: { serverId: "server-1" },
+			},
+		]);
+
+		await expect(
+			createDomain({
+				host: "APP.EXAMPLE.COM",
+				applicationId: "app-2",
+			}),
+		).rejects.toMatchObject({
+			code: "CONFLICT",
+			message: "Domain 'APP.EXAMPLE.COM' is already in use on this server",
+		});
+	});
 });

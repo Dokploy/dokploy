@@ -134,6 +134,9 @@ export const findConflictingDomain = async ({
 		if (excludeDomainId && candidate.domainId === excludeDomainId) {
 			continue;
 		}
+		if (candidate.host.trim().toLowerCase() !== normalizedHost) {
+			continue;
+		}
 		const candidatePath = normalizeDomainPath(candidate.path);
 		if (candidatePath !== targetPath) {
 			continue;
@@ -321,21 +324,36 @@ export const updateDomainById = async (
 	const currentDomain = await findDomainById(domainId);
 
 	return await db.transaction(async (tx) => {
-		if (domainData.host !== undefined) {
-			const cleanHost = domainData.host.trim();
+		const isHostProvided = domainData.host !== undefined;
+		const isPathProvided = domainData.path !== undefined;
+
+		let targetHost = currentDomain.host;
+		if (isHostProvided) {
+			const cleanHost = domainData.host!.trim();
 			if (!cleanHost) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Host cannot be empty",
 				});
 			}
+			targetHost = cleanHost;
+		}
 
-			const targetPath =
-				domainData.path !== undefined ? domainData.path : currentDomain.path;
+		const targetPath = isPathProvided ? domainData.path! : currentDomain.path;
+
+		const isHostChanged =
+			isHostProvided &&
+			targetHost.toLowerCase() !== currentDomain.host.toLowerCase();
+		const isPathChanged =
+			isPathProvided &&
+			normalizeDomainPath(targetPath) !==
+				normalizeDomainPath(currentDomain.path);
+
+		if (isHostChanged || isPathChanged) {
 			const serverId = await resolveDomainServerId(currentDomain);
 
 			const conflictingDomain = await findConflictingDomain({
-				host: cleanHost,
+				host: targetHost,
 				path: targetPath,
 				serverId,
 				excludeDomainId: domainId,
@@ -348,35 +366,15 @@ export const updateDomainById = async (
 					normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
 				throw new TRPCError({
 					code: "CONFLICT",
-					message: `Domain '${cleanHost}'${pathDisplay} is already in use on this server`,
-				});
-			}
-		} else if (domainData.path !== undefined) {
-			const serverId = await resolveDomainServerId(currentDomain);
-			const conflictingDomain = await findConflictingDomain({
-				host: currentDomain.host,
-				path: domainData.path,
-				serverId,
-				excludeDomainId: domainId,
-				dbClient: tx,
-			});
-
-			if (conflictingDomain) {
-				const normalizedTarget = normalizeDomainPath(domainData.path);
-				const pathDisplay =
-					normalizedTarget === "/" ? "" : ` with path '${normalizedTarget}'`;
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: `Domain '${currentDomain.host}'${pathDisplay} is already in use on this server`,
+					message: `Domain '${targetHost}'${pathDisplay} is already in use on this server`,
 				});
 			}
 		}
 
-		const cleanHost = domainData.host ? domainData.host.trim() : undefined;
-		const cleanPath =
-			domainData.path !== undefined
-				? normalizeDomainPath(domainData.path)
-				: undefined;
+		const cleanHost = isHostProvided ? targetHost : undefined;
+		const cleanPath = isPathProvided
+			? normalizeDomainPath(targetPath)
+			: undefined;
 
 		const domain = await tx
 			.update(domains)
