@@ -10,13 +10,7 @@ import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import {
-	type ReactElement,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -52,6 +46,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { useTotpAutoVerify } from "@/lib/totp-verification";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { generateServerSideHelper } from "@/utils/create-server-helpers";
@@ -85,7 +80,6 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const [twoFactorCode, setTwoFactorCode] = useState("");
 	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
 	const [backupCode, setBackupCode] = useState("");
-	const hasSubmittedTotpRef = useRef<string | null>(null);
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -143,7 +137,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 
 			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
-				hasSubmittedTotpRef.current = null;
+				resetTotpSubmission();
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
 				return;
@@ -185,43 +179,21 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		}
 	};
 
-	const handleVerifyTotp = useCallback(
-		async (codeToVerify: string) => {
-			const sanitized = codeToVerify.replace(/\D/g, "");
-			if (sanitized.length !== 6) {
-				return;
-			}
-			if (hasSubmittedTotpRef.current === sanitized || isTwoFactorLoading) {
-				return;
-			}
-
-			hasSubmittedTotpRef.current = sanitized;
-			setIsTwoFactorLoading(true);
-			try {
-				const { error } = await authClient.twoFactor.verifyTotp({
-					code: sanitized,
-				});
-
-				if (error) {
-					hasSubmittedTotpRef.current = null;
-					toast.error(error.message);
-					setError(
-						error.message || "An error occurred while verifying 2FA code",
-					);
-					return;
-				}
-
+	const { handleVerifyTotp, onTotpChange, resetTotpSubmission } =
+		useTotpAutoVerify({
+			verify: (code) => authClient.twoFactor.verifyTotp({ code }),
+			onSuccess: () => {
 				toast.success("Logged in successfully");
 				router.push("/dashboard/home");
-			} catch {
-				hasSubmittedTotpRef.current = null;
-				toast.error("An error occurred while verifying 2FA code");
-			} finally {
-				setIsTwoFactorLoading(false);
-			}
-		},
-		[isTwoFactorLoading, router],
-	);
+			},
+			onError: (msg) => {
+				toast.error(msg);
+				setError(msg);
+			},
+			isLoading: isTwoFactorLoading,
+			setIsLoading: setIsTwoFactorLoading,
+			setCode: setTwoFactorCode,
+		});
 
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -374,21 +346,8 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									id="totp-code"
 									name="totp"
 									value={twoFactorCode}
-									onChange={(val) => {
-										const sanitized = val.replace(/\D/g, "");
-										setTwoFactorCode(sanitized);
-										if (sanitized.length < 6) {
-											hasSubmittedTotpRef.current = null;
-										} else if (sanitized.length === 6) {
-											handleVerifyTotp(sanitized);
-										}
-									}}
-									onComplete={(code) => {
-										const sanitized = code.replace(/\D/g, "");
-										if (sanitized.length === 6) {
-											handleVerifyTotp(sanitized);
-										}
-									}}
+									onChange={onTotpChange}
+									onComplete={(code) => handleVerifyTotp(code)}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
 									autoComplete="one-time-code"
@@ -429,7 +388,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									onClick={() => {
 										setIsTwoFactor(false);
 										setTwoFactorCode("");
-										hasSubmittedTotpRef.current = null;
+										resetTotpSubmission();
 									}}
 								>
 									Back

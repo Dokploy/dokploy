@@ -3,13 +3,19 @@ import { MinusIcon } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+export const sanitizeTotpCode = (code: string): string => {
+	return code.replace(/\D/g, "");
+};
+
+export const defaultPasteTransformer = sanitizeTotpCode;
+
 function InputOTP({
 	className,
 	containerClassName,
 	autoComplete = "one-time-code",
 	inputMode = "numeric",
 	pushPasswordManagerStrategy = "none",
-	pasteTransformer = (pasted: string) => pasted.replace(/\D/g, ""),
+	pasteTransformer = defaultPasteTransformer,
 	...props
 }: React.ComponentProps<typeof OTPInput> & {
 	containerClassName?: string;

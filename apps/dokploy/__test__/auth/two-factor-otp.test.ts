@@ -2,11 +2,14 @@ import React from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
+	defaultPasteTransformer,
 	InputOTP,
 	InputOTPGroup,
 	InputOTPSeparator,
 	InputOTPSlot,
+	sanitizeTotpCode,
 } from "@/components/ui/input-otp";
+import { createTotpVerificationHandler } from "@/lib/totp-verification";
 
 describe("2FA InputOTP Component & Password Manager Autofill", () => {
 	describe("Password Manager Accessibility & Structure", () => {
@@ -75,145 +78,150 @@ describe("2FA InputOTP Component & Password Manager Autofill", () => {
 		});
 	});
 
-	describe("Paste & Formatting Sanitization", () => {
-		const defaultPasteTransformer = (pasted: string) =>
-			pasted.replace(/\D/g, "");
-
+	describe("Paste & Formatting Sanitization (Production Code)", () => {
 		it("sanitizes codes with spaces (common in Bitwarden and authenticators)", () => {
 			expect(defaultPasteTransformer("123 456")).toBe("123456");
 			expect(defaultPasteTransformer(" 123  456 ")).toBe("123456");
+			expect(sanitizeTotpCode("123 456")).toBe("123456");
 		});
 
 		it("sanitizes codes with hyphens or brackets", () => {
 			expect(defaultPasteTransformer("123-456")).toBe("123456");
 			expect(defaultPasteTransformer("[123456]")).toBe("123456");
+			expect(sanitizeTotpCode("123-456")).toBe("123456");
 		});
 
 		it("preserves clean 6-digit numeric input", () => {
 			expect(defaultPasteTransformer("654321")).toBe("654321");
+			expect(sanitizeTotpCode("654321")).toBe("654321");
 		});
 
 		it("strips alphabetical noise from clipboard pastes", () => {
 			expect(defaultPasteTransformer("Code: 987 654")).toBe("987654");
+			expect(sanitizeTotpCode("Code: 987 654")).toBe("987654");
 		});
 	});
 
-	describe("Auto-submit & De-duplication Verification Logic", () => {
-		interface VerificationContext {
-			isTwoFactorLoading: boolean;
-			hasSubmittedTotp: string | null;
-			verifyCalls: string[];
-			mockVerify: (code: string) => Promise<{ error?: { message: string } }>;
-		}
+	describe("Auto-submit & De-duplication Verification Logic (Production Code)", () => {
+		function setupVerificationTest() {
+			let isLoading = false;
+			const verifyCalls: string[] = [];
+			let mockVerify = vi.fn(
+				async (
+					_code: string,
+				): Promise<{ error?: { message?: string } | null }> => ({
+					error: null,
+				}),
+			);
 
-		function createVerificationController() {
-			const ctx: VerificationContext = {
-				isTwoFactorLoading: false,
-				hasSubmittedTotp: null,
-				verifyCalls: [],
-				mockVerify: vi.fn(async (_code: string) => ({})),
+			const handler = createTotpVerificationHandler({
+				verifyTotp: async (code) => {
+					verifyCalls.push(code);
+					return mockVerify(code);
+				},
+				isLoading: () => isLoading,
+				setIsLoading: (val) => {
+					isLoading = val;
+				},
+			});
+
+			return {
+				handler,
+				verifyCalls,
+				getIsLoading: () => isLoading,
+				setMockVerify: (fn: typeof mockVerify) => {
+					mockVerify = fn;
+				},
 			};
-
-			const handleVerifyTotp = async (codeToVerify: string) => {
-				const sanitized = codeToVerify.replace(/\D/g, "");
-				if (sanitized.length !== 6) {
-					return;
-				}
-				if (ctx.hasSubmittedTotp === sanitized || ctx.isTwoFactorLoading) {
-					return;
-				}
-
-				ctx.hasSubmittedTotp = sanitized;
-				ctx.isTwoFactorLoading = true;
-				ctx.verifyCalls.push(sanitized);
-
-				try {
-					const { error } = await ctx.mockVerify(sanitized);
-					if (error) {
-						ctx.hasSubmittedTotp = null;
-						return;
-					}
-				} catch {
-					ctx.hasSubmittedTotp = null;
-				} finally {
-					ctx.isTwoFactorLoading = false;
-				}
-			};
-
-			const handleInputChange = (val: string) => {
-				const sanitized = val.replace(/\D/g, "");
-				if (sanitized.length < 6) {
-					ctx.hasSubmittedTotp = null;
-				} else if (sanitized.length === 6) {
-					handleVerifyTotp(sanitized);
-				}
-			};
-
-			return { ctx, handleVerifyTotp, handleInputChange };
 		}
 
 		it("automatically triggers verification when 6 digits are reached", async () => {
-			const { ctx, handleInputChange } = createVerificationController();
+			const { handler, verifyCalls } = setupVerificationTest();
+			let currentCode = "";
+			const setCode = (val: string) => {
+				currentCode = val;
+			};
 
-			handleInputChange("12345");
-			expect(ctx.verifyCalls.length).toBe(0);
+			handler.handleInputChange("12345", setCode);
+			expect(currentCode).toBe("12345");
+			expect(verifyCalls.length).toBe(0);
 
-			handleInputChange("123456");
-			expect(ctx.verifyCalls).toEqual(["123456"]);
+			handler.handleInputChange("123456", setCode);
+			expect(currentCode).toBe("123456");
+			expect(verifyCalls).toEqual(["123456"]);
 		});
 
 		it("de-duplicates identical triggers from onChange and onComplete", async () => {
-			const { ctx, handleVerifyTotp, handleInputChange } =
-				createVerificationController();
+			const { handler, verifyCalls } = setupVerificationTest();
+			let currentCode = "";
+			const setCode = (val: string) => {
+				currentCode = val;
+			};
 
 			// Simulate password manager filling 6 digits (triggers onChange and onComplete concurrently)
-			handleInputChange("987654");
-			handleVerifyTotp("987654");
+			handler.handleInputChange("987654", setCode);
+			await handler.handleVerify("987654");
 
-			expect(ctx.verifyCalls.length).toBe(1);
-			expect(ctx.verifyCalls[0]).toBe("987654");
+			expect(currentCode).toBe("987654");
+			expect(verifyCalls.length).toBe(1);
+			expect(verifyCalls[0]).toBe("987654");
 		});
 
 		it("does not trigger verification for codes shorter than 6 digits", async () => {
-			const { ctx, handleVerifyTotp } = createVerificationController();
+			const { handler, verifyCalls } = setupVerificationTest();
 
-			await handleVerifyTotp("123");
-			await handleVerifyTotp("12345");
+			await handler.handleVerify("123");
+			await handler.handleVerify("12345");
 
-			expect(ctx.verifyCalls.length).toBe(0);
+			expect(verifyCalls.length).toBe(0);
 		});
 
 		it("clears submission guard on verification error to allow re-entry", async () => {
-			const { ctx, handleInputChange } = createVerificationController();
+			const { handler, verifyCalls, setMockVerify } = setupVerificationTest();
+			let currentCode = "";
+			const setCode = (val: string) => {
+				currentCode = val;
+			};
 
-			ctx.mockVerify = vi.fn(async () => ({
-				error: { message: "Invalid 2FA code" },
-			}));
+			setMockVerify(
+				vi.fn(async () => ({
+					error: { message: "Invalid 2FA code" },
+				})),
+			);
 
 			// First attempt with incorrect code
-			await handleInputChange("000000");
-			expect(ctx.hasSubmittedTotp).toBeNull();
+			handler.handleInputChange("000000", setCode);
+			// Wait for async verification to complete
+			await new Promise((r) => setTimeout(r, 10));
+			expect(handler.getSubmittedCode()).toBeNull();
 
 			// User fixes the code to the correct one
-			ctx.mockVerify = vi.fn(async () => ({}));
-			await handleInputChange("111111");
+			setMockVerify(vi.fn(async () => ({ error: null })));
+			handler.handleInputChange("111111", setCode);
+			await new Promise((r) => setTimeout(r, 10));
 
-			expect(ctx.verifyCalls).toContain("111111");
+			expect(verifyCalls).toContain("111111");
 		});
 
 		it("clears submission guard when user backspaces so they can re-type the 6th digit", async () => {
-			const { ctx, handleInputChange } = createVerificationController();
+			const { handler, verifyCalls } = setupVerificationTest();
+			let currentCode = "";
+			const setCode = (val: string) => {
+				currentCode = val;
+			};
 
-			await handleInputChange("123456");
-			expect(ctx.hasSubmittedTotp).toBe("123456");
+			handler.handleInputChange("123456", setCode);
+			await new Promise((r) => setTimeout(r, 10));
+			expect(handler.getSubmittedCode()).toBe("123456");
 
 			// User deletes last digit
-			handleInputChange("12345");
-			expect(ctx.hasSubmittedTotp).toBeNull();
+			handler.handleInputChange("12345", setCode);
+			expect(handler.getSubmittedCode()).toBeNull();
 
 			// User enters 6th digit again
-			await handleInputChange("123456");
-			expect(ctx.verifyCalls.length).toBe(2);
+			handler.handleInputChange("123456", setCode);
+			await new Promise((r) => setTimeout(r, 10));
+			expect(verifyCalls.length).toBe(2);
 		});
 	});
 });
