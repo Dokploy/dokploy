@@ -23,6 +23,7 @@ import {
 	updateRedisById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { getEffectiveAccessedServices } from "@dokploy/server/services/access-scope";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -547,10 +548,11 @@ export const redisRouter = createTRPCRouter({
 					ilike(redisTable.description ?? "", `%${input.description.trim()}%`),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const memberRecord = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
+			const accessedServices = await getEffectiveAccessedServices(memberRecord);
 			if (accessedServices.length === 0) return { items: [], total: 0 };
 			baseConditions.push(
 				sql`${redisTable.redisId} IN (${sql.join(

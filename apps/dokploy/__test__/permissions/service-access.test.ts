@@ -28,6 +28,8 @@ const mockMemberData = (
 
 let memberToReturn: ReturnType<typeof mockMemberData> =
 	mockMemberData("member");
+let scopeRows: unknown[] = [];
+const execute = vi.fn(() => Promise.resolve(scopeRows));
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
@@ -41,6 +43,7 @@ vi.mock("@dokploy/server/db", () => ({
 				findMany: vi.fn(() => Promise.resolve([])),
 			},
 		},
+		execute: (..._args: unknown[]) => execute(),
 	},
 }));
 
@@ -59,6 +62,7 @@ const ctx = {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	scopeRows = [];
 });
 
 describe("checkServicePermissionAndAccess", () => {
@@ -128,5 +132,40 @@ describe("checkServiceAccess", () => {
 		await expect(
 			checkServiceAccess(ctx, "project-1", "create"),
 		).resolves.toBeUndefined();
+	});
+});
+
+describe("full-access grants", () => {
+	it("member reaches a service through a full-access project", async () => {
+		memberToReturn = mockMemberData("member", [], ["proj-1"]);
+		scopeRows = [
+			{ environmentId: "env-1", projectId: "proj-1", serviceId: "svc-a" },
+		];
+
+		await expect(
+			checkServiceAccess(ctx, "svc-a", "read"),
+		).resolves.toBeUndefined();
+	});
+
+	it("member does not reach a service in a project they do not hold", async () => {
+		memberToReturn = mockMemberData("member", [], ["proj-1"]);
+		scopeRows = [
+			{ environmentId: "env-1", projectId: "proj-1", serviceId: "svc-a" },
+		];
+
+		await expect(
+			checkServiceAccess(ctx, "svc-elsewhere", "read"),
+		).rejects.toThrow("You don't have access to this service");
+	});
+
+	it("explicit service grant short-circuits without querying the scope", async () => {
+		memberToReturn = mockMemberData("member", ["svc-a"], ["proj-1"]);
+		scopeRows = [
+			{ environmentId: "env-1", projectId: "proj-1", serviceId: "svc-a" },
+		];
+		await expect(
+			checkServicePermissionAndAccess(ctx, "svc-a", { deployment: ["read"] }),
+		).resolves.toBeUndefined();
+		expect(execute).not.toHaveBeenCalled();
 	});
 });

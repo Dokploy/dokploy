@@ -1,4 +1,7 @@
-import { findMemberByUserId } from "@dokploy/server/services/permission";
+import {
+	findMemberByUserId,
+	isProjectVisible,
+} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -212,7 +215,7 @@ export const tagRouter = createTRPCRouter({
 				if (
 					memberRecord.role !== "owner" &&
 					memberRecord.role !== "admin" &&
-					!memberRecord.accessedProjects.includes(input.projectId)
+					!(await isProjectVisible(memberRecord, input.projectId))
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -300,7 +303,7 @@ export const tagRouter = createTRPCRouter({
 				if (
 					memberRecord.role !== "owner" &&
 					memberRecord.role !== "admin" &&
-					!memberRecord.accessedProjects.includes(input.projectId)
+					!(await isProjectVisible(memberRecord, input.projectId))
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -380,7 +383,7 @@ export const tagRouter = createTRPCRouter({
 				if (
 					memberRecord.role !== "owner" &&
 					memberRecord.role !== "admin" &&
-					!memberRecord.accessedProjects.includes(input.projectId)
+					!(await isProjectVisible(memberRecord, input.projectId))
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",

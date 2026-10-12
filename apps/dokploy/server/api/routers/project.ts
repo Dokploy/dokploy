@@ -32,6 +32,7 @@ import {
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { resolveAccessScope } from "@dokploy/server/services/access-scope";
 import {
 	addNewEnvironment,
 	addNewProject,
@@ -112,12 +113,13 @@ export const projectRouter = createTRPCRouter({
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				const { accessedServices, accessedProjects } = await findMemberByUserId(
+				const memberRecord = await findMemberByUserId(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
 				);
+				const scope = await resolveAccessScope(memberRecord);
 
-				if (!accessedProjects.includes(input.projectId)) {
+				if (!scope.projectIds.includes(input.projectId)) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You don't have access to this project",
@@ -141,7 +143,7 @@ export const projectRouter = createTRPCRouter({
 									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										applications.applicationId,
-										accessedServices,
+										scope.serviceIds,
 									),
 								},
 								compose: {
@@ -153,44 +155,44 @@ export const projectRouter = createTRPCRouter({
 									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										compose.composeId,
-										accessedServices,
+										scope.serviceIds,
 									),
 								},
 								libsql: {
 									columns: { ...serviceColumns, libsqlId: true },
 									with: { server: { columns: { name: true } } },
-									where: buildServiceFilter(libsql.libsqlId, accessedServices),
+									where: buildServiceFilter(libsql.libsqlId, scope.serviceIds),
 								},
 								mariadb: {
 									columns: { ...serviceColumns, mariadbId: true },
 									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										mariadb.mariadbId,
-										accessedServices,
+										scope.serviceIds,
 									),
 								},
 								mongo: {
 									columns: { ...serviceColumns, mongoId: true },
 									with: { server: { columns: { name: true } } },
-									where: buildServiceFilter(mongo.mongoId, accessedServices),
+									where: buildServiceFilter(mongo.mongoId, scope.serviceIds),
 								},
 								mysql: {
 									columns: { ...serviceColumns, mysqlId: true },
 									with: { server: { columns: { name: true } } },
-									where: buildServiceFilter(mysql.mysqlId, accessedServices),
+									where: buildServiceFilter(mysql.mysqlId, scope.serviceIds),
 								},
 								postgres: {
 									columns: { ...serviceColumns, postgresId: true },
 									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										postgres.postgresId,
-										accessedServices,
+										scope.serviceIds,
 									),
 								},
 								redis: {
 									columns: { ...serviceColumns, redisId: true },
 									with: { server: { columns: { name: true } } },
-									where: buildServiceFilter(redis.redisId, accessedServices),
+									where: buildServiceFilter(redis.redisId, scope.serviceIds),
 								},
 							},
 						},
@@ -222,25 +224,28 @@ export const projectRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-			const { accessedProjects, accessedEnvironments, accessedServices } =
-				await findMemberByUserId(ctx.user.id, ctx.session.activeOrganizationId);
+			const memberRecord = await findMemberByUserId(
+				ctx.user.id,
+				ctx.session.activeOrganizationId,
+			);
+			const scope = await resolveAccessScope(memberRecord);
 
-			if (accessedProjects.length === 0) {
+			if (scope.projectIds.length === 0) {
 				return [];
 			}
 
 			const environmentFilter =
-				accessedEnvironments.length === 0
+				scope.environmentIds.length === 0
 					? sql`false`
 					: sql`${environments.environmentId} IN (${sql.join(
-							accessedEnvironments.map((envId) => sql`${envId}`),
+							scope.environmentIds.map((envId) => sql`${envId}`),
 							sql`, `,
 						)})`;
 
 			return await db.query.projects.findMany({
 				where: and(
 					sql`${projects.projectId} IN (${sql.join(
-						accessedProjects.map((projectId) => sql`${projectId}`),
+						scope.projectIds.map((projectId) => sql`${projectId}`),
 						sql`, `,
 					)})`,
 					eq(projects.organizationId, ctx.session.activeOrganizationId),
@@ -252,7 +257,7 @@ export const projectRouter = createTRPCRouter({
 							applications: {
 								where: buildServiceFilter(
 									applications.applicationId,
-									accessedServices,
+									scope.serviceIds,
 								),
 								columns: {
 									applicationId: true,
@@ -261,7 +266,7 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 							libsql: {
-								where: buildServiceFilter(libsql.libsqlId, accessedServices),
+								where: buildServiceFilter(libsql.libsqlId, scope.serviceIds),
 								columns: {
 									libsqlId: true,
 									name: true,
@@ -269,7 +274,7 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 							mariadb: {
-								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+								where: buildServiceFilter(mariadb.mariadbId, scope.serviceIds),
 								columns: {
 									mariadbId: true,
 									name: true,
@@ -277,7 +282,7 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 							mongo: {
-								where: buildServiceFilter(mongo.mongoId, accessedServices),
+								where: buildServiceFilter(mongo.mongoId, scope.serviceIds),
 								columns: {
 									mongoId: true,
 									name: true,
@@ -285,7 +290,7 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 							mysql: {
-								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								where: buildServiceFilter(mysql.mysqlId, scope.serviceIds),
 								columns: {
 									mysqlId: true,
 									name: true,
@@ -295,7 +300,7 @@ export const projectRouter = createTRPCRouter({
 							postgres: {
 								where: buildServiceFilter(
 									postgres.postgresId,
-									accessedServices,
+									scope.serviceIds,
 								),
 								columns: {
 									postgresId: true,
@@ -304,7 +309,7 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 							redis: {
-								where: buildServiceFilter(redis.redisId, accessedServices),
+								where: buildServiceFilter(redis.redisId, scope.serviceIds),
 								columns: {
 									redisId: true,
 									name: true,
@@ -312,7 +317,7 @@ export const projectRouter = createTRPCRouter({
 								},
 							},
 							compose: {
-								where: buildServiceFilter(compose.composeId, accessedServices),
+								where: buildServiceFilter(compose.composeId, scope.serviceIds),
 								columns: {
 									composeId: true,
 									name: true,
@@ -526,9 +531,10 @@ export const projectRouter = createTRPCRouter({
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
-			accessedProjects = member.accessedProjects;
-			accessedEnvironments = member.accessedEnvironments;
-			accessedServices = member.accessedServices;
+			const scope = await resolveAccessScope(member);
+			accessedProjects = scope.projectIds;
+			accessedEnvironments = scope.environmentIds;
+			accessedServices = scope.serviceIds;
 
 			if (accessedProjects.length === 0) {
 				return {
@@ -720,14 +726,15 @@ export const projectRouter = createTRPCRouter({
 			}
 
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				const { accessedProjects } = await findMemberByUserId(
+				const memberRecord = await findMemberByUserId(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
 				);
-				if (accessedProjects.length === 0) return { items: [], total: 0 };
+				const scope = await resolveAccessScope(memberRecord);
+				if (scope.projectIds.length === 0) return { items: [], total: 0 };
 				baseConditions.push(
 					sql`${projects.projectId} IN (${sql.join(
-						accessedProjects.map((id) => sql`${id}`),
+						scope.projectIds.map((id) => sql`${id}`),
 						sql`, `,
 					)})`,
 				);
@@ -804,11 +811,12 @@ export const projectRouter = createTRPCRouter({
 				}
 
 				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-					const { accessedProjects } = await findMemberByUserId(
+					const memberRecord = await findMemberByUserId(
 						ctx.user.id,
 						ctx.session.activeOrganizationId,
 					);
-					if (!accessedProjects.includes(input.projectId)) {
+					const scope = await resolveAccessScope(memberRecord);
+					if (!scope.projectIds.includes(input.projectId)) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
 							message: "You don't have access to this project",
@@ -889,11 +897,12 @@ export const projectRouter = createTRPCRouter({
 					ctx.user.role !== "owner" &&
 					ctx.user.role !== "admin"
 				) {
-					const { accessedProjects } = await findMemberByUserId(
+					const memberRecord = await findMemberByUserId(
 						ctx.user.id,
 						ctx.session.activeOrganizationId,
 					);
-					if (!accessedProjects.includes(sourceEnvironment.project.projectId)) {
+					const scope = await resolveAccessScope(memberRecord);
+					if (!scope.projectIds.includes(sourceEnvironment.project.projectId)) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
 							message: "You don't have access to this project",

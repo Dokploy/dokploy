@@ -13,6 +13,7 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { getEffectiveAccessedServices } from "@dokploy/server/services/access-scope";
 import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
@@ -69,7 +70,9 @@ export const deploymentRouter = createTRPCRouter({
 			const orgId = ctx.session.activeOrganizationId;
 			const accessedServices =
 				ctx.user.role !== "owner" && ctx.user.role !== "admin"
-					? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+					? await getEffectiveAccessedServices(
+							await findMemberByUserId(ctx.user.id, orgId),
+						)
 					: null;
 			if (accessedServices !== null && accessedServices.length === 0) {
 				return [];

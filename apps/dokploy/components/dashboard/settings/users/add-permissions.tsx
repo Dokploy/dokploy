@@ -27,6 +27,19 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import {
+	type EnvironmentNode,
+	environmentState,
+	isInherited,
+	type NodeState,
+	type ProjectNode,
+	projectState,
+	type Selection,
+	serviceState,
+	toggleEnvironment,
+	toggleProject,
+	toggleService,
+} from "@/lib/permission-tree";
 import { api, type RouterOutputs } from "@/utils/api";
 
 /** Shape returned by project.allForPermissions (admin only). Used for the permissions UI. */
@@ -167,6 +180,19 @@ export const extractServices = (data: Environment | undefined) => {
 	return applications;
 };
 
+const toNode = (project: ProjectForPermissions): ProjectNode => ({
+	projectId: project.projectId,
+	environments: project.environments.map((environment) => ({
+		environmentId: environment.environmentId,
+		services: extractServices(environment).map((service) => ({
+			id: service.id,
+		})),
+	})),
+});
+
+const toRadixChecked = (state: NodeState) =>
+	state === "indeterminate" ? ("indeterminate" as const) : state === "checked";
+
 const addPermissions = z.object({
 	accessedProjects: z.array(z.string()).optional(),
 	accessedEnvironments: z.array(z.string()).optional(),
@@ -299,6 +325,19 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 				toast.error("Error updating the permissions");
 			});
 	};
+
+	const selection = (): Selection => ({
+		projects: form.getValues("accessedProjects") || [],
+		environments: form.getValues("accessedEnvironments") || [],
+		services: form.getValues("accessedServices") || [],
+	});
+
+	const applySelection = (next: Selection) => {
+		form.setValue("accessedProjects", next.projects);
+		form.setValue("accessedEnvironments", next.environments);
+		form.setValue("accessedServices", next.services);
+	};
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
@@ -570,319 +609,186 @@ export const AddUserPermissions = ({ userId, role }: Props) => {
 										</p>
 									)}
 									<div className="grid md:grid-cols-1 gap-4">
-										{projects?.map((project, projectIndex) => {
+										{projects?.map((project) => {
+											const node = toNode(project);
 											return (
 												<FormField
-													key={`project-${projectIndex}`}
+													key={project.projectId}
 													control={form.control}
 													name="accessedProjects"
-													render={({ field }) => {
-														return (
-															<FormItem
-																key={project.projectId}
-																className="flex flex-col items-start rounded-lg p-4 border"
-															>
-																{/* Project Header */}
-																<div className="flex flex-row gap-4 items-center w-full">
-																	<FormControl>
-																		<Checkbox
-																			checked={field.value?.includes(
-																				project.projectId,
-																			)}
-																			onCheckedChange={(checked) => {
-																				if (checked) {
-																					// Add the project
-																					field.onChange([
-																						...(field.value || []),
-																						project.projectId,
-																					]);
-																				} else {
-																					// Remove the project
-																					field.onChange(
-																						field.value?.filter(
-																							(value) =>
-																								value !== project.projectId,
-																						),
-																					);
+													render={() => (
+														<FormItem
+															key={project.projectId}
+															className="flex flex-col items-start rounded-lg p-4 border"
+														>
+															{/* Project Header */}
+															<div className="flex flex-row gap-4 items-center w-full">
+																<FormControl>
+																	<Checkbox
+																		checked={toRadixChecked(
+																			projectState(selection(), node),
+																		)}
+																		onCheckedChange={(checked) =>
+																			applySelection(
+																				toggleProject(
+																					selection(),
+																					node,
+																					checked === true,
+																				),
+																			)
+																		}
+																	/>
+																</FormControl>
+																<FormLabel className="text-base font-semibold text-primary">
+																	{project.name}
+																</FormLabel>
+															</div>
 
-																					// Also remove all environments and services from this project
-																					const currentEnvs =
-																						form.getValues(
-																							"accessedEnvironments",
-																						) || [];
-																					const currentServices =
-																						form.getValues(
-																							"accessedServices",
-																						) || [];
-
-																					// Get all environment IDs from this project
-																					const projectEnvIds =
-																						project.environments.map(
-																							(env) => env.environmentId,
-																						);
-
-																					// Get all service IDs from this project
-																					const projectServiceIds =
-																						project.environments.flatMap(
-																							(env) =>
-																								extractServices(env).map(
-																									(service) => service.id,
-																								),
-																						);
-
-																					// Remove environments and services from this project
-																					form.setValue(
-																						"accessedEnvironments",
-																						currentEnvs.filter(
-																							(envId) =>
-																								!projectEnvIds.includes(envId),
-																						),
-																					);
-																					form.setValue(
-																						"accessedServices",
-																						currentServices.filter(
-																							(serviceId) =>
-																								!projectServiceIds.includes(
-																									serviceId,
-																								),
-																						),
-																					);
-																				}
-																			}}
-																		/>
-																	</FormControl>
-																	<FormLabel className="text-base font-semibold text-primary">
-																		{project.name}
-																	</FormLabel>
-																</div>
-
-																{/* Environments */}
-																<div className="ml-6 w-full space-y-3">
-																	{project.environments.length === 0 && (
-																		<p className="text-sm text-muted-foreground">
-																			No environments found
-																		</p>
-																	)}
-																	{project.environments.map(
-																		(environment, envIndex) => {
-																			const services =
-																				extractServices(environment);
-																			return (
-																				<div
-																					key={`env-${envIndex}`}
-																					className="border-l-2 border-muted pl-4"
-																				>
-																					{/* Environment Header with Checkbox */}
-																					<FormField
-																						key={`env-${envIndex}`}
-																						control={form.control}
-																						name="accessedEnvironments"
-																						render={({ field: envField }) => (
-																							<FormItem className="flex flex-row items-center space-x-3 space-y-0 mb-2">
-																								<FormControl>
-																									<Checkbox
-																										checked={envField.value?.includes(
-																											environment.environmentId,
-																										)}
-																										onCheckedChange={(
-																											checked,
-																										) => {
-																											if (checked) {
-																												// Add the environment
-																												envField.onChange([
-																													...(envField.value ||
-																														[]),
-																													environment.environmentId,
-																												]);
-
-																												// Auto-select the project if not already selected
-																												const currentProjects =
-																													form.getValues(
-																														"accessedProjects",
-																													) || [];
-																												if (
-																													!currentProjects.includes(
-																														project.projectId,
-																													)
-																												) {
-																													form.setValue(
-																														"accessedProjects",
-																														[
-																															...currentProjects,
-																															project.projectId,
-																														],
-																													);
-																												}
-																											} else {
-																												// Remove the environment
-																												envField.onChange(
-																													envField.value?.filter(
-																														(value) =>
-																															value !==
-																															environment.environmentId,
-																													),
-																												);
-
-																												// Also remove all services from this environment
-																												const currentServices =
-																													form.getValues(
-																														"accessedServices",
-																													) || [];
-																												const environmentServiceIds =
-																													services.map(
-																														(service) =>
-																															service.id,
-																													);
-
-																												form.setValue(
-																													"accessedServices",
-																													currentServices.filter(
-																														(serviceId) =>
-																															!environmentServiceIds.includes(
-																																serviceId,
-																															),
-																													),
-																												);
-																											}
-																										}}
-																									/>
-																								</FormControl>
-																								<div className="flex items-center gap-2">
-																									<div className="w-2 h-2 bg-blue-500 rounded-full" />
-																									<FormLabel className="text-sm font-medium text-foreground cursor-pointer">
-																										{environment.name}
-																									</FormLabel>
-																									<span className="text-xs text-muted-foreground">
-																										({services.length} services)
-																									</span>
-																								</div>
-																							</FormItem>
-																						)}
-																					/>
-
-																					{/* Services */}
-																					<div className="ml-4 space-y-2">
-																						{services.length === 0 && (
-																							<p className="text-xs text-muted-foreground">
-																								No services found
-																							</p>
-																						)}
-																						{services.map(
-																							(service, serviceIndex) => (
-																								<FormField
-																									key={`service-${serviceIndex}`}
-																									control={form.control}
-																									name="accessedServices"
-																									render={({
-																										field: serviceField,
-																									}) => {
-																										return (
-																											<FormItem
-																												key={service.id}
-																												className="flex flex-row items-center space-x-3 space-y-0"
-																											>
-																												<FormControl>
-																													<Checkbox
-																														checked={serviceField.value?.includes(
-																															service.id,
-																														)}
-																														onCheckedChange={(
-																															checked,
-																														) => {
-																															if (checked) {
-																																// Add the service
-																																serviceField.onChange(
-																																	[
-																																		...(serviceField.value ||
-																																			[]),
-																																		service.id,
-																																	],
-																																);
-
-																																// Auto-select the environment if not already selected
-																																const currentEnvs =
-																																	form.getValues(
-																																		"accessedEnvironments",
-																																	) || [];
-																																if (
-																																	!currentEnvs.includes(
-																																		environment.environmentId,
-																																	)
-																																) {
-																																	form.setValue(
-																																		"accessedEnvironments",
-																																		[
-																																			...currentEnvs,
-																																			environment.environmentId,
-																																		],
-																																	);
-																																}
-
-																																// Auto-select the project if not already selected
-																																const currentProjects =
-																																	form.getValues(
-																																		"accessedProjects",
-																																	) || [];
-																																if (
-																																	!currentProjects.includes(
-																																		project.projectId,
-																																	)
-																																) {
-																																	form.setValue(
-																																		"accessedProjects",
-																																		[
-																																			...currentProjects,
-																																			project.projectId,
-																																		],
-																																	);
-																																}
-																															} else {
-																																// Remove the service
-																																serviceField.onChange(
-																																	serviceField.value?.filter(
-																																		(value) =>
-																																			value !==
-																																			service.id,
-																																	),
-																																);
-																															}
-																														}}
-																													/>
-																												</FormControl>
-																												<div className="flex items-center gap-2">
-																													<div
-																														className={`w-1.5 h-1.5 rounded-full ${
-																															service.type ===
-																															"application"
-																																? "bg-green-500"
-																																: service.type ===
-																																		"compose"
-																																	? "bg-purple-500"
-																																	: "bg-orange-500"
-																														}`}
-																													/>
-																													<FormLabel className="text-sm text-muted-foreground cursor-pointer">
-																														{service.name}
-																													</FormLabel>
-																													<span className="text-xs text-muted-foreground/70 capitalize">
-																														({service.type})
-																													</span>
-																												</div>
-																											</FormItem>
-																										);
-																									}}
+															{/* Environments */}
+															<div className="ml-6 w-full space-y-3">
+																{project.environments.length === 0 && (
+																	<p className="text-sm text-muted-foreground">
+																		No environments found
+																	</p>
+																)}
+																{project.environments.map(
+																	(environment, envIndex) => {
+																		const services =
+																			extractServices(environment);
+																		const environmentNode: EnvironmentNode = {
+																			environmentId: environment.environmentId,
+																			services: services.map((service) => ({
+																				id: service.id,
+																			})),
+																		};
+																		const inherited = isInherited(
+																			selection(),
+																			node,
+																			environmentNode,
+																		);
+																		return (
+																			<div
+																				key={`env-${envIndex}`}
+																				className="border-l-2 border-muted pl-4"
+																			>
+																				{/* Environment Header with Checkbox */}
+																				<FormField
+																					control={form.control}
+																					name="accessedEnvironments"
+																					render={() => (
+																						<FormItem className="flex flex-row items-center space-x-3 space-y-0 mb-2">
+																							<FormControl>
+																								<Checkbox
+																									checked={toRadixChecked(
+																										environmentState(
+																											selection(),
+																											node,
+																											environmentNode,
+																										),
+																									)}
+																									onCheckedChange={(checked) =>
+																										applySelection(
+																											toggleEnvironment(
+																												selection(),
+																												node,
+																												environmentNode,
+																												checked === true,
+																											),
+																										)
+																									}
 																								/>
-																							),
-																						)}
-																					</div>
+																							</FormControl>
+																							<div className="flex items-center gap-2">
+																								<div className="w-2 h-2 bg-blue-500 rounded-full" />
+																								<FormLabel className="text-sm font-medium text-foreground cursor-pointer">
+																									{environment.name}
+																								</FormLabel>
+																								<span className="text-xs text-muted-foreground">
+																									({services.length} services)
+																								</span>
+																							</div>
+																						</FormItem>
+																					)}
+																				/>
+
+																				{/* Services */}
+																				<div className="ml-4 space-y-2">
+																					{services.length === 0 && (
+																						<p className="text-xs text-muted-foreground">
+																							No services found
+																						</p>
+																					)}
+																					{services.map((service) => (
+																						<FormField
+																							key={service.id}
+																							control={form.control}
+																							name="accessedServices"
+																							render={() => (
+																								<FormItem
+																									key={service.id}
+																									className="flex flex-row items-center space-x-3 space-y-0"
+																								>
+																									<FormControl>
+																										<Checkbox
+																											checked={toRadixChecked(
+																												serviceState(
+																													selection(),
+																													node,
+																													environmentNode,
+																													service.id,
+																												),
+																											)}
+																											onCheckedChange={(
+																												checked,
+																											) =>
+																												applySelection(
+																													toggleService(
+																														selection(),
+																														node,
+																														environmentNode,
+																														service.id,
+																														checked === true,
+																													),
+																												)
+																											}
+																										/>
+																									</FormControl>
+																									<div className="flex items-center gap-2">
+																										<div
+																											className={`w-1.5 h-1.5 rounded-full ${
+																												service.type ===
+																												"application"
+																													? "bg-green-500"
+																													: service.type ===
+																															"compose"
+																														? "bg-purple-500"
+																														: "bg-orange-500"
+																											}`}
+																										/>
+																										<FormLabel className="text-sm text-muted-foreground cursor-pointer">
+																											{service.name}
+																										</FormLabel>
+																										<span className="text-xs text-muted-foreground/70 capitalize">
+																											({service.type})
+																										</span>
+																										{inherited && (
+																											<span className="text-xs italic text-muted-foreground/70">
+																												Included via project
+																											</span>
+																										)}
+																									</div>
+																								</FormItem>
+																							)}
+																						/>
+																					))}
 																				</div>
-																			);
-																		},
-																	)}
-																</div>
-															</FormItem>
-														);
-													}}
+																			</div>
+																		);
+																	},
+																)}
+															</div>
+														</FormItem>
+													)}
 												/>
 											);
 										})}

@@ -35,6 +35,7 @@ import {
 } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
+import { getEffectiveAccessedServices } from "@dokploy/server/services/access-scope";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
@@ -1163,10 +1164,11 @@ export const composeRouter = createTRPCRouter({
 				);
 			}
 
-			const { accessedServices } = await findMemberByUserId(
+			const memberRecord = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
+			const accessedServices = await getEffectiveAccessedServices(memberRecord);
 			if (accessedServices.length === 0) return { items: [], total: 0 };
 			baseConditions.push(
 				sql`${composeTable.composeId} IN (${sql.join(

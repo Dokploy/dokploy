@@ -24,6 +24,7 @@ import {
 	updateMongoById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { getEffectiveAccessedServices } from "@dokploy/server/services/access-scope";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -561,10 +562,11 @@ export const mongoRouter = createTRPCRouter({
 					ilike(mongoTable.description ?? "", `%${input.description.trim()}%`),
 				);
 			}
-			const { accessedServices } = await findMemberByUserId(
+			const memberRecord = await findMemberByUserId(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
 			);
+			const accessedServices = await getEffectiveAccessedServices(memberRecord);
 			if (accessedServices.length === 0) return { items: [], total: 0 };
 			baseConditions.push(
 				sql`${mongoTable.mongoId} IN (${sql.join(

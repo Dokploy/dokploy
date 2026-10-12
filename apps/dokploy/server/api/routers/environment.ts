@@ -9,6 +9,7 @@ import {
 	updateEnvironmentById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { resolveAccessScope } from "@dokploy/server/services/access-scope";
 import {
 	addNewEnvironment,
 	checkEnvironmentAccess,
@@ -90,13 +91,13 @@ export const environmentRouter = createTRPCRouter({
 			}
 
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				const { accessedEnvironments, accessedServices } =
-					await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
+				const memberRecord = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				const scope = await resolveAccessScope(memberRecord);
 
-				if (!accessedEnvironments.includes(environment.environmentId)) {
+				if (!scope.environmentIds.includes(environment.environmentId)) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "You are not allowed to access this environment",
@@ -105,7 +106,7 @@ export const environmentRouter = createTRPCRouter({
 
 				const filteredEnvironment = filterEnvironmentServices(
 					environment,
-					accessedServices,
+					scope.serviceIds,
 				);
 
 				return filteredEnvironment;
@@ -134,18 +135,18 @@ export const environmentRouter = createTRPCRouter({
 				}
 
 				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-					const { accessedEnvironments, accessedServices } =
-						await findMemberByUserId(
-							ctx.user.id,
-							ctx.session.activeOrganizationId,
-						);
+					const memberRecord = await findMemberByUserId(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+					const scope = await resolveAccessScope(memberRecord);
 
 					const filteredEnvironments = environments
 						.filter((environment) =>
-							accessedEnvironments.includes(environment.environmentId),
+							scope.environmentIds.includes(environment.environmentId),
 						)
 						.map((environment) =>
-							filterEnvironmentServices(environment, accessedServices),
+							filterEnvironmentServices(environment, scope.serviceIds),
 						);
 
 					return filteredEnvironments;
@@ -238,13 +239,14 @@ export const environmentRouter = createTRPCRouter({
 				}
 
 				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-					const { accessedEnvironments } = await findMemberByUserId(
+					const memberRecord = await findMemberByUserId(
 						ctx.user.id,
 						ctx.session.activeOrganizationId,
 					);
+					const scope = await resolveAccessScope(memberRecord);
 
 					if (
-						!accessedEnvironments.includes(currentEnvironment.environmentId)
+						!scope.environmentIds.includes(currentEnvironment.environmentId)
 					) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
@@ -291,12 +293,13 @@ export const environmentRouter = createTRPCRouter({
 				}
 
 				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-					const { accessedEnvironments } = await findMemberByUserId(
+					const memberRecord = await findMemberByUserId(
 						ctx.user.id,
 						ctx.session.activeOrganizationId,
 					);
+					const scope = await resolveAccessScope(memberRecord);
 
-					if (!accessedEnvironments.includes(environment.environmentId)) {
+					if (!scope.environmentIds.includes(environment.environmentId)) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
 							message: "You are not allowed to duplicate this environment",
@@ -364,14 +367,15 @@ export const environmentRouter = createTRPCRouter({
 			}
 
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				const { accessedEnvironments } = await findMemberByUserId(
+				const memberRecord = await findMemberByUserId(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
 				);
-				if (accessedEnvironments.length === 0) return { items: [], total: 0 };
+				const scope = await resolveAccessScope(memberRecord);
+				if (scope.environmentIds.length === 0) return { items: [], total: 0 };
 				baseConditions.push(
 					sql`${environments.environmentId} IN (${sql.join(
-						accessedEnvironments.map((id) => sql`${id}`),
+						scope.environmentIds.map((id) => sql`${id}`),
 						sql`, `,
 					)})`,
 				);
