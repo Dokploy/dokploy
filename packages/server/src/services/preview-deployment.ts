@@ -2,7 +2,6 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
 	deployments,
-	organization,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -11,6 +10,10 @@ import type { z } from "zod";
 import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
+import {
+	createPreviewTemplateVariables,
+	renderPreviewDomain,
+} from "../utils/preview-deployment";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
@@ -132,14 +135,11 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
-	const org = await db.query.organization.findFirst({
-		where: eq(organization.id, application.environment.project.organizationId),
-	});
-	const generateDomain = await generateWildcardDomain(
+	const generateDomain = await generatePreviewDomain(
 		application.previewWildcard || "*.sslip.io",
 		appName,
 		application.server?.ipAddress || "",
-		org?.ownerId || "",
+		createPreviewTemplateVariables({ ...schema, appName }),
 	);
 
 	if (!application.githubId) {
@@ -238,17 +238,14 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
-const generateWildcardDomain = async (
+const generatePreviewDomain = async (
 	baseDomain: string,
 	appName: string,
 	serverIp: string,
-	_userId: string,
+	variables: Record<string, string>,
 ): Promise<string> => {
-	if (!baseDomain.startsWith("*.")) {
-		throw new Error('The base domain must start with "*."');
-	}
 	const hash = `${appName}`;
-	if (baseDomain.includes("sslip.io")) {
+	if (baseDomain.includes("sslip.io") && baseDomain.includes("*")) {
 		let ip = "";
 
 		if (process.env.NODE_ENV === "development") {
@@ -265,11 +262,12 @@ const generateWildcardDomain = async (
 		}
 
 		const slugIp = ip.replaceAll(".", "-");
-		return baseDomain.replace(
-			"*",
+		return renderPreviewDomain(
+			baseDomain,
+			variables,
 			`${hash}${slugIp === "" ? "" : `-${slugIp}`}`,
 		);
 	}
 
-	return baseDomain.replace("*", hash);
+	return renderPreviewDomain(baseDomain, variables, hash);
 };

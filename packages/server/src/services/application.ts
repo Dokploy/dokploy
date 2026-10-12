@@ -31,6 +31,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
+import {
+	createPreviewTemplateVariables,
+	interpolatePreviewTemplate,
+} from "../utils/preview-deployment";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -48,10 +52,46 @@ import {
 import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,
+	type PreviewDeployment,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
+
+const applyPreviewEnvironment = (
+	application: Application,
+	previewDeployment: PreviewDeployment,
+	host: string | undefined,
+	url: string,
+) => {
+	const variables = {
+		...createPreviewTemplateVariables({
+			pullRequestNumber: previewDeployment.pullRequestNumber,
+			pullRequestTitle: previewDeployment.pullRequestTitle,
+			branch: previewDeployment.branch,
+			appName: previewDeployment.appName,
+		}),
+		domain: host ?? "",
+		url,
+	};
+	const deployUrl = `\nDOKPLOY_DEPLOY_URL=${host}`;
+	application.env =
+		interpolatePreviewTemplate(application.previewEnv ?? "", variables, {
+			escape: true,
+		}) + deployUrl;
+	application.buildArgs =
+		interpolatePreviewTemplate(application.previewBuildArgs ?? "", variables, {
+			escape: true,
+		}) + deployUrl;
+	application.buildSecrets =
+		interpolatePreviewTemplate(
+			application.previewBuildSecrets ?? "",
+			variables,
+			{
+				escape: true,
+			},
+		) + deployUrl;
+};
 
 export const createApplication = async (
 	input: z.infer<typeof apiCreateApplication>,
@@ -425,9 +465,12 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		applyPreviewEnvironment(
+			application,
+			previewDeployment,
+			previewDeployment.domain?.host,
+			previewDomain,
+		);
 		application.rollbackActive = false;
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;
@@ -544,9 +587,12 @@ export const rebuildPreviewApplication = async ({
 
 		// Set application properties for preview deployment
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		applyPreviewEnvironment(
+			application,
+			previewDeployment,
+			previewDeployment.domain?.host,
+			previewDomain,
+		);
 		application.rollbackActive = false;
 		application.buildRegistry = null;
 		application.rollbackRegistry = null;

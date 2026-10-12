@@ -190,10 +190,16 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										name="wildcardDomain"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Wildcard Domain</FormLabel>
+												<FormLabel>Preview Domain Template</FormLabel>
 												<FormControl>
 													<Input placeholder="*.sslip.io" {...field} />
 												</FormControl>
+												<FormDescription>
+													Use * or {"{pr_num}"}, {"{pr_name}"}, {"{branch}"},
+													and {"{app_name}"}. Example:{" "}
+													{"pr-{pr_num}.example.com"}. Names are converted to
+													DNS slugs.
+												</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}
@@ -457,6 +463,14 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									/>
 								</div>
 
+								<AlertBlock type="info">
+									Environment variables, build arguments, and build secrets
+									support {"{pr_num}"}, {"{pr_name}"} (PR title), {"{branch}"},
+									{"{app_name}"}, {"{domain}"}, and {"{url}"}. Values retain
+									their original text. Use <code>{"\\{pr_num}"}</code> for
+									literal <code>{"{pr_num}"}</code> and <code>{"\\\\"}</code>
+									for a literal backslash. Unknown variables remain unchanged.
+								</AlertBlock>
 								<FormField
 									control={form.control}
 									name="env"
@@ -466,10 +480,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<Secrets
 													name="env"
 													title="Environment Settings"
-													description="You can add environment variables to your resource."
+													description="Add environment variables for each preview deployment."
 													placeholder={[
 														"NODE_ENV=production",
 														"PORT=3000",
+														"PREVIEW_URL={url}",
 													].join("\n")}
 												/>
 											</FormControl>
