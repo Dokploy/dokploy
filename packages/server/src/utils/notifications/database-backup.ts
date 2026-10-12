@@ -2,9 +2,11 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { render } from "@react-email/components";
-import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -211,7 +213,7 @@ export const sendDatabaseBackupNotifications = async ({
 					? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
 					: "";
 
-				const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Database Name:</b> ${databaseName}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+				const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Database Name:</b> ${databaseName}\n<b>Date:</b> ${formatNotificationDate(date)}\n<b>Time:</b> ${formatNotificationTime(date)}${isError ? errorMsg : ""}`;
 
 				await sendTelegramNotification(telegram, messageText);
 			}
@@ -284,7 +286,7 @@ export const sendDatabaseBackupNotifications = async ({
 						: "";
 
 				await sendMattermostNotification(mattermost, {
-					text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
+					text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}\n**Date:** ${formatNotificationDate(date)}\n**Time:** ${formatNotificationTime(date)}${errorMsg}`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -398,7 +400,7 @@ export const sendDatabaseBackupNotifications = async ({
 												},
 												{
 													tag: "markdown",
-													content: `**Date:**\n${format(date, "PP pp")}`,
+													content: `**Date:**\n${formatNotificationDateTime(date)}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
@@ -438,7 +440,7 @@ export const sendDatabaseBackupNotifications = async ({
 					{ name: "Application", value: applicationName },
 					{ name: "Database Type", value: databaseType },
 					{ name: "Database Name", value: databaseName },
-					{ name: "Date", value: format(date, "PP pp") },
+					{ name: "Date", value: formatNotificationDateTime(date) },
 					{
 						name: "Status",
 						value: type === "success" ? "Successful" : "Failed",

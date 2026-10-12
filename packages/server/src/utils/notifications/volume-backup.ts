@@ -2,9 +2,11 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import { VolumeBackupEmail } from "@dokploy/server/emails/emails/volume-backup";
 import { render } from "@react-email/components";
-import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	formatNotificationDate,
+	formatNotificationDateTime,
+	formatNotificationTime,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -229,7 +231,7 @@ export const sendVolumeBackupNotifications = async ({
 					? `\n<b>Backup Size:</b> ${backupSize}`
 					: "";
 
-				const messageText = `<b>${statusEmoji} Volume Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Volume Name:</b> ${volumeName}\n<b>Service Type:</b> ${serviceType}${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+				const messageText = `<b>${statusEmoji} Volume Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Volume Name:</b> ${volumeName}\n<b>Service Type:</b> ${serviceType}${sizeInfo}\n<b>Date:</b> ${formatNotificationDate(date)}\n<b>Time:</b> ${formatNotificationTime(date)}${isError ? errorMsg : ""}`;
 
 				await sendTelegramNotification(telegram, messageText);
 			}
@@ -315,7 +317,7 @@ export const sendVolumeBackupNotifications = async ({
 				const sizeInfo = backupSize ? `\n**Backup Size:** ${backupSize}` : "";
 
 				await sendMattermostNotification(mattermost, {
-					text: `**${statusEmoji} Volume Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Volume Name:** ${volumeName}\n**Service Type:** ${serviceType}${sizeInfo}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
+					text: `**${statusEmoji} Volume Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Volume Name:** ${volumeName}\n**Service Type:** ${serviceType}${sizeInfo}\n**Date:** ${formatNotificationDate(date)}\n**Time:** ${formatNotificationTime(date)}${errorMsg}`,
 					channel: mattermost.channel,
 					username: mattermost.username || "Dokploy",
 				});
@@ -410,7 +412,7 @@ export const sendVolumeBackupNotifications = async ({
 												},
 												{
 													tag: "markdown",
-													content: `**Date:**\n${format(date, "PP pp")}`,
+													content: `**Date:**\n${formatNotificationDateTime(date)}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},
@@ -450,7 +452,7 @@ export const sendVolumeBackupNotifications = async ({
 					{ name: "Application", value: applicationName },
 					{ name: "Volume Name", value: volumeName },
 					{ name: "Service Type", value: serviceType },
-					{ name: "Date", value: format(date, "PP pp") },
+					{ name: "Date", value: formatNotificationDateTime(date) },
 					{
 						name: "Status",
 						value: type === "success" ? "Successful" : "Failed",
