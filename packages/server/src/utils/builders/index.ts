@@ -3,6 +3,7 @@ import { findRegistryByIdWithCredentials } from "@dokploy/server/services/regist
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
+import { registryAuthAddress } from "../docker/registry-reference";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -228,21 +229,25 @@ export const getAuthConfig = async (application: ApplicationNested) => {
 
 	if (sourceType === "docker") {
 		if (username && password) {
-			return { password, username, serveraddress: registryUrl || "" };
+			return {
+				password,
+				username,
+				serveraddress: registryAuthAddress(registryUrl),
+			};
 		}
 	} else if (registry) {
 		const r = await findRegistryByIdWithCredentials(registry.registryId);
 		return {
 			password: r.password,
 			username: r.username,
-			serveraddress: r.registryUrl,
+			serveraddress: registryAuthAddress(r.registryUrl),
 		};
 	} else if (buildRegistry) {
 		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
 		return {
 			password: r.password,
 			username: r.username,
-			serveraddress: r.registryUrl,
+			serveraddress: registryAuthAddress(r.registryUrl),
 		};
 	}
 
