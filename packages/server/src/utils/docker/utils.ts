@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
+import { getWebServerProvider } from "@dokploy/server/services/web-server-settings";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import { quote } from "shell-quote";
@@ -1032,9 +1033,12 @@ export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
 };
 
 export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
-	// Traefik can run as a standalone container or a swarm service
+	const name =
+		(await getWebServerProvider()) === "caddy"
+			? "dokploy-caddy"
+			: "dokploy-traefik";
 	try {
-		const container = docker.getContainer("dokploy-traefik");
+		const container = docker.getContainer(name);
 		const info = await container.inspect();
 		if (!info.State.Running) {
 			return {
@@ -1045,6 +1049,6 @@ export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
 		return { status: "healthy" };
 	} catch {
 		// Not a standalone container, check as swarm service
-		return checkSwarmServiceRunning("dokploy-traefik");
+		return checkSwarmServiceRunning(name);
 	}
 };

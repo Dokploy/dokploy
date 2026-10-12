@@ -16,11 +16,31 @@ import { api } from "@/utils/api";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
+import { SwitchWebServer } from "../../web-server/switch-web-server";
+import { ShowCaddyActions } from "./show-caddy-actions";
 
 interface Props {
 	serverId?: string;
 }
+
 export const ShowTraefikActions = ({ serverId }: Props) => {
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: webServer } = api.settings.getWebServerProvider.useQuery(
+		{ serverId },
+		{ enabled: isCloud === false },
+	);
+
+	return webServer?.provider === "caddy" ? (
+		<ShowCaddyActions serverId={serverId} />
+	) : (
+		<TraefikActions serverId={serverId} canSwitch={!!webServer} />
+	);
+};
+
+const TraefikActions = ({
+	serverId,
+	canSwitch,
+}: Props & { canSwitch: boolean }) => {
 	const { mutateAsync: reloadTraefik, isPending: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
 
@@ -175,6 +195,16 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							<span>Additional Port Mappings</span>
 						</DropdownMenuItem>
 					</ManageTraefikPorts>
+					{canSwitch && (
+						<SwitchWebServer serverId={serverId} provider="traefik">
+							<DropdownMenuItem
+								onSelect={(e) => e.preventDefault()}
+								className="cursor-pointer"
+							>
+								<span>Switch to Caddy</span>
+							</DropdownMenuItem>
+						</SwitchWebServer>
+					)}
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

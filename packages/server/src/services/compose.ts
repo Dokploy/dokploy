@@ -8,6 +8,7 @@ import {
 	compose,
 } from "@dokploy/server/db/schema";
 import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import { syncCaddyInBackground } from "@dokploy/server/utils/caddy/sync";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
@@ -352,6 +353,7 @@ export const deployCompose = async ({
 		});
 		throw error;
 	} finally {
+		syncCaddyInBackground(compose.serverId);
 		if (compose.sourceType !== "raw") {
 			const commitInfo = await getGitCommitInfo({
 				...compose,
@@ -458,6 +460,8 @@ export const rebuildCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
+	} finally {
+		syncCaddyInBackground(compose.serverId);
 	}
 
 	return true;
@@ -474,6 +478,7 @@ export const removeCompose = async (
 		if (compose.composeType === "stack") {
 			const command = `
 			docker network disconnect ${compose.appName} dokploy-traefik;
+			docker network disconnect ${compose.appName} dokploy-caddy 2>/dev/null;
 			docker stack rm ${compose.appName};
 			rm -rf ${projectPath}`;
 
@@ -485,6 +490,7 @@ export const removeCompose = async (
 		} else {
 			const command = `
 			docker network disconnect ${compose.appName} dokploy-traefik;
+			docker network disconnect ${compose.appName} dokploy-caddy 2>/dev/null;
 			env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
 				deleteVolumes ? "--volumes" : ""
 			};
@@ -533,6 +539,8 @@ export const startCompose = async (composeId: string) => {
 			composeStatus: "idle",
 		});
 		throw error;
+	} finally {
+		syncCaddyInBackground(compose.serverId);
 	}
 
 	return true;
@@ -579,6 +587,8 @@ export const stopCompose = async (composeId: string) => {
 			composeStatus: "error",
 		});
 		throw error;
+	} finally {
+		syncCaddyInBackground(compose.serverId);
 	}
 
 	return true;
