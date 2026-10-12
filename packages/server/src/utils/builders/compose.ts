@@ -140,6 +140,14 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
 			: "";
 		const pullFlag = compose.pullImages ? " --pull always" : "";
+		// Additional compose files (composePathAdditional) are NOT re-layered
+		// here: writeDomainsToCompose already merges them into the primary file
+		// on disk via the real `docker compose config` before this command
+		// runs (see utils/docker/domain.ts). Re-adding `-f` flags for them here
+		// would re-apply the override a second time on top of an already-
+		// merged primary, duplicating array-typed keys (ports/volumes) and
+		// breaking `randomize` (the merged primary has suffixed service names
+		// the un-suffixed additional file no longer matches).
 		command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
 	} else if (composeType === "stack") {
 		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
