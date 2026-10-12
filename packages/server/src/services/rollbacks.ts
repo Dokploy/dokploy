@@ -7,6 +7,7 @@ import {
 	deployments as deploymentsSchema,
 	rollbacks,
 } from "../db/schema";
+import { buildCustomShellCommand } from "../utils/builders/index";
 import { getRegistryTag } from "../utils/cluster/upload";
 import {
 	calculateResources,
@@ -199,7 +200,7 @@ const dockerLoginForRegistry = async (
 	}
 };
 
-const rollbackApplication = async (
+export const rollbackApplication = async (
 	appName: string,
 	image: string,
 	serverId?: string | null,
@@ -238,6 +239,8 @@ const rollbackApplication = async (
 		memoryReservation,
 		cpuReservation,
 		command,
+		customCommand,
+		customShell,
 		ports,
 	} = resolvedContext;
 
@@ -292,12 +295,16 @@ const rollbackApplication = async (
 				Image: rollbackImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(buildCustomShellCommand(
+					customCommand,
+					customShell as "sh" | "bash" | null | undefined,
+				) ??
+					(command
+						? {
+								Command: ["/bin/sh"],
+								Args: ["-c", command],
+							}
+						: {})),
 				...(Ulimits && { Ulimits }),
 				Labels,
 			},

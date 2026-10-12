@@ -42,6 +42,8 @@ const baseApp: ApplicationNested = {
 	buildRegistryId: "",
 	buildRegistry: null,
 	args: [],
+	customCommand: null,
+	customShell: null,
 	giteaBuildPath: "",
 	previewRequireCollaboratorPermissions: false,
 	giteaId: "",

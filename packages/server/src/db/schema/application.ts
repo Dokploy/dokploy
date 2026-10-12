@@ -121,6 +121,8 @@ export const applications = pgTable("application", {
 	subtitle: text("subtitle"),
 	command: text("command"),
 	args: text("args").array(),
+	customCommand: text("customCommand"),
+	customShell: text("customShell").default("sh"),
 	icon: text("icon"),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
@@ -329,6 +331,8 @@ const createSchema = createInsertSchema(applications, {
 	isPreviewDeploymentsActive: z.boolean().optional(),
 	password: z.string().optional(),
 	args: z.array(z.string()).optional(),
+	customCommand: z.string().max(20000).nullable().optional(),
+	customShell: z.enum(["sh", "bash"]).nullable().optional(),
 	registryUrl: z.string().optional(),
 	customGitSSHKeyId: z.string().optional(),
 	repository: z.string().optional(),
@@ -551,4 +555,22 @@ export const apiUpdateApplication = createSchema
 	.extend({
 		applicationId: z.string().min(1),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true })
+	.superRefine((data, ctx) => {
+		if (data.customCommand !== undefined && data.customCommand !== null) {
+			const trimmed = data.customCommand.trim();
+			if (trimmed.length === 0) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["customCommand"],
+					message: "Enter a script",
+				});
+			} else if (data.customCommand.length > 20000) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["customCommand"],
+					message: "Script must be 20000 characters or less",
+				});
+			}
+		}
+	});

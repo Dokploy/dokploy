@@ -7,6 +7,8 @@ type MockCreateServiceOptions = {
 		ContainerSpec?: {
 			StopGracePeriod?: number;
 			Ulimits?: Array<{ Name: string; Soft: number; Hard: number }>;
+			Command?: string[];
+			Args?: string[];
 		};
 	};
 	[key: string]: unknown;
@@ -48,6 +50,9 @@ const createApplication = (
 		memoryReservation: null,
 		cpuReservation: null,
 		command: null,
+		args: null,
+		customCommand: null,
+		customShell: null,
 		ports: [],
 		sourceType: "docker",
 		dockerImage: "example:latest",
@@ -157,5 +162,123 @@ describe("mechanizeDockerContainer", () => {
 		}
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	describe("custom shell command", () => {
+		it("wraps sh script with sh -c and drops args", async () => {
+			const application = createApplication({
+				command: "node",
+				args: ["server.js"],
+				customCommand: "npx prisma migrate deploy && node server.js",
+				customShell: "sh",
+			});
+
+			await mechanizeDockerContainer(application);
+
+			expect(createServiceMock).toHaveBeenCalledTimes(1);
+			const call = createServiceMock.mock.calls[0];
+			if (!call) {
+				throw new Error("createServiceMock should have been called once");
+			}
+			const [settings] = call;
+			const containerSpec = settings.TaskTemplate?.ContainerSpec;
+			expect(containerSpec?.Command).toEqual([
+				"sh",
+				"-c",
+				"npx prisma migrate deploy && node server.js",
+			]);
+			expect(containerSpec?.Args).toBeUndefined();
+		});
+
+		it("wraps bash script with bash -c", async () => {
+			const application = createApplication({
+				command: "node",
+				args: ["server.js"],
+				customCommand: "php artisan migrate --force && apache2-foreground",
+				customShell: "bash",
+			});
+
+			await mechanizeDockerContainer(application);
+
+			expect(createServiceMock).toHaveBeenCalledTimes(1);
+			const call = createServiceMock.mock.calls[0];
+			if (!call) {
+				throw new Error("createServiceMock should have been called once");
+			}
+			const [settings] = call;
+			const containerSpec = settings.TaskTemplate?.ContainerSpec;
+			expect(containerSpec?.Command).toEqual([
+				"bash",
+				"-c",
+				"php artisan migrate --force && apache2-foreground",
+			]);
+			expect(containerSpec?.Args).toBeUndefined();
+		});
+
+		it("keeps legacy command plus args when custom is empty", async () => {
+			const application = createApplication({
+				command: "node",
+				args: ["server.js"],
+				customCommand: null,
+			});
+
+			await mechanizeDockerContainer(application);
+
+			expect(createServiceMock).toHaveBeenCalledTimes(1);
+			const call = createServiceMock.mock.calls[0];
+			if (!call) {
+				throw new Error("createServiceMock should have been called once");
+			}
+			const [settings] = call;
+			const containerSpec = settings.TaskTemplate?.ContainerSpec;
+			expect(containerSpec?.Command).toEqual(["node"]);
+			expect(containerSpec?.Args).toEqual(["server.js"]);
+		});
+
+		it("falls back to legacy command plus args when customCommand is whitespace-only", async () => {
+			const application = createApplication({
+				command: "node",
+				args: ["server.js"],
+				customCommand: "   ",
+				customShell: "bash",
+			});
+
+			await mechanizeDockerContainer(application);
+
+			expect(createServiceMock).toHaveBeenCalledTimes(1);
+			const call = createServiceMock.mock.calls[0];
+			if (!call) {
+				throw new Error("createServiceMock should have been called once");
+			}
+			const [settings] = call;
+			const containerSpec = settings.TaskTemplate?.ContainerSpec;
+			expect(containerSpec?.Command).toEqual(["node"]);
+			expect(containerSpec?.Args).toEqual(["server.js"]);
+		});
+
+		it("defaults to sh -c when customCommand is set and customShell is null", async () => {
+			const application = createApplication({
+				command: "node",
+				args: ["server.js"],
+				customCommand: "npx prisma migrate deploy && node server.js",
+				customShell: null,
+			});
+
+			await mechanizeDockerContainer(application);
+
+			expect(createServiceMock).toHaveBeenCalledTimes(1);
+			const call = createServiceMock.mock.calls[0];
+			if (!call) {
+				throw new Error("createServiceMock should have been called once");
+			}
+			const [settings] = call;
+			const containerSpec = settings.TaskTemplate?.ContainerSpec;
+			expect(containerSpec?.Command).toEqual([
+				"sh",
+				"-c",
+				"npx prisma migrate deploy && node server.js",
+			]);
+			expect(containerSpec?.Args).toBeUndefined();
+		});
 	});
 });
