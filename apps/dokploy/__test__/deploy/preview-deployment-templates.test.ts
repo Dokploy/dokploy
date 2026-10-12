@@ -14,6 +14,20 @@ const variables = createPreviewTemplateVariables({
 });
 
 describe("preview deployment environment templates", () => {
+	it("converts numeric GitHub pull request numbers to template strings", () => {
+		const numeric = createPreviewTemplateVariables({
+			pullRequestNumber: 42,
+			pullRequestTitle: "Add Dark Mode",
+			branch: "feature/dark-mode",
+			appName: "web",
+		});
+		expect(numeric.pr_num).toBe("42");
+		expect(renderPreviewDomain("pr-{pr_num}.example.com", numeric, "web")).toBe(
+			"pr-42.example.com",
+		);
+		expect(interpolatePreviewTemplate("PR={pr_num}", numeric)).toBe("PR=42");
+	});
+
 	it("exposes the pull request number, title, branch and application name", () => {
 		expect(variables).toMatchObject({
 			pr_num: "42",

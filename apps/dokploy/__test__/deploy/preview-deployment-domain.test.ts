@@ -54,7 +54,8 @@ const request = {
 	applicationId: "app-id",
 	branch: "feature/Dark_Mode",
 	pullRequestId: "pr-id",
-	pullRequestNumber: "42",
+	// Webhooks pass the numeric GitHub payload directly to this service.
+	pullRequestNumber: 42 as unknown as string,
 	pullRequestURL: "https://github.com/owner/repo/pull/42",
 	pullRequestTitle: "Add Dark Mode",
 };

@@ -1,5 +1,5 @@
 type PreviewTemplateContext = {
-	pullRequestNumber: string;
+	pullRequestNumber: string | number;
 	pullRequestTitle: string;
 	branch: string;
 	appName: string;
@@ -8,7 +8,7 @@ type PreviewTemplateContext = {
 export const createPreviewTemplateVariables = (
 	context: PreviewTemplateContext,
 ): Record<string, string> => ({
-	pr_num: context.pullRequestNumber,
+	pr_num: String(context.pullRequestNumber),
 	pr_name: context.pullRequestTitle,
 	branch: context.branch,
 	app_name: context.appName,

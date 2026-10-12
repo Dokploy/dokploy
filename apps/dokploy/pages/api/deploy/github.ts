@@ -462,7 +462,7 @@ export default async function handler(
 
 			const prBranch = githubBody?.pull_request?.head?.ref;
 
-			const prNumber = githubBody?.pull_request?.number;
+			const prNumber = String(githubBody?.pull_request?.number);
 			const prTitle = githubBody?.pull_request?.title;
 			const prURL = githubBody?.pull_request?.html_url;
 
