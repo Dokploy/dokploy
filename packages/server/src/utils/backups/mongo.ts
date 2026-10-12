@@ -11,7 +11,7 @@ import { sendDatabaseBackupNotifications } from "../notifications/database-backu
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
-	getBackupTimestamp,
+	getBackupFileName,
 	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
@@ -22,7 +22,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = await findDestinationById(backup.destinationId);
-	const backupFileName = `${getBackupTimestamp()}.bson.gz`;
+	const backupFileName = getBackupFileName(backup.customName, "bson.gz");
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
