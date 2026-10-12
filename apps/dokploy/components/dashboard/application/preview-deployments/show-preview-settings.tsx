@@ -468,8 +468,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 									support {"{pr_num}"}, {"{pr_name}"} (PR title), {"{branch}"},
 									{"{app_name}"}, {"{domain}"}, and {"{url}"}. Values retain
 									their original text. Use <code>{"\\{pr_num}"}</code> for
-									literal <code>{"{pr_num}"}</code> and <code>{"\\\\"}</code>
-									for a literal backslash. Unknown variables remain unchanged.
+									literal <code>{"{pr_num}"}</code>. Backslash pairs collapse
+									only immediately before supported variables:{" "}
+									<code>{"\\\\{pr_num}"}</code> produces a backslash followed by
+									the PR number. Other backslashes and unknown variables remain
+									unchanged.
 								</AlertBlock>
 								<FormField
 									control={form.control}

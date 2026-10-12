@@ -52,19 +52,25 @@ PREVIEW_APP={app_name}
 PREVIEW_HOST={domain}
 PREVIEW_URL={url}
 LITERAL_VARIABLE=\{pr_num}
-LITERAL_BACKSLASH=\\
+BACKSLASH_BEFORE_PR=\\{pr_num}
+SHARE='\\server\share'
 ```
 
 For PR #42 titled `Add Dark Mode`, `PREVIEW_TITLE` becomes `Add Dark Mode` and
 `LITERAL_VARIABLE` becomes the literal text `{pr_num}`. Environment and build
 values retain their original text instead of being converted to DNS slugs.
+The settings are parsed as dotenv before preview variables are expanded, so a
+title such as `Fix #42` or a title containing quotes is preserved as a value.
 `{domain}` contains only the hostname. If HTTPS is enabled, `{url}` becomes
 `https://pr-42.example.com` when the domain
 template is `pr-{pr_num}.example.com`.
 The configured preview path is not included in `{url}`.
 
-Use a backslash before a variable to prevent expansion. Two backslashes produce
-one literal backslash. Unknown variables remain unchanged, and `*` is only
-expanded in domain templates. These rules also apply to build arguments and
-build secrets. Templates are resolved for each preview deployment; the saved
+Use a backslash before a supported variable to prevent expansion. Backslash pairs
+collapse to one backslash only immediately before supported variables; an even
+number of backslashes expands the variable, and an odd number leaves it literal.
+For example, `BACKSLASH_BEFORE_PR` becomes `\42`. Backslashes elsewhere, including
+UNC paths such as `SHARE`, remain unchanged. Unknown variables remain unchanged,
+and `*` is only expanded in domain templates. These rules also apply to build
+arguments and build secrets. Templates are resolved for each preview deployment; the saved
 settings remain reusable templates.

@@ -10,6 +10,7 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 		env,
 		application.environment.project.env,
 		application.environment.env,
+		application.previewTemplateVariables,
 	);
 
 	const args = [

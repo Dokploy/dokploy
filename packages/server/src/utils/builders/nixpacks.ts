@@ -15,6 +15,7 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 		env,
 		application.environment.project.env,
 		application.environment.env,
+		application.previewTemplateVariables,
 	);
 
 	const args = ["build", buildAppDirectory, "--name", appName];

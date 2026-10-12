@@ -31,10 +31,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
-import {
-	createPreviewTemplateVariables,
-	interpolatePreviewTemplate,
-} from "../utils/preview-deployment";
+import { createPreviewTemplateVariables } from "../utils/preview-deployment";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -59,12 +56,14 @@ import { validUniqueServerAppName } from "./project";
 export type Application = typeof applications.$inferSelect;
 
 const applyPreviewEnvironment = (
-	application: Application,
+	application: Application & {
+		previewTemplateVariables?: Record<string, string>;
+	},
 	previewDeployment: PreviewDeployment,
 	host: string | undefined,
 	url: string,
 ) => {
-	const variables = {
+	application.previewTemplateVariables = {
 		...createPreviewTemplateVariables({
 			pullRequestNumber: previewDeployment.pullRequestNumber,
 			pullRequestTitle: previewDeployment.pullRequestTitle,
@@ -75,22 +74,11 @@ const applyPreviewEnvironment = (
 		url,
 	};
 	const deployUrl = `\nDOKPLOY_DEPLOY_URL=${host}`;
-	application.env =
-		interpolatePreviewTemplate(application.previewEnv ?? "", variables, {
-			escape: true,
-		}) + deployUrl;
-	application.buildArgs =
-		interpolatePreviewTemplate(application.previewBuildArgs ?? "", variables, {
-			escape: true,
-		}) + deployUrl;
+	// Keep metadata out of dotenv text; expand it after parsing in the builders.
+	application.env = (application.previewEnv ?? "") + deployUrl;
+	application.buildArgs = (application.previewBuildArgs ?? "") + deployUrl;
 	application.buildSecrets =
-		interpolatePreviewTemplate(
-			application.previewBuildSecrets ?? "",
-			variables,
-			{
-				escape: true,
-			},
-		) + deployUrl;
+		(application.previewBuildSecrets ?? "") + deployUrl;
 };
 
 export const createApplication = async (

@@ -53,6 +53,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			buildArgs,
 			application.environment.project.env,
 			application.environment.env,
+			application.previewTemplateVariables,
 		);
 
 		for (const arg of args) {
@@ -63,6 +64,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			buildSecrets,
 			application.environment.project.env,
 			application.environment.env,
+			application.previewTemplateVariables,
 		);
 
 		const joinedSecrets = Object.entries(secrets)
@@ -81,6 +83,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 				env,
 				application.environment.project.env,
 				application.environment.env,
+				application.previewTemplateVariables,
 			);
 		}
 

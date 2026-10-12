@@ -13,6 +13,7 @@ import type { MongoNested } from "../databases/mongo";
 import type { MysqlNested } from "../databases/mysql";
 import type { PostgresNested } from "../databases/postgres";
 import type { RedisNested } from "../databases/redis";
+import { interpolatePreviewTemplate } from "../preview-deployment";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
@@ -460,6 +461,7 @@ export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	previewTemplateVariables?: Record<string, string>,
 ) => {
 	for (const source of [serviceEnv, projectEnv, environmentEnv]) {
 		if (source?.includes("${{vault.")) {
@@ -511,6 +513,13 @@ export const prepareEnvironmentVariables = (
 			throw new Error(`Invalid service environment variable: ${ref}`);
 		});
 
+		if (previewTemplateVariables) {
+			resolvedValue = interpolatePreviewTemplate(
+				resolvedValue,
+				previewTemplateVariables,
+				{ escape: true },
+			);
+		}
 		return `${key}=${resolvedValue}`;
 	});
 
@@ -521,11 +530,13 @@ export const prepareEnvironmentVariablesForShell = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	previewTemplateVariables?: Record<string, string>,
 ): string[] => {
 	const envVars = prepareEnvironmentVariables(
 		serviceEnv,
 		projectEnv,
 		environmentEnv,
+		previewTemplateVariables,
 	);
 	// Using shell-quote library to properly escape shell arguments
 	// This is the standard way to handle special characters in shell commands
@@ -536,11 +547,13 @@ export const prepareEnvironmentVariablesForFile = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	previewTemplateVariables?: Record<string, string>,
 ): string[] => {
 	const envVars = prepareEnvironmentVariables(
 		serviceEnv,
 		projectEnv,
 		environmentEnv,
+		previewTemplateVariables,
 	);
 
 	return envVars.map((pair) => {
@@ -568,8 +581,14 @@ export const getEnvironmentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	previewTemplateVariables?: Record<string, string>,
 ) => {
-	const envs = prepareEnvironmentVariables(input, projectEnv, environmentEnv);
+	const envs = prepareEnvironmentVariables(
+		input,
+		projectEnv,
+		environmentEnv,
+		previewTemplateVariables,
+	);
 
 	const jsonObject: Record<string, string> = {};
 

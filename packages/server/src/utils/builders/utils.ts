@@ -6,11 +6,13 @@ export const createEnvFileCommand = (
 	env: string | null,
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
+	previewTemplateVariables?: Record<string, string>,
 ) => {
 	const envFileContent = prepareEnvironmentVariables(
 		env,
 		projectEnv,
 		environmentEnv,
+		previewTemplateVariables,
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent || "");

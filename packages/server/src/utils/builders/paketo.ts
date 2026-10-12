@@ -10,6 +10,7 @@ export const getPaketoCommand = (application: ApplicationNested) => {
 		env,
 		application.environment.project.env,
 		application.environment.env,
+		application.previewTemplateVariables,
 	);
 
 	const args = [

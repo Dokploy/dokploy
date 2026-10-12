@@ -23,17 +23,25 @@ export const interpolatePreviewTemplate = (
 	let result = "";
 	for (let index = 0; index < template.length; ) {
 		if (options.escape && template[index] === "\\") {
-			if (template[index + 1] === "\\") {
-				result += "\\";
-				index += 2;
+			let tokenIndex = index;
+			while (template[tokenIndex] === "\\") {
+				tokenIndex++;
+			}
+			const token = template.slice(tokenIndex).match(/^\{([a-z_]+)\}/);
+			if (
+				token &&
+				template[tokenIndex + token[0].length] !== "}" &&
+				Object.hasOwn(variables, token[1]!)
+			) {
+				const slashCount = tokenIndex - index;
+				result += "\\".repeat(Math.floor(slashCount / 2));
+				result += slashCount % 2 ? token[0] : variables[token[1]!];
+				index = tokenIndex + token[0].length;
 				continue;
 			}
-			const escaped = template.slice(index + 1).match(/^\{([a-z_]+)\}/);
-			if (escaped && Object.hasOwn(variables, escaped[1]!)) {
-				result += escaped[0];
-				index += escaped[0].length + 1;
-				continue;
-			}
+			result += template.slice(index, tokenIndex);
+			index = tokenIndex;
+			continue;
 		}
 		if (
 			template[index] === "{" &&

@@ -24,6 +24,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		env,
 		application.environment.project.env,
 		application.environment.env,
+		application.previewTemplateVariables,
 	);
 
 	// Prepare command
@@ -70,6 +71,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		env,
 		application.environment.project.env,
 		application.environment.env,
+		application.previewTemplateVariables,
 	);
 	const exportEnvs = [];
 	for (const pair of rawEnvVariables) {

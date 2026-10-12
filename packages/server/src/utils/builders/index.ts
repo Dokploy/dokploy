@@ -37,7 +37,7 @@ export type ApplicationNested = InferResultType<
 		deployments: true;
 		environment: { with: { project: true } };
 	}
->;
+> & { previewTemplateVariables?: Record<string, string> };
 
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	const application = await withResolvedVaultRefs(rawApplication);
@@ -125,6 +125,7 @@ export const mechanizeDockerContainer = async (
 		env,
 		application.environment.project.env,
 		application.environment.env,
+		application.previewTemplateVariables,
 	);
 
 	const image = await getImageName(application);

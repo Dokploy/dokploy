@@ -101,12 +101,21 @@ describe("preview deployment environment templates", () => {
 		).toBe("42/42/{pr_num}/42");
 	});
 
-	it("decodes a double backslash without a following placeholder", () => {
+	it("preserves double backslashes without a following placeholder", () => {
 		expect(
 			interpolatePreviewTemplate(String.raw`VALUE='\\'`, variables, {
 				escape: true,
 			}),
-		).toBe(String.raw`VALUE='\'`);
+		).toBe(String.raw`VALUE='\\'`);
+	});
+
+	it("preserves existing UNC paths through dotenv parsing", () => {
+		const template = String.raw`SHARE='\\server\share'`;
+		const rendered = interpolatePreviewTemplate(template, variables, {
+			escape: true,
+		});
+		expect(rendered).toBe(template);
+		expect(parse(rendered)).toEqual({ SHARE: String.raw`\\server\share` });
 	});
 
 	it("preserves escaped placeholders and regular expressions through dotenv parsing", () => {
@@ -125,6 +134,7 @@ PR={pr_num}`,
 	});
 
 	it.each([
+		[1, "{pr_num}"],
 		[2, "\\42"],
 		[3, "\\{pr_num}"],
 		[4, "\\\\42"],
@@ -135,6 +145,26 @@ PR={pr_num}`,
 			}),
 		).toBe(expected);
 	});
+
+	it.each([1, 2, 3, 4])(
+		"preserves %i backslashes before unrelated syntax and at the end",
+		(count) => {
+			const slashes = "\\".repeat(count);
+			for (const suffix of [
+				"{unknown}",
+				"plain",
+				"",
+				"${pr_num}",
+				"{{pr_num}}",
+				"{pr_num}}",
+			]) {
+				const template = `${slashes}${suffix}`;
+				expect(
+					interpolatePreviewTemplate(template, variables, { escape: true }),
+				).toBe(template);
+			}
+		},
+	);
 
 	it("preserves backslashes that do not precede a supported placeholder", () => {
 		const template = String.raw`PATH=C:\Users\test\file REGEX=\d+ UNKNOWN=\{unknown}`;
