@@ -31,7 +31,7 @@ export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
 		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const newCompose = await writeDomainsToCompose(compose, domains);
+	const newCompose = await writeDomainsToCompose(compose, domains, command);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
