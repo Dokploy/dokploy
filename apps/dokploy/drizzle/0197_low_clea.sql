@@ -1,0 +1,1 @@
+ALTER TABLE "server" ADD COLUMN "ingressIps" text[] DEFAULT '{}' NOT NULL;

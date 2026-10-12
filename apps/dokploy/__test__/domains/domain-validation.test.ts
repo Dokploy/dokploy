@@ -67,6 +67,45 @@ describe("getServerIpCandidates", () => {
 		);
 	});
 
+	it("includes the ingress IPs configured on a remote server", async () => {
+		mocks.findServerById.mockResolvedValue({
+			ipAddress: "10.0.0.10",
+			ingressIps: ["10.0.0.50", "2001:db8::50"],
+		});
+		mocks.execAsyncRemote.mockResolvedValue({
+			stdout: "10.0.0.10\n",
+			stderr: "",
+		});
+
+		await expect(getServerIpCandidates("server-id")).resolves.toEqual([
+			"10.0.0.10",
+			"10.0.0.50",
+			"2001:db8::50",
+		]);
+	});
+
+	it("keeps the ingress IPs when remote detection fails", async () => {
+		mocks.findServerById.mockResolvedValue({
+			ipAddress: "10.0.0.10",
+			ingressIps: ["10.0.0.50"],
+		});
+		mocks.execAsyncRemote.mockRejectedValue(new Error("ssh unreachable"));
+
+		await expect(getServerIpCandidates("server-id")).resolves.toEqual([
+			"10.0.0.10",
+			"10.0.0.50",
+		]);
+	});
+
+	it("tolerates servers saved before ingress IPs existed", async () => {
+		mocks.findServerById.mockResolvedValue({ ipAddress: "10.0.0.10" });
+		mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
+
+		await expect(getServerIpCandidates("server-id")).resolves.toEqual([
+			"10.0.0.10",
+		]);
+	});
+
 	it("includes every address assigned to the local Dokploy host", async () => {
 		mocks.getWebServerSettings.mockResolvedValue({
 			serverIp: "10.0.0.10",
@@ -122,6 +161,71 @@ describe("getServerIpCandidates", () => {
 describe("validateDomain", () => {
 	afterEach(() => {
 		vi.clearAllMocks();
+	});
+
+	it("accepts a domain that resolves to a configured floating VIP", async () => {
+		mocks.findServerById.mockResolvedValue({
+			ipAddress: "10.0.0.10",
+			ingressIps: ["10.0.0.50"],
+		});
+		mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
+		mocks.resolve4.mockImplementation(
+			(
+				_domain: string,
+				callback: (error: Error | null, addresses?: string[]) => void,
+			) => callback(null, ["10.0.0.50"]),
+		);
+		mocks.resolve6.mockImplementation(
+			(_domain: string, callback: (error: Error | null) => void) =>
+				callback(new Error("queryAaaa ENODATA example.com")),
+		);
+
+		const expectedIps = await getServerIpCandidates("server-id");
+
+		await expect(
+			validateDomain("example.com", expectedIps),
+		).resolves.toMatchObject({ isValid: true, resolvedIp: "10.0.0.50" });
+	});
+
+	it("still rejects a domain that resolves to an unrelated address", async () => {
+		mocks.findServerById.mockResolvedValue({
+			ipAddress: "10.0.0.10",
+			ingressIps: ["10.0.0.50"],
+		});
+		mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
+		mocks.resolve4.mockImplementation(
+			(
+				_domain: string,
+				callback: (error: Error | null, addresses?: string[]) => void,
+			) => callback(null, ["10.0.0.99"]),
+		);
+		mocks.resolve6.mockImplementation(
+			(_domain: string, callback: (error: Error | null) => void) =>
+				callback(new Error("queryAaaa ENODATA example.com")),
+		);
+
+		const expectedIps = await getServerIpCandidates("server-id");
+
+		await expect(
+			validateDomain("example.com", expectedIps),
+		).resolves.toMatchObject({ isValid: false, resolvedIp: "10.0.0.99" });
+	});
+
+	it("matches IPv6 addresses regardless of how they are written", async () => {
+		mocks.resolve4.mockImplementation(
+			(_domain: string, callback: (error: Error | null) => void) =>
+				callback(new Error("queryA ENODATA example.com")),
+		);
+		mocks.resolve6.mockImplementation(
+			(
+				_domain: string,
+				callback: (error: Error | null, addresses?: string[]) => void,
+			) => callback(null, ["2001:db8::50"]),
+		);
+
+		await expect(
+			validateDomain("example.com", ["2001:0DB8:0:0:0:0:0:50"]),
+		).resolves.toMatchObject({ isValid: true, resolvedIp: "2001:db8::50" });
 	});
 
 	it("validates an IPv6-only domain against an IPv6 server address", async () => {
