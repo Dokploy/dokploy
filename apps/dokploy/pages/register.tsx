@@ -313,13 +313,17 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	await helpers.whitelabeling.getPublic.prefetch();
 
 	if (IS_CLOUD) {
-		const { user } = await validateRequest(context.req);
+		const { user } = await validateRequest(context.req, {
+			allowPending: true,
+		});
 
 		if (user) {
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/home",
+					destination: user.twoFactorSetupRequired
+						? "/two-factor-setup"
+						: "/dashboard/home",
 				},
 			};
 		}

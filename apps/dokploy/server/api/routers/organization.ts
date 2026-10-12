@@ -1,5 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
+	getTwoFactorStatuses,
+	getUserTwoFactorStatus,
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
@@ -21,6 +23,60 @@ import {
 	user,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+
+/**
+ * The checks shared by every mutation that changes another member: same
+ * organization, not yourself, not the owner, and only the owner can change
+ * admins. `setting` names what's being changed, for the error messages.
+ */
+const findManageableMember = async (
+	ctx: {
+		user: { id: string; role: string };
+		session: { activeOrganizationId: string };
+	},
+	memberId: string,
+	setting: string,
+) => {
+	const target = await db.query.member.findFirst({
+		where: eq(member.id, memberId),
+		with: { user: true },
+	});
+
+	if (!target) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+	}
+
+	if (target.organizationId !== ctx.session.activeOrganizationId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `You are not allowed to update this member's ${setting}`,
+		});
+	}
+
+	if (target.userId === ctx.user.id) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `You cannot change your own ${setting}`,
+		});
+	}
+
+	if (target.role === "owner") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `The organization owner's ${setting} cannot be changed`,
+		});
+	}
+
+	if (target.role === "admin" && ctx.user.role !== "owner") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `Only the organization owner can change an admin's ${setting}`,
+		});
+	}
+
+	return target;
+};
+
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
@@ -302,6 +358,7 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				email: z.string().email(),
 				role: z.string().min(1),
+				require2FA: z.boolean().default(false),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -384,6 +441,7 @@ export const organizationRouter = createTRPCRouter({
 					status: "pending",
 					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
 					inviterId: ctx.user.id,
+					require2FA: input.require2FA,
 				})
 				.returning();
 
@@ -402,6 +460,7 @@ export const organizationRouter = createTRPCRouter({
 					email,
 					inviteLink,
 					organizationName: org?.name || "organization",
+					require2FA: input.require2FA || !!org?.require2FA,
 				});
 			}
 
@@ -410,7 +469,11 @@ export const organizationRouter = createTRPCRouter({
 				resourceType: "organization",
 				resourceId: created?.id,
 				resourceName: email,
-				metadata: { type: "inviteMember", role: input.role },
+				metadata: {
+					type: "inviteMember",
+					role: input.role,
+					require2FA: input.require2FA,
+				},
 			});
 			return created;
 		}),
@@ -464,48 +527,14 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Fetch the target member
-			const target = await db.query.member.findFirst({
-				where: eq(member.id, input.memberId),
-				with: { user: true },
-			});
-
-			if (!target) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
-			}
-
-			if (target.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not allowed to update this member's role",
-				});
-			}
-
-			// Prevent users from changing their own role
-			if (target.userId === ctx.user.id) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You cannot change your own role",
-				});
-			}
-
-			// Owner role is nontransferable - cannot change to or from owner
-			if (target.role === "owner" || input.role === "owner") {
+			if (input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "The owner role is nontransferable",
 				});
 			}
 
-			// Only owners can change admin roles
-			// Admins can only change member roles
-			if (ctx.user.role === "admin" && target.role === "admin") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message:
-						"Only the organization owner can change admin roles. Admins can only modify member roles.",
-				});
-			}
+			const target = await findManageableMember(ctx, input.memberId, "role");
 
 			// If assigning a custom role (not admin/member), verify it exists
 			if (input.role !== "admin" && input.role !== "member") {
@@ -542,6 +571,97 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	setMemberRequire2FA: withPermission("member", "update")
+		.input(
+			z.object({
+				memberId: z.string(),
+				require2FA: z.boolean(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const target = await findManageableMember(
+				ctx,
+				input.memberId,
+				"2FA requirement",
+			);
+
+			await db
+				.update(member)
+				.set({ require2FA: input.require2FA })
+				.where(eq(member.id, input.memberId));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "user",
+				resourceId: target.userId,
+				resourceName: target.user.email,
+				metadata: {
+					type: "setMemberRequire2FA",
+					before: target.require2FA,
+					after: input.require2FA,
+				},
+			});
+			return true;
+		}),
+	setRequire2FA: protectedProcedure
+		.input(z.object({ enabled: z.boolean() }))
+		.mutation(async ({ ctx, input }) => {
+			if (ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the organization owner can change this setting",
+				});
+			}
+
+			if (input.enabled) {
+				const owner = await db.query.user.findFirst({
+					where: eq(user.id, ctx.user.id),
+					columns: { id: true, twoFactorEnabled: true },
+				});
+				const status = await getUserTwoFactorStatus(
+					{ id: ctx.user.id, twoFactorEnabled: !!owner?.twoFactorEnabled },
+					{ assumeRequired: true },
+				);
+				if (status === "pending") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Enable two-factor authentication on your own account before requiring it",
+					});
+				}
+			}
+
+			await db
+				.update(organization)
+				.set({ require2FA: input.enabled })
+				.where(eq(organization.id, ctx.session.activeOrganizationId));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: ctx.session.activeOrganizationId,
+				metadata: { type: "setRequire2FA", enabled: input.enabled },
+			});
+			return true;
+		}),
+	require2FAImpact: withPermission("member", "read").query(async ({ ctx }) => {
+		const members = await db.query.member.findMany({
+			where: eq(member.organizationId, ctx.session.activeOrganizationId),
+			columns: { userId: true },
+			with: { user: { columns: { twoFactorEnabled: true } } },
+		});
+		const statuses = await getTwoFactorStatuses(
+			members.map((m) => ({
+				id: m.userId,
+				twoFactorEnabled: m.user.twoFactorEnabled,
+			})),
+			{ assumeRequired: true },
+		);
+		const affectedMembers = [...statuses.values()].filter(
+			(s) => s.status === "pending",
+		).length;
+		return { affectedMembers };
+	}),
 	setDefault: protectedProcedure
 		.input(
 			z.object({

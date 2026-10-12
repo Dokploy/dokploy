@@ -10,6 +10,7 @@ import {
 	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
+	getTwoFactorStatuses,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -113,12 +114,24 @@ const assertCanDeleteOwnAccount = async (ctx: {
 
 export const userRouter = createTRPCRouter({
 	all: withPermission("member", "read").query(async ({ ctx }) => {
-		return await db.query.member.findMany({
+		const members = await db.query.member.findMany({
 			where: eq(member.organizationId, ctx.session.activeOrganizationId),
 			with: {
 				user: true,
 			},
 			orderBy: [asc(member.createdAt)],
+		});
+		const statuses = await getTwoFactorStatuses(
+			members.map((m) => m.user),
+			{ organizationId: ctx.session.activeOrganizationId },
+		);
+		return members.map((m) => {
+			const twoFactor = statuses.get(m.userId);
+			return {
+				...m,
+				twoFactorStatus: twoFactor?.status ?? "not-required",
+				authProviders: twoFactor?.providers ?? [],
+			};
 		});
 	}),
 	one: protectedProcedure
@@ -177,6 +190,7 @@ export const userRouter = createTRPCRouter({
 			session: {
 				activeOrganizationId: ctx.session.activeOrganizationId,
 			},
+			twoFactorSetupRequired: !!ctx.user.twoFactorSetupRequired,
 		};
 	}),
 	get: protectedProcedure.query(async ({ ctx }) => {
@@ -831,6 +845,7 @@ export const userRouter = createTRPCRouter({
 				email: z.string().email(),
 				password: z.string().min(8),
 				role: z.string().min(1),
+				require2FA: z.boolean().default(false),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -856,12 +871,26 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			return await createOrganizationUserWithCredentials({
+			const created = await createOrganizationUserWithCredentials({
 				organizationId: ctx.session.activeOrganizationId,
 				email: input.email,
 				password: input.password,
 				role: input.role,
+				require2FA: input.require2FA,
 			});
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "user",
+				resourceId: created.userId,
+				resourceName: created.email,
+				metadata: {
+					type: "createUserWithCredentials",
+					role: input.role,
+					require2FA: input.require2FA,
+				},
+			});
+			return created;
 		}),
 	sendInvitation: withPermission("member", "create")
 		.input(
@@ -909,6 +938,8 @@ export const userRouter = createTRPCRouter({
 					email: toEmail,
 					inviteLink,
 					organizationName: orgName,
+					require2FA:
+						!!currentInvitation?.require2FA || !!organization?.require2FA,
 				});
 
 				if (email) {

@@ -9,6 +9,10 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 
+const require2FAField = {
+	require2FA: { type: "boolean", defaultValue: false, input: false },
+} as const;
+
 // CLI-only config for `@better-auth/cli generate` — must mirror the plugin set
 // in auth.ts. Never import this from runtime code.
 export const auth = betterAuth({
@@ -46,6 +50,11 @@ export const auth = betterAuth({
 			dynamicAccessControl: {
 				enabled: true,
 				maximumRolesPerOrganization: 10,
+			},
+			schema: {
+				organization: { additionalFields: require2FAField },
+				member: { additionalFields: require2FAField },
+				invitation: { additionalFields: require2FAField },
 			},
 		}),
 		scim(),

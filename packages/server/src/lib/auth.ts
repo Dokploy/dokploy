@@ -6,7 +6,11 @@ import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -19,6 +23,11 @@ import {
 } from "../services/admin";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
+import {
+	applyInvitationTwoFactorRequirementOrRevert,
+	enforceTwoFactorSetupOnAuthPath,
+	isTwoFactorSetupPending,
+} from "../services/two-factor-policy";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -61,6 +70,20 @@ const resolveTrustedOrigins = async () => {
 		console.error("Failed to resolve trusted origins:", error);
 		return [];
 	}
+};
+
+const require2FAField = {
+	require2FA: {
+		type: "boolean",
+		defaultValue: false,
+		input: false,
+	},
+} as const;
+
+const twoFactorRequirementSchema = {
+	organization: { additionalFields: require2FAField },
+	member: { additionalFields: require2FAField },
+	invitation: { additionalFields: require2FAField },
 };
 
 const createBetterAuth = () =>
@@ -131,6 +154,10 @@ const createBetterAuth = () =>
 						message: "Use the account deletion flow to remove users",
 					});
 				}
+
+				await enforceTwoFactorSetupOnAuthPath(ctx.path, () =>
+					getSessionFromCtx(ctx, { disableRefresh: true }),
+				);
 
 				const isBlockedAuthPath =
 					ctx.path.startsWith("/sign-in/email") ||
@@ -495,6 +522,14 @@ const createBetterAuth = () =>
 					enabled: true,
 					maximumRolesPerOrganization: 10,
 				},
+				schema: twoFactorRequirementSchema,
+				organizationHooks: {
+					afterAcceptInvitation: ({ invitation, member }) =>
+						applyInvitationTwoFactorRequirementOrRevert({
+							invitationId: invitation.id,
+							member,
+						}),
+				},
 			}),
 			// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)
 			// maps to the admin plugin's `banned` field and is rejected without it.
@@ -532,7 +567,23 @@ const _auth = {
 export type AuthType = typeof _auth;
 export const auth: AuthType = _auth;
 
-export const validateRequest = async (request: IncomingMessage) => {
+/**
+ * A user who still has to set up 2FA is treated as signed out, unless the
+ * caller passes `allowPending` because it gates them itself (the tRPC
+ * allow-list, /two-factor-setup, the login page redirect).
+ */
+export const validateRequest = async (
+	request: IncomingMessage,
+	{ allowPending = false }: { allowPending?: boolean } = {},
+) => {
+	const result = await resolveRequest(request);
+	if (!allowPending && result.user?.twoFactorSetupRequired) {
+		return { session: null, user: null };
+	}
+	return result;
+};
+
+const resolveRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
 	if (apiKey) {
 		try {
@@ -613,6 +664,9 @@ export const validateRequest = async (request: IncomingMessage) => {
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
 					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
+					twoFactorSetupRequired: await isTwoFactorSetupPending(
+						apiKeyRecord.user,
+					),
 				},
 			};
 
@@ -640,38 +694,44 @@ export const validateRequest = async (request: IncomingMessage) => {
 		};
 	}
 
-	if (session?.user) {
-		const member = await db.query.member.findFirst({
-			where: and(
-				eq(schema.member.userId, session.user.id),
-				...(session.session.activeOrganizationId
-					? [
-							eq(
-								schema.member.organizationId,
-								session.session.activeOrganizationId || "",
-							),
-						]
-					: []),
-			),
-			orderBy: [desc(schema.member.isDefault), desc(schema.member.createdAt)],
-			with: {
-				organization: true,
-				user: true,
-			},
-		});
+	const member = await db.query.member.findFirst({
+		where: and(
+			eq(schema.member.userId, session.user.id),
+			...(session.session.activeOrganizationId
+				? [
+						eq(
+							schema.member.organizationId,
+							session.session.activeOrganizationId || "",
+						),
+					]
+				: []),
+		),
+		orderBy: [desc(schema.member.isDefault), desc(schema.member.createdAt)],
+		with: {
+			organization: true,
+			user: true,
+		},
+	});
 
-		session.user.role = member?.role || "member";
-		session.user.enableEnterpriseFeatures =
-			member?.user.enableEnterpriseFeatures || false;
-		session.user.isValidEnterpriseLicense =
-			member?.user.isValidEnterpriseLicense || false;
-		session.session.activeOrganizationId = member?.organization.id || "";
-		if (member) {
-			session.user.ownerId = member.organization.ownerId;
-		} else {
-			session.user.ownerId = session.user.id;
-		}
+	session.user.role = member?.role || "member";
+	session.user.enableEnterpriseFeatures =
+		member?.user.enableEnterpriseFeatures || false;
+	session.user.isValidEnterpriseLicense =
+		member?.user.isValidEnterpriseLicense || false;
+	session.session.activeOrganizationId = member?.organization.id || "";
+	if (member) {
+		session.user.ownerId = member.organization.ownerId;
+	} else {
+		session.user.ownerId = session.user.id;
 	}
 
-	return session;
+	return {
+		...session,
+		user: {
+			...session.user,
+			twoFactorSetupRequired: await isTwoFactorSetupPending(
+				member?.user ?? session.user,
+			),
+		},
+	};
 };

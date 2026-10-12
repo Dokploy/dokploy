@@ -56,6 +56,7 @@ export * from "./services/server-health";
 export * from "./services/settings";
 export * from "./services/ssh-key";
 export * from "./services/transfer";
+export * from "./services/two-factor-policy";
 export * from "./services/user";
 export * from "./services/vault-provider";
 export * from "./services/volume-backups";
