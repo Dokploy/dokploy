@@ -12,27 +12,52 @@ type MockCreateServiceOptions = {
 	[key: string]: unknown;
 };
 
-const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
-	vi.hoisted(() => {
-		const inspect = vi.fn<() => Promise<never>>();
-		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<
-			(opts: MockCreateServiceOptions) => Promise<void>
-		>(async () => undefined);
-		const getRemoteDocker = vi.fn(async () => ({
-			getService,
-			createService,
-		}));
-		return {
-			inspectMock: inspect,
-			getServiceMock: getService,
-			createServiceMock: createService,
-			getRemoteDockerMock: getRemoteDocker,
-		};
-	});
+type MockServiceInspect = {
+	Version: { Index: number };
+	Spec: { TaskTemplate: { ForceUpdate?: number } };
+	ServiceStatus?: { DesiredTasks: number };
+};
+
+const {
+	inspectMock,
+	updateMock,
+	serviceMock,
+	getServiceMock,
+	createServiceMock,
+	getRemoteDockerMock,
+	waitForSwarmServiceUpdateMock,
+	getSwarmServiceUpdateTimeoutMsMock,
+} = vi.hoisted(() => {
+	const inspect = vi.fn<() => Promise<MockServiceInspect>>();
+	const update = vi.fn(async () => undefined);
+	const service = { id: "test-app", inspect, update };
+	const getService = vi.fn(() => service);
+	const createService = vi.fn<
+		(opts: MockCreateServiceOptions) => Promise<void>
+	>(async () => undefined);
+	const getRemoteDocker = vi.fn(async () => ({
+		getService,
+		createService,
+	}));
+	return {
+		inspectMock: inspect,
+		updateMock: update,
+		serviceMock: service,
+		getServiceMock: getService,
+		createServiceMock: createService,
+		getRemoteDockerMock: getRemoteDocker,
+		waitForSwarmServiceUpdateMock: vi.fn(async () => undefined),
+		getSwarmServiceUpdateTimeoutMsMock: vi.fn(() => 120_000),
+	};
+});
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
+}));
+
+vi.mock("@dokploy/server/utils/docker/swarm-update", () => ({
+	getSwarmServiceUpdateTimeoutMs: getSwarmServiceUpdateTimeoutMsMock,
+	waitForSwarmServiceUpdate: waitForSwarmServiceUpdateMock,
 }));
 
 const createApplication = (
@@ -67,9 +92,14 @@ describe("mechanizeDockerContainer", () => {
 	beforeEach(() => {
 		inspectMock.mockReset();
 		inspectMock.mockRejectedValue(new Error("service not found"));
+		updateMock.mockReset();
+		updateMock.mockResolvedValue(undefined);
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
+		waitForSwarmServiceUpdateMock.mockClear();
+		getSwarmServiceUpdateTimeoutMsMock.mockClear();
+		getSwarmServiceUpdateTimeoutMsMock.mockReturnValue(120_000);
 		getRemoteDockerMock.mockResolvedValue({
 			getService: getServiceMock,
 			createService: createServiceMock,
@@ -157,5 +187,86 @@ describe("mechanizeDockerContainer", () => {
 		}
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	it("waits for an existing service update to finish", async () => {
+		inspectMock.mockReset();
+		inspectMock.mockResolvedValue({
+			Version: { Index: 7 },
+			Spec: { TaskTemplate: { ForceUpdate: 2 } },
+			ServiceStatus: { DesiredTasks: 1 },
+		});
+
+		await mechanizeDockerContainer(createApplication());
+
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				version: 7,
+				TaskTemplate: expect.objectContaining({ ForceUpdate: 3 }),
+			}),
+		);
+		expect(getSwarmServiceUpdateTimeoutMsMock).toHaveBeenCalledWith(
+			expect.objectContaining({ replicas: 1 }),
+		);
+		expect(waitForSwarmServiceUpdateMock).toHaveBeenCalledWith(
+			expect.anything(),
+			serviceMock,
+			{
+				expectedForceUpdate: 3,
+				previousVersion: 7,
+				timeoutMs: 120_000,
+			},
+		);
+		expect(createServiceMock).not.toHaveBeenCalled();
+	});
+
+	it("does not create a replacement service when an update fails", async () => {
+		inspectMock.mockReset();
+		inspectMock.mockResolvedValue({
+			Version: { Index: 7 },
+			Spec: { TaskTemplate: { ForceUpdate: 2 } },
+		});
+		updateMock.mockRejectedValue(new Error("update failed"));
+
+		await expect(mechanizeDockerContainer(createApplication())).rejects.toThrow(
+			"update failed",
+		);
+
+		expect(createServiceMock).not.toHaveBeenCalled();
+		expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
+	});
+
+	it("propagates a failed rollout without creating a replacement service", async () => {
+		inspectMock.mockReset();
+		inspectMock.mockResolvedValue({
+			Version: { Index: 7 },
+			Spec: { TaskTemplate: { ForceUpdate: 2 } },
+		});
+		waitForSwarmServiceUpdateMock.mockRejectedValue(
+			new Error("Swarm service update rolled back"),
+		);
+
+		await expect(mechanizeDockerContainer(createApplication())).rejects.toThrow(
+			"Swarm service update rolled back",
+		);
+
+		expect(createServiceMock).not.toHaveBeenCalled();
+	});
+
+	it("does not wait for job-mode service updates", async () => {
+		inspectMock.mockReset();
+		inspectMock.mockResolvedValue({
+			Version: { Index: 7 },
+			Spec: { TaskTemplate: { ForceUpdate: 2 } },
+		});
+
+		await mechanizeDockerContainer(
+			createApplication({
+				modeSwarm: { ReplicatedJob: { TotalCompletions: 1 } },
+			}),
+		);
+
+		expect(updateMock).toHaveBeenCalledOnce();
+		expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
 	});
 });
