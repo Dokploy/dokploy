@@ -90,8 +90,6 @@ export const DockerTerminal: React.FC<Props> = ({
 			if (termRef.current) {
 				resizeObserver.observe(termRef.current);
 				detachSelectionCopy = attachSelectionCopy(term, termRef.current, () =>
-					// One id for every copy of this terminal, so dragging over
-					// several lines in a row replaces the toast instead of stacking.
 					toast.success("Copied to clipboard", {
 						id: `terminal-copy-${id}`,
 						duration: 2000,
