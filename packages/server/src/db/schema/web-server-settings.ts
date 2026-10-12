@@ -90,6 +90,10 @@ export const webServerSettings = pgTable("webServerSettings", {
 			ogImageUrl: string | null;
 			passwordResetGuide: string | null;
 			supportEmail: string | null;
+			logoLightUrl: string | null;
+			loginLogoLightUrl: string | null;
+			faviconLightUrl: string | null;
+			dualModeBranding: boolean;
 		}>()
 		.default({
 			appName: null,
@@ -106,6 +110,10 @@ export const webServerSettings = pgTable("webServerSettings", {
 			ogImageUrl: null,
 			passwordResetGuide: null,
 			supportEmail: null,
+			logoLightUrl: null,
+			loginLogoLightUrl: null,
+			faviconLightUrl: null,
+			dualModeBranding: false,
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
@@ -231,6 +239,10 @@ export const whitelabelingConfigSchema = z.object({
 	ogImageUrl: safeUrl,
 	passwordResetGuide: z.string().nullable(),
 	supportEmail: z.string().email().nullable(),
+	logoLightUrl: safeUrl,
+	loginLogoLightUrl: safeUrl,
+	faviconLightUrl: safeUrl,
+	dualModeBranding: z.boolean(),
 });
 
 export const apiUpdateWhitelabeling = z.object({

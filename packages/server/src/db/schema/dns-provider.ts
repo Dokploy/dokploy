@@ -50,6 +50,7 @@ export const ovhDnsConfigSchema = z.object({
 	applicationKey: z.string().trim().min(1),
 	applicationSecret: z.string().trim().min(1),
 	consumerKey: z.string().trim().min(1),
+	zone: z.string().trim().min(1).optional(),
 });
 
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
