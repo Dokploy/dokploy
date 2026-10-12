@@ -74,6 +74,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		label: "Docker",
 		description: "Access to Docker containers, images, and volumes management",
 	},
+	containerFilesystem: {
+		label: "Container Filesystem",
+		description:
+			"Browse, download, and upload files inside running service containers",
+	},
 	sshKeys: {
 		label: "SSH Keys",
 		description: "Manage SSH key configurations for servers and repositories",
@@ -226,6 +231,16 @@ const ACTION_META: Record<
 		read: {
 			label: "Read",
 			description: "View Docker containers, images, networks, and volumes",
+		},
+	},
+	containerFilesystem: {
+		read: {
+			label: "Read",
+			description: "Browse and download files from running service containers",
+		},
+		write: {
+			label: "Write",
+			description: "Upload files to running service containers",
 		},
 	},
 	sshKeys: {
@@ -564,6 +579,7 @@ const ROLE_PRESETS: {
 			service: ["create", "read", "delete"],
 			environment: ["create", "read", "delete"],
 			docker: ["read"],
+			containerFilesystem: ["read", "write"],
 			sshKeys: ["read", "create", "delete"],
 			gitProviders: ["read", "create", "delete"],
 			traefikFiles: ["read", "write"],
