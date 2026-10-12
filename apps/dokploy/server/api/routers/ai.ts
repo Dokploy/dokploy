@@ -1,5 +1,6 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
+	aiHeadersSchema,
 	apiCreateAi,
 	apiSaveAiCustomProviders,
 	apiUpdateAi,
@@ -30,6 +31,7 @@ import {
 	getProviderName,
 	type Model,
 	selectAIProvider,
+	toHeadersRecord,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
@@ -50,11 +52,21 @@ export const aiRouter = createTRPCRouter({
 		}),
 
 	getModels: protectedProcedure
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				headers: aiHeadersSchema.optional(),
+			}),
+		)
 		.query(async ({ input }) => {
 			try {
 				const providerName = getProviderName(input.apiUrl);
-				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const headers = getProviderHeaders(
+					input.apiUrl,
+					input.apiKey,
+					input.headers,
+				);
 				let response = null;
 				switch (providerName) {
 					case "ollama":
@@ -63,7 +75,9 @@ export const aiRouter = createTRPCRouter({
 					case "gemini":
 						response = await fetch(
 							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
-							{ headers: {} },
+							// Gemini authenticates via the `key` query param, so only the
+							// user-defined headers are sent here.
+							{ headers: toHeadersRecord(input.headers) },
 						);
 						break;
 					case "perplexity":
@@ -288,6 +302,7 @@ ${input.logs}`,
 			z.object({
 				apiUrl: z.string().min(1),
 				apiKey: z.string(),
+				headers: aiHeadersSchema.optional(),
 				model: z.string().min(1),
 			}),
 		)
@@ -296,6 +311,7 @@ ${input.logs}`,
 				const provider = selectAIProvider({
 					apiUrl: input.apiUrl,
 					apiKey: input.apiKey,
+					headers: input.headers,
 				});
 				const model = provider(input.model);
 				const result = await generateText({

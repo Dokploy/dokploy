@@ -7,9 +7,10 @@ import {
 	PenBoxIcon,
 	Plug,
 	PlusIcon,
+	Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -54,6 +55,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { useDebounce } from "@/utils/hooks/use-debounce";
 
 const AI_PROVIDERS = [
 	{ name: "OpenAI", apiUrl: "https://api.openai.com/v1" },
@@ -77,6 +79,12 @@ const Schema = z.object({
 	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
 	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
+	headers: z.array(
+		z.object({
+			key: z.string().trim().min(1, { message: "Header name is required" }),
+			value: z.string(),
+		}),
+	),
 	isEnabled: z.boolean(),
 });
 
@@ -115,8 +123,14 @@ export const HandleAi = ({ aiId }: Props) => {
 			apiUrl: "",
 			apiKey: "",
 			model: "",
+			headers: [],
 			isEnabled: true,
 		},
+	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "headers",
 	});
 
 	useEffect(() => {
@@ -126,6 +140,7 @@ export const HandleAi = ({ aiId }: Props) => {
 				apiUrl: data?.apiUrl ?? "https://api.openai.com/v1",
 				apiKey: data?.apiKey ?? "",
 				model: data?.model ?? "",
+				headers: data?.headers ?? [],
 				isEnabled: data?.isEnabled ?? true,
 			});
 		}
@@ -135,6 +150,11 @@ export const HandleAi = ({ aiId }: Props) => {
 
 	const apiUrl = form.watch("apiUrl");
 	const apiKey = form.watch("apiKey");
+	const headers = form.watch("headers");
+	const debouncedHeaders = useDebounce(headers, 500);
+	const headerErrors = form.formState.errors.headers as
+		| { key?: { message?: string } }[]
+		| undefined;
 
 	// Any Ollama instance on the default port 11434 is treated as no-auth
 	// (covers localhost and self-hosted LAN deployments). Ollama Cloud
@@ -148,6 +168,7 @@ export const HandleAi = ({ aiId }: Props) => {
 		{
 			apiUrl: apiUrl ?? "",
 			apiKey: apiKey ?? "",
+			headers: debouncedHeaders,
 		},
 		{
 			enabled: !!apiUrl && (isLocalOllama || !!apiKey),
@@ -324,6 +345,68 @@ export const HandleAi = ({ aiId }: Props) => {
 							/>
 						)}
 
+						<FormField
+							control={form.control}
+							name="headers"
+							render={() => (
+								<FormItem>
+									<div className="flex items-center justify-between">
+										<FormLabel>Custom Headers</FormLabel>
+										<Button
+											type="button"
+											variant="ghost"
+											size="sm"
+											onClick={() => append({ key: "", value: "" })}
+										>
+											<PlusIcon className="mr-1 h-3.5 w-3.5" />
+											Add header
+										</Button>
+									</div>
+									{fields.length === 0 ? (
+										<FormDescription>
+											Optional headers sent with every request. Some gateways
+											require an extra header beyond the API key, e.g.
+											x-opencode-session for the opencode Go endpoint.
+										</FormDescription>
+									) : (
+										<div className="space-y-2">
+											{fields.map((item, index) => (
+												<div key={item.id} className="space-y-1">
+													<div className="flex items-center gap-2">
+														<Input
+															placeholder="Header name"
+															aria-invalid={!!headerErrors?.[index]?.key}
+															{...form.register(`headers.${index}.key`)}
+														/>
+														<Input
+															type="password"
+															autoComplete="one-time-code"
+															placeholder="Header value"
+															{...form.register(`headers.${index}.value`)}
+														/>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															onClick={() => remove(index)}
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+													{headerErrors?.[index]?.key?.message && (
+														<p className="text-sm text-destructive">
+															{headerErrors[index]?.key?.message}
+														</p>
+													)}
+												</div>
+											))}
+										</div>
+									)}
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
 						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">
 								Loading models...
@@ -481,6 +564,7 @@ export const HandleAi = ({ aiId }: Props) => {
 							<TestConnectionButton
 								apiUrl={apiUrl}
 								apiKey={apiKey}
+								headers={headers}
 								model={form.watch("model")}
 							/>
 							<Button type="submit" isLoading={isPending}>
@@ -497,10 +581,12 @@ export const HandleAi = ({ aiId }: Props) => {
 function TestConnectionButton({
 	apiUrl,
 	apiKey,
+	headers,
 	model,
 }: {
 	apiUrl: string;
 	apiKey: string;
+	headers: { key: string; value: string }[];
 	model: string;
 }) {
 	const { mutate, isPending } = api.ai.testConnection.useMutation({
@@ -521,7 +607,7 @@ function TestConnectionButton({
 			type="button"
 			variant="outline"
 			disabled={isDisabled || isPending}
-			onClick={() => mutate({ apiUrl, apiKey, model })}
+			onClick={() => mutate({ apiUrl, apiKey, headers, model })}
 		>
 			{isPending ? (
 				<Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,0 +1,1 @@
+ALTER TABLE "ai" ADD COLUMN "headers" jsonb;
