@@ -28,6 +28,7 @@ export const statements = {
 	gitProviders: ["read", "create", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
+	logProvider: ["read", "create", "delete"],
 
 	// Enterprise-only resources (custom roles only)
 	volume: ["read", "create", "delete"],
@@ -119,6 +120,7 @@ export const ownerRole = ac.newRole({
 	auditLog: ["read"],
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
+	logProvider: ["read", "create", "delete"],
 });
 
 /**
@@ -158,6 +160,7 @@ export const adminRole = ac.newRole({
 	auditLog: ["read"],
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
+	logProvider: ["read", "create", "delete"],
 });
 
 /**
@@ -198,6 +201,7 @@ export const memberRole = ac.newRole({
 	certificate: [],
 	destination: [],
 	notification: [],
+	logProvider: [],
 	tag: ["read"],
 	auditLog: [],
 	// Members need provider/secret names for env editor autocomplete; values are never exposed

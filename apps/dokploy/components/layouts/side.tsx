@@ -29,6 +29,7 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
+	ScrollText,
 	Server,
 	ShieldCheck,
 	Smartphone,
@@ -373,6 +374,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
+		},
+		{
+			isSingle: true,
+			title: "Log Management",
+			url: "/dashboard/settings/log-providers",
+			icon: ScrollText,
+			isEnabled: ({ permissions }) => !!permissions?.logProvider.read,
 		},
 		{
 			isSingle: true,

@@ -73,6 +73,20 @@ describe("owner and admin bypass enterprise resources", () => {
 		).resolves.toBeUndefined();
 	});
 
+	it("owner bypasses logProvider.read", async () => {
+		memberToReturn = mockMemberData("owner");
+		await expect(
+			checkPermission(ctx, { logProvider: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("admin bypasses logProvider.create", async () => {
+		memberToReturn = mockMemberData("admin");
+		await expect(
+			checkPermission(ctx, { logProvider: ["create"] }),
+		).resolves.toBeUndefined();
+	});
+
 	it("owner bypasses multiple enterprise permissions at once", async () => {
 		memberToReturn = mockMemberData("owner");
 		await expect(
@@ -137,6 +151,20 @@ describe("member is denied org-level enterprise resources (CVE: bypass via stati
 		memberToReturn = mockMemberData("member");
 		await expect(
 			checkPermission(ctx, { registry: ["create"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied logProvider.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { logProvider: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied logProvider.create", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { logProvider: ["create"] }),
 		).rejects.toThrow();
 	});
 });
