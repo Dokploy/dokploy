@@ -462,6 +462,9 @@ export const extractCommitMessage = (headers: any, body: any) => {
 	}
 	// GitHub
 	if (headers["x-github-event"]) {
+		if (githubEvent === "check_suite") {
+			return body.check_suite?.head_commit?.message ?? "NEW COMMIT";
+		}
 		return body.head_commit ? body.head_commit.message : "NEW COMMIT";
 	}
 
@@ -505,6 +508,9 @@ export const extractCommitMessage = (headers: any, body: any) => {
 export const extractHash = (headers: any, body: any) => {
 	// GitHub
 	if (headers["x-github-event"]) {
+		if (headers["x-github-event"] === "check_suite") {
+			return body.check_suite?.head_sha ?? "";
+		}
 		return body.head_commit ? body.head_commit.id : "";
 	}
 

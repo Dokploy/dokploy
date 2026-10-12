@@ -132,6 +132,7 @@ export const applications = pgTable("application", {
 	buildPath: text("buildPath").default("/"),
 	triggerType: triggerType("triggerType").default("push"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
+	waitForChecks: boolean("waitForChecks").notNull().default(false),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
 	gitlabRepository: text("gitlabRepository"),
@@ -464,7 +465,13 @@ export const apiSaveGithubProvider = createSchema
 		triggerType: z.enum(["push", "tag"]).default("push"),
 	})
 	.required()
-	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
+	.merge(
+		createSchema.pick({
+			enableSubmodules: true,
+			watchPaths: true,
+			waitForChecks: true,
+		}),
+	);
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({
