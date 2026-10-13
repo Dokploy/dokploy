@@ -455,14 +455,17 @@ export const getContainerLogs = async (
 	}
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
-	const baseCommand = isService
-		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
-		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
+	const logsCommand = isService
+		? `docker service logs --timestamps --raw`
+		: `docker container logs --timestamps`;
 
 	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+	// When searching, tail is applied to the matches rather than the raw log so
+	// older lines can be found. Ending the pipe with tail also keeps grep's
+	// "no match" exit code 1 from failing the command.
 	const command = search
-		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
-		: `${baseCommand} 2>&1`;
+		? `${logsCommand} ${sinceFlag} ${target} 2>&1 | grep -iF '${escapedSearch}' | tail -n ${tail}`
+		: `${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`;
 
 	try {
 		const result = await exec(command);
