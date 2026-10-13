@@ -28,7 +28,13 @@ export const uploadFileToContainerSchema = zfd.formData({
 		.min(1)
 		.regex(/^[a-zA-Z0-9.\-_]+$/, "Invalid container ID"),
 	file: zfd.file(),
-	destinationPath: z.string().min(1),
+	destinationPath: z
+		.string()
+		.min(1)
+		.regex(
+			/^[a-zA-Z0-9.\-_/]+$/,
+			"Invalid destination path: only alphanumeric characters, dots, dashes, underscores, and forward slashes are allowed",
+		),
 	serverId: z.string().optional(),
 });
 

@@ -52,13 +52,14 @@ export const ShowNodes = ({ serverId }: Props) => {
 		serverId,
 	});
 	const { data: registry } = api.registry.all.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { mutateAsync: deleteNode } = api.cluster.removeWorker.useMutation();
 
 	const haveAtLeastOneRegistry = !!(registry && registry?.length > 0);
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="flex flex-row gap-2 justify-between w-full items-center flex-wrap">
 						<div className="flex flex-col gap-2">
@@ -68,7 +69,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 							</CardTitle>
 							<CardDescription>Add nodes to your cluster</CardDescription>
 						</div>
-						{haveAtLeastOneRegistry && (
+						{haveAtLeastOneRegistry && permissions?.server.create && (
 							<div className="flex flex-row gap-2">
 								<AddNode serverId={serverId} />
 							</div>
@@ -144,34 +145,35 @@ export const ShowNodes = ({ serverId }: Props) => {
 															<DropdownMenuContent align="end">
 																<DropdownMenuLabel>Actions</DropdownMenuLabel>
 																<ShowNodeData data={node} />
-																{!node?.ManagerStatus?.Leader && (
-																	<DialogAction
-																		title="Delete Node"
-																		description="Are you sure you want to delete this node from the cluster?"
-																		type="destructive"
-																		onClick={async () => {
-																			await deleteNode({
-																				nodeId: node.ID,
-																				serverId,
-																			})
-																				.then(() => {
-																					refetch();
-																					toast.success(
-																						"Node deleted successfully",
-																					);
+																{!node?.ManagerStatus?.Leader &&
+																	permissions?.server.delete && (
+																		<DialogAction
+																			title="Delete Node"
+																			description="Are you sure you want to delete this node from the cluster?"
+																			type="destructive"
+																			onClick={async () => {
+																				await deleteNode({
+																					nodeId: node.ID,
+																					serverId,
 																				})
-																				.catch(() => {
-																					toast.error("Error deleting node");
-																				});
-																		}}
-																	>
-																		<DropdownMenuItem
-																			onSelect={(e) => e.preventDefault()}
+																					.then(() => {
+																						refetch();
+																						toast.success(
+																							"Node deleted successfully",
+																						);
+																					})
+																					.catch(() => {
+																						toast.error("Error deleting node");
+																					});
+																			}}
 																		>
-																			Delete
-																		</DropdownMenuItem>
-																	</DialogAction>
-																)}
+																			<DropdownMenuItem
+																				onSelect={(e) => e.preventDefault()}
+																			>
+																				Delete
+																			</DropdownMenuItem>
+																		</DialogAction>
+																	)}
 															</DropdownMenuContent>
 														</DropdownMenu>
 													</TableCell>

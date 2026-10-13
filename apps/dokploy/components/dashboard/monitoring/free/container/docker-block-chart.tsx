@@ -1,3 +1,4 @@
+import { formatMb, toMb } from "@dokploy/server/monitoring/units";
 import { format } from "date-fns";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
@@ -29,12 +30,12 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
-		readMb: item.value.readMb,
-		writeMb: item.value.writeMb,
+		readMb: toMb(item.value.readMb),
+		writeMb: toMb(item.value.writeMb),
 	}));
 
 	return (
-		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+		<ChartContainer config={chartConfig} className="mt-4 h-40 w-full">
 			<AreaChart
 				data={transformedData}
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -77,13 +78,14 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 							}}
 							formatter={(value, name) => {
 								const label = name === "readMb" ? "Read" : "Write";
-								return [`${value} MB`, label];
+								return [formatMb(Number(value)), label];
 							}}
 						/>
 					}
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="readMb"
 					stroke="var(--color-readMb)"
 					fill="url(#fillBlockRead)"
@@ -91,6 +93,7 @@ export const DockerBlockChart = ({ accumulativeData }: Props) => {
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="writeMb"
 					stroke="var(--color-writeMb)"
 					fill="url(#fillBlockWrite)"

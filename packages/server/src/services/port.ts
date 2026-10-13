@@ -30,12 +30,8 @@ export const finPortById = async (portId: string) => {
 		where: eq(ports.portId, portId),
 		with: {
 			application: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
+				columns: {
+					applicationId: true,
 				},
 			},
 		},

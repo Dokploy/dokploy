@@ -6,6 +6,7 @@ import {
 	findAllDeploymentsByServerId,
 	findAllDeploymentsCentralized,
 	findDeploymentById,
+	findScheduleById,
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
@@ -126,9 +127,29 @@ export const deploymentRouter = createTRPCRouter({
 	allByType: protectedProcedure
 		.input(apiFindAllByType)
 		.query(async ({ input, ctx }) => {
-			await checkServicePermissionAndAccess(ctx, input.id, {
-				deployment: ["read"],
-			});
+			if (input.type === "schedule") {
+				const schedule = await findScheduleById(input.id);
+				const serviceId = schedule.applicationId || schedule.composeId;
+				if (serviceId) {
+					await checkServicePermissionAndAccess(ctx, serviceId, {
+						deployment: ["read"],
+					});
+				} else if (schedule.serverId) {
+					const targetServer = await findServerById(schedule.serverId);
+					if (
+						targetServer.organizationId !== ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this schedule.",
+						});
+					}
+				}
+			} else {
+				await checkServicePermissionAndAccess(ctx, input.id, {
+					deployment: ["read"],
+				});
+			}
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
@@ -151,6 +172,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 
 			if (!deployment.pid) {
@@ -188,6 +217,14 @@ export const deploymentRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					deployment: ["cancel"],
 				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
 			}
 			const result = await removeDeployment(input.deploymentId);
 			await audit(ctx, {
@@ -196,5 +233,52 @@ export const deploymentRouter = createTRPCRouter({
 				resourceId: deployment.deploymentId,
 			});
 			return result;
+		}),
+
+	readLogs: protectedProcedure
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+				tail: z.number().int().min(1).max(10000).default(100),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+			const serviceId = deployment.applicationId || deployment.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["read"],
+				});
+			} else if (deployment.schedule?.serverId) {
+				const targetServer = await findServerById(deployment.schedule.serverId);
+				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this deployment.",
+					});
+				}
+			}
+
+			if (!deployment.logPath) {
+				return "";
+			}
+
+			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
+			const serverId =
+				deployment.serverId ||
+				deployment.schedule?.serverId ||
+				deployment.application?.serverId ||
+				deployment.compose?.serverId;
+			if (serverId) {
+				const { stdout } = await execAsyncRemote(serverId, command);
+				return stdout;
+			}
+
+			if (IS_CLOUD) {
+				return "";
+			}
+
+			const { stdout } = await execAsync(command);
+			return stdout;
 		}),
 });

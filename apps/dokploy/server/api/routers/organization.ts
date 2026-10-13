@@ -1,10 +1,18 @@
 import { db } from "@dokploy/server/db";
-import { IS_CLOUD, sendInvitationEmail } from "@dokploy/server/index";
+import {
+	hasValidLicense,
+	IS_CLOUD,
+	sendInvitationEmail,
+} from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import {
+	assertMemberLimit,
+	assertOrganizationLimit,
+} from "@/server/api/utils/plan-limits";
 import {
 	invitation,
 	member,
@@ -17,7 +25,7 @@ export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
 			z.object({
-				name: z.string(),
+				name: z.string().min(1),
 				logo: z.string().optional(),
 			}),
 		)
@@ -28,6 +36,11 @@ export const organizationRouter = createTRPCRouter({
 					message: "Only the organization owner can create an organization",
 				});
 			}
+
+			if (IS_CLOUD) {
+				await assertOrganizationLimit(ctx.user.id);
+			}
+
 			const result = await db
 				.insert(organization)
 				.values({
@@ -117,8 +130,9 @@ export const organizationRouter = createTRPCRouter({
 		.input(
 			z.object({
 				organizationId: z.string(),
-				name: z.string(),
+				name: z.string().min(1),
 				logo: z.string().optional(),
+				defaultRole: z.string().min(1).nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -161,11 +175,47 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			if (input.defaultRole !== undefined && input.defaultRole !== null) {
+				if (input.defaultRole === "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Cannot set owner as the default role",
+					});
+				}
+
+				if (!["admin", "member"].includes(input.defaultRole)) {
+					const customRole = await db.query.organizationRole.findFirst({
+						where: and(
+							eq(organizationRole.organizationId, input.organizationId),
+							eq(organizationRole.role, input.defaultRole),
+						),
+					});
+
+					if (!customRole) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Role "${input.defaultRole}" not found`,
+						});
+					}
+
+					if (!(await hasValidLicense(input.organizationId))) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message:
+								"Setting a custom role as default requires a valid enterprise license",
+						});
+					}
+				}
+			}
+
 			const result = await db
 				.update(organization)
 				.set({
 					name: input.name,
 					logo: input.logo,
+					...(input.defaultRole !== undefined && {
+						defaultRole: input.defaultRole,
+					}),
 				})
 				.where(eq(organization.id, input.organizationId))
 				.returning();
@@ -258,6 +308,10 @@ export const organizationRouter = createTRPCRouter({
 			const orgId = ctx.session.activeOrganizationId;
 			const email = input.email.toLowerCase();
 
+			if (IS_CLOUD) {
+				await assertMemberLimit(orgId);
+			}
+
 			// Check if user is already a member
 			const existingUser = await db.query.user.findFirst({
 				where: eq(user.email, email),
@@ -292,6 +346,14 @@ export const organizationRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "CONFLICT",
 					message: "An invitation has already been sent to this email",
+				});
+			}
+
+			// Owner role is non-delegable — no one can invite as owner
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot invite a user with the owner role",
 				});
 			}
 

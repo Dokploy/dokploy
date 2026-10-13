@@ -42,6 +42,39 @@ test("Add suffix to volumes declared directly in services", () => {
 	);
 });
 
+const composeFileAccessMode = `
+version: "3.8"
+
+services:
+  web:
+    image: nginx:alpine
+    volumes:
+      - web_config:/etc/nginx/conf.d:ro
+      - certs/sub:/etc/certs:Z
+`;
+
+test("Add suffix to volumes preserves access mode (:ro, :z, :Z)", () => {
+	const composeData = parse(composeFileAccessMode) as ComposeSpecification;
+
+	const suffix = generateRandomHash();
+
+	if (!composeData.services) {
+		return;
+	}
+
+	const updatedComposeData = addSuffixToVolumesInServices(
+		composeData.services,
+		suffix,
+	);
+
+	expect(updatedComposeData.web?.volumes).toContain(
+		`web_config-${suffix}:/etc/nginx/conf.d:ro`,
+	);
+	expect(updatedComposeData.web?.volumes).toContain(
+		`certs-${suffix}/sub:/etc/certs:Z`,
+	);
+});
+
 const composeFileTypeVolume = `
 version: "3.8"
 

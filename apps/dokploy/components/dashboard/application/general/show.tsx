@@ -1,4 +1,3 @@
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
 	Ban,
 	CheckCircle2,
@@ -8,6 +7,7 @@ import {
 	Terminal,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
@@ -58,7 +58,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				<CardHeader>
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
-				<CardContent className="flex flex-row gap-4 flex-wrap">
+				<CardContent className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap gap-4">
 					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						{canDeploy && (
 							<DialogAction
@@ -94,7 +94,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>
 													Downloads the source code and performs a complete
 													build
@@ -137,7 +137,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>Reload the application without rebuilding it</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -176,7 +176,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>
 													Only rebuilds the application without downloading new
 													code
@@ -219,7 +219,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>
 													Start the application (requires a previous successful
 													build)
@@ -259,7 +259,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
+											<TooltipContent sideOffset={5} className="z-60">
 												<p>Stop the currently running application</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
@@ -271,17 +271,18 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					<DockerTerminalModal
 						appName={data?.appName || ""}
 						serverId={data?.serverId || ""}
+						serviceId={applicationId}
 					>
 						<Button
 							variant="outline"
-							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2 col-span-2"
 						>
 							<Terminal className="size-4 mr-1" />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
 							<span className="text-sm font-medium">Autodeploy</span>
 							<Switch
 								aria-label="Toggle autodeploy"
@@ -305,7 +306,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					)}
 
 					{canUpdateService && (
-						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<div className="flex flex-row items-center gap-2 justify-between rounded-md px-4 py-2 border col-span-2 md:col-span-1">
 							<span className="text-sm font-medium">Clean Cache</span>
 							<Switch
 								aria-label="Toggle clean cache"

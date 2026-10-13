@@ -10,6 +10,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { emailTailwindConfig } from "../tailwind-config";
 
 export type TemplateProps = {
 	projectName: string;
@@ -44,17 +45,7 @@ export const VolumeBackupEmail = ({
 	return (
 		<Html>
 			<Preview>{previewText}</Preview>
-			<Tailwind
-				config={{
-					theme: {
-						extend: {
-							colors: {
-								brand: "#007291",
-							},
-						},
-					},
-				}}
-			>
+			<Tailwind config={emailTailwindConfig}>
 				<Head />
 
 				<Body className="bg-white my-auto mx-auto font-sans px-2">

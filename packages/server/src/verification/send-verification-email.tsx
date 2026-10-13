@@ -1,4 +1,5 @@
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
+import AccountDeletionCodeTemplate from "../emails/emails/account-deletion-code";
 import InvitationEmail from "../emails/emails/invitation";
 import VerifyEmailTemplate from "../emails/emails/verify-email";
 import { sendEmailNotification } from "../utils/notifications/utils";
@@ -40,7 +41,7 @@ export const sendVerificationEmail = async ({
 	email: string;
 	verificationUrl: string;
 }) => {
-	const html = await renderAsync(
+	const html = await render(
 		VerifyEmailTemplate({
 			userName: userName || "User",
 			verificationUrl,
@@ -62,7 +63,7 @@ export const renderInvitationEmail = async ({
 	inviteLink: string;
 	organizationName: string;
 }) => {
-	return renderAsync(
+	return render(
 		InvitationEmail({
 			inviteLink,
 			toEmail: email,
@@ -88,6 +89,31 @@ export const sendInvitationEmail = async ({
 	await sendEmail({
 		email,
 		subject: `You've been invited to join ${organizationName} on Dokploy`,
+		text: html,
+	});
+};
+
+export const sendAccountDeletionCodeEmail = async ({
+	email,
+	userName,
+	code,
+	expiresInMinutes,
+}: {
+	email: string;
+	userName: string;
+	code: string;
+	expiresInMinutes: number;
+}) => {
+	const html = await render(
+		AccountDeletionCodeTemplate({
+			userName: userName || "User",
+			code,
+			expiresInMinutes,
+		}),
+	);
+	await sendEmail({
+		email,
+		subject: `${code} is your account deletion code`,
 		text: html,
 	});
 };

@@ -1,5 +1,6 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -9,6 +10,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
@@ -21,6 +23,7 @@ import { UpdateLibsql } from "@/components/dashboard/libsql/update-libsql";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { LibsqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
@@ -61,6 +64,7 @@ const Libsql = (
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 
 	return (
 		<div className="pb-10">
@@ -99,6 +103,14 @@ const Libsql = (
 							<div className="flex flex-col h-fit w-fit gap-2">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
+										className="cursor-pointer"
+										onClick={() => {
+											const ip = data?.server?.ipAddress || serverIp;
+											if (ip) {
+												copy(ip);
+												toast.success("IP Address Copied!");
+											}
+										}}
 										variant={
 											!data?.serverId
 												? "default"
@@ -118,7 +130,7 @@ const Libsql = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>
@@ -134,6 +146,13 @@ const Libsql = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateLibsql libsqlId={libsqlId} />
+									{(auth?.role === "owner" || auth?.canCreateServices) && (
+										<TransferService
+											id={libsqlId}
+											type="libsql"
+											serverId={data?.serverId}
+										/>
+									)}
 									{(auth?.role === "owner" || auth?.canDeleteServices) && (
 										<DeleteService id={libsqlId} type="libsql" />
 									)}
@@ -174,7 +193,7 @@ const Libsql = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-auto">
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
@@ -258,6 +277,7 @@ const Libsql = (
 											<ShowDockerLogs
 												serverId={data?.serverId || ""}
 												appName={data?.appName || ""}
+												serviceId={data?.libsqlId}
 											/>
 										</div>
 									</TabsContent>
