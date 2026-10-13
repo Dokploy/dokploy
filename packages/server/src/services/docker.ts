@@ -418,6 +418,18 @@ export const getContainersByAppLabel = async (
 	return [];
 };
 
+// tail is applied to the matches rather than the raw log so older lines can be
+// found. Ending the pipe with tail also keeps grep's "no match" exit code 1
+// from failing the command.
+export const buildLogSearchCommand = (
+	logsCommand: string,
+	search: string,
+	tail: number,
+) => {
+	const escapedSearch = search.replace(/'/g, "'\\''");
+	return `${logsCommand} 2>&1 | grep -iF '${escapedSearch}' | tail -n ${tail}`;
+};
+
 export const getContainerLogs = async (
 	appNameOrId: string,
 	tail = 100,
@@ -459,13 +471,23 @@ export const getContainerLogs = async (
 		? `docker service logs --timestamps --raw`
 		: `docker container logs --timestamps`;
 
-	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
-	// When searching, tail is applied to the matches rather than the raw log so
-	// older lines can be found. Ending the pipe with tail also keeps grep's
-	// "no match" exit code 1 from failing the command.
-	const command = search
-		? `${logsCommand} ${sinceFlag} ${target} 2>&1 | grep -iF '${escapedSearch}' | tail -n ${tail}`
-		: `${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`;
+	if (search) {
+		const { stdout } = await exec(
+			buildLogSearchCommand(
+				`${logsCommand} ${sinceFlag} ${target}`,
+				search,
+				tail,
+			),
+		);
+		if (stdout.length === 0) {
+			// grep also filters out Docker's own error message, so confirm the
+			// logs are readable before reporting "no matches".
+			await exec(`${logsCommand} --tail 0 ${target}`);
+		}
+		return stdout;
+	}
+
+	const command = `${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`;
 
 	try {
 		const result = await exec(command);
