@@ -94,6 +94,19 @@ describe("getContainerLogs", () => {
 		);
 	});
 
+	it("returns partial search output when it exceeds the exec buffer", async () => {
+		vi.mocked(execAsync).mockRejectedValueOnce(
+			Object.assign(new Error("stdout maxBuffer length exceeded"), {
+				stdout: "partial match\n",
+			}),
+		);
+
+		await expect(
+			getContainerLogs("abc123", 10000, "all", "match", null, true),
+		).resolves.toBe("partial match\n");
+		expect(execAsync).toHaveBeenCalledTimes(1);
+	});
+
 	it("throws when the logs cannot be read", async () => {
 		vi.mocked(execAsync)
 			.mockResolvedValueOnce({ stdout: "", stderr: "" })

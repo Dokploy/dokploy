@@ -471,8 +471,28 @@ export const getContainerLogs = async (
 		? `docker service logs --timestamps --raw`
 		: `docker container logs --timestamps`;
 
+	// exec rejects with the output read so far when it exceeds maxBuffer;
+	// return that output instead of failing.
+	const execKeepingOutput = async (command: string) => {
+		try {
+			const result = await exec(command);
+			return result.stdout;
+		} catch (error: unknown) {
+			if (
+				error &&
+				typeof error === "object" &&
+				"stdout" in error &&
+				typeof (error as { stdout: string }).stdout === "string" &&
+				(error as { stdout: string }).stdout.length > 0
+			) {
+				return (error as { stdout: string }).stdout;
+			}
+			throw error;
+		}
+	};
+
 	if (search) {
-		const { stdout } = await exec(
+		const stdout = await execKeepingOutput(
 			buildLogSearchCommand(
 				`${logsCommand} ${sinceFlag} ${target}`,
 				search,
@@ -487,23 +507,9 @@ export const getContainerLogs = async (
 		return stdout;
 	}
 
-	const command = `${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`;
-
-	try {
-		const result = await exec(command);
-		return result.stdout;
-	} catch (error: unknown) {
-		if (
-			error &&
-			typeof error === "object" &&
-			"stdout" in error &&
-			typeof (error as { stdout: string }).stdout === "string" &&
-			(error as { stdout: string }).stdout.length > 0
-		) {
-			return (error as { stdout: string }).stdout;
-		}
-		throw error;
-	}
+	return execKeepingOutput(
+		`${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`,
+	);
 };
 
 export const containerRestart = async (
