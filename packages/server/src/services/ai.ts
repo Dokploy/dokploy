@@ -4,7 +4,7 @@ import { aiCustomProviderSchema } from "@dokploy/server/db/schema/ai";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText, Output } from "ai";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { findServerById } from "./server";
@@ -86,11 +86,17 @@ export const saveCustomAiProviders = async (
 			message: "Organization not found",
 		});
 	}
-	const metadata = parseOrgMetadata(org.metadata);
-	metadata.aiProviders = providers;
+	// key-scoped write: a concurrent organization.update (description) or
+	// any other metadata writer can't be erased by this request's read
 	await db
 		.update(organization)
-		.set({ metadata: JSON.stringify(metadata) })
+		.set({
+			metadata: sql`jsonb_set(
+				coalesce(nullif(${organization.metadata}, '')::jsonb, '{}'::jsonb),
+				'{aiProviders}',
+				${JSON.stringify(providers)}::jsonb
+			)::text`,
+		})
 		.where(eq(organization.id, organizationId));
 	return providers;
 };
@@ -209,7 +215,6 @@ export const suggestVariants = async ({
 
 		const result = await generateText({
 			model,
-			// @ts-ignore - Zod + AI SDK Output.object() causes excessively deep instantiation
 			output: Output.object({ schema: fullSchema }),
 			prompt: `
 		    Act as advanced DevOps engineer. Analyze the user's request and generate up to 3 deployment suggestions, each with a complete docker compose configuration.

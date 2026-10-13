@@ -5,9 +5,13 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, type SQL, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import {
+	organizationDescriptionSchema,
+	setOrganizationDescription,
+} from "@/lib/organization-description";
 import { audit } from "@/server/api/utils/audit";
 import {
 	assertMemberLimit,
@@ -27,6 +31,7 @@ export const organizationRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: organizationDescriptionSchema,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -41,10 +46,15 @@ export const organizationRouter = createTRPCRouter({
 				await assertOrganizationLimit(ctx.user.id);
 			}
 
+			const { description, ...organizationInput } = input;
 			const result = await db
 				.insert(organization)
 				.values({
-					...input,
+					...organizationInput,
+					metadata:
+						description === undefined
+							? undefined
+							: setOrganizationDescription(null, description),
 					slug: nanoid(),
 					createdAt: new Date(),
 					ownerId: ctx.user.id,
@@ -132,6 +142,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 				name: z.string().min(1),
 				logo: z.string().optional(),
+				description: organizationDescriptionSchema,
 				defaultRole: z.string().min(1).nullable().optional(),
 			}),
 		)
@@ -208,11 +219,33 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
+			let metadata: SQL | undefined;
+			if (input.description !== undefined) {
+				try {
+					setOrganizationDescription(org.metadata, input.description);
+				} catch {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Cannot update description because the organization metadata is not a valid JSON object",
+					});
+				}
+				// key-scoped write: jsonb_set merges at the row instead of
+				// replacing the whole value from this request's earlier read,
+				// so a concurrent saveCustomAiProviders can't be erased
+				metadata = sql`jsonb_set(
+					coalesce(nullif(${organization.metadata}, '')::jsonb, '{}'::jsonb),
+					'{description}',
+					to_jsonb(${input.description}::text)
+				)::text`;
+			}
+
 			const result = await db
 				.update(organization)
 				.set({
 					name: input.name,
 					logo: input.logo,
+					...(metadata !== undefined && { metadata }),
 					...(input.defaultRole !== undefined && {
 						defaultRole: input.defaultRole,
 					}),

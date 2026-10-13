@@ -26,6 +26,12 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+	getOrganizationDescription,
+	ORGANIZATION_DESCRIPTION_MAX_LENGTH,
+	organizationDescriptionSchema,
+} from "@/lib/organization-description";
 import { api } from "@/utils/api";
 import { resizeImage } from "@/utils/image-processing";
 import { sanitizeSvg } from "@/utils/sanitize-svg";
@@ -35,6 +41,7 @@ const organizationSchema = z.object({
 		message: "Organization name is required",
 	}),
 	logo: z.string().optional(),
+	description: organizationDescriptionSchema,
 });
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>;
@@ -79,6 +86,7 @@ export function AddOrganization({
 		defaultValues: {
 			name: "",
 			logo: "",
+			description: "",
 		},
 	});
 
@@ -89,6 +97,7 @@ export function AddOrganization({
 			form.reset({
 				name: organization.name,
 				logo: organization.logo || "",
+				description: getOrganizationDescription(organization.metadata),
 			});
 			setUploadedFileName(null);
 		}
@@ -99,6 +108,12 @@ export function AddOrganization({
 		await mutateAsync({
 			name: values.name,
 			logo: values.logo,
+			description:
+				organizationId &&
+				values.description ===
+					getOrganizationDescription(organization?.metadata)
+					? undefined
+					: values.description,
 			organizationId: organizationId ?? "",
 		})
 			.then(() => {
@@ -243,7 +258,7 @@ export function AddOrganization({
 					</DialogTitle>
 					<DialogDescription>
 						{organizationId
-							? "Update the organization name and logo"
+							? "Update the organization name, description and logo"
 							: "Create a new organization to manage your projects."}
 					</DialogDescription>
 				</DialogHeader>
@@ -268,6 +283,23 @@ export function AddOrganization({
 										/>
 									</FormControl>
 									<FormMessage className="" />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="description"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Description (optional)</FormLabel>
+									<FormControl>
+										<Textarea
+											placeholder="Describe your organization"
+											maxLength={ORGANIZATION_DESCRIPTION_MAX_LENGTH}
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
