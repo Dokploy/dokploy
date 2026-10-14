@@ -768,7 +768,7 @@ importers:
         version: 4.2.0
       undici:
         specifier: ^6.21.3
-        version: 6.23.0
+        version: 6.28.1
       ws:
         specifier: 8.21.0
         version: 8.21.0
