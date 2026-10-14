@@ -7,6 +7,7 @@ export * from "./db/validations/index";
 export * from "./lib/auth";
 export * from "./lib/logger";
 export * from "./monitoring/utils";
+export * from "./services/account-deletion";
 export * from "./services/admin";
 export * from "./services/application";
 export * from "./services/backup";
