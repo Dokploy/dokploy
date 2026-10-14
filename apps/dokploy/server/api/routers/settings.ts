@@ -557,7 +557,7 @@ export const settingsRouter = createTRPCRouter({
 		}
 
 		const resourceType = await getDockerResourceType("dokploy");
-		if (resourceType === "unknown") {
+		if (resourceType !== "service") {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message:

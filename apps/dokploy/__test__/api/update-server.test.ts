@@ -105,6 +105,21 @@ describe("settings.updateServer", () => {
 		expect(mockSpawnAsync).not.toHaveBeenCalled();
 	});
 
+	it("fails for a standalone container where docker service update cannot run", async () => {
+		mockGetDockerResourceType.mockResolvedValue("standalone");
+		mockGetUpdateData.mockResolvedValue({
+			latestVersion: "v9.9.9",
+			updateAvailable: true,
+		});
+
+		await expect(caller.updateServer()).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			message: expect.stringContaining("not running as a Docker service"),
+		});
+
+		expect(mockSpawnAsync).not.toHaveBeenCalled();
+	});
+
 	it("does not report a fake success when the update command cannot run", async () => {
 		mockGetDockerResourceType.mockResolvedValue("unknown");
 		mockGetUpdateData.mockResolvedValue({
