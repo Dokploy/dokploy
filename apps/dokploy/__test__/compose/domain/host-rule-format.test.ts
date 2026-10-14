@@ -36,6 +36,7 @@ describe("Host rule format regression tests", () => {
 		middlewares: null,
 		forwardAuthEnabled: false,
 		externalUpstreamId: null,
+		enabled: true,
 	};
 
 	describe("Host rule format validation", () => {

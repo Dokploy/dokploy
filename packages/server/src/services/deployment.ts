@@ -453,6 +453,19 @@ export const createDeploymentSchedule = async (
 		schedule.compose?.serverId ||
 		schedule.server?.serverId;
 	await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
+	await db
+		.update(deployments)
+		.set({
+			status: "error",
+			errorMessage: "Superseded by a new run of this schedule.",
+			finishedAt: new Date().toISOString(),
+		})
+		.where(
+			and(
+				eq(deployments.scheduleId, deployment.scheduleId),
+				eq(deployments.status, "running"),
+			),
+		);
 	try {
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");

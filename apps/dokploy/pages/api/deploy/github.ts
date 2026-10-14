@@ -26,6 +26,14 @@ import {
 const getGithubRepositoryOwner = (githubBody: any) =>
 	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -484,10 +492,6 @@ export default async function handler(
 					if (!hasLabel) continue;
 				}
 
-				const previewLimit = app?.previewLimit || 0;
-				if (app?.previewDeployments?.length > previewLimit) {
-					continue;
-				}
 				const previewDeploymentResult =
 					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
@@ -495,6 +499,15 @@ export default async function handler(
 					previewDeploymentResult?.previewDeploymentId || "";
 
 				if (!previewDeploymentResult && shouldCreateDeployment) {
+					// The limit only applies to new previews, existing ones must
+					// still be redeployed when the pull request is updated.
+					const previewLimit = app?.previewLimit ?? 3;
+					if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
+						console.warn(
+							`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
+						);
+						continue;
+					}
 					const previewDeployment = await createPreviewDeployment({
 						applicationId: app.applicationId as string,
 						branch: prBranch,

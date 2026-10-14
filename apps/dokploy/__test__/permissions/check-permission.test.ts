@@ -73,6 +73,20 @@ describe("owner and admin bypass enterprise resources", () => {
 		).resolves.toBeUndefined();
 	});
 
+	it("owner bypasses telemetryProvider.read", async () => {
+		memberToReturn = mockMemberData("owner");
+		await expect(
+			checkPermission(ctx, { telemetryProvider: ["read"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("admin bypasses telemetryProvider.create", async () => {
+		memberToReturn = mockMemberData("admin");
+		await expect(
+			checkPermission(ctx, { telemetryProvider: ["create"] }),
+		).resolves.toBeUndefined();
+	});
+
 	it("owner bypasses multiple enterprise permissions at once", async () => {
 		memberToReturn = mockMemberData("owner");
 		await expect(
@@ -126,10 +140,31 @@ describe("member is denied org-level enterprise resources (CVE: bypass via stati
 		await expect(checkPermission(ctx, { server: ["read"] })).rejects.toThrow();
 	});
 
+	it("member is denied server.terminal", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { server: ["terminal"] }),
+		).rejects.toThrow();
+	});
+
 	it("member is denied registry.create", async () => {
 		memberToReturn = mockMemberData("member");
 		await expect(
 			checkPermission(ctx, { registry: ["create"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied telemetryProvider.read", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { telemetryProvider: ["read"] }),
+		).rejects.toThrow();
+	});
+
+	it("member is denied telemetryProvider.create", async () => {
+		memberToReturn = mockMemberData("member");
+		await expect(
+			checkPermission(ctx, { telemetryProvider: ["create"] }),
 		).rejects.toThrow();
 	});
 });

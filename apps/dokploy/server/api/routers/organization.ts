@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import {
+	deleteOrganization,
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
@@ -25,7 +26,7 @@ export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
 			z.object({
-				name: z.string(),
+				name: z.string().min(1),
 				logo: z.string().optional(),
 			}),
 		)
@@ -130,7 +131,7 @@ export const organizationRouter = createTRPCRouter({
 		.input(
 			z.object({
 				organizationId: z.string(),
-				name: z.string(),
+				name: z.string().min(1),
 				logo: z.string().optional(),
 				defaultRole: z.string().min(1).nullable().optional(),
 			}),
@@ -285,9 +286,7 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.delete(organization)
-				.where(eq(organization.id, input.organizationId));
+			const result = await deleteOrganization(input.organizationId);
 
 			await audit(ctx, {
 				action: "delete",

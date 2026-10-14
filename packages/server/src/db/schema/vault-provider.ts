@@ -8,8 +8,11 @@ export const vaultProviderType = pgEnum("VaultProviderType", [
 	"hashicorp",
 	"infisical",
 	"aws",
+	"aws-parameter-store",
 	"doppler",
 	"azure",
+	"scaleway",
+	"phase",
 ]);
 
 export const hashicorpVaultConfigSchema = z.object({
@@ -38,6 +41,21 @@ export const awsVaultConfigSchema = z.object({
 	endpoint: z.string().url().optional(),
 });
 
+export const awsParameterStoreVaultConfigSchema = z.object({
+	providerType: z.literal("aws-parameter-store"),
+	region: z.string().min(1),
+	accessKeyId: z.string().min(1),
+	secretAccessKey: z.string().min(1),
+	endpoint: z.string().url().optional(),
+	parameterPath: z
+		.string()
+		.trim()
+		.refine((path) => path === "" || path.startsWith("/"), {
+			message: "Parameter discovery path must start with /",
+		})
+		.optional(),
+});
+
 export const dopplerVaultConfigSchema = z.object({
 	providerType: z.literal("doppler"),
 	serviceToken: z.string().min(1),
@@ -53,12 +71,32 @@ export const azureVaultConfigSchema = z.object({
 	clientSecret: z.string().min(1),
 });
 
+export const scalewayVaultConfigSchema = z.object({
+	providerType: z.literal("scaleway"),
+	region: z.string().min(1).default("fr-par"),
+	projectId: z.string().min(1),
+	secretKey: z.string().min(1),
+	apiUrl: z.string().url().default("https://api.scaleway.com"),
+});
+
+export const phaseVaultConfigSchema = z.object({
+	providerType: z.literal("phase"),
+	token: z.string().min(1),
+	appId: z.string().min(1),
+	env: z.string().min(1),
+	path: z.string().default("/"),
+	apiUrl: z.string().url().default("https://api.phase.dev"),
+});
+
 export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	hashicorpVaultConfigSchema,
 	infisicalVaultConfigSchema,
 	awsVaultConfigSchema,
+	awsParameterStoreVaultConfigSchema,
 	dopplerVaultConfigSchema,
 	azureVaultConfigSchema,
+	scalewayVaultConfigSchema,
+	phaseVaultConfigSchema,
 ]);
 
 export type VaultProviderConfig = z.infer<typeof vaultProviderConfigSchema>;

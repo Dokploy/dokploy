@@ -154,6 +154,7 @@ const baseDomain: Domain = {
 	middlewares: null,
 	forwardAuthEnabled: false,
 	externalUpstreamId: null,
+	enabled: true,
 };
 
 const baseRedirect: Redirect = {

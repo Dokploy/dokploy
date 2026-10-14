@@ -16,6 +16,30 @@ describe("shouldDeploy", () => {
 		expect(shouldDeploy(["src/**"], ["docs/readme.md"])).toBe(false);
 	});
 
+	it("should apply multiple negated watch paths as one pattern set", () => {
+		const watchPaths = ["!CHANGELOG.md", "!VERSION", "!tests/**"];
+
+		expect(shouldDeploy(watchPaths, ["CHANGELOG.md"])).toBe(false);
+		expect(shouldDeploy(watchPaths, ["VERSION"])).toBe(false);
+		expect(shouldDeploy(watchPaths, ["tests/unit/example.test.ts"])).toBe(
+			false,
+		);
+	});
+
+	it("should deploy when a changed file remains after exclusions", () => {
+		const watchPaths = ["!CHANGELOG.md", "!VERSION", "!tests/**"];
+
+		expect(shouldDeploy(watchPaths, ["VERSION", "src/index.ts"])).toBe(true);
+	});
+
+	it("should combine positive and negated watch paths", () => {
+		const watchPaths = ["src/**", "!src/**/*.test.ts"];
+
+		expect(shouldDeploy(watchPaths, ["src/index.ts"])).toBe(true);
+		expect(shouldDeploy(watchPaths, ["src/index.test.ts"])).toBe(false);
+		expect(shouldDeploy(watchPaths, ["docs/readme.md"])).toBe(false);
+	});
+
 	it("should not throw when modified files contain non-string values", () => {
 		expect(() =>
 			shouldDeploy(["src/**"], ["src/index.ts", undefined, null] as any),

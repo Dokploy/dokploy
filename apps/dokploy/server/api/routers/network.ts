@@ -6,6 +6,7 @@ import {
 	inspectNetwork,
 	recreateNetwork,
 	removeNetwork,
+	resyncNetwork,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
@@ -127,6 +128,29 @@ export const networkRouter = createTRPCRouter({
 				resourceName: recreated.name,
 			});
 			return recreated;
+		}),
+
+	resync: protectedProcedure
+		.input(apiFindOneNetwork)
+		.mutation(async ({ ctx, input }) => {
+			const network = await findNetworkById(input.networkId);
+			if (network.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Network not found",
+				});
+			}
+			const resynced = await resyncNetwork(
+				input.networkId,
+				ctx.session.activeOrganizationId,
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "network",
+				resourceId: resynced.networkId,
+				resourceName: resynced.name,
+			});
+			return resynced;
 		}),
 
 	remove: protectedProcedure

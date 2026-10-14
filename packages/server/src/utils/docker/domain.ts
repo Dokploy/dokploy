@@ -17,6 +17,7 @@ import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
+import { buildDokployLabels } from "./dokploy-labels";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
@@ -111,7 +112,7 @@ export const readComposeFile = async (compose: Compose) => {
 };
 
 export const writeDomainsToCompose = async (
-	compose: Compose,
+	compose: ComposeWithMetadata,
 	domains: Domain[],
 ) => {
 	try {
@@ -170,15 +171,110 @@ export const applyComposeFilePatch = async (
 	}
 };
 
+const removeDomainLabels = (
+	labels: DefinitionsService["labels"],
+	appName: string,
+	uniqueConfigKey: number,
+) => {
+	const prefixes = [
+		`traefik.http.routers.${appName}-${uniqueConfigKey}-`,
+		`traefik.http.services.${appName}-${uniqueConfigKey}-`,
+		`traefik.http.middlewares.stripprefix-${appName}-${uniqueConfigKey}.`,
+		`traefik.http.middlewares.addprefix-${appName}-${uniqueConfigKey}.`,
+	];
+	const belongsToDomain = (label: string) =>
+		prefixes.some((prefix) => label.startsWith(prefix));
+
+	if (Array.isArray(labels)) {
+		return labels.filter((label) => !belongsToDomain(label));
+	}
+	if (labels) {
+		return Object.fromEntries(
+			Object.entries(labels).filter(([label]) => !belongsToDomain(label)),
+		);
+	}
+
+	return labels;
+};
+
+type ComposeWithMetadata = Compose & {
+	environment?: {
+		environmentId: string;
+		name: string;
+		projectId: string;
+		project?: { name: string; organizationId: string };
+	};
+};
+
+const applyDokployLabelsToCompose = (
+	result: ComposeSpecification,
+	compose: ComposeWithMetadata,
+) => {
+	const { environment } = compose;
+	if (!environment?.project) return;
+
+	for (const [serviceName, service] of Object.entries(result.services ?? {})) {
+		if (!service) continue;
+		const metadataLabels = buildDokployLabels({
+			organizationId: environment.project.organizationId,
+			projectId: environment.projectId,
+			projectName: environment.project.name,
+			environmentId: environment.environmentId,
+			environmentName: environment.name,
+			applicationId: compose.composeId,
+			applicationName: compose.name,
+			serviceName,
+		});
+		// docker compose interpolates `$` in the file, so user-typed names need `$$` to stay literal.
+		const dokployLabels = Object.fromEntries(
+			Object.entries(metadataLabels).map(([key, value]) => [
+				key,
+				value.replaceAll("$", () => "$$"),
+			]),
+		);
+
+		service.labels = mergeDokployLabels(service.labels, dokployLabels);
+		if (compose.composeType === "docker-compose") {
+			continue;
+		}
+		if (!service.deploy) {
+			service.deploy = {};
+		}
+		service.deploy.labels = mergeDokployLabels(
+			service.deploy.labels,
+			dokployLabels,
+		);
+	}
+};
+
+const mergeDokployLabels = (
+	current: DefinitionsService["labels"],
+	dokployLabels: Record<string, string>,
+): DefinitionsService["labels"] => {
+	if (current && !Array.isArray(current)) {
+		return { ...current, ...dokployLabels };
+	}
+	const entries = Object.entries(dokployLabels);
+	const keys = new Set(entries.map(([key]) => key));
+	const kept = (current ?? []).filter(
+		(label) => !keys.has(label.slice(0, label.indexOf("="))),
+	);
+	return [...kept, ...entries.map(([key, value]) => `${key}=${value}`)];
+};
+
 export const addDomainToCompose = async (
-	compose: Compose,
+	compose: ComposeWithMetadata,
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
 
 	let result: ComposeSpecification | null;
 
-	if (compose.serverId) {
+	if (compose.sourceType === "raw") {
+		result = parse(compose.composeFile, {
+			maxAliasCount: 10000,
+		}) as ComposeSpecification;
+	} else if (compose.serverId) {
 		result = await loadDockerComposeRemote(compose);
 	} else {
 		result = await loadDockerCompose(compose);
@@ -203,6 +299,24 @@ export const addDomainToCompose = async (
 	}
 
 	for (const domain of domains) {
+		for (const service of Object.values(result.services ?? {})) {
+			if (compose.composeType === "docker-compose") {
+				service.labels = removeDomainLabels(
+					service.labels,
+					appName,
+					domain.uniqueConfigKey,
+				);
+			} else if (service.deploy) {
+				service.deploy.labels = removeDomainLabels(
+					service.deploy.labels,
+					appName,
+					domain.uniqueConfigKey,
+				);
+			}
+		}
+	}
+
+	for (const domain of domains.filter((d) => d.enabled)) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
@@ -242,33 +356,31 @@ export const addDomainToCompose = async (
 			labels = result.services[serviceName].deploy.labels;
 		}
 
+		const networkLabel =
+			compose.composeType === "docker-compose"
+				? "traefik.docker.network"
+				: "traefik.swarm.network";
+		const networkName = compose.isolatedDeployment
+			? compose.suffix || compose.appName
+			: "dokploy-network";
+
 		if (Array.isArray(labels)) {
 			if (!labels.includes("traefik.enable=true")) {
 				labels.unshift("traefik.enable=true");
 			}
 			labels.unshift(...httpLabels);
-			if (!compose.isolatedDeployment) {
-				if (compose.composeType === "docker-compose") {
-					if (!labels.includes("traefik.docker.network=dokploy-network")) {
-						labels.unshift("traefik.docker.network=dokploy-network");
-					}
-				} else {
-					// Stack Case
-					if (!labels.includes("traefik.swarm.network=dokploy-network")) {
-						labels.unshift("traefik.swarm.network=dokploy-network");
-					}
-				}
-			} else {
-				const isolatedNetwork = compose.suffix || compose.appName;
-				if (compose.composeType === "docker-compose") {
-					if (!labels.includes(`traefik.docker.network=${isolatedNetwork}`)) {
-						labels.unshift(`traefik.docker.network=${isolatedNetwork}`);
-					}
-				} else {
-					if (!labels.includes(`traefik.swarm.network=${isolatedNetwork}`)) {
-						labels.unshift(`traefik.swarm.network=${isolatedNetwork}`);
-					}
-				}
+			const networkLabelEntry = `${networkLabel}=${networkName}`;
+			if (!labels.includes(networkLabelEntry)) {
+				labels.unshift(networkLabelEntry);
+			}
+		} else if (labels) {
+			labels["traefik.enable"] = "true";
+			labels[networkLabel] = networkName;
+			for (const label of httpLabels) {
+				const separatorIndex = label.indexOf("=");
+				labels[label.slice(0, separatorIndex)] = label.slice(
+					separatorIndex + 1,
+				);
 			}
 		}
 
@@ -279,6 +391,8 @@ export const addDomainToCompose = async (
 			);
 		}
 	}
+
+	applyDokployLabelsToCompose(result, compose);
 
 	const injectedNetworkNames = await applyServiceNetworks(result, compose);
 

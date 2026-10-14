@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateNetwork, network } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
+import type Dockerode from "dockerode";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { z } from "zod";
 import { IS_CLOUD } from "../constants";
@@ -17,6 +18,7 @@ const RESERVED_NETWORKS = [
 ];
 
 type DockerNetworkInfo = {
+	Id?: string;
 	Name: string;
 	Driver: string;
 	Internal?: boolean;
@@ -35,6 +37,12 @@ type DockerNetworkInfo = {
 	};
 };
 
+// EnableIPv4 is missing from dockerode's NetworkCreateOptions but supported
+// by the daemon (API >= 1.47); the body is sent as-is
+type NetworkCreateOptions = Dockerode.NetworkCreateOptions & {
+	EnableIPv4?: boolean;
+};
+
 const parseMtu = (value: string | undefined) => {
 	const mtu = Number.parseInt(value ?? "", 10);
 	return Number.isNaN(mtu) ? null : mtu;
@@ -51,6 +59,7 @@ const mapDockerNetworkToRow = (
 	serverId: string | null,
 ) => ({
 	name: dockerNetwork.Name,
+	dockerId: dockerNetwork.Id ?? null,
 	driver: dockerNetwork.Driver as "bridge" | "overlay",
 	internal: dockerNetwork.Internal ?? false,
 	attachable: dockerNetwork.Attachable ?? false,
@@ -110,7 +119,7 @@ export const findNetworksToSync = async (
 
 	const existing = await findNetworksByServer(organizationId, serverId);
 	const existingNames = new Set(existing.map((row) => row.name));
-	const dockerNames = new Set(dockerNetworks.map((d) => d.Name));
+	const dockerByName = new Map(dockerNetworks.map((d) => [d.Name, d] as const));
 
 	const importable = dockerNetworks
 		.filter(
@@ -128,12 +137,28 @@ export const findNetworksToSync = async (
 				.filter((s): s is string => !!s),
 		}));
 
-	// Rows in Dokploy whose network no longer exists in Docker
 	const missing = existing
-		.filter((row) => !dockerNames.has(row.name))
+		.filter((row) => !dockerByName.has(row.name))
 		.map((row) => ({ networkId: row.networkId, name: row.name }));
 
-	return { importable, missing };
+	const changed = existing
+		.filter((row) => {
+			if (!row.dockerId) return false;
+			const dockerNetwork = dockerByName.get(row.name);
+			return !!dockerNetwork?.Id && dockerNetwork.Id !== row.dockerId;
+		})
+		.map((row) => {
+			const dockerNetwork = dockerByName.get(row.name);
+			return {
+				networkId: row.networkId,
+				name: row.name,
+				driver: dockerNetwork?.Driver,
+				internal: dockerNetwork?.Internal ?? false,
+				attachable: dockerNetwork?.Attachable ?? false,
+			};
+		});
+
+	return { importable, missing, changed };
 };
 
 export const importDockerNetworks = async (
@@ -182,6 +207,49 @@ export const importDockerNetworks = async (
 	}
 
 	return { imported, errors };
+};
+
+export const resyncNetwork = async (
+	networkId: string,
+	organizationId: string,
+) => {
+	const row = await findNetworkById(networkId);
+	if (row.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Network not found",
+		});
+	}
+
+	const docker = await getRemoteDocker(row.serverId ?? null);
+	let info: DockerNetworkInfo;
+	try {
+		info = (await docker.getNetwork(row.name).inspect()) as DockerNetworkInfo;
+	} catch (error) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				error instanceof Error
+					? error.message
+					: "Failed to inspect Docker network",
+			cause: error,
+		});
+	}
+
+	const [updated] = await db
+		.update(network)
+		.set(mapDockerNetworkToRow(info, organizationId, row.serverId))
+		.where(eq(network.networkId, networkId))
+		.returning();
+
+	if (!updated) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Network not found",
+		});
+	}
+
+	return updated;
 };
 
 export const findNetworkById = async (networkId: string) => {
@@ -252,14 +320,12 @@ const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 
 	const docker = await getRemoteDocker(row.serverId ?? null);
 	try {
-		await docker.createNetwork({
+		const createOptions: NetworkCreateOptions = {
 			Name: row.name,
 			Driver: row.driver,
 			CheckDuplicate: true,
 			Internal: row.internal,
 			Attachable: row.attachable,
-			// EnableIPv4 is missing from dockerode's types but supported by
-			// the daemon (API >= 1.47); the body is sent as-is
 			EnableIPv4: row.enableIPv4,
 			EnableIPv6: row.enableIPv6,
 			Options: row.mtu
@@ -269,7 +335,13 @@ const createDockerNetworkFromRow = async (row: typeof network.$inferSelect) => {
 				Driver: ipam.driver || "default",
 				Config: ipamConfig.length > 0 ? ipamConfig : undefined,
 			},
-		} as Parameters<typeof docker.createNetwork>[0]);
+		};
+		const created = await docker.createNetwork(createOptions);
+
+		await db
+			.update(network)
+			.set({ dockerId: created.id })
+			.where(eq(network.networkId, row.networkId));
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",

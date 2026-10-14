@@ -147,7 +147,13 @@ export function TagSelector({
 								})}
 							</CommandGroup>
 							<div className="flex items-center justify-center p-2 border-t">
-								<HandleTag />
+								<HandleTag
+									onCreated={(tagId) => {
+										if (!selectedTags.includes(tagId)) {
+											onTagsChange([...selectedTags, tagId]);
+										}
+									}}
+								/>
 							</div>
 						</CommandList>
 					</Command>

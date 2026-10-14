@@ -45,13 +45,19 @@ function StatCard({
 	label,
 	value,
 	delta,
+	href,
 }: {
 	label: string;
 	value: string;
 	delta?: string;
+	href?: string;
 }) {
-	return (
-		<div className="rounded-xl border bg-background p-5 min-h-[140px] flex flex-col justify-between">
+	const content = (
+		<div
+			className={`rounded-xl border bg-background p-5 min-h-[140px] flex flex-col justify-between h-full ${
+				href ? "transition-colors hover:bg-muted/40 cursor-pointer" : ""
+			}`}
+		>
 			<span className="text-xs uppercase tracking-wider text-muted-foreground">
 				{label}
 			</span>
@@ -63,6 +69,16 @@ function StatCard({
 			</div>
 		</div>
 	);
+
+	if (href) {
+		return (
+			<Link href={href} className="block h-full">
+				{content}
+			</Link>
+		);
+	}
+
+	return content;
 }
 
 function StatusListCard({
@@ -182,6 +198,7 @@ export const ShowHome = () => {
 							label="Projects"
 							value={String(totals.projects)}
 							delta={`${totals.environments} ${totals.environments === 1 ? "environment" : "environments"}`}
+							href="/dashboard/projects"
 						/>
 						<StatCard
 							label="Services"
@@ -223,7 +240,7 @@ export const ShowHome = () => {
 							</div>
 							{canReadDeployments && (
 								<Link
-									href="/dashboard/deployments"
+									href="/dashboard/overview?tab=deployments"
 									className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 								>
 									view all →

@@ -40,8 +40,11 @@ const providerLabels = {
 	hashicorp: "HashiCorp Vault / OpenBao",
 	infisical: "Infisical",
 	aws: "AWS Secrets Manager",
+	"aws-parameter-store": "AWS Parameter Store",
 	doppler: "Doppler",
 	azure: "Azure Key Vault",
+	scaleway: "Scaleway Secret Manager",
+	phase: "Phase",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -55,7 +58,16 @@ const VaultProviderSchema = z
 				message:
 					"Only letters, numbers, dashes and underscores (used in ${{vault.<name>.<secret>}})",
 			}),
-		providerType: z.enum(["hashicorp", "infisical", "aws", "doppler", "azure"]),
+		providerType: z.enum([
+			"hashicorp",
+			"infisical",
+			"aws",
+			"aws-parameter-store",
+			"doppler",
+			"azure",
+			"scaleway",
+			"phase",
+		]),
 		url: z.string(),
 		token: z.string(),
 		namespace: z.string(),
@@ -69,6 +81,7 @@ const VaultProviderSchema = z
 		region: z.string(),
 		accessKeyId: z.string(),
 		secretAccessKey: z.string(),
+		parameterPath: z.string(),
 		serviceToken: z.string(),
 		awsEndpoint: z.string(),
 		vaultUri: z.string(),
@@ -77,6 +90,15 @@ const VaultProviderSchema = z
 		azureClientSecret: z.string(),
 		dopplerProject: z.string(),
 		dopplerConfig: z.string(),
+		scalewayRegion: z.string(),
+		scalewayProjectId: z.string(),
+		scalewaySecretKey: z.string(),
+		scalewayApiUrl: z.string(),
+		phaseToken: z.string(),
+		phaseAppId: z.string(),
+		phaseEnv: z.string(),
+		phasePath: z.string(),
+		phaseApiUrl: z.string(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -117,7 +139,8 @@ const VaultProviderSchema = z
 			});
 		}
 		if (
-			data.providerType === "aws" &&
+			(data.providerType === "aws" ||
+				data.providerType === "aws-parameter-store") &&
 			data.awsEndpoint &&
 			!isValidUrl(data.awsEndpoint)
 		) {
@@ -125,6 +148,28 @@ const VaultProviderSchema = z
 				code: z.ZodIssueCode.custom,
 				message: "Enter a valid URL",
 				path: ["awsEndpoint"],
+			});
+		}
+		if (
+			data.providerType === "aws-parameter-store" &&
+			data.parameterPath &&
+			!data.parameterPath.trim().startsWith("/")
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Parameter discovery path must start with /",
+				path: ["parameterPath"],
+			});
+		}
+		if (
+			data.providerType === "scaleway" &&
+			data.scalewayApiUrl &&
+			!isValidUrl(data.scalewayApiUrl)
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Enter a valid URL (e.g. https://api.scaleway.com)",
+				path: ["scalewayApiUrl"],
 			});
 		}
 		if (
@@ -136,6 +181,17 @@ const VaultProviderSchema = z
 				code: z.ZodIssueCode.custom,
 				message: "Enter a valid URL (e.g. https://app.infisical.com)",
 				path: ["siteUrl"],
+			});
+		}
+		if (
+			data.providerType === "phase" &&
+			data.phaseApiUrl &&
+			!isValidUrl(data.phaseApiUrl)
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Enter a valid URL (e.g. https://api.phase.dev)",
+				path: ["phaseApiUrl"],
 			});
 		}
 
@@ -159,12 +215,27 @@ const VaultProviderSchema = z
 				["accessKeyId", "Access Key ID is required"],
 				["secretAccessKey", "Secret Access Key is required"],
 			],
+			"aws-parameter-store": [
+				["region", "Region is required"],
+				["accessKeyId", "Access Key ID is required"],
+				["secretAccessKey", "Secret Access Key is required"],
+			],
 			doppler: [["serviceToken", "Service Token is required"]],
 			azure: [
 				["vaultUri", "Vault URI is required"],
 				["tenantId", "Tenant ID is required"],
 				["azureClientId", "Client ID is required"],
 				["azureClientSecret", "Client Secret is required"],
+			],
+			scaleway: [
+				["scalewayRegion", "Region is required"],
+				["scalewayProjectId", "Project ID is required"],
+				["scalewaySecretKey", "Secret Key is required"],
+			],
+			phase: [
+				["phaseToken", "Service Account REST API token is required"],
+				["phaseAppId", "App ID is required"],
+				["phaseEnv", "Environment is required"],
 			],
 		};
 
@@ -214,6 +285,7 @@ const defaultValues: VaultProviderForm = {
 	region: "",
 	accessKeyId: "",
 	secretAccessKey: "",
+	parameterPath: "",
 	serviceToken: "",
 	awsEndpoint: "",
 	vaultUri: "",
@@ -222,6 +294,15 @@ const defaultValues: VaultProviderForm = {
 	azureClientSecret: "",
 	dopplerProject: "",
 	dopplerConfig: "",
+	scalewayRegion: "fr-par",
+	scalewayProjectId: "",
+	scalewaySecretKey: "",
+	scalewayApiUrl: "https://api.scaleway.com",
+	phaseToken: "",
+	phaseAppId: "",
+	phaseEnv: "",
+	phasePath: "/",
+	phaseApiUrl: "https://api.phase.dev",
 	assignments: [],
 };
 
@@ -253,6 +334,15 @@ const buildConfig = (data: VaultProviderForm) => {
 				secretAccessKey: data.secretAccessKey,
 				endpoint: data.awsEndpoint || undefined,
 			};
+		case "aws-parameter-store":
+			return {
+				providerType: "aws-parameter-store" as const,
+				region: data.region,
+				accessKeyId: data.accessKeyId,
+				secretAccessKey: data.secretAccessKey,
+				endpoint: data.awsEndpoint || undefined,
+				parameterPath: data.parameterPath.trim() || undefined,
+			};
 		case "doppler":
 			return {
 				providerType: "doppler" as const,
@@ -267,6 +357,23 @@ const buildConfig = (data: VaultProviderForm) => {
 				tenantId: data.tenantId,
 				clientId: data.azureClientId,
 				clientSecret: data.azureClientSecret,
+			};
+		case "scaleway":
+			return {
+				providerType: "scaleway" as const,
+				region: data.scalewayRegion || "fr-par",
+				projectId: data.scalewayProjectId,
+				secretKey: data.scalewaySecretKey,
+				apiUrl: data.scalewayApiUrl || "https://api.scaleway.com",
+			};
+		case "phase":
+			return {
+				providerType: "phase" as const,
+				token: data.phaseToken,
+				appId: data.phaseAppId,
+				env: data.phaseEnv,
+				path: data.phasePath || "/",
+				apiUrl: data.phaseApiUrl || "https://api.phase.dev",
 			};
 	}
 };
@@ -366,11 +473,15 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					environmentSlug: provider.config.environmentSlug,
 					secretPath: provider.config.secretPath,
 				}),
-				...(provider.config.providerType === "aws" && {
+				...((provider.config.providerType === "aws" ||
+					provider.config.providerType === "aws-parameter-store") && {
 					region: provider.config.region,
 					accessKeyId: provider.config.accessKeyId,
 					secretAccessKey: provider.config.secretAccessKey,
 					awsEndpoint: provider.config.endpoint ?? "",
+				}),
+				...(provider.config.providerType === "aws-parameter-store" && {
+					parameterPath: provider.config.parameterPath ?? "",
 				}),
 				...(provider.config.providerType === "doppler" && {
 					serviceToken: provider.config.serviceToken,
@@ -382,6 +493,19 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					tenantId: provider.config.tenantId,
 					azureClientId: provider.config.clientId,
 					azureClientSecret: provider.config.clientSecret,
+				}),
+				...(provider.config.providerType === "scaleway" && {
+					scalewayRegion: provider.config.region,
+					scalewayProjectId: provider.config.projectId,
+					scalewaySecretKey: provider.config.secretKey,
+					scalewayApiUrl: provider.config.apiUrl,
+				}),
+				...(provider.config.providerType === "phase" && {
+					phaseToken: provider.config.token,
+					phaseAppId: provider.config.appId,
+					phaseEnv: provider.config.env,
+					phasePath: provider.config.path,
+					phaseApiUrl: provider.config.apiUrl,
 				}),
 			});
 		} else if (!vaultProviderId) {
@@ -667,7 +791,8 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 							</>
 						)}
 
-						{providerType === "aws" && (
+						{(providerType === "aws" ||
+							providerType === "aws-parameter-store") && (
 							<>
 								<FormField
 									control={form.control}
@@ -725,12 +850,44 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<FormDescription>
-									Reference format:{" "}
-									<code>{"${{vault.<name>.secret-name}}"}</code> or{" "}
-									<code>{"${{vault.<name>.secret-name:field}}"}</code> for JSON
-									secrets
-								</FormDescription>
+								{providerType === "aws-parameter-store" && (
+									<FormField
+										control={form.control}
+										name="parameterPath"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Discovery path (optional)</FormLabel>
+												<FormControl>
+													<Input placeholder="/production/my-app" {...field} />
+												</FormControl>
+												<FormDescription>
+													Limits parameter browsing and autocomplete to this
+													hierarchy. IAM permissions remain the security
+													boundary.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+								{providerType === "aws" ? (
+									<FormDescription>
+										Reference format:{" "}
+										<code>{"${{vault.<name>.secret-name}}"}</code> or{" "}
+										<code>{"${{vault.<name>.secret-name:field}}"}</code> for
+										JSON secrets
+									</FormDescription>
+								) : (
+									<FormDescription>
+										Reference format:{" "}
+										<code>{"${{vault.<name>./path/to/parameter}}"}</code>.
+										SecureString parameters are decrypted automatically.
+										Resolution requires <code>ssm:GetParameters</code>.
+										Discovery requires <code>ssm:DescribeParameters</code>.
+										Customer-managed KMS keys also require{" "}
+										<code>kms:Decrypt</code>.
+									</FormDescription>
+								)}
 							</>
 						)}
 
@@ -859,8 +1016,209 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 							</>
 						)}
 
+						{providerType === "scaleway" && (
+							<>
+								<div className="grid grid-cols-2 gap-4">
+									<FormField
+										control={form.control}
+										name="scalewayRegion"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Region</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													value={field.value}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="fr-par" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{["fr-par", "nl-ams", "pl-waw"].map((region) => (
+															<SelectItem key={region} value={region}>
+																{region}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="scalewayProjectId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Project ID</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="00000000-0000-0000-0000-000000000000"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<FormField
+									control={form.control}
+									name="scalewaySecretKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												The secret key of an API key with the{" "}
+												<code>SecretManagerReadOnly</code> permission set
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="scalewayApiUrl"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API URL</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="https://api.scaleway.com"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormDescription>
+									Reference format:{" "}
+									<code>{"${{vault.<name>.secret-name}}"}</code>,{" "}
+									<code>{"${{vault.<name>.folder/secret-name}}"}</code> for
+									secrets in a path, or{" "}
+									<code>{"${{vault.<name>.secret-name:field}}"}</code> for JSON
+									secrets
+								</FormDescription>
+							</>
+						)}
+
+						{providerType === "phase" && (
+							<>
+								<FormField
+									control={form.control}
+									name="phaseToken"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Service Account REST API Token</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Use the REST API token from a Service Account — not the
+												CLI/SDK <code>pss_*</code> token. The Phase App must
+												have Server-side Encryption (SSE) enabled.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<div className="grid grid-cols-2 gap-4">
+									<FormField
+										control={form.control}
+										name="phaseAppId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>App ID</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="00000000-0000-0000-0000-000000000000"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="phaseEnv"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Environment</FormLabel>
+												<FormControl>
+													<Input placeholder="Production" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<FormField
+									control={form.control}
+									name="phasePath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret Path</FormLabel>
+											<FormControl>
+												<Input placeholder="/" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="phaseApiUrl"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API URL</FormLabel>
+											<FormControl>
+												<Input placeholder="https://api.phase.dev" {...field} />
+											</FormControl>
+											<FormDescription>
+												Self-hosted Phase defaults to{" "}
+												<code>{"${HTTP_PROTOCOL}${HOST}/service/public"}</code>
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormDescription>
+									Reference format:{" "}
+									<code>{"${{vault.<name>.SECRET_KEY}}"}</code>
+								</FormDescription>
+							</>
+						)}
+
 						<div className="flex flex-col gap-2 rounded-lg border p-3">
-							<FormLabel>Access</FormLabel>
+							<div className="flex flex-row items-center justify-between">
+								<FormLabel>Access</FormLabel>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-xs"
+									onClick={() =>
+										setAssignments(
+											assignments.length === orgProjects?.length
+												? []
+												: (orgProjects ?? []).map((project) => ({
+														projectId: project.projectId,
+														environmentIds: [],
+													})),
+										)
+									}
+								>
+									{assignments.length === orgProjects?.length
+										? "Clear all"
+										: "Access all"}
+								</Button>
+							</div>
 							<FormDescription>
 								This provider can only be referenced from the selected projects.
 								Pick environments to narrow it further — none selected means all

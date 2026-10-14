@@ -46,6 +46,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { COMPOSE_REDEPLOY_TOAST, ComposeRedeployAlert } from "./redeploy-hint";
 
 export type CacheType = "fetch" | "cache";
 
@@ -158,7 +159,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			domainId,
 		},
 		{
-			enabled: !!domainId,
+			enabled: isOpen && !!domainId,
 		},
 	);
 
@@ -169,7 +170,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 						applicationId: id,
 					},
 					{
-						enabled: !!id,
+						enabled: isOpen && !!id,
 					},
 				)
 			: type === "compose"
@@ -178,7 +179,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 							composeId: id,
 						},
 						{
-							enabled: !!id,
+							enabled: isOpen && !!id,
 						},
 					)
 				: api.externalUpstream.one.useQuery(
@@ -186,7 +187,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 							externalUpstreamId: id,
 						},
 						{
-							enabled: !!id,
+							enabled: isOpen && !!id,
 						},
 					);
 
@@ -198,9 +199,14 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		api.domain.generateDomain.useMutation();
 
 	const { data: canGenerateTraefikMeDomains } =
-		api.domain.canGenerateTraefikMeDomains.useQuery({
-			serverId: serviceData?.serverId || "",
-		});
+		api.domain.canGenerateTraefikMeDomains.useQuery(
+			{
+				serverId: serviceData?.serverId || "",
+			},
+			{
+				enabled: isOpen,
+			},
+		);
 
 	const {
 		data: services,
@@ -215,7 +221,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		{
 			retry: false,
 			refetchOnWindowFocus: false,
-			enabled: type === "compose" && !!id,
+			enabled: isOpen && type === "compose" && !!id,
 		},
 	);
 
@@ -318,7 +324,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async () => {
-				toast.success(dictionary.success);
+				toast.success(
+					dictionary.success,
+					data.domainType === "compose"
+						? { description: COMPOSE_REDEPLOY_TOAST }
+						: undefined,
+				);
 
 				if (data.domainType === "application") {
 					await utils.domain.byApplicationId.invalidate({
@@ -362,17 +373,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
-				{type === "compose" && (
-					<AlertBlock type="info" className="mb-4">
-						Whenever you make changes to domains, remember to redeploy your
-						compose to apply the changes.
-					</AlertBlock>
-				)}
+				{type === "compose" && <ComposeRedeployAlert className="mb-4" />}
 				{isExternalUpstream && (
 					<AlertBlock type="info" className="mb-4">
 						Protocol, host, and port come from the upstream target URL. Domain
-						settings here only control the public host/path, TLS, and
-						middleware behavior.
+						settings here only control the public host/path, TLS, and middleware
+						behavior.
 					</AlertBlock>
 				)}
 
@@ -697,8 +703,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													<FormLabel>Container Port</FormLabel>
 													<FormDescription>
 														The port where your application is running inside
-														the container (e.g., 3000 for Node.js, 80 for
-														Nginx, 8080 for Java)
+														the container (e.g., 3000 for Node.js, 80 for Nginx,
+														8080 for Java)
 													</FormDescription>
 													<FormControl>
 														<NumberInput placeholder={"3000"} {...field} />

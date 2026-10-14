@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
 	queueAdd: vi.fn(),
 	verify: vi.fn(),
 	shouldDeploy: vi.fn(),
+	createPreviewDeployment: vi.fn(),
+	findPreviewDeploymentByApplicationId: vi.fn(),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -64,10 +66,11 @@ vi.mock("@dokploy/server", () => ({
 	IS_CLOUD: false,
 	shouldDeploy: mocks.shouldDeploy,
 	checkUserRepositoryPermissions: vi.fn(),
-	createPreviewDeployment: vi.fn(),
+	createPreviewDeployment: mocks.createPreviewDeployment,
 	createSecurityBlockedComment: vi.fn(),
 	findGithubById: vi.fn(),
-	findPreviewDeploymentByApplicationId: vi.fn(),
+	findPreviewDeploymentByApplicationId:
+		mocks.findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	getBitbucketHeaders: vi.fn(() => ({})),
 	removePreviewDeployment: vi.fn(),
@@ -319,5 +322,159 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(mocks.queueAdd).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
+	});
+});
+
+describe("GitHub app webhook preview deployments", () => {
+	const createApplication = (
+		overrides: Record<string, unknown> = {},
+	): Record<string, unknown> => ({
+		applicationId: "application-id",
+		name: "my-app",
+		serverId: null,
+		previewLabels: [],
+		previewLimit: 3,
+		previewDeployments: [],
+		previewRequireCollaboratorPermissions: false,
+		...overrides,
+	});
+
+	const createPreviewDeployments = (total: number) =>
+		Array.from({ length: total }, (_, index) => ({
+			previewDeploymentId: `existing-preview-${index}`,
+		}));
+
+	const createPullRequestRequest = (action: string) =>
+		({
+			headers: {
+				"x-hub-signature-256": "sha256=test-signature",
+				"x-github-event": "pull_request",
+			},
+			body: {
+				installation: {
+					id: 12345,
+				},
+				action,
+				pull_request: {
+					id: 987,
+					number: 42,
+					title: "feat: add preview",
+					html_url: "https://github.com/agentHits/dokploy/pull/42",
+					labels: [],
+					user: {
+						login: "agentHits",
+					},
+					head: {
+						ref: "feature",
+						sha: "abc123",
+					},
+					base: {
+						ref: "main",
+					},
+				},
+				repository: {
+					name: "dokploy",
+					owner: {
+						login: "agentHits",
+					},
+				},
+			},
+		}) as unknown as NextApiRequest;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.githubFindFirst.mockResolvedValue({
+			githubId: "github-provider-id",
+			githubInstallationId: 12345,
+			githubWebhookSecret: "webhook-secret",
+		});
+		mocks.verify.mockResolvedValue(true);
+		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.createPreviewDeployment.mockResolvedValue({
+			previewDeploymentId: "new-preview-id",
+		});
+		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue(undefined);
+	});
+
+	it("redeploys an existing preview even when the limit is reached", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({
+				previewLimit: 2,
+				previewDeployments: createPreviewDeployments(3),
+			}),
+		]);
+		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue({
+			previewDeploymentId: "existing-preview-0",
+		});
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("synchronize"), res);
+
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "application-id",
+				applicationType: "application-preview",
+				previewDeploymentId: "existing-preview-0",
+				type: "deploy",
+			}),
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("does not create a new preview once the limit is reached", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({
+				previewLimit: 2,
+				previewDeployments: createPreviewDeployments(2),
+			}),
+		]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
+	it("falls back to the default limit when none is configured", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({
+				previewLimit: null,
+				previewDeployments: createPreviewDeployments(2),
+			}),
+		]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledWith(
+			expect.objectContaining({
+				applicationId: "application-id",
+				branch: "feature",
+				pullRequestId: 987,
+				pullRequestNumber: 42,
+			}),
+		);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "application-id",
+				applicationType: "application-preview",
+				previewDeploymentId: "new-preview-id",
+				type: "deploy",
+			}),
+			expect.objectContaining({
+				removeOnComplete: true,
+				removeOnFail: true,
+			}),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
 	});
 });

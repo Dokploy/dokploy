@@ -26,6 +26,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { WhitelabelingPreview } from "./whitelabeling-preview";
@@ -36,20 +37,42 @@ const safeUrlField = z
 		message: "Only http:// and https:// URLs are allowed",
 	});
 
-const formSchema = z.object({
-	appName: z.string(),
-	appDescription: z.string(),
-	logoUrl: safeUrlField,
-	faviconUrl: safeUrlField,
-	customCss: z.string(),
-	loginLogoUrl: safeUrlField,
-	supportUrl: safeUrlField,
-	docsUrl: safeUrlField,
-	errorPageTitle: z.string(),
-	errorPageDescription: z.string(),
-	metaTitle: z.string(),
-	footerText: z.string(),
-});
+const formSchema = z
+	.object({
+		appName: z.string(),
+		appDescription: z.string(),
+		logoUrl: safeUrlField,
+		faviconUrl: safeUrlField,
+		customCss: z.string(),
+		loginLogoUrl: safeUrlField,
+		supportUrl: safeUrlField,
+		docsUrl: safeUrlField,
+		errorPageTitle: z.string(),
+		errorPageDescription: z.string(),
+		footerText: z.string(),
+		ogImageUrl: safeUrlField,
+		logoLightUrl: z.string(),
+		loginLogoLightUrl: z.string(),
+		faviconLightUrl: z.string(),
+		dualModeBranding: z.boolean(),
+	})
+	.superRefine((data, ctx) => {
+		if (!data.dualModeBranding) return;
+		for (const field of [
+			"logoLightUrl",
+			"loginLogoLightUrl",
+			"faviconLightUrl",
+		] as const) {
+			const val = data[field];
+			if (val !== "" && !/^https?:\/\//i.test(val)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Only http:// and https:// URLs are allowed",
+					path: [field],
+				});
+			}
+		}
+	});
 
 type FormSchema = z.infer<typeof formSchema>;
 
@@ -193,8 +216,12 @@ export function WhitelabelingSettings() {
 			docsUrl: "",
 			errorPageTitle: "",
 			errorPageDescription: "",
-			metaTitle: "",
 			footerText: "",
+			ogImageUrl: "",
+			logoLightUrl: "",
+			loginLogoLightUrl: "",
+			faviconLightUrl: "",
+			dualModeBranding: false,
 		},
 		resolver: zodResolver(formSchema),
 	});
@@ -212,8 +239,12 @@ export function WhitelabelingSettings() {
 				docsUrl: data.docsUrl ?? "",
 				errorPageTitle: data.errorPageTitle ?? "",
 				errorPageDescription: data.errorPageDescription ?? "",
-				metaTitle: data.metaTitle ?? "",
 				footerText: data.footerText ?? "",
+				ogImageUrl: data.ogImageUrl ?? "",
+				logoLightUrl: data.logoLightUrl ?? "",
+				loginLogoLightUrl: data.loginLogoLightUrl ?? "",
+				faviconLightUrl: data.faviconLightUrl ?? "",
+				dualModeBranding: data.dualModeBranding ?? false,
 			});
 		}
 	}, [data, form]);
@@ -242,8 +273,12 @@ export function WhitelabelingSettings() {
 				docsUrl: values.docsUrl || null,
 				errorPageTitle: values.errorPageTitle || null,
 				errorPageDescription: values.errorPageDescription || null,
-				metaTitle: values.metaTitle || null,
 				footerText: values.footerText || null,
+				ogImageUrl: values.ogImageUrl || null,
+				logoLightUrl: values.logoLightUrl || null,
+				loginLogoLightUrl: values.loginLogoLightUrl || null,
+				faviconLightUrl: values.faviconLightUrl || null,
+				dualModeBranding: values.dualModeBranding,
 			},
 		})
 			.then(async () => {
@@ -388,7 +423,133 @@ export function WhitelabelingSettings() {
 									</FormItem>
 								)}
 							/>
+
+							<FormField
+								control={form.control}
+								name="ogImageUrl"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>OG Image URL</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="https://example.com/og.png"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Open Graph image used for link previews on social media
+											and messaging platforms. Recommended size: 1200x630px.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 						</CardContent>
+					</Card>
+
+					{/* Light Mode Logos Section */}
+					<Card className="bg-transparent">
+						<CardHeader>
+							<div className="flex items-center justify-between">
+								<div className="flex flex-col gap-1.5">
+									<CardTitle>Light Mode Logos</CardTitle>
+									<CardDescription>
+										Use separate logos for light and dark themes. When enabled,
+										the logos in Branding are used for dark mode.
+									</CardDescription>
+								</div>
+								<FormField
+									control={form.control}
+									name="dualModeBranding"
+									render={({ field }) => (
+										<FormItem>
+											<FormControl>
+												<Switch
+													aria-label="Enable light mode logos"
+													checked={field.value}
+													onCheckedChange={(checked) => {
+														field.onChange(checked);
+														if (!checked) {
+															form.clearErrors([
+																"logoLightUrl",
+																"loginLogoLightUrl",
+																"faviconLightUrl",
+															]);
+														}
+													}}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						</CardHeader>
+						<div
+							className="grid transition-all duration-300 ease-in-out"
+							style={{
+								gridTemplateRows: form.watch("dualModeBranding")
+									? "1fr"
+									: "0fr",
+							}}
+						>
+							<div className="overflow-hidden">
+								<CardContent className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="logoLightUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Logo URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://example.com/logo-light.svg"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="loginLogoLightUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Login Page Logo URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://example.com/login-logo-light.svg"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="faviconLightUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Favicon URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://example.com/favicon-light.ico"
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription>
+													Follows the browser/OS theme, not the website theme.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</CardContent>
+							</div>
+						</div>
 					</Card>
 
 					{/* Appearance Section */}
@@ -441,32 +602,15 @@ export function WhitelabelingSettings() {
 						</CardContent>
 					</Card>
 
-					{/* Metadata & Links Section */}
+					{/* Links Section */}
 					<Card className="bg-transparent">
 						<CardHeader>
-							<CardTitle>Metadata & Links</CardTitle>
+							<CardTitle>Links</CardTitle>
 							<CardDescription>
-								Customize the page title, footer text, and sidebar links.
+								Customize the footer text and sidebar links.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="metaTitle"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Page Title</FormLabel>
-										<FormControl>
-											<Input placeholder="Dokploy" {...field} />
-										</FormControl>
-										<FormDescription>
-											Browser tab title. Defaults to "Dokploy" if empty.
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
 							<FormField
 								control={form.control}
 								name="footerText"

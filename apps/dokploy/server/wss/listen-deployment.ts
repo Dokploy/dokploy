@@ -33,6 +33,11 @@ export const setupDeploymentLogsWebSocketServer = (
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
 
+		// Client may have disconnected during the await; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		// Generate unique connection ID for tracking
 		const connectionId = `deployment-logs-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 		if (!logPath) {
@@ -54,9 +59,32 @@ export const setupDeploymentLogsWebSocketServer = (
 		let tailProcess: ReturnType<typeof spawn> | null = null;
 		let sshClient: Client | null = null;
 
+		// `killed` is set once a signal is sent, not when the process exits.
+		const isTailRunning = () =>
+			tailProcess !== null &&
+			tailProcess.exitCode === null &&
+			tailProcess.signalCode === null;
+
+		const stopTailProcess = () => {
+			if (!isTailRunning()) {
+				return;
+			}
+			tailProcess!.kill("SIGTERM");
+			// Force kill after a timeout if it doesn't terminate
+			setTimeout(() => {
+				if (isTailRunning()) {
+					tailProcess!.kill("SIGKILL");
+				}
+			}, 1000);
+		};
+
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
+
+				if (ws.readyState !== ws.OPEN) {
+					return;
+				}
 
 				if (server.organizationId !== session.activeOrganizationId) {
 					ws.close();
@@ -155,30 +183,11 @@ export const setupDeploymentLogsWebSocketServer = (
 					}
 				});
 
-				ws.on("close", () => {
-					if (tailProcess && !tailProcess.killed) {
-						tailProcess.kill("SIGTERM");
-						// Force kill after a timeout if it doesn't terminate
-						setTimeout(() => {
-							if (tailProcess && !tailProcess.killed) {
-								tailProcess.kill("SIGKILL");
-							} else {
-							}
-						}, 1000);
-					} else {
-					}
-				});
+				ws.on("close", stopTailProcess);
 			}
 		} catch (error) {
 			// Clean up resources on error
-			if (tailProcess && !tailProcess.killed) {
-				tailProcess.kill("SIGTERM");
-				setTimeout(() => {
-					if (tailProcess && !tailProcess.killed) {
-						tailProcess.kill("SIGKILL");
-					}
-				}, 1000);
-			}
+			stopTailProcess();
 			if (sshClient) {
 				sshClient.end();
 			}

@@ -1,4 +1,3 @@
-import DOMPurify from "dompurify";
 import { CircuitBoard, GlobeIcon, Pencil, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +13,7 @@ import { Dropzone } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
 import { type BundledIcon, bundledIcons } from "@/lib/bundled-icons";
 import { api } from "@/utils/api";
+import { sanitizeSvg } from "@/utils/sanitize-svg";
 
 interface ShowIconSettingsProps {
 	serviceId: string;
@@ -87,15 +87,6 @@ export const ShowIconSettings = ({
 		} catch (_error) {
 			toast.error("Error removing icon");
 		}
-	};
-
-	const sanitizeSvg = (svgContent: string): string | null => {
-		const clean = DOMPurify.sanitize(svgContent, {
-			USE_PROFILES: { svg: true, svgFilters: true },
-			ADD_TAGS: ["use"],
-		});
-		if (!clean) return null;
-		return `data:image/svg+xml;base64,${btoa(clean)}`;
 	};
 
 	const handleFileUpload = async (files: FileList | null) => {

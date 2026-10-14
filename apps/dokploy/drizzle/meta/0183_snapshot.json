@@ -1,5 +1,5 @@
 {
-  "id": "30449e2e-f777-47f0-94c0-a9eab312f73b",
+  "id": "2f8c958b-44a9-4640-9c16-e23439feaf7f",
   "prevId": "5e30a561-5613-45cc-969f-9a5ec232f983",
   "version": "7",
   "dialect": "postgresql",
@@ -3303,12 +3303,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "externalUpstreamId": {
-          "name": "externalUpstreamId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "previewDeploymentId": {
           "name": "previewDeploymentId",
           "type": "text",
@@ -3350,6 +3344,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
       "indexes": {},
@@ -3376,19 +3377,6 @@
           ],
           "columnsTo": [
             "applicationId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "domain_externalUpstreamId_externalUpstream_externalUpstreamId_fk": {
-          "name": "domain_externalUpstreamId_externalUpstream_externalUpstreamId_fk",
-          "tableFrom": "domain",
-          "tableTo": "externalUpstream",
-          "columnsFrom": [
-            "externalUpstreamId"
-          ],
-          "columnsTo": [
-            "externalUpstreamId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3480,117 +3468,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.externalUpstream": {
-      "name": "externalUpstream",
-      "schema": "",
-      "columns": {
-        "externalUpstreamId": {
-          "name": "externalUpstreamId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "appName": {
-          "name": "appName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "targetUrl": {
-          "name": "targetUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "passHostHeader": {
-          "name": "passHostHeader",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "applicationStatus": {
-          "name": "applicationStatus",
-          "type": "applicationStatus",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'idle'"
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "environmentId": {
-          "name": "environmentId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serverId": {
-          "name": "serverId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "externalUpstream_environmentId_environment_environmentId_fk": {
-          "name": "externalUpstream_environmentId_environment_environmentId_fk",
-          "tableFrom": "externalUpstream",
-          "tableTo": "environment",
-          "columnsFrom": [
-            "environmentId"
-          ],
-          "columnsTo": [
-            "environmentId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "externalUpstream_serverId_server_serverId_fk": {
-          "name": "externalUpstream_serverId_server_serverId_fk",
-          "tableFrom": "externalUpstream",
-          "tableTo": "server",
-          "columnsFrom": [
-            "serverId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "externalUpstream_appName_unique": {
-          "name": "externalUpstream_appName_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "appName"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -8837,20 +8714,6 @@
           "notNull": true,
           "default": false
         },
-        "externalUpstreamsEnabled": {
-          "name": "externalUpstreamsEnabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "externalUpstreamBlockedCidrs": {
-          "name": "externalUpstreamBlockedCidrs",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "ARRAY['127.0.0.0/8','169.254.0.0/16','0.0.0.0/8','::1/128','fe80::/10']::text[]"
-        },
         "buildsConcurrency": {
           "name": "buildsConcurrency",
           "type": "integer",
@@ -8992,8 +8855,7 @@
       "values": [
         "compose",
         "application",
-        "preview",
-        "externalUpstream"
+        "preview"
       ]
     },
     "public.gitProviderType": {

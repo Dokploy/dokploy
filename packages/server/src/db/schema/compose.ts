@@ -97,6 +97,7 @@ export const compose = pgTable("compose", {
 	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
 		.notNull()
 		.default(false),
+	pullImages: boolean("pullImages").notNull().default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	icon: text("icon"),
@@ -217,6 +218,7 @@ export const apiCreateCompose = createSchema.pick({
 	appName: true,
 	serverId: true,
 	composeFile: true,
+	sourceType: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema
@@ -236,12 +238,14 @@ export const apiDeployCompose = z.object({
 	composeId: z.string().min(1),
 	title: z.string().optional(),
 	description: z.string().optional(),
+	freshVolumes: z.boolean().optional(),
 });
 
 export const apiRedeployCompose = z.object({
 	composeId: z.string().min(1),
 	title: z.string().optional(),
 	description: z.string().optional(),
+	freshVolumes: z.boolean().optional(),
 });
 
 export const apiDeleteCompose = z.object({

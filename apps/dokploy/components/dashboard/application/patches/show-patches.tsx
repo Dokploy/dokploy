@@ -84,9 +84,9 @@ export const ShowPatches = ({ id, type }: Props) => {
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row items-center justify-between">
-				<div>
-					<CardTitle>Patches</CardTitle>
+			<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
+				<div className="flex flex-col gap-1">
+					<CardTitle className="text-xl">Patches</CardTitle>
 					<CardDescription>
 						Apply code patches to your repository during build. Patches are
 						applied after cloning the repository and before building.

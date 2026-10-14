@@ -32,7 +32,14 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
 
-		const commandArgs = ["build", "-t", image, "-f", dockerFilePath, "."];
+		const commandArgs = [
+			"build",
+			"-t",
+			image,
+			"-f",
+			dockerFilePath,
+			dockerContextPath,
+		];
 
 		if (dockerBuildStage) {
 			commandArgs.push("--target", dockerBuildStage);

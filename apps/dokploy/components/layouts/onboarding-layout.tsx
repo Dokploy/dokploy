@@ -8,8 +8,10 @@ import { Button } from "../ui/button";
 
 interface Props {
 	children: React.ReactNode;
+	/** Overrides the default quote in the left panel (desktop only). */
+	leftPanel?: React.ReactNode;
 }
-export const OnboardingLayout = ({ children }: Props) => {
+export const OnboardingLayout = ({ children, leftPanel }: Props) => {
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const appName = whitelabeling?.appName || "Dokploy";
 	const appDescription =
@@ -17,6 +19,10 @@ export const OnboardingLayout = ({ children }: Props) => {
 		"\u201CThe Open Source alternative to Netlify, Vercel, Heroku.\u201D";
 	const logoUrl =
 		whitelabeling?.loginLogoUrl || whitelabeling?.logoUrl || undefined;
+	const logoLightUrl =
+		whitelabeling?.loginLogoLightUrl ||
+		whitelabeling?.logoLightUrl ||
+		undefined;
 
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
@@ -26,13 +32,19 @@ export const OnboardingLayout = ({ children }: Props) => {
 					href="/"
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
-					<Logo className="size-10" logoUrl={logoUrl} />
+					<Logo
+						className="size-10"
+						logoUrl={logoUrl}
+						logoLightUrl={logoLightUrl}
+					/>
 					{appName}
 				</Link>
 				<div className="relative z-20 mt-auto">
-					<blockquote className="space-y-2">
-						<p className="text-lg text-primary">{appDescription}</p>
-					</blockquote>
+					{leftPanel ?? (
+						<blockquote className="space-y-2">
+							<p className="text-lg text-primary">{appDescription}</p>
+						</blockquote>
+					)}
 				</div>
 			</div>
 			<div className="flex min-h-svh w-full flex-col">

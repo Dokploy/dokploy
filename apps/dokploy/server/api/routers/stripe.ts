@@ -7,7 +7,13 @@ import {
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import { z } from "zod";
-import { getCurrentPlan as getCurrentPlanForOrganization } from "@/server/utils/billing";
+import {
+	getBillingStatus,
+	getCurrentPlan as getCurrentPlanForOrganization,
+	getStripeClient,
+	TRIAL_DURATION_DAYS,
+	TRIAL_SERVER_LIMITS,
+} from "@/server/utils/billing";
 import {
 	type BillingTier,
 	getStripeItems,
@@ -34,6 +40,87 @@ export const stripeRouter = createTRPCRouter({
 	getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
 		return getCurrentPlanForOrganization(ctx.session.activeOrganizationId);
 	}),
+
+	getBillingStatus: protectedProcedure.query(async ({ ctx }) => {
+		return getBillingStatus(ctx.user.ownerId);
+	}),
+
+	startFreeTrial: adminProcedure
+		.input(z.object({ tier: z.enum(["hobby", "startup"]) }))
+		.mutation(async ({ ctx, input }) => {
+			if (!IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available in Dokploy Cloud",
+				});
+			}
+
+			const trialPriceId =
+				input.tier === "startup"
+					? STARTUP_BASE_PRICE_MONTHLY_ID
+					: HOBBY_PRICE_MONTHLY_ID;
+			if (!trialPriceId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Trials are not configured",
+				});
+			}
+
+			const owner = await findUserById(ctx.user.ownerId);
+			const billingStatus = await getBillingStatus(owner.id);
+
+			if (billingStatus.hasActiveAccess) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You already have an active plan or trial",
+				});
+			}
+
+			if (billingStatus.hasUsedTrial) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You have already used your free trial",
+				});
+			}
+
+			const stripe = getStripeClient();
+
+			let stripeCustomerId = owner.stripeCustomerId;
+			if (stripeCustomerId) {
+				const customer = await stripe.customers.retrieve(stripeCustomerId);
+				if (customer.deleted) {
+					stripeCustomerId = null;
+				}
+			}
+			if (!stripeCustomerId) {
+				const customer = await stripe.customers.create({ email: owner.email });
+				stripeCustomerId = customer.id;
+			}
+
+			const subscription = await stripe.subscriptions.create({
+				customer: stripeCustomerId,
+				items: [{ price: trialPriceId, quantity: 1 }],
+				trial_period_days: TRIAL_DURATION_DAYS,
+				trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+				metadata: {
+					source: "onboarding_trial",
+					adminId: owner.id,
+					tier: input.tier,
+				},
+			});
+
+			await updateUser(owner.id, {
+				stripeCustomerId,
+				stripeSubscriptionId: subscription.id,
+				serversQuantity: TRIAL_SERVER_LIMITS[input.tier],
+			});
+
+			return {
+				trialEndsAt: subscription.trial_end
+					? new Date(subscription.trial_end * 1000)
+					: null,
+			};
+		}),
 
 	getProducts: adminProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
@@ -80,33 +167,42 @@ export const stripeRouter = createTRPCRouter({
 		let currentPlan: CurrentPlan = "legacy";
 		let isAnnualCurrent = false;
 		let currentPriceAmount: number | null = null;
-		const activeSub = subscriptions.data[0];
-		if (activeSub) {
-			const priceIds = activeSub.items.data.map(
-				(item) => (item.price as Stripe.Price).id,
+		if (subscriptions.data.length > 0) {
+			const matchedSub = subscriptions.data.find((sub) =>
+				sub.items.data.some(
+					(item) =>
+						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_MONTHLY_ID ||
+						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_ANNUAL_ID,
+				),
 			);
-			if (
-				priceIds.some(
-					(id) =>
-						id === STARTUP_BASE_PRICE_MONTHLY_ID ||
-						id === STARTUP_BASE_PRICE_ANNUAL_ID,
-				)
-			) {
+			const hobbySub = subscriptions.data.find((sub) =>
+				sub.items.data.some(
+					(item) =>
+						(item.price as Stripe.Price).id === HOBBY_PRICE_MONTHLY_ID ||
+						(item.price as Stripe.Price).id === HOBBY_PRICE_ANNUAL_ID,
+				),
+			);
+			const legacySub = subscriptions.data.find((sub) =>
+				sub.items.data.some((item) =>
+					LEGACY_PRICE_IDS.includes((item.price as Stripe.Price).id),
+				),
+			);
+
+			const activeSub = matchedSub ?? hobbySub ?? legacySub;
+			if (matchedSub) {
 				currentPlan = "startup";
-			} else if (
-				priceIds.some(
-					(id) => id === HOBBY_PRICE_MONTHLY_ID || id === HOBBY_PRICE_ANNUAL_ID,
-				)
-			) {
+			} else if (hobbySub) {
 				currentPlan = "hobby";
-			} else if (priceIds.some((id) => LEGACY_PRICE_IDS.includes(id))) {
+			} else if (legacySub) {
 				currentPlan = "legacy";
 			}
-			const firstPrice = activeSub.items.data[0]?.price as
+
+			const firstPrice = activeSub?.items.data[0]?.price as
 				| Stripe.Price
 				| undefined;
 			isAnnualCurrent = firstPrice?.recurring?.interval === "year";
-			const totalCents = activeSub.items.data.reduce((sum, item) => {
+
+			const totalCents = (activeSub?.items.data ?? []).reduce((sum, item) => {
 				const price = item.price as Stripe.Price;
 				const amount = price.unit_amount ?? 0;
 				const qty = item.quantity ?? 1;
@@ -247,16 +343,25 @@ export const stripeRouter = createTRPCRouter({
 				{ expand: ["items.data.price"] },
 			);
 
-			if (subscription.status !== "active") {
+			if (
+				subscription.status !== "active" &&
+				subscription.status !== "trialing"
+			) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Subscription is not active",
 				});
 			}
 
+			const isTrialing = subscription.status === "trialing";
+			// Trials are capped at the plan's included servers; paid plans can scale.
+			const serverQuantity = isTrialing
+				? TRIAL_SERVER_LIMITS[input.tier]
+				: input.serverQuantity;
+
 			const newItems = getStripeItems(
 				input.tier as BillingTier,
-				input.serverQuantity,
+				serverQuantity,
 				input.isAnnual,
 			);
 			const currentItems = subscription.items.data;
@@ -282,7 +387,10 @@ export const stripeRouter = createTRPCRouter({
 
 			await stripe.subscriptions.update(owner.stripeSubscriptionId, {
 				items: updateItems,
-				proration_behavior: "create_prorations",
+				proration_behavior: isTrialing ? "none" : "create_prorations",
+				...(isTrialing && subscription.trial_end
+					? { trial_end: subscription.trial_end }
+					: {}),
 			});
 
 			return { ok: true };

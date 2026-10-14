@@ -32,6 +32,9 @@ const cases: Record<string, string> = {
 	APOSTROPHE: "it's a test",
 	UNICODE: "héllo wörld 日本語 🚀",
 	MULTILINE_PEM: "-----BEGIN KEY-----\nabc123\n-----END KEY-----",
+	APP_URL: "https://example.com",
+	ASSET_URL: "https://example.com",
+	DB_HOST: "localhost",
 };
 
 // How each value must be typed in the UI so the (unchanged) dotenv input
@@ -46,9 +49,21 @@ const inputEncoding: Record<string, string> = {
 	APOSTROPHE: "it's a test",
 	UNICODE: "héllo wörld 日本語 🚀",
 	MULTILINE_PEM: '"-----BEGIN KEY-----\nabc123\n-----END KEY-----"',
+	APP_URL: "https://example.com",
+	ASSET_URL: '"${APP_URL}"',
+	DB_HOST: '"${UNDEFINED_HOST:-localhost}"',
 };
 
-describe("getCreateEnvFileCommand", () => {
+const hasDocker = () => {
+	try {
+		execFileSync("docker", ["info"], { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+describe.skipIf(!hasDocker())("getCreateEnvFileCommand", () => {
 	it("writes special environment values that Docker Compose reads back literally", () => {
 		mkdirSync(codePath, { recursive: true });
 

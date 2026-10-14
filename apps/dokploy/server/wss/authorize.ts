@@ -62,7 +62,8 @@ export const canAccessDockerOverWss = async (
 
 // Authorizes the host/server SSH terminal opened over a WebSocket. The local
 // host terminal is a root shell on the control-plane host, so it is restricted
-// to owner/admin. A remote server terminal is gated on server access.
+// to owner/admin. A remote server terminal needs server access plus
+// server.terminal.
 export const canAccessTerminalOverWss = async (
 	user: WssUser,
 	session: WssSession,
@@ -75,7 +76,11 @@ export const canAccessTerminalOverWss = async (
 			userId: user.id,
 			activeOrganizationId: session.activeOrganizationId,
 		});
-		return accessible.has(serverId);
+		if (!accessible.has(serverId)) return false;
+
+		return await hasPermission(buildCtx(user, session.activeOrganizationId), {
+			server: ["terminal"],
+		});
 	}
 
 	try {

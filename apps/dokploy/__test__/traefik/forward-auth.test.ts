@@ -37,6 +37,7 @@ const baseDomain: Domain = {
 	middlewares: null,
 	forwardAuthEnabled: false,
 	externalUpstreamId: null,
+	enabled: true,
 };
 
 describe("forwardAuthMiddlewareName", () => {
@@ -55,7 +56,11 @@ describe("forwardAuthMiddlewareName", () => {
 
 describe("createRouterConfig forward-auth wiring", () => {
 	test("does NOT add forward-auth middleware when no provider is linked", async () => {
-		const config = await createTraefikRouterConfig(app, baseDomain, "websecure");
+		const config = await createTraefikRouterConfig(
+			app,
+			baseDomain,
+			"websecure",
+		);
 		expect(config.middlewares).not.toContain(
 			forwardAuthMiddlewareName("my-app", 7),
 		);

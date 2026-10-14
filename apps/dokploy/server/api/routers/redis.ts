@@ -10,7 +10,7 @@ import {
 	findRedisById,
 	getAccessibleServerIds,
 	getContainerLogs,
-	getServiceContainerCommand,
+	getServiceContainer,
 	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -418,15 +418,15 @@ export const redisRouter = createTRPCRouter({
 			const rd = await findRedisById(redisId);
 			const { appName, serverId, databasePassword } = rd;
 
-			const containerCmd = getServiceContainerCommand(appName);
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'
-			`;
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
+			const command = `docker exec ${container.Id} redis-cli -a '${databasePassword}' CONFIG SET requirepass '${password}'`;
 
 			await db.transaction(async (tx) => {
 				await tx

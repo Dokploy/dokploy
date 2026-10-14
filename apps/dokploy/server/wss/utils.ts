@@ -63,6 +63,48 @@ export const isValidShell = (shell: string): boolean => {
 	return allowedShells.includes(shell);
 };
 
+/**
+ * Clamps cols/rows read from the client's initial connection query params
+ * to a sane range, falling back to the standard 80x24 default.
+ */
+export const parseTerminalSize = (
+	colsParam: string | null,
+	rowsParam: string | null,
+) => {
+	const cols = Number(colsParam);
+	const rows = Number(rowsParam);
+	return {
+		cols: Number.isInteger(cols) && cols > 0 && cols <= 1000 ? cols : 80,
+		rows: Number.isInteger(rows) && rows > 0 && rows <= 1000 ? rows : 24,
+	};
+};
+
+/**
+ * Terminal input and resize control messages share the same websocket
+ * channel. Resize messages are JSON envelopes; regular keystrokes never
+ * start with "{", so this distinguishes them without an extra channel.
+ */
+export const parseResizeMessage = (data: string) => {
+	if (!data.startsWith("{")) return null;
+	try {
+		const parsed = JSON.parse(data);
+		if (
+			parsed?.type === "resize" &&
+			Number.isInteger(parsed.cols) &&
+			Number.isInteger(parsed.rows) &&
+			parsed.cols > 0 &&
+			parsed.cols <= 1000 &&
+			parsed.rows > 0 &&
+			parsed.rows <= 1000
+		) {
+			return { cols: parsed.cols, rows: parsed.rows };
+		}
+	} catch {
+		return null;
+	}
+	return null;
+};
+
 export const getShell = () => {
 	if (IS_CLOUD) {
 		return "NO_AVAILABLE";

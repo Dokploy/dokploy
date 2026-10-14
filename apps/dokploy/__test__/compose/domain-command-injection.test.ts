@@ -33,6 +33,7 @@ const makeDomain = (serviceName: string) =>
 		https: false,
 		uniqueConfigKey: 1,
 		port: 3000,
+		enabled: true,
 	}) as any;
 
 // If the returned shell fragment is safe, parse() yields only string tokens.

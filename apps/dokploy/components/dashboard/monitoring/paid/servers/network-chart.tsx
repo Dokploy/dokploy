@@ -19,6 +19,11 @@ interface NetworkChartProps {
 	data: any[];
 }
 
+function formatNetworkGB(valueInMB: number) {
+	if (Number.isNaN(valueInMB)) return "0";
+	return (valueInMB / 1024).toFixed(1);
+}
+
 const chartConfig = {
 	networkIn: {
 		label: "Network In",
@@ -38,8 +43,8 @@ export function NetworkChart({ data }: NetworkChartProps) {
 			<CardHeader className="border-b py-5">
 				<CardTitle>Network</CardTitle>
 				<CardDescription>
-					Network Traffic: ↑ {latestData.networkOut} KB/s ↓{" "}
-					{latestData.networkIn} KB/s
+					Network Total: ↑ {formatNetworkGB(latestData.networkOut)} GB ↓{" "}
+					{formatNetworkGB(latestData.networkIn)} GB (since Boot)
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -83,7 +88,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							minTickGap={32}
 							tickFormatter={(value) => formatTimestamp(value)}
 						/>
-						<YAxis tickFormatter={(value) => `${value} KB/s`} />
+						<YAxis tickFormatter={(value) => `${formatNetworkGB(value)} GB`} />
 						<ChartTooltip
 							cursor={false}
 							content={({ active, payload, label }) => {
@@ -105,8 +110,8 @@ export function NetworkChart({ data }: NetworkChartProps) {
 														Network
 													</span>
 													<span className="font-bold">
-														↑ {data.networkOut} KB/s
-														<br />↓ {data.networkIn} KB/s
+														↑ {formatNetworkGB(data.networkOut)} GB
+														<br />↓ {formatNetworkGB(data.networkIn)} GB
 													</span>
 												</div>
 											</div>

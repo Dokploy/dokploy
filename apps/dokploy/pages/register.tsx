@@ -11,6 +11,7 @@ import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { SignInWithGithub } from "@/components/proprietary/auth/sign-in-with-github";
 import { SignInWithGoogle } from "@/components/proprietary/auth/sign-in-with-google";
+import { SignupShowcase } from "@/components/proprietary/auth/signup-showcase";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -116,6 +120,7 @@ const Register = ({ isCloud }: Props) => {
 			if (!isCloud) {
 				router.push("/");
 			} else {
+				pushToDataLayer("sign_up", { method: "email" });
 				setData(data);
 			}
 		}
@@ -131,6 +136,11 @@ const Register = ({ isCloud }: Props) => {
 								logoUrl={
 									whitelabeling?.loginLogoUrl ||
 									whitelabeling?.logoUrl ||
+									undefined
+								}
+								logoLightUrl={
+									whitelabeling?.loginLogoLightUrl ||
+									whitelabeling?.logoLightUrl ||
 									undefined
 								}
 							/>
@@ -294,9 +304,19 @@ const Register = ({ isCloud }: Props) => {
 export default Register;
 
 Register.getLayout = (page: ReactElement) => {
-	return <OnboardingLayout>{page}</OnboardingLayout>;
+	const isCloud = (page.props as Props).isCloud;
+	return (
+		<OnboardingLayout leftPanel={isCloud ? <SignupShowcase /> : undefined}>
+			{page}
+		</OnboardingLayout>
+	);
 };
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the onboarding logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	if (IS_CLOUD) {
 		const { user } = await validateRequest(context.req);
 
@@ -310,6 +330,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		}
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				isCloud: true,
 			},
 		};
@@ -326,6 +347,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	}
 	return {
 		props: {
+			trpcState: helpers.dehydrate(),
 			isCloud: false,
 		},
 	};

@@ -74,6 +74,7 @@ interface Props {
 	databaseType?: DatabaseType;
 	serverId?: string | null;
 	backupType?: "database" | "compose";
+	trigger?: React.ReactNode;
 }
 
 const RestoreBackupSchema = z
@@ -200,6 +201,7 @@ export const RestoreBackup = ({
 	databaseType,
 	serverId,
 	backupType = "database",
+	trigger,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -311,10 +313,12 @@ export const RestoreBackup = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">
-					<RotateCcw className="mr-2 size-4" />
-					Restore Backup
-				</Button>
+				{trigger ?? (
+					<Button variant="outline">
+						<RotateCcw className="mr-2 size-4" />
+						Restore Backup
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
@@ -550,7 +554,10 @@ export const RestoreBackup = ({
 												value={field.value}
 												onValueChange={(value: DatabaseType) => {
 													field.onChange(value);
-													form.setValue("metadata", {});
+													form.setValue("metadata", {
+														serviceName:
+															form.getValues("metadata.serviceName") ?? "",
+													});
 												}}
 											>
 												<SelectTrigger>
@@ -577,7 +584,7 @@ export const RestoreBackup = ({
 											<div className="flex gap-2">
 												<Select
 													onValueChange={field.onChange}
-													value={field.value || undefined}
+													value={field.value ?? ""}
 												>
 													<FormControl>
 														<SelectTrigger>

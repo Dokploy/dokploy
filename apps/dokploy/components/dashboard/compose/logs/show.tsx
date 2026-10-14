@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
+import { resolveContainerSelection } from "@/components/dashboard/docker/logs/utils";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -52,14 +53,15 @@ export const ShowDockerLogsCompose = ({
 		},
 		{
 			enabled: !!appName,
+			refetchInterval: 5000,
 		},
 	);
 	const [containerId, setContainerId] = useState<string | undefined>();
 
 	useEffect(() => {
-		if (data && data?.length > 0) {
-			setContainerId(data[0]?.containerId);
-		}
+		setContainerId((currentContainerId) =>
+			resolveContainerSelection(currentContainerId, data),
+		);
 	}, [data]);
 
 	return (

@@ -14,6 +14,7 @@ import {
 	DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
 	validateBlockedCidrs,
 } from "../../utils/network/external-upstream";
+import { organization } from "./account";
 import { certificateType } from "./shared";
 
 export const webServerSettings = pgTable("webServerSettings", {
@@ -30,6 +31,14 @@ export const webServerSettings = pgTable("webServerSettings", {
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
+	telemetryProviderIds: text("telemetryProviderIds")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
+	vectorAgentOrganizationId: text("vectorAgentOrganizationId").references(
+		() => organization.id,
+		{ onDelete: "set null" },
+	),
 	// Metrics Configuration
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
@@ -90,8 +99,12 @@ export const webServerSettings = pgTable("webServerSettings", {
 			docsUrl: string | null;
 			errorPageTitle: string | null;
 			errorPageDescription: string | null;
-			metaTitle: string | null;
 			footerText: string | null;
+			ogImageUrl: string | null;
+			logoLightUrl: string | null;
+			loginLogoLightUrl: string | null;
+			faviconLightUrl: string | null;
+			dualModeBranding: boolean;
 		}>()
 		.default({
 			appName: null,
@@ -104,8 +117,12 @@ export const webServerSettings = pgTable("webServerSettings", {
 			docsUrl: null,
 			errorPageTitle: null,
 			errorPageDescription: null,
-			metaTitle: null,
 			footerText: null,
+			ogImageUrl: null,
+			logoLightUrl: null,
+			loginLogoLightUrl: null,
+			faviconLightUrl: null,
+			dualModeBranding: false,
 		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
@@ -145,64 +162,70 @@ const createSchema = createInsertSchema(webServerSettings, {
 	id: z.string().min(1),
 });
 
-export const apiUpdateWebServerSettings = createSchema.partial().extend({
-	serverIp: z.string().optional(),
-	certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
-	https: z.boolean().optional(),
-	host: z.string().optional(),
-	letsEncryptEmail: z.string().email().optional().nullable(),
-	sshPrivateKey: z.string().optional(),
-	enableDockerCleanup: z.boolean().optional(),
-	logCleanupCron: z.string().optional().nullable(),
-	metricsConfig: z
-		.object({
-			server: z.object({
-				type: z.enum(["Dokploy", "Remote"]),
-				refreshRate: z.number(),
-				port: z.number(),
-				token: z.string(),
-				urlCallback: z.string(),
-				retentionDays: z.number(),
-				cronJob: z.string(),
-				thresholds: z.object({
-					cpu: z.number(),
-					memory: z.number(),
+export const apiUpdateWebServerSettings = createSchema
+	.partial()
+	.extend({
+		serverIp: z.string().optional(),
+		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+		https: z.boolean().optional(),
+		host: z.string().optional(),
+		letsEncryptEmail: z.string().email().optional().nullable(),
+		sshPrivateKey: z.string().optional(),
+		enableDockerCleanup: z.boolean().optional(),
+		logCleanupCron: z.string().optional().nullable(),
+		metricsConfig: z
+			.object({
+				server: z.object({
+					type: z.enum(["Dokploy", "Remote"]),
+					refreshRate: z.number(),
+					port: z.number(),
+					token: z.string(),
+					urlCallback: z.string(),
+					retentionDays: z.number(),
+					cronJob: z.string(),
+					thresholds: z.object({
+						cpu: z.number(),
+						memory: z.number(),
+					}),
 				}),
-			}),
-			containers: z.object({
-				refreshRate: z.number(),
-				services: z.object({
-					include: z.array(z.string()),
-					exclude: z.array(z.string()),
+				containers: z.object({
+					refreshRate: z.number(),
+					services: z.object({
+						include: z.array(z.string()),
+						exclude: z.array(z.string()),
+					}),
 				}),
+			})
+			.optional(),
+		cleanupCacheApplications: z.boolean().optional(),
+		cleanupCacheOnPreviews: z.boolean().optional(),
+		cleanupCacheOnCompose: z.boolean().optional(),
+		remoteServersOnly: z.boolean().optional(),
+		externalUpstreamsEnabled: z.boolean().optional(),
+		externalUpstreamBlockedCidrs: z
+			.array(z.string().min(1))
+			.optional()
+			.default(DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS)
+			.superRefine((blockedCidrs, ctx) => {
+				try {
+					validateBlockedCidrs(blockedCidrs);
+				} catch (error) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message:
+							error instanceof Error
+								? error.message
+								: "Invalid blocked CIDR list",
+					});
+				}
 			}),
-		})
-		.optional(),
-	cleanupCacheApplications: z.boolean().optional(),
-	cleanupCacheOnPreviews: z.boolean().optional(),
-	cleanupCacheOnCompose: z.boolean().optional(),
-	remoteServersOnly: z.boolean().optional(),
-	externalUpstreamsEnabled: z.boolean().optional(),
-	externalUpstreamBlockedCidrs: z
-		.array(z.string().min(1))
-		.optional()
-		.default(DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS)
-		.superRefine((blockedCidrs, ctx) => {
-			try {
-				validateBlockedCidrs(blockedCidrs);
-			} catch (error) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message:
-						error instanceof Error
-							? error.message
-							: "Invalid blocked CIDR list",
-				});
-			}
-		}),
-	enforceSSO: z.boolean().optional(),
-	buildsConcurrency: z.number().int().min(1).max(100).optional(),
-});
+		enforceSSO: z.boolean().optional(),
+		buildsConcurrency: z.number().int().min(1).max(100).optional(),
+	})
+	.omit({
+		telemetryProviderIds: true,
+		vectorAgentOrganizationId: true,
+	});
 
 export const apiUpdateWebServerBuildsConcurrency = z.object({
 	buildsConcurrency: z.number().int().min(1).max(100),
@@ -254,8 +277,12 @@ export const whitelabelingConfigSchema = z.object({
 	docsUrl: safeUrl,
 	errorPageTitle: z.string().nullable(),
 	errorPageDescription: z.string().nullable(),
-	metaTitle: z.string().nullable(),
 	footerText: z.string().nullable(),
+	ogImageUrl: safeUrl,
+	logoLightUrl: safeUrl,
+	loginLogoLightUrl: safeUrl,
+	faviconLightUrl: safeUrl,
+	dualModeBranding: z.boolean(),
 });
 
 export const apiUpdateWhitelabeling = z.object({
