@@ -158,4 +158,31 @@ describe("OAuth Git provider submodule authentication", () => {
 		);
 		expect(command).not.toContain("gitea-token@");
 	});
+
+	it("normalizes Gitea URLs without a scheme when submodules are disabled", async () => {
+		mockFindGiteaById.mockResolvedValue({
+			giteaUrl: "gitea.example.com",
+			giteaInternalUrl: "gitea.internal/gitea",
+			accessToken: "gitea-token",
+			refreshToken: "gitea-refresh-token",
+			clientId: "gitea-client",
+			clientSecret: "gitea-secret",
+			expiresAt: Math.floor(Date.now() / 1000) + 3600,
+		});
+		const command = await cloneGiteaRepository({
+			appName: "gitea-app",
+			giteaBranch: "main",
+			giteaId: "gitea-provider",
+			giteaOwner: "team",
+			giteaRepository: "private-repository",
+			enableSubmodules: false,
+			serverId: null,
+			outputPathOverride: "/tmp/gitea-app",
+		});
+		const authorization = Buffer.from("oauth2:gitea-token").toString("base64");
+
+		expect(command).toContain(
+			`http.https://gitea.internal/gitea/.extraheader=Authorization: Basic ${authorization}`,
+		);
+	});
 });
