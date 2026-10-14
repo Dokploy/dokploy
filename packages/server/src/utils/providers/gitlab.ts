@@ -111,16 +111,16 @@ export type GitlabInfo =
 	| ComposeWithGitlab["gitlab"];
 
 const getGitlabCloneBaseUrl = (gitlab: GitlabInfo) =>
-	gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl || ""
+	gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl || "";
 
 const getGitlabRepoClone = (
 	gitlab: GitlabInfo,
 	gitlabPathNamespace: string | null,
 ) => {
-	const url = getGitlabCloneBaseUrl(gitlab).replace(/^https?:\/\//, "")
-	const repoClone = `${url.replace(/\/+$/, "")}/${gitlabPathNamespace}.git`
-	return repoClone
-}
+	const url = getGitlabCloneBaseUrl(gitlab).replace(/^https?:\/\//, "");
+	const repoClone = `${url.replace(/\/+$/, "")}/${gitlabPathNamespace}.git`;
+	return repoClone;
+};
 
 interface CloneGitlabRepository {
 	appName: string;
@@ -172,19 +172,16 @@ export const cloneGitlabRepository = async ({
 	const gitlabBaseUrl = getGitlabCloneBaseUrl(gitlab);
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
 	const cloneUrl = `${gitlabBaseUrl.startsWith("https://") ? "https" : "http"}://${repoClone}`;
-	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${gitlab?.accessToken ?? ""}`).toString("base64")}`
+	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${gitlab?.accessToken ?? ""}`).toString("base64")}`;
 	const cloneConfig = getGitCloneAuthConfig({
 		authorization,
 		authUrls: [gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl],
 		cloneBaseUrl: gitlabBaseUrl,
 		enableSubmodules,
-		sshHosts: getGitSshHosts(
-			gitlab?.gitlabUrl,
-			gitlab?.gitlabInternalUrl,
-		),
-	})
-	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`
-	command += `git ${cloneConfig} clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`
+		sshHosts: getGitSshHosts(gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl),
+	});
+	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 

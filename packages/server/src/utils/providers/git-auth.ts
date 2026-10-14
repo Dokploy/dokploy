@@ -1,13 +1,13 @@
 type GitCloneAuthConfig = {
-	authorization: string
-	authUrls?: Array<string | null | undefined>
-	cloneBaseUrl: string
-	enableSubmodules: boolean
-	sshHosts?: string[]
-}
+	authorization: string;
+	authUrls?: Array<string | null | undefined>;
+	cloneBaseUrl: string;
+	enableSubmodules: boolean;
+	sshHosts?: string[];
+};
 
 const quoteShellArgument = (value: string) =>
-	`'${value.replaceAll("'", "'\\''")}'`
+	`'${value.replaceAll("'", "'\\''")}'`;
 
 export const getGitSshHosts = (
 	...providerUrls: Array<string | null | undefined>
@@ -18,7 +18,7 @@ export const getGitSshHosts = (
 				.filter((url): url is string => !!url)
 				.map((url) => new URL(url).hostname),
 		),
-	)
+	);
 
 export const getGitCloneAuthConfig = ({
 	authorization,
@@ -28,19 +28,21 @@ export const getGitCloneAuthConfig = ({
 	sshHosts = [],
 }: GitCloneAuthConfig) => {
 	const getConfigBaseUrl = (url: string) => {
-		const parsedUrl = new URL(url)
-		const path = parsedUrl.pathname.replace(/\/+$/, "")
-		return `${parsedUrl.protocol}//${parsedUrl.host}${path}/`
-	}
-	const configBaseUrl = getConfigBaseUrl(cloneBaseUrl)
+		const parsedUrl = new URL(url);
+		const path = parsedUrl.pathname.replace(/\/+$/, "");
+		return `${parsedUrl.protocol}//${parsedUrl.host}${path}/`;
+	};
+	const configBaseUrl = getConfigBaseUrl(cloneBaseUrl);
 	const configAuthUrls = new Set(
 		[cloneBaseUrl, ...authUrls]
 			.filter((url): url is string => !!url)
 			.map(getConfigBaseUrl),
-	)
-	const config = Array.from(configAuthUrls, (url) =>
-		`-c ${quoteShellArgument(`http.${url}.extraheader=${authorization}`)}`,
-	)
+	);
+	const config = Array.from(
+		configAuthUrls,
+		(url) =>
+			`-c ${quoteShellArgument(`http.${url}.extraheader=${authorization}`)}`,
+	);
 
 	if (enableSubmodules) {
 		for (const host of new Set(sshHosts)) {
@@ -48,9 +50,9 @@ export const getGitCloneAuthConfig = ({
 				`-c ${quoteShellArgument(`url.${configBaseUrl}.insteadOf=git@${host}:`)}`,
 				`-c ${quoteShellArgument(`url.${configBaseUrl}.insteadOf=ssh://git@${host}/`)}`,
 				`-c ${quoteShellArgument(`url.${configBaseUrl}.insteadOf=ssh://git@${host}:22/`)}`,
-			)
+			);
 		}
 	}
 
-	return config.join(" ")
-}
+	return config.join(" ");
+};

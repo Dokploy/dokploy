@@ -173,14 +173,13 @@ export const cloneGiteaRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const giteaBaseUrl =
-		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl;
+	const giteaBaseUrl = giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl;
 	const cloneUrl = buildGiteaCloneUrl(
 		giteaBaseUrl,
 		giteaOwner!,
 		giteaRepository!,
 	);
-	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${giteaProvider.accessToken ?? ""}`).toString("base64")}`
+	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${giteaProvider.accessToken ?? ""}`).toString("base64")}`;
 	const cloneConfig = getGitCloneAuthConfig({
 		authorization,
 		authUrls: [giteaProvider.giteaUrl, giteaProvider.giteaInternalUrl],
@@ -190,10 +189,10 @@ export const cloneGiteaRepository = async ({
 			giteaProvider.giteaUrl,
 			giteaProvider.giteaInternalUrl,
 		),
-	})
+	});
 
-	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`
-	command += `git ${cloneConfig} clone --branch ${quote([String(giteaBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`
+	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(giteaBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 

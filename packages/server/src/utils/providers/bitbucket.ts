@@ -25,12 +25,14 @@ export type ComposeWithBitbucket = InferResultType<
 >;
 
 type BitbucketCloneProvider = {
-	apiToken?: string | null
-	bitbucketUsername?: string | null
-	appPassword?: string | null
-} | null
+	apiToken?: string | null;
+	bitbucketUsername?: string | null;
+	appPassword?: string | null;
+} | null;
 
-const getBitbucketCloneCredentials = (bitbucketProvider: BitbucketCloneProvider) => {
+const getBitbucketCloneCredentials = (
+	bitbucketProvider: BitbucketCloneProvider,
+) => {
 	if (!bitbucketProvider) {
 		throw new Error("Bitbucket provider is required");
 	}
@@ -39,7 +41,7 @@ const getBitbucketCloneCredentials = (bitbucketProvider: BitbucketCloneProvider)
 		return {
 			username: "x-bitbucket-api-token-auth",
 			password: bitbucketProvider.apiToken,
-		}
+		};
 	}
 
 	// For app passwords, use username:app_password format
@@ -51,16 +53,16 @@ const getBitbucketCloneCredentials = (bitbucketProvider: BitbucketCloneProvider)
 	return {
 		username: bitbucketProvider.bitbucketUsername,
 		password: bitbucketProvider.appPassword,
-	}
-}
+	};
+};
 
 const getBitbucketCloneAuthorization = (
 	bitbucketProvider: BitbucketCloneProvider,
 ) => {
 	const { username, password } =
-		getBitbucketCloneCredentials(bitbucketProvider)
-	return `Authorization: Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
-}
+		getBitbucketCloneCredentials(bitbucketProvider);
+	return `Authorization: Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+};
 
 export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 	if (bitbucketProvider.apiToken) {
@@ -143,9 +145,9 @@ export const cloneBitbucketRepository = async ({
 		cloneBaseUrl: "https://bitbucket.org",
 		enableSubmodules,
 		sshHosts: ["bitbucket.org"],
-	})
-	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`
-	command += `git ${cloneConfig} clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`
+	});
+	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 

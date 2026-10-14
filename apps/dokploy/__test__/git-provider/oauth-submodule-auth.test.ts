@@ -1,7 +1,7 @@
-import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket"
-import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea"
-import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
+import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
+import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
 	mockFindBitbucketById,
@@ -15,34 +15,34 @@ const {
 	mockFindGitlabById: vi.fn(),
 	mockUpdateGitea: vi.fn(),
 	mockUpdateGitlab: vi.fn(),
-}))
+}));
 
 vi.mock("@dokploy/server/services/bitbucket", () => ({
 	findBitbucketById: mockFindBitbucketById,
-}))
+}));
 
 vi.mock("@dokploy/server/services/gitea", () => ({
 	findGiteaById: mockFindGiteaById,
 	updateGitea: mockUpdateGitea,
-}))
+}));
 
 vi.mock("@dokploy/server/services/gitlab", () => ({
 	findGitlabById: mockFindGitlabById,
 	updateGitlab: mockUpdateGitlab,
-}))
+}));
 
 beforeEach(() => {
-	vi.clearAllMocks()
+	vi.clearAllMocks();
 	mockFindBitbucketById.mockResolvedValue({
 		apiToken: "bitbucket-token",
-	})
+	});
 	mockFindGitlabById.mockResolvedValue({
 		gitlabUrl: "https://gitlab.example.com",
 		gitlabInternalUrl: "https://gitlab.internal/gitlab",
 		accessToken: "gitlab-token",
 		refreshToken: "gitlab-refresh-token",
 		expiresAt: Math.floor(Date.now() / 1000) + 3600,
-	})
+	});
 	mockFindGiteaById.mockResolvedValue({
 		giteaUrl: "https://gitea.example.com",
 		giteaInternalUrl: "https://gitea.internal/gitea",
@@ -51,8 +51,8 @@ beforeEach(() => {
 		clientId: "gitea-client",
 		clientSecret: "gitea-secret",
 		expiresAt: Math.floor(Date.now() / 1000) + 3600,
-	})
-})
+	});
+});
 
 describe("OAuth Git provider submodule authentication", () => {
 	it("authenticates Bitbucket SSH submodules with the provider token", async () => {
@@ -65,25 +65,25 @@ describe("OAuth Git provider submodule authentication", () => {
 			enableSubmodules: true,
 			serverId: null,
 			outputPathOverride: "/tmp/bitbucket-app",
-		})
+		});
 		const authorization = Buffer.from(
 			"x-bitbucket-api-token-auth:bitbucket-token",
-		).toString("base64")
+		).toString("base64");
 
 		expect(command).toContain(
 			`http.https://bitbucket.org/.extraheader=Authorization: Basic ${authorization}`,
-		)
+		);
 		expect(command).toContain(
 			"url.https://bitbucket.org/.insteadOf=git@bitbucket.org:",
-		)
-		expect(command).not.toContain("bitbucket-token@")
-	})
+		);
+		expect(command).not.toContain("bitbucket-token@");
+	});
 
 	it("authenticates Bitbucket clones with an app password", async () => {
 		mockFindBitbucketById.mockResolvedValue({
 			bitbucketUsername: "bitbucket-user",
 			appPassword: "app-password",
-		})
+		});
 		const command = await cloneBitbucketRepository({
 			appName: "bitbucket-app",
 			bitbucketRepository: "private-repository",
@@ -93,16 +93,16 @@ describe("OAuth Git provider submodule authentication", () => {
 			enableSubmodules: true,
 			serverId: null,
 			outputPathOverride: "/tmp/bitbucket-app",
-		})
-		const authorization = Buffer.from(
-			"bitbucket-user:app-password",
-		).toString("base64")
+		});
+		const authorization = Buffer.from("bitbucket-user:app-password").toString(
+			"base64",
+		);
 
 		expect(command).toContain(
 			`http.https://bitbucket.org/.extraheader=Authorization: Basic ${authorization}`,
-		)
-		expect(command).not.toContain("app-password@")
-	})
+		);
+		expect(command).not.toContain("app-password@");
+	});
 
 	it("rewrites GitLab SSH URLs to the configured internal URL", async () => {
 		const input = {
@@ -115,21 +115,21 @@ describe("OAuth Git provider submodule authentication", () => {
 			enableSubmodules: true,
 			serverId: null,
 			outputPathOverride: "/tmp/gitlab-app",
-		}
-		const command = await cloneGitlabRepository(input)
-		const authorization = Buffer.from("oauth2:gitlab-token").toString("base64")
+		};
+		const command = await cloneGitlabRepository(input);
+		const authorization = Buffer.from("oauth2:gitlab-token").toString("base64");
 
 		expect(command).toContain(
 			`http.https://gitlab.internal/gitlab/.extraheader=Authorization: Basic ${authorization}`,
-		)
+		);
 		expect(command).toContain(
 			`http.https://gitlab.example.com/.extraheader=Authorization: Basic ${authorization}`,
-		)
+		);
 		expect(command).toContain(
 			"url.https://gitlab.internal/gitlab/.insteadOf=git@gitlab.example.com:",
-		)
-		expect(command).not.toContain("gitlab-token@")
-	})
+		);
+		expect(command).not.toContain("gitlab-token@");
+	});
 
 	it("rewrites Gitea SSH URLs to the configured internal URL", async () => {
 		const command = await cloneGiteaRepository({
@@ -141,18 +141,18 @@ describe("OAuth Git provider submodule authentication", () => {
 			enableSubmodules: true,
 			serverId: null,
 			outputPathOverride: "/tmp/gitea-app",
-		})
-		const authorization = Buffer.from("oauth2:gitea-token").toString("base64")
+		});
+		const authorization = Buffer.from("oauth2:gitea-token").toString("base64");
 
 		expect(command).toContain(
 			`http.https://gitea.internal/gitea/.extraheader=Authorization: Basic ${authorization}`,
-		)
+		);
 		expect(command).toContain(
 			`http.https://gitea.example.com/.extraheader=Authorization: Basic ${authorization}`,
-		)
+		);
 		expect(command).toContain(
 			"url.https://gitea.internal/gitea/.insteadOf=git@gitea.example.com:",
-		)
-		expect(command).not.toContain("gitea-token@")
-	})
-})
+		);
+		expect(command).not.toContain("gitea-token@");
+	});
+});
