@@ -29,6 +29,7 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
+	ScrollText,
 	Server,
 	ShieldCheck,
 	Smartphone,
@@ -373,6 +374,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
+		},
+		{
+			isSingle: true,
+			title: "Logs & Metrics",
+			url: "/dashboard/settings/logs-and-metrics",
+			icon: ScrollText,
+			isEnabled: ({ permissions }) => !!permissions?.telemetryProvider.read,
 		},
 		{
 			isSingle: true,
