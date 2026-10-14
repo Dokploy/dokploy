@@ -3,7 +3,10 @@ import { paths } from "@dokploy/server/constants";
 import type { apiFindGithubBranches } from "@dokploy/server/db/schema";
 import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
-import { getGitCloneAuthConfig } from "@dokploy/server/utils/providers/git-auth";
+import {
+	getGitCloneAuthConfig,
+	getGitSubmoduleUpdateCommand,
+} from "@dokploy/server/utils/providers/git-auth";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
@@ -240,7 +243,15 @@ export const cloneGithubRepository = async ({
 	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git ${cloneConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	if (enableSubmodules) {
+		command += `${getGitSubmoduleUpdateCommand({
+			cloneBaseUrl: cloneBase.origin,
+			gitCloneConfig: cloneConfig,
+			outputPath,
+			sshHosts: [cloneBase.host],
+		})};`;
+	}
 
 	return command;
 };

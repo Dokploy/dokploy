@@ -9,7 +9,10 @@ import {
 	findBitbucketById,
 } from "@dokploy/server/services/bitbucket";
 import type { InferResultType } from "@dokploy/server/types/with";
-import { getGitCloneAuthConfig } from "@dokploy/server/utils/providers/git-auth";
+import {
+	getGitCloneAuthConfig,
+	getGitSubmoduleUpdateCommand,
+} from "@dokploy/server/utils/providers/git-auth";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import type { z } from "zod";
@@ -147,7 +150,15 @@ export const cloneBitbucketRepository = async ({
 		sshHosts: ["bitbucket.org"],
 	});
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git ${cloneConfig} clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	if (enableSubmodules) {
+		command += `${getGitSubmoduleUpdateCommand({
+			cloneBaseUrl: "https://bitbucket.org",
+			gitCloneConfig: cloneConfig,
+			outputPath,
+			sshHosts: ["bitbucket.org"],
+		})};`;
+	}
 	return command;
 };
 

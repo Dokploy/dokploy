@@ -10,6 +10,7 @@ import type { InferResultType } from "@dokploy/server/types/with";
 import {
 	getGitCloneAuthConfig,
 	getGitSshHosts,
+	getGitSubmoduleUpdateCommand,
 } from "@dokploy/server/utils/providers/git-auth";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
@@ -181,7 +182,15 @@ export const cloneGitlabRepository = async ({
 		sshHosts: getGitSshHosts(gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl),
 	});
 	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
-	command += `git ${cloneConfig} clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	if (enableSubmodules) {
+		command += `${getGitSubmoduleUpdateCommand({
+			cloneBaseUrl: gitlabBaseUrl,
+			gitCloneConfig: cloneConfig,
+			outputPath,
+			sshHosts: getGitSshHosts(gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl),
+		})};`;
+	}
 	return command;
 };
 

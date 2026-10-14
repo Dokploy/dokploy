@@ -62,7 +62,7 @@ describe("GitHub repository clone authentication", () => {
 	it("rewrites GitHub SSH submodule URLs to authenticated HTTPS", async () => {
 		const command = await cloneCommand(true);
 
-		expect(command).toContain("--recurse-submodules");
+		expect(command).toContain("submodule update --init --depth 1");
 		expect(command).toContain(
 			"url.https://github.com/.insteadOf=git@github.com:",
 		);

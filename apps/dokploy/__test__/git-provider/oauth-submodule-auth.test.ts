@@ -73,6 +73,7 @@ describe("OAuth Git provider submodule authentication", () => {
 		expect(command).toContain(
 			`http.https://bitbucket.org/.extraheader=Authorization: Basic ${authorization}`,
 		);
+		expect(command).toContain("submodule update --init --depth 1");
 		expect(command).toContain(
 			"url.https://bitbucket.org/.insteadOf=git@bitbucket.org:",
 		);
@@ -125,6 +126,7 @@ describe("OAuth Git provider submodule authentication", () => {
 		expect(command).toContain(
 			`http.https://gitlab.example.com/.extraheader=Authorization: Basic ${authorization}`,
 		);
+		expect(command).toContain("submodule update --init --depth 1");
 		expect(command).toContain(
 			"url.https://gitlab.internal/gitlab/.insteadOf=git@gitlab.example.com:",
 		);
@@ -150,6 +152,7 @@ describe("OAuth Git provider submodule authentication", () => {
 		expect(command).toContain(
 			`http.https://gitea.example.com/.extraheader=Authorization: Basic ${authorization}`,
 		);
+		expect(command).toContain("submodule update --init --depth 1");
 		expect(command).toContain(
 			"url.https://gitea.internal/gitea/.insteadOf=git@gitea.example.com:",
 		);
