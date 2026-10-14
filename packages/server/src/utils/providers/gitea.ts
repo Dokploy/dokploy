@@ -6,6 +6,10 @@ import {
 	updateGitea,
 } from "@dokploy/server/services/gitea";
 import type { InferResultType } from "@dokploy/server/types/with";
+import {
+	getGitCloneAuthConfig,
+	getGitSshHosts,
+} from "@dokploy/server/utils/providers/git-auth";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 
@@ -99,14 +103,13 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 
 const buildGiteaCloneUrl = (
 	giteaUrl: string,
-	accessToken: string,
 	owner: string,
 	repository: string,
 ) => {
 	const protocol = giteaUrl.startsWith("http://") ? "http" : "https";
-	const baseUrl = giteaUrl.replace(/^https?:\/\//, "");
+	const baseUrl = giteaUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 	const repoClone = `${owner}/${repository}.git`;
-	const cloneUrl = `${protocol}://oauth2:${accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = `${protocol}://${baseUrl}/${repoClone}`;
 	return cloneUrl;
 };
 
@@ -170,15 +173,27 @@ export const cloneGiteaRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
+	const giteaBaseUrl =
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl;
 	const cloneUrl = buildGiteaCloneUrl(
-		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl,
-		giteaProvider.accessToken!,
+		giteaBaseUrl,
 		giteaOwner!,
 		giteaRepository!,
 	);
+	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${giteaProvider.accessToken ?? ""}`).toString("base64")}`
+	const cloneConfig = getGitCloneAuthConfig({
+		authorization,
+		authUrls: [giteaProvider.giteaUrl, giteaProvider.giteaInternalUrl],
+		cloneBaseUrl: giteaBaseUrl,
+		enableSubmodules,
+		sshHosts: getGitSshHosts(
+			giteaProvider.giteaUrl,
+			giteaProvider.giteaInternalUrl,
+		),
+	})
 
-	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(giteaBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`
+	command += `git ${cloneConfig} clone --branch ${quote([String(giteaBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`
 	return command;
 };
 

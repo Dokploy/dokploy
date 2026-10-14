@@ -3,6 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import type { apiFindGithubBranches } from "@dokploy/server/db/schema";
 import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
+import { getGitCloneAuthConfig } from "@dokploy/server/utils/providers/git-auth";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
@@ -177,27 +178,6 @@ export type ApplicationWithGithub = InferResultType<
 
 export type ComposeWithGithub = InferResultType<"compose", { github: true }>;
 
-const getGithubCloneConfig = (
-	token: string,
-	enableSubmodules: boolean,
-	cloneBase: URL,
-) => {
-	const cloneBaseUrl = `${cloneBase.protocol}//${cloneBase.host}`
-	const authorization = `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString("base64")}`
-	const config = [
-		`-c ${quote([`http.${cloneBaseUrl}/.extraheader=${authorization}`])}`,
-	]
-
-	if (enableSubmodules) {
-		config.push(
-			`-c ${quote([`url.${cloneBaseUrl}/.insteadOf=git@${cloneBase.host}:`])}`,
-			`-c ${quote([`url.${cloneBaseUrl}/.insteadOf=ssh://git@${cloneBase.host}/`])}`,
-		)
-	}
-
-	return config.join(" ")
-}
-
 interface CloneGithubRepository {
 	appName: string;
 	owner: string | null;
@@ -248,13 +228,19 @@ export const cloneGithubRepository = async ({
 	const token = await getGithubToken(octokit);
 	const cloneBase = new URL(normalizeGithubUrl(githubProvider.githubUrl));
 	const repoclone = `${cloneBase.host}/${owner}/${repository}.git`;
-	const cloneConfig = getGithubCloneConfig(token, enableSubmodules, cloneBase)
+	const authorization = `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString("base64")}`
+	const cloneConfig = getGitCloneAuthConfig({
+		authorization,
+		cloneBaseUrl: cloneBase.origin,
+		enableSubmodules,
+		sshHosts: [cloneBase.host],
+	})
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
-	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git ${cloneConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`
+	command += `git ${cloneConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`
 
 	return command;
 };

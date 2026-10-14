@@ -53,7 +53,7 @@ describe("GitHub repository clone authentication", () => {
 			`http.https://github.com/.extraheader=Authorization: Basic ${authorization}`,
 		)
 		expect(command).toContain(
-			"https://github.com/octo-org/private-repository.git",
+			"https\\://github.com/octo-org/private-repository.git",
 		)
 		expect(command).not.toContain("installation-token@")
 		expect(command).not.toContain("--recurse-submodules")
@@ -68,6 +68,9 @@ describe("GitHub repository clone authentication", () => {
 		)
 		expect(command).toContain(
 			"url.https://github.com/.insteadOf=ssh://git@github.com/",
+		)
+		expect(command).toContain(
+			"url.https://github.com/.insteadOf=ssh://git@github.com:22/",
 		)
 		expect(command).toContain("http.https://github.com/.extraheader=")
 	})
