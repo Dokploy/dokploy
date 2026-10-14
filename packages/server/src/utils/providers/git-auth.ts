@@ -10,7 +10,7 @@ const quoteShellArgument = (value: string) =>
 	`'${value.replaceAll("'", "'\\''")}'`;
 
 const normalizeProviderUrl = (url: string) =>
-	/^[a-z][a-z\d+.-]*:\/\//i.test(url) ? url : `https://${url}`
+	/^[a-z][a-z\d+.-]*:\/\//i.test(url) ? url : `https://${url}`;
 
 const getConfigBaseUrl = (url: string) => {
 	const parsedUrl = new URL(normalizeProviderUrl(url));
