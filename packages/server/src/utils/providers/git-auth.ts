@@ -9,8 +9,11 @@ type GitCloneAuthConfig = {
 const quoteShellArgument = (value: string) =>
 	`'${value.replaceAll("'", "'\\''")}'`;
 
+const normalizeProviderUrl = (url: string) =>
+	/^[a-z][a-z\d+.-]*:\/\//i.test(url) ? url : `https://${url}`
+
 const getConfigBaseUrl = (url: string) => {
-	const parsedUrl = new URL(url);
+	const parsedUrl = new URL(normalizeProviderUrl(url));
 	const path = parsedUrl.pathname.replace(/\/+$/, "");
 	return `${parsedUrl.protocol}//${parsedUrl.host}${path}/`;
 };
@@ -22,7 +25,7 @@ export const getGitSshHosts = (
 		new Set(
 			providerUrls
 				.filter((url): url is string => !!url)
-				.map((url) => new URL(url).hostname),
+				.map((url) => new URL(normalizeProviderUrl(url)).hostname),
 		),
 	);
 
