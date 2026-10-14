@@ -15,7 +15,16 @@ const app = {
 	security: [],
 	serverId: null,
 } as unknown as ApplicationNested;
-const domain = {
+const domain: Domain = {
+	applicationId: "app",
+	composeId: null,
+	createdAt: "",
+	customCertResolver: null,
+	customEntrypoint: null,
+	domainType: "application",
+	middlewares: [],
+	previewDeploymentId: null,
+	serviceName: null,
 	domainId: "domain",
 	uniqueConfigKey: 1,
 	host: "example.com",
@@ -37,7 +46,7 @@ const domain = {
 			excludedIPs: [],
 		},
 	],
-} as Domain;
+};
 
 beforeEach(() => {
 	cwd = fs.mkdtempSync(path.join(os.tmpdir(), "dokploy-access-lifecycle-"));
