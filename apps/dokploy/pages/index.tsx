@@ -364,6 +364,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									onComplete={(code) => onTwoFactorSubmit(undefined, code)}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
+									disabled={isTwoFactorLoading}
 									autoFocus
 								>
 									<InputOTPGroup className="gap-2">
