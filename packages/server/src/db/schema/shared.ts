@@ -18,6 +18,8 @@ export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
 export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
 
+export const redisEngine = pgEnum("redisEngine", ["redis", "valkey"]);
+
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;
