@@ -177,6 +177,27 @@ export type ApplicationWithGithub = InferResultType<
 
 export type ComposeWithGithub = InferResultType<"compose", { github: true }>;
 
+const getGithubCloneConfig = (
+	token: string,
+	enableSubmodules: boolean,
+	cloneBase: URL,
+) => {
+	const cloneBaseUrl = `${cloneBase.protocol}//${cloneBase.host}`
+	const authorization = `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString("base64")}`
+	const config = [
+		`-c ${quote([`http.${cloneBaseUrl}/.extraheader=${authorization}`])}`,
+	]
+
+	if (enableSubmodules) {
+		config.push(
+			`-c ${quote([`url.${cloneBaseUrl}/.insteadOf=git@${cloneBase.host}:`])}`,
+			`-c ${quote([`url.${cloneBaseUrl}/.insteadOf=ssh://git@${cloneBase.host}/`])}`,
+		)
+	}
+
+	return config.join(" ")
+}
+
 interface CloneGithubRepository {
 	appName: string;
 	owner: string | null;
@@ -227,12 +248,13 @@ export const cloneGithubRepository = async ({
 	const token = await getGithubToken(octokit);
 	const cloneBase = new URL(normalizeGithubUrl(githubProvider.githubUrl));
 	const repoclone = `${cloneBase.host}/${owner}/${repository}.git`;
+	const cloneConfig = getGithubCloneConfig(token, enableSubmodules, cloneBase)
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	const cloneUrl = `${cloneBase.protocol}//oauth2:${token}@${repoclone}`;
+	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 
 	return command;
 };
