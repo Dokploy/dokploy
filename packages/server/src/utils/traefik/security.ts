@@ -4,7 +4,7 @@ import type { ApplicationNested } from "../builders";
 import {
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
-	writeTraefikConfig,
+	writeAppTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
 import type {
@@ -62,11 +62,10 @@ export const createSecurityMiddleware = async (
 	addMiddleware(appConfig, middlewareName);
 	if (serverId) {
 		await writeTraefikConfigRemote(config, "middlewares", serverId);
-		await writeTraefikConfigRemote(appConfig, appName, serverId);
 	} else {
-		writeTraefikConfig(appConfig, appName);
 		writeMiddleware(config);
 	}
+	await writeAppTraefikConfig(appConfig, appName, serverId);
 };
 
 export const removeSecurityMiddleware = async (
@@ -89,6 +88,7 @@ export const removeSecurityMiddleware = async (
 		appConfig = loadOrCreateConfig(appName);
 	}
 	const middlewareName = `auth-${appName}`;
+	let removedLastUser = false;
 
 	if (config.http?.middlewares) {
 		const currentMiddleware = config.http.middlewares[middlewareName];
@@ -106,11 +106,7 @@ export const removeSecurityMiddleware = async (
 					delete config.http.middlewares[middlewareName];
 				}
 				deleteMiddleware(appConfig, middlewareName);
-				if (serverId) {
-					await writeTraefikConfigRemote(appConfig, appName, serverId);
-				} else {
-					writeTraefikConfig(appConfig, appName);
-				}
+				removedLastUser = true;
 			}
 		}
 	}
@@ -119,6 +115,9 @@ export const removeSecurityMiddleware = async (
 		await writeTraefikConfigRemote(config, "middlewares", serverId);
 	} else {
 		writeMiddleware(config);
+	}
+	if (removedLastUser) {
+		await writeAppTraefikConfig(appConfig, appName, serverId);
 	}
 };
 

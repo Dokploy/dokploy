@@ -1,5 +1,6 @@
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { AssignNetworks } from "@/components/dashboard/networks/assign-networks";
 import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowClusterSettings } from "../application/advanced/cluster/show-cluster-settings";
 import { RebuildDatabase } from "./rebuild-database";
@@ -21,6 +22,7 @@ export const ShowDatabaseAdvancedSettings = ({ id, type }: Props) => {
 				<ShowClusterSettings id={id} type={type} />
 			) : null}
 			<ShowVolumes id={id} type={type} />
+			<AssignNetworks id={id} type={type} />
 			<ShowResources id={id} type={type} />
 			<RebuildDatabase id={id} type={type} />
 		</div>

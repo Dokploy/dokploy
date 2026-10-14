@@ -11,7 +11,8 @@ import {
 	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
-	getServiceContainerCommand,
+	getServiceContainer,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMariadbById,
@@ -62,7 +63,11 @@ export const mariadbRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Mariadb",
@@ -405,17 +410,17 @@ export const mariadbRouter = createTRPCRouter({
 			const maria = await findMariadbById(mariadbId);
 			const { appName, serverId, databaseUser, databaseRootPassword } = maria;
 
-			const containerCmd = getServiceContainerCommand(appName);
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
 			const targetUser = type === "root" ? "root" : databaseUser;
 
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"
-			`;
+			const command = `docker exec ${container.Id} mariadb -u root -p'${databaseRootPassword}' -e "ALTER USER '${targetUser}'@'%' IDENTIFIED BY '${password}'; FLUSH PRIVILEGES;"`;
 
 			await db.transaction(async (tx) => {
 				const setData =

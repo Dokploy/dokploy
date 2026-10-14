@@ -123,3 +123,48 @@ export async function submitToHubSpot(
 		return false;
 	}
 }
+
+export type HubSpotDeletionResult =
+	| "deleted"
+	| "not_found"
+	| "skipped"
+	| "failed";
+
+export async function deleteHubSpotContactByEmail(
+	email: string,
+	accessToken = process.env.HUBSPOT_ACCESS_TOKEN,
+): Promise<HubSpotDeletionResult> {
+	if (!accessToken) {
+		return "skipped";
+	}
+
+	try {
+		const response = await fetch(
+			"https://api.hubapi.com/crm/v3/objects/contacts/gdpr-delete",
+			{
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ idProperty: "email", objectId: email }),
+			},
+		);
+
+		if (response.ok) {
+			return "deleted";
+		}
+		if (response.status === 404) {
+			return "not_found";
+		}
+		console.error(
+			"HubSpot GDPR delete error:",
+			response.status,
+			await response.text(),
+		);
+		return "failed";
+	} catch (error) {
+		console.error("Error deleting HubSpot contact:", error);
+		return "failed";
+	}
+}

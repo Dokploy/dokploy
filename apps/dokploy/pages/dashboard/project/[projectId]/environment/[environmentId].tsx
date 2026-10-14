@@ -259,6 +259,7 @@ export const extractServicesFromEnvironment = (
 				serverId: item.serverId,
 				serverName: item?.server?.name || null,
 				lastDeployDate,
+				icon: item.icon || null,
 			};
 		}) || [];
 
@@ -1039,7 +1040,9 @@ const EnvironmentPage = (
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									{currentEnvironment.project.name}
+									<p className="text-base font-medium max-w-[250px] truncate">
+										{currentEnvironment.project.name}
+									</p>
 									<AdvancedEnvironmentSelector
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
@@ -1660,19 +1663,19 @@ const EnvironmentPage = (
 
 																	<CardHeader>
 																		<CardTitle className="flex items-center justify-between">
-																			<div className="flex flex-row items-center gap-2 justify-between w-full">
-																				<div className="flex flex-col gap-2">
-																					<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+																			<div className="flex flex-row items-center gap-2 justify-between w-full min-w-0">
+																				<div className="flex flex-col gap-2 min-w-0 flex-1">
+																					<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap break-words">
 																						{service.name}
 																					</span>
 																					{service.description && (
-																						<span className="text-sm font-medium text-muted-foreground">
+																						<span className="text-sm font-medium text-muted-foreground wrap-anywhere line-clamp-3">
 																							{service.description}
 																						</span>
 																					)}
 																				</div>
 
-																				<span className="text-sm font-medium text-muted-foreground self-start">
+																				<span className="text-sm font-medium text-muted-foreground self-start shrink-0">
 																					{service.type === "postgres" && (
 																						<PostgresqlIcon className="h-7 w-7" />
 																					)}
@@ -1699,9 +1702,17 @@ const EnvironmentPage = (
 																						) : (
 																							<GlobeIcon className="h-6 w-6" />
 																						))}
-																					{service.type === "compose" && (
-																						<CircuitBoard className="h-6 w-6" />
-																					)}
+																					{service.type === "compose" &&
+																						(service.icon ? (
+																							// biome-ignore lint/performance/noImgElement: compose icon is data URL
+																							<img
+																								src={service.icon}
+																								alt={service.name}
+																								className="size-7 object-contain rounded-sm"
+																							/>
+																						) : (
+																							<CircuitBoard className="h-6 w-6" />
+																						))}
 																					{service.type === "libsql" && (
 																						<LibsqlIcon className="h-6 w-6" />
 																					)}
@@ -1878,7 +1889,7 @@ export async function getServerSideProps(
 					// Try to find default, otherwise use first accessible
 					const targetEnv =
 						accessibleEnvironments.find((env) => env.isDefault) ||
-						accessibleEnvironments[0];
+						accessibleEnvironments[0]!;
 
 					return {
 						redirect: {

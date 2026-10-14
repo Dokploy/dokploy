@@ -106,6 +106,11 @@ export default function Home({ tokenResetPassword }: Props) {
 								whitelabeling?.logoUrl ||
 								undefined
 							}
+							logoLightUrl={
+								whitelabeling?.loginLogoLightUrl ||
+								whitelabeling?.logoLightUrl ||
+								undefined
+							}
 						/>
 					</Link>
 					Reset Password
@@ -123,6 +128,7 @@ export default function Home({ tokenResetPassword }: Props) {
 						)}
 						<Form {...form}>
 							<form
+								method="post"
 								onSubmit={form.handleSubmit(onSubmit)}
 								className="grid gap-4"
 							>

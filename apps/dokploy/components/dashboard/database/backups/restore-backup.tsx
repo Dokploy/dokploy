@@ -74,6 +74,7 @@ interface Props {
 	databaseType?: DatabaseType;
 	serverId?: string | null;
 	backupType?: "database" | "compose";
+	trigger?: React.ReactNode;
 }
 
 const RestoreBackupSchema = z
@@ -200,6 +201,7 @@ export const RestoreBackup = ({
 	databaseType,
 	serverId,
 	backupType = "database",
+	trigger,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -311,12 +313,14 @@ export const RestoreBackup = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">
-					<RotateCcw className="mr-2 size-4" />
-					Restore Backup
-				</Button>
+				{trigger ?? (
+					<Button variant="outline">
+						<RotateCcw className="mr-2 size-4" />
+						Restore Backup
+					</Button>
+				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
@@ -345,7 +349,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -427,7 +431,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -550,7 +554,10 @@ export const RestoreBackup = ({
 												value={field.value}
 												onValueChange={(value: DatabaseType) => {
 													field.onChange(value);
-													form.setValue("metadata", {});
+													form.setValue("metadata", {
+														serviceName:
+															form.getValues("metadata.serviceName") ?? "",
+													});
 												}}
 											>
 												<SelectTrigger>
@@ -577,7 +584,7 @@ export const RestoreBackup = ({
 											<div className="flex gap-2">
 												<Select
 													onValueChange={field.onChange}
-													value={field.value || undefined}
+													value={field.value ?? ""}
 												>
 													<FormControl>
 														<SelectTrigger>
@@ -622,7 +629,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Fetch: Will clone the repository and load the
@@ -652,7 +659,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Cache: If you previously deployed this compose,

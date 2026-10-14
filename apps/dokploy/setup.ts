@@ -6,7 +6,6 @@ const execAsync = promisify(exec);
 
 import { setupDirectories } from "@dokploy/server/setup/config-paths";
 import { initializePostgres } from "@dokploy/server/setup/postgres-setup";
-import { initializeRedis } from "@dokploy/server/setup/redis-setup";
 import {
 	initializeNetwork,
 	initializeSwarm,
@@ -29,7 +28,6 @@ import {
 		createDefaultServerTraefikConfig();
 		await execAsync(`docker pull traefik:v${TRAEFIK_VERSION}`);
 		await initializeStandaloneTraefik();
-		await initializeRedis();
 		await initializePostgres();
 		console.log("Dokploy setup completed");
 		exit(0);

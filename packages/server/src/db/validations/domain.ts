@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+	INVALID_HOSTNAME_MESSAGE,
+	VALID_HOSTNAME_REGEX,
+} from "../../utils/hostname-validation";
 
 export const domainAccessRule = z
 	.object({
@@ -104,7 +108,10 @@ export const domain = z
 			.refine((val) => val === val.trim(), {
 				message: "Domain name cannot have leading or trailing spaces",
 			})
-			.transform((val) => val.trim()),
+			.transform((val) => val.trim())
+			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
+				message: INVALID_HOSTNAME_MESSAGE,
+			}),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -168,7 +175,10 @@ export const domainCompose = z
 			.refine((val) => val === val.trim(), {
 				message: "Domain name cannot have leading or trailing spaces",
 			})
-			.transform((val) => val.trim()),
+			.transform((val) => val.trim())
+			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
+				message: INVALID_HOSTNAME_MESSAGE,
+			}),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),

@@ -1,4 +1,5 @@
 import type { Application } from "@dokploy/server/services/application";
+import type { Environment } from "@dokploy/server/services/environment";
 import type { Mount } from "@dokploy/server/services/mount";
 import type { Port } from "@dokploy/server/services/port";
 import type { Project } from "@dokploy/server/services/project";
@@ -27,7 +28,7 @@ export const rollbacks = pgTable("rollback", {
 		.$defaultFn(() => new Date().toISOString()),
 	fullContext: jsonb("fullContext").$type<
 		Application & {
-			environment: {
+			environment: Environment & {
 				project: Project;
 			};
 			mounts: Mount[];

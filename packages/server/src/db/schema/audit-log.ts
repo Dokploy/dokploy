@@ -91,4 +91,7 @@ export type AuditResourceType =
 	| "cluster"
 	| "mount"
 	| "application"
-	| "compose";
+	| "compose"
+	| "network"
+	| "vaultProvider"
+	| "dnsProvider";

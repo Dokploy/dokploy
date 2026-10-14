@@ -1,0 +1,1 @@
+ALTER TABLE "backup" ADD COLUMN "includeEncryptionKey" boolean DEFAULT true NOT NULL;

@@ -60,6 +60,8 @@ export const domains = pgTable("domain", {
 		.$type<DomainAccessRule[]>()
 		.notNull()
 		.default([]),
+	forwardAuthEnabled: boolean("forwardAuthEnabled").notNull().default(false),
+	enabled: boolean("enabled").notNull().default(true),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -100,6 +102,7 @@ export const apiCreateDomain = createSchema.pick({
 	stripPath: true,
 	middlewares: true,
 	accessRules: true,
+	forwardAuthEnabled: true,
 });
 
 export const apiFindDomain = z.object({
@@ -133,5 +136,7 @@ export const apiUpdateDomain = createSchema
 		stripPath: true,
 		middlewares: true,
 		accessRules: true,
+		forwardAuthEnabled: true,
+		enabled: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

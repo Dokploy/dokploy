@@ -14,6 +14,7 @@ import { deployMySql } from "@dokploy/server/services/mysql";
 import { deployPostgres } from "@dokploy/server/services/postgres";
 import { deployRedis } from "@dokploy/server/services/redis";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { removeService } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
@@ -40,7 +41,7 @@ export const rebuildDatabase = async (
 
 	for (const mount of database.mounts) {
 		if (mount.type === "volume") {
-			const command = `docker volume rm ${mount?.volumeName} --force`;
+			const command = `docker volume rm ${quote([mount?.volumeName ?? ""])} --force`;
 			if (database.serverId) {
 				await execAsyncRemote(database.serverId, command);
 			} else {

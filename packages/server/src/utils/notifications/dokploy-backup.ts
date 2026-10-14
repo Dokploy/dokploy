@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DokployBackupEmail from "@dokploy/server/emails/emails/dokploy-backup";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
@@ -66,7 +66,7 @@ export const sendDokployBackupNotifications = async ({
 
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					DokployBackupEmail({
 						type,
 						errorMessage,

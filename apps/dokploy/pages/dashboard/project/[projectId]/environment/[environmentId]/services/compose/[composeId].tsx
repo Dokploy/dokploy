@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { CircuitBoard, HelpCircle, ServerOff } from "lucide-react";
+import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -17,11 +17,13 @@ import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
+import { ShowIconSettings } from "@/components/dashboard/application/icon/show-icon-settings";
 import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { FreshVolumes } from "@/components/dashboard/compose/advanced/fresh-volumes";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -31,6 +33,8 @@ import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
+import { AssignComposeNetworks } from "@/components/dashboard/networks/assign-compose-networks";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -112,13 +116,16 @@ const Service = (
 						<div className="flex flex-col gap-4">
 							<CardHeader className="flex flex-row justify-between items-center">
 								<div className="flex flex-col">
-									<CardTitle className="text-xl flex flex-row gap-2">
-										<div className="relative flex flex-row gap-4">
-											<div className="absolute -right-1 -top-2">
+									<CardTitle className="text-xl flex flex-row gap-2 items-center">
+										<div className="relative flex flex-row gap-4 items-center">
+											<ShowIconSettings
+												serviceId={composeId}
+												serviceType="compose"
+												icon={data?.icon}
+											/>
+											<div className="absolute -right-1 -top-2 z-10">
 												<StatusTooltip status={data?.composeStatus} />
 											</div>
-
-											<CircuitBoard className="h-6 w-6 text-muted-foreground" />
 										</div>
 										{data?.name}
 									</CardTitle>
@@ -160,7 +167,7 @@ const Service = (
 														</Label>
 													</TooltipTrigger>
 													<TooltipContent
-														className="z-[999] w-[300px]"
+														className="z-999 w-[300px]"
 														align="start"
 														side="top"
 													>
@@ -179,6 +186,13 @@ const Service = (
 											<UpdateCompose composeId={composeId} />
 										)}
 
+										{permissions?.service.create && (
+											<TransferService
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId}
+											/>
+										)}
 										{permissions?.service.delete && (
 											<DeleteService id={composeId} type="compose" />
 										)}
@@ -312,6 +326,7 @@ const Service = (
 													serverId={data?.serverId || undefined}
 													appName={data?.appName || ""}
 													appType={data?.composeType || "docker-compose"}
+													serviceId={data?.composeId}
 												/>
 											</div>
 										</TabsContent>
@@ -380,11 +395,13 @@ const Service = (
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
 														appType={data?.composeType || "docker-compose"}
+														serviceId={data?.composeId}
 													/>
 												) : (
 													<ShowDockerLogsStack
 														serverId={data?.serverId || ""}
 														appName={data?.appName || ""}
+														serviceId={data?.composeId}
 													/>
 												)}
 											</div>
@@ -424,7 +441,9 @@ const Service = (
 												<AddCommandCompose composeId={composeId} />
 												<ShowVolumes id={composeId} type="compose" />
 												<ShowImport composeId={composeId} />
+												<AssignComposeNetworks composeId={composeId} />
 												<IsolatedDeploymentTab composeId={composeId} />
+												<FreshVolumes composeId={composeId} />
 											</div>
 										</TabsContent>
 									)}

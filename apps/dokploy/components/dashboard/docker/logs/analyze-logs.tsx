@@ -165,7 +165,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					) : (
 						<>
 							<div className="max-h-[400px] overflow-y-auto">
-								<div className="prose prose-sm dark:prose-invert max-w-none text-sm break-words">
+								<div className="prose prose-sm dark:prose-invert max-w-none text-sm wrap-break-word">
 									<ReactMarkdown>{data.analysis}</ReactMarkdown>
 								</div>
 							</div>

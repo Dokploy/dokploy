@@ -4,6 +4,7 @@ import {
 	createDeploymentVolumeBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findDestinationById } from "@dokploy/server/services/destination";
 import { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
 	execAsync,
@@ -77,7 +78,8 @@ const cleanupOldVolumeBackups = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
 	serverId?: string | null,
 ) => {
-	const { keepLatestCount, destination, prefix, volumeName } = volumeBackup;
+	const { keepLatestCount, prefix, volumeName } = volumeBackup;
+	const destination = await findDestinationById(volumeBackup.destinationId);
 
 	if (!keepLatestCount) return;
 

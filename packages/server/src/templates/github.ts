@@ -74,6 +74,49 @@ export async function fetchTemplatesList(
 	}));
 }
 
+const LOGO_MIME_TYPES: Record<string, string> = {
+	png: "image/png",
+	jpg: "image/jpeg",
+	jpeg: "image/jpeg",
+	svg: "image/svg+xml",
+	webp: "image/webp",
+	gif: "image/gif",
+};
+
+export async function fetchTemplateLogo(
+	templateId: string,
+	baseUrl = "https://templates.dokploy.com",
+): Promise<string | null> {
+	try {
+		const templates = await fetchTemplatesList(baseUrl);
+		const template = templates.find((t) => t.id === templateId);
+		if (!template?.logo) return null;
+
+		const response = await fetch(
+			`${baseUrl}/blueprints/${templateId}/${template.logo}`,
+			{ signal: AbortSignal.timeout(10000) },
+		);
+		if (!response.ok) return null;
+
+		const buffer = Buffer.from(await response.arrayBuffer());
+		if (buffer.length === 0) return null;
+
+		const contentType = response.headers.get("content-type")?.split(";")[0];
+		const extension = template.logo.split(".").pop()?.toLowerCase() ?? "";
+		const mimeType = contentType?.startsWith("image/")
+			? contentType
+			: LOGO_MIME_TYPES[extension];
+		if (!mimeType) return null;
+
+		const dataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
+		if (dataUrl.length > 2 * 1024 * 1024) return null;
+
+		return dataUrl;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Fetches a specific template's files
  */

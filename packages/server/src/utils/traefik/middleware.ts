@@ -139,21 +139,6 @@ export const createPathMiddlewares = async (
 		domain,
 	);
 
-	// Early return if there's no path middleware to create
-	const needsInternalPathMiddleware =
-		internalPath && internalPath !== "/" && internalPath !== path;
-	const needsStripPathMiddleware = stripPath && path && path !== "/";
-	const hasAccessRuleMiddlewares =
-		Object.keys(middlewareDefinitions).length > 0;
-
-	if (
-		!needsInternalPathMiddleware &&
-		!needsStripPathMiddleware &&
-		!hasAccessRuleMiddlewares
-	) {
-		return;
-	}
-
 	let config: FileConfig;
 
 	if (app.serverId) {
@@ -185,6 +170,8 @@ export const createPathMiddlewares = async (
 	delete config.http!.middlewares![addPrefixMiddleware];
 	delete config.http!.middlewares![stripPrefixMiddleware];
 	removeAccessRuleMiddlewaresFromConfig(config, appName, uniqueConfigKey);
+	config.http ??= {};
+	config.http.middlewares ??= {};
 
 	// Add internal path prefix middleware
 	if (internalPath && internalPath !== "/" && internalPath !== path) {

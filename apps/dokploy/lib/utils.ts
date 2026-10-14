@@ -13,7 +13,7 @@ export async function generateSHA256Hash(text: string) {
 	return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export function formatTimestamp(timestamp: string | number) {
+export function formatTimestamp(timestamp: string | number | undefined) {
 	try {
 		// Si es un string ISO, lo parseamos directamente
 		if (typeof timestamp === "string" && timestamp.includes("T")) {

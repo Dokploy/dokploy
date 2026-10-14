@@ -1,5 +1,5 @@
 {
-  "id": "d511b40b-7551-409e-9b7d-d344d36cbcc7",
+  "id": "de1ea564-75f5-431f-adb8-7c4db357dde5",
   "prevId": "887c0c81-4af9-477a-ab29-b3ad16f08451",
   "version": "7",
   "dialect": "postgresql",
@@ -3146,13 +3146,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "ARRAY[]::text[]"
-        },
-        "accessRules": {
-          "name": "accessRules",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
         }
       },
       "indexes": {},
@@ -8027,6 +8020,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
+        },
+        "remoteServersOnly": {
+          "name": "remoteServersOnly",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "cleanupCacheApplications": {
           "name": "cleanupCacheApplications",

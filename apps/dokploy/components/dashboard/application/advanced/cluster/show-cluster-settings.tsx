@@ -187,7 +187,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 												To use a cluster feature, you need to configure at least
 												a registry first. Please, go to{" "}
 												<Link
-													href="/dashboard/settings/cluster"
+													href="/dashboard/docker?tab=swarm&subtab=nodes"
 													className="text-foreground"
 												>
 													Settings

@@ -141,5 +141,6 @@ export const getDockerContextPath = (application: Application) => {
 	if (!dockerContextPath) {
 		return null;
 	}
+
 	return path.join(APPLICATIONS_PATH, appName, "code", dockerContextPath);
 };
