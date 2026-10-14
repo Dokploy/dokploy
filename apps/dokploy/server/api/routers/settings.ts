@@ -14,6 +14,7 @@ import {
 	DEFAULT_UPDATE_DATA,
 	findServerById,
 	getDockerDiskUsage,
+	getDockerResourceType,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
@@ -553,6 +554,15 @@ export const settingsRouter = createTRPCRouter({
 	updateServer: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return true;
+		}
+
+		const resourceType = await getDockerResourceType("dokploy");
+		if (resourceType === "unknown") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"Dokploy is not running as a Docker service, so in-panel updates are unavailable here. Update manually instead.",
+			});
 		}
 
 		const data = await getUpdateData(packageInfo.version);
