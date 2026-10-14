@@ -69,6 +69,14 @@ const accessRuleFormSchema = z
 		excludedIPs: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
+		if (input.path?.includes("`")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["path"],
+				message: "Rule path must not contain backticks",
+			});
+		}
+
 		if (
 			input.path &&
 			input.pathType !== "regexp" &&

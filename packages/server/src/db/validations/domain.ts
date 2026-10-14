@@ -25,6 +25,14 @@ export const domainAccessRule = z
 		excludedIPs: z.array(z.string().trim().min(1)).optional().default([]),
 	})
 	.superRefine((input, ctx) => {
+		if (input.path?.includes("`")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["path"],
+				message: "Rule path must not contain backticks",
+			});
+		}
+
 		if (
 			input.path &&
 			input.pathType !== "regexp" &&

@@ -20,6 +20,12 @@ const normalizeRuleName = (value: string) =>
 const createPathRule = (rule: DomainAccessRule) => {
 	const path = rule.path?.trim();
 
+	// Reject delimiters even for stored rules that bypass API validation.
+	// Raw Traefik expressions belong only in matcherExpression.
+	if (path?.includes("`")) {
+		throw new Error("Rule path must not contain backticks");
+	}
+
 	if (!path || path === "/") {
 		return undefined;
 	}
