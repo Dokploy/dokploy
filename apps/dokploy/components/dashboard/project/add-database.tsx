@@ -765,7 +765,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										name="replicaSets"
 										render={({ field }) => {
 											return (
-												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
+												<FormItem className="flex flex-row items-center justify-between space-y-0 p-3 mt-4 border rounded-lg shadow-xs">
 													<div className="space-y-0.5">
 														<FormLabel>Use Replica Sets</FormLabel>
 													</div>

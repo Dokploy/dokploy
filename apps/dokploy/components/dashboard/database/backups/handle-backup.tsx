@@ -653,7 +653,7 @@ export const HandleBackup = ({
 								control={form.control}
 								name="enabled"
 								render={({ field }) => (
-									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
+									<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 ">
 										<div className="space-y-0.5">
 											<FormLabel>Enabled</FormLabel>
 											<FormDescription>
@@ -674,7 +674,7 @@ export const HandleBackup = ({
 									control={form.control}
 									name="includeEncryptionKey"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 ">
 											<div className="space-y-0.5">
 												<FormLabel>Include encryption key</FormLabel>
 												<FormDescription>
