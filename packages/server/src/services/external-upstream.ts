@@ -61,14 +61,9 @@ export const createExternalUpstream = async (
 	return newExternalUpstream;
 };
 
-export const findExternalUpstreamById = async (
-	externalUpstreamId: string,
-) => {
+export const findExternalUpstreamById = async (externalUpstreamId: string) => {
 	const result = await db.query.externalUpstreams.findFirst({
-		where: eq(
-			externalUpstreams.externalUpstreamId,
-			externalUpstreamId,
-		),
+		where: eq(externalUpstreams.externalUpstreamId, externalUpstreamId),
 		with: {
 			environment: {
 				with: {
@@ -106,9 +101,7 @@ export const updateExternalUpstreamById = async (
 	const result = await db
 		.update(externalUpstreams)
 		.set(nextValues)
-		.where(
-			eq(externalUpstreams.externalUpstreamId, externalUpstreamId),
-		)
+		.where(eq(externalUpstreams.externalUpstreamId, externalUpstreamId))
 		.returning();
 
 	return result[0];
@@ -119,9 +112,7 @@ export const removeExternalUpstreamById = async (
 ) => {
 	const result = await db
 		.delete(externalUpstreams)
-		.where(
-			eq(externalUpstreams.externalUpstreamId, externalUpstreamId),
-		)
+		.where(eq(externalUpstreams.externalUpstreamId, externalUpstreamId))
 		.returning();
 
 	return result[0];

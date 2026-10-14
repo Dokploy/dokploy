@@ -54,13 +54,9 @@ export const domainRouter = createTRPCRouter({
 					input.domainType === "externalUpstream" &&
 					input.externalUpstreamId
 				) {
-					await checkServicePermissionAndAccess(
-						ctx,
-						input.externalUpstreamId,
-						{
-							domain: ["create"],
-						},
-					);
+					await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
+						domain: ["create"],
+					});
 				}
 				const domain = await createDomain(input);
 				await audit(ctx, {
@@ -106,9 +102,7 @@ export const domainRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
 				domain: ["read"],
 			});
-			return await findDomainsByExternalUpstreamId(
-				input.externalUpstreamId,
-			);
+			return await findDomainsByExternalUpstreamId(input.externalUpstreamId);
 		}),
 	generateDomain: withPermission("domain", "create")
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
@@ -254,9 +248,7 @@ export const domainRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const domain = await findDomainById(input.domainId);
 			const serviceId =
-				domain.applicationId ||
-				domain.composeId ||
-				domain.externalUpstreamId;
+				domain.applicationId || domain.composeId || domain.externalUpstreamId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					domain: ["delete"],

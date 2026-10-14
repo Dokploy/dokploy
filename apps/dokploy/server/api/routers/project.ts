@@ -1115,8 +1115,7 @@ export const projectRouter = createTRPCRouter({
 									const { domainId, ...rest } = domain;
 									await createDomain({
 										...rest,
-										externalUpstreamId:
-											newExternalUpstream.externalUpstreamId,
+										externalUpstreamId: newExternalUpstream.externalUpstreamId,
 										domainType: "externalUpstream",
 									});
 								}

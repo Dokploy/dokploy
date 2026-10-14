@@ -1752,10 +1752,11 @@ const EnvironmentPage = (
 																						) : (
 																							<GlobeIcon className="h-6 w-6" />
 																						))}
-															{service.type === "external-upstream" && (
-																<GlobeIcon className="h-6 w-6" />
-															)}
-															{service.type === "compose" &&
+																					{service.type ===
+																						"external-upstream" && (
+																						<GlobeIcon className="h-6 w-6" />
+																					)}
+																					{service.type === "compose" &&
 																						(service.icon ? (
 																							// biome-ignore lint/performance/noImgElement: compose icon is data URL
 																							<img
@@ -1765,7 +1766,7 @@ const EnvironmentPage = (
 																							/>
 																						) : (
 																							<CircuitBoard className="h-6 w-6" />
-																))}
+																						))}
 																					{service.type === "libsql" && (
 																						<LibsqlIcon className="h-6 w-6" />
 																					)}
