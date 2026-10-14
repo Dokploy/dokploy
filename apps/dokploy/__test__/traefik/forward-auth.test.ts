@@ -36,6 +36,7 @@ const baseDomain: Domain = {
 	middlewares: null,
 	forwardAuthEnabled: false,
 	enabled: true,
+	accessRules: [],
 };
 
 describe("forwardAuthMiddlewareName", () => {
@@ -53,6 +54,30 @@ describe("forwardAuthMiddlewareName", () => {
 });
 
 describe("createRouterConfig forward-auth wiring", () => {
+	test("access-rule routers retain SSO and custom middleware while HTTP stays redirect-only", async () => {
+		const domain = {
+			...baseDomain,
+			https: true,
+			forwardAuthEnabled: true,
+			middlewares: ["rate-limit@file"],
+		};
+		const options = {
+			additionalRule: "Path(`/admin`)",
+			additionalMiddlewares: ["access-my-app-7-0-admin-auth"],
+			priority: 150,
+		};
+		const secure = await createRouterConfig(app, domain, "websecure", options);
+		expect(secure.rule).toBe("Host(`app.example.com`) && (Path(`/admin`))");
+		expect(secure.priority).toBe(150);
+		expect(secure.middlewares).toEqual([
+			"access-my-app-7-0-admin-auth",
+			"forward-auth-my-app-7-errors",
+			"forward-auth-my-app-7",
+			"rate-limit@file",
+		]);
+		const redirect = await createRouterConfig(app, domain, "web", options);
+		expect(redirect.middlewares).toEqual(["redirect-to-https"]);
+	});
 	test("does NOT add forward-auth middleware when no provider is linked", async () => {
 		const config = await createRouterConfig(app, baseDomain, "websecure");
 		expect(config.middlewares).not.toContain(

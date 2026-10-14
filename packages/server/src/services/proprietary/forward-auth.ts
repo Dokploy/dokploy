@@ -24,7 +24,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { findApplicationById } from "../application";
-import { findDomainById, updateDomainById } from "../domain";
+import { findDomainById, findDomainByIdRaw, updateDomainById } from "../domain";
 
 const resolveOidcConfig = (provider: {
 	issuer: string;
@@ -359,7 +359,7 @@ export const enableForwardAuthOnDomain = async (input: {
 	}
 
 	await updateDomainById(input.domainId, { forwardAuthEnabled: true });
-	const domain = await findDomainById(input.domainId);
+	const domain = await findDomainByIdRaw(input.domainId);
 	await manageDomain(application, domain);
 
 	return { ok: true } as const;
@@ -374,7 +374,7 @@ export const disableForwardAuthOnDomain = async (input: {
 	const uniqueConfigKey = domain.uniqueConfigKey;
 
 	await updateDomainById(input.domainId, { forwardAuthEnabled: false });
-	const updated = await findDomainById(input.domainId);
+	const updated = await findDomainByIdRaw(input.domainId);
 	await manageDomain(application, updated);
 	await removeForwardAuthMiddleware(application, uniqueConfigKey);
 
