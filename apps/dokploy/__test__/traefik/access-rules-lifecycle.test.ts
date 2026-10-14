@@ -119,6 +119,30 @@ for (const pathType of ["exact", "prefix", "regexp"] as const) {
 		}
 	});
 	for (const renderer of ["file", "docker-compose", "stack"] as const) {
+		test.each(["/", "/admin", undefined])(
+			`${renderer} preserves ${pathType} semantics for path %s`,
+			async (path) => {
+				const matcher = {
+					exact: "Path",
+					prefix: "PathPrefix",
+					regexp: "PathRegexp",
+				}[pathType];
+				const safeRule = { ...rule, path };
+				const expected = path ? `${matcher}(\`${path}\`)` : "PathPrefix(`/`)";
+				const rendered = await renderAccessRule(renderer, safeRule);
+				expect(rendered).toBe(`Host(\`example.com\`) && (${expected})`);
+				if (path === "/" && pathType === "exact") {
+					// Path(`/`) matches only root, never /admin or other descendants.
+					expect(rendered).not.toContain("PathPrefix(");
+				}
+				const matcherExpression = "Method(`GET`)";
+				expect(
+					await renderAccessRule(renderer, { ...safeRule, matcherExpression }),
+				).toBe(
+					`Host(\`example.com\`) && (${path ? `${expected} && ` : ""}${matcherExpression})`,
+				);
+			},
+		);
 		test(`${renderer} rejects stored ${pathType} matcher injection`, async () => {
 			await expect(renderAccessRule(renderer, rule)).rejects.toThrow(
 				"Rule path must not contain backticks",

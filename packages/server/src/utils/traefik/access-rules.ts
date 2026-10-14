@@ -26,7 +26,7 @@ const createPathRule = (rule: DomainAccessRule) => {
 		throw new Error("Rule path must not contain backticks");
 	}
 
-	if (!path || path === "/") {
+	if (!path) {
 		return undefined;
 	}
 
