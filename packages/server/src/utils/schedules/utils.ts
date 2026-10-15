@@ -1,7 +1,10 @@
 import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
-import type { Schedule } from "@dokploy/server/db/schema/schedule";
+import {
+	isDatabaseScheduleType,
+	type Schedule,
+} from "@dokploy/server/db/schema/schedule";
 import {
 	createDeploymentSchedule,
 	updateDeployment,
@@ -44,6 +47,12 @@ export const runCommand = async (scheduleId: string) => {
 		shellType,
 		scheduleType,
 		compose,
+		postgres,
+		mysql,
+		mariadb,
+		mongo,
+		redis,
+		libsql,
 		serviceName,
 		appName,
 		serverId,
@@ -56,7 +65,11 @@ export const runCommand = async (scheduleId: string) => {
 	});
 
 	try {
-		if (scheduleType === "application" || scheduleType === "compose") {
+		if (
+			scheduleType === "application" ||
+			scheduleType === "compose" ||
+			isDatabaseScheduleType(scheduleType)
+		) {
 			let containerId = "";
 			let serverId = "";
 			if (scheduleType === "application" && application) {
@@ -73,9 +86,22 @@ export const runCommand = async (scheduleId: string) => {
 				serverId = compose.serverId || "";
 			}
 
+			const database = isDatabaseScheduleType(scheduleType)
+				? { postgres, mysql, mariadb, mongo, redis, libsql }[scheduleType]
+				: null;
+			if (database) {
+				const container = await getServiceContainer(
+					database.appName,
+					database.serverId,
+				);
+				containerId = container?.Id || "";
+				serverId = database.serverId || "";
+			}
+
 			if (!containerId) {
-				const target =
-					scheduleType === "compose"
+				const target = database
+					? `${scheduleType} database '${database.name}'`
+					: scheduleType === "compose"
 						? `service '${serviceName}' of compose '${compose?.name}'`
 						: `application '${application?.appName}'`;
 				const message = `Container not found for ${target}, make sure the service is running`;

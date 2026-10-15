@@ -103,6 +103,25 @@ export const findScheduleById = async (scheduleId: string) => {
 					},
 				},
 			},
+			postgres: {
+				with: { environment: { with: { project: true } } },
+			},
+			mysql: {
+				with: { environment: { with: { project: true } } },
+			},
+			mariadb: {
+				with: { environment: { with: { project: true } } },
+			},
+			mongo: {
+				with: { environment: { with: { project: true } } },
+			},
+			redis: {
+				with: { environment: { with: { project: true } } },
+			},
+			libsql: {
+				with: { environment: { with: { project: true } } },
+			},
+
 			server: {
 				with: {
 					organization: true,
@@ -129,6 +148,16 @@ export const findScheduleOrganizationId = async (scheduleId: string) => {
 	if (schedule?.compose) {
 		return schedule?.compose?.environment?.project?.organizationId;
 	}
+	for (const database of [
+		schedule.postgres,
+		schedule.mysql,
+		schedule.mariadb,
+		schedule.mongo,
+		schedule.redis,
+		schedule.libsql,
+	]) {
+		if (database) return database.environment.project.organizationId;
+	}
 	if (schedule?.server) {
 		return schedule?.server?.organization?.id;
 	}
@@ -138,12 +167,21 @@ export const findScheduleOrganizationId = async (scheduleId: string) => {
 	return null;
 };
 
+export const getScheduleServerId = (schedule: ScheduleExtended) =>
+	schedule.serverId ||
+	schedule.application?.serverId ||
+	schedule.compose?.serverId ||
+	schedule.postgres?.serverId ||
+	schedule.mysql?.serverId ||
+	schedule.mariadb?.serverId ||
+	schedule.mongo?.serverId ||
+	schedule.redis?.serverId ||
+	schedule.libsql?.serverId ||
+	null;
+
 export const deleteSchedule = async (scheduleId: string) => {
 	const schedule = await findScheduleById(scheduleId);
-	const serverId =
-		schedule?.serverId ||
-		schedule?.application?.serverId ||
-		schedule?.compose?.serverId;
+	const serverId = getScheduleServerId(schedule);
 	const { SCHEDULES_PATH } = paths(!!serverId);
 
 	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");

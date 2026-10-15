@@ -38,7 +38,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { removeRollbackById } from "./rollbacks";
-import { findScheduleById } from "./schedule";
+import { findScheduleById, getScheduleServerId } from "./schedule";
 import { findServerById, type Server } from "./server";
 import { findVolumeBackupById } from "./volume-backups";
 
@@ -448,10 +448,7 @@ export const createDeploymentSchedule = async (
 ) => {
 	const schedule = await findScheduleById(deployment.scheduleId);
 
-	const serverId =
-		schedule.application?.serverId ||
-		schedule.compose?.serverId ||
-		schedule.server?.serverId;
+	const serverId = getScheduleServerId(schedule);
 	await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
 	await db
 		.update(deployments)

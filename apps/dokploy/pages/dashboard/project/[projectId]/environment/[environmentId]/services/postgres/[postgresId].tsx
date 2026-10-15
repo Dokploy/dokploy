@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
@@ -50,7 +51,13 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
-type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
+type TabState =
+	| "projects"
+	| "monitoring"
+	| "settings"
+	| "backups"
+	| "advanced"
+	| "schedules";
 
 const Postgresql = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -213,10 +220,16 @@ const Postgresql = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-6"
+													? permissions?.schedule.read
+														? "md:grid-cols-7"
+														: "md:grid-cols-6"
 													: data?.serverId
-														? "md:grid-cols-5"
-														: "md:grid-cols-6",
+														? permissions?.schedule.read
+															? "md:grid-cols-6"
+															: "md:grid-cols-5"
+														: permissions?.schedule.read
+															? "md:grid-cols-7"
+															: "md:grid-cols-6",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -237,6 +250,9 @@ const Postgresql = (
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											{permissions?.service.create && (
 												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											)}
+											{permissions?.schedule.read && (
+												<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											)}
 										</TabsList>
 									</div>
@@ -312,6 +328,16 @@ const Postgresql = (
 												<ShowDatabaseAdvancedSettings
 													id={postgresId}
 													type="postgres"
+												/>
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.schedule.read && (
+										<TabsContent value="schedules">
+											<div className="pt-2.5">
+												<ShowSchedules
+													id={postgresId}
+													scheduleType="postgres"
 												/>
 											</div>
 										</TabsContent>
