@@ -46,3 +46,9 @@ effects. Browser proof must exercise both real pickers: loading, multiple pages,
 search/navigation, empty/end states, retry, inventory-change refresh, stale
 in-flight responses and selection clearing after context changes. No restore
 execution is needed for that proof.
+
+Include a 1280×720 viewport with the picker positioned above the trigger inside
+the actual restore dialog. The popover must fit Radix's available height; its
+result list must shrink and scroll while search, Refresh, errors and continuation
+controls remain reachable. Repeat with a retry error and a narrow viewport.
+On very short viewports the popover itself can scroll so controls are not clipped.

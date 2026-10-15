@@ -176,44 +176,53 @@ export const BackupFilePicker = ({
 				</FormControl>
 			</PopoverTrigger>
 			<PopoverContent
-				className="w-96 max-w-[calc(100vw-2rem)] p-0"
+				className="max-h-(--radix-popover-content-available-height) w-96 max-w-[calc(100vw-2rem)] overflow-x-hidden overflow-y-auto p-0"
 				align="start"
+				collisionPadding={8}
 			>
-				<Command shouldFilter={false}>
-					<CommandInput
-						placeholder="Search backup files..."
-						value={search}
-						onValueChange={changeSearch}
-						className="h-9"
-					/>
-					<div className="flex items-center justify-between gap-2 p-2">
-						<span className="text-xs text-muted-foreground">
-							Newest timestamped backups first
-						</span>
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={restart}
-							disabled={pending || loadingMore}
-						>
-							<RefreshCw className="mr-1 size-3" />
-							Refresh
-						</Button>
+				<Command
+					shouldFilter={false}
+					className="h-auto min-h-0 overflow-visible"
+				>
+					<div className="shrink-0">
+						<CommandInput
+							placeholder="Search backup files..."
+							value={search}
+							onValueChange={changeSearch}
+							className="h-9"
+						/>
+						<div className="flex items-center justify-between gap-2 p-2">
+							<span className="text-xs text-muted-foreground">
+								Newest timestamped backups first
+							</span>
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								onClick={restart}
+								disabled={pending || loadingMore}
+							>
+								<RefreshCw className="mr-1 size-3" />
+								Refresh
+							</Button>
+						</div>
 					</div>
 					{pending ? (
-						<p role="status" className="p-4 text-sm">
+						<p role="status" className="shrink-0 p-4 text-sm">
 							Loading backup files...
 						</p>
 					) : (
 						<>
 							{error && (
-								<p role="alert" className="p-3 text-sm text-destructive">
+								<p
+									role="alert"
+									className="shrink-0 p-3 text-sm text-destructive"
+								>
 									{error}
 								</p>
 							)}
 							{listing.items.length > 0 && (
-								<ScrollArea className="h-64">
+								<ScrollArea className="h-64 min-h-0 shrink">
 									<CommandGroup>
 										{listing.items.map((file) => (
 											<CommandItem
@@ -254,14 +263,14 @@ export const BackupFilePicker = ({
 								</ScrollArea>
 							)}
 							{!error && listing.items.length === 0 && (
-								<p role="status" className="p-4 text-sm">
+								<p role="status" className="shrink-0 p-4 text-sm">
 									No backup files found.
 								</p>
 							)}
 							{!error && listing.items.length > 0 && !listing.nextCursor && (
 								<p
 									role="status"
-									className="p-2 text-center text-sm text-muted-foreground"
+									className="shrink-0 p-2 text-center text-sm text-muted-foreground"
 								>
 									End of results
 								</p>
@@ -270,7 +279,7 @@ export const BackupFilePicker = ({
 								<Button
 									type="button"
 									variant="ghost"
-									className="w-full"
+									className="w-full shrink-0"
 									disabled={loadingMore}
 									onClick={listing.nextCursor ? loadMore : restart}
 								>
@@ -283,7 +292,7 @@ export const BackupFilePicker = ({
 							)}
 						</>
 					)}
-					<p className="border-t p-2 text-xs text-muted-foreground">
+					<p className="shrink-0 border-t p-2 text-xs text-muted-foreground">
 						Other filenames follow in descending name order; modification time
 						is unknown.
 					</p>
