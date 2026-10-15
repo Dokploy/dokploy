@@ -84,7 +84,7 @@ export const removeCertificateById = async (certificateId: string) => {
 	return result;
 };
 
-const createCertificateFiles = async (certificate: Certificate) => {
+export const createCertificateFiles = async (certificate: Certificate) => {
 	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
 	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
 	const crtPath = path.join(certDir, "chain.crt");

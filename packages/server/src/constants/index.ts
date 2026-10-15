@@ -139,5 +139,6 @@ export const paths = (isServer = false) => {
 		VOLUME_BACKUPS_PATH: `${BASE_PATH}/volume-backups`,
 		VOLUME_BACKUP_LOCK_PATH: `${BASE_PATH}/volume-backup-lock`,
 		PATCH_REPOS_PATH: `${BASE_PATH}/patch-repos`,
+		PROJECT_EXPORT_IMPORT_PATH: `${BASE_PATH}/project-export-import`,
 	};
 };

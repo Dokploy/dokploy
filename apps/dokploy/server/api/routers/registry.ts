@@ -1,11 +1,8 @@
 import {
 	createRegistry,
-	execAsyncRemote,
-	execFileAsync,
 	findRegistryById,
-	IS_CLOUD,
 	removeRegistry,
-	safeDockerLoginCommand,
+	testRegistryConnection,
 	updateRegistry,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -105,36 +102,7 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
-				const args = [
-					"login",
-					input.registryUrl,
-					"--username",
-					input.username,
-					"--password-stdin",
-				];
-
-				if (IS_CLOUD && !input.serverId) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Select a server to test the registry",
-					});
-				}
-
-				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(
-						input.serverId,
-						safeDockerLoginCommand(
-							input.registryUrl,
-							input.username,
-							input.password,
-						),
-					);
-				} else {
-					await execFileAsync("docker", args, {
-						input: Buffer.from(input.password).toString(),
-					});
-				}
-
+				await testRegistryConnection(input);
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -169,35 +137,12 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				const args = [
-					"login",
-					registryData.registryUrl,
-					"--username",
-					registryData.username,
-					"--password-stdin",
-				];
-
-				if (IS_CLOUD && !input.serverId) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Select a server to test the registry",
-					});
-				}
-
-				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(
-						input.serverId,
-						safeDockerLoginCommand(
-							registryData.registryUrl,
-							registryData.username,
-							registryData.password,
-						),
-					);
-				} else {
-					await execFileAsync("docker", args, {
-						input: Buffer.from(registryData.password).toString(),
-					});
-				}
+				await testRegistryConnection({
+					registryUrl: registryData.registryUrl,
+					username: registryData.username,
+					password: registryData.password,
+					serverId: input.serverId,
+				});
 
 				return true;
 			} catch (error) {

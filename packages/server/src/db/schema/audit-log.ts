@@ -59,7 +59,9 @@ export type AuditAction =
 	| "stop"
 	| "reload"
 	| "rebuild"
-	| "move";
+	| "move"
+	| "export"
+	| "import";
 
 export type AuditResourceType =
 	| "project"

@@ -3,6 +3,7 @@ import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
 import {
 	execAsync,
 	execAsyncRemote,
+	execFileAsync,
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -26,6 +27,40 @@ export function safeDockerLoginCommand(
 	const escapedPassword = shEscape(pass);
 	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
 }
+
+export const testRegistryConnection = async (input: {
+	registryUrl: string;
+	username: string;
+	password: string;
+	serverId?: string | null;
+}): Promise<void> => {
+	if (IS_CLOUD && !input.serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Select a server to test the registry",
+		});
+	}
+
+	if (input.serverId && input.serverId !== "none") {
+		await execAsyncRemote(
+			input.serverId,
+			safeDockerLoginCommand(input.registryUrl, input.username, input.password),
+		);
+		return;
+	}
+
+	await execFileAsync(
+		"docker",
+		[
+			"login",
+			input.registryUrl,
+			"--username",
+			input.username,
+			"--password-stdin",
+		],
+		{ input: Buffer.from(input.password).toString() },
+	);
+};
 
 function sanitizeRegistryError(
 	error: unknown,

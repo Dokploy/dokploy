@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
+import { ExportProject } from "../project/export-import/export-wizard";
+import { ImportProject } from "../project/export-import/import-project";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
@@ -217,7 +219,8 @@ export const ShowProjects = () => {
 								</CardDescription>
 							</CardHeader>
 							{permissions?.project.create && (
-								<div className="">
+								<div className="flex gap-2">
+									<ImportProject />
 									<HandleProject />
 								</div>
 							)}
@@ -237,6 +240,7 @@ export const ShowProjects = () => {
 												placeholder="Filter projects..."
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
+												autoComplete="off"
 												className="pr-10"
 											/>
 
@@ -412,6 +416,14 @@ export const ShowProjects = () => {
 																				>
 																					<HandleProject
 																						projectId={project.projectId}
+																					/>
+																				</div>
+																				<div
+																					onClick={(e) => e.stopPropagation()}
+																				>
+																					<ExportProject
+																						projectId={project.projectId}
+																						environments={project.environments}
 																					/>
 																				</div>
 

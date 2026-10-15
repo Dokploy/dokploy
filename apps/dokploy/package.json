@@ -94,6 +94,7 @@
 		"better-auth": "1.6.23",
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
+		"busboy": "^1.6.0",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^0.2.1",
@@ -157,6 +158,7 @@
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.1",
 		"@types/bcrypt": "5.0.2",
+		"@types/busboy": "^1.5.4",
 		"@types/dompurify": "^3.2.0",
 		"@types/js-cookie": "^3.0.6",
 		"@types/lodash": "4.17.4",

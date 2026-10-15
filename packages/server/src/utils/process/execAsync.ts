@@ -258,6 +258,7 @@ export const execAsyncRemote = async (
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
+				keepaliveInterval: 15_000,
 			});
 	});
 };
@@ -317,6 +318,7 @@ export const writeFileRemote = async (
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
 				timeout: 99999,
+				keepaliveInterval: 15_000,
 			});
 	});
 };
