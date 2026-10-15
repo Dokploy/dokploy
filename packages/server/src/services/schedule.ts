@@ -8,7 +8,11 @@ import type {
 	createScheduleSchema,
 	updateScheduleSchema,
 } from "../db/schema/schedule";
-import { type Schedule, schedules } from "../db/schema/schedule";
+import {
+	isDatabaseScheduleType,
+	type Schedule,
+	schedules,
+} from "../db/schema/schedule";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { findMemberByUserId } from "./permission";
@@ -81,7 +85,13 @@ export const createSchedule = async (
 	const { scheduleId, ...rest } = input;
 	const [newSchedule] = await db
 		.insert(schedules)
-		.values(rest as typeof schedules.$inferInsert)
+		.values({
+			...rest,
+			// Database images commonly provide /bin/sh but not bash. The UI uses
+			// sh by default; keep API-created database schedules consistent.
+			...(isDatabaseScheduleType(rest.scheduleType) &&
+				rest.shellType === undefined && { shellType: "sh" as const }),
+		} as typeof schedules.$inferInsert)
 		.returning();
 
 	if (
