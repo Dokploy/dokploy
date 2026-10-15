@@ -6,7 +6,7 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists } from "drizzle-orm";
+import { and, desc, eq, exists, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -22,6 +22,63 @@ import {
 	user,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import {
+	applyTeamMemberMove,
+	createTeamSchema,
+	deleteTeamSchema,
+	filterStaleInvitationIds,
+	moveTeamMemberSchema,
+	type OrganizationMetadataEnvelope,
+	parseOrganizationMetadata,
+	readTeamsFromMetadata,
+	type TeamMetadataItem,
+	updateTeamSchema,
+} from "./organization-teams";
+
+const assertAdminOrOwnerMember = async (
+	organizationId: string,
+	userId: string,
+) => {
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, organizationId),
+	});
+
+	if (!org) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Organization not found",
+		});
+	}
+
+	const actorMember = await db.query.member.findFirst({
+		where: and(
+			eq(member.organizationId, organizationId),
+			eq(member.userId, userId),
+		),
+	});
+
+	if (!actorMember) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You are not a member of this organization",
+		});
+	}
+
+	const isAuthorized =
+		org.ownerId === userId ||
+		actorMember.role === "owner" ||
+		actorMember.role === "admin";
+
+	if (!isAuthorized) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"Only organization owners and admins can manage teams and invitations",
+		});
+	}
+
+	return { org, actorMember };
+};
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
@@ -134,6 +191,7 @@ export const organizationRouter = createTRPCRouter({
 				name: z.string().min(1),
 				logo: z.string().optional(),
 				defaultRole: z.string().min(1).nullable().optional(),
+				description: z.string().max(500).trim().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -209,6 +267,14 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
+			const nextMetadata =
+				input.description !== undefined
+					? JSON.stringify({
+							...parseOrganizationMetadata(org.metadata),
+							description: input.description,
+						})
+					: undefined;
+
 			const result = await db
 				.update(organization)
 				.set({
@@ -216,6 +282,9 @@ export const organizationRouter = createTRPCRouter({
 					logo: input.logo,
 					...(input.defaultRole !== undefined && {
 						defaultRole: input.defaultRole,
+					}),
+					...(nextMetadata !== undefined && {
+						metadata: nextMetadata,
 					}),
 				})
 				.where(eq(organization.id, input.organizationId))
@@ -597,4 +666,397 @@ export const organizationRouter = createTRPCRouter({
 			where: eq(organization.id, ctx.session.activeOrganizationId),
 		});
 	}),
+	transferOwnership: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().min(1),
+				targetMemberId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, input.organizationId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			const currentMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!currentMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			const isOwner =
+				org.ownerId === ctx.user.id || currentMember.role === "owner";
+
+			if (!isOwner) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the organization owner can transfer ownership",
+				});
+			}
+
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.id, input.targetMemberId),
+					eq(member.organizationId, input.organizationId),
+				),
+				with: { user: true },
+			});
+
+			if (!targetMember) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Target member not found in this organization",
+				});
+			}
+
+			if (targetMember.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You are already the owner of this organization",
+				});
+			}
+
+			await db.transaction(async (tx) => {
+				await tx
+					.update(organization)
+					.set({ ownerId: targetMember.userId })
+					.where(eq(organization.id, input.organizationId));
+
+				await tx
+					.update(member)
+					.set({ role: "admin" })
+					.where(
+						and(
+							eq(member.organizationId, input.organizationId),
+							eq(member.role, "owner"),
+						),
+					);
+
+				await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(eq(member.id, targetMember.id));
+			});
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				resourceName: org.name,
+				metadata: {
+					type: "transferOwnership",
+					previousOwnerId: ctx.user.id,
+					newOwnerId: targetMember.userId,
+				},
+			});
+
+			return { success: true };
+		}),
+	cleanupExpiredInvitations: withPermission("member", "create").mutation(
+		async ({ ctx }) => {
+			const orgId = ctx.session.activeOrganizationId;
+			const now = new Date();
+
+			const allOrgInvitations = await db.query.invitation.findMany({
+				where: eq(invitation.organizationId, orgId),
+			});
+
+			const staleIds = filterStaleInvitationIds(allOrgInvitations, now);
+
+			if (staleIds.length === 0) {
+				return { deletedCount: 0, deletedIds: [] };
+			}
+
+			await db
+				.delete(invitation)
+				.where(
+					and(
+						eq(invitation.organizationId, orgId),
+						inArray(invitation.id, staleIds),
+					),
+				);
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: orgId,
+				metadata: {
+					type: "cleanupExpiredInvitations",
+					deletedCount: staleIds.length,
+				},
+			});
+
+			return { deletedCount: staleIds.length, deletedIds: staleIds };
+		},
+	),
+	listTeams: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().min(1),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!userMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			const org = await db.query.organization.findFirst({
+				where: eq(organization.id, input.organizationId),
+			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			const meta = parseOrganizationMetadata(org.metadata);
+			return readTeamsFromMetadata(meta);
+		}),
+	createTeam: protectedProcedure
+		.input(createTeamSchema)
+		.mutation(async ({ ctx, input }) => {
+			const { org } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
+
+			const meta = parseOrganizationMetadata(org.metadata);
+			const teams = readTeamsFromMetadata(meta);
+
+			const duplicate = teams.some(
+				(team) => team.name.toLowerCase() === input.name.toLowerCase(),
+			);
+			if (duplicate) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: `A team named "${input.name}" already exists`,
+				});
+			}
+
+			const createdTeam: TeamMetadataItem = {
+				id: nanoid(),
+				name: input.name,
+				description: input.description ?? null,
+				maxSize: input.maxSize ?? null,
+				memberIds: [],
+			};
+
+			const nextMeta: OrganizationMetadataEnvelope = {
+				...meta,
+				teams: [...teams, createdTeam],
+			};
+
+			await db
+				.update(organization)
+				.set({ metadata: JSON.stringify(nextMeta) })
+				.where(eq(organization.id, input.organizationId));
+
+			await audit(ctx, {
+				action: "create",
+				resourceType: "organization",
+				resourceId: createdTeam.id,
+				resourceName: createdTeam.name,
+				metadata: {
+					type: "createTeam",
+					organizationId: input.organizationId,
+					maxSize: createdTeam.maxSize,
+				},
+			});
+
+			return createdTeam;
+		}),
+	updateTeam: protectedProcedure
+		.input(updateTeamSchema)
+		.mutation(async ({ ctx, input }) => {
+			const { org } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
+
+			const meta = parseOrganizationMetadata(org.metadata);
+			const teams = readTeamsFromMetadata(meta);
+			const teamIndex = teams.findIndex((team) => team.id === input.teamId);
+			const currentTeam = teamIndex !== -1 ? teams[teamIndex] : undefined;
+
+			if (!currentTeam) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found in this organization",
+				});
+			}
+
+			if (
+				input.maxSize !== undefined &&
+				input.maxSize !== null &&
+				currentTeam.memberIds.length > input.maxSize
+			) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: `Cannot set maxSize to ${input.maxSize} because the team currently has ${currentTeam.memberIds.length} members`,
+				});
+			}
+
+			const updatedTeam: TeamMetadataItem = {
+				...currentTeam,
+				...(input.name !== undefined && { name: input.name }),
+				...(input.description !== undefined && {
+					description: input.description,
+				}),
+				...(input.maxSize !== undefined && { maxSize: input.maxSize }),
+			};
+
+			const nextTeams = [...teams];
+			nextTeams[teamIndex] = updatedTeam;
+
+			await db
+				.update(organization)
+				.set({
+					metadata: JSON.stringify({
+						...meta,
+						teams: nextTeams,
+					}),
+				})
+				.where(eq(organization.id, input.organizationId));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: updatedTeam.id,
+				resourceName: updatedTeam.name,
+				metadata: {
+					type: "updateTeam",
+					organizationId: input.organizationId,
+				},
+			});
+
+			return updatedTeam;
+		}),
+	deleteTeam: protectedProcedure
+		.input(deleteTeamSchema)
+		.mutation(async ({ ctx, input }) => {
+			const { org } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
+
+			const meta = parseOrganizationMetadata(org.metadata);
+			const teams = readTeamsFromMetadata(meta);
+			const targetTeam = teams.find((team) => team.id === input.teamId);
+
+			if (!targetTeam) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Team not found in this organization",
+				});
+			}
+
+			const nextTeams = teams.filter((team) => team.id !== input.teamId);
+
+			await db
+				.update(organization)
+				.set({
+					metadata: JSON.stringify({
+						...meta,
+						teams: nextTeams,
+					}),
+				})
+				.where(eq(organization.id, input.organizationId));
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "organization",
+				resourceId: targetTeam.id,
+				resourceName: targetTeam.name,
+				metadata: {
+					type: "deleteTeam",
+					organizationId: input.organizationId,
+				},
+			});
+
+			return { success: true };
+		}),
+	moveTeamMember: protectedProcedure
+		.input(moveTeamMemberSchema)
+		.mutation(async ({ ctx, input }) => {
+			const { org } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
+
+			const targetOrgMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, input.memberUserId),
+				),
+			});
+
+			if (!targetOrgMember) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User is not a member of this organization",
+				});
+			}
+
+			const meta = parseOrganizationMetadata(org.metadata);
+			const teams = readTeamsFromMetadata(meta);
+
+			const { sourceTeam, targetTeam, nextTeams } = applyTeamMemberMove(
+				teams,
+				input,
+			);
+
+			await db
+				.update(organization)
+				.set({
+					metadata: JSON.stringify({
+						...meta,
+						teams: nextTeams,
+					}),
+				})
+				.where(eq(organization.id, input.organizationId));
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: input.organizationId,
+				metadata: {
+					type: "moveTeamMember",
+					memberUserId: input.memberUserId,
+					sourceTeamId: input.sourceTeamId,
+					targetTeamId: input.targetTeamId,
+				},
+			});
+
+			return {
+				sourceTeam,
+				targetTeam,
+			};
+		}),
 });
