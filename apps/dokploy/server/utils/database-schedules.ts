@@ -26,12 +26,24 @@ export const cancelDatabaseScheduleJobs = async (
 	// Include disabled jobs in case an earlier disable failed to unregister one.
 	for (const job of jobs) {
 		if (IS_CLOUD) {
-			await removeJob({
+			const response: unknown = await removeJob({
 				type: "schedule",
 				scheduleId: job.scheduleId,
 				cronSchedule: job.cronExpression,
 				timezone: job.timezone,
 			});
+			// The shared HTTP client resolves JSON even for error status codes.
+			// Require the worker's acknowledgement before cascading away the job.
+			if (
+				typeof response !== "object" ||
+				response === null ||
+				!("result" in response) ||
+				typeof response.result !== "boolean"
+			) {
+				throw new Error(
+					`Cloud scheduler did not confirm removal of database schedule ${job.scheduleId}`,
+				);
+			}
 		} else {
 			removeScheduleJob(job.scheduleId);
 		}

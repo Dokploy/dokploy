@@ -30,6 +30,7 @@ const { cancelDatabaseScheduleJobs, cancelProjectDatabaseScheduleJobs } =
 beforeEach(() => {
 	vi.resetAllMocks();
 	mocks.mode.cloud = true;
+	mocks.removeJob.mockResolvedValue({ result: true });
 	mocks.findMany.mockResolvedValue([
 		{
 			scheduleId: "schedule-1",
@@ -93,6 +94,28 @@ it("does not silently continue deletion when the cloud scheduler is unavailable"
 	// Callers must await cancellation before removing the database row.
 	// A rejected cancellation keeps its FK and schedule rows intact.
 	expect(mocks.removeJob).toHaveBeenCalledTimes(1);
+});
+
+it("rejects a cloud scheduler HTTP error body instead of deleting the database", async () => {
+	// removeJob returns parsed JSON without checking Response.ok.
+	mocks.removeJob.mockResolvedValueOnce({ message: "Invalid API Key" });
+
+	await expect(
+		cancelDatabaseScheduleJobs("postgres", "database-1"),
+	).rejects.toThrow(
+		"Cloud scheduler did not confirm removal of database schedule schedule-1",
+	);
+	expect(mocks.removeJob).toHaveBeenCalledTimes(1);
+});
+
+it("accepts a confirmed already-absent cloud job", async () => {
+	// Disabled schedules are included in cleanup, but may not be registered.
+	mocks.removeJob.mockResolvedValueOnce({ result: false });
+
+	await expect(
+		cancelDatabaseScheduleJobs("postgres", "database-1"),
+	).resolves.toBeUndefined();
+	expect(mocks.removeJob).toHaveBeenCalledTimes(2);
 });
 
 it("cancels database jobs when a project is cascade-deleted", async () => {
