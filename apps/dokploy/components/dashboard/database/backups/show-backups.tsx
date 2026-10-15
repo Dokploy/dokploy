@@ -1,4 +1,10 @@
-import { ClipboardList, DatabaseBackup, Play, Trash2 } from "lucide-react";
+import {
+	ClipboardList,
+	DatabaseBackup,
+	Play,
+	Trash2,
+	Loader2,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -294,7 +300,7 @@ export const ShowBackups = ({
 																		variant="ghost"
 																		size="icon"
 																		className="size-8"
-																		isLoading={
+																		disabled={
 																			isManualBackup &&
 																			activeManualBackup === backup.backupId
 																		}
@@ -316,7 +322,12 @@ export const ShowBackups = ({
 																			setActiveManualBackup(undefined);
 																		}}
 																	>
-																		<Play className="size-4 " />
+																		{isManualBackup &&
+																		activeManualBackup === backup.backupId ? (
+																			<Loader2 className="size-4 animate-spin" />
+																		) : (
+																			<Play className="size-4" />
+																		)}
 																	</Button>
 																</TooltipTrigger>
 																<TooltipContent>
