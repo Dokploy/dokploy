@@ -4,8 +4,10 @@ import { findApplicationById } from "@dokploy/server/services/application";
 import type { Certificate } from "@dokploy/server/services/certificate";
 import { createCertificateFiles } from "@dokploy/server/services/certificate";
 import { createFileMount } from "@dokploy/server/services/mount";
+import { recreateNetwork } from "@dokploy/server/services/network";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { replaceAppNames } from "./appname";
+import { conflictResolutionsOf } from "./conflicts";
 import { assertSafeBundlePath } from "./deserialize";
 import type { TransferDb } from "./queries";
 import {
@@ -27,6 +29,7 @@ import type {
 	Snapshot,
 	TransferResult,
 } from "./types";
+import { conflictKey } from "./types";
 
 export type DeployCandidate = {
 	serviceId: string;
@@ -97,6 +100,41 @@ const copyComposeFiles = async (
 	emit(`Copied compose files for ${newAppName}`);
 };
 
+const createImportedNetworks = async (
+	snapshot: Snapshot,
+	plan: Plan,
+	result: TransferResult,
+	emit: Emit,
+): Promise<RestoreError[]> => {
+	const errors: RestoreError[] = [];
+	const conflictResolutions = conflictResolutionsOf(plan);
+	for (const requirement of snapshot.requirements) {
+		if (requirement.kind !== "network") continue;
+		if (plan.resolutions[requirementKey(requirement)]?.action !== "create") {
+			continue;
+		}
+		const conflict =
+			conflictResolutions[
+				conflictKey({ kind: "network", value: requirement.name })
+			];
+		if (conflict?.action === "keep" || conflict?.action === "skip") continue;
+		if (!requirement.originalId) continue;
+		const newNetworkId = result.idMap.network?.[requirement.originalId];
+		if (!newNetworkId) continue;
+		try {
+			await recreateNetwork(newNetworkId);
+			emit(`Created Docker network ${requirement.name}`);
+		} catch (error) {
+			errors.push({
+				serviceId: newNetworkId,
+				serviceName: requirement.name,
+				error: safeErrorMessage(error),
+			});
+		}
+	}
+	return errors;
+};
+
 const writeCertificateFiles = async (
 	db: TransferDb,
 	snapshot: Snapshot,
@@ -142,10 +180,17 @@ const writeRawTraefikConfig = async (
 	return true;
 };
 
+const domainKeys = (rows: { host: string; enabled?: boolean | null }[]) =>
+	rows
+		.map((row) => `${row.host}|${row.enabled ?? true}`)
+		.sort()
+		.join(",");
+
 const registerTraefikDomains = async (
 	oldAppName: string,
 	newAppName: string,
 	newApplicationId: string,
+	sourceDomains: { host: string; enabled?: boolean | null }[],
 	appNameMap: Record<string, string>,
 	workDir: Location,
 	pathsFn: typeof paths,
@@ -154,14 +199,24 @@ const registerTraefikDomains = async (
 	const app = await findApplicationById(newApplicationId);
 	const serverId = app.serverId ?? null;
 
-	const usedRawConfig = await writeRawTraefikConfig(
-		oldAppName,
-		newAppName,
-		appNameMap,
-		serverId,
-		workDir,
-		pathsFn,
-	);
+	// The raw file still routes the source hosts, so it is only safe when the import kept them.
+	const domainsUnchanged =
+		domainKeys(
+			sourceDomains.map((domain) => ({
+				...domain,
+				host: replaceAppNames(domain.host, appNameMap),
+			})),
+		) === domainKeys(app.domains);
+	const usedRawConfig =
+		domainsUnchanged &&
+		(await writeRawTraefikConfig(
+			oldAppName,
+			newAppName,
+			appNameMap,
+			serverId,
+			workDir,
+			pathsFn,
+		));
 	if (usedRawConfig) {
 		emit(`Wrote raw Traefik config for ${newAppName}`);
 		return;
@@ -248,6 +303,7 @@ export const postApply = async (
 					oldAppName,
 					newAppName,
 					newId,
+					(service.domains as { host: string; enabled?: boolean }[]) ?? [],
 					plan.appNameMap,
 					workDir,
 					pathsFn,
@@ -278,6 +334,9 @@ export const postApply = async (
 		}
 	}
 
+	postApplyErrors.push(
+		...(await createImportedNetworks(snapshot, plan, result, emit)),
+	);
 	await writeCertificateFiles(db, snapshot, plan, result, emit);
 	await writeFileMounts(db, snapshot, result, emit);
 

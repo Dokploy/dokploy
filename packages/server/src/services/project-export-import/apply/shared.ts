@@ -223,6 +223,7 @@ export const insertSharedByValue = async (
 				.values({
 					...row,
 					networkId: undefined,
+					dockerId: null,
 					name:
 						resolution?.action === "rename" && resolution.value
 							? resolution.value.trim()

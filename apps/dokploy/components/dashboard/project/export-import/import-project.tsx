@@ -187,6 +187,11 @@ export const ImportProject = ({
 
 	const handleUnlock = async () => {
 		if (!importId) return;
+		// The server deletes the encrypted payload after the first unlock, so Back + Unlock reuses that result.
+		if (unlockResult) {
+			setStep(2);
+			return;
+		}
 		try {
 			const result = await unlock({ importId, passphrase });
 			setUnlockResult(result);

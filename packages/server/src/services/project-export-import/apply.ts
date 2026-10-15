@@ -4,6 +4,7 @@ import {
 	projectTags,
 	tags,
 } from "@dokploy/server/db/schema";
+import { parse } from "dotenv";
 import { eq } from "drizzle-orm";
 import type { ApplyServicesContext, DbServiceKind } from "./apply/services";
 import {
@@ -11,8 +12,10 @@ import {
 	insertApplication,
 	insertCompose,
 	insertDbService,
+	rewriteVaultNames,
 } from "./apply/services";
 import { applyVaultAssignments, insertSharedByValue } from "./apply/shared";
+import { replaceAppNames } from "./appname";
 import { conflictResolutionsOf, resolvedProjectName } from "./conflicts";
 import type { TransferTx, TransferWriteDb } from "./queries";
 import {
@@ -31,20 +34,48 @@ import type {
 } from "./types";
 import { transferResultSchema } from "./types";
 
+const rewriteSharedEnv = (
+	row: Record<string, unknown>,
+	plan: Plan,
+	vaultNameMap: Record<string, string>,
+): Record<string, unknown> =>
+	typeof row.env === "string"
+		? {
+				...row,
+				env: rewriteVaultNames(
+					replaceAppNames(row.env, plan.appNameMap),
+					vaultNameMap,
+				),
+			}
+		: row;
+
+const ENV_KEY_REGEX = /^\s*(?:export\s+)?([\w.-]+)\s*=/;
+
+const appendMissingEnv = (target: string, source: string): string => {
+	const targetKeys = new Set(Object.keys(parse(target)));
+	const missing = source.split("\n").filter((line) => {
+		const key = ENV_KEY_REGEX.exec(line)?.[1];
+		return key && !targetKeys.has(key);
+	});
+	if (missing.length === 0) return target;
+	return [target.trimEnd(), ...missing].filter(Boolean).join("\n");
+};
+
 const insertProjectAndEnvironments = async (
 	tx: TransferTx,
 	snapshot: Snapshot,
 	plan: Plan,
 	organizationId: string,
 	secretsPlain: Map<string, string>,
+	vaultNameMap: Record<string, string>,
 ): Promise<{ projectId: string; environmentIdMap: Record<string, string> }> => {
+	const { tags: projectTagRows, ...restoredProject } = rewriteSharedEnv(
+		restoreSecretFields("project", snapshot.resources.project, secretsPlain),
+		plan,
+		vaultNameMap,
+	);
 	let projectId: string;
 	if (plan.target.kind === "newProject") {
-		const { tags: projectTagRows, ...restoredProject } = restoreSecretFields(
-			"project",
-			snapshot.resources.project,
-			secretsPlain,
-		);
 		const [inserted] = await tx
 			.insert(projects)
 			.values({
@@ -84,7 +115,11 @@ const insertProjectAndEnvironments = async (
 		let firstInsertedId: string | undefined;
 		let sawDefault = false;
 		for (const env of snapshot.resources.environments) {
-			const restored = restoreSecretFields("environment", env, secretsPlain);
+			const restored = rewriteSharedEnv(
+				restoreSecretFields("environment", env, secretsPlain),
+				plan,
+				vaultNameMap,
+			);
 			const [inserted] = await tx
 				.insert(environments)
 				.values({
@@ -110,7 +145,16 @@ const insertProjectAndEnvironments = async (
 		const baseName = plan.target.environmentName;
 		let index = 0;
 		for (const env of snapshot.resources.environments) {
-			const restored = restoreSecretFields("environment", env, secretsPlain);
+			const restored = rewriteSharedEnv(
+				restoreSecretFields("environment", env, secretsPlain),
+				plan,
+				vaultNameMap,
+			);
+			// Imported services read ${{project.*}} as ${{environment.*}} here, so the existing project's variables stay untouched.
+			restored.env = appendMissingEnv(
+				typeof restored.env === "string" ? restored.env : "",
+				typeof restoredProject.env === "string" ? restoredProject.env : "",
+			);
 			const name =
 				index === 0
 					? baseName
@@ -188,6 +232,7 @@ export const apply = async (
 			plan,
 			organizationId,
 			secretsPlain,
+			vaultNameMap,
 		);
 
 		const conflictResolutions = conflictResolutionsOf(plan);

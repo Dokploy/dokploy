@@ -31,10 +31,11 @@ import {
 	insertSchedules,
 	insertSecurity,
 	insertVolumeBackups,
+	resolvePublishedPort,
 } from "./children";
 import type { SharedIdMaps } from "./shared";
 
-const rewriteVaultNames = (
+export const rewriteVaultNames = (
 	env: string,
 	vaultNameMap: Record<string, string>,
 ): string => {
@@ -59,6 +60,14 @@ const CHILD_ARRAY_KEYS = [
 	"backups",
 ];
 
+const VARIABLE_FIELDS = [
+	"env",
+	"buildArgs",
+	"buildSecrets",
+	"previewEnv",
+	"previewBuildArgs",
+];
+
 const remapCommonFields = (
 	ctx: ApplyServicesContext,
 	row: Record<string, unknown>,
@@ -74,11 +83,17 @@ const remapCommonFields = (
 	for (const key of CHILD_ARRAY_KEYS) {
 		delete restored[key];
 	}
-	if (typeof restored.env === "string") {
-		restored.env = rewriteVaultNames(
-			replaceAppNames(restored.env, plan.appNameMap),
+	for (const field of VARIABLE_FIELDS) {
+		const value = restored[field];
+		if (typeof value !== "string") continue;
+		const rewritten = rewriteVaultNames(
+			replaceAppNames(value, plan.appNameMap),
 			vaultNameMap,
 		);
+		restored[field] =
+			plan.target.kind === "existingProject"
+				? rewritten.replaceAll("${{project.", "${{environment.")
+				: rewritten;
 	}
 	const oldNetworkIds = (row.networkIds as string[] | null) ?? [];
 	const networkIds = oldNetworkIds
@@ -470,9 +485,14 @@ export const insertDbService = async (
 	);
 	const { table, hasBackups } = DB_TABLES[kind];
 
+	const externalPort =
+		typeof common.externalPort === "number" && plan.portsStrategy !== "disable"
+			? resolvePublishedPort(common.externalPort, ctx.conflictResolutions)
+			: null;
+
 	const [inserted] = await tx
 		.insert(table)
-		.values({ ...common, [idField]: undefined } as never)
+		.values({ ...common, externalPort, [idField]: undefined } as never)
 		.returning();
 	if (!inserted) {
 		throw new Error(`Failed to insert ${kind} ${oldId}`);

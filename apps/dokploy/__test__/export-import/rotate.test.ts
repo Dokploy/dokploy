@@ -181,6 +181,41 @@ describe("buildRotationPlan", () => {
 		]);
 	});
 
+	it("keeps a mysql service whose root password is too short", async () => {
+		const tx = {
+			query: {
+				mysql: {
+					findFirst: async () => ({
+						mysqlId: "my-new-1",
+						databaseUser: "app",
+						databaseName: "app",
+						databasePassword: "long-enough-password",
+						databaseRootPassword: "1",
+					}),
+				},
+			},
+		} as any;
+		const snapshot = {
+			resources: {
+				services: [
+					{
+						kind: "mysql",
+						mysqlId: "my-old-1",
+						name: "db",
+						environmentId: "env-1",
+					},
+				],
+			},
+		} as any;
+
+		const { specs, unsafe } = await buildRotationPlan(tx, snapshot, {
+			mysql: { "my-old-1": "my-new-1" },
+		});
+
+		expect(specs).toHaveLength(0);
+		expect(unsafe).toHaveLength(1);
+	});
+
 	it("still generates independent new passwords when app and root passwords differ", async () => {
 		const tx = {
 			query: {

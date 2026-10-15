@@ -130,11 +130,18 @@ const RequirementRow = ({
 				{candidates.length > 0 && (
 					<Select
 						value={
-							choice.action === "skip" ? "__skip__" : (choice.targetId ?? "")
+							choice.action === "skip"
+								? "__skip__"
+								: choice.action === "create"
+									? "__create__"
+									: (choice.targetId ?? "")
 						}
 						onValueChange={(value) => {
-							if (value === "__skip__") {
-								onChange({ requirementKey: key, action: "skip" });
+							if (value === "__skip__" || value === "__create__") {
+								onChange({
+									requirementKey: key,
+									action: value === "__skip__" ? "skip" : "create",
+								});
 								return;
 							}
 							onChange({
@@ -148,6 +155,10 @@ const RequirementRow = ({
 							<SelectValue placeholder="Map to..." />
 						</SelectTrigger>
 						<SelectContent>
+							{"configIncluded" in requirement &&
+								requirement.configIncluded === true && (
+									<SelectItem value="__create__">Create from bundle</SelectItem>
+								)}
 							{candidates.map((candidate) => (
 								<SelectItem key={candidate.id} value={candidate.id}>
 									{candidate.name}

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, X509Certificate } from "node:crypto";
 import { VAULT_REF_REGEX } from "@dokploy/server/utils/vault";
 import type { ProjectTree, TransferDb } from "./queries";
 import {
@@ -21,7 +21,7 @@ export const detectRequirements = async (
 			detectDestinationRequirements(db, services, scope),
 			detectRegistryRequirements(db, services, scope),
 			detectNetworkRequirements(db, services, scope),
-			detectCertificateRequirements(db, services, scope),
+			detectCertificateRequirements(db, tree, services, scope),
 		]);
 
 	return [
@@ -403,11 +403,15 @@ const detectNetworkRequirements = async (
 
 const detectCertificateRequirements = async (
 	db: TransferDb,
+	tree: ProjectTree,
 	services: TaggedService[],
 	scope: ExportScope,
 ): Promise<Requirement[]> => {
-	const usedByPerResolver = new Map<string, UsedBy[]>();
-
+	const httpsDomains: {
+		host: string;
+		serverId: string | null;
+		usedBy: UsedBy;
+	}[] = [];
 	for (const { serviceType, environmentId, service } of services) {
 		const domains =
 			(service.domains as Record<string, unknown>[] | undefined) ?? [];
@@ -415,45 +419,59 @@ const detectCertificateRequirements = async (
 			serviceType === "application" ? "applicationId" : `${serviceType}Id`
 		] as string;
 		for (const domain of domains) {
-			if (domain.certificateType !== "custom") {
-				continue;
-			}
-			const resolver = domain.customCertResolver as string | null;
-			if (!resolver) {
-				continue;
-			}
-			const list = usedByPerResolver.get(resolver) ?? [];
-			list.push(
-				buildUsedBy(
+			// Uploaded certificates are picked by Traefik through SNI, so these domains use certificateType "none".
+			if (!domain.https || domain.certificateType !== "none") continue;
+			httpsDomains.push({
+				host: domain.host as string,
+				serverId: (service.serverId as string | null) ?? null,
+				usedBy: buildUsedBy(
 					environmentId,
 					serviceType,
 					service,
 					serviceId,
 					`domain:${domain.domainId}`,
 				),
-			);
-			usedByPerResolver.set(resolver, list);
+			});
 		}
 	}
 
-	if (usedByPerResolver.size === 0) {
+	if (httpsDomains.length === 0) {
 		return [];
 	}
 
-	const resolvers = [...usedByPerResolver.keys()];
 	const rows = await db.query.certificates.findMany({
-		where: (fields, { inArray }) => inArray(fields.certificatePath, resolvers),
+		where: (fields, { eq }) => eq(fields.organizationId, tree.organizationId),
 	});
 	const configIncluded = scope.shared.certificate === "value";
 
-	return rows.map((row) => ({
-		kind: "certificate" as const,
-		originalId: row.certificateId,
-		fingerprint: createHash("sha256").update(row.certificateData).digest("hex"),
-		configIncluded,
-		usedBy: usedByPerResolver.get(row.certificatePath) ?? [],
-		serverId: row.serverId ?? null,
-	}));
+	return rows.flatMap((row) => {
+		let certificate: X509Certificate;
+		try {
+			certificate = new X509Certificate(row.certificateData);
+		} catch {
+			return [];
+		}
+		const usedBy = httpsDomains
+			.filter(
+				(domain) =>
+					domain.serverId === (row.serverId ?? null) &&
+					certificate.checkHost(domain.host) !== undefined,
+			)
+			.map((domain) => domain.usedBy);
+		if (usedBy.length === 0) return [];
+		return [
+			{
+				kind: "certificate" as const,
+				originalId: row.certificateId,
+				fingerprint: createHash("sha256")
+					.update(row.certificateData)
+					.digest("hex"),
+				configIncluded,
+				usedBy,
+				serverId: row.serverId ?? null,
+			},
+		];
+	});
 };
 
 const detectServerRequirements = (services: TaggedService[]): Requirement[] => {

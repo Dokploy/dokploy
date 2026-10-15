@@ -142,7 +142,13 @@ export const buildRotationPlan = async (
 		if (!row) continue;
 
 		const oldPassword = row.databasePassword as string | undefined;
-		if (oldPassword && !isSafeToRotate(oldPassword, row)) {
+		const oldRoot = ROOT_PASSWORD_KINDS.includes(kind)
+			? (row.databaseRootPassword as string | undefined)
+			: undefined;
+		if (
+			(oldPassword && !isSafeToRotate(oldPassword, row)) ||
+			(oldRoot && !isSafeToRotate(oldRoot, row))
+		) {
 			unsafe.push(usedByOf(service, newId));
 			continue;
 		}
@@ -156,21 +162,17 @@ export const buildRotationPlan = async (
 				newPassword,
 			});
 		}
-		if (ROOT_PASSWORD_KINDS.includes(kind)) {
-			const oldRoot = row.databaseRootPassword as string | undefined;
-			if (oldRoot) {
-				const rootNewPassword =
+		if (oldRoot) {
+			specs.push({
+				serviceId: newId,
+				serviceType: kind,
+				field: "databaseRootPassword",
+				oldPassword: oldRoot,
+				newPassword:
 					oldRoot === oldPassword && newPassword
 						? newPassword
-						: generateRotatedPassword();
-				specs.push({
-					serviceId: newId,
-					serviceType: kind,
-					field: "databaseRootPassword",
-					oldPassword: oldRoot,
-					newPassword: rootNewPassword,
-				});
-			}
+						: generateRotatedPassword(),
+			});
 		}
 	}
 

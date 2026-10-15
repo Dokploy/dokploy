@@ -13,11 +13,13 @@ import { postApply } from "./post-apply";
 import type { TransferWriteDb } from "./queries";
 import { remove, safeErrorMessage } from "./remote-fs";
 import { restoreDumps } from "./restore";
+import type { TransferResult } from "./types";
 
 export type RunImportContext = {
 	db: TransferWriteDb;
 	organizationId: string;
 	enqueueDeploy?: (candidates: DeployCandidate[]) => Promise<void>;
+	scheduleJobs?: (result: TransferResult) => Promise<void>;
 };
 
 const discardImportFiles = async (job: ImportJob | undefined) => {
@@ -26,17 +28,16 @@ const discardImportFiles = async (job: ImportJob | undefined) => {
 };
 
 export const runImport = (importId: string, ctx: RunImportContext): void => {
-	executeImport(importId, ctx).catch(async (error) => {
-		const job = getImportJob(importId);
-		updateImportJob(importId, {
-			status: job?.result ? "done" : "failed",
-			partial: !!job?.result,
-			error: safeErrorMessage(error),
-		});
-		if (!job?.result) {
-			await discardImportFiles(job);
-		}
-	});
+	executeImport(importId, ctx)
+		.catch((error) => {
+			const job = getImportJob(importId);
+			updateImportJob(importId, {
+				status: job?.result ? "done" : "failed",
+				partial: !!job?.result,
+				error: safeErrorMessage(error),
+			});
+		})
+		.finally(() => discardImportFiles(getImportJob(importId)));
 };
 
 const executeImport = async (
@@ -73,16 +74,7 @@ const executeImport = async (
 
 	updateImportJob(importId, {
 		status: "restoring",
-		message: "Restoring database dumps...",
-	});
-	const restoreErrors = await restoreDumps(ctx.db, snapshot, result, workDir, {
-		emit: (message) => updateImportJob(importId, { message }),
-	});
-	updateImportJob(importId, { restoreErrors });
-
-	updateImportJob(importId, {
-		status: "deploying",
-		message: "Copying files and preparing deployments...",
+		message: "Copying files...",
 	});
 	const { deployCandidates, postApplyErrors } = await postApply(
 		ctx.db,
@@ -94,11 +86,23 @@ const executeImport = async (
 			emit: (message) => updateImportJob(importId, { message }),
 		},
 	);
-	if (postApplyErrors.length > 0) {
-		restoreErrors.push(...postApplyErrors);
-		updateImportJob(importId, { restoreErrors });
+	updateImportJob(importId, { message: "Restoring database dumps..." });
+	const restoreErrors = [
+		...postApplyErrors,
+		...(await restoreDumps(ctx.db, snapshot, result, workDir, {
+			emit: (message) => updateImportJob(importId, { message }),
+		})),
+	];
+	updateImportJob(importId, { restoreErrors, deployCandidates });
+
+	updateImportJob(importId, {
+		status: "deploying",
+		message: "Preparing deployments...",
+	});
+
+	if (ctx.scheduleJobs) {
+		await ctx.scheduleJobs(result);
 	}
-	updateImportJob(importId, { deployCandidates });
 
 	if (ctx.enqueueDeploy && plan.deployAfterImport !== false) {
 		await ctx.enqueueDeploy(deployCandidates);

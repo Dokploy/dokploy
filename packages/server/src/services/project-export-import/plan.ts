@@ -9,7 +9,11 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { finalDomainHost, regenerateAppName } from "./appname";
-import { CONFLICT_OPTIONS, resolveConflicts } from "./conflicts";
+import {
+	CONFLICT_OPTIONS,
+	conflictResolutionsOf,
+	resolveConflicts,
+} from "./conflicts";
 import { DUMPABLE_DB_TYPES } from "./dumps";
 import type { TransferDb } from "./queries";
 import { escapeShellArg, safeErrorMessage } from "./remote-fs";
@@ -177,19 +181,23 @@ const collectPortUsage = (
 	>();
 	const serviceServerMap = buildServiceServerMap(snapshot);
 	for (const service of snapshot.resources.services) {
-		if (service.kind !== "application") continue;
-		const ports =
-			(service.ports as Record<string, unknown>[] | undefined) ?? [];
-		if (ports.length === 0) continue;
-		const originalServerId =
-			serviceServerMap.get(service.applicationId as string) ?? null;
+		const kind = service.kind as ServiceType;
+		const publishedPorts =
+			kind === "application"
+				? ((service.ports as Record<string, unknown>[] | undefined) ?? []).map(
+						(port) => port.publishedPort as number,
+					)
+				: typeof service.externalPort === "number"
+					? [service.externalPort]
+					: [];
+		if (publishedPorts.length === 0) continue;
+		const serviceId = service[SERVICE_ID_FIELD[kind]] as string;
+		const originalServerId = serviceServerMap.get(serviceId) ?? null;
 		const destServerId = serverMap[originalServerId ?? "null"] ?? null;
-		const serviceId = service.applicationId as string;
 		const environmentId = service.environmentId as string;
 		const serviceName =
 			(service.name as string | undefined) ?? (service.appName as string) ?? "";
-		for (const port of ports) {
-			const publishedPort = port.publishedPort as number;
+		for (const publishedPort of publishedPorts) {
 			const key = `${destServerId ?? "local"}:${publishedPort}`;
 			const entry = byKey.get(key) ?? {
 				publishedPort,
@@ -198,7 +206,7 @@ const collectPortUsage = (
 			};
 			entry.usedBy.push({
 				serviceId,
-				serviceType: "application",
+				serviceType: kind,
 				serviceName,
 				environmentId,
 			});
@@ -206,6 +214,81 @@ const collectPortUsage = (
 		}
 	}
 	return byKey;
+};
+
+const networkDestServerId = (
+	requirement: Requirement,
+	serviceServerMap: Map<string, string | null>,
+	serverMap: Record<string, string | null>,
+): string | null => {
+	const serviceId = requirement.usedBy[0]?.serviceId;
+	const originalServerId = serviceId
+		? (serviceServerMap.get(serviceId) ?? null)
+		: null;
+	return serverMap[originalServerId ?? "null"] ?? null;
+};
+
+const findUsedPorts = async (
+	db: TransferDb,
+	publishedPorts: number[],
+): Promise<{ existingId: string; port: number; serverId: string | null }[]> => {
+	const existingPorts = await db.query.ports.findMany({
+		where: (fields, { inArray }) =>
+			inArray(fields.publishedPort, publishedPorts),
+		with: { application: { columns: { serverId: true } } },
+	});
+	const usedPorts = existingPorts.map((row) => ({
+		existingId: row.portId,
+		port: row.publishedPort,
+		serverId: row.application?.serverId ?? null,
+	}));
+	const dbRows = await Promise.all([
+		db.query.postgres
+			.findMany({
+				where: (fields, { inArray }) =>
+					inArray(fields.externalPort, publishedPorts),
+			})
+			.then((rows) => rows.map((row) => [row.postgresId, row] as const)),
+		db.query.mysql
+			.findMany({
+				where: (fields, { inArray }) =>
+					inArray(fields.externalPort, publishedPorts),
+			})
+			.then((rows) => rows.map((row) => [row.mysqlId, row] as const)),
+		db.query.mariadb
+			.findMany({
+				where: (fields, { inArray }) =>
+					inArray(fields.externalPort, publishedPorts),
+			})
+			.then((rows) => rows.map((row) => [row.mariadbId, row] as const)),
+		db.query.mongo
+			.findMany({
+				where: (fields, { inArray }) =>
+					inArray(fields.externalPort, publishedPorts),
+			})
+			.then((rows) => rows.map((row) => [row.mongoId, row] as const)),
+		db.query.redis
+			.findMany({
+				where: (fields, { inArray }) =>
+					inArray(fields.externalPort, publishedPorts),
+			})
+			.then((rows) => rows.map((row) => [row.redisId, row] as const)),
+		db.query.libsql
+			.findMany({
+				where: (fields, { inArray }) =>
+					inArray(fields.externalPort, publishedPorts),
+			})
+			.then((rows) => rows.map((row) => [row.libsqlId, row] as const)),
+	]);
+	for (const [existingId, row] of dbRows.flat()) {
+		if (row.externalPort === null) continue;
+		usedPorts.push({
+			existingId,
+			port: row.externalPort,
+			serverId: row.serverId ?? null,
+		});
+	}
+	return usedPorts;
 };
 
 const detectConflicts = async (
@@ -263,20 +346,17 @@ const detectConflicts = async (
 		const publishedPorts = [
 			...new Set([...portUsage.values()].map((v) => v.publishedPort)),
 		];
-		const existingPorts = await db.query.ports.findMany({
-			where: (fields, { inArray }) =>
-				inArray(fields.publishedPort, publishedPorts),
-			with: { application: { columns: { serverId: true } } },
-		});
-		for (const row of existingPorts) {
-			const rowServerId = row.application?.serverId ?? null;
-			const key = `${rowServerId ?? "local"}:${row.publishedPort}`;
+		const usedPorts = await findUsedPorts(db, publishedPorts);
+		const seen = new Set<string>();
+		for (const { existingId, port, serverId } of usedPorts) {
+			const key = `${serverId ?? "local"}:${port}`;
 			const entry = portUsage.get(key);
-			if (!entry) continue;
+			if (!entry || seen.has(key)) continue;
+			seen.add(key);
 			conflicts.push({
 				kind: "port",
-				value: String(row.publishedPort),
-				existingId: row.portId,
+				value: String(port),
+				existingId,
 				usedBy: entry.usedBy,
 				options: CONFLICT_OPTIONS.port,
 			});
@@ -287,11 +367,19 @@ const detectConflicts = async (
 		if (requirement.kind !== "network") continue;
 		const key = requirementKey(requirement);
 		if (resolutions[key]?.action !== "create") continue;
+		const destServerId = networkDestServerId(
+			requirement,
+			buildServiceServerMap(snapshot),
+			serverMap,
+		);
 		const existingNetwork = await db.query.network.findFirst({
-			where: (fields, { and, eq }) =>
+			where: (fields, { and, eq, isNull }) =>
 				and(
 					eq(fields.organizationId, organizationId),
 					eq(fields.name, requirement.name),
+					destServerId
+						? eq(fields.serverId, destServerId)
+						: isNull(fields.serverId),
 				),
 		});
 		if (existingNetwork) {
@@ -403,8 +491,35 @@ export const buildPlan = async (
 		}
 	}
 
-	const appNameMap: Record<string, string> = {};
 	const serviceServerMapForAppNames = buildServiceServerMap(snapshot);
+	for (const requirement of snapshot.requirements) {
+		if (requirement.kind !== "network") continue;
+		const key = requirementKey(requirement);
+		const resolution = resolutions[key];
+		if (
+			userChoices.resolutions?.[key] ||
+			resolution?.action !== "reuse" ||
+			!resolution.targetId
+		) {
+			continue;
+		}
+		const targetId = resolution.targetId;
+		const existing = await db.query.network.findFirst({
+			where: (fields, { eq }) => eq(fields.networkId, targetId),
+			columns: { serverId: true },
+		});
+		if (
+			(existing?.serverId ?? null) !==
+			networkDestServerId(requirement, serviceServerMapForAppNames, serverMap)
+		) {
+			resolutions[key] = {
+				requirementKey: key,
+				action: requirement.configIncluded ? "create" : "skip",
+			};
+		}
+	}
+
+	const appNameMap: Record<string, string> = {};
 	for (const service of snapshot.resources.services) {
 		const serviceType = service.kind as ServiceType;
 		const oldAppName = service.appName as string | undefined;
@@ -520,6 +635,93 @@ export const buildPlan = async (
 export type ValidatePlanOptions = {
 	checkAppNameAvailable?: CheckAppNameAvailable;
 	probeVersion?: RunVersionProbe;
+};
+
+const checkConflictRenames = async (
+	db: TransferDb,
+	snapshot: Snapshot,
+	plan: Plan,
+	organizationId: string,
+): Promise<PlanValidationCheck[]> => {
+	const renames = Object.entries(conflictResolutionsOf(plan)).flatMap(
+		([key, resolution]) => {
+			const [kind, ...rest] = key.split(":");
+			return resolution.action === "rename" && resolution.value
+				? [{ kind, original: rest.join(":"), value: resolution.value.trim() }]
+				: [];
+		},
+	);
+	const checks: PlanValidationCheck[] = [];
+
+	const domainRenames = renames.filter((rename) => rename.kind === "domain");
+	if (domainRenames.length > 0) {
+		const importedHosts = collectDomainHosts(snapshot, {
+			appNameMap: plan.appNameMap,
+			serverMap: plan.serverMap,
+			serverIpMap: await buildServerIpMap(db, plan.serverMap, organizationId),
+			domainStrategy: plan.domainStrategy,
+		});
+		const existingHosts = new Set(
+			(
+				await db.query.domains.findMany({
+					where: (fields, { inArray }) =>
+						inArray(
+							fields.host,
+							domainRenames.map((rename) => rename.value),
+						),
+					columns: { host: true },
+				})
+			).map((row) => row.host),
+		);
+		for (const rename of domainRenames) {
+			const taken =
+				existingHosts.has(rename.value) ||
+				importedHosts.has(rename.value) ||
+				domainRenames.some(
+					(other) => other !== rename && other.value === rename.value,
+				);
+			checks.push({
+				check: `rename:domain:${rename.original}`,
+				ok: !taken,
+				detail: taken ? `${rename.value} is already in use` : undefined,
+			});
+		}
+	}
+
+	const portRenames = renames.filter((rename) => rename.kind === "port");
+	if (portRenames.length > 0) {
+		const portUsage = [...collectPortUsage(snapshot, plan.serverMap).values()];
+		const usedPorts = await findUsedPorts(
+			db,
+			portRenames.map((rename) => Number(rename.value)),
+		);
+		for (const rename of portRenames) {
+			const port = Number(rename.value);
+			const servers = new Set(
+				portUsage
+					.filter((usage) => String(usage.publishedPort) === rename.original)
+					.map((usage) => usage.destServerId),
+			);
+			const taken =
+				usedPorts.some(
+					(used) => used.port === port && servers.has(used.serverId),
+				) ||
+				portUsage.some(
+					(usage) =>
+						usage.publishedPort === port && servers.has(usage.destServerId),
+				) ||
+				portRenames.some(
+					(other) => other !== rename && Number(other.value) === port,
+				);
+			checks.push({
+				check: `rename:port:${rename.original}`,
+				ok: !taken,
+				detail: taken ? `Port ${port} is already in use` : undefined,
+			});
+		}
+	}
+
+	return checks;
 };
 
 export const validatePlan = async (
@@ -675,6 +877,19 @@ export const validatePlan = async (
 					...row,
 					serverId: probeServerIdForRequirement(key) ?? undefined,
 				});
+			} else if (kind === "network") {
+				const row = await db.query.network.findFirst({
+					where: (fields, { eq }) =>
+						eq(fields.networkId, resolution.targetId as string),
+				});
+				if (!row || row.organizationId !== organizationId) {
+					throw new Error("Not found in this organization");
+				}
+				if ((row.serverId ?? null) !== probeServerIdForRequirement(key)) {
+					throw new Error(
+						`Network ${row.name} is on a different server than the services that use it`,
+					);
+				}
 			} else {
 				continue;
 			}
@@ -687,6 +902,10 @@ export const validatePlan = async (
 			});
 		}
 	}
+
+	checks.push(
+		...(await checkConflictRenames(db, snapshot, plan, organizationId)),
+	);
 
 	return checks;
 };

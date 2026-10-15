@@ -244,26 +244,53 @@ describe("detectRequirements", () => {
 		});
 	});
 
-	it("detects a certificate requirement via customCertResolver, not a direct FK", async () => {
+	it("detects an uploaded certificate by the https domains it covers on the same server", async () => {
 		const application = {
 			...baseApplication,
+			serverId: "server-1",
 			domains: [
 				{
 					domainId: "dom-1",
-					certificateType: "custom",
-					customCertResolver: "cert-path-abc",
+					host: "app.example.com",
+					https: true,
+					certificateType: "none",
+				},
+				{
+					domainId: "dom-2",
+					host: "other.example.com",
+					https: true,
+					certificateType: "none",
 				},
 			],
+		};
+		const certificate = {
+			certificateId: "cert-1",
+			certificateData:
+				"-----BEGIN CERTIFICATE-----\n" +
+				"MIICPjCCAeOgAwIBAgIJAOEJ+5C9HjNZMAoGCCqGSM49BAMCMBoxGDAWBgNVBAMM\n" +
+				"D2FwcC5leGFtcGxlLmNvbTAeFw0yNjEwMTUyMTQ0NDlaFw0zNjEwMTIyMTQ0NDla\n" +
+				"MBoxGDAWBgNVBAMMD2FwcC5leGFtcGxlLmNvbTCCAUswggEDBgcqhkjOPQIBMIH3\n" +
+				"AgEBMCwGByqGSM49AQECIQD/////AAAAAQAAAAAAAAAAAAAAAP//////////////\n" +
+				"/zBbBCD/////AAAAAQAAAAAAAAAAAAAAAP///////////////AQgWsY12Ko6k+ez\n" +
+				"671VdpiGvGUdBrDMU7D2O848PifSYEsDFQDEnTYIhucEk2pmeOETnSa3gZ9+kARB\n" +
+				"BGsX0fLhLEJH+Lzm5WOkQPJ3A32BLeszoPShOUXYmMKWT+NC4v4af5uO5+tKfA+e\n" +
+				"FivOM1drMV7Oy7ZAaDe/UfUCIQD/////AAAAAP//////////vOb6racXnoTzucrC\n" +
+				"/GMlUQIBAQNCAASL1XU5x61CV4NiEe+/UmBo6LjNyEpG597XYQ1EPv1QhtboQ1Uo\n" +
+				"no7Yf/H6T/8elaaCFtgl/sZqxHP4HDLkIFYtox4wHDAaBgNVHREEEzARgg9hcHAu\n" +
+				"ZXhhbXBsZS5jb20wCgYIKoZIzj0EAwIDSQAwRgIhANb3ATUO9PvG5Ta/5M4ggr11\n" +
+				"Rb3EoP/+A1AjbYmYEszLAiEA4nxjPPJXLb1zXMeiqz6xyI+8ETyjucTZTkfj4hyV\n" +
+				"6DM=\n" +
+				"-----END CERTIFICATE-----\n",
+			serverId: "server-1",
 		};
 		const db = fakeDb({
 			certificates: {
 				findMany: async () => [
+					certificate,
 					{
-						certificateId: "cert-1",
-						certificatePath: "cert-path-abc",
-						certificateData:
-							"-----BEGIN CERTIFICATE-----\nabc\n-----END CERTIFICATE-----",
-						serverId: "server-1",
+						...certificate,
+						certificateId: "cert-other-server",
+						serverId: null,
 					},
 				],
 			},
@@ -278,6 +305,7 @@ describe("detectRequirements", () => {
 		const certReqs = requirements.filter((r) => r.kind === "certificate");
 		expect(certReqs).toHaveLength(1);
 		expect(certReqs[0]?.originalId).toBe("cert-1");
+		expect(certReqs[0]?.usedBy).toHaveLength(1);
 		expect((certReqs[0] as any).fingerprint).toMatch(/^[a-f0-9]{64}$/);
 		expect((certReqs[0] as any).serverId).toBe("server-1");
 	});

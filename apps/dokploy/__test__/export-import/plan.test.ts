@@ -138,6 +138,30 @@ const fakeDb = (): TransferDb =>
 					{ domainId: "dom-existing-1", host: "existing.example.com" },
 				],
 			},
+			postgres: {
+				findMany: async () => [],
+				findFirst: async () => undefined,
+			},
+			mysql: {
+				findMany: async () => [],
+				findFirst: async () => undefined,
+			},
+			mariadb: {
+				findMany: async () => [],
+				findFirst: async () => undefined,
+			},
+			mongo: {
+				findMany: async () => [],
+				findFirst: async () => undefined,
+			},
+			redis: {
+				findMany: async () => [],
+				findFirst: async () => undefined,
+			},
+			libsql: {
+				findMany: async () => [],
+				findFirst: async () => undefined,
+			},
 			ports: {
 				findMany: async () => [
 					{

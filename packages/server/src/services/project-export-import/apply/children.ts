@@ -97,11 +97,12 @@ export const insertMounts = async (
 	secretsPlain: Map<string, string>,
 ): Promise<void> => {
 	for (const row of rows) {
-		for (const field of ["filePath", "hostPath"]) {
-			const value = row[field];
-			if (typeof value === "string" && value && isUnsafeBundlePath(value)) {
-				throw new Error(`Unsafe mount ${field} in bundle: "${value}"`);
-			}
+		if (
+			typeof row.filePath === "string" &&
+			row.filePath &&
+			isUnsafeBundlePath(row.filePath)
+		) {
+			throw new Error(`Unsafe mount filePath in bundle: "${row.filePath}"`);
 		}
 		const restored = restoreSecretFields("mount", row, secretsPlain);
 		const volumeName =
@@ -125,6 +126,27 @@ export const insertMounts = async (
 	}
 };
 
+export const resolvePublishedPort = (
+	port: unknown,
+	conflictResolutions: Record<string, ConflictResolution>,
+): number | null => {
+	const resolution =
+		conflictResolutions[conflictKey({ kind: "port", value: String(port) })];
+	if (resolution?.action === "skip") return null;
+	const publishedPort =
+		resolution?.action === "rename" && resolution.value
+			? Number.parseInt(resolution.value, 10)
+			: port;
+	if (
+		typeof publishedPort !== "number" ||
+		publishedPort < 1 ||
+		publishedPort > 65535
+	) {
+		throw new Error(`Invalid published port: ${String(publishedPort)}`);
+	}
+	return publishedPort;
+};
+
 export const insertPorts = async (
 	tx: TransferTx,
 	rows: Record<string, unknown>[],
@@ -134,22 +156,11 @@ export const insertPorts = async (
 ): Promise<void> => {
 	if (portsStrategy === "disable") return;
 	for (const row of rows) {
-		const resolution =
-			conflictResolutions[
-				conflictKey({ kind: "port", value: String(row.publishedPort) })
-			];
-		if (resolution?.action === "skip") continue;
-		const publishedPort =
-			resolution?.action === "rename" && resolution.value
-				? Number.parseInt(resolution.value, 10)
-				: row.publishedPort;
-		if (
-			typeof publishedPort !== "number" ||
-			publishedPort < 1 ||
-			publishedPort > 65535
-		) {
-			throw new Error(`Invalid published port: ${String(publishedPort)}`);
-		}
+		const publishedPort = resolvePublishedPort(
+			row.publishedPort,
+			conflictResolutions,
+		);
+		if (publishedPort === null) continue;
 		await tx.insert(ports).values({
 			...row,
 			portId: undefined,

@@ -1,9 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { getDokployImageTag, IS_CLOUD, TRAEFIK_VERSION } from "@dokploy/server";
+import {
+	findBackupById,
+	getDokployImageTag,
+	IS_CLOUD,
+	scheduleBackup,
+	scheduleJob,
+	scheduleVolumeBackup,
+	TRAEFIK_VERSION,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import type {
 	DeployCandidate,
 	InstanceVersions,
+	TransferResult,
 } from "@dokploy/server/services/project-export-import";
 import {
 	assertNoActiveTransfer,
@@ -60,6 +69,7 @@ import { z } from "zod";
 import { PLAN_LIMITS } from "@/server/api/utils/plan-limits";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
+import { schedule } from "@/server/utils/backup";
 import { getCurrentPlan } from "@/server/utils/billing";
 import { deploy } from "@/server/utils/deploy";
 import packageInfo from "../../../package.json";
@@ -77,6 +87,94 @@ const localInstance = (): InstanceVersions => ({
 const localInstanceContext = () => {
 	const { dokployVersion, ...instance } = localInstance();
 	return { dokployVersion, instance };
+};
+
+const scheduleImportedJobs = async (result: TransferResult): Promise<void> => {
+	const serviceIds = Object.values(result.idMap).flatMap((ids) =>
+		Object.values(ids),
+	);
+	if (serviceIds.length === 0) return;
+
+	const [importedBackups, importedVolumeBackups, importedSchedules] =
+		await Promise.all([
+			db.query.backups.findMany({
+				where: (fields, { and, eq, inArray, or }) =>
+					and(
+						eq(fields.enabled, true),
+						or(
+							inArray(fields.postgresId, serviceIds),
+							inArray(fields.mysqlId, serviceIds),
+							inArray(fields.mariadbId, serviceIds),
+							inArray(fields.mongoId, serviceIds),
+							inArray(fields.libsqlId, serviceIds),
+							inArray(fields.composeId, serviceIds),
+						),
+					),
+				columns: { backupId: true },
+			}),
+			db.query.volumeBackups.findMany({
+				where: (fields, { and, eq, inArray, or }) =>
+					and(
+						eq(fields.enabled, true),
+						or(
+							inArray(fields.applicationId, serviceIds),
+							inArray(fields.postgresId, serviceIds),
+							inArray(fields.mysqlId, serviceIds),
+							inArray(fields.mariadbId, serviceIds),
+							inArray(fields.mongoId, serviceIds),
+							inArray(fields.redisId, serviceIds),
+							inArray(fields.libsqlId, serviceIds),
+							inArray(fields.composeId, serviceIds),
+						),
+					),
+			}),
+			db.query.schedules.findMany({
+				where: (fields, { and, eq, inArray, or }) =>
+					and(
+						eq(fields.enabled, true),
+						or(
+							inArray(fields.applicationId, serviceIds),
+							inArray(fields.composeId, serviceIds),
+						),
+					),
+			}),
+		]);
+
+	for (const { backupId } of importedBackups) {
+		const backup = await findBackupById(backupId);
+		if (IS_CLOUD) {
+			await schedule({
+				cronSchedule: backup.schedule,
+				backupId,
+				type: "backup",
+			});
+		} else {
+			scheduleBackup(backup);
+		}
+	}
+	for (const volumeBackup of importedVolumeBackups) {
+		if (IS_CLOUD) {
+			await schedule({
+				cronSchedule: volumeBackup.cronExpression,
+				volumeBackupId: volumeBackup.volumeBackupId,
+				type: "volume-backup",
+			});
+		} else {
+			await scheduleVolumeBackup(volumeBackup.volumeBackupId);
+		}
+	}
+	for (const importedSchedule of importedSchedules) {
+		if (IS_CLOUD) {
+			await schedule({
+				scheduleId: importedSchedule.scheduleId,
+				type: "schedule",
+				cronSchedule: importedSchedule.cronExpression,
+				timezone: importedSchedule.timezone,
+			});
+		} else {
+			scheduleJob(importedSchedule);
+		}
+	}
 };
 
 const enqueueImportDeploys = async (
@@ -801,20 +899,26 @@ export const projectExportImportRouter = createTRPCRouter({
 				});
 			}
 
-			assertPlanChecksPass(
-				await validatePlan(
-					db,
-					job.snapshot,
-					job.plan,
-					ctx.session.activeOrganizationId,
-				),
-			);
-
 			updateImportJob(input.importId, { status: "applying" });
+			try {
+				assertPlanChecksPass(
+					await validatePlan(
+						db,
+						job.snapshot,
+						job.plan,
+						ctx.session.activeOrganizationId,
+					),
+				);
+			} catch (error) {
+				updateImportJob(input.importId, { status: "planned" });
+				throw error;
+			}
+
 			runImport(input.importId, {
 				db,
 				organizationId: ctx.session.activeOrganizationId,
 				enqueueDeploy: enqueueImportDeploys,
+				scheduleJobs: scheduleImportedJobs,
 			});
 
 			await audit(ctx, {

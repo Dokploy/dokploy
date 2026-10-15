@@ -63,7 +63,18 @@ export type RunExportContext = {
 };
 
 export const fullExportScope = (): ExportScope =>
-	exportScopeSchema.parse({ dumps: { mode: "embed" } });
+	exportScopeSchema.parse({
+		shared: {
+			destination: "value",
+			registry: "value",
+			sshKey: "value",
+			network: "value",
+			certificate: "value",
+			dnsProvider: "value",
+			vaultProvider: "reference",
+		},
+		dumps: { mode: "embed" },
+	});
 
 export const bundleBuildServer = async (
 	db: TransferDb,
