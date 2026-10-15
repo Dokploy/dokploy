@@ -24,7 +24,7 @@ import {
 		createDefaultMiddlewares();
 		await initializeSwarm();
 		await initializeNetwork();
-		createDefaultTraefikConfig();
+		await createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
 		await execAsync(`docker pull traefik:v${TRAEFIK_VERSION}`);
 		await initializeStandaloneTraefik();
