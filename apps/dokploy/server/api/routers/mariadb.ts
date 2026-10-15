@@ -53,6 +53,7 @@ import {
 	projects,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
+import { cancelDatabaseScheduleJobs } from "@/server/utils/database-schedules";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)
@@ -295,6 +296,8 @@ export const mariadbRouter = createTRPCRouter({
 				resourceName: mongo.appName,
 			});
 			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
+			await cancelDatabaseScheduleJobs("mariadb", input.mariadbId);
+
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
 				async () => await cancelJobs(backups),

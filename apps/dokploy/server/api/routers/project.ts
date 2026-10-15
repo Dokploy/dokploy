@@ -67,6 +67,7 @@ import {
 	redis,
 } from "@/server/db/schema";
 import { getBillingStatus } from "@/server/utils/billing";
+import { cancelProjectDatabaseScheduleJobs } from "@/server/utils/database-schedules";
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -776,6 +777,7 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 				await checkProjectAccess(ctx, "delete", input.projectId);
+				await cancelProjectDatabaseScheduleJobs(currentProject.environments);
 				const deletedProject = await deleteProject(input.projectId);
 
 				await audit(ctx, {

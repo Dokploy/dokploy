@@ -16,6 +16,25 @@ import { findServerById } from "./server";
 
 export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
 
+// Only the container identity and ownership chain are needed to manage
+// database schedules. In particular, never load database credentials or the
+// encrypted environment values from the database, environment, or project.
+const databaseScheduleRelation = {
+	columns: {
+		name: true,
+		appName: true,
+		serverId: true,
+	},
+	with: {
+		environment: {
+			columns: { environmentId: true },
+			with: {
+				project: { columns: { organizationId: true } },
+			},
+		},
+	},
+} as const;
+
 // Host-level schedules (server / dokploy-server) run their script as root on the
 // host and must stay restricted to owners/admins, regardless of whether the
 // request is also tied to a service. Attaching an accessible applicationId must
@@ -103,24 +122,12 @@ export const findScheduleById = async (scheduleId: string) => {
 					},
 				},
 			},
-			postgres: {
-				with: { environment: { with: { project: true } } },
-			},
-			mysql: {
-				with: { environment: { with: { project: true } } },
-			},
-			mariadb: {
-				with: { environment: { with: { project: true } } },
-			},
-			mongo: {
-				with: { environment: { with: { project: true } } },
-			},
-			redis: {
-				with: { environment: { with: { project: true } } },
-			},
-			libsql: {
-				with: { environment: { with: { project: true } } },
-			},
+			postgres: databaseScheduleRelation,
+			mysql: databaseScheduleRelation,
+			mariadb: databaseScheduleRelation,
+			mongo: databaseScheduleRelation,
+			redis: databaseScheduleRelation,
+			libsql: databaseScheduleRelation,
 
 			server: {
 				with: {
