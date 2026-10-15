@@ -147,12 +147,14 @@ describeIntegration("rclone SFTP integration (real server via Docker)", () => {
 
 		// Absolute paths resolve against the real container filesystem, so the
 		// target directory must exist and be writable by the SFTP user.
+		// The atmoz image's primary group may differ from the username, and
+		// its default chroot setup leaves the user home root-owned.
 		await docker([
 			"exec",
 			CONTAINER_NAME,
 			"sh",
 			"-c",
-			`mkdir -p /backups && chown ${SFTP_USER}:${SFTP_USER} /backups`,
+			`mkdir -p /backups && chown ${SFTP_USER} /backups ${containerHome}`,
 		]);
 
 		payloadFile = path.join(workDir, "backup.tar");
