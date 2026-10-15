@@ -361,5 +361,13 @@ export const postApply = async (
 		...(await writeFileMounts(db, snapshot, result, emit)),
 	);
 
-	return { deployCandidates, postApplyErrors };
+	const failedServiceIds = new Set(
+		postApplyErrors.map((error) => error.serviceId),
+	);
+	return {
+		deployCandidates: deployCandidates.filter(
+			(candidate) => !failedServiceIds.has(candidate.serviceId),
+		),
+		postApplyErrors,
+	};
 };
