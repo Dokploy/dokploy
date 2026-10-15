@@ -885,7 +885,12 @@ export const validatePlan = async (
 				if (!row || row.organizationId !== organizationId) {
 					throw new Error("Not found in this organization");
 				}
-				if ((row.serverId ?? null) !== probeServerIdForRequirement(key)) {
+				const requirement = requirementByKey.get(key);
+				if (
+					requirement &&
+					(row.serverId ?? null) !==
+						networkDestServerId(requirement, serviceServerMap, plan.serverMap)
+				) {
 					throw new Error(
 						`Network ${row.name} is on a different server than the services that use it`,
 					);

@@ -180,6 +180,7 @@ export type RestoreDumpsOptions = {
 	emit?: Emit;
 	deploy?: Partial<Record<RestorableKind, DeployFn>>;
 	readiness?: ReadinessOptions;
+	skipServiceIds?: Set<string>;
 };
 
 export const restoreDumps = async (
@@ -225,6 +226,15 @@ export const restoreDumps = async (
 				serviceId: dump.serviceId,
 				serviceName,
 				error: "Service was not imported (a required dependency was skipped)",
+			});
+			continue;
+		}
+		if (opts.skipServiceIds?.has(newServiceId)) {
+			restoreErrors.push({
+				serviceId: newServiceId,
+				serviceName,
+				error:
+					"Dump not restored because the service's files could not be written",
 			});
 			continue;
 		}

@@ -141,20 +141,29 @@ const writeCertificateFiles = async (
 	plan: Plan,
 	result: TransferResult,
 	emit: Emit,
-): Promise<void> => {
+): Promise<RestoreError[]> => {
+	const errors: RestoreError[] = [];
 	for (const requirement of snapshot.requirements) {
 		if (requirement.kind !== "certificate" || !requirement.originalId) continue;
 		const resolution = plan.resolutions[requirementKey(requirement)];
 		if (resolution?.action !== "create") continue;
 		const newCertificateId = result.idMap.certificate?.[requirement.originalId];
 		if (!newCertificateId) continue;
-		const row = await db.query.certificates.findFirst({
-			where: (fields, { eq }) => eq(fields.certificateId, newCertificateId),
-		});
-		if (!row) continue;
-		await createCertificateFiles(row as Certificate);
-		emit(`Wrote certificate files for ${row.name}`);
+		try {
+			const row = await db.query.certificates.findFirst({
+				where: (fields, { eq }) => eq(fields.certificateId, newCertificateId),
+			});
+			if (!row) continue;
+			await createCertificateFiles(row as Certificate);
+			emit(`Wrote certificate files for ${row.name}`);
+		} catch (error) {
+			errors.push({
+				serviceId: newCertificateId,
+				error: safeErrorMessage(error),
+			});
+		}
 	}
+	return errors;
 };
 
 const writeRawTraefikConfig = async (
@@ -235,7 +244,8 @@ const writeFileMounts = async (
 	snapshot: Snapshot,
 	result: TransferResult,
 	emit: Emit,
-): Promise<void> => {
+): Promise<RestoreError[]> => {
+	const errors: RestoreError[] = [];
 	for (const service of snapshot.resources.services) {
 		const kind = service.kind as ServiceType;
 		const oldId = service[SERVICE_ID_FIELD[kind]] as string | undefined;
@@ -246,15 +256,24 @@ const writeFileMounts = async (
 		const ownerField = SERVICE_ID_FIELD[
 			kind
 		] as keyof typeof mounts.$inferSelect;
-		const fileMounts = await db.query.mounts.findMany({
-			where: (fields, { eq, and }) =>
-				and(eq(fields[ownerField], newId), eq(fields.type, "file")),
-		});
-		for (const mount of fileMounts) {
-			await createFileMount(mount.mountId);
-			emit(`Wrote mount file ${mount.filePath} for ${newId}`);
+		try {
+			const fileMounts = await db.query.mounts.findMany({
+				where: (fields, { eq, and }) =>
+					and(eq(fields[ownerField], newId), eq(fields.type, "file")),
+			});
+			for (const mount of fileMounts) {
+				await createFileMount(mount.mountId);
+				emit(`Wrote mount file ${mount.filePath} for ${newId}`);
+			}
+		} catch (error) {
+			errors.push({
+				serviceId: newId,
+				serviceName: (service.name as string | undefined) ?? newId,
+				error: safeErrorMessage(error),
+			});
 		}
 	}
+	return errors;
 };
 
 export const postApply = async (
@@ -337,8 +356,10 @@ export const postApply = async (
 	postApplyErrors.push(
 		...(await createImportedNetworks(snapshot, plan, result, emit)),
 	);
-	await writeCertificateFiles(db, snapshot, plan, result, emit);
-	await writeFileMounts(db, snapshot, result, emit);
+	postApplyErrors.push(
+		...(await writeCertificateFiles(db, snapshot, plan, result, emit)),
+		...(await writeFileMounts(db, snapshot, result, emit)),
+	);
 
 	return { deployCandidates, postApplyErrors };
 };

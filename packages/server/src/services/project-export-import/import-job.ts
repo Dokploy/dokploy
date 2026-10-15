@@ -91,6 +91,7 @@ const executeImport = async (
 		...postApplyErrors,
 		...(await restoreDumps(ctx.db, snapshot, result, workDir, {
 			emit: (message) => updateImportJob(importId, { message }),
+			skipServiceIds: new Set(postApplyErrors.map((error) => error.serviceId)),
 		})),
 	];
 	updateImportJob(importId, { restoreErrors, deployCandidates });
