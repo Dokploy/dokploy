@@ -57,12 +57,9 @@ export const scheduleRouter = createTRPCRouter({
 
 			const databaseId = getDatabaseScheduleId(input);
 			if (isDatabaseScheduleType(input.scheduleType) && databaseId) {
-				await checkDatabaseScheduleAccess(
-					ctx,
-					input.scheduleType,
-					databaseId,
-					"create",
-				);
+				await checkDatabaseScheduleAccess(ctx, input.scheduleType, databaseId, {
+					schedule: ["create"],
+				});
 				if (IS_CLOUD) {
 					await assertScheduledJobLimit(
 						ctx.session.activeOrganizationId,
@@ -104,7 +101,7 @@ export const scheduleRouter = createTRPCRouter({
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
-					schedule({
+					await schedule({
 						scheduleId: newSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: newSchedule.cronExpression,
@@ -192,7 +189,7 @@ export const scheduleRouter = createTRPCRouter({
 					ctx,
 					existingSchedule.scheduleType,
 					databaseId,
-					"update",
+					{ schedule: ["update"] },
 				);
 			}
 			const serviceId =
@@ -216,10 +213,10 @@ export const scheduleRouter = createTRPCRouter({
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
+						cronSchedule: existingSchedule.cronExpression,
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
-						timezone: updatedSchedule.timezone,
+						timezone: existingSchedule.timezone,
 					});
 				}
 			} else {
@@ -255,7 +252,7 @@ export const scheduleRouter = createTRPCRouter({
 					ctx,
 					scheduleItem.scheduleType,
 					databaseId,
-					"delete",
+					{ schedule: ["delete"] },
 				);
 			}
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
@@ -296,12 +293,9 @@ export const scheduleRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			if (isDatabaseScheduleType(input.scheduleType)) {
-				await checkDatabaseScheduleAccess(
-					ctx,
-					input.scheduleType,
-					input.id,
-					"read",
-				);
+				await checkDatabaseScheduleAccess(ctx, input.scheduleType, input.id, {
+					schedule: ["read"],
+				});
 			} else if (
 				input.scheduleType === "application" ||
 				input.scheduleType === "compose"
@@ -439,7 +433,7 @@ export const scheduleRouter = createTRPCRouter({
 					ctx,
 					schedule.scheduleType,
 					databaseId,
-					"read",
+					{ schedule: ["read"] },
 				);
 			}
 			const serviceId = schedule.applicationId || schedule.composeId;
@@ -481,7 +475,7 @@ export const scheduleRouter = createTRPCRouter({
 					ctx,
 					scheduleItem.scheduleType,
 					databaseId,
-					"create",
+					{ schedule: ["create"] },
 				);
 			}
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;

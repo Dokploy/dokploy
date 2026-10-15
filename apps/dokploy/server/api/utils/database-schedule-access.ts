@@ -16,14 +16,9 @@ export const checkDatabaseScheduleAccess = async (
 	ctx: PermissionCtx,
 	databaseType: DatabaseScheduleType,
 	id: string,
-	action: "read" | "create" | "update" | "delete",
-	resource: "schedule" | "deployment" = "schedule",
+	permissions: Parameters<typeof checkServicePermissionAndAccess>[2],
 ) => {
-	if (resource === "deployment") {
-		await checkServicePermissionAndAccess(ctx, id, { deployment: ["read"] });
-	} else {
-		await checkServicePermissionAndAccess(ctx, id, { schedule: [action] });
-	}
+	await checkServicePermissionAndAccess(ctx, id, permissions);
 
 	const service = await (async () => {
 		switch (databaseType) {

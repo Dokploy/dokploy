@@ -49,18 +49,9 @@ const checkDatabaseDeploymentAccess = async (
 ) => {
 	const databaseId = getDatabaseScheduleId(schedule);
 	if (isDatabaseScheduleType(schedule.scheduleType) && databaseId) {
-		await checkDatabaseScheduleAccess(
-			ctx,
-			schedule.scheduleType,
-			databaseId,
-			"read",
-			"deployment",
-		);
-		if (action === "cancel") {
-			await checkServicePermissionAndAccess(ctx, databaseId, {
-				deployment: ["cancel"],
-			});
-		}
+		await checkDatabaseScheduleAccess(ctx, schedule.scheduleType, databaseId, {
+			deployment: [action],
+		});
 	}
 };
 
@@ -165,8 +156,7 @@ export const deploymentRouter = createTRPCRouter({
 						ctx,
 						schedule.scheduleType,
 						databaseId,
-						"read",
-						"deployment",
+						{ deployment: ["read"] },
 					);
 				}
 				const serviceId = schedule.applicationId || schedule.composeId;

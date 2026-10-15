@@ -626,8 +626,13 @@ export const removeDeployment = async (deploymentId: string) => {
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
 			const command = `rm -f ${logPath};`;
-			if (deployment.serverId) {
-				await execAsyncRemote(deployment.serverId, command);
+			const serverId =
+				deployment.serverId ||
+				(deployment.scheduleId
+					? getScheduleServerId(await findScheduleById(deployment.scheduleId))
+					: null);
+			if (serverId) {
+				await execAsyncRemote(serverId, command);
 			} else {
 				await execAsync(command);
 			}

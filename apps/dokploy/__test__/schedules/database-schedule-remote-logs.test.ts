@@ -8,14 +8,23 @@ const mocks = vi.hoisted(() => ({
 	execAsync: vi.fn(),
 	checkDatabaseScheduleAccess: vi.fn(),
 	checkServicePermissionAndAccess: vi.fn(),
+	removeDeployment: vi.fn(),
+	getDatabaseScheduleId: vi.fn(),
+	isDatabaseScheduleType: vi.fn(),
 }));
 
+vi.mock("@trpc/server", () => ({ TRPCError: Error }));
+vi.mock("@dokploy/server/db/schema/schedule", () => ({
+	getDatabaseScheduleId: mocks.getDatabaseScheduleId,
+	isDatabaseScheduleType: mocks.isDatabaseScheduleType,
+}));
 vi.mock("@dokploy/server", () => ({
 	findDeploymentById: mocks.findDeploymentById,
 	findScheduleById: mocks.findScheduleById,
 	getScheduleServerId: mocks.getScheduleServerId,
 	execAsyncRemote: mocks.execAsyncRemote,
 	execAsync: mocks.execAsync,
+	removeDeployment: mocks.removeDeployment,
 	IS_CLOUD: true,
 }));
 vi.mock("@dokploy/server/db", () => ({ db: {} }));
@@ -61,6 +70,11 @@ const readLogs = deploymentRouter.readLogs as unknown as (args: {
 	input: { deploymentId: string; tail: number };
 	ctx: typeof ctx;
 }) => Promise<string>;
+const removeDeployment =
+	deploymentRouter.removeDeployment as unknown as (args: {
+		input: { deploymentId: string };
+		ctx: typeof ctx;
+	}) => Promise<unknown>;
 
 const ctx = {
 	user: { id: "user-1" },
@@ -69,6 +83,8 @@ const ctx = {
 
 beforeEach(() => {
 	vi.resetAllMocks();
+	mocks.getDatabaseScheduleId.mockReturnValue(null);
+	mocks.isDatabaseScheduleType.mockReturnValue(false);
 	mocks.execAsyncRemote.mockResolvedValue({ stdout: "remote log output" });
 	mocks.execAsync.mockResolvedValue({ stdout: "local log output" });
 });
@@ -84,6 +100,8 @@ describe("scheduled deployment log server selection", () => {
 	] as const)(
 		"reads %s scheduled logs from the database's remote server",
 		async (type, idColumn) => {
+			mocks.getDatabaseScheduleId.mockReturnValue("database-1");
+			mocks.isDatabaseScheduleType.mockReturnValue(true);
 			mocks.findDeploymentById.mockResolvedValue({
 				deploymentId: "run-1",
 				logPath: "/logs/db.log",
@@ -127,6 +145,8 @@ describe("scheduled deployment log server selection", () => {
 	);
 
 	it("checks database read permission before resolving remote log storage", async () => {
+		mocks.getDatabaseScheduleId.mockReturnValue("database-1");
+		mocks.isDatabaseScheduleType.mockReturnValue(true);
 		mocks.findDeploymentById.mockResolvedValue({
 			deploymentId: "run-1",
 			logPath: "/logs/db.log",
@@ -145,6 +165,30 @@ describe("scheduled deployment log server selection", () => {
 		).rejects.toThrow("Access denied");
 		expect(mocks.findScheduleById).not.toHaveBeenCalled();
 		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
+	});
+
+	it("requires only deployment cancel permission to remove a database run", async () => {
+		mocks.getDatabaseScheduleId.mockReturnValue("database-1");
+		mocks.isDatabaseScheduleType.mockReturnValue(true);
+		mocks.findDeploymentById.mockResolvedValue({
+			deploymentId: "run-1",
+			schedule: {
+				scheduleId: "schedule-1",
+				scheduleType: "postgres",
+				postgresId: "database-1",
+			},
+		});
+
+		await removeDeployment({ input: { deploymentId: "run-1" }, ctx });
+
+		expect(mocks.checkDatabaseScheduleAccess).toHaveBeenCalledExactlyOnceWith(
+			ctx,
+			"postgres",
+			"database-1",
+			{ deployment: ["cancel"] },
+		);
+		expect(mocks.checkServicePermissionAndAccess).not.toHaveBeenCalled();
+		expect(mocks.removeDeployment).toHaveBeenCalledWith("run-1");
 	});
 
 	it.each(["application", "compose"] as const)(
