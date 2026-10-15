@@ -122,6 +122,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
+		Networks: resolvedNetworks,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
@@ -196,8 +197,10 @@ ${command ?? "wait $MONGOD_PID"}`;
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			Networks: resolvedNetworks,
 			TaskTemplate: {
 				...settings.TaskTemplate,
+				Networks: resolvedNetworks,
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});

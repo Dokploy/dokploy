@@ -80,6 +80,7 @@ export const buildMysql = async (rawMysql: MysqlNested) => {
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
+		Networks: resolvedNetworks,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
@@ -145,8 +146,10 @@ export const buildMysql = async (rawMysql: MysqlNested) => {
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			Networks: resolvedNetworks,
 			TaskTemplate: {
 				...settings.TaskTemplate,
+				Networks: resolvedNetworks,
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
