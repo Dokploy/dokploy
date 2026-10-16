@@ -4,6 +4,11 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ToggleEnforceSSO } from "@/components/dashboard/settings/servers/actions/toggle-enforce-sso";
+import { ToggleHideDocsLink } from "@/components/dashboard/settings/servers/actions/toggle-hide-docs-link";
+import { ToggleHidePasskeyButton } from "@/components/dashboard/settings/servers/actions/toggle-hide-passkey-button";
+import { ToggleHideSocialIcons } from "@/components/dashboard/settings/servers/actions/toggle-hide-social-icons";
+import { ToggleHideSSOButton } from "@/components/dashboard/settings/servers/actions/toggle-hide-sso-button";
+import { ToggleHideSupportLink } from "@/components/dashboard/settings/servers/actions/toggle-hide-support-link";
 import { ToggleRemoteServersOnly } from "@/components/dashboard/settings/servers/actions/toggle-remote-servers-only";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
@@ -76,6 +81,11 @@ const Page = ({ isCloud }: Props) => {
 								<CardContent className="flex flex-col gap-4">
 									<ToggleRemoteServersOnly />
 									<ToggleEnforceSSO />
+									<ToggleHideSocialIcons />
+									<ToggleHideDocsLink />
+									<ToggleHideSupportLink />
+									<ToggleHideSSOButton />
+									<ToggleHidePasskeyButton />
 								</CardContent>
 							</EnterpriseFeatureGate>
 						</div>

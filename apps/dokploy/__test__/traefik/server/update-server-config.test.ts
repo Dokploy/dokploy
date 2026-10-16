@@ -74,6 +74,11 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheOnPreviews: false,
 	remoteServersOnly: false,
 	enforceSSO: false,
+	hideSocialIcons: false,
+	hideDocsLink: false,
+	hideSupportLink: false,
+	hideSSOButton: false,
+	hidePasskeyButton: false,
 	createdAt: null,
 	updatedAt: new Date(),
 };
