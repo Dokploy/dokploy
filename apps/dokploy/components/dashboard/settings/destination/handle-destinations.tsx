@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { S3_PROVIDERS } from "./constants";
+import { isRcloneProvider, OTHER_PROVIDERS, S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -112,6 +112,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		control: form.control,
 		name: "additionalFlags",
 	});
+
+	const selectedProvider = form.watch("provider");
+	const isSftpLike = selectedProvider === "sftp" || selectedProvider === "ftp";
+	const isRclone = isRcloneProvider(selectedProvider);
 
 	useEffect(() => {
 		if (destination) {
@@ -196,7 +200,35 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionPath = isRclone
+			? `/${bucket.replace(/^\/+|\/+$/g, "")}`
+			: bucket;
+		let connectionString: string;
+		if (selectedProvider === "sftp" || selectedProvider === "ftp") {
+			const configParams = [
+				endpoint ? `host=${endpoint}` : "",
+				region ? `port=${region}` : "",
+				accessKey ? `user=${accessKey}` : "",
+			]
+				.filter(Boolean)
+				.join(",");
+			connectionString = `:${provider}${configParams ? `,${configParams}` : ""}:${connectionPath}`;
+		} else if (selectedProvider === "webdav") {
+			const configParams = [
+				endpoint ? `url=${endpoint}` : "",
+				accessKey ? `user=${accessKey}` : "",
+			]
+				.filter(Boolean)
+				.join(",");
+			connectionString = `:webdav${configParams ? `,${configParams}` : ""}:${connectionPath}`;
+		} else {
+			connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		}
+
+		const passwordHint =
+			isRclone && secretKey
+				? ` --${provider}-pass "$(rclone obscure ${`'${secretKey.replace(/'/g, `'\\''`)}'`})"`
+				: "";
 
 		await testConnection({
 			provider,
@@ -215,7 +247,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			})
 			.catch((e) => {
 				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}${passwordHint}`,
 				});
 			});
 	};
@@ -295,14 +327,28 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
+													<SelectGroup>
+														<SelectLabel>S3 Providers</SelectLabel>
+														{S3_PROVIDERS.map((s3Provider) => (
+															<SelectItem
+																key={s3Provider.key}
+																value={s3Provider.key}
+															>
+																{s3Provider.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
+													<SelectGroup>
+														<SelectLabel>Other Providers</SelectLabel>
+														{OTHER_PROVIDERS.map((otherProvider) => (
+															<SelectItem
+																key={otherProvider.key}
+																value={otherProvider.key}
+															>
+																{otherProvider.name}
+															</SelectItem>
+														))}
+													</SelectGroup>
 												</SelectContent>
 											</Select>
 										</FormControl>
@@ -318,7 +364,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											{isRclone ? "Username" : "Access Key Id"}
+										</FormLabel>
 										<FormControl>
 											<Input placeholder={"xcas41dasde"} {...field} />
 										</FormControl>
@@ -333,7 +381,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{isRclone ? "Password" : "Secret Access Key"}
+										</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"asd123asdasw"} {...field} />
@@ -348,7 +398,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>{isRclone ? "Path" : "Bucket"}</FormLabel>
 									</div>
 									<FormControl>
 										<Input placeholder={"dokploy-bucket"} {...field} />
@@ -357,30 +407,40 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{selectedProvider !== "webdav" && (
+							<FormField
+								control={form.control}
+								name="region"
+								render={({ field }) => (
+									<FormItem>
+										<div className="space-y-0.5">
+											<FormLabel>
+												{isSftpLike ? "Port (Optional)" : "Region"}
+											</FormLabel>
+										</div>
+										<FormControl>
+											<Input placeholder={"us-east-1"} {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>
+										{isSftpLike ? "Host" : isRclone ? "URL" : "Endpoint"}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+												isSftpLike
+													? "host.example.com"
+													: "https://us.bucket.aws/s3"
+											}
 											{...field}
 										/>
 									</FormControl>
