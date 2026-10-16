@@ -123,6 +123,26 @@ export const runJobs = async (job: QueueJob) => {
 	return true;
 };
 
+export const isScheduleActive = (schedule: any) => {
+	if (schedule.server) {
+		return schedule.server.serverStatus === "active";
+	}
+	if (schedule.application) {
+		return schedule.application.server?.serverStatus === "active";
+	}
+	if (schedule.compose) {
+		return schedule.compose.server?.serverStatus === "active";
+	}
+	return false;
+};
+
+export const buildScheduleJobPayload = (schedule: any): any => ({
+	scheduleId: schedule.scheduleId,
+	type: "schedule",
+	cronSchedule: schedule.cronExpression,
+	timezone: schedule.timezone ?? undefined,
+});
+
 export const initializeJobs = async () => {
 	logger.info("Setting up Jobs....");
 
@@ -196,27 +216,12 @@ export const initializeJobs = async () => {
 		},
 	});
 
-	const filteredSchedulesBasedOnServerStatus = schedulesResult.filter(
-		(schedule) => {
-			if (schedule.server) {
-				return schedule.server.serverStatus === "active";
-			}
-			if (schedule.application) {
-				return schedule.application.server?.serverStatus === "active";
-			}
-			if (schedule.compose) {
-				return schedule.compose.server?.serverStatus === "active";
-			}
-		},
-	);
+	const filteredSchedulesBasedOnServerStatus =
+		schedulesResult.filter(isScheduleActive);
 
 	for (const schedule of filteredSchedulesBasedOnServerStatus) {
 		try {
-			await scheduleJob({
-				scheduleId: schedule.scheduleId,
-				type: "schedule",
-				cronSchedule: schedule.cronExpression,
-			});
+			await scheduleJob(buildScheduleJobPayload(schedule));
 		} catch (error) {
 			logger.error(error, `Failed to schedule ${schedule.scheduleId}`);
 		}
@@ -253,6 +258,7 @@ export const initializeJobs = async () => {
 			if (volumeBackup.compose) {
 				return volumeBackup.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 
