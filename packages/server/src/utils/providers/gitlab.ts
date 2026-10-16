@@ -7,6 +7,11 @@ import {
 	updateGitlab,
 } from "@dokploy/server/services/gitlab";
 import type { InferResultType } from "@dokploy/server/types/with";
+import {
+	getGitCloneAuthConfig,
+	getGitSshHosts,
+	getGitSubmoduleUpdateCommand,
+} from "@dokploy/server/utils/providers/git-auth";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import type { z } from "zod";
@@ -106,20 +111,16 @@ export type GitlabInfo =
 	| ApplicationWithGitlab["gitlab"]
 	| ComposeWithGitlab["gitlab"];
 
+const getGitlabCloneBaseUrl = (gitlab: GitlabInfo) =>
+	gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl || "";
+
 const getGitlabRepoClone = (
 	gitlab: GitlabInfo,
 	gitlabPathNamespace: string | null,
 ) => {
-	const url = gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl;
-	const repoClone = `${url?.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
+	const url = getGitlabCloneBaseUrl(gitlab).replace(/^https?:\/\//, "");
+	const repoClone = `${url.replace(/\/+$/, "")}/${gitlabPathNamespace}.git`;
 	return repoClone;
-};
-
-const getGitlabCloneUrl = (gitlab: GitlabInfo, repoClone: string) => {
-	const url = gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl;
-	const isSecure = url?.startsWith("https://");
-	const cloneUrl = `http${isSecure ? "s" : ""}://oauth2:${gitlab?.accessToken}@${repoClone}`;
-	return cloneUrl;
 };
 
 interface CloneGitlabRepository {
@@ -169,10 +170,27 @@ export const cloneGitlabRepository = async ({
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
+	const gitlabBaseUrl = getGitlabCloneBaseUrl(gitlab);
 	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
-	const cloneUrl = getGitlabCloneUrl(gitlab, repoClone);
+	const cloneUrl = `${gitlabBaseUrl.startsWith("https://") ? "https" : "http"}://${repoClone}`;
+	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${gitlab?.accessToken ?? ""}`).toString("base64")}`;
+	const cloneConfig = getGitCloneAuthConfig({
+		authorization,
+		authUrls: [gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl],
+		cloneBaseUrl: gitlabBaseUrl,
+		enableSubmodules,
+		sshHosts: getGitSshHosts(gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl),
+	});
 	command += `echo ${quote([`Cloning Repo ${repoClone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(gitlabBranch ?? "")])} --depth 1 ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	if (enableSubmodules) {
+		command += `${getGitSubmoduleUpdateCommand({
+			cloneBaseUrl: gitlabBaseUrl,
+			gitCloneConfig: cloneConfig,
+			outputPath,
+			sshHosts: getGitSshHosts(gitlab?.gitlabUrl, gitlab?.gitlabInternalUrl),
+		})};`;
+	}
 	return command;
 };
 

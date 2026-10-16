@@ -3,6 +3,10 @@ import { paths } from "@dokploy/server/constants";
 import type { apiFindGithubBranches } from "@dokploy/server/db/schema";
 import { findGithubById, type Github } from "@dokploy/server/services/github";
 import type { InferResultType } from "@dokploy/server/types/with";
+import {
+	getGitCloneAuthConfig,
+	getGitSubmoduleUpdateCommand,
+} from "@dokploy/server/utils/providers/git-auth";
 import { createAppAuth } from "@octokit/auth-app";
 import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
@@ -227,12 +231,27 @@ export const cloneGithubRepository = async ({
 	const token = await getGithubToken(octokit);
 	const cloneBase = new URL(normalizeGithubUrl(githubProvider.githubUrl));
 	const repoclone = `${cloneBase.host}/${owner}/${repository}.git`;
+	const authorization = `Authorization: Basic ${Buffer.from(`x-access-token:${token}`).toString("base64")}`;
+	const cloneConfig = getGitCloneAuthConfig({
+		authorization,
+		cloneBaseUrl: cloneBase.origin,
+		enableSubmodules,
+		sshHosts: [cloneBase.host],
+	});
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	const cloneUrl = `${cloneBase.protocol}//oauth2:${token}@${repoclone}`;
+	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${cloneConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	if (enableSubmodules) {
+		command += `${getGitSubmoduleUpdateCommand({
+			cloneBaseUrl: cloneBase.origin,
+			gitCloneConfig: cloneConfig,
+			outputPath,
+			sshHosts: [cloneBase.host],
+		})};`;
+	}
 
 	return command;
 };
