@@ -388,6 +388,9 @@ export const stripeRouter = createTRPCRouter({
 			await stripe.subscriptions.update(owner.stripeSubscriptionId, {
 				items: updateItems,
 				proration_behavior: isTrialing ? "none" : "create_prorations",
+				...(isTrialing && subscription.trial_end
+					? { trial_end: subscription.trial_end }
+					: {}),
 			});
 
 			return { ok: true };

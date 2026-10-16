@@ -5,7 +5,6 @@ import {
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
@@ -49,6 +48,7 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const LoginSchema = z.object({
@@ -306,6 +306,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								whitelabeling?.logoUrl ||
 								undefined
 							}
+							logoLightUrl={
+								whitelabeling?.loginLogoLightUrl ||
+								whitelabeling?.logoLightUrl ||
+								undefined
+							}
 						/>
 						Sign in
 					</div>
@@ -498,6 +503,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	// Prefetch the public branding so the login/onboarding logo and app name
 	// render correctly on the server (no flash of default branding).
 	await helpers.whitelabeling.getPublic.prefetch();
+	await helpers.sso.showSignInWithSSO.prefetch();
 
 	if (IS_CLOUD) {
 		try {

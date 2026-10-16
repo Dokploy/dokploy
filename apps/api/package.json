@@ -10,12 +10,12 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"inngest": "3.40.1",
+		"inngest": "3.54.0",
 		"@dokploy/server": "workspace:*",
-		"@hono/node-server": "^1.14.3",
+		"@hono/node-server": "^1.19.15",
 		"@hono/zod-validator": "0.7.6",
 		"dotenv": "^16.4.5",
-		"hono": "^4.11.7",
+		"hono": "^4.13.5",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
 		"react": "19.2.7",
