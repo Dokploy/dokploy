@@ -13,6 +13,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { schedules } from "./schedule";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -102,6 +103,7 @@ export const libsql = pgTable("libsql", {
 });
 
 export const libsqlRelations = relations(libsql, ({ one, many }) => ({
+	schedules: many(schedules),
 	environment: one(environments, {
 		fields: [libsql.environmentId],
 		references: [environments.environmentId],

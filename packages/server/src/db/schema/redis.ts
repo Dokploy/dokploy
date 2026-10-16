@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { schedules } from "./schedule";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -94,6 +95,7 @@ export const redis = pgTable("redis", {
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
+	schedules: many(schedules),
 	environment: one(environments, {
 		fields: [redis.environmentId],
 		references: [environments.environmentId],

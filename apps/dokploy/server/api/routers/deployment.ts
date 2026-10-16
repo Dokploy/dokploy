@@ -7,12 +7,17 @@ import {
 	findAllDeploymentsCentralized,
 	findDeploymentById,
 	findScheduleById,
+	getScheduleServerId,
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
 	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	getDatabaseScheduleId,
+	isDatabaseScheduleType,
+} from "@dokploy/server/db/schema/schedule";
 import {
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
@@ -22,6 +27,7 @@ import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import { checkDatabaseScheduleAccess } from "@/server/api/utils/database-schedule-access";
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,
@@ -33,6 +39,21 @@ import {
 import { myQueue } from "@/server/queues/queueSetup";
 import { fetchDeployApiJobs, type QueueJobRow } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+
+const checkDatabaseDeploymentAccess = async (
+	ctx: Parameters<typeof checkDatabaseScheduleAccess>[0],
+	schedule: NonNullable<
+		Awaited<ReturnType<typeof findDeploymentById>>["schedule"]
+	>,
+	action: "read" | "cancel",
+) => {
+	const databaseId = getDatabaseScheduleId(schedule);
+	if (isDatabaseScheduleType(schedule.scheduleType) && databaseId) {
+		await checkDatabaseScheduleAccess(ctx, schedule.scheduleType, databaseId, {
+			deployment: [action],
+		});
+	}
+};
 
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure
@@ -129,6 +150,15 @@ export const deploymentRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			if (input.type === "schedule") {
 				const schedule = await findScheduleById(input.id);
+				const databaseId = getDatabaseScheduleId(schedule);
+				if (isDatabaseScheduleType(schedule.scheduleType) && databaseId) {
+					await checkDatabaseScheduleAccess(
+						ctx,
+						schedule.scheduleType,
+						databaseId,
+						{ deployment: ["read"] },
+					);
+				}
 				const serviceId = schedule.applicationId || schedule.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -167,6 +197,9 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
+			if (deployment.schedule) {
+				await checkDatabaseDeploymentAccess(ctx, deployment.schedule, "cancel");
+			}
 			const serviceId = deployment.applicationId || deployment.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -212,6 +245,9 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
+			if (deployment.schedule) {
+				await checkDatabaseDeploymentAccess(ctx, deployment.schedule, "cancel");
+			}
 			const serviceId = deployment.applicationId || deployment.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -244,6 +280,9 @@ export const deploymentRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			const deployment = await findDeploymentById(input.deploymentId);
+			if (deployment.schedule) {
+				await checkDatabaseDeploymentAccess(ctx, deployment.schedule, "read");
+			}
 			const serviceId = deployment.applicationId || deployment.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -264,11 +303,21 @@ export const deploymentRouter = createTRPCRouter({
 			}
 
 			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
+			// Database schedules own a database service, not a serverId on the
+			// schedule or deployment record. Resolve its server for remote logs.
+			const databaseScheduleServerId =
+				deployment.schedule &&
+				isDatabaseScheduleType(deployment.schedule.scheduleType)
+					? getScheduleServerId(
+							await findScheduleById(deployment.schedule.scheduleId),
+						)
+					: null;
 			const serverId =
 				deployment.serverId ||
 				deployment.schedule?.serverId ||
 				deployment.application?.serverId ||
-				deployment.compose?.serverId;
+				deployment.compose?.serverId ||
+				databaseScheduleServerId;
 			if (serverId) {
 				const { stdout } = await execAsyncRemote(serverId, command);
 				return stdout;
