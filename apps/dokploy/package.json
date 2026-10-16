@@ -18,6 +18,7 @@
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
+		"migration:generate:libredb-studio": "drizzle-kit generate --config ./server/db/drizzle.libredb-studio.config.ts",
 		"migration:run": "tsx -r dotenv/config migration.ts",
 		"manual-migration:run": "tsx -r dotenv/config migrate.ts",
 		"migration:up": "drizzle-kit up --config ./server/db/drizzle.config.ts",

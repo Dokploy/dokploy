@@ -1,0 +1,115 @@
+{
+  "id": "bdb32254-c265-4b5e-8edb-8cc143f3f5bc",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.libredb_studio": {
+      "name": "libredb_studio",
+      "schema": "",
+      "columns": {
+        "libredbStudioId": {
+          "name": "libredbStudioId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allowCustomConnections": {
+          "name": "allowCustomConnections",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "seedHash": {
+          "name": "seedHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastSyncedAt": {
+          "name": "lastSyncedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastSyncError": {
+          "name": "lastSyncError",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "launchSecret": {
+          "name": "launchSecret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jwtSecret": {
+          "name": "jwtSecret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adminPassword": {
+          "name": "adminPassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "libredb_studio_applicationId_application_applicationId_fk": {
+          "name": "libredb_studio_applicationId_application_applicationId_fk",
+          "tableFrom": "libredb_studio",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "libredb_studio_applicationId_unique": {
+          "name": "libredb_studio_applicationId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "applicationId"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -17,6 +17,7 @@ import {
 	rebuildDatabase,
 	removeMongoById,
 	removeService,
+	scheduleLibreDBStudioSync,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -453,6 +454,7 @@ export const mongoRouter = createTRPCRouter({
 					await execAsync(command, { shell: "/bin/bash" });
 				}
 			});
+			scheduleLibreDBStudioSync(mongo);
 
 			await audit(ctx, {
 				action: "update",
@@ -475,6 +477,11 @@ export const mongoRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const previous = await db.query.mongo.findFirst({
+				where: eq(mongoTable.mongoId, input.mongoId),
+				columns: { environmentId: true, serverId: true },
+			});
+
 			const updatedMongo = await db
 				.update(mongoTable)
 				.set({
@@ -490,6 +497,10 @@ export const mongoRouter = createTRPCRouter({
 					message: "Failed to move mongo",
 				});
 			}
+			if (previous) {
+				scheduleLibreDBStudioSync(previous);
+			}
+			scheduleLibreDBStudioSync(updatedMongo);
 
 			await audit(ctx, {
 				action: "move",

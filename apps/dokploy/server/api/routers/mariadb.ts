@@ -17,6 +17,7 @@ import {
 	rebuildDatabase,
 	removeMariadbById,
 	removeService,
+	scheduleLibreDBStudioSync,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -438,6 +439,7 @@ export const mariadbRouter = createTRPCRouter({
 					await execAsync(command, { shell: "/bin/bash" });
 				}
 			});
+			scheduleLibreDBStudioSync(maria);
 
 			await audit(ctx, {
 				action: "update",
@@ -460,6 +462,11 @@ export const mariadbRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const previous = await db.query.mariadb.findFirst({
+				where: eq(mariadbTable.mariadbId, input.mariadbId),
+				columns: { environmentId: true, serverId: true },
+			});
+
 			const updatedMariadb = await db
 				.update(mariadbTable)
 				.set({
@@ -475,6 +482,10 @@ export const mariadbRouter = createTRPCRouter({
 					message: "Failed to move mariadb",
 				});
 			}
+			if (previous) {
+				scheduleLibreDBStudioSync(previous);
+			}
+			scheduleLibreDBStudioSync(updatedMariadb);
 
 			await audit(ctx, {
 				action: "move",

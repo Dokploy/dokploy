@@ -153,6 +153,23 @@ export const mountRouter = createTRPCRouter({
 					volume: ["create"],
 				});
 			}
+			// The input can move the row onto another service, which must allow it too.
+			for (const targetId of [
+				input.applicationId,
+				input.postgresId,
+				input.mariadbId,
+				input.mongoId,
+				input.mysqlId,
+				input.redisId,
+				input.libsqlId,
+				input.composeId,
+			]) {
+				if (targetId && targetId !== serviceId) {
+					await checkServicePermissionAndAccess(ctx, targetId, {
+						volume: ["create"],
+					});
+				}
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "mount",

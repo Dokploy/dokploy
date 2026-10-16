@@ -1,4 +1,8 @@
 import {
+	URL_PATH_MESSAGE,
+	URL_PATH_REGEX,
+} from "@dokploy/server/db/validations/domain";
+import {
 	INVALID_HOSTNAME_MESSAGE,
 	VALID_HOSTNAME_REGEX,
 } from "@dokploy/server/utils/hostname-validation";
@@ -16,7 +20,7 @@ export const domain = z
 			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		path: z.string().min(1).optional(),
+		path: z.string().min(1).regex(URL_PATH_REGEX, URL_PATH_MESSAGE).optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
@@ -56,7 +60,7 @@ export const domainCompose = z
 			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		path: z.string().min(1).optional(),
+		path: z.string().min(1).regex(URL_PATH_REGEX, URL_PATH_MESSAGE).optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
