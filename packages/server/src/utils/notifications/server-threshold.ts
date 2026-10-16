@@ -4,6 +4,7 @@ import { db } from "../../db";
 import { notifications } from "../../db/schema";
 import ServerThresholdEmail from "../../emails/emails/server-threshold";
 import {
+	escapeHtml,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -193,7 +194,7 @@ export const sendServerThresholdNotifications = async (
 				<b>Type:</b> ${payload.Type}
 				<b>Current Value:</b> ${payload.Value.toFixed(2)}%
 				<b>Threshold:</b> ${payload.Threshold.toFixed(2)}%
-				<b>Message:</b> ${payload.Message}
+				<b>Message:</b> ${escapeHtml(payload.Message)}
 				<b>Time:</b> ${date.toLocaleString()}
 			`,
 				);

@@ -5,6 +5,7 @@ import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	formatTelegramErrorMessage,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -208,7 +209,7 @@ export const sendDatabaseBackupNotifications = async ({
 				const statusEmoji = type === "success" ? "✅" : "❌";
 				const typeStatus = type === "success" ? "Successful" : "Failed";
 				const errorMsg = isError
-					? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
+					? `\n\n<b>Error:</b>\n<pre>${formatTelegramErrorMessage(errorMessage)}</pre>`
 					: "";
 
 				const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Database Name:</b> ${databaseName}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
