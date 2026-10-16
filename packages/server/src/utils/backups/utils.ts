@@ -1,8 +1,19 @@
+import {
+	ADDITIONAL_FLAG_ERROR,
+	getAdditionalFlagValidationError,
+	getDestinationValidationIssues,
+	getFtpTlsState,
+	getRclonePathValidationError,
+	isNamedRcloneDestinationProvider,
+	normalizeRcloneDestinationPath,
+	RCLONE_DESTINATION_PROVIDERS,
+} from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { quote } from "shell-quote";
+import { execFileAsync } from "../process/execAsync";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
 import { runLibsqlBackup } from "./libsql";
@@ -68,6 +79,16 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
+const getValidatedAdditionalFlags = (destination: Destination): string[] => {
+	const flags = destination.additionalFlags ?? [];
+	if (!Array.isArray(flags)) throw new Error(ADDITIONAL_FLAG_ERROR);
+	return flags.map((flag) => {
+		const issue = getAdditionalFlagValidationError(flag);
+		if (issue) throw new Error(issue);
+		return flag;
+	});
+};
+
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
@@ -84,11 +105,103 @@ export const getS3Credentials = (destination: Destination) => {
 		rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
 	}
 
-	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
-	}
+	rcloneFlags.push(...getValidatedAdditionalFlags(destination));
 
 	return rcloneFlags;
+};
+
+const joinRclonePath = (...parts: string[]) => {
+	const nonEmptyParts = parts.filter(Boolean);
+	const basePath = nonEmptyParts[0];
+	if (!basePath) return "";
+	const childPaths = nonEmptyParts.slice(1);
+	return childPaths.length === 0
+		? basePath
+		: `${basePath}${basePath.endsWith("/") ? "" : "/"}${childPaths.join("/")}`;
+};
+
+export const assertSafeRclonePath = (value: unknown) => {
+	const issue = getRclonePathValidationError(value, true);
+	if (issue) throw new Error(issue);
+};
+
+const obscureRclonePassword = async (password: string) => {
+	if (!password) return "";
+	const { stdout } = await execFileAsync("rclone", ["obscure", "-"], {
+		input: password,
+	});
+	return stdout.trim();
+};
+
+export const getRclonePathAndFlags = async (
+	destination: Destination,
+	path = "",
+): Promise<{ flags: string[]; path: string }> => {
+	const provider = destination.provider;
+	const childPath = normalizeRcloneDestinationPath(path, {
+		provider,
+		kind: "child",
+	});
+	const [validationIssue] = getDestinationValidationIssues(destination);
+	if (validationIssue) throw new Error(validationIssue.message);
+
+	const additionalFlags = getValidatedAdditionalFlags(destination);
+	const basePath = normalizeRcloneDestinationPath(destination.bucket, {
+		provider,
+		kind: "base",
+	});
+	const remotePath = joinRclonePath(basePath, childPath);
+
+	if (isNamedRcloneDestinationProvider(provider)) {
+		return {
+			flags: additionalFlags,
+			path: `${destination.endpoint.trim()}:${remotePath}`,
+		};
+	}
+
+	if (
+		provider === RCLONE_DESTINATION_PROVIDERS.FTP ||
+		provider === RCLONE_DESTINATION_PROVIDERS.SFTP
+	) {
+		const backend =
+			provider === RCLONE_DESTINATION_PROVIDERS.FTP ? "ftp" : "sftp";
+		const defaultPort =
+			provider === RCLONE_DESTINATION_PROVIDERS.FTP
+				? getFtpTlsState(additionalFlags).implicitTlsEnabled
+					? "990"
+					: "21"
+				: "22";
+		const port = destination.region.trim() || defaultPort;
+		const flags = [
+			`--${backend}-host=${quote([destination.endpoint.trim()])}`,
+			`--${backend}-user=${quote([destination.accessKey])}`,
+			`--${backend}-port=${quote([port])}`,
+		];
+		if (destination.secretAccessKey) {
+			const obscuredPassword = await obscureRclonePassword(
+				destination.secretAccessKey,
+			);
+			flags.push(`--${backend}-pass=${quote([obscuredPassword])}`);
+		}
+		flags.push(...additionalFlags);
+		if (provider === RCLONE_DESTINATION_PROVIDERS.FTP) {
+			// CLI options override RCLONE_* environment defaults. Keep TLS
+			// certificate verification enabled on the execution host.
+			flags.push(
+				"--ftp-no-check-certificate=false",
+				"--no-check-certificate=false",
+			);
+		}
+		return {
+			flags,
+			path: `:${backend}:${remotePath}`,
+		};
+	}
+
+	return {
+		flags: getS3Credentials(destination),
+		path: `:s3:${remotePath}`,
+	};
 };
 
 // User-controlled values (database name, user, password) are passed to the
@@ -265,8 +378,9 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
-	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+	const rcloneTarget = quote([rcloneDestination]);
+	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} ${rcloneTarget}`;
+	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${rcloneTarget}`;
 
 	logger.info(
 		{
@@ -290,7 +404,7 @@ export const getBackupCommand = (
 	fi;
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting backup and upload to destination..." >> ${logPath};
 
 	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
@@ -299,7 +413,7 @@ export const getBackupCommand = (
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };

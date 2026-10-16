@@ -1,3 +1,5 @@
+import { RCLONE_DESTINATION_PROVIDERS } from "@dokploy/server/db/validations/destination";
+
 export const S3_PROVIDERS: Array<{
 	key: string;
 	name: string;
@@ -130,4 +132,31 @@ export const S3_PROVIDERS: Array<{
 		key: "Other",
 		name: "Any other S3 compatible provider",
 	},
+];
+
+export const DESTINATION_PROVIDERS: Array<{
+	key: string;
+	name: string;
+}> = [
+	{
+		key: RCLONE_DESTINATION_PROVIDERS.GOOGLE_DRIVE,
+		name: "Google Drive (configured rclone remote)",
+	},
+	{
+		key: RCLONE_DESTINATION_PROVIDERS.ONEDRIVE,
+		name: "Microsoft OneDrive (configured rclone remote)",
+	},
+	{
+		key: RCLONE_DESTINATION_PROVIDERS.SFTP,
+		name: "SFTP",
+	},
+	{
+		key: RCLONE_DESTINATION_PROVIDERS.FTP,
+		name: "FTP",
+	},
+	{
+		key: RCLONE_DESTINATION_PROVIDERS.REMOTE,
+		name: "Other configured rclone remote",
+	},
+	...S3_PROVIDERS,
 ];

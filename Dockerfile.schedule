@@ -27,6 +27,12 @@ RUN cp -R /usr/src/app/apps/schedules/dist /prod/schedules/dist
 FROM base AS dokploy
 WORKDIR /app
 
+# The scheduler resolves password-protected FTP/SFTP destinations locally
+# with "rclone obscure -" before running a backup on the target server.
+# Copy the official, version-pinned static binary into this separate image.
+COPY --from=rclone/rclone:1.75.1 /usr/local/bin/rclone /usr/local/bin/rclone
+RUN rclone version && test -n "$(printf '%s' scheduler-smoke | rclone obscure -)"
+
 # Set production
 ENV NODE_ENV=production
 
