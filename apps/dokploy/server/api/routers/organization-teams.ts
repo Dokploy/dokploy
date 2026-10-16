@@ -98,6 +98,10 @@ export const readTeamsFromMetadata = (
 export const applyTeamMemberAdd = (
 	teams: TeamMetadataItem[],
 	input: { teamId: string; memberUserId: string },
+	options?: {
+		activeMemberUserIds?: Set<string>;
+		pendingInvitationCount?: number;
+	},
 ): {
 	updatedTeam: TeamMetadataItem;
 	nextTeams: TeamMetadataItem[];
@@ -119,10 +123,15 @@ export const applyTeamMemberAdd = (
 		});
 	}
 
+	const activeIds = options?.activeMemberUserIds
+		? targetTeam.memberIds.filter((id) => options.activeMemberUserIds!.has(id))
+		: targetTeam.memberIds;
+	const pendingCount = options?.pendingInvitationCount ?? 0;
+
 	if (
 		targetTeam.maxSize !== null &&
 		targetTeam.maxSize !== undefined &&
-		targetTeam.memberIds.length >= targetTeam.maxSize
+		activeIds.length + pendingCount >= targetTeam.maxSize
 	) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
@@ -132,19 +141,29 @@ export const applyTeamMemberAdd = (
 
 	// Remove from any existing team so each member belongs to at most one team
 	const nextTeams = teams.map((team) => {
+		const baseMemberIds = options?.activeMemberUserIds
+			? team.memberIds.filter((id) => options.activeMemberUserIds!.has(id))
+			: team.memberIds;
+
 		if (team.id === input.teamId) {
 			return {
 				...team,
-				memberIds: [...team.memberIds, input.memberUserId],
+				memberIds: [
+					...baseMemberIds.filter((id) => id !== input.memberUserId),
+					input.memberUserId,
+				],
 			};
 		}
-		if (team.memberIds.includes(input.memberUserId)) {
+		if (baseMemberIds.includes(input.memberUserId)) {
 			return {
 				...team,
-				memberIds: team.memberIds.filter((id) => id !== input.memberUserId),
+				memberIds: baseMemberIds.filter((id) => id !== input.memberUserId),
 			};
 		}
-		return team;
+		return {
+			...team,
+			memberIds: baseMemberIds,
+		};
 	});
 
 	const updatedTeam = nextTeams.find((t) => t.id === input.teamId)!;
@@ -196,6 +215,10 @@ export const applyTeamMemberRemove = (
 export const applyTeamMemberMove = (
 	teams: TeamMetadataItem[],
 	input: z.infer<typeof moveTeamMemberSchema>,
+	options?: {
+		activeMemberUserIds?: Set<string>;
+		pendingInvitationCount?: number;
+	},
 ): {
 	sourceTeam: TeamMetadataItem;
 	targetTeam: TeamMetadataItem;
@@ -241,10 +264,15 @@ export const applyTeamMemberMove = (
 		});
 	}
 
+	const targetActiveIds = options?.activeMemberUserIds
+		? targetTeam.memberIds.filter((id) => options.activeMemberUserIds!.has(id))
+		: targetTeam.memberIds;
+	const pendingCount = options?.pendingInvitationCount ?? 0;
+
 	if (
 		targetTeam.maxSize !== null &&
 		targetTeam.maxSize !== undefined &&
-		targetTeam.memberIds.length >= targetTeam.maxSize
+		targetActiveIds.length + pendingCount >= targetTeam.maxSize
 	) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",

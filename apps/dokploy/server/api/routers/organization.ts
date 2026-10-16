@@ -6,7 +6,7 @@ import {
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, exists, inArray } from "drizzle-orm";
+import { and, desc, eq, exists, gt, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
@@ -471,52 +471,80 @@ export const organizationRouter = createTRPCRouter({
 				}
 			}
 
-			if (input.teamId) {
-				const org = await db.query.organization.findFirst({
-					where: eq(organization.id, orgId),
-				});
-				const meta = parseOrganizationMetadata(org?.metadata);
-				const teams = readTeamsFromMetadata(meta);
-				const targetTeam = teams.find((t) => t.id === input.teamId);
-				if (!targetTeam) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Team not found in this organization",
-					});
-				}
-				if (targetTeam.maxSize !== null && targetTeam.maxSize !== undefined) {
-					const pendingTeamInvites = await db.query.invitation.findMany({
-						where: and(
-							eq(invitation.organizationId, orgId),
-							eq(invitation.teamId, input.teamId),
-							eq(invitation.status, "pending"),
-						),
-					});
-					if (
-						targetTeam.memberIds.length + pendingTeamInvites.length >=
-						targetTeam.maxSize
-					) {
+			let created: typeof invitation.$inferSelect | undefined;
+
+			await db.transaction(async (tx) => {
+				if (input.teamId) {
+					const [org] = await tx
+						.select()
+						.from(organization)
+						.where(eq(organization.id, orgId))
+						.for("update");
+
+					if (!org) {
 						throw new TRPCError({
-							code: "PRECONDITION_FAILED",
-							message: `Team "${targetTeam.name}" has reached its maximum size limit of ${targetTeam.maxSize}`,
+							code: "NOT_FOUND",
+							message: "Organization not found",
 						});
 					}
-				}
-			}
 
-			const [created] = await db
-				.insert(invitation)
-				.values({
-					id: nanoid(),
-					organizationId: orgId,
-					email,
-					role: input.role as any,
-					status: "pending",
-					expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-					inviterId: ctx.user.id,
-					teamId: input.teamId,
-				})
-				.returning();
+					const meta = parseOrganizationMetadata(org.metadata);
+					const teams = readTeamsFromMetadata(meta);
+					const targetTeam = teams.find((t) => t.id === input.teamId);
+					if (!targetTeam) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Team not found in this organization",
+						});
+					}
+
+					if (targetTeam.maxSize !== null && targetTeam.maxSize !== undefined) {
+						const now = new Date();
+						const pendingTeamInvites = await tx.query.invitation.findMany({
+							where: and(
+								eq(invitation.organizationId, orgId),
+								eq(invitation.teamId, input.teamId),
+								eq(invitation.status, "pending"),
+								gt(invitation.expiresAt, now),
+							),
+						});
+
+						const activeMembers = await tx.query.member.findMany({
+							where: eq(member.organizationId, orgId),
+						});
+						const activeUserIds = new Set(activeMembers.map((m) => m.userId));
+						const activeTeamMembers = targetTeam.memberIds.filter((id) =>
+							activeUserIds.has(id),
+						);
+
+						if (
+							activeTeamMembers.length + pendingTeamInvites.length >=
+							targetTeam.maxSize
+						) {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: `Team "${targetTeam.name}" has reached its maximum size limit of ${targetTeam.maxSize}`,
+							});
+						}
+					}
+				}
+
+				const [inserted] = await tx
+					.insert(invitation)
+					.values({
+						id: nanoid(),
+						organizationId: orgId,
+						email,
+						role: input.role as any,
+						status: "pending",
+						expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+						inviterId: ctx.user.id,
+						teamId: input.teamId,
+					})
+					.returning();
+
+				created = inserted;
+			});
 
 			if (IS_CLOUD && created) {
 				const host =
@@ -769,26 +797,6 @@ export const organizationRouter = createTRPCRouter({
 						});
 					}
 				}
-			} else {
-				const licensed = await hasValidLicense(input.organizationId);
-				if (licensed) {
-					const currentOwnerUser = await db.query.user.findFirst({
-						where: eq(user.id, ctx.user.id),
-					});
-					if (
-						currentOwnerUser?.licenseKey &&
-						!targetMember.user.isValidEnterpriseLicense
-					) {
-						await db
-							.update(user)
-							.set({
-								licenseKey: currentOwnerUser.licenseKey,
-								isValidEnterpriseLicense: true,
-								enableEnterpriseFeatures: true,
-							})
-							.where(eq(user.id, targetMember.userId));
-					}
-				}
 			}
 
 			let orgName = "organization";
@@ -815,6 +823,46 @@ export const organizationRouter = createTRPCRouter({
 					});
 				}
 
+				const [lockedTargetMember] = await tx
+					.select()
+					.from(member)
+					.where(
+						and(
+							eq(member.id, input.targetMemberId),
+							eq(member.organizationId, input.organizationId),
+						),
+					)
+					.for("update");
+
+				if (!lockedTargetMember) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Target member is no longer in this organization",
+					});
+				}
+
+				if (!IS_CLOUD) {
+					const licensed = await hasValidLicense(input.organizationId);
+					if (licensed) {
+						const currentOwnerUser = await tx.query.user.findFirst({
+							where: eq(user.id, ctx.user.id),
+						});
+						if (
+							currentOwnerUser?.licenseKey &&
+							!targetMember.user.isValidEnterpriseLicense
+						) {
+							await tx
+								.update(user)
+								.set({
+									licenseKey: currentOwnerUser.licenseKey,
+									isValidEnterpriseLicense: true,
+									enableEnterpriseFeatures: true,
+								})
+								.where(eq(user.id, targetMember.userId));
+						}
+					}
+				}
+
 				orgName = lockedOrg.name;
 
 				await tx
@@ -837,7 +885,7 @@ export const organizationRouter = createTRPCRouter({
 						),
 					);
 
-				await tx
+				const updatedTargetMembers = await tx
 					.update(member)
 					.set({ role: "owner" })
 					.where(
@@ -845,7 +893,15 @@ export const organizationRouter = createTRPCRouter({
 							eq(member.id, targetMember.id),
 							eq(member.organizationId, input.organizationId),
 						),
-					);
+					)
+					.returning();
+
+				if (updatedTargetMembers.length === 0) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Failed to promote target member: member not found",
+					});
+				}
 			});
 
 			await audit(
@@ -941,12 +997,25 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			const meta = parseOrganizationMetadata(org.metadata);
-			return readTeamsFromMetadata(meta);
+			const rawTeams = readTeamsFromMetadata(meta);
+
+			const orgMembers = await db.query.member.findMany({
+				where: eq(member.organizationId, input.organizationId),
+			});
+			const validMemberIds = new Set(orgMembers.map((m) => m.userId));
+
+			return rawTeams.map((team) => ({
+				...team,
+				memberIds: team.memberIds.filter((id) => validMemberIds.has(id)),
+			}));
 		}),
 	createTeam: protectedProcedure
 		.input(createTeamSchema)
 		.mutation(async ({ ctx, input }) => {
-			await assertAdminOrOwnerMember(input.organizationId, ctx.user.id);
+			const { actorMember } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
 
 			let createdTeam: TeamMetadataItem | null = null;
 
@@ -1014,9 +1083,17 @@ export const organizationRouter = createTRPCRouter({
 					memberIds: initialMembers,
 				};
 
+				// Remove initialMembers from any existing teams so each member belongs to only one team
+				const prunedTeams = teams.map((team) => ({
+					...team,
+					memberIds: team.memberIds.filter(
+						(id) => !initialMembers.includes(id),
+					),
+				}));
+
 				const nextMeta: OrganizationMetadataEnvelope = {
 					...meta,
-					teams: [...teams, createdTeam],
+					teams: [...prunedTeams, createdTeam],
 				};
 
 				await tx
@@ -1042,6 +1119,10 @@ export const organizationRouter = createTRPCRouter({
 			await audit(
 				{
 					...ctx,
+					user: {
+						...ctx.user,
+						role: actorMember.role,
+					},
 					session: {
 						...ctx.session,
 						activeOrganizationId: input.organizationId,
@@ -1065,7 +1146,10 @@ export const organizationRouter = createTRPCRouter({
 	updateTeam: protectedProcedure
 		.input(updateTeamSchema)
 		.mutation(async ({ ctx, input }) => {
-			await assertAdminOrOwnerMember(input.organizationId, ctx.user.id);
+			const { actorMember } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
 
 			let updatedTeam: TeamMetadataItem | null = null;
 
@@ -1109,19 +1193,28 @@ export const organizationRouter = createTRPCRouter({
 					}
 				}
 
+				const activeMembers = await tx.query.member.findMany({
+					where: eq(member.organizationId, input.organizationId),
+				});
+				const activeUserIds = new Set(activeMembers.map((m) => m.userId));
+				const activeTeamMembers = currentTeam.memberIds.filter((id) =>
+					activeUserIds.has(id),
+				);
+
 				if (
 					input.maxSize !== undefined &&
 					input.maxSize !== null &&
-					currentTeam.memberIds.length > input.maxSize
+					activeTeamMembers.length > input.maxSize
 				) {
 					throw new TRPCError({
 						code: "PRECONDITION_FAILED",
-						message: `Cannot set maxSize to ${input.maxSize} because the team currently has ${currentTeam.memberIds.length} members`,
+						message: `Cannot set maxSize to ${input.maxSize} because the team currently has ${activeTeamMembers.length} active members`,
 					});
 				}
 
 				updatedTeam = {
 					...currentTeam,
+					memberIds: activeTeamMembers,
 					...(input.name !== undefined && { name: input.name }),
 					...(input.description !== undefined && {
 						description: input.description,
@@ -1146,6 +1239,10 @@ export const organizationRouter = createTRPCRouter({
 			await audit(
 				{
 					...ctx,
+					user: {
+						...ctx.user,
+						role: actorMember.role,
+					},
 					session: {
 						...ctx.session,
 						activeOrganizationId: input.organizationId,
@@ -1168,7 +1265,10 @@ export const organizationRouter = createTRPCRouter({
 	deleteTeam: protectedProcedure
 		.input(deleteTeamSchema)
 		.mutation(async ({ ctx, input }) => {
-			await assertAdminOrOwnerMember(input.organizationId, ctx.user.id);
+			const { actorMember } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
 
 			let deletedTeam: TeamMetadataItem | null = null;
 
@@ -1224,6 +1324,10 @@ export const organizationRouter = createTRPCRouter({
 			await audit(
 				{
 					...ctx,
+					user: {
+						...ctx.user,
+						role: actorMember.role,
+					},
 					session: {
 						...ctx.session,
 						activeOrganizationId: input.organizationId,
@@ -1246,7 +1350,10 @@ export const organizationRouter = createTRPCRouter({
 	addTeamMember: protectedProcedure
 		.input(addTeamMemberSchema)
 		.mutation(async ({ ctx, input }) => {
-			await assertAdminOrOwnerMember(input.organizationId, ctx.user.id);
+			const { actorMember } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
 
 			let updatedTeam: TeamMetadataItem | null = null;
 
@@ -1281,7 +1388,24 @@ export const organizationRouter = createTRPCRouter({
 				const meta = parseOrganizationMetadata(lockedOrg.metadata);
 				const teams = readTeamsFromMetadata(meta);
 
-				const result = applyTeamMemberAdd(teams, input);
+				const activeMembers = await tx.query.member.findMany({
+					where: eq(member.organizationId, input.organizationId),
+				});
+				const activeMemberUserIds = new Set(activeMembers.map((m) => m.userId));
+
+				const pendingTeamInvites = await tx.query.invitation.findMany({
+					where: and(
+						eq(invitation.organizationId, input.organizationId),
+						eq(invitation.teamId, input.teamId),
+						eq(invitation.status, "pending"),
+						gt(invitation.expiresAt, new Date()),
+					),
+				});
+
+				const result = applyTeamMemberAdd(teams, input, {
+					activeMemberUserIds,
+					pendingInvitationCount: pendingTeamInvites.length,
+				});
 				updatedTeam = result.updatedTeam;
 
 				await tx
@@ -1308,6 +1432,10 @@ export const organizationRouter = createTRPCRouter({
 			await audit(
 				{
 					...ctx,
+					user: {
+						...ctx.user,
+						role: actorMember.role,
+					},
 					session: {
 						...ctx.session,
 						activeOrganizationId: input.organizationId,
@@ -1330,7 +1458,10 @@ export const organizationRouter = createTRPCRouter({
 	removeTeamMember: protectedProcedure
 		.input(removeTeamMemberSchema)
 		.mutation(async ({ ctx, input }) => {
-			await assertAdminOrOwnerMember(input.organizationId, ctx.user.id);
+			const { actorMember } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
 
 			let updatedTeam: TeamMetadataItem | null = null;
 
@@ -1378,6 +1509,10 @@ export const organizationRouter = createTRPCRouter({
 			await audit(
 				{
 					...ctx,
+					user: {
+						...ctx.user,
+						role: actorMember.role,
+					},
 					session: {
 						...ctx.session,
 						activeOrganizationId: input.organizationId,
@@ -1400,7 +1535,10 @@ export const organizationRouter = createTRPCRouter({
 	moveTeamMember: protectedProcedure
 		.input(moveTeamMemberSchema)
 		.mutation(async ({ ctx, input }) => {
-			await assertAdminOrOwnerMember(input.organizationId, ctx.user.id);
+			const { actorMember } = await assertAdminOrOwnerMember(
+				input.organizationId,
+				ctx.user.id,
+			);
 
 			let moveResult: {
 				sourceTeam: TeamMetadataItem;
@@ -1438,9 +1576,27 @@ export const organizationRouter = createTRPCRouter({
 				const meta = parseOrganizationMetadata(lockedOrg.metadata);
 				const teams = readTeamsFromMetadata(meta);
 
+				const activeMembers = await tx.query.member.findMany({
+					where: eq(member.organizationId, input.organizationId),
+				});
+				const activeMemberUserIds = new Set(activeMembers.map((m) => m.userId));
+
+				const pendingTeamInvites = await tx.query.invitation.findMany({
+					where: and(
+						eq(invitation.organizationId, input.organizationId),
+						eq(invitation.teamId, input.targetTeamId),
+						eq(invitation.status, "pending"),
+						gt(invitation.expiresAt, new Date()),
+					),
+				});
+
 				const { sourceTeam, targetTeam, nextTeams } = applyTeamMemberMove(
 					teams,
 					input,
+					{
+						activeMemberUserIds,
+						pendingInvitationCount: pendingTeamInvites.length,
+					},
 				);
 				moveResult = { sourceTeam, targetTeam };
 
@@ -1468,6 +1624,10 @@ export const organizationRouter = createTRPCRouter({
 			await audit(
 				{
 					...ctx,
+					user: {
+						...ctx.user,
+						role: actorMember.role,
+					},
 					session: {
 						...ctx.session,
 						activeOrganizationId: input.organizationId,
