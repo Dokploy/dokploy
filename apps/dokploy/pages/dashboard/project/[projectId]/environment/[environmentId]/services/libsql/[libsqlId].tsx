@@ -121,7 +121,9 @@ const Libsql = (
 													: "destructive"
 										}
 									>
-										<span className="truncate">{data?.server?.name || "Dokploy Server"}</span>
+										<span className="truncate">
+											{data?.server?.name || "Dokploy Server"}
+										</span>
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
