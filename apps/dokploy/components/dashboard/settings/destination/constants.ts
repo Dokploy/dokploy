@@ -131,3 +131,25 @@ export const S3_PROVIDERS: Array<{
 		name: "Any other S3 compatible provider",
 	},
 ];
+
+export const OTHER_PROVIDERS: Array<{
+	key: string;
+	name: string;
+}> = [
+	{
+		key: "sftp",
+		name: "SFTP Server",
+	},
+	{
+		key: "ftp",
+		name: "FTP Server",
+	},
+	{
+		key: "webdav",
+		name: "WebDAV Server",
+	},
+];
+
+export const isRcloneProvider = (provider?: string | null) => {
+	return OTHER_PROVIDERS.some((p) => p.key === (provider || ""));
+};
