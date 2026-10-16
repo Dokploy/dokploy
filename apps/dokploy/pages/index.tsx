@@ -79,6 +79,9 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const [twoFactorCode, setTwoFactorCode] = useState("");
 	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
 	const [backupCode, setBackupCode] = useState("");
+	const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+	const hasCustomPasswordReset = !IS_CLOUD && !!whitelabeling?.supportEmail;
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -294,6 +297,18 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		</>
 	);
 
+	const forgotPasswordContent = (
+		<div className="flex flex-col gap-4">
+			<p className="text-sm text-muted-foreground whitespace-pre-line">
+				{whitelabeling?.passwordResetGuide ||
+					"To reset your password, please contact your administrator. They will help you regain access to your account."}
+			</p>
+			<Button className="w-full" asChild>
+				<a href={`mailto:${whitelabeling?.supportEmail}`}>Get Support</a>
+			</Button>
+		</div>
+	);
+
 	return (
 		<>
 			<div className="flex flex-col space-y-2 text-center">
@@ -326,15 +341,19 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			)}
 			<CardContent className="p-0">
 				{!isTwoFactor ? (
-					<>
-						{enforceSSO ? (
-							<SignInWithSSO enforce />
-						) : showSignInWithSSO ? (
-							<SignInWithSSO>{loginContent}</SignInWithSSO>
-						) : (
-							loginContent
-						)}
-					</>
+					showForgotPassword ? (
+						forgotPasswordContent
+					) : (
+						<>
+							{enforceSSO ? (
+								<SignInWithSSO enforce />
+							) : showSignInWithSSO ? (
+								<SignInWithSSO>{loginContent}</SignInWithSSO>
+							) : (
+								loginContent
+							)}
+						</>
+					)
 				) : (
 					<>
 						<form
@@ -478,7 +497,17 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							>
 								Lost your password?
 							</Link>
-						) : (
+						) : hasCustomPasswordReset && !isTwoFactor ? (
+							<button
+								type="button"
+								className="hover:underline text-muted-foreground"
+								onClick={() => setShowForgotPassword((prev) => !prev)}
+							>
+								{showForgotPassword
+									? "Go back to login"
+									: "Lost your password?"}
+							</button>
+						) : !hasCustomPasswordReset ? (
 							<Link
 								className="hover:underline text-muted-foreground"
 								href="https://docs.dokploy.com/docs/core/reset-password"
@@ -486,7 +515,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							>
 								Lost your password?
 							</Link>
-						)}
+						) : null}
 					</div>
 				</div>
 				<div className="p-2" />
