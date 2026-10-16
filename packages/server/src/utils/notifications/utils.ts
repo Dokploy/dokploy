@@ -110,7 +110,7 @@ export const formatTelegramErrorMessage = (errorMessage: string) => {
 	if (escaped.length <= limit) return escaped;
 	let end = limit;
 	const ampIdx = escaped.lastIndexOf("&", end);
-	if (ampIdx !== -1 && escaped.indexOf(";", ampIdx) > end) {
+	if (ampIdx !== -1 && escaped.indexOf(";", ampIdx) >= end) {
 		end = ampIdx;
 	}
 	if (
