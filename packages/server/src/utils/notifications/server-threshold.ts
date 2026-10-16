@@ -190,7 +190,7 @@ export const sendServerThresholdNotifications = async (
 					telegram,
 					`
 				<b>⚠️ Server ${payload.Type} Alert</b>
-                <b>Server Name:</b> ${payload.ServerName}
+                <b>Server Name:</b> ${escapeHtml(payload.ServerName)}
 				<b>Type:</b> ${payload.Type}
 				<b>Current Value:</b> ${payload.Value.toFixed(2)}%
 				<b>Threshold:</b> ${payload.Threshold.toFixed(2)}%

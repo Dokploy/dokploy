@@ -5,6 +5,7 @@ import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
+	escapeHtml,
 	formatTelegramErrorMessage,
 	sendCustomNotification,
 	sendDiscordNotification,
@@ -190,7 +191,7 @@ export const sendDokployBackupNotifications = async ({
 					? `\n\n<b>Error:</b>\n<pre>${formatTelegramErrorMessage(errorMessage)}</pre>`
 					: "";
 				const sizeInfo = backupSize
-					? `\n<b>Backup Size:</b> ${backupSize}`
+					? `\n<b>Backup Size:</b> ${escapeHtml(backupSize)}`
 					: "";
 
 				const messageText = `<b>${statusEmoji} Dokploy Backup ${typeStatus}</b>\n\n<b>Backup Type:</b> Complete Dokploy Instance${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
