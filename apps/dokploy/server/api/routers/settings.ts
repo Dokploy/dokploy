@@ -23,6 +23,7 @@ import {
 	parseRawConfig,
 	paths,
 	prepareEnvironmentVariables,
+	prepareTraefikDashboard,
 	processLogs,
 	readConfig,
 	readConfigInPath,
@@ -165,8 +166,7 @@ export const settingsRouter = createTRPCRouter({
 				input.serverId,
 			);
 			const preparedEnv = prepareEnvironmentVariables(env);
-			let newPorts = ports;
-			// If receive true, add 8080 to ports
+			// Check availability before changing the dashboard listener.
 			if (input.enableDashboard) {
 				// Check if port 8080 is already in use before enabling dashboard
 				const portCheck = await checkPortInUse(8080, input.serverId);
@@ -179,14 +179,12 @@ export const settingsRouter = createTRPCRouter({
 						message: `Port 8080 is already in use${conflictInfo}. Please stop the conflicting service or use a different port for the Traefik dashboard.`,
 					});
 				}
-				newPorts.push({
-					targetPort: 8080,
-					publishedPort: 8080,
-					protocol: "tcp",
-				});
-			} else {
-				newPorts = ports.filter((port) => port.targetPort !== 8080);
 			}
+			const newPorts = await prepareTraefikDashboard(
+				input.enableDashboard ?? false,
+				ports,
+				input.serverId,
+			);
 
 			// Run in background so the request returns immediately; client polls /api/health.
 			// Avoids proxy timeouts (520) while Traefik is recreated.
