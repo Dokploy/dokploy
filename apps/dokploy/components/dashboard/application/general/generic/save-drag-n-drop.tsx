@@ -16,13 +16,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { type UploadFile, uploadFileSchema } from "@/utils/schema";
+import { ConfirmableProviderSave } from "./confirmable-provider-save";
 
 interface Props {
 	applicationId: string;
 }
 
 export const SaveDragNDrop = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const utils = api.useUtils();
+	const { data } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isPending } =
 		api.application.dropDeployment.useMutation();
@@ -53,7 +55,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 		await mutateAsync(formData)
 			.then(async () => {
 				toast.success("Deployment saved");
-				await refetch();
+				await utils.application.one.invalidate({ applicationId });
 			})
 			.catch(() => {
 				toast.error("Error saving the deployment");
@@ -126,14 +128,18 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 				</div>
 
 				<div className="flex flex-row justify-end">
-					<Button
-						type="submit"
-						className="w-fit"
+					<ConfirmableProviderSave
+						needsConfirmation={
+							data?.sourceType === "github" &&
+							data?.isPreviewDeploymentsActive === true
+						}
 						isLoading={isPending}
 						disabled={!zip || isPending}
+						onValidate={() => form.trigger()}
+						onConfirm={form.handleSubmit(onSubmit)}
 					>
-						Deploy{" "}
-					</Button>
+						Deploy
+					</ConfirmableProviderSave>
 				</div>
 			</form>
 		</Form>
