@@ -144,14 +144,14 @@ const Service = (
 									<CardDescription>{data?.description}</CardDescription>
 								)}
 
-								<span className="text-sm text-muted-foreground">
+								<span className="text-sm text-muted-foreground min-w-0 truncate">
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex max-w-[45%] flex-col h-fit w-fit gap-2 md:max-w-none">
-								<div className="flex flex-row h-fit w-fit gap-2">
+							<div className="flex max-w-[45%] min-w-0 flex-col h-fit gap-2 md:max-w-none md:w-fit">
+								<div className="flex max-w-full min-w-0 flex-row h-fit gap-2">
 									<Badge
-										className="max-w-full cursor-pointer truncate"
+										className="min-w-0 max-w-full cursor-pointer overflow-hidden"
 										onClick={() => {
 											const ip = data?.server?.ipAddress || serverIp;
 											if (ip) {
@@ -167,7 +167,7 @@ const Service = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										<span className="truncate">{data?.server?.name || "Dokploy Server"}</span>
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>

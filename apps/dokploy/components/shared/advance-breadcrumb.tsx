@@ -359,7 +359,7 @@ export const AdvanceBreadcrumb = () => {
 								<FolderInput className="size-4 text-muted-foreground" />
 								<span
 									className="font-medium max-w-[50px] md:max-w-[150px] truncate"
-									title={currentService?.name}
+									title={currentProject?.name}
 								>
 									{currentProject?.name || "Select Project"}
 								</span>
