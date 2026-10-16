@@ -225,6 +225,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 		}
 
+		const passwordHint =
+			isRclone && secretKey
+				? ` --${provider}-pass "$(rclone obscure ${`'${secretKey.replace(/'/g, `'\\''`)}'`})"`
+				: "";
+
 		await testConnection({
 			provider,
 			accessKey,
@@ -242,7 +247,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			})
 			.catch((e) => {
 				toast.error("Error connecting to provider", {
-					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}`,
+					description: `${e.message}\n\nTry manually: rclone ls ${connectionString}${passwordHint}`,
 				});
 			});
 	};
