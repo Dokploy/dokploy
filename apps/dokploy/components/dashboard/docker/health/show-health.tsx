@@ -30,6 +30,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
+import { HardwareCard } from "./hardware-card";
 
 interface Props {
 	serverId?: string;
@@ -58,6 +59,11 @@ export const ShowHealth = ({ serverId }: Props) => {
 		{ serverId, sinceHours },
 		{ refetchOnMount: false, refetchOnWindowFocus: false },
 	);
+	const hardware = api.docker.getServerHardware.useQuery(
+		{ serverId },
+		{ refetchOnMount: false, refetchOnWindowFocus: false, retry: false },
+	);
+	const isChecking = isFetching || hardware.isFetching;
 
 	const memUsedPct = health
 		? pct(health.resources.memUsedBytes, health.resources.memTotalBytes)
@@ -195,7 +201,7 @@ export const ShowHealth = ({ serverId }: Props) => {
 								this tab — click Re-check to refresh.
 							</p>
 						</div>
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center gap-2">
 							<Select
 								value={String(sinceHours)}
 								onValueChange={(v) => setSinceHours(Number(v))}
@@ -211,8 +217,14 @@ export const ShowHealth = ({ serverId }: Props) => {
 									))}
 								</SelectContent>
 							</Select>
-							<Button onClick={() => refetch()} disabled={isFetching}>
-								{isFetching ? (
+							<Button
+								onClick={() => {
+									void refetch();
+									void hardware.refetch();
+								}}
+								disabled={isChecking}
+							>
+								{isChecking ? (
 									<Loader2 className="size-4 animate-spin mr-2" />
 								) : (
 									<RefreshCw className="size-4 mr-2" />
@@ -240,6 +252,13 @@ export const ShowHealth = ({ serverId }: Props) => {
 							Couldn't read server health: {health.error}
 						</div>
 					)}
+
+					<HardwareCard
+						hardware={hardware.data}
+						isFetching={hardware.isFetching}
+						hasError={hardware.isError}
+						serverId={serverId}
+					/>
 
 					{health && !health.error && (
 						<div
