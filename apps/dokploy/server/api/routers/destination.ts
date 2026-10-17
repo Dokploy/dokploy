@@ -6,6 +6,7 @@ import {
 	IS_CLOUD,
 	removeDestinationById,
 	updateDestinationById,
+	getRclonePathAndFlags,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { TRPCError } from "@trpc/server";
@@ -58,27 +59,29 @@ export const destinationRouter = createTRPCRouter({
 				additionalFlags,
 			} = input;
 			try {
-				const rcloneFlags = [
-					`--s3-access-key-id=${quote([accessKey])}`,
-					`--s3-secret-access-key=${quote([secretAccessKey])}`,
-					`--s3-region=${quote([region])}`,
-					`--s3-endpoint=${quote([endpoint])}`,
-					"--s3-no-check-bucket",
-					"--s3-force-path-style",
-					"--retries 1",
+				const { flags: rcloneFlags, path: rcloneDestination } =
+					await getRclonePathAndFlags(
+						{
+							secretAccessKey,
+							bucket,
+							region,
+							endpoint,
+							accessKey,
+							provider,
+						} as any,
+						"",
+					);
+
+				rcloneFlags.push(					"--retries 1",
 					"--low-level-retries 1",
 					"--timeout 10s",
 					"--contimeout 5s",
-				];
-				if (provider) {
-					rcloneFlags.unshift(`--s3-provider=${quote([provider])}`);
-				}
+				);
+
 				if (additionalFlags?.length) {
 					rcloneFlags.push(...additionalFlags);
 				}
-				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
-
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",

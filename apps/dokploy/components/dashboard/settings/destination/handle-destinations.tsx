@@ -113,6 +113,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		name: "additionalFlags",
 	});
 
+	const currentProvider = form.watch("provider");
+	const isSftpOrFtp = ["sftp", "ftp"].includes(currentProvider || "");
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
@@ -196,7 +199,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		const endpoint = form.getValues("endpoint");
 		const region = form.getValues("region");
 
-		const connectionString = `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
+		const connectionString = isSftpOrFtp
+			? `:${provider},host=${endpoint},port=${region || (provider === "sftp" ? "22" : "21")},user=${accessKey},pass=XXX:${bucket}`
+			: `:s3,provider=${provider},access_key_id=${accessKey},secret_access_key=${secretKey},endpoint=${endpoint}${region ? `,region=${region}` : ""}:${bucket}`;
 
 		await testConnection({
 			provider,
@@ -291,7 +296,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
+														<SelectValue placeholder="Select a Provider" />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -318,9 +323,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
+										<FormLabel>
+											{isSftpOrFtp ? "Username" : "Access Key Id"}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
+											<Input
+												placeholder={isSftpOrFtp ? "username" : "Access Key ID"}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -333,10 +343,18 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
+										<FormLabel>
+											{isSftpOrFtp ? "Password" : "Secret Access Key"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Input
+											type={isSftpOrFtp ? "password" : "text"}
+											placeholder={
+												isSftpOrFtp ? "password" : "Secret Access Key"
+											}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -348,10 +366,17 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
+										<FormLabel>
+											{isSftpOrFtp ? "Path / Directory" : "Bucket"}
+										</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
+										<Input
+											placeholder={
+												isSftpOrFtp ? "/backups/dokploy" : "dokploy-bucket"
+											}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -363,10 +388,19 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
+										<FormLabel>{isSftpOrFtp ? "Port" : "Region"}</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
+										<Input
+											placeholder={
+												isSftpOrFtp
+													? currentProvider === "sftp"
+														? "22"
+														: "21"
+													: "us-east-1"
+											}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -377,10 +411,14 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							name="endpoint"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
+									<FormLabel>{isSftpOrFtp ? "Host" : "Endpoint"}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={"https://us.bucket.aws/s3"}
+											placeholder={
+												isSftpOrFtp
+													? "sftp.example.com"
+													: "https://us.bucket.aws/s3"
+											}
 											{...field}
 										/>
 									</FormControl>

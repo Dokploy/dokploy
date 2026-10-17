@@ -3,6 +3,9 @@ import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { quote } from "shell-quote";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const execFilePromise = promisify(execFile);
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
 import { runLibsqlBackup } from "./libsql";
@@ -265,8 +268,13 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
-	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
+	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
+	const destinationType = ["sftp", "ftp"].includes(
+		backup.destination?.provider || "",
+	)
+		? backup.destination?.provider?.toUpperCase() || "remote"
+		: "S3";
 
 	logger.info(
 		{
@@ -299,7 +307,40 @@ export const getBackupCommand = (
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded to ${destinationType} successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
+};
+
+export const obscurePassword = async (password: string) => {
+	try {
+		const { stdout } = await execFilePromise("rclone", ["obscure", password]);
+		return stdout.trim();
+	} catch (error) {
+		logger.error("Error obscuring password with rclone", error);
+		return password;
+	}
+};
+
+const escapeRcloneParam = (val: string) => {
+	if (/[=,"]/.test(val)) {
+		return `"${val.replace(/"/g, '\\"')}"`;
+	}
+	return val;
+};
+
+export const getRclonePathAndFlags = async (
+	destination: Destination,
+	subPath: string,
+) => {
+	const isS3 = !["sftp", "ftp"].includes(destination.provider || "");
+	if (isS3) {
+		const flags = getS3Credentials(destination);
+		const path = `:s3:${destination.bucket}/${subPath}`;
+		return { flags, path };
+	}
+	const provider = destination.provider;
+	const obscuredPass = await obscurePassword(destination.secretAccessKey);
+	const path = `:${provider},host=${escapeRcloneParam(destination.endpoint)},port=${escapeRcloneParam(destination.region)},user=${escapeRcloneParam(destination.accessKey)},pass=${escapeRcloneParam(obscuredPass)}:${destination.bucket}/${subPath}`;
+	return { flags: [], path };
 };
