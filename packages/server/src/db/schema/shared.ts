@@ -2,11 +2,14 @@ import { pgEnum } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const applicationStatus = pgEnum("applicationStatus", [
+	"queued",
 	"idle",
 	"running",
 	"done",
 	"error",
 ]);
+
+export type ApplicationStatus = (typeof applicationStatus.enumValues)[number];
 
 export const certificateType = pgEnum("certificateType", [
 	"letsencrypt",

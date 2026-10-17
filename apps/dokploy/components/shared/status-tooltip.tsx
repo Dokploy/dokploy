@@ -1,3 +1,7 @@
+import type {
+	ApplicationStatus,
+	DeploymentStatus,
+} from "@dokploy/server/db/schema";
 import {
 	Tooltip,
 	TooltipContent,
@@ -7,64 +11,39 @@ import {
 import { cn } from "@/lib/utils";
 
 interface Props {
-	status:
-		| "running"
-		| "error"
-		| "done"
-		| "idle"
-		| "cancelled"
-		| undefined
-		| null;
+	status: ApplicationStatus | DeploymentStatus | null | undefined;
 	className?: string;
 }
 
-export const StatusTooltip = ({ status, className }: Props) => {
-	return (
-		<TooltipProvider delayDuration={0}>
-			<Tooltip>
-				<TooltipTrigger>
-					{status === "idle" && (
-						<div
-							className={cn(
-								"size-3.5 rounded-full bg-muted-foreground dark:bg-card",
-								className,
-							)}
-						/>
-					)}
-					{status === "error" && (
-						<div
-							className={cn("size-3.5 rounded-full bg-destructive", className)}
-						/>
-					)}
-					{status === "done" && (
-						<div
-							className={cn("size-3.5 rounded-full bg-green-500", className)}
-						/>
-					)}
-					{status === "cancelled" && (
-						<div
-							className={cn(
-								"size-3.5 rounded-full bg-muted-foreground",
-								className,
-							)}
-						/>
-					)}
-					{status === "running" && (
-						<div
-							className={cn("size-3.5 rounded-full bg-yellow-500", className)}
-						/>
-					)}
-				</TooltipTrigger>
-				<TooltipContent align="center">
-					<span>
-						{status === "idle" && "Idle"}
-						{status === "error" && "Error"}
-						{status === "done" && "Done"}
-						{status === "running" && "Running"}
-						{status === "cancelled" && "Cancelled"}
-					</span>
-				</TooltipContent>
-			</Tooltip>
-		</TooltipProvider>
-	);
+export const statusColors: Record<
+	ApplicationStatus | DeploymentStatus,
+	string
+> = {
+	queued: "bg-blue-500",
+	running: "bg-yellow-500",
+	done: "bg-green-500",
+	error: "bg-destructive",
+	idle: "bg-muted-foreground dark:bg-card",
+	cancelled: "bg-muted-foreground",
 };
+
+export const StatusTooltip = ({ status, className }: Props) => (
+	<TooltipProvider delayDuration={0}>
+		<Tooltip>
+			<TooltipTrigger>
+				{status && (
+					<div
+						className={cn(
+							"size-3.5 rounded-full",
+							statusColors[status],
+							className,
+						)}
+					/>
+				)}
+			</TooltipTrigger>
+			<TooltipContent align="center">
+				<span className="capitalize">{status}</span>
+			</TooltipContent>
+		</Tooltip>
+	</TooltipProvider>
+);

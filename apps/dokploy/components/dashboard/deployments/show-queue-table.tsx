@@ -1,7 +1,7 @@
 "use client";
 
 import type { inferRouterOutputs } from "@trpc/server";
-import { ArrowRight, ListTodo, Loader2, XCircle } from "lucide-react";
+import { ArrowRight, ListTodo, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,21 +71,6 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 		undefined,
 		{ refetchInterval: 3000 },
 	);
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const utils = api.useUtils();
-	const {
-		mutateAsync: cancelApplicationDeployment,
-		isPending: isCancellingApp,
-	} = api.application.cancelDeployment.useMutation({
-		onSuccess: () => void utils.deployment.queueList.invalidate(),
-	});
-	const {
-		mutateAsync: cancelComposeDeployment,
-		isPending: isCancellingCompose,
-	} = api.compose.cancelDeployment.useMutation({
-		onSuccess: () => void utils.deployment.queueList.invalidate(),
-	});
-	const isCancelling = isCancellingApp || isCancellingCompose;
 
 	return (
 		<div className="px-0">
@@ -157,39 +142,6 @@ export function ShowQueueTable(props: { embedded?: boolean }) {
 															—
 														</span>
 													)}
-													{isCloud &&
-														row.state === "active" &&
-														(d?.applicationId != null ||
-															d?.composeId != null) && (
-															<Button
-																variant="ghost"
-																size="sm"
-																className="text-destructive hover:text-destructive"
-																disabled={isCancelling}
-																onClick={() => {
-																	const appId =
-																		typeof d.applicationId === "string"
-																			? d.applicationId
-																			: undefined;
-																	const compId =
-																		typeof d.composeId === "string"
-																			? d.composeId
-																			: undefined;
-																	if (appId) {
-																		void cancelApplicationDeployment({
-																			applicationId: appId,
-																		});
-																	} else if (compId) {
-																		void cancelComposeDeployment({
-																			composeId: compId,
-																		});
-																	}
-																}}
-															>
-																<XCircle className="size-4 mr-1" />
-																Cancel
-															</Button>
-														)}
 												</div>
 											</TableCell>
 										</TableRow>

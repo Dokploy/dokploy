@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 	githubFindFirst: vi.fn(),
 	applicationsFindMany: vi.fn(),
 	composeFindMany: vi.fn(),
-	queueAdd: vi.fn(),
+	enqueueDeployment: vi.fn(),
 	verify: vi.fn(),
 	shouldDeploy: vi.fn(),
 	createPreviewDeployment: vi.fn(),
@@ -85,9 +85,7 @@ vi.mock("@octokit/webhooks", () => ({
 }));
 
 vi.mock("@/server/queues/queueSetup", () => ({
-	myQueue: {
-		add: mocks.queueAdd,
-	},
+	enqueueDeployment: mocks.enqueueDeployment,
 }));
 
 vi.mock("@/server/utils/deploy", () => ({
@@ -171,7 +169,7 @@ describe("GitHub app webhook auto-deploy", () => {
 		mocks.verify.mockResolvedValue(true);
 		mocks.shouldDeploy.mockReturnValue(true);
 		mocks.composeFindMany.mockResolvedValue([]);
-		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.enqueueDeployment.mockResolvedValue({ id: "job-id" });
 
 		mocks.applicationsFindMany.mockImplementation(({ where }) => {
 			const matches =
@@ -198,6 +196,29 @@ describe("GitHub app webhook auto-deploy", () => {
 		});
 	});
 
+	it.each(["push", "tag"])(
+		"reports a failed enqueue instead of accepting a %s delivery",
+		async (event) => {
+			mocks.applicationsFindMany.mockResolvedValue([
+				{ applicationId: "application-id", serverId: null, watchPaths: null },
+			]);
+			mocks.enqueueDeployment.mockRejectedValueOnce(
+				new Error("Deployment persistence unavailable"),
+			);
+			const res = createResponse();
+
+			await handler(
+				event === "tag"
+					? createTagRequest("v1.0.0")
+					: createPushRequest("main"),
+				res,
+			);
+
+			expect(res.status).toHaveBeenCalledWith(400);
+			expect(res.status).not.toHaveBeenCalledWith(200);
+		},
+	);
+
 	it("matches push events using repository owner name when available", async () => {
 		const res = createResponse();
 
@@ -209,16 +230,11 @@ describe("GitHub app webhook auto-deploy", () => {
 			res,
 		);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -253,16 +269,11 @@ describe("GitHub app webhook auto-deploy", () => {
 
 		await handler(createPushRequest("main"), res);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationType: "compose",
 				composeId: "compose-id",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -295,17 +306,12 @@ describe("GitHub app webhook auto-deploy", () => {
 
 		await handler(createTagRequest("v1.0.0"), res);
 
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application",
 				titleLog: "Tag created: v1.0.0",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -319,7 +325,7 @@ describe("GitHub app webhook auto-deploy", () => {
 
 		await handler(createPushRequest("feature"), res);
 
-		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(mocks.enqueueDeployment).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
 	});
@@ -389,11 +395,24 @@ describe("GitHub app webhook preview deployments", () => {
 			githubWebhookSecret: "webhook-secret",
 		});
 		mocks.verify.mockResolvedValue(true);
-		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
+		mocks.enqueueDeployment.mockResolvedValue({ id: "job-id" });
 		mocks.createPreviewDeployment.mockResolvedValue({
 			previewDeploymentId: "new-preview-id",
 		});
 		mocks.findPreviewDeploymentByApplicationId.mockResolvedValue(undefined);
+	});
+
+	it("reports a failed preview enqueue instead of accepting the delivery", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([createApplication()]);
+		mocks.enqueueDeployment.mockRejectedValueOnce(
+			new Error("Deployment persistence unavailable"),
+		);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(res.status).toHaveBeenCalledWith(503);
+		expect(res.status).not.toHaveBeenCalledWith(200);
 	});
 
 	it("redeploys an existing preview even when the limit is reached", async () => {
@@ -411,17 +430,12 @@ describe("GitHub app webhook preview deployments", () => {
 		await handler(createPullRequestRequest("synchronize"), res);
 
 		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application-preview",
 				previewDeploymentId: "existing-preview-0",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
@@ -439,7 +453,7 @@ describe("GitHub app webhook preview deployments", () => {
 		await handler(createPullRequestRequest("opened"), res);
 
 		expect(mocks.createPreviewDeployment).not.toHaveBeenCalled();
-		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(mocks.enqueueDeployment).not.toHaveBeenCalled();
 		expect(res.status).toHaveBeenCalledWith(200);
 	});
 
@@ -462,17 +476,12 @@ describe("GitHub app webhook preview deployments", () => {
 				pullRequestNumber: 42,
 			}),
 		);
-		expect(mocks.queueAdd).toHaveBeenCalledWith(
-			"deployments",
+		expect(mocks.enqueueDeployment).toHaveBeenCalledWith(
 			expect.objectContaining({
 				applicationId: "application-id",
 				applicationType: "application-preview",
 				previewDeploymentId: "new-preview-id",
 				type: "deploy",
-			}),
-			expect.objectContaining({
-				removeOnComplete: true,
-				removeOnFail: true,
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);

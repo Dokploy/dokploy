@@ -8,6 +8,7 @@ import {
 	createComposeByTemplate,
 	createDomain,
 	createMount,
+	type DeploymentJob,
 	deleteMount,
 	execAsync,
 	execAsyncRemote,
@@ -31,7 +32,6 @@ import {
 	startCompose,
 	stopCompose,
 	updateCompose,
-	updateDeploymentStatus,
 } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
@@ -71,13 +71,11 @@ import {
 	environments,
 	projects,
 } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
+	enqueueDeployment,
 	killDockerBuild,
-	myQueue,
 } from "@/server/queues/queueSetup";
-import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -248,14 +246,12 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
+			await cleanQueuesByCompose(input.composeId);
+
 			const result = await db
 				.delete(composeTable)
 				.where(eq(composeTable.composeId, input.composeId))
 				.returning();
-
-			if (!IS_CLOUD) {
-				await cleanQueuesByCompose(input.composeId);
-			}
 
 			const cleanupOperations = [
 				async () => await removeCompose(composeResult, input.deleteVolumes),
@@ -281,7 +277,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
-				deployment: ["create"],
+				deployment: ["cancel"],
 			});
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
@@ -426,31 +422,11 @@ export const composeRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "compose",
 				descriptionLog: input.description || "",
-				server: !!compose.serverId,
 				serverId: compose.serverId ?? undefined,
 				freshVolumes: input.freshVolumes,
 			};
 
-			if (IS_CLOUD && compose.serverId) {
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "deploy",
-					resourceType: "compose",
-					resourceId: input.composeId,
-					resourceName: compose.name,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await enqueueDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "compose",
@@ -476,30 +452,11 @@ export const composeRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "compose",
 				descriptionLog: input.description || "",
-				server: !!compose.serverId,
 				serverId: compose.serverId ?? undefined,
 				freshVolumes: input.freshVolumes,
 			};
-			if (IS_CLOUD && compose.serverId) {
-				deploy(jobData).catch((error) => {
-					console.error("Background deployment failed:", error);
-				});
-				await audit(ctx, {
-					action: "deploy",
-					resourceType: "compose",
-					resourceId: input.composeId,
-					resourceName: compose.name,
-				});
-				return true;
-			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+
+			await enqueueDeployment(jobData);
 			await audit(ctx, {
 				action: "deploy",
 				resourceType: "compose",
@@ -1064,42 +1021,23 @@ export const composeRouter = createTRPCRouter({
 			const compose = await findComposeById(input.composeId);
 
 			if (IS_CLOUD && compose.serverId) {
-				try {
-					await updateCompose(input.composeId, {
-						composeStatus: "idle",
-					});
-
-					if (compose.deployments[0]) {
-						await updateDeploymentStatus(
-							compose.deployments[0].deploymentId,
-							"done",
-						);
-					}
-
-					await cancelDeployment({
-						composeId: input.composeId,
-						applicationType: "compose",
-					});
-
-					await audit(ctx, {
-						action: "stop",
-						resourceType: "compose",
-						resourceId: input.composeId,
-						resourceName: compose.name,
-					});
-					return {
-						success: true,
-						message: "Deployment cancellation requested",
-					};
-				} catch (error) {
+				if (
+					compose.deployments.some((attempt) => attempt.status === "running")
+				) {
 					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
+						code: "CONFLICT",
 						message:
-							error instanceof Error
-								? error.message
-								: "Failed to cancel deployment",
+							"Running builds cannot be cancelled. Use Cancel queued deployments to clear waiting attempts.",
 					});
 				}
+				await cleanQueuesByCompose(input.composeId);
+				await audit(ctx, {
+					action: "cancel",
+					resourceType: "compose",
+					resourceId: compose.composeId,
+					resourceName: compose.name,
+				});
+				return { success: true, message: "Queued deployments cancelled" };
 			}
 
 			throw new TRPCError({

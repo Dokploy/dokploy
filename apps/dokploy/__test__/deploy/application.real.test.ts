@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import type { ApplicationNested } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
+import * as lifecycle from "@dokploy/server/services/deployment-lifecycle";
 import { execAsync } from "@dokploy/server/utils/process/execAsync";
 import { format } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -60,9 +61,12 @@ vi.mock("@dokploy/server/services/admin", () => ({
 	getDokployUrl: vi.fn().mockResolvedValue("http://localhost:3000"),
 }));
 
+vi.mock("@dokploy/server/services/deployment-lifecycle", () => ({
+	finishDeployment: vi.fn().mockResolvedValue({ status: "done" }),
+}));
+
 vi.mock("@dokploy/server/services/deployment", () => ({
 	createDeployment: vi.fn(),
-	updateDeploymentStatus: vi.fn(),
 	updateDeployment: vi.fn(),
 }));
 
@@ -198,9 +202,6 @@ describe(
 			vi.mocked(deploymentService.createDeployment).mockResolvedValue(
 				currentDeployment as any,
 			);
-			vi.mocked(deploymentService.updateDeploymentStatus).mockResolvedValue(
-				undefined as any,
-			);
 			vi.mocked(applicationService.updateApplicationStatus).mockResolvedValue(
 				{} as any,
 			);
@@ -267,7 +268,7 @@ describe(
 				console.log(`✅ Build log created with ${logContent.length} chars`);
 
 				// Verify update functions were called
-				expect(deploymentService.updateDeploymentStatus).toHaveBeenCalledWith(
+				expect(lifecycle.finishDeployment).toHaveBeenCalledWith(
 					"deployment-id",
 					"done",
 				);
@@ -349,7 +350,7 @@ describe(
 				).rejects.toThrow();
 
 				// Verify error status was called
-				expect(deploymentService.updateDeploymentStatus).toHaveBeenCalledWith(
+				expect(lifecycle.finishDeployment).toHaveBeenCalledWith(
 					"deployment-id",
 					"error",
 				);

@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from "@dokploy/server/db/schema";
 import { Copy, Loader2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -39,7 +40,7 @@ export type Services = {
 	description?: string | null;
 	id: string;
 	createdAt: string;
-	status?: "idle" | "running" | "done" | "error";
+	status?: ApplicationStatus;
 };
 
 interface DuplicateProjectProps {

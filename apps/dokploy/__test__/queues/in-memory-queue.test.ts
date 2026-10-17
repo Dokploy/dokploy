@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import type { QueuedDeploymentJob } from "@dokploy/server";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
 	getGroup,
@@ -5,21 +7,24 @@ import {
 	InMemoryQueue,
 	LOCAL_PARTITION,
 } from "../../server/queues/in-memory-queue";
-import type { DeploymentJob } from "../../server/queues/queue-types";
 
-const appJob = (applicationId: string, serverId?: string): DeploymentJob => ({
+const appJob = (
+	applicationId: string,
+	serverId?: string,
+): QueuedDeploymentJob => ({
+	deploymentId: randomUUID(),
 	applicationId,
-	titleLog: "deploy",
-	descriptionLog: "",
 	type: "deploy",
 	applicationType: "application",
 	serverId,
 });
 
-const composeJob = (composeId: string, serverId?: string): DeploymentJob => ({
+const composeJob = (
+	composeId: string,
+	serverId?: string,
+): QueuedDeploymentJob => ({
+	deploymentId: randomUUID(),
 	composeId,
-	titleLog: "deploy",
-	descriptionLog: "",
 	type: "deploy",
 	applicationType: "compose",
 	serverId,

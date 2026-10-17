@@ -30,7 +30,7 @@ import {
 	deployments,
 	server,
 } from "@/server/db/schema";
-import { myQueue } from "@/server/queues/queueSetup";
+import { getDeploymentJobs } from "@/server/queues/queueSetup";
 import { fetchDeployApiJobs, type QueueJobRow } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
 
@@ -93,7 +93,7 @@ export const deploymentRouter = createTRPCRouter({
 			rows = serverRowsArrays.flat();
 			rows.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
 		} else {
-			const jobs = await myQueue.getJobs();
+			const jobs = await getDeploymentJobs();
 			const jobRows = await Promise.all(
 				jobs.map(async (job) => {
 					const state = await job.getState();

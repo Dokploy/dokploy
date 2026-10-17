@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from "@dokploy/server/db/schema";
 import type {
 	OverviewServiceType,
 	OverviewSortBy,
@@ -61,10 +62,17 @@ const TYPE_LABELS = {
 	libsql: "Libsql",
 } satisfies Record<OverviewServiceType, string>;
 
-const STATUS_OPTIONS = ["running", "idle", "done", "error"];
+const STATUS_OPTIONS: ApplicationStatus[] = [
+	"queued",
+	"running",
+	"idle",
+	"done",
+	"error",
+];
 
 // "done" is the steady live state (green); "running" only holds mid-deploy (yellow) — relabeled to match what users expect.
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<ApplicationStatus, string> = {
+	queued: "Queued",
 	running: "Deploying",
 	idle: "Idle",
 	done: "Running",

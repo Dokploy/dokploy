@@ -2,13 +2,17 @@ import { relations } from "drizzle-orm";
 import {
 	type AnyPgColumn,
 	boolean,
+	index,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
+	timestamp,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import type { DeploymentExecution } from "../../queues/deployment-job";
 import { applications } from "./application";
 import { backups } from "./backups";
 import { compose } from "./compose";
@@ -18,11 +22,14 @@ import { schedules } from "./schedule";
 import { server } from "./server";
 import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
+	"queued",
 	"running",
 	"done",
 	"error",
 	"cancelled",
 ]);
+
+export type DeploymentStatus = (typeof deploymentStatus.enumValues)[number];
 
 export const deployments = pgTable("deployment", {
 	deploymentId: text("deploymentId")
@@ -75,6 +82,22 @@ export const deployments = pgTable("deployment", {
 	}),
 });
 
+// Pending cloud delivery is committed with its deployment attempt and removed
+// only after Inngest accepts it, or the attempt leaves the queued state.
+export const deploymentDispatches = pgTable(
+	"deployment_dispatch",
+	{
+		deploymentId: text("deploymentId")
+			.primaryKey()
+			.references(() => deployments.deploymentId, { onDelete: "cascade" }),
+		job: jsonb("job").$type<DeploymentExecution>().notNull(),
+		createdAt: timestamp("createdAt", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [index("deployment_dispatch_created_at_idx").on(table.createdAt)],
+);
+
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	application: one(applications, {
 		fields: [deployments.applicationId],
@@ -118,7 +141,7 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 
 const schema = createInsertSchema(deployments, {
 	title: z.string().min(1),
-	status: z.string().default("running"),
+	status: z.enum(deploymentStatus.enumValues).default("running"),
 	logPath: z.string().min(1),
 	applicationId: z.string(),
 	composeId: z.string(),

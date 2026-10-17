@@ -1,17 +1,19 @@
+import {
+	cancelQueuedDeployment,
+	deploymentAttemptSchema,
+	executeDeployment,
+	failDeploymentJob,
+} from "@dokploy/server";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
 import { zValidator } from "@hono/zod-validator";
 import { Inngest } from "inngest";
 import { serve as serveInngest } from "inngest/hono";
+import { dispatchDeployments } from "./dispatch.js";
 import { logger } from "./logger.js";
-import {
-	cancelDeploymentSchema,
-	type DeployJob,
-	deployJobSchema,
-} from "./schema.js";
+import { deployJobSchema } from "./schema.js";
 import { fetchDeploymentJobs } from "./service.js";
-import { deploy } from "./utils.js";
 
 const app = new Hono();
 
@@ -32,24 +34,22 @@ export const deploymentFunction = inngest.createFunction(
 			},
 		],
 		retries: 0,
-		cancelOn: [
-			{
-				event: "deployment/cancelled",
-				if: "async.data.applicationId == event.data.applicationId || async.data.composeId == event.data.composeId",
-				timeout: "1h", // Allow cancellation for up to 1 hour
-			},
-		],
+		onFailure: async ({ event, error }) => {
+			const job = deployJobSchema.parse(event.data.event.data);
+			await failDeploymentJob(job, error);
+		},
 	},
 	{ event: "deployment/requested" },
 
 	async ({ event, step }) => {
-		const jobData = event.data as DeployJob;
+		const jobData = deployJobSchema.parse(event.data);
 
 		return await step.run("execute-deployment", async () => {
 			logger.info("Deploying started");
 
 			try {
-				const result = await deploy(jobData);
+				const result = await executeDeployment(jobData);
+				if (!result) return false;
 				logger.info("Deployment finished", result);
 
 				// Send success event
@@ -82,6 +82,35 @@ export const deploymentFunction = inngest.createFunction(
 	},
 );
 
+export const dispatchPendingDeploymentsFunction = inngest.createFunction(
+	{ id: "dispatch-pending-deployments", concurrency: 1 },
+	{ cron: "* * * * *" },
+	async ({ step }) => {
+		for (let batch = 0; ; batch++) {
+			const count = await step.run(`dispatch-${batch}`, () =>
+				dispatchDeployments(inngest),
+			);
+			if (count < 100) return;
+		}
+	},
+);
+
+// Inngest operators may also cancel a run before it starts. An executing step
+// cannot be interrupted, so its row remains running until the worker finishes.
+export const cancelledDeploymentFunction = inngest.createFunction(
+	{ id: "record-cancelled-deployment" },
+	{
+		event: "inngest/function.cancelled",
+		if: "event.data.function_id == 'dokploy-deployments-deploy-application'",
+	},
+	async ({ event }) => {
+		const { deploymentId } = deploymentAttemptSchema.parse(
+			event.data.event.data,
+		);
+		await cancelQueuedDeployment(deploymentId);
+	},
+);
+
 app.use(async (c, next) => {
 	if (c.req.path === "/health" || c.req.path === "/api/inngest") {
 		return next();
@@ -89,78 +118,54 @@ app.use(async (c, next) => {
 
 	const authHeader = c.req.header("X-API-Key");
 
-	if (process.env.API_KEY !== authHeader) {
+	if (!process.env.API_KEY || process.env.API_KEY !== authHeader) {
 		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
 	return next();
 });
 
-app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
-	const data = c.req.valid("json");
-	logger.info("Received deployment request", data);
-
+app.post("/deploy", zValidator("json", deploymentAttemptSchema), async (c) => {
+	const { deploymentId } = c.req.valid("json");
 	try {
-		// Send event to Inngest instead of adding to Redis queue
-		await inngest.send({
-			name: "deployment/requested",
-			data,
-		});
-
-		logger.info("Deployment event sent to Inngest", {
-			serverId: data.serverId,
-		});
-
-		return c.json(
-			{
-				message: "Deployment Added to Inngest Queue",
-				serverId: data.serverId,
-			},
-			200,
-		);
+		await dispatchDeployments(inngest, deploymentId);
+		return c.json({ message: "Deployment delivery accepted", deploymentId });
 	} catch (error) {
-		logger.error("Failed to send deployment event", error);
+		logger.error(
+			{ error, deploymentId },
+			"Deployment remains queued for delivery",
+		);
 		return c.json(
-			{
-				message: "Failed to queue deployment",
-				error: error instanceof Error ? error.message : String(error),
-			},
-			500,
+			{ message: "Deployment remains queued for delivery", deploymentId },
+			503,
 		);
 	}
 });
 
 app.post(
 	"/cancel-deployment",
-	zValidator("json", cancelDeploymentSchema),
+	zValidator("json", deploymentAttemptSchema),
 	async (c) => {
 		const data = c.req.valid("json");
 		logger.info("Received cancel deployment request", data);
 
 		try {
-			// Send cancellation event to Inngest
-
-			await inngest.send({
-				name: "deployment/cancelled",
-				data,
-			});
-
-			const identifier =
-				data.applicationType === "application"
-					? `applicationId: ${data.applicationId}`
-					: `composeId: ${data.composeId}`;
-
-			logger.info("Deployment cancellation event sent", {
-				...data,
-				identifier,
-			});
+			if (!(await cancelQueuedDeployment(data.deploymentId))) {
+				return c.json(
+					{
+						message:
+							"Only queued deployments can be cancelled. Running builds must finish.",
+					},
+					409,
+				);
+			}
 
 			return c.json({
-				message: "Deployment cancellation requested",
-				applicationType: data.applicationType,
+				message: "Queued deployment cancelled",
+				deploymentId: data.deploymentId,
 			});
 		} catch (error) {
-			logger.error("Failed to send deployment cancellation event", error);
+			logger.error({ error }, "Failed to cancel queued deployment");
 			return c.json(
 				{
 					message: "Failed to cancel deployment",
@@ -205,7 +210,11 @@ app.on(
 	"/api/inngest",
 	serveInngest({
 		client: inngest,
-		functions: [deploymentFunction],
+		functions: [
+			deploymentFunction,
+			dispatchPendingDeploymentsFunction,
+			cancelledDeploymentFunction,
+		],
 	}),
 );
 

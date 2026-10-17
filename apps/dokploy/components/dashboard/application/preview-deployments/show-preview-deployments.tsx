@@ -13,7 +13,10 @@ import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
+import {
+	StatusTooltip,
+	statusColors,
+} from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,20 +116,16 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							<div className="flex flex-col gap-4">
 								{previewDeployments?.map((deployment) => {
 									const deploymentUrl = `${deployment.domain?.https ? "https" : "http"}://${deployment.domain?.host}${deployment.domain?.path || "/"}`;
-									const status = deployment.previewStatus;
+									const status =
+										deployment.deployments[0]?.status ??
+										deployment.previewStatus;
 									return (
 										<div
 											key={deployment.previewDeploymentId}
 											className="group relative overflow-hidden border rounded-lg transition-colors"
 										>
 											<div
-												className={`absolute left-0 top-0 w-1 h-full ${
-													status === "done"
-														? "bg-green-500"
-														: status === "running"
-															? "bg-yellow-500"
-															: "bg-red-500"
-												}`}
+												className={`absolute left-0 top-0 w-1 h-full ${statusColors[status]}`}
 											/>
 
 											<div className="p-4">
@@ -143,10 +142,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 														</div>
 													</div>
 													<Badge variant="outline" className="gap-2">
-														<StatusTooltip
-															status={deployment.previewStatus}
-															className="size-2"
-														/>
+														<StatusTooltip status={status} className="size-2" />
 														<DateTooltip date={deployment.createdAt} />
 													</Badge>
 												</div>
@@ -230,7 +226,10 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															<Button
 																variant="outline"
 																size="sm"
-																isLoading={status === "running"}
+																isLoading={
+																	deployment.previewStatus === "running" ||
+																	deployment.previewStatus === "queued"
+																}
 																className="gap-2"
 															>
 																<TooltipProvider>
