@@ -94,19 +94,31 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		resolver: zodResolver(AddRedirectSchema),
 	});
 
+	const isApplication = type === "application" && data && "registryId" in data;
+	const registryId = isApplication ? data.registryId : undefined;
+	const swarmVipConnectionReuse = isApplication
+		? data.swarmVipConnectionReuse
+		: undefined;
+	const replicas = data?.replicas;
+
+	// The application page polls this query, so reset only when a field shown
+	// here changes; otherwise each poll would discard unsaved edits.
 	useEffect(() => {
-		if (data) {
-			form.reset({
-				...(type === "application" && data && "registryId" in data
-					? {
-							registryId: data?.registryId || "",
-							swarmVipConnectionReuse: data.swarmVipConnectionReuse,
-						}
-					: {}),
-				replicas: data?.replicas || 1,
-			});
-		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
+		if (replicas === undefined) return;
+		form.reset({
+			...(isApplication
+				? { registryId: registryId || "", swarmVipConnectionReuse }
+				: {}),
+			replicas: replicas || 1,
+		});
+	}, [
+		form,
+		form.formState.isSubmitSuccessful,
+		isApplication,
+		registryId,
+		swarmVipConnectionReuse,
+		replicas,
+	]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
@@ -194,7 +206,8 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 												<FormLabel>Reuse backend connections</FormLabel>
 												<FormDescription>
 													Turn this off to open a new backend connection for
-													each request during Swarm rolling updates.
+													every request, so rolling updates never route to a
+													replaced task.
 												</FormDescription>
 											</div>
 											<FormControl>
