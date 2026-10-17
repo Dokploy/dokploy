@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { useTotpAutoVerify } from "@/lib/totp-verification";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { generateServerSideHelper } from "@/utils/create-server-helpers";
@@ -136,6 +137,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 
 			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
+				resetTotpSubmission();
 				setIsTwoFactor(true);
 				toast.info("Please enter your 2FA code");
 				return;
@@ -177,32 +179,31 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		}
 	};
 
+	const { handleVerifyTotp, onTotpChange, resetTotpSubmission } =
+		useTotpAutoVerify({
+			verify: (code) => authClient.twoFactor.verifyTotp({ code }),
+			onSuccess: () => {
+				toast.success("Logged in successfully");
+				router.push("/dashboard/home");
+			},
+			onError: (msg) => {
+				toast.error(msg);
+				setError(msg);
+			},
+			isLoading: isTwoFactorLoading,
+			setIsLoading: setIsTwoFactorLoading,
+			setCode: setTwoFactorCode,
+		});
+
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (twoFactorCode.length !== 6) {
+		const sanitized = twoFactorCode.replace(/\D/g, "");
+		if (sanitized.length !== 6) {
 			toast.error("Please enter a valid 6-digit code");
 			return;
 		}
 
-		setIsTwoFactorLoading(true);
-		try {
-			const { error } = await authClient.twoFactor.verifyTotp({
-				code: twoFactorCode.replace(/\s/g, ""),
-			});
-
-			if (error) {
-				toast.error(error.message);
-				setError(error.message || "An error occurred while verifying 2FA code");
-				return;
-			}
-
-			toast.success("Logged in successfully");
-			router.push("/dashboard/home");
-		} catch {
-			toast.error("An error occurred while verifying 2FA code");
-		} finally {
-			setIsTwoFactorLoading(false);
-		}
+		await handleVerifyTotp(sanitized);
 	};
 
 	const onBackupCodeSubmit = async (e: React.FormEvent) => {
@@ -350,9 +351,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									id="totp-code"
 									name="totp"
 									value={twoFactorCode}
-									onChange={setTwoFactorCode}
+									onChange={onTotpChange}
+									onComplete={(code) => handleVerifyTotp(code)}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
+									autoComplete="one-time-code"
+									inputMode="numeric"
+									pushPasswordManagerStrategy="none"
+									pasteTransformer={(pasted) => pasted.replace(/\D/g, "")}
 									autoFocus
 								>
 									<InputOTPGroup>
@@ -387,6 +393,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									onClick={() => {
 										setIsTwoFactor(false);
 										setTwoFactorCode("");
+										resetTotpSubmission();
 									}}
 								>
 									Back
