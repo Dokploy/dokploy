@@ -182,11 +182,11 @@ echo "Execution completed."
 `;
 
 const cleanupCommands = {
-	containers: "docker container prune --force",
-	images: "docker image prune --all --force",
+	containers: "docker container prune --force --filter 'label!=dokploy.traefik=true'",
+	images: "docker image prune --all --force --filter 'label!=dokploy.traefik=true'",
 	volumes: "docker volume prune --all --force",
 	builders: "docker builder prune --all --force",
-	system: "docker system prune --all --force",
+	system: "docker system prune --all --force --filter 'label!=dokploy.traefik=true'",
 };
 
 export const cleanupContainers = async (serverId?: string) => {
@@ -366,6 +366,39 @@ const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = [
 ];
 
 export const cleanupAll = async (serverId?: string) => {
+	// Guard against pruning stopped dokploy-traefik container during cleanup
+	try {
+		const dockerInstance = await getRemoteDocker(serverId, { strict: !!serverId });
+		const container = dockerInstance.getContainer("dokploy-traefik");
+		const data = await container.inspect();
+		if (!data.State.Running) {
+			console.log("dokploy-traefik was stopped prior to cleanup; restarting it...");
+			await container.start();
+			const verifyData = await container.inspect();
+			if (!verifyData.State.Running) {
+				console.error(
+					"dokploy-traefik failed to restart successfully; aborting cleanup to prevent accidental pruning.",
+				);
+				return;
+			}
+		}
+	} catch (error: any) {
+		if (serverId && error?.message?.includes("Remote Docker initialization failed")) {
+			console.error(error.message);
+			return;
+		}
+		const isNotFound =
+			error?.statusCode === 404 ||
+			error?.message?.toLowerCase().includes("no such container");
+		if (!isNotFound) {
+			console.error(
+				"dokploy-traefik inspection or restart failed; aborting cleanup to prevent accidental container pruning:",
+				error,
+			);
+			return;
+		}
+	}
+
 	for (const [key, command] of Object.entries(cleanupCommands) as [
 		keyof typeof cleanupCommands,
 		string,
