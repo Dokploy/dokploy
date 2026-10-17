@@ -136,6 +136,10 @@ export const restoreWebServerBackup = async (
 				`docker exec ${postgresContainerId} rm /tmp/database.sql`,
 			);
 
+			// The restored database may predate the running Dokploy version.
+			emit("Running database migrations...");
+			await execAsync("node -r dotenv/config dist/migration.mjs");
+
 			emit("Restore completed successfully!");
 		} finally {
 			// Cleanup
