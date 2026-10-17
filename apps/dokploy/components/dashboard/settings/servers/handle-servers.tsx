@@ -425,7 +425,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 							control={form.control}
 							name="enableDockerCleanup"
 							render={({ field }) => (
-								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+								<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3">
 									<div className="space-y-0.5">
 										<FormLabel>Enable Docker Cleanup</FormLabel>
 										<FormDescription>

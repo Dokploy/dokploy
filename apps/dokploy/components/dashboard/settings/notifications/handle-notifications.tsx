@@ -1827,7 +1827,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appDeploy"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 											<div className="">
 												<FormLabel>App Deploy</FormLabel>
 												<FormDescription>
@@ -1847,7 +1847,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appBuildError"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>App Build Error</FormLabel>
 												<FormDescription>
@@ -1868,7 +1868,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="databaseBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
@@ -1889,7 +1889,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dokployBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Dokploy Backup</FormLabel>
 												<FormDescription>
@@ -1910,7 +1910,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="volumeBackup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Volume Backup</FormLabel>
 												<FormDescription>
@@ -1931,7 +1931,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dockerCleanup"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+										<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
@@ -1953,7 +1953,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="dokployRestart"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+											<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
@@ -1976,7 +1976,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="serverThreshold"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+											<FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-3 shadow-xs gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Server Threshold</FormLabel>
 													<FormDescription>

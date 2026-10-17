@@ -98,7 +98,6 @@ export const UpdateServer = ({
 							<TooltipTrigger asChild>
 								<Button
 									variant={updateData ? "outline" : "secondary"}
-									size="sm"
 									onClick={() => onOpenChange?.(true)}
 								>
 									<Download className="h-4 w-4 shrink-0" />
