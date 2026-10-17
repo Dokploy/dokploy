@@ -5,17 +5,101 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./auth/*": {
+      "import": "./src/auth/*.ts",
+      "require": "./dist/auth/*.js"
+    },
     "./db": {
       "import": "./src/db/index.ts",
       "require": "./dist/db/index.cjs.js"
+    },
+    "./db/*": {
+      "import": "./src/db/*.ts",
+      "require": "./dist/db/*.js"
+    },
+    "./db/schema": {
+      "import": "./src/db/schema/index.ts",
+      "require": "./dist/db/schema/index.js"
+    },
+    "./db/schema/*": {
+      "import": "./src/db/schema/*.ts",
+      "require": "./dist/db/schema/*.js"
+    },
+    "./db/validations/*": {
+      "import": "./src/db/validations/*.ts",
+      "require": "./dist/db/validations/*.js"
+    },
+    "./emails/*": {
+      "import": "./src/emails/*.tsx",
+      "require": "./dist/emails/*.js"
+    },
+    "./lib/*": {
+      "import": "./src/lib/*.ts",
+      "require": "./dist/lib/*.js"
+    },
+    "./monitoring/*": {
+      "import": "./src/monitoring/*.ts",
+      "require": "./dist/monitoring/*.js"
+    },
+    "./services/*": {
+      "import": "./src/services/*.ts",
+      "require": "./dist/services/*.js"
     },
     "./setup/*": {
       "import": "./src/setup/*.ts",
       "require": "./dist/setup/index.cjs.js"
     },
+    "./templates": {
+      "import": "./src/templates/index.ts",
+      "require": "./dist/templates/index.js"
+    },
+    "./templates/*": {
+      "import": "./src/templates/*.ts",
+      "require": "./dist/templates/*.js"
+    },
+    "./types/*": {
+      "import": "./src/types/*.ts",
+      "require": "./dist/types/*.js"
+    },
     "./constants": {
       "import": "./src/constants/index.ts",
       "require": "./dist/constants.cjs.js"
+    },
+    "./utils/*": {
+      "import": "./src/utils/*.ts",
+      "require": "./dist/utils/*.js"
+    },
+    "./utils/ai": {
+      "import": "./src/utils/ai/index.ts",
+      "require": "./dist/utils/ai/index.js"
+    },
+    "./utils/backups": {
+      "import": "./src/utils/backups/index.ts",
+      "require": "./dist/utils/backups/index.js"
+    },
+    "./utils/builders": {
+      "import": "./src/utils/builders/index.ts",
+      "require": "./dist/utils/builders/index.js"
+    },
+    "./utils/restore": {
+      "import": "./src/utils/restore/index.ts",
+      "require": "./dist/utils/restore/index.js"
+    },
+    "./utils/schedules": {
+      "import": "./src/utils/schedules/index.ts",
+      "require": "./dist/utils/schedules/index.js"
+    },
+    "./utils/volume-backups": {
+      "import": "./src/utils/volume-backups/index.ts",
+      "require": "./dist/utils/volume-backups/index.js"
+    },
+    "./verification/*": {
+      "import": "./src/verification/*.tsx",
+      "require": "./dist/verification/*.js"
+    },
+    "./wss/*": {
+      "import": "./src/wss/*.ts",
+      "require": "./dist/wss/*.js"
     }
   },
   "scripts": {

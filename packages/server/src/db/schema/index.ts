@@ -11,6 +11,7 @@ export * from "./destination";
 export * from "./dns-provider";
 export * from "./domain";
 export * from "./environment";
+export * from "./external-upstream";
 export * from "./forward-auth";
 export * from "./git-provider";
 export * from "./gitea";
