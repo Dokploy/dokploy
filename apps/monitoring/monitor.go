@@ -1,0 +1,2 @@
+exec.Command("docker", "container", "prune", "-f", "--filter", "label!=com.dokploy.traefik=true").Run()
+	exec.Command("docker", "image", "prune", "-a", "-f", "--filter", "label!=com.dokploy.traefik=true").Run()
