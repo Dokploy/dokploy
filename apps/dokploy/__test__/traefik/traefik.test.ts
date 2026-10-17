@@ -129,6 +129,7 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 	stopGracePeriodSwarm: null,
 	ulimitsSwarm: null,
+	swarmVipConnectionReuse: true,
 };
 
 const baseDomain: Domain = {

@@ -1387,6 +1387,13 @@
       "when": 1791456930312,
       "tag": "0197_logs_and_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 198,
+      "version": "7",
+      "when": 1792275839059,
+      "tag": "0198_swarm_vip_connection_reuse",
+      "breakpoints": true
     }
   ]
 }

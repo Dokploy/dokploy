@@ -183,6 +183,9 @@ export const applications = pgTable("application", {
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	ulimitsSwarm: json("ulimitsSwarm").$type<UlimitsSwarm>(),
+	swarmVipConnectionReuse: boolean("swarmVipConnectionReuse")
+		.notNull()
+		.default(true),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
