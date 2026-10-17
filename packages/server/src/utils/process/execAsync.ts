@@ -121,11 +121,6 @@ export const execFileAsync = async (
 ): Promise<{ stdout: string; stderr: string }> => {
 	const child = execFile(command, args);
 
-	if (options.input && child.stdin) {
-		child.stdin.write(options.input);
-		child.stdin.end();
-	}
-
 	return new Promise((resolve, reject) => {
 		let stdout = "";
 		let stderr = "";
@@ -149,6 +144,11 @@ export const execFileAsync = async (
 		});
 
 		child.on("error", reject);
+
+		if (options.input !== undefined && child.stdin) {
+			child.stdin.on("error", reject);
+			child.stdin.end(options.input);
+		}
 	});
 };
 
@@ -156,6 +156,7 @@ export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
 	onData?: (data: string) => void,
+	input?: string,
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -209,6 +210,13 @@ export const execAsyncRemote = async (
 							stderr += data.toString();
 							onData?.(data.toString());
 						});
+					if (input !== undefined) {
+						stream.on("error", (error: Error) => {
+							conn.end();
+							reject(error);
+						});
+						stream.end(input);
+					}
 				});
 			})
 			.on("error", (err) => {
