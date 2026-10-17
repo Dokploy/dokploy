@@ -368,14 +368,36 @@ const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = [
 export const cleanupAll = async (serverId?: string) => {
 	// Guard against pruning stopped dokploy-traefik container during cleanup
 	try {
-		const dockerInstance = await getRemoteDocker(serverId);
+		const dockerInstance = await getRemoteDocker(serverId, { strict: !!serverId });
 		const container = dockerInstance.getContainer("dokploy-traefik");
 		const data = await container.inspect();
 		if (!data.State.Running) {
 			console.log("dokploy-traefik was stopped prior to cleanup; restarting it...");
 			await container.start();
+			const verifyData = await container.inspect();
+			if (!verifyData.State.Running) {
+				console.error(
+					"dokploy-traefik failed to restart successfully; aborting cleanup to prevent accidental pruning.",
+				);
+				return;
+			}
 		}
-	} catch {}
+	} catch (error: any) {
+		if (serverId && error?.message?.includes("Remote Docker initialization failed")) {
+			console.error(error.message);
+			return;
+		}
+		const isNotFound =
+			error?.statusCode === 404 ||
+			error?.message?.toLowerCase().includes("no such container");
+		if (!isNotFound) {
+			console.error(
+				"dokploy-traefik inspection or restart failed; aborting cleanup to prevent accidental container pruning:",
+				error,
+			);
+			return;
+		}
+	}
 
 	for (const [key, command] of Object.entries(cleanupCommands) as [
 		keyof typeof cleanupCommands,
