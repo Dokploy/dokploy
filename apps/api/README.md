@@ -51,7 +51,7 @@ a worker crash; process termination and rollback are outside queue cancellation.
 This changes the private web/API and Inngest event contracts. Before upgrading:
 
 1. Pause new deployment submissions and drain existing cloud Inngest runs.
-2. Apply the web server's database migrations, including `0197_queued_deployments`.
+2. Apply the web server's database migrations, including `0198_queued_deployments`.
 3. Update the web server and deployment API together, then confirm Inngest has
    registered execution, pending-dispatch, and cancellation-reconciliation functions.
 4. Resume submissions. Verify one queued attempt becomes running and completes
