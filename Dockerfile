@@ -45,8 +45,16 @@ COPY --from=build /prod/dokploy/components.json ./components.json
 COPY --from=build /prod/dokploy/node_modules ./node_modules
 
 
-# Install docker
-RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh --version 28.5.2 && rm get-docker.sh && curl https://rclone.org/install.sh | bash
+# Install docker. get.docker.com already pulls docker-model-plugin unpinned
+# for Engine 28.2+; pin it in this same layer so rebuilds stay deterministic
+# without a second-layer downgrade keeping both binaries.
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh --version 28.5.2 && rm get-docker.sh \
+	&& apt-get update \
+	&& apt-get install -y --no-install-recommends --allow-downgrades docker-model-plugin=1.2.6-1~debian.12~bookworm \
+	&& dpkg-query -W -f='${Version}\n' docker-model-plugin | grep -Fx '1.2.6-1~debian.12~bookworm' \
+	&& timeout -k 5s 15s docker model version >/dev/null \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& curl https://rclone.org/install.sh | bash
 
 # Install Nixpacks and tsx
 # | VERBOSE=1 VERSION=1.21.0 bash
