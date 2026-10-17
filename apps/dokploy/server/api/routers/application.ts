@@ -20,6 +20,7 @@ import {
 	removeDirectoryCode,
 	removeMonitoringDirectory,
 	removePreviewDeployment,
+	removeRailpackBuilder,
 	removeService,
 	removeTraefikConfig,
 	startService,
@@ -382,6 +383,11 @@ export const applicationRouter = createTRPCRouter({
 					await removeTraefikConfig(application.appName, application.serverId),
 				async () =>
 					await removeService(application?.appName, application.serverId),
+				async () =>
+					await removeRailpackBuilder(
+						application.appName,
+						application.serverId,
+					),
 			];
 
 			for (const operation of cleanupOperations) {

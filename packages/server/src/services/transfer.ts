@@ -7,7 +7,10 @@ import {
 	network,
 	type ServiceType,
 } from "@dokploy/server/db/schema";
-import { removeService } from "@dokploy/server/utils/docker/utils";
+import {
+	removeRailpackBuilder,
+	removeService,
+} from "@dokploy/server/utils/docker/utils";
 import {
 	removeDirectoryCode,
 	removeMonitoringDirectory,
@@ -376,6 +379,7 @@ const cleanupSource = async (
 		steps.push(
 			() => removeSourceTraefikConfig(service),
 			() => removeService(service.appName, serverId),
+			() => removeRailpackBuilder(service.appName, serverId),
 			() => removeDirectoryCode(service.appName, serverId),
 			() => removeMonitoringDirectory(service.appName, serverId),
 		);
