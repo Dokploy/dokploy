@@ -418,6 +418,18 @@ export const getContainersByAppLabel = async (
 	return [];
 };
 
+// tail is applied to the matches rather than the raw log so older lines can be
+// found. Ending the pipe with tail also keeps grep's "no match" exit code 1
+// from failing the command.
+export const buildLogSearchCommand = (
+	logsCommand: string,
+	search: string,
+	tail: number,
+) => {
+	const escapedSearch = search.replace(/'/g, "'\\''");
+	return `${logsCommand} 2>&1 | grep -iF '${escapedSearch}' | tail -n ${tail}`;
+};
+
 export const getContainerLogs = async (
 	appNameOrId: string,
 	tail = 100,
@@ -455,30 +467,49 @@ export const getContainerLogs = async (
 	}
 
 	const sinceFlag = since === "all" ? "" : `--since ${since}`;
-	const baseCommand = isService
-		? `docker service logs --timestamps --raw --tail ${tail} ${sinceFlag} ${target}`
-		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
+	const logsCommand = isService
+		? `docker service logs --timestamps --raw`
+		: `docker container logs --timestamps`;
 
-	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
-	const command = search
-		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
-		: `${baseCommand} 2>&1`;
-
-	try {
-		const result = await exec(command);
-		return result.stdout;
-	} catch (error: unknown) {
-		if (
-			error &&
-			typeof error === "object" &&
-			"stdout" in error &&
-			typeof (error as { stdout: string }).stdout === "string" &&
-			(error as { stdout: string }).stdout.length > 0
-		) {
-			return (error as { stdout: string }).stdout;
+	// exec rejects with the output read so far when it exceeds maxBuffer;
+	// return that output instead of failing.
+	const execKeepingOutput = async (command: string) => {
+		try {
+			const result = await exec(command);
+			return result.stdout;
+		} catch (error: unknown) {
+			if (
+				error &&
+				typeof error === "object" &&
+				"stdout" in error &&
+				typeof (error as { stdout: string }).stdout === "string" &&
+				(error as { stdout: string }).stdout.length > 0
+			) {
+				return (error as { stdout: string }).stdout;
+			}
+			throw error;
 		}
-		throw error;
+	};
+
+	if (search) {
+		const stdout = await execKeepingOutput(
+			buildLogSearchCommand(
+				`${logsCommand} ${sinceFlag} ${target}`,
+				search,
+				tail,
+			),
+		);
+		if (stdout.length === 0) {
+			// grep also filters out Docker's own error message, so confirm the
+			// logs are readable before reporting "no matches".
+			await exec(`${logsCommand} --tail 0 ${target}`);
+		}
+		return stdout;
 	}
+
+	return execKeepingOutput(
+		`${logsCommand} --tail ${tail} ${sinceFlag} ${target} 2>&1`,
+	);
 };
 
 export const containerRestart = async (
