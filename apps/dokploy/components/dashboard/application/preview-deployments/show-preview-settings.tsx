@@ -100,6 +100,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		resolver: zodResolver(schema),
 	});
 
+	const { isDirty } = form.formState;
 	const previewHttps = form.watch("previewHttps");
 	const wildcardDomain = form.watch("wildcardDomain");
 	const isTraefikMeDomain = wildcardDomain?.includes("sslip.io") || false;
@@ -108,8 +109,9 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
 	}, [data?.isPreviewDeploymentsActive]);
 
+	// Skip reset while editing so background refetches don't wipe edits
 	useEffect(() => {
-		if (data) {
+		if (data && !isDirty) {
 			form.reset({
 				env: data.previewEnv || "",
 				buildArgs: data.previewBuildArgs || "",
@@ -126,7 +128,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 					data.previewRequireCollaboratorPermissions ?? true,
 			});
 		}
-	}, [data]);
+	}, [data, isDirty, form]);
 
 	const onSubmit = async (formData: Schema) => {
 		updateApplication({
@@ -147,6 +149,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		})
 			.then(() => {
 				toast.success("Preview Deployments settings updated");
+				form.reset(formData);
 			})
 			.catch((error) => {
 				toast.error(error.message);
