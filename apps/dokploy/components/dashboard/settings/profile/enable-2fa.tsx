@@ -38,6 +38,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 const PasswordSchema = z.object({
@@ -91,6 +92,13 @@ export const Enable2FA = () => {
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 	const [otpValue, setOtpValue] = useState("");
 	const { data: currentUser } = api.user.get.useQuery();
+
+	const getSlotClassName = (index: number) =>
+		cn(
+			"size-10 rounded-md border text-base font-medium first:rounded-md last:rounded-md",
+			"data-[active=true]:border-foreground data-[active=true]:ring-2 data-[active=true]:ring-foreground/10",
+			otpValue[index] ? "border-foreground/50" : "border-foreground/20",
+		);
 
 	const handleVerifySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -432,19 +440,19 @@ export const Enable2FA = () => {
 									onChange={setOtpValue}
 									autoFocus
 								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
+									<InputOTPGroup className="gap-2">
+										<InputOTPSlot index={0} className={getSlotClassName(0)} />
+										<InputOTPSlot index={1} className={getSlotClassName(1)} />
+										<InputOTPSlot index={2} className={getSlotClassName(2)} />
 									</InputOTPGroup>
-									<InputOTPSeparator />
-									<InputOTPGroup>
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
+									<InputOTPSeparator className="flex items-center text-muted-foreground mx-1 [&_svg]:size-4" />
+									<InputOTPGroup className="gap-2">
+										<InputOTPSlot index={3} className={getSlotClassName(3)} />
+										<InputOTPSlot index={4} className={getSlotClassName(4)} />
+										<InputOTPSlot index={5} className={getSlotClassName(5)} />
 									</InputOTPGroup>
 								</InputOTP>
-								<FormDescription>
+								<FormDescription className="mt-2">
 									Enter the 6-digit code from your authenticator app
 								</FormDescription>
 							</div>

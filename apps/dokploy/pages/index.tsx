@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { generateServerSideHelper } from "@/utils/create-server-helpers";
@@ -177,9 +178,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		}
 	};
 
-	const onTwoFactorSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (twoFactorCode.length !== 6) {
+	const onTwoFactorSubmit = async (e?: React.FormEvent, code?: string) => {
+		e?.preventDefault();
+		if (isTwoFactorLoading) return;
+		const totp = code || twoFactorCode;
+		if (totp.length !== 6) {
 			toast.error("Please enter a valid 6-digit code");
 			return;
 		}
@@ -187,7 +190,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		setIsTwoFactorLoading(true);
 		try {
 			const { error } = await authClient.twoFactor.verifyTotp({
-				code: twoFactorCode.replace(/\s/g, ""),
+				code: totp.replace(/\s/g, ""),
 			});
 
 			if (error) {
@@ -234,6 +237,13 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			setIsBackupCodeLoading(false);
 		}
 	};
+
+	const getSlotClassName = (index: number) =>
+		cn(
+			"size-10 rounded-md border text-base font-medium first:rounded-md last:rounded-md",
+			"data-[active=true]:border-foreground data-[active=true]:ring-2 data-[active=true]:ring-foreground/10",
+			twoFactorCode[index] ? "border-foreground/50" : "border-foreground/20",
+		);
 
 	const loginContent = (
 		<>
@@ -351,23 +361,25 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									name="totp"
 									value={twoFactorCode}
 									onChange={setTwoFactorCode}
+									onComplete={(code) => onTwoFactorSubmit(undefined, code)}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
+									disabled={isTwoFactorLoading}
 									autoFocus
 								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
+									<InputOTPGroup className="gap-2">
+										<InputOTPSlot index={0} className={getSlotClassName(0)} />
+										<InputOTPSlot index={1} className={getSlotClassName(1)} />
+										<InputOTPSlot index={2} className={getSlotClassName(2)} />
 									</InputOTPGroup>
-									<InputOTPSeparator />
-									<InputOTPGroup>
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
+									<InputOTPSeparator className="flex items-center text-muted-foreground mx-1 [&_svg]:size-4" />
+									<InputOTPGroup className="gap-2">
+										<InputOTPSlot index={3} className={getSlotClassName(3)} />
+										<InputOTPSlot index={4} className={getSlotClassName(4)} />
+										<InputOTPSlot index={5} className={getSlotClassName(5)} />
 									</InputOTPGroup>
 								</InputOTP>
-								<CardDescription>
+								<CardDescription className="mt-2">
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>
 								<button
