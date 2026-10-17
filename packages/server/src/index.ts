@@ -34,6 +34,10 @@ export * from "./services/logs-and-metrics/service";
 export * from "./services/logs-and-metrics/types";
 export * from "./services/logs-and-metrics/vector-agent";
 export * from "./services/mariadb";
+export {
+	getModelRunnerCapability,
+	type ModelRunnerCapability,
+} from "./services/model-runner";
 export * from "./services/mongo";
 export * from "./services/mount";
 export * from "./services/mysql";
@@ -58,6 +62,10 @@ export * from "./services/rollbacks";
 export * from "./services/schedule";
 export * from "./services/security";
 export * from "./services/server";
+export {
+	getServerHardware,
+	type ServerHardware,
+} from "./services/server-hardware";
 export * from "./services/server-health";
 export * from "./services/settings";
 export * from "./services/ssh-key";
