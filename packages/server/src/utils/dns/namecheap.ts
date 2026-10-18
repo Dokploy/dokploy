@@ -230,6 +230,31 @@ const buildHost = (
 const nextEmailType = (type: string, current: string | undefined) =>
 	type === "MX" ? "MX" : current;
 
+const zoneLocks = new Map<string, Promise<unknown>>();
+
+// setHosts replaces the whole zone, so two overlapping read-and-write
+// sequences on the same zone would each erase the other's change.
+const withZoneLock = async <T>(
+	config: NamecheapConfig,
+	domain: string,
+	task: () => Promise<T>,
+) => {
+	const key = JSON.stringify([
+		config.apiUser.toLowerCase(),
+		domain.toLowerCase(),
+	]);
+	const run = (zoneLocks.get(key) ?? Promise.resolve()).then(task);
+	const tail = run.catch(() => {});
+	zoneLocks.set(key, tail);
+	try {
+		return await run;
+	} finally {
+		if (zoneLocks.get(key) === tail) {
+			zoneLocks.delete(key);
+		}
+	}
+};
+
 export const namecheapClient: DnsClient<NamecheapConfig> = {
 	async listZones(config) {
 		const zones: { id: string; name: string }[] = [];
@@ -272,48 +297,56 @@ export const namecheapClient: DnsClient<NamecheapConfig> = {
 
 	async upsertRecord(config, record) {
 		const built = buildHost(record, record.zoneId);
-		const { hosts, emailType } = await getHosts(config, record.zoneId);
-		const index = hosts.findIndex((host) => hostKey(host) === hostKey(built));
-		if (index === -1) {
-			hosts.push(built);
-		} else {
-			hosts[index] = built;
-		}
-		await setHosts(
-			config,
-			record.zoneId,
-			hosts,
-			nextEmailType(record.type, emailType),
-		);
+		await withZoneLock(config, record.zoneId, async () => {
+			const { hosts, emailType } = await getHosts(config, record.zoneId);
+			const index = hosts.findIndex(
+				(host) => hostKey(host) === hostKey(built),
+			);
+			if (index === -1) {
+				hosts.push(built);
+			} else {
+				hosts[index] = built;
+			}
+			await setHosts(
+				config,
+				record.zoneId,
+				hosts,
+				nextEmailType(record.type, emailType),
+			);
+		});
 		return { id: encodeRecordId(built) };
 	},
 
 	async updateRecord(config, zoneId, recordId, record) {
 		const built = buildHost(record, zoneId);
-		const { hosts, emailType } = await getHosts(config, zoneId);
 		const key = decodeRecordId(recordId);
-		const index = hosts.findIndex((host) => hostKey(host) === key);
-		if (index === -1) {
-			throw new Error("Namecheap: record not found, it may have changed");
-		}
-		hosts[index] = built;
-		await setHosts(
-			config,
-			zoneId,
-			hosts,
-			nextEmailType(record.type, emailType),
-		);
+		await withZoneLock(config, zoneId, async () => {
+			const { hosts, emailType } = await getHosts(config, zoneId);
+			const index = hosts.findIndex((host) => hostKey(host) === key);
+			if (index === -1) {
+				throw new Error("Namecheap: record not found, it may have changed");
+			}
+			hosts[index] = built;
+			await setHosts(
+				config,
+				zoneId,
+				hosts,
+				nextEmailType(record.type, emailType),
+			);
+		});
 		return { id: encodeRecordId(built) };
 	},
 
 	async deleteRecord(config, zoneId, recordId) {
-		const { hosts, emailType } = await getHosts(config, zoneId);
 		const key = decodeRecordId(recordId);
-		const remaining = hosts.filter((host) => hostKey(host) !== key);
-		if (remaining.length === hosts.length) {
-			throw new Error("Namecheap: record not found, it may have changed");
-		}
-		await setHosts(config, zoneId, remaining, emailType);
+		await withZoneLock(config, zoneId, async () => {
+			const { hosts, emailType } = await getHosts(config, zoneId);
+			const remaining = hosts.filter((host) => hostKey(host) !== key);
+			if (remaining.length === hosts.length) {
+				throw new Error("Namecheap: record not found, it may have changed");
+			}
+			await setHosts(config, zoneId, remaining, emailType);
+		});
 	},
 
 	async testConnection(config) {

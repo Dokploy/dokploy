@@ -305,6 +305,69 @@ describe("namecheapClient.updateRecord / deleteRecord", () => {
 	});
 });
 
+describe("namecheapClient concurrent writes", () => {
+	// Simulates Namecheap's zone: getHosts reads it, setHosts replaces it.
+	const fakeZones = () => {
+		const zones = new Map<string, string[]>();
+		mockFetch.mockImplementation(async (_url, init: RequestInit) => {
+			const params = new URLSearchParams(init.body as string);
+			const domain = `${params.get("SLD")}.${params.get("TLD")}`;
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			if (params.get("Command") === "namecheap.domains.dns.setHosts") {
+				const hosts: string[] = [];
+				for (let n = 1; params.has(`HostName${n}`); n++) {
+					hosts.push(
+						`<host Name="${params.get(`HostName${n}`)}" Type="${params.get(`RecordType${n}`)}" Address="${params.get(`Address${n}`)}" MXPref="10" TTL="1800" />`,
+					);
+				}
+				zones.set(domain, hosts);
+				return setHostsSuccess();
+			}
+			return hostsResponse((zones.get(domain) ?? []).join(""));
+		});
+		return zones;
+	};
+
+	const upsert = (zoneId: string, name: string, content: string) =>
+		namecheapClient.upsertRecord(config, {
+			zoneId,
+			type: "A",
+			name,
+			content,
+		});
+
+	it("keeps both changes when two writes to the same zone overlap", async () => {
+		const zones = fakeZones();
+
+		await Promise.all([
+			upsert("example.com", "app.example.com", "1.1.1.1"),
+			upsert("example.com", "api.example.com", "2.2.2.2"),
+		]);
+
+		const records = await namecheapClient.listRecords(config, "example.com");
+		expect(records.map((record) => record.name).sort()).toEqual([
+			"api.example.com",
+			"app.example.com",
+		]);
+		expect(zones.get("example.com")).toHaveLength(2);
+	});
+
+	it("runs the next write after a failed one", async () => {
+		fakeZones();
+		const failing = namecheapClient.deleteRecord(
+			config,
+			"example.com",
+			"missing",
+		);
+		const next = upsert("example.com", "app.example.com", "1.1.1.1");
+
+		await expect(failing).rejects.toThrow("record not found");
+		await expect(next).resolves.toBeDefined();
+		const records = await namecheapClient.listRecords(config, "example.com");
+		expect(records).toHaveLength(1);
+	});
+});
+
 describe("namecheapClient.testConnection", () => {
 	it("succeeds when the credentials can list domains", async () => {
 		mockFetch.mockResolvedValue(xmlResponse("<DomainGetListResult />"));
