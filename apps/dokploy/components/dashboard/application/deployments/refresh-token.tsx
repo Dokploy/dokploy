@@ -12,6 +12,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { api } from "@/utils/api";
+import { Button } from "@/components/ui/button";
 
 interface Props {
 	id: string;
@@ -25,8 +26,10 @@ export const RefreshToken = ({ id, type }: Props) => {
 	const utils = api.useUtils();
 	return (
 		<AlertDialog>
-			<AlertDialogTrigger>
-				<RefreshCcw className="h-4 w-4 cursor-pointer text-muted-foreground" />
+			<AlertDialogTrigger asChild>
+				<Button variant="ghost" size="icon">
+					<RefreshCcw className="h-4 w-4 cursor-pointer text-muted-foreground" />
+				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
