@@ -16,6 +16,7 @@ import {
 	getStackContainersByAppName,
 	listContainerFiles,
 	readContainerFile,
+	readContainerFileTail,
 	uploadFileToContainer,
 	writeContainerFile,
 } from "@dokploy/server";
@@ -384,6 +385,41 @@ export const dockerRouter = createTRPCRouter({
 			return await readContainerFile(
 				input.containerId,
 				input.path,
+				input.serverId,
+			);
+		}),
+
+	readContainerFileTail: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+				path: containerPathSchema,
+				lines: z.number().int().positive().max(5000).default(200),
+				maxBytes: z
+					.number()
+					.int()
+					.positive()
+					.max(524288)
+					.default(65536)
+					.optional(),
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await readContainerFileTail(
+				input.containerId,
+				input.path,
+				input.lines,
+				input.maxBytes,
 				input.serverId,
 			);
 		}),
