@@ -7,7 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { z } from "zod";
 
 export type Server = typeof server.$inferSelect;
@@ -85,6 +85,34 @@ export const findServersByUserId = async (userId: string) => {
 	const servers = orgs.flatMap((org) => org.servers);
 
 	return servers;
+};
+
+export const findServersByOrganizationForVectorAgent = async (
+	organizationId: string,
+) => {
+	return await db.query.server.findMany({
+		where: and(
+			eq(server.organizationId, organizationId),
+			isNotNull(server.sshKeyId),
+			eq(server.serverType, "deploy"),
+		),
+		columns: {
+			serverId: true,
+			name: true,
+			ipAddress: true,
+			telemetryProviderIds: true,
+		},
+		orderBy: [desc(server.createdAt)],
+	});
+};
+
+export const setServerProviderIds = async (serverId: string, ids: string[]) => {
+	const [updated] = await db
+		.update(server)
+		.set({ telemetryProviderIds: ids })
+		.where(eq(server.serverId, serverId))
+		.returning();
+	return updated ?? null;
 };
 
 export const deleteServer = async (serverId: string) => {
