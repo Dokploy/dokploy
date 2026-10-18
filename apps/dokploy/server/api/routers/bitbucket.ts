@@ -4,8 +4,10 @@ import {
 	createBitbucket,
 	findBitbucketById,
 	getAccessibleGitProviderIds,
+	getBitbucketBranch,
 	getBitbucketBranches,
 	getBitbucketRepositories,
+	getBitbucketRepository,
 	testBitbucketConnection,
 	updateBitbucket,
 } from "@dokploy/server";
@@ -21,7 +23,9 @@ import {
 	apiBitbucketTestConnection,
 	apiCreateBitbucket,
 	apiFindBitbucketBranches,
+	apiFindBranch,
 	apiFindOneBitbucket,
+	apiFindRepository,
 	apiUpdateBitbucket,
 } from "@/server/db/schema";
 
@@ -98,6 +102,21 @@ export const bitbucketRouter = createTRPCRouter({
 			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
 			return await getBitbucketRepositories(input.bitbucketId);
 		}),
+	getBitbucketRepository: protectedProcedure
+		.input(
+			apiFindRepository.extend({
+				bitbucketId: apiFindOneBitbucket.shape.bitbucketId,
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const bitbucket = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+			return await getBitbucketRepository(
+				input.bitbucketId,
+				input.owner,
+				input.repository,
+			);
+		}),
 	getBitbucketBranches: protectedProcedure
 		.input(apiFindBitbucketBranches)
 		.query(async ({ input, ctx }) => {
@@ -106,6 +125,22 @@ export const bitbucketRouter = createTRPCRouter({
 				await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
 			}
 			return await getBitbucketBranches(input);
+		}),
+	getBitbucketBranch: protectedProcedure
+		.input(
+			apiFindBranch.extend({
+				bitbucketId: apiFindOneBitbucket.shape.bitbucketId,
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const bitbucket = await findBitbucketById(input.bitbucketId);
+			await assertGitProviderAccess(ctx.session, bitbucket.gitProvider);
+			return await getBitbucketBranch(
+				input.bitbucketId,
+				input.owner,
+				input.repository,
+				input.branch,
+			);
 		}),
 	testConnection: protectedProcedure
 		.input(apiBitbucketTestConnection)

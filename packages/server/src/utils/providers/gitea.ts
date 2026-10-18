@@ -326,6 +326,46 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	);
 };
 
+export const getGiteaRepository = async (
+	giteaId: string,
+	owner: string,
+	repository: string,
+) => {
+	await refreshGiteaToken(giteaId);
+	const giteaProvider = await findGiteaById(giteaId);
+	const baseUrl = (
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
+	).replace(/\/+$/, "");
+	const response = await fetch(
+		`${baseUrl}/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`,
+		{
+			headers: {
+				Accept: "application/json",
+				Authorization: `token ${giteaProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: response.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				response.status === 404
+					? `Repository ${owner}/${repository} was not found or is not accessible`
+					: `Failed to look up repository: ${response.statusText}`,
+		});
+	}
+
+	const data = await response.json();
+	return {
+		id: data.id as number,
+		name: data.name as string,
+		owner: data.owner.login as string,
+		path: data.full_name as string,
+		url: data.html_url as string,
+	};
+};
+
 export const getGiteaBranches = async (input: {
 	giteaId?: string;
 	owner: string;
@@ -391,4 +431,39 @@ export const getGiteaBranches = async (input: {
 			id: string;
 		};
 	}[];
+};
+
+export const getGiteaBranch = async (
+	giteaId: string,
+	owner: string,
+	repository: string,
+	branch: string,
+) => {
+	await refreshGiteaToken(giteaId);
+	const giteaProvider = await findGiteaById(giteaId);
+	const baseUrl = (
+		giteaProvider.giteaInternalUrl || giteaProvider.giteaUrl
+	).replace(/\/+$/, "");
+	const response = await fetch(
+		`${baseUrl}/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/branches/${encodeURIComponent(branch)}`,
+		{
+			headers: {
+				Accept: "application/json",
+				Authorization: `token ${giteaProvider.accessToken}`,
+			},
+		},
+	);
+
+	if (!response.ok) {
+		throw new TRPCError({
+			code: response.status === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+			message:
+				response.status === 404
+					? `Branch ${branch} was not found in ${owner}/${repository}`
+					: `Failed to look up branch: ${response.statusText}`,
+		});
+	}
+
+	const data = await response.json();
+	return { name: data.name as string };
 };
