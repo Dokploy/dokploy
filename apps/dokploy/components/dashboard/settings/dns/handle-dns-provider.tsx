@@ -46,6 +46,8 @@ const providerLabels = {
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
+	namecheap: "Namecheap",
+	spaceship: "Spaceship",
 } as const;
 
 const ovhEndpointLabels = {
@@ -60,7 +62,7 @@ const ovhEndpointLabels = {
 
 type ProviderType = keyof typeof providerLabels;
 
-const DnsProviderSchema = z.object({
+const DnsProviderFieldsSchema = z.object({
 	name: z
 		.string()
 		.min(1, { message: "Name is required" })
@@ -73,6 +75,8 @@ const DnsProviderSchema = z.object({
 		"porkbun",
 		"infomaniak",
 		"ovh",
+		"namecheap",
+		"spaceship",
 	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
@@ -89,6 +93,22 @@ const DnsProviderSchema = z.object({
 	applicationSecret: z.string(),
 	consumerKey: z.string(),
 	zone: z.string(),
+	apiUser: z.string(),
+	clientIp: z.string(),
+	apiSecret: z.string(),
+});
+
+const DnsProviderSchema = DnsProviderFieldsSchema.superRefine((data, ctx) => {
+	if (
+		data.providerType === "namecheap" &&
+		!z.ipv4().safeParse(data.clientIp.trim()).success
+	) {
+		ctx.addIssue({
+			code: "custom",
+			path: ["clientIp"],
+			message: "Enter a valid IPv4 address",
+		});
+	}
 });
 
 type DnsProviderForm = z.infer<typeof DnsProviderSchema>;
@@ -106,6 +126,9 @@ const defaultValues: DnsProviderForm = {
 	applicationSecret: "",
 	consumerKey: "",
 	zone: "",
+	apiUser: "",
+	clientIp: "",
+	apiSecret: "",
 };
 
 const buildConfig = (data: DnsProviderForm) => {
@@ -140,6 +163,19 @@ const buildConfig = (data: DnsProviderForm) => {
 				applicationSecret: data.applicationSecret,
 				consumerKey: data.consumerKey,
 				zone: data.zone.trim() || undefined,
+			};
+		case "namecheap":
+			return {
+				providerType: "namecheap" as const,
+				apiUser: data.apiUser,
+				apiKey: data.apiKey,
+				clientIp: data.clientIp,
+			};
+		case "spaceship":
+			return {
+				providerType: "spaceship" as const,
+				apiKey: data.apiKey,
+				apiSecret: data.apiSecret,
 			};
 	}
 };
@@ -211,6 +247,15 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					applicationSecret: provider.config.applicationSecret,
 					consumerKey: provider.config.consumerKey,
 					zone: provider.config.zone ?? "",
+				}),
+				...(provider.config.providerType === "namecheap" && {
+					apiUser: provider.config.apiUser,
+					apiKey: provider.config.apiKey,
+					clientIp: provider.config.clientIp,
+				}),
+				...(provider.config.providerType === "spaceship" && {
+					apiKey: provider.config.apiKey,
+					apiSecret: provider.config.apiSecret,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -565,6 +610,100 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 												<code>GET /domain/zone</code> right is not needed. This
 												is enforced by Dokploy only, so also limit the OVH token
 												to that zone if you need a hard guarantee.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "namecheap" && (
+							<>
+								<FormField
+									control={form.control}
+									name="apiUser"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API User</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormDescription>
+												Your Namecheap account username.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="apiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Key</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Enable API access under Profile → Tools → Namecheap API
+												Access to get the key.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="clientIp"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Whitelisted IP</FormLabel>
+											<FormControl>
+												<Input placeholder="203.0.113.10" {...field} />
+											</FormControl>
+											<FormDescription>
+												The public IPv4 address of this Dokploy server. Add it
+												to the whitelisted IPs on the same Namecheap page, or
+												every request is rejected. Only domains that use
+												Namecheap BasicDNS or PremiumDNS can be managed, and SRV
+												and PTR records are not supported by the Namecheap API.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{providerType === "spaceship" && (
+							<>
+								<FormField
+									control={form.control}
+									name="apiKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Key</FormLabel>
+											<FormControl>
+												<Input {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="apiSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Secret</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormDescription>
+												Create an API key in the Spaceship API Manager with the{" "}
+												<code>domains:read</code>, <code>dnsrecords:read</code>{" "}
+												and <code>dnsrecords:write</code> scopes.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

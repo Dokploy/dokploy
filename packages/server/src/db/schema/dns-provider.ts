@@ -10,6 +10,8 @@ export const dnsProviderType = pgEnum("DnsProviderType", [
 	"porkbun",
 	"infomaniak",
 	"ovh",
+	"namecheap",
+	"spaceship",
 ]);
 
 export const cloudflareDnsConfigSchema = z.object({
@@ -53,12 +55,29 @@ export const ovhDnsConfigSchema = z.object({
 	zone: z.string().trim().min(1).optional(),
 });
 
+export const namecheapDnsConfigSchema = z.object({
+	providerType: z.literal("namecheap"),
+	apiUser: z.string().trim().min(1),
+	apiKey: z.string().trim().min(1),
+	// Namecheap only accepts calls from whitelisted IPv4 addresses and requires
+	// the caller to repeat that address on every request.
+	clientIp: z.string().trim().pipe(z.ipv4()),
+});
+
+export const spaceshipDnsConfigSchema = z.object({
+	providerType: z.literal("spaceship"),
+	apiKey: z.string().trim().min(1),
+	apiSecret: z.string().trim().min(1),
+});
+
 export const dnsProviderConfigSchema = z.discriminatedUnion("providerType", [
 	cloudflareDnsConfigSchema,
 	route53DnsConfigSchema,
 	porkbunDnsConfigSchema,
 	infomaniakDnsConfigSchema,
 	ovhDnsConfigSchema,
+	namecheapDnsConfigSchema,
+	spaceshipDnsConfigSchema,
 ]);
 
 export type DnsProviderConfig = z.infer<typeof dnsProviderConfigSchema>;
