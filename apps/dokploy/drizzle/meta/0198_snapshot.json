@@ -1,6 +1,6 @@
 {
-  "id": "92a9010e-bc5f-4c9f-b97e-f2867a602e90",
-  "prevId": "633b82a2-0321-4ef4-ae09-7a8861830873",
+  "id": "bf16a3c7-9d5d-4c2f-83ce-f87c7878dd23",
+  "prevId": "e2f2cd03-52dd-457a-8854-1ef6d0b5d168",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2690,6 +2690,13 @@
           "notNull": true,
           "default": false
         },
+        "pullImages": {
+          "name": "pullImages",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "triggerType": {
           "name": "triggerType",
           "type": "triggerType",
@@ -2766,6 +2773,18 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'[]'::jsonb"
+        },
+        "buildServerId": {
+          "name": "buildServerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildRegistryId": {
+          "name": "buildRegistryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2859,6 +2878,32 @@
             "serverId"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "compose_buildServerId_server_serverId_fk": {
+          "name": "compose_buildServerId_server_serverId_fk",
+          "tableFrom": "compose",
+          "tableTo": "server",
+          "columnsFrom": [
+            "buildServerId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "compose_buildRegistryId_registry_registryId_fk": {
+          "name": "compose_buildRegistryId_registry_registryId_fk",
+          "tableFrom": "compose",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "buildRegistryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -7669,6 +7714,13 @@
           "notNull": true,
           "default": false
         },
+        "telemetryProviderIds": {
+          "name": "telemetryProviderIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
         "buildsConcurrency": {
           "name": "buildsConcurrency",
           "type": "integer",
@@ -7983,6 +8035,13 @@
           "primaryKey": false,
           "notNull": true
         },
+        "domain_verified": {
+          "name": "domain_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -8163,6 +8222,101 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.telemetryProvider": {
+      "name": "telemetryProvider",
+      "schema": "",
+      "columns": {
+        "telemetryProviderId": {
+          "name": "telemetryProviderId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "providerType": {
+          "name": "providerType",
+          "type": "TelemetryProviderType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signals": {
+          "name": "signals",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endpoint": {
+          "name": "endpoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apiKey": {
+          "name": "apiKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apiSecret": {
+          "name": "apiSecret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extraConfig": {
+          "name": "extraConfig",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organizationId": {
+          "name": "organizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "telemetryProvider_organizationId_organization_id_fk": {
+          "name": "telemetryProvider_organizationId_organization_id_fk",
+          "tableFrom": "telemetryProvider",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organizationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -8351,6 +8505,12 @@
           "primaryKey": false,
           "notNull": false,
           "default": "ARRAY[]::text[]"
+        },
+        "onboardingCompletedAt": {
+          "name": "onboardingCompletedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -8785,6 +8945,19 @@
           "notNull": false,
           "default": "'0 0 * * *'"
         },
+        "telemetryProviderIds": {
+          "name": "telemetryProviderIds",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "ARRAY[]::text[]"
+        },
+        "vectorAgentOrganizationId": {
+          "name": "vectorAgentOrganizationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "metricsConfig": {
           "name": "metricsConfig",
           "type": "jsonb",
@@ -8797,7 +8970,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
@@ -8857,7 +9030,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "webServerSettings_vectorAgentOrganizationId_organization_id_fk": {
+          "name": "webServerSettings_vectorAgentOrganizationId_organization_id_fk",
+          "tableFrom": "webServerSettings",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "vectorAgentOrganizationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -8946,7 +9133,10 @@
       "schema": "public",
       "values": [
         "cloudflare",
-        "route53"
+        "route53",
+        "porkbun",
+        "infomaniak",
+        "ovh"
       ]
     },
     "public.domainType": {
@@ -9119,6 +9309,21 @@
         "tag"
       ]
     },
+    "public.TelemetryProviderType": {
+      "name": "TelemetryProviderType",
+      "schema": "public",
+      "values": [
+        "loki",
+        "datadog",
+        "betterstack",
+        "elasticsearch",
+        "splunk_hec",
+        "aws_cloudwatch",
+        "prometheus_remote_write",
+        "new_relic",
+        "influxdb"
+      ]
+    },
     "public.VaultProviderType": {
       "name": "VaultProviderType",
       "schema": "public",
@@ -9126,6 +9331,7 @@
         "hashicorp",
         "infisical",
         "aws",
+        "aws-parameter-store",
         "doppler",
         "azure",
         "scaleway",

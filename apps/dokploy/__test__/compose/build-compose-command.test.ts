@@ -7,6 +7,17 @@ vi.mock("@dokploy/server/utils/docker/domain", () => ({
 	writeDomainsToCompose: vi.fn().mockResolvedValue(""),
 }));
 
+vi.mock("@dokploy/server/services/registry", () => ({
+	findRegistryByIdWithCredentials: vi.fn().mockResolvedValue({
+		registryUrl: "registry.example.com",
+		username: "user",
+		password: "pass",
+	}),
+	safeDockerLoginCommand: vi
+		.fn()
+		.mockReturnValue('echo "docker login stub"'),
+}));
+
 const baseCompose = {
 	appName: "my-app",
 	sourceType: "raw",
@@ -17,6 +28,8 @@ const baseCompose = {
 	randomize: false,
 	suffix: "",
 	serverId: null,
+	buildServerId: null,
+	buildRegistryId: null,
 	env: "",
 	mounts: [],
 	domains: [],
@@ -48,5 +61,21 @@ describe("getBuildComposeCommand registry auth (#4401)", () => {
 
 		expect(command).toContain("compose -p my-app");
 		expect(command).toContain('env -i PATH="$PATH" HOME="$HOME"');
+	});
+
+	it("uses prebuilt pull/up when buildServerId is set", async () => {
+		const command = await getBuildComposeCommand(
+			{
+				...baseCompose,
+				composeType: "docker-compose",
+				buildServerId: "build-server-1",
+				buildRegistryId: "registry-1",
+			},
+			{ prebuilt: true },
+		);
+
+		expect(command).toContain("pull");
+		expect(command).toContain("--no-build");
+		expect(command).toContain("docker login stub");
 	});
 });

@@ -4,6 +4,25 @@ packages:
   - "apps/schedules"
   - "packages/server"
 
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "@scarf/scarf"
+  - "@tree-sitter-grammars/tree-sitter-yaml"
+  - bcrypt
+  - better-sqlite3
+  - core-js-pure
+  - cpu-features
+  - esbuild
+  - msgpackr-extract
+  - node-pty
+  - prisma
+  - protobufjs
+  - sharp
+  - ssh2
+  - tree-sitter
+  - tree-sitter-json
+
 # Supply-chain hardening: refuse package versions younger than N days,
 # so newly-published malicious versions get caught/yanked before we install them.
 # Disabled for now — kept breaking builds on unrelated fresh transitive deps
