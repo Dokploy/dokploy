@@ -854,9 +854,23 @@ export const readContainerFileTail = async (
 
 	const buffer = Buffer.from(stdout.trim(), "base64");
 	const truncated = buffer.byteLength > boundedMaxBytes;
-	const finalBuffer = truncated
+	let finalBuffer = truncated
 		? buffer.subarray(buffer.byteLength - boundedMaxBytes)
 		: buffer;
+
+	if (truncated) {
+		// Skip leading UTF-8 continuation bytes (10xxxxxx) if truncation split a multi-byte character
+		let startIndex = 0;
+		while (
+			startIndex < finalBuffer.byteLength &&
+			(finalBuffer[startIndex] & 0xc0) === 0x80
+		) {
+			startIndex++;
+		}
+		if (startIndex > 0) {
+			finalBuffer = finalBuffer.subarray(startIndex);
+		}
+	}
 
 	return {
 		content: finalBuffer.toString("utf-8"),

@@ -115,6 +115,26 @@ describe("readContainerFileTail", () => {
 		});
 	});
 
+	it("skips leading UTF-8 continuation bytes when truncation splits a multi-byte character", async () => {
+		// 4-byte UTF-8 emoji "🔥" is [0xF0, 0x9F, 0x94, 0xA5]
+		// Truncating so that only continuation bytes remain at the start
+		const text = "🔥" + "a".repeat(1023); // text byte length = 4 + 1023 = 1027 bytes
+		const base64 = Buffer.from(text, "utf-8").toString("base64");
+		mocks.execAsync.mockResolvedValue({ stdout: base64, stderr: "" });
+
+		const result = await readContainerFileTail(
+			"my-container",
+			"/var/log/app.log",
+			100,
+			1024,
+		);
+
+		expect(result.truncated).toBe(true);
+		// Leading continuation bytes from split emoji should be skipped, leaving ASCII without 
+		expect(result.content).not.toContain("\uFFFD");
+		expect(result.content).toBe("a".repeat(1023));
+	});
+
 	it("throws an error when container has no shell utilities", async () => {
 		mocks.execAsync.mockResolvedValue({
 			stdout: "",
