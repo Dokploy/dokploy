@@ -11,6 +11,7 @@ import type { z } from "zod";
 import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
+import { isFreeDomain } from "../utils/free-domain";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
@@ -248,7 +249,7 @@ const generateWildcardDomain = async (
 		throw new Error('The base domain must start with "*."');
 	}
 	const hash = `${appName}`;
-	if (baseDomain.includes("sslip.io")) {
+	if (isFreeDomain(baseDomain)) {
 		let ip = "";
 
 		if (process.env.NODE_ENV === "development") {
