@@ -99,8 +99,17 @@ export const getS3Credentials = (destination: Destination) => {
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
+	databasePort = 5432,
 ) => {
-	return `docker exec -e DB_NAME=${quote([database])} -e DB_USER=${quote([databaseUser])} -i $CONTAINER_ID bash -c 'set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U "$DB_USER" --no-password "$DB_NAME" | gzip'`;
+	if (
+		!Number.isInteger(databasePort) ||
+		databasePort < 1 ||
+		databasePort > 65535
+	) {
+		throw new Error("PostgreSQL port must be an integer between 1 and 65535");
+	}
+
+	return `docker exec -e DB_NAME=${quote([database])} -e DB_USER=${quote([databaseUser])} -e DB_PORT=${quote([String(databasePort)])} -i $CONTAINER_ID bash -c 'set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -p "$DB_PORT" -U "$DB_USER" --no-password "$DB_NAME" | gzip'`;
 };
 
 export const getMariadbBackupCommand = (
@@ -188,6 +197,7 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 				return getPostgresBackupCommand(
 					backup.database,
 					backup.metadata.postgres.databaseUser,
+					backup.metadata.postgres.databasePort,
 				);
 			}
 			break;
