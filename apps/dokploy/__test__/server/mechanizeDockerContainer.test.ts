@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type MockCreateServiceOptions = {
 	TaskTemplate?: {
 		ContainerSpec?: {
+			HealthCheck?: {
+				Test?: string[];
+			};
 			StopGracePeriod?: number;
 			Ulimits?: Array<{ Name: string; Soft: number; Hard: number }>;
 		};
@@ -157,5 +160,28 @@ describe("mechanizeDockerContainer", () => {
 		}
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	it("normalizes pasted health check JSON before creating a service", async () => {
+		const application = createApplication({
+			healthCheckSwarm: {
+				Test: ['["CMD","wget","-q","http://localhost/"]'],
+			},
+		});
+
+		await mechanizeDockerContainer(application);
+
+		expect(createServiceMock).toHaveBeenCalledTimes(1);
+		const call = createServiceMock.mock.calls[0];
+		if (!call) {
+			throw new Error("createServiceMock should have been called once");
+		}
+		const [settings] = call;
+		expect(settings.TaskTemplate?.ContainerSpec?.HealthCheck?.Test).toEqual([
+			"CMD",
+			"wget",
+			"-q",
+			"http://localhost/",
+		]);
 	});
 });
