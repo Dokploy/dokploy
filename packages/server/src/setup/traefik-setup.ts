@@ -6,6 +6,7 @@ import {
 	statSync,
 	writeFileSync,
 } from "node:fs";
+import { isIP } from "node:net";
 import path from "node:path";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
 import { stringify } from "yaml";
@@ -21,6 +22,7 @@ export const TRAEFIK_PORT =
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
 export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.6.25";
+export const TRAEFIK_HOST_IP = process.env.TRAEFIK_HOST_IP?.trim() || "";
 
 export interface TraefikOptions {
 	env?: string[];
@@ -41,18 +43,30 @@ export const initializeStandaloneTraefik = async ({
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
 
+	// The host IP belongs to the Dokploy host, so remote servers keep binding on all interfaces.
+	const hostIp = serverId ? "" : TRAEFIK_HOST_IP;
+	// Validate before the running container is removed below.
+	if (hostIp && isIP(hostIp) === 0) {
+		throw new Error(`Invalid TRAEFIK_HOST_IP: ${hostIp}`);
+	}
+	const binding = (hostPort: number) =>
+		hostIp
+			? { HostIp: hostIp, HostPort: hostPort.toString() }
+			: { HostPort: hostPort.toString() };
+
 	const exposedPorts: Record<string, {}> = {
 		[`${TRAEFIK_PORT}/tcp`]: {},
 		[`${TRAEFIK_SSL_PORT}/tcp`]: {},
 		[`${TRAEFIK_HTTP3_PORT}/udp`]: {},
 	};
 
-	const portBindings: Record<string, Array<{ HostPort: string }>> = {
-		[`${TRAEFIK_PORT}/tcp`]: [{ HostPort: TRAEFIK_PORT.toString() }],
-		[`${TRAEFIK_SSL_PORT}/tcp`]: [{ HostPort: TRAEFIK_SSL_PORT.toString() }],
-		[`${TRAEFIK_HTTP3_PORT}/udp`]: [
-			{ HostPort: TRAEFIK_HTTP3_PORT.toString() },
-		],
+	const portBindings: Record<
+		string,
+		Array<{ HostIp?: string; HostPort: string }>
+	> = {
+		[`${TRAEFIK_PORT}/tcp`]: [binding(TRAEFIK_PORT)],
+		[`${TRAEFIK_SSL_PORT}/tcp`]: [binding(TRAEFIK_SSL_PORT)],
+		[`${TRAEFIK_HTTP3_PORT}/udp`]: [binding(TRAEFIK_HTTP3_PORT)],
 	};
 
 	const enableDashboard = additionalPorts.some(
@@ -61,13 +75,13 @@ export const initializeStandaloneTraefik = async ({
 
 	if (enableDashboard) {
 		exposedPorts["8080/tcp"] = {};
-		portBindings["8080/tcp"] = [{ HostPort: "8080" }];
+		portBindings["8080/tcp"] = [binding(8080)];
 	}
 
 	for (const port of additionalPorts) {
 		const portKey = `${port.targetPort}/${port.protocol ?? "tcp"}`;
 		exposedPorts[portKey] = {};
-		portBindings[portKey] = [{ HostPort: port.publishedPort.toString() }];
+		portBindings[portKey] = [binding(port.publishedPort)];
 	}
 
 	const settings: ContainerCreateOptions = {
