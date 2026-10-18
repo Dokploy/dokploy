@@ -859,11 +859,12 @@ export const readContainerFileTail = async (
 		: buffer;
 
 	if (truncated) {
-		// Skip leading UTF-8 continuation bytes (10xxxxxx) if truncation split a multi-byte character
+		// Skip leading UTF-8 continuation bytes (10xxxxxx, up to 3 bytes) when byte-offset truncation splits a multi-byte character
 		let startIndex = 0;
 		while (
 			startIndex < finalBuffer.byteLength &&
-			(finalBuffer[startIndex] & 0xc0) === 0x80
+			startIndex < 3 &&
+			(finalBuffer[startIndex] & 0b11000000) === 0b10000000
 		) {
 			startIndex++;
 		}
