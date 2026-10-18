@@ -15,7 +15,6 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsyncRemote: mocks.execAsyncRemote,
 }));
 
-
 describe("readContainerFileTail", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -63,12 +62,7 @@ describe("readContainerFileTail", () => {
 		const base64 = Buffer.from(sampleText).toString("base64");
 		mocks.execAsync.mockResolvedValue({ stdout: base64, stderr: "" });
 
-		await readContainerFileTail(
-			"my-container",
-			"/var/log/app.log",
-			-10,
-			50,
-		);
+		await readContainerFileTail("my-container", "/var/log/app.log", -10, 50);
 
 		const command = mocks.execAsync.mock.calls[0][0];
 		expect(command).toContain("tail -n 1");

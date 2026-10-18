@@ -837,8 +837,14 @@ export const readContainerFileTail = async (
 	maxBytes: number = 65536,
 	serverId?: string,
 ) => {
-	const boundedLines = Math.min(Math.max(1, Math.floor(Number(lines) || 200)), 5000);
-	const boundedMaxBytes = Math.min(Math.max(1024, Math.floor(Number(maxBytes) || 65536)), 524288);
+	const boundedLines = Math.min(
+		Math.max(1, Math.floor(Number(lines) || 200)),
+		5000,
+	);
+	const boundedMaxBytes = Math.min(
+		Math.max(1024, Math.floor(Number(maxBytes) || 65536)),
+		524288,
+	);
 
 	const command = `docker exec ${quote([containerId])} tail -n ${boundedLines} ${quote([filePath])} | tail -c ${boundedMaxBytes + 1} | base64 | tr -d '\\n'`;
 	const { stdout, stderr } = serverId
