@@ -1,12 +1,17 @@
+import fs from "node:fs";
+import path from "node:path";
+import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
+import { quote } from "shell-quote";
+import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
+import { execAsyncRemote, writeFileRemote } from "../process/execAsync";
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
 	removeTraefikConfig,
 	removeTraefikConfigRemote,
-	writeAppTraefikConfig,
 	writeTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
@@ -33,7 +38,9 @@ const setSwarmVipConnectionReuse = (
 				if (service.loadBalancer.serversTransport === transportName) {
 					delete service.loadBalancer.serversTransport;
 				}
-			} else {
+			} else if (service.loadBalancer.serversTransport === undefined) {
+				// A transport the user set through the Traefik editor carries its own
+				// settings; replacing it would drop them with no way to restore it.
 				service.loadBalancer.serversTransport = transportName;
 			}
 		}
@@ -55,15 +62,28 @@ const setSwarmVipConnectionReuse = (
 	}
 };
 
+// Unlike loadOrCreateConfigRemote and writeAppTraefikConfig, this reads and
+// writes strictly: a swallowed SSH failure would leave the routes on the old
+// policy while the caller records the new one.
 export const reconcileSwarmVipConnectionReuse = async (
 	app: Pick<
 		ApplicationNested,
 		"appName" | "serverId" | "swarmVipConnectionReuse"
 	>,
 ) => {
-	const config = app.serverId
-		? await loadOrCreateConfigRemote(app.serverId, app.appName)
-		: loadOrCreateConfig(app.appName);
+	const { DYNAMIC_TRAEFIK_PATH } = paths(!!app.serverId);
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${app.appName}.yml`);
+	const yamlStr = app.serverId
+		? (
+				await execAsyncRemote(
+					app.serverId,
+					`if [ -f ${quote([configPath])} ]; then cat ${quote([configPath])}; fi`,
+				)
+			).stdout
+		: fs.existsSync(configPath)
+			? fs.readFileSync(configPath, "utf8")
+			: "";
+	const config = (parse(yamlStr) as FileConfig | null) ?? {};
 	if (
 		Object.keys(config.http?.routers ?? {}).length === 0 &&
 		Object.keys(config.http?.services ?? {}).length === 0
@@ -71,7 +91,11 @@ export const reconcileSwarmVipConnectionReuse = async (
 		return;
 	}
 	setSwarmVipConnectionReuse(config, app);
-	await writeAppTraefikConfig(config, app.appName, app.serverId);
+	if (app.serverId) {
+		await writeFileRemote(app.serverId, configPath, stringify(config));
+	} else {
+		fs.writeFileSync(configPath, stringify(config), "utf8");
+	}
 };
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {

@@ -13,6 +13,14 @@ const dynamicPath = fs.mkdtempSync(
 	path.join(os.tmpdir(), "dokploy-swarm-vip-transport-"),
 );
 
+const remoteExec = vi.hoisted(() => vi.fn());
+vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
+	...(await importOriginal<
+		typeof import("@dokploy/server/utils/process/execAsync")
+	>()),
+	execAsyncRemote: remoteExec,
+}));
+
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
 	const actual =
 		await importOriginal<typeof import("@dokploy/server/constants")>();
@@ -129,4 +137,45 @@ test("does not write an empty route file", async () => {
 	expect(fs.existsSync(path.join(dynamicPath, "missing-application.yml"))).toBe(
 		false,
 	);
+});
+
+test("keeps a hand-set transport when reuse is turned off", async () => {
+	const app = { ...application(true), appName: "custom-app" };
+	await manageDomain(app, domain(3));
+	const configPath = path.join(dynamicPath, "custom-app.yml");
+	const config = parse(fs.readFileSync(configPath, "utf8")) as FileConfig;
+	const service = config.http?.services?.["custom-app-service-3"];
+	if (!service || !("loadBalancer" in service) || !service.loadBalancer) {
+		throw new Error("generated service is missing");
+	}
+	service.loadBalancer.serversTransport = "custom-transport";
+	fs.writeFileSync(configPath, stringify(config));
+
+	await reconcileSwarmVipConnectionReuse({
+		...app,
+		swarmVipConnectionReuse: false,
+	});
+	const disabled = parse(fs.readFileSync(configPath, "utf8")) as FileConfig;
+	expect(disabled.http?.services?.["custom-app-service-3"]).toMatchObject({
+		loadBalancer: { serversTransport: "custom-transport" },
+	});
+
+	await reconcileSwarmVipConnectionReuse(app);
+	const enabled = parse(fs.readFileSync(configPath, "utf8")) as FileConfig;
+	expect(enabled.http?.services?.["custom-app-service-3"]).toMatchObject({
+		loadBalancer: { serversTransport: "custom-transport" },
+	});
+	expect(enabled.http?.serversTransports).toBeUndefined();
+});
+
+test("rejects when a remote route file cannot be read", async () => {
+	remoteExec.mockRejectedValueOnce(new Error("SSH connection refused"));
+
+	await expect(
+		reconcileSwarmVipConnectionReuse({
+			appName: "remote-app",
+			serverId: "server-id",
+			swarmVipConnectionReuse: false,
+		}),
+	).rejects.toThrow("SSH connection refused");
 });
