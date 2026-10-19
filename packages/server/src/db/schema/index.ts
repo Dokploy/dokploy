@@ -23,6 +23,7 @@ export * from "./mount";
 export * from "./mysql";
 export * from "./network";
 export * from "./notification";
+export * from "./oauth";
 export * from "./patch";
 export * from "./port";
 export * from "./postgres";

@@ -43,6 +43,7 @@
     "@aws-sdk/client-secrets-manager": "^3.1108.0",
     "@aws-sdk/client-ssm": "3.1108.0",
     "@better-auth/api-key": "1.6.23",
+    "@better-auth/oauth-provider": "1.6.23",
     "@better-auth/passkey": "1.6.23",
     "@better-auth/scim": "1.6.23",
     "@better-auth/sso": "1.6.23",
