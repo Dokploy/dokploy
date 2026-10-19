@@ -1,10 +1,11 @@
 import { apiKey } from "@better-auth/api-key";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { passkey } from "@better-auth/passkey";
 import { scim } from "@better-auth/scim";
 import { sso } from "@better-auth/sso";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { admin, organization, twoFactor } from "better-auth/plugins";
+import { admin, jwt, organization, twoFactor } from "better-auth/plugins";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
@@ -31,6 +32,21 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
+		jwt(),
+		oauthProvider({
+			loginPage: "/",
+			consentPage: "/mcp/consent",
+			scopes: ["dokploy", "offline_access"],
+			grantTypes: ["authorization_code", "refresh_token"],
+			validAudiences: process.env.DOKPLOY_MCP_RESOURCE_URL
+				? [process.env.DOKPLOY_MCP_RESOURCE_URL]
+				: undefined,
+			accessTokenExpiresIn: 900,
+			allowDynamicClientRegistration: true,
+			allowUnauthenticatedClientRegistration: true,
+			clientRegistrationDefaultScopes: ["dokploy"],
+			clientRegistrationAllowedScopes: ["dokploy", "offline_access"],
+		}),
 		apiKey({ enableMetadata: true, references: "user" }),
 		sso({
 			trustEmailVerified: true,

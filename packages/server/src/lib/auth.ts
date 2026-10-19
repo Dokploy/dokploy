@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { apiKey } from "@better-auth/api-key";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { passkey } from "@better-auth/passkey";
 import { scim } from "@better-auth/scim";
 import { sso } from "@better-auth/sso";
@@ -7,8 +9,8 @@ import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { admin, organization, twoFactor } from "better-auth/plugins";
-import { and, desc, eq } from "drizzle-orm";
+import { admin, jwt, organization, twoFactor } from "better-auth/plugins";
+import { and, desc, eq, lte } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
@@ -121,6 +123,59 @@ const createBetterAuth = () =>
 		trustedOrigins: resolveTrustedOrigins,
 		hooks: {
 			before: createAuthMiddleware(async (ctx) => {
+				if (ctx.path === "/oauth2/register" && ctx.body) {
+					ctx.body.skip_consent = false;
+				}
+				if (
+					ctx.path === "/oauth2/revoke" &&
+					typeof ctx.body?.token === "string"
+				) {
+					const revokedToken = ctx.body.token.replace(/^Bearer\s+/i, "");
+					try {
+						const introspection = await api.oauth2Introspect({
+							body: { token: revokedToken },
+						});
+						if (
+							introspection.active &&
+							introspection.exp &&
+							introspection.sub &&
+							introspection.sid
+						) {
+							const clientId = ctx.body.client_id;
+							const expectedResource = process.env.DOKPLOY_MCP_RESOURCE_URL;
+							const audiences = Array.isArray(introspection.aud)
+								? introspection.aud
+								: [introspection.aud];
+							const ownsToken =
+								typeof clientId === "string" &&
+								clientId === introspection.client_id;
+							const isMcpAccessToken =
+								expectedResource && audiences.includes(expectedResource);
+							const isRefreshToken =
+								!introspection.aud && introspection.client_id;
+							if (ownsToken && (isMcpAccessToken || isRefreshToken)) {
+								await db
+									.insert(schema.oauthRevokedToken)
+									.values({
+										tokenHash: createHash("sha256")
+											.update(
+												isRefreshToken
+													? `grant:${introspection.client_id}:${introspection.sid}`
+													: revokedToken,
+											)
+											.digest("hex"),
+										expiresAt: new Date(introspection.exp * 1000),
+									})
+									.onConflictDoNothing();
+								await db
+									.delete(schema.oauthRevokedToken)
+									.where(lte(schema.oauthRevokedToken.expiresAt, new Date()));
+							}
+						}
+					} catch {
+						// The OAuth provider returns the protocol error for invalid tokens.
+					}
+				}
 				ctx.context.trustedOrigins = [
 					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
 					...(await resolveTrustedOrigins()),
@@ -463,6 +518,63 @@ const createBetterAuth = () =>
 			},
 		},
 		plugins: [
+			jwt(),
+			oauthProvider({
+				loginPage: "/",
+				consentPage: "/mcp/consent",
+				scopes: ["dokploy", "offline_access"],
+				grantTypes: ["authorization_code", "refresh_token"],
+				validAudiences: process.env.DOKPLOY_MCP_RESOURCE_URL
+					? [process.env.DOKPLOY_MCP_RESOURCE_URL]
+					: undefined,
+				accessTokenExpiresIn: 900,
+				allowDynamicClientRegistration: true,
+				allowUnauthenticatedClientRegistration: true,
+				clientRegistrationDefaultScopes: ["dokploy"],
+				clientRegistrationAllowedScopes: ["dokploy", "offline_access"],
+				postLogin: {
+					page: "/mcp/consent",
+					consentReferenceId: async ({ user, session, scopes }) => {
+						if (!scopes.includes("dokploy")) return undefined;
+						const organizationId =
+							typeof session.activeOrganizationId === "string"
+								? session.activeOrganizationId
+								: undefined;
+						if (!organizationId) return undefined;
+						const membership = await db.query.member.findFirst({
+							where: and(
+								eq(schema.member.userId, user.id),
+								eq(schema.member.organizationId, organizationId as string),
+							),
+						});
+						return membership ? organizationId : undefined;
+					},
+					shouldRedirect: async ({ user, session, scopes }) => {
+						void user;
+						void session;
+						return scopes.includes("dokploy");
+					},
+				},
+				customAccessTokenClaims: async ({ user, referenceId, scopes }) => {
+					if (!user || !referenceId || !scopes.includes("dokploy")) {
+						throw new APIError("FORBIDDEN", {
+							message: "Invalid MCP authorization",
+						});
+					}
+					const membership = await db.query.member.findFirst({
+						where: and(
+							eq(schema.member.userId, user.id),
+							eq(schema.member.organizationId, referenceId as string),
+						),
+					});
+					if (!membership) {
+						throw new APIError("FORBIDDEN", {
+							message: "Organization access was revoked",
+						});
+					}
+					return { organization_id: referenceId };
+				},
+			}),
 			apiKey({
 				enableMetadata: true,
 				references: "user",
@@ -522,6 +634,7 @@ const { handler, api } = globalForAuth.betterAuthInstance;
 const _auth = {
 	handler,
 	createApiKey: api.createApiKey,
+	oauth2Introspect: api.oauth2Introspect,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
 	generateSCIMToken: api.generateSCIMToken,
@@ -533,6 +646,88 @@ export type AuthType = typeof _auth;
 export const auth: AuthType = _auth;
 
 export const validateRequest = async (request: IncomingMessage) => {
+	const authorization = request.headers.authorization;
+	const bearerToken =
+		typeof authorization === "string"
+			? authorization.match(/^Bearer\s+(\S+)$/i)?.[1]
+			: undefined;
+	if (bearerToken) {
+		try {
+			const introspection = await api.oauth2Introspect({
+				body: { token: bearerToken },
+			});
+			const expectedResource = process.env.DOKPLOY_MCP_RESOURCE_URL;
+			const organizationId =
+				typeof introspection.organization_id === "string"
+					? introspection.organization_id
+					: undefined;
+			const audiences = Array.isArray(introspection.aud)
+				? introspection.aud
+				: [introspection.aud];
+			const revokedTokenHash = createHash("sha256")
+				.update(bearerToken)
+				.digest("hex");
+			const revokedGrantHash = createHash("sha256")
+				.update(`grant:${introspection.client_id}:${introspection.sid}`)
+				.digest("hex");
+			if (
+				!expectedResource ||
+				!introspection.active ||
+				!introspection.sub ||
+				!introspection.sid ||
+				!organizationId ||
+				!introspection.exp ||
+				(await db.query.oauthRevokedToken.findFirst({
+					where: eq(schema.oauthRevokedToken.tokenHash, revokedTokenHash),
+				})) !== undefined ||
+				(await db.query.oauthRevokedToken.findFirst({
+					where: eq(schema.oauthRevokedToken.tokenHash, revokedGrantHash),
+				})) !== undefined ||
+				!audiences.includes(expectedResource)
+			) {
+				return { session: null, user: null };
+			}
+			const oauthUser = await db.query.user.findFirst({
+				where: eq(schema.user.id, introspection.sub),
+			});
+			const oauthMembership = await db.query.member.findFirst({
+				where: and(
+					eq(schema.member.userId, introspection.sub),
+					eq(schema.member.organizationId, organizationId),
+				),
+				with: { organization: true },
+			});
+			if (!oauthUser || !oauthMembership) return { session: null, user: null };
+			const userFromDb = oauthUser as typeof oauthUser & {
+				firstName: string;
+				lastName: string;
+			};
+			return {
+				session: {
+					userId: oauthUser.id,
+					activeOrganizationId: organizationId,
+					expiresAt: new Date(introspection.exp * 1000),
+				},
+				user: {
+					id: userFromDb.id,
+					name: userFromDb.firstName,
+					email: userFromDb.email,
+					emailVerified: userFromDb.emailVerified,
+					image: userFromDb.image,
+					createdAt: userFromDb.createdAt,
+					updatedAt: userFromDb.updatedAt,
+					twoFactorEnabled: userFromDb.twoFactorEnabled,
+					role: oauthMembership.role,
+					ownerId: oauthMembership.organization.ownerId,
+					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
+					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
+				},
+			};
+		} catch (error) {
+			console.error("Error verifying OAuth access token", error);
+			return { session: null, user: null };
+		}
+	}
 	const apiKey = request.headers["x-api-key"] as string;
 	if (apiKey) {
 		try {
