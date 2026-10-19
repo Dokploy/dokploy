@@ -155,22 +155,14 @@ export const updateApplication = async (
 			? undefined
 			: await db.query.applications.findFirst({
 					where: eq(applications.applicationId, applicationId),
-					columns: {
-						appName: true,
-						serverId: true,
-						swarmVipConnectionReuse: true,
-					},
+					columns: { appName: true, serverId: true },
 					with: { previewDeployments: { columns: { appName: true } } },
 				});
-	if (
-		previous &&
-		applicationData.swarmVipConnectionReuse !== undefined &&
-		previous.swarmVipConnectionReuse !== applicationData.swarmVipConnectionReuse
-	) {
+	if (previous && applicationData.swarmVipConnectionReuse !== undefined) {
 		// Domain route files are only rewritten on domain changes, so apply the
 		// transport to the existing primary and preview routes now. This runs
-		// before the save so a failed write leaves the stored value unchanged
-		// and saving again retries it.
+		// on every save, before the database write, so a partly failed save is
+		// repaired by saving either value again.
 		for (const routeAppName of [
 			previous.appName,
 			...previous.previewDeployments.map((preview) => preview.appName),
