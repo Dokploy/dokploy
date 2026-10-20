@@ -1,4 +1,5 @@
 import { prepareEnvironmentVariables } from "@dokploy/server/index";
+import { encryptValue } from "@dokploy/server/lib/encryption";
 import { describe, expect, it } from "vitest";
 
 const projectEnv = `
@@ -250,4 +251,21 @@ MIXED="\"Double \${{ENVIRONMENT}}\""
 			'MIXED="Double production"',
 		]);
 	});
+});
+
+describe("prepareEnvironmentVariables with undecryptable values", () => {
+	// A column that failed to decrypt returns its ciphertext, which dotenv
+	// would parse to no variables and deploy an empty environment.
+	it.each([
+		["service", [encryptValue("KEY=value"), "", ""]],
+		["project", ["KEY=value", encryptValue("SHARED=1"), ""]],
+		["environment", ["KEY=value", "", encryptValue("SHARED=1")]],
+	])(
+		"throws when the %s env is still encrypted",
+		(_, [service, project, environment]) => {
+			expect(() =>
+				prepareEnvironmentVariables(service, project, environment),
+			).toThrow(/could not be decrypted/);
+		},
+	);
 });
