@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { formatDuration } from "@/components/dashboard/application/deployments/show-deployments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +62,20 @@ const statusVariants: Record<
 	error: "red",
 	cancelled: "outline",
 };
+
+// Seconds the deployment took, or has been running so far; null if it never started.
+function getDurationSeconds(d: DeploymentRow): number | null {
+	if (!d.startedAt) return null;
+	const end =
+		d.finishedAt ?? (d.status === "running" ? new Date().toISOString() : null);
+	if (!end) return null;
+	return Math.max(
+		0,
+		Math.floor(
+			(new Date(end).getTime() - new Date(d.startedAt).getTime()) / 1000,
+		),
+	);
+}
 
 function getServiceInfo(d: DeploymentRow) {
 	const app = d.application;
@@ -416,13 +431,25 @@ export function ShowDeploymentsTable({
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
-				cell: ({ row }: { row: { original: DeploymentRow } }) => (
-					<span className="text-muted-foreground text-sm whitespace-nowrap">
-						{row.original.createdAt
-							? new Date(row.original.createdAt).toLocaleString()
-							: "—"}
-					</span>
-				),
+				cell: ({ row }: { row: { original: DeploymentRow } }) => {
+					const seconds = getDurationSeconds(row.original);
+					return (
+						<div className="flex flex-col text-sm whitespace-nowrap">
+							<span className="text-muted-foreground">
+								{row.original.createdAt
+									? new Date(row.original.createdAt).toLocaleString()
+									: "—"}
+							</span>
+							{seconds !== null && (
+								<span className="text-muted-foreground text-xs tabular-nums">
+									{row.original.status === "running"
+										? `running for ${formatDuration(seconds)}`
+										: `took ${formatDuration(seconds)}`}
+								</span>
+							)}
+						</div>
+					);
+				},
 			},
 			{
 				header: "",
