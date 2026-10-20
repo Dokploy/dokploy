@@ -15,7 +15,6 @@ import {
 	removeForwardAuth,
 	setupForwardAuth,
 } from "@dokploy/server/setup/forward-auth-setup";
-import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import {
 	manageForwardAuthDomain,
 	removeForwardAuthDomain,
@@ -359,8 +358,6 @@ export const enableForwardAuthOnDomain = async (input: {
 	}
 
 	await updateDomainById(input.domainId, { forwardAuthEnabled: true });
-	const domain = await findDomainById(input.domainId);
-	await manageDomain(application, domain);
 
 	return { ok: true } as const;
 };
@@ -374,8 +371,6 @@ export const disableForwardAuthOnDomain = async (input: {
 	const uniqueConfigKey = domain.uniqueConfigKey;
 
 	await updateDomainById(input.domainId, { forwardAuthEnabled: false });
-	const updated = await findDomainById(input.domainId);
-	await manageDomain(application, updated);
 	await removeForwardAuthMiddleware(application, uniqueConfigKey);
 
 	return { ok: true } as const;

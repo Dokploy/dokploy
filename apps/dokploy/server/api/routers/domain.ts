@@ -9,7 +9,6 @@ import {
 	generateTraefikMeDomain,
 	getServerIpCandidates,
 	getWebServerSettings,
-	manageDomain,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
@@ -127,19 +126,6 @@ export const domainRouter = createTRPCRouter({
 				resourceId: domain.domainId,
 				resourceName: domain.host,
 			});
-			if (domain.applicationId) {
-				const application = await findApplicationById(domain.applicationId);
-				await manageDomain(application, domain);
-			} else if (domain.previewDeploymentId) {
-				const previewDeployment = await findPreviewDeploymentById(
-					domain.previewDeploymentId,
-				);
-				const application = await findApplicationById(
-					previewDeployment.applicationId,
-				);
-				application.appName = previewDeployment.appName;
-				await manageDomain(application, domain);
-			}
 			return result;
 		}),
 	toggleEnable: protectedProcedure
@@ -170,24 +156,6 @@ export const domainRouter = createTRPCRouter({
 				resourceId: domain.domainId,
 				resourceName: domain.host,
 			});
-
-			// Applications apply instantly through the traefik file provider:
-			// manageDomain creates the router when enabled and removes it when
-			// disabled. Compose domains are docker labels and only change on the
-			// next deployment, so we just persist the flag here.
-			if (domain.applicationId) {
-				const application = await findApplicationById(domain.applicationId);
-				await manageDomain(application, domain);
-			} else if (domain.previewDeploymentId) {
-				const previewDeployment = await findPreviewDeploymentById(
-					domain.previewDeploymentId,
-				);
-				const application = await findApplicationById(
-					previewDeployment.applicationId,
-				);
-				application.appName = previewDeployment.appName;
-				await manageDomain(application, domain);
-			}
 
 			return {
 				...result,

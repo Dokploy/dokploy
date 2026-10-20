@@ -24,7 +24,10 @@ import {
 	writeConfig,
 	writeConfigRemote,
 } from "@dokploy/server/utils/traefik/application";
-import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import {
+	assertSwarmVipConnectionReuseSupported,
+	manageDomain,
+} from "@dokploy/server/utils/traefik/domain";
 import { removeForwardAuthMiddleware } from "@dokploy/server/utils/traefik/forward-auth";
 import {
 	deleteAllMiddlewares,
@@ -302,6 +305,7 @@ const moveTraefikConfig = async (
 	moved: ApplicationService,
 	log: Logger,
 ) => {
+	await assertSwarmVipConnectionReuseSupported(moved);
 	const config = source.serverId
 		? await readRemoteConfig(source.serverId, source.appName)
 		: readConfig(source.appName);
@@ -485,6 +489,13 @@ export const transferService = async (
 				message: "The target server is not available for deployments",
 			});
 		}
+	}
+
+	if (isApplication(service)) {
+		await assertSwarmVipConnectionReuseSupported({
+			serverId: targetServerId,
+			swarmVipConnectionReuse: service.swarmVipConnectionReuse,
+		});
 	}
 
 	const sourceName = service.server?.name ?? "Dokploy Server";

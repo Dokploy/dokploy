@@ -113,7 +113,8 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		});
 	}, [
 		form,
-		form.formState.isSubmitSuccessful,
+		id,
+		type,
 		isApplication,
 		registryId,
 		swarmVipConnectionReuse,
@@ -143,8 +144,10 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				toast.success("Command Updated");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error updating the command");
+			.catch((error) => {
+				const message = error.message || "Error updating cluster settings";
+				form.setError("root.server", { message });
+				toast.error(message);
 			});
 	};
 
@@ -205,9 +208,10 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Reuse backend connections</FormLabel>
 												<FormDescription>
-													Turn this off to open a new backend connection for
-													every request, so rolling updates never route to a
-													replaced task.
+													Turn this off to avoid reusing backend connections
+													during rolling updates. Requires Traefik's standard
+													proxy and internal API. Custom transports are
+													unchanged.
 												</FormDescription>
 											</div>
 											<FormControl>
