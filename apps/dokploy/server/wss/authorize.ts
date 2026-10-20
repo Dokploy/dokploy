@@ -1,4 +1,5 @@
 import { getAccessibleServerIds } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
 import {
 	checkServiceAccess,
 	findMemberByUserId,
@@ -57,6 +58,65 @@ export const canAccessDockerOverWss = async (
 		if (!accessible.has(serverId)) return false;
 	}
 
+	return true;
+};
+
+// Returns the appName of the service with this id, whichever service type it
+// is. Service-scoped sockets use it to check that the requested container
+// belongs to the service the caller was authorized for.
+export const findServiceAppName = async (
+	serviceId: string,
+): Promise<string | null> => {
+	const columns = { appName: true } as const;
+	const results = await Promise.all([
+		db.query.applications.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.applicationId, serviceId),
+		}),
+		db.query.compose.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.composeId, serviceId),
+		}),
+		db.query.postgres.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.postgresId, serviceId),
+		}),
+		db.query.mysql.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.mysqlId, serviceId),
+		}),
+		db.query.mariadb.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.mariadbId, serviceId),
+		}),
+		db.query.mongo.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.mongoId, serviceId),
+		}),
+		db.query.redis.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.redisId, serviceId),
+		}),
+		db.query.libsql.findFirst({
+			columns,
+			where: (t, { eq }) => eq(t.libsqlId, serviceId),
+		}),
+	]);
+	return results.find(Boolean)?.appName ?? null;
+};
+
+// Whether a stats request for `appName` targets the service named
+// `serviceAppName`. Applications and databases run as one swarm service named
+// after the app; stack tasks are namespaced "<stack>_<service>". Compose
+// container names are free-form, so the stats socket also filters compose and
+// stack containers by their project/namespace label.
+export const isServiceContainerName = (
+	appName: string,
+	appType: "application" | "stack" | "docker-compose",
+	serviceAppName: string,
+): boolean => {
+	if (appType === "application") return appName === serviceAppName;
+	if (appType === "stack") return appName.startsWith(`${serviceAppName}_`);
 	return true;
 };
 
