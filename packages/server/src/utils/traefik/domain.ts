@@ -1,22 +1,12 @@
-import { randomUUID } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
-import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
-import { quote } from "shell-quote";
-import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
-import {
-	execAsync,
-	execAsyncRemote,
-	writeFileRemote,
-} from "../process/execAsync";
 import {
 	createServiceConfig,
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
 	removeTraefikConfig,
 	removeTraefikConfigRemote,
+	writeAppTraefikConfig,
 	writeTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
@@ -27,57 +17,6 @@ import {
 	removeForwardAuthMiddleware,
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
-
-export const assertSwarmVipConnectionReuseSupported = async (
-	app: Pick<ApplicationNested, "serverId" | "swarmVipConnectionReuse">,
-) => {
-	if (app.swarmVipConnectionReuse !== false) return;
-	const execute = (command: string) =>
-		app.serverId ? execAsyncRemote(app.serverId, command) : execAsync(command);
-	let configurations: unknown[];
-	try {
-		const { stdout } = await execute(
-			`docker ps -q --filter ${quote(["name=^/dokploy-traefik($|\\.)"])} --filter status=running`,
-		);
-		const containers = stdout.trim().split(/\s+/).filter(Boolean);
-		if (containers.length === 0) throw new Error("Traefik is not running");
-		// The support dump reports loaded configuration, unlike an edited static
-		// file that may not have been applied by restarting Traefik yet.
-		configurations = await Promise.all(
-			containers.map(async (container) => {
-				const { stdout: configuration } = await execute(
-					`docker exec ${quote([container])} sh -c ${quote(["set -o pipefail; wget -q -T 5 -O - http://127.0.0.1:8080/api/support-dump | tar -xzOf - static-config.json"])}`,
-				);
-				return JSON.parse(configuration) as unknown;
-			}),
-		);
-	} catch (error) {
-		throw new Error(
-			"Could not inspect the running Traefik configuration. Keep backend connection reuse enabled, or restore access to its internal API before retrying.",
-			{ cause: error },
-		);
-	}
-	for (const configuration of configurations) {
-		if (
-			!configuration ||
-			typeof configuration !== "object" ||
-			Array.isArray(configuration)
-		) {
-			throw new Error("Invalid running Traefik configuration");
-		}
-		if ("experimental" in configuration && configuration.experimental != null) {
-			const experimental = configuration.experimental;
-			if (typeof experimental !== "object" || Array.isArray(experimental)) {
-				throw new Error("Invalid running Traefik experimental configuration");
-			}
-			if ("fastProxy" in experimental && experimental.fastProxy != null) {
-				throw new Error(
-					"Disabling backend connection reuse is not supported while Traefik FastProxy is enabled. Disable FastProxy and restart Traefik before retrying.",
-				);
-			}
-		}
-	}
-};
 
 const setSwarmVipConnectionReuse = (
 	config: FileConfig,
@@ -118,29 +57,19 @@ const setSwarmVipConnectionReuse = (
 	}
 };
 
-// Unlike loadOrCreateConfigRemote and writeAppTraefikConfig, this reads and
-// writes strictly: a swallowed SSH failure would leave the routes on the old
-// policy while the caller records the new one.
 export const reconcileSwarmVipConnectionReuse = async (
 	app: Pick<
 		ApplicationNested,
 		"appName" | "serverId" | "swarmVipConnectionReuse"
 	>,
 ) => {
-	await assertSwarmVipConnectionReuseSupported(app);
-	const { DYNAMIC_TRAEFIK_PATH } = paths(!!app.serverId);
-	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${app.appName}.yml`);
-	const yamlStr = app.serverId
-		? (
-				await execAsyncRemote(
-					app.serverId,
-					`if [ -f ${quote([configPath])} ]; then cat ${quote([configPath])}; fi`,
-				)
-			).stdout
-		: fs.existsSync(configPath)
-			? fs.readFileSync(configPath, "utf8")
-			: "";
-	const config = (parse(yamlStr) as FileConfig | null) ?? {};
+	let config: FileConfig;
+	if (app.serverId) {
+		config = await loadOrCreateConfigRemote(app.serverId, app.appName);
+	} else {
+		config = loadOrCreateConfig(app.appName);
+	}
+
 	if (
 		Object.keys(config.http?.routers ?? {}).length === 0 &&
 		Object.keys(config.http?.services ?? {}).length === 0
@@ -148,64 +77,7 @@ export const reconcileSwarmVipConnectionReuse = async (
 		return;
 	}
 	setSwarmVipConnectionReuse(config, app);
-	const content = stringify(config);
-	let temporaryPath: string | undefined;
-	try {
-		if (app.serverId) {
-			// Preserve the live file until a complete replacement is ready. The
-			// temporary extension is not loaded by Traefik's file provider.
-			temporaryPath = (
-				await execAsyncRemote(
-					app.serverId,
-					`temporary=$(mktemp ${quote([`${configPath}.tmp.XXXXXXXXXX`])}) && { cp -p -- ${quote([configPath])} "$temporary" && printf '%s' "$temporary" || { rm -f -- "$temporary"; exit 1; }; }`,
-				)
-			).stdout.trim();
-			await writeFileRemote(app.serverId, temporaryPath, content);
-			await execAsyncRemote(
-				app.serverId,
-				`mv -f -- ${quote([temporaryPath, configPath])}`,
-			);
-		} else {
-			const candidate = `${configPath}.${randomUUID()}.tmp`;
-			const descriptor = fs.openSync(candidate, "wx", 0o600);
-			temporaryPath = candidate;
-			try {
-				fs.writeFileSync(descriptor, content, "utf8");
-				fs.fchmodSync(descriptor, fs.statSync(configPath).mode & 0o777);
-			} catch (error) {
-				try {
-					fs.closeSync(descriptor);
-				} catch (closeError) {
-					throw new AggregateError(
-						[error, closeError],
-						"Route write and close failed",
-					);
-				}
-				throw error;
-			}
-			fs.closeSync(descriptor);
-			fs.renameSync(temporaryPath, configPath);
-		}
-	} catch (error) {
-		if (temporaryPath) {
-			try {
-				if (app.serverId) {
-					await execAsyncRemote(
-						app.serverId,
-						`rm -f -- ${quote([temporaryPath])}`,
-					);
-				} else {
-					fs.rmSync(temporaryPath, { force: true });
-				}
-			} catch (cleanupError) {
-				throw new AggregateError(
-					[error, cleanupError],
-					"Route replacement and temporary-file cleanup failed",
-				);
-			}
-		}
-		throw error;
-	}
+	await writeAppTraefikConfig(config, app.appName, app.serverId);
 };
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
@@ -219,7 +91,6 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 		return;
 	}
 
-	await assertSwarmVipConnectionReuseSupported(app);
 	let config: FileConfig;
 
 	if (app.serverId) {

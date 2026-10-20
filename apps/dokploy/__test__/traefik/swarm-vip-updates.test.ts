@@ -1,21 +1,8 @@
 import {
 	type Application,
-	findApplicationById,
 	updateApplication,
 } from "@dokploy/server/services/application";
-import { type Domain, updateDomainById } from "@dokploy/server/services/domain";
-import { findPreviewDeploymentById } from "@dokploy/server/services/preview-deployment";
-import { findServerById } from "@dokploy/server/services/server";
-import { transferService } from "@dokploy/server/services/transfer";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
-import { pipeBetweenServers } from "@dokploy/server/utils/process/remoteStream";
-import {
-	manageDomain,
-	reconcileSwarmVipConnectionReuse,
-} from "@dokploy/server/utils/traefik/domain";
+import { reconcileSwarmVipConnectionReuse } from "@dokploy/server/utils/traefik/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const protocol = vi.hoisted(() => {
@@ -27,8 +14,6 @@ const protocol = vi.hoisted(() => {
 	return {
 		chain,
 		findFirst: vi.fn(),
-		previewFirst: vi.fn(),
-		domainFirst: vi.fn(),
 		update: vi.fn(() => chain),
 		events: [] as string[],
 	};
@@ -38,48 +23,14 @@ vi.mock("@dokploy/server/db", () => ({
 	db: {
 		query: {
 			applications: { findFirst: protocol.findFirst },
-			previewDeployments: { findFirst: protocol.previewFirst },
-			domains: { findFirst: protocol.domainFirst },
 		},
 		update: protocol.update,
 	},
 	dbUrl: "postgres://mock:mock@localhost:5432/mock",
 }));
-vi.mock("@dokploy/server/services/application", async (importOriginal) => ({
-	...(await importOriginal<
-		typeof import("@dokploy/server/services/application")
-	>()),
-	findApplicationById: vi.fn(),
-}));
-vi.mock(
-	"@dokploy/server/services/preview-deployment",
-	async (importOriginal) => ({
-		...(await importOriginal<
-			typeof import("@dokploy/server/services/preview-deployment")
-		>()),
-		findPreviewDeploymentById: vi.fn(),
-	}),
-);
-vi.mock("@dokploy/server/services/server", async (importOriginal) => ({
-	...(await importOriginal<typeof import("@dokploy/server/services/server")>()),
-	findServerById: vi.fn(),
-}));
-vi.mock("@dokploy/server/utils/traefik/domain", async (importOriginal) => ({
-	...(await importOriginal<
-		typeof import("@dokploy/server/utils/traefik/domain")
-	>()),
-	manageDomain: vi.fn(),
+
+vi.mock("@dokploy/server/utils/traefik/domain", () => ({
 	reconcileSwarmVipConnectionReuse: vi.fn(),
-}));
-vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
-	...(await importOriginal<
-		typeof import("@dokploy/server/utils/process/execAsync")
-	>()),
-	execAsync: vi.fn(),
-	execAsyncRemote: vi.fn(),
-}));
-vi.mock("@dokploy/server/utils/process/remoteStream", () => ({
-	pipeBetweenServers: vi.fn(),
 }));
 
 const previous = {
@@ -109,7 +60,6 @@ beforeEach(() => {
 		await Promise.resolve();
 		protocol.events.push(`${appName}:${swarmVipConnectionReuse}`);
 	});
-	vi.mocked(findApplicationById, { partial: true }).mockResolvedValue(previous);
 });
 
 describe("application connection-reuse saves", () => {
@@ -185,117 +135,4 @@ describe("application connection-reuse saves", () => {
 			]);
 		},
 	);
-});
-
-describe("domain routes are applied before persistence", () => {
-	it.each(["application", "preview"] as const)(
-		"does not persist a %s domain when route validation fails",
-		async (kind) => {
-			const changedDomain = {
-				domainId: "domain",
-				enabled: true,
-				forwardAuthEnabled: true,
-				applicationId: kind === "application" ? "app" : null,
-				previewDeploymentId: kind === "preview" ? "preview" : null,
-			} satisfies Partial<Domain>;
-			protocol.domainFirst.mockResolvedValue({
-				...changedDomain,
-				enabled: false,
-				forwardAuthEnabled: false,
-			});
-			protocol.findFirst.mockResolvedValue({
-				...previous,
-				swarmVipConnectionReuse: false,
-			});
-			protocol.previewFirst.mockResolvedValue({
-				applicationId: "app",
-				appName: "preview-one",
-			});
-			vi.mocked(findApplicationById, { partial: true }).mockResolvedValue({
-				...previous,
-				swarmVipConnectionReuse: false,
-			});
-			vi.mocked(findPreviewDeploymentById, { partial: true }).mockResolvedValue(
-				{
-					applicationId: "app",
-					appName: "preview-one",
-				},
-			);
-			const failure = new Error("Traefik FastProxy prevents this route update");
-			vi.mocked(manageDomain).mockRejectedValue(failure);
-
-			await expect(
-				updateDomainById("domain", {
-					enabled: true,
-					forwardAuthEnabled: true,
-				}),
-			).rejects.toBe(failure);
-			expect(protocol.update).not.toHaveBeenCalled();
-			expect(manageDomain).toHaveBeenCalledExactlyOnceWith(
-				expect.objectContaining({
-					appName: kind === "application" ? "primary" : "preview-one",
-					serverId: "source",
-					swarmVipConnectionReuse: false,
-				}),
-				changedDomain,
-			);
-		},
-	);
-});
-
-it("rejects transferring an opted-out application to FastProxy before stopping, copying or changing status/server", async () => {
-	type FoundApplication = Awaited<ReturnType<typeof findApplicationById>>;
-	vi.mocked(findApplicationById, { partial: true }).mockResolvedValue({
-		...previous,
-		applicationId: "app",
-		swarmVipConnectionReuse: false,
-		environment: {
-			project: { organizationId: "org" },
-		} as FoundApplication["environment"],
-	});
-	vi.mocked(findServerById, { partial: true }).mockResolvedValue({
-		serverId: "target",
-		organizationId: "org",
-		serverStatus: "active",
-		serverType: "deploy",
-	});
-	vi.mocked(execAsyncRemote).mockImplementation(async (serverId, command) => {
-		if (serverId !== "target") throw new Error("Source must remain untouched");
-		return {
-			stdout: command.startsWith("docker ps")
-				? "traefik-container"
-				: JSON.stringify({ experimental: { fastProxy: {} } }),
-			stderr: "",
-		};
-	});
-
-	await expect(
-		transferService(
-			{
-				serviceType: "application",
-				serviceId: "app",
-				targetServerId: "target",
-				organizationId: "org",
-				removeSourceData: false,
-			},
-			vi.fn(),
-		),
-	).rejects.toThrow(/FastProxy/);
-
-	expect(execAsyncRemote).toHaveBeenCalledWith(
-		"target",
-		expect.stringContaining("docker ps"),
-	);
-	expect(execAsyncRemote).toHaveBeenCalledWith(
-		"target",
-		expect.stringContaining("docker exec"),
-	);
-	expect(
-		vi
-			.mocked(execAsyncRemote)
-			.mock.calls.every(([serverId]) => serverId === "target"),
-	).toBe(true);
-	expect(execAsync).not.toHaveBeenCalled();
-	expect(pipeBetweenServers).not.toHaveBeenCalled();
-	expect(protocol.update).not.toHaveBeenCalled();
 });
