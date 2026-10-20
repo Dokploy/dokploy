@@ -22,7 +22,7 @@ import {
 	Server,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDuration } from "@/components/dashboard/application/deployments/show-deployments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,17 +63,41 @@ const statusVariants: Record<
 	cancelled: "outline",
 };
 
-// Seconds the deployment took, or has been running so far; null if it never started.
-function getDurationSeconds(d: DeploymentRow): number | null {
+// Seconds the deployment took, or has been running at `now`; null if it never started.
+function getDurationSeconds(d: DeploymentRow, now: number): number | null {
 	if (!d.startedAt) return null;
-	const end =
-		d.finishedAt ?? (d.status === "running" ? new Date().toISOString() : null);
-	if (!end) return null;
+	const end = d.finishedAt
+		? new Date(d.finishedAt).getTime()
+		: d.status === "running"
+			? now
+			: null;
+	if (end === null) return null;
 	return Math.max(
 		0,
-		Math.floor(
-			(new Date(end).getTime() - new Date(d.startedAt).getTime()) / 1000,
-		),
+		Math.floor((end - new Date(d.startedAt).getTime()) / 1000),
+	);
+}
+
+// Ticks every second while the deployment runs; polling alone won't
+// re-render when the data is unchanged.
+function DeploymentDuration({ deployment }: { deployment: DeploymentRow }) {
+	const isRunning = deployment.status === "running" && !deployment.finishedAt;
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		if (!isRunning) return;
+		const id = setInterval(() => setNow(Date.now()), 1000);
+		return () => clearInterval(id);
+	}, [isRunning]);
+
+	const seconds = getDurationSeconds(deployment, now);
+	if (seconds === null) return null;
+	return (
+		<span className="text-muted-foreground text-xs tabular-nums">
+			{isRunning
+				? `running for ${formatDuration(seconds)}`
+				: `took ${formatDuration(seconds)}`}
+		</span>
 	);
 }
 
@@ -431,25 +455,16 @@ export function ShowDeploymentsTable({
 						<ArrowUpDown className="ml-2 size-4" />
 					</Button>
 				),
-				cell: ({ row }: { row: { original: DeploymentRow } }) => {
-					const seconds = getDurationSeconds(row.original);
-					return (
-						<div className="flex flex-col text-sm whitespace-nowrap">
-							<span className="text-muted-foreground">
-								{row.original.createdAt
-									? new Date(row.original.createdAt).toLocaleString()
-									: "—"}
-							</span>
-							{seconds !== null && (
-								<span className="text-muted-foreground text-xs tabular-nums">
-									{row.original.status === "running"
-										? `running for ${formatDuration(seconds)}`
-										: `took ${formatDuration(seconds)}`}
-								</span>
-							)}
-						</div>
-					);
-				},
+				cell: ({ row }: { row: { original: DeploymentRow } }) => (
+					<div className="flex flex-col text-sm whitespace-nowrap">
+						<span className="text-muted-foreground">
+							{row.original.createdAt
+								? new Date(row.original.createdAt).toLocaleString()
+								: "—"}
+						</span>
+						<DeploymentDuration deployment={row.original} />
+					</div>
+				),
 			},
 			{
 				header: "",
