@@ -109,15 +109,16 @@ export const findServiceAppName = async (
 // `serviceAppName`. Applications and databases run as one swarm service named
 // after the app; stack tasks are namespaced "<stack>_<service>". Compose
 // container names are free-form, so the stats socket also filters compose and
-// stack containers by their project/namespace label.
+// stack containers by their project/namespace label. `appType` comes from the
+// URL, so any other value is rejected.
 export const isServiceContainerName = (
 	appName: string,
-	appType: "application" | "stack" | "docker-compose",
+	appType: string,
 	serviceAppName: string,
 ): boolean => {
 	if (appType === "application") return appName === serviceAppName;
 	if (appType === "stack") return appName.startsWith(`${serviceAppName}_`);
-	return true;
+	return appType === "docker-compose";
 };
 
 // Authorizes the host/server SSH terminal opened over a WebSocket. The local

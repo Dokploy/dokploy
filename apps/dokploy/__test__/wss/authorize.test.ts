@@ -109,6 +109,12 @@ describe("isServiceContainerName", () => {
 			isServiceContainerName("custom-name", "docker-compose", "compose-abc"),
 		).toBe(true);
 	});
+
+	it("rejects an unknown appType", () => {
+		// The socket would apply no ownership filter for it.
+		expect(isServiceContainerName("web-abc", "invalid", "web-abc")).toBe(false);
+		expect(isServiceContainerName("web-abc", "", "web-abc")).toBe(false);
+	});
 });
 
 describe("canAccessTerminalOverWss", () => {
