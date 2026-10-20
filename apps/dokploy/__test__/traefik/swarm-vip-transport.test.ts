@@ -1,13 +1,17 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { ApplicationNested } from "@dokploy/server/utils/builders";
 import type { Domain } from "@dokploy/server/services/domain";
-import type { FileConfig } from "@dokploy/server/utils/traefik/file-types";
+import type { ApplicationNested } from "@dokploy/server/utils/builders";
+import {
+	loadOrCreateConfigRemote,
+	writeTraefikConfig,
+} from "@dokploy/server/utils/traefik/application";
 import {
 	manageDomain,
 	reconcileSwarmVipConnectionReuse,
 } from "@dokploy/server/utils/traefik/domain";
+import type { FileConfig } from "@dokploy/server/utils/traefik/file-types";
 import { afterAll, expect, test, vi } from "vitest";
 import { parse, stringify } from "yaml";
 
@@ -24,6 +28,18 @@ vi.mock("@dokploy/server/constants", async (importOriginal) => {
 			...actual.paths(),
 			DYNAMIC_TRAEFIK_PATH: dynamicPath,
 		}),
+	};
+});
+
+vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => {
+	const actual =
+		await importOriginal<
+			typeof import("@dokploy/server/utils/process/execAsync")
+		>();
+	return {
+		...actual,
+		execAsyncRemote: (_serverId: string, command: string) =>
+			actual.execAsync(command),
 	};
 });
 
@@ -226,4 +242,28 @@ test("preserves other services and routers in the file", async () => {
 		throw new Error("service 4 is missing");
 	}
 	expect(service4.loadBalancer.serversTransport).toBeUndefined();
+});
+
+test("reports an application route write failure", () => {
+	const appName = "unwritable-application";
+	fs.mkdirSync(path.join(dynamicPath, `${appName}.yml`));
+	const log = vi.spyOn(console, "error").mockImplementation(() => {});
+	try {
+		expect(() => writeTraefikConfig({ http: {} }, appName)).toThrowError(
+			expect.objectContaining({ code: "EISDIR" }),
+		);
+	} finally {
+		log.mockRestore();
+	}
+});
+
+test("distinguishes a missing remote route from a failed read", async () => {
+	const appName = "remote-application";
+	expect(await loadOrCreateConfigRemote("server-id", appName)).toEqual({
+		http: { routers: {}, services: {} },
+	});
+	fs.mkdirSync(path.join(dynamicPath, `${appName}.yml`));
+	await expect(
+		loadOrCreateConfigRemote("server-id", appName),
+	).rejects.toThrow();
 });

@@ -46,7 +46,7 @@ export const createRedirect = async (
 
 			const application = await findApplicationById(redirect.applicationId);
 
-			createRedirectMiddleware(application, redirect);
+			await createRedirectMiddleware(application, redirect);
 		});
 
 		return true;
