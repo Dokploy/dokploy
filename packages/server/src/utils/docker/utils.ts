@@ -154,7 +154,18 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 export const dockerSafeExec = (exec: string) => `
 CHECK_INTERVAL=10
 MAX_WAIT=300
-WAITED=0
+PROBE_TIMEOUT=10
+STARTED=$(date +%s)
+
+# A daemon that accepts the connection and never answers would otherwise hold a
+# probe, and the loop with it, past MAX_WAIT.
+bounded() {
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$PROBE_TIMEOUT" "$@"
+    else
+        "$@"
+    fi
+}
 
 echo "Preparing for execution..."
 
@@ -169,12 +180,12 @@ while true; do
     # mid-download (https://github.com/moby/moby/issues/53321). Both checks are
     # best-effort: off swarm, on a worker node, or where containerd's socket is
     # absent or not ours to read, they find nothing.
-    PULLING=$(docker node ps self --filter desired-state=running --filter desired-state=ready --format '{{.CurrentState}}' 2>/dev/null | grep -i '^preparing')
+    PULLING=$(bounded docker node ps self --filter desired-state=running --filter desired-state=ready --format '{{.CurrentState}}' 2>/dev/null | grep -i '^preparing')
     LEASES=""
     # Tested before calling ctr: an older ctr retries a missing socket for its
     # whole connect timeout, which would stretch every iteration of this loop.
     if [ -S "\${CONTAINERD_ADDRESS:-/run/containerd/containerd.sock}" ] && command -v ctr >/dev/null 2>&1; then
-        LEASES=$(ctr -n moby leases ls -q 'labels."moby/prune.images"' 2>/dev/null)
+        LEASES=$(bounded ctr -n moby leases ls -q 'labels."moby/prune.images"' 2>/dev/null)
     fi
 
     if [ -z "$PROCESSES" ] && [ -z "$PULLING" ] && [ -z "$LEASES" ]; then
@@ -182,6 +193,7 @@ while true; do
         break
     fi
 
+    WAITED=$(($(date +%s) - STARTED))
     if [ "$WAITED" -ge "$MAX_WAIT" ]; then
         echo "Docker still busy after \${MAX_WAIT}s, proceeding anyway." >&2
         break
@@ -189,7 +201,6 @@ while true; do
 
     echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
     sleep $CHECK_INTERVAL
-    WAITED=$((WAITED + CHECK_INTERVAL))
 done
 
 ${exec}

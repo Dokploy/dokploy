@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
 	chmodSync,
 	existsSync,
@@ -19,6 +19,8 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 // its arguments; a "busy once" one prints its busy output on its first call only,
 // so a script that notices it waits exactly once and then runs the command.
 const stub = (dir: string, name: string, body: string) => {
+	// Unlink first: writing to a symlinked host tool would overwrite the real binary.
+	rmSync(join(dir, name), { force: true });
 	writeFileSync(
 		join(dir, name),
 		`#!/bin/sh\nprintf '%s\\n' "$*" >> "${dir}/${name}.args"\n${body}\n`,
@@ -46,7 +48,7 @@ let socket: Server | undefined;
 
 beforeEach(() => {
 	bin = mkdtempSync(join(tmpdir(), "docker-safe-exec-"));
-	for (const tool of ["awk", "grep", "cat", "wc"]) {
+	for (const tool of ["awk", "grep", "cat", "wc", "date"]) {
 		symlinkSync(hostTool(tool), join(bin, tool));
 	}
 	stub(bin, "sleep", "exit 0");
@@ -69,14 +71,16 @@ const listenOnContainerdSocket = () =>
 		socket = createServer().listen(containerdSocket(), resolve);
 	});
 
-const run = () =>
-	execFileSync(hostTool("sh"), ["-c", dockerSafeExec("echo RAN")], {
+const run = () => {
+	const result = spawnSync(hostTool("sh"), ["-c", dockerSafeExec("echo RAN")], {
 		env: {
 			PATH: bin,
 			CONTAINERD_ADDRESS: containerdSocket(),
 			NODE_ENV: "test",
 		},
-	}).toString();
+	});
+	return `${result.stdout}${result.stderr}`;
+};
 
 const busyCycles = (out: string) => out.match(/Docker is busy/g)?.length ?? 0;
 
@@ -155,6 +159,35 @@ describe("dockerSafeExec", () => {
 		await listenOnContainerdSocket();
 		const out = run();
 		expect(busyCycles(out)).toBe(0);
+		expect(out).toContain("RAN");
+	});
+
+	test("bounds the Swarm probe with a timeout", () => {
+		stub(bin, "timeout", 'shift; exec "$@"');
+		run();
+		expect(argsOf(bin, "timeout")).toBe(
+			"10 docker node ps self --filter desired-state=running --filter desired-state=ready --format {{.CurrentState}}",
+		);
+	});
+
+	test("bounds the containerd probe with a timeout", async () => {
+		await listenOnContainerdSocket();
+		stub(bin, "timeout", 'shift; exec "$@"');
+		stub(bin, "ctr", "exit 0");
+		run();
+		expect(readFileSync(join(bin, "timeout.args"), "utf8")).toContain(
+			'10 ctr -n moby leases ls -q labels."moby/prune.images"',
+		);
+	});
+
+	test("gives up on elapsed time, however long the probes take", () => {
+		// Every probe answers "pulling", and each date call reports 200s more
+		// than the last: MAX_WAIT is spent after one busy cycle, not thirty.
+		stub(bin, "docker", "echo 'Preparing 1 second ago'");
+		stub(bin, "date", `echo $(( ($(wc -l < "${bin}/date.args") - 1) * 200 ))`);
+		const out = run();
+		expect(busyCycles(out)).toBe(1);
+		expect(out).toContain("proceeding anyway");
 		expect(out).toContain("RAN");
 	});
 
