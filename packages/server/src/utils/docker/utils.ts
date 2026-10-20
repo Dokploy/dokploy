@@ -468,9 +468,10 @@ export const prepareEnvironmentVariables = (
 				"Unresolved vault reference: call withResolvedVaultRefs() on the entity before preparing environment variables",
 			);
 		}
-		// A value that failed to decrypt arrives as ciphertext and would parse
-		// to no variables at all; fail the deployment instead.
-		if (source && isEncrypted(source)) {
+		// A value that failed to decrypt arrives as ciphertext, which dotenv
+		// silently drops; fail the deployment instead. Callers may prepend
+		// generated lines (e.g. compose's APP_NAME), so check every line.
+		if (source?.split("\n").some((line) => isEncrypted(line.trim()))) {
 			throw new Error(
 				"Environment variables could not be decrypted. BETTER_AUTH_SECRET or ENCRYPTION_KEY changed after they were saved; restore the previous secret or re-enter the variables.",
 			);
