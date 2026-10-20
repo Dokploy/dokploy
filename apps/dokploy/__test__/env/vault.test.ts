@@ -1,3 +1,4 @@
+import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findMany = vi.fn();
@@ -12,6 +13,7 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+import { ociVaultConfigSchema } from "@dokploy/server/db/schema";
 import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
 import {
 	resolveVaultReferences,
@@ -21,6 +23,7 @@ import { azureClient } from "@dokploy/server/utils/vault/azure";
 import { dopplerClient } from "@dokploy/server/utils/vault/doppler";
 import { hashicorpClient } from "@dokploy/server/utils/vault/hashicorp";
 import { infisicalClient } from "@dokploy/server/utils/vault/infisical";
+import { ociClient } from "@dokploy/server/utils/vault/oci";
 import { phaseClient } from "@dokploy/server/utils/vault/phase";
 import { scalewayClient } from "@dokploy/server/utils/vault/scaleway";
 
@@ -959,5 +962,292 @@ describe("phase client", () => {
 		);
 
 		expect(result).toBe("DB_PASSWORD=s3cret");
+	});
+});
+
+describe("oci client", () => {
+	const { privateKey, publicKey } = generateKeyPairSync("rsa", {
+		modulusLength: 2048,
+	});
+	const privateKeyPem = privateKey.export({
+		type: "pkcs8",
+		format: "pem",
+	}) as string;
+	const fingerprint = (
+		createHash("md5")
+			.update(publicKey.export({ type: "spki", format: "der" }))
+			.digest("hex")
+			.match(/../g) as string[]
+	).join(":");
+
+	const config = {
+		providerType: "oci" as const,
+		region: "eu-madrid-1",
+		tenancyId: "ocid1.tenancy.oc1..aaaatenancy",
+		userId: "ocid1.user.oc1..aaaauser",
+		fingerprint,
+		privateKey: privateKeyPem,
+		vaultId: "ocid1.vault.oc1.eu-madrid-1.aaaavault",
+		compartmentId: "ocid1.compartment.oc1..aaaacompartment",
+	};
+
+	const ociResponse = (
+		body: unknown,
+		status = 200,
+		headers: Record<string, string> = {},
+	) => new Response(JSON.stringify(body), { status, headers });
+
+	const bundleResponse = (value: string | Buffer) =>
+		ociResponse({
+			secretBundleContent: {
+				contentType: "BASE64",
+				content: Buffer.from(value).toString("base64"),
+			},
+		});
+
+	const parseAuthorization = (header: string) =>
+		Object.fromEntries(
+			[...header.matchAll(/(\w+)="([^"]*)"/g)].map((match) => [
+				match[1],
+				match[2],
+			]),
+		) as Record<string, string>;
+
+	it("reads a secret by name with a signed POST and decodes the bundle", async () => {
+		mockFetch.mockResolvedValue(bundleResponse("postgres://real"));
+
+		const result = await ociClient.getSecrets(config, ["db-url"]);
+
+		expect(result).toEqual({ "db-url": "postgres://real" });
+		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe(
+			"https://secrets.vaults.eu-madrid-1.oci.oraclecloud.com/20190301/secretbundles/actions/getByName?secretName=db-url&vaultId=ocid1.vault.oc1.eu-madrid-1.aaaavault",
+		);
+		expect(init.method).toBe("POST");
+		expect(init.body).toBe("");
+
+		const headers = init.headers as Record<string, string>;
+		expect(headers["x-content-sha256"]).toBe(
+			"47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+		);
+		const authorization = parseAuthorization(headers.authorization as string);
+		expect(authorization.keyId).toBe(
+			`${config.tenancyId}/${config.userId}/${fingerprint}`,
+		);
+		expect(authorization.headers).toBe(
+			"x-date (request-target) host content-type content-length x-content-sha256",
+		);
+		const signingString = [
+			`x-date: ${headers["x-date"]}`,
+			`(request-target): post ${new URL(url).pathname}${new URL(url).search}`,
+			"host: secrets.vaults.eu-madrid-1.oci.oraclecloud.com",
+			"content-type: application/json",
+			"content-length: 0",
+			"x-content-sha256: 47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+		].join("\n");
+		expect(
+			createVerify("RSA-SHA256")
+				.update(signingString)
+				.verify(publicKey, authorization.signature as string, "base64"),
+		).toBe(true);
+	});
+
+	it("extracts fields from a JSON secret and fetches the secret once", async () => {
+		mockFetch.mockResolvedValue(
+			bundleResponse(JSON.stringify({ user: "admin", port: 5432 })),
+		);
+
+		const result = await ociClient.getSecrets(config, [
+			"db-creds:user",
+			"db-creds:port",
+		]);
+
+		expect(result).toEqual({
+			"db-creds:user": "admin",
+			"db-creds:port": "5432",
+		});
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+	});
+
+	it("throws when the secret is not JSON but a field is requested", async () => {
+		mockFetch.mockResolvedValue(bundleResponse("plain-value"));
+
+		await expect(
+			ociClient.getSecrets(config, ["db-creds:user"]),
+		).rejects.toThrow("is not JSON");
+	});
+
+	it("throws when the requested field is missing", async () => {
+		mockFetch.mockResolvedValue(bundleResponse(JSON.stringify({ user: "a" })));
+
+		await expect(
+			ociClient.getSecrets(config, ["db-creds:password"]),
+		).rejects.toThrow('field "password" not found in secret "db-creds"');
+	});
+
+	it("rejects binary secrets", async () => {
+		mockFetch.mockResolvedValue(
+			bundleResponse(Buffer.from([0xff, 0xfe, 0x00])),
+		);
+
+		await expect(ociClient.getSecrets(config, ["blob"])).rejects.toThrow(
+			"binary secrets are not supported",
+		);
+	});
+
+	it("explains that a 404 can mean missing or not authorized", async () => {
+		mockFetch.mockResolvedValue(
+			ociResponse(
+				{
+					code: "NotAuthorizedOrNotFound",
+					message: "Authorization failed or requested resource not found.",
+				},
+				404,
+				{ "opc-request-id": "req-1" },
+			),
+		);
+
+		await expect(ociClient.getSecrets(config, ["nope"])).rejects.toThrow(
+			'secret "nope" not found in the vault, or the user is not allowed to read it (requires "read secret-bundles") (status 404: NotAuthorizedOrNotFound: Authorization failed or requested resource not found., opc-request-id req-1)',
+		);
+	});
+
+	it("reports authentication failures", async () => {
+		mockFetch.mockResolvedValue(
+			ociResponse({ code: "NotAuthenticated", message: "denied" }, 401),
+		);
+
+		await expect(ociClient.getSecrets(config, ["db-url"])).rejects.toThrow(
+			"authentication failed (status 401: NotAuthenticated: denied)",
+		);
+	});
+
+	it("rejects refs that are not OCI secret names", async () => {
+		await expect(
+			ociClient.getSecrets(config, ["/prod/db-url"]),
+		).rejects.toThrow("expected <secret-name> or <secret-name>:<field>");
+		await expect(ociClient.getSecrets(config, ["db-url:"])).rejects.toThrow(
+			"expected <secret-name> or <secret-name>:<field>",
+		);
+		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	it("rejects a fingerprint that does not belong to the private key", async () => {
+		await expect(
+			ociClient.getSecrets(
+				{
+					...config,
+					fingerprint: "00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff",
+				},
+				["db-url"],
+			),
+		).rejects.toThrow(
+			`the fingerprint does not match the private key (the key's fingerprint is ${fingerprint})`,
+		);
+		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	it("reads passphrase-protected private keys", async () => {
+		const encryptedPem = privateKey.export({
+			type: "pkcs8",
+			format: "pem",
+			cipher: "aes-256-cbc",
+			passphrase: "correct horse",
+		}) as string;
+		mockFetch.mockResolvedValue(bundleResponse("value"));
+
+		await expect(
+			ociClient.getSecrets(
+				{ ...config, privateKey: encryptedPem, passphrase: "correct horse" },
+				["db-url"],
+			),
+		).resolves.toEqual({ "db-url": "value" });
+		await expect(
+			ociClient.getSecrets(
+				{ ...config, privateKey: encryptedPem, passphrase: "wrong" },
+				["db-url"],
+			),
+		).rejects.toThrow("cannot read the API private key");
+	});
+
+	it("tests the connection with a signed GET against the secrets listing", async () => {
+		mockFetch.mockResolvedValue(ociResponse([]));
+
+		await ociClient.testConnection(config);
+
+		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe(
+			"https://vaults.eu-madrid-1.oci.oraclecloud.com/20180608/secrets?compartmentId=ocid1.compartment.oc1..aaaacompartment&vaultId=ocid1.vault.oc1.eu-madrid-1.aaaavault&lifecycleState=ACTIVE&sortBy=NAME&sortOrder=ASC&limit=1",
+		);
+		expect(init.method).toBe("GET");
+		expect(init.body).toBeUndefined();
+		const authorization = parseAuthorization(
+			(init.headers as Record<string, string>).authorization as string,
+		);
+		expect(authorization.headers).toBe("x-date (request-target) host");
+	});
+
+	it("points to the inspect permission when the listing returns 404", async () => {
+		mockFetch.mockResolvedValue(
+			ociResponse({ code: "NotAuthorizedOrNotFound" }, 404),
+		);
+
+		await expect(ociClient.testConnection(config)).rejects.toThrow(
+			'requires "inspect secrets"',
+		);
+	});
+
+	it("lists secret names across pages", async () => {
+		mockFetch.mockImplementation(async (url: string) =>
+			url.includes("page=next-1")
+				? ociResponse([{ secretName: "c" }])
+				: ociResponse([{ secretName: "a" }, { secretName: "b" }], 200, {
+						"opc-next-page": "next-1",
+					}),
+		);
+
+		const names = await ociClient.listSecretNames?.(config);
+
+		expect(names).toEqual(["a", "b", "c"]);
+		expect(mockFetch).toHaveBeenCalledTimes(2);
+	});
+
+	it("resolves env refs end to end through an oci provider", async () => {
+		findMany.mockResolvedValue([
+			{
+				name: "oci-prod",
+				providerType: "oci",
+				config,
+				assignments: assignedEverywhere,
+			},
+		]);
+		mockFetch.mockResolvedValue(bundleResponse("s3cret"));
+
+		const result = await resolveVaultReferences(
+			"DB_PASSWORD=${{vault.oci-prod.db-password}}",
+			scope,
+		);
+
+		expect(result).toBe("DB_PASSWORD=s3cret");
+	});
+
+	it("only accepts config values that cannot alter the request", () => {
+		expect(ociVaultConfigSchema.safeParse(config).success).toBe(true);
+		expect(
+			ociVaultConfigSchema.safeParse({
+				...config,
+				compartmentId: config.tenancyId,
+			}).success,
+		).toBe(true);
+		for (const override of [
+			{ region: "evil.example.com/#" },
+			{ tenancyId: 'ocid1.tenancy.oc1..a",keyId="x' },
+			{ compartmentId: config.vaultId },
+			{ fingerprint: "not-a-fingerprint" },
+		]) {
+			expect(
+				ociVaultConfigSchema.safeParse({ ...config, ...override }).success,
+			).toBe(false);
+		}
 	});
 });
