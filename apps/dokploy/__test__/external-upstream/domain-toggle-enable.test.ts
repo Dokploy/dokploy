@@ -116,7 +116,9 @@ describe("toggling an external upstream domain", () => {
 				domainType: "externalUpstream",
 				externalUpstreamId: "upstream-1",
 			}),
-		).rejects.toThrow("You are not authorized to access this external upstream");
+		).rejects.toThrow(
+			"You are not authorized to access this external upstream",
+		);
 
 		expect(mocks.checkServicePermissionAndAccess).not.toHaveBeenCalled();
 		expect(mocks.createDomain).not.toHaveBeenCalled();
@@ -160,7 +162,9 @@ describe("toggling an external upstream domain", () => {
 				host: "new.example.com",
 				customCertResolver: "",
 			}),
-		).rejects.toThrow("You are not authorized to access this external upstream");
+		).rejects.toThrow(
+			"You are not authorized to access this external upstream",
+		);
 
 		expect(mocks.updateDomainById).not.toHaveBeenCalled();
 	});

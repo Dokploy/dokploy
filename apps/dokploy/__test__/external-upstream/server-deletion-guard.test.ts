@@ -6,9 +6,7 @@ vi.mock("@dokploy/server/db", () => ({
 	db: { query: { server: { findFirst: mockFindServer } } },
 }));
 
-const { haveActiveServices } = await import(
-	"@dokploy/server/services/server"
-);
+const { haveActiveServices } = await import("@dokploy/server/services/server");
 
 describe("server deletion service guard", () => {
 	beforeEach(() => {

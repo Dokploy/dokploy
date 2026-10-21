@@ -133,7 +133,9 @@ describe("updating an external upstream", () => {
 				externalUpstreamId: "upstream-1",
 				name: "Changed name",
 			}),
-		).rejects.toThrow("You are not authorized to update this external upstream");
+		).rejects.toThrow(
+			"You are not authorized to update this external upstream",
+		);
 
 		expect(mocks.updateExternalUpstreamById).not.toHaveBeenCalled();
 	});

@@ -26,10 +26,8 @@ vi.mock("node-schedule", () => ({
 	scheduleJob: mocks.scheduleJob,
 }));
 
-const {
-	initExternalUpstreamDnsRefresh,
-	refreshExternalUpstreamDomains,
-} = await import("@dokploy/server/services/external-upstream");
+const { initExternalUpstreamDnsRefresh, refreshExternalUpstreamDomains } =
+	await import("@dokploy/server/services/external-upstream");
 
 describe("external upstream DNS refresh", () => {
 	beforeEach(() => {

@@ -71,9 +71,7 @@ export const domainRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, input.composeId, {
 						domain: ["create"],
 					});
-				} else if (
-					input.externalUpstreamId
-				) {
+				} else if (input.externalUpstreamId) {
 					await findExternalUpstreamInActiveOrganization(
 						ctx,
 						input.externalUpstreamId,
