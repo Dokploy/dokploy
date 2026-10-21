@@ -186,6 +186,7 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 
 export const createScheduleSchema = createInsertSchema(schedules, {
 	scheduleType: z.enum(scheduleType.enumValues),
+	shellType: z.enum(shellTypes.enumValues),
 });
 
 export const updateScheduleSchema = createScheduleSchema.extend({

@@ -69,6 +69,7 @@ const Libsql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.libsql.one.useQuery({ libsqlId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: serverIp } = api.settings.getIp.useQuery();
