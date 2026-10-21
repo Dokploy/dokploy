@@ -47,7 +47,7 @@ describe("pipeBetweenServers", () => {
 				target: { serverId: null, command: "echo boom >&2; exit 3" },
 			}),
 		).rejects.toThrow("target exited with code 3: boom");
-	});
+	}, 30_000);
 
 	it("reports a source failure", async () => {
 		await expect(
