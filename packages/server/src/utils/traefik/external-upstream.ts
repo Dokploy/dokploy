@@ -114,6 +114,11 @@ export const manageExternalUpstreamDomain = async (
 	service: ExternalUpstreamTraefikTarget,
 	domain: Domain,
 ) => {
+	if (!domain.enabled) {
+		await removeExternalUpstreamDomain(service, domain.uniqueConfigKey);
+		return;
+	}
+
 	const settings = await getWebServerSettings();
 	const resolvedTarget = await resolveExternalUpstreamTarget({
 		targetUrl: service.targetUrl,

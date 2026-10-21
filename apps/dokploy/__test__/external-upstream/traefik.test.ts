@@ -87,6 +87,7 @@ describe("external upstream Traefik configuration", () => {
 			middlewares: {},
 			serversTransports: {},
 		};
+		mocks.getWebServerSettings.mockClear();
 		mocks.loadOrCreateConfig.mockReturnValue(mocks.config);
 		mocks.getWebServerSettings.mockResolvedValue({
 			externalUpstreamBlockedCidrs: DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
@@ -139,6 +140,31 @@ describe("external upstream Traefik configuration", () => {
 			"Target URL points to a blocked network range",
 		);
 		expect(mocks.writeTraefikConfig).not.toHaveBeenCalled();
+	});
+
+	test("removes routing for a disabled domain without resolving its target", async () => {
+		mocks.config.http!.routers!["external-service-router-7"] = {
+			rule: "Host(`service.example.com`)",
+			service: "external-service-service-7",
+		};
+		mocks.config.http!.services!["external-service-service-7"] = {
+			loadBalancer: {
+				servers: [{ url: "https://93.184.216.34:8443/api" }],
+				passHostHeader: false,
+			},
+		};
+
+		await manageExternalUpstreamDomain(service, { ...domain, enabled: false });
+
+		expect(mocks.lookup).not.toHaveBeenCalled();
+		expect(mocks.getWebServerSettings).not.toHaveBeenCalled();
+		expect(mocks.config.http?.routers).toEqual({});
+		expect(mocks.config.http?.services).toEqual({});
+		expect(mocks.removeTraefikConfig).toHaveBeenCalledWith(service.appName);
+		expect(mocks.removePathMiddlewares).toHaveBeenCalledWith(
+			{ appName: service.appName, serverId: service.serverId },
+			domain.uniqueConfigKey,
+		);
 	});
 
 	test("keeps the client Host behavior when passHostHeader is enabled", async () => {

@@ -177,7 +177,10 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindDomain)
 		.mutation(async ({ input, ctx }) => {
 			const currentDomain = await findDomainById(input.domainId);
-			const serviceId = currentDomain.applicationId || currentDomain.composeId;
+			const serviceId =
+				currentDomain.applicationId ||
+				currentDomain.composeId ||
+				currentDomain.externalUpstreamId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					domain: ["create"],
@@ -209,6 +212,11 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await manageDomain(application, domain);
+			} else if (domain.externalUpstreamId) {
+				const externalUpstream = await findExternalUpstreamById(
+					domain.externalUpstreamId,
+				);
+				await manageExternalUpstreamDomain(externalUpstream, domain);
 			} else if (domain.previewDeploymentId) {
 				const previewDeployment = await findPreviewDeploymentById(
 					domain.previewDeploymentId,
