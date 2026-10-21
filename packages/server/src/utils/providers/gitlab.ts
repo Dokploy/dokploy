@@ -111,14 +111,17 @@ export type GitlabInfo =
 	| ApplicationWithGitlab["gitlab"]
 	| ComposeWithGitlab["gitlab"];
 
-const getGitlabCloneBaseUrl = (gitlab: GitlabInfo) =>
-	gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl || "";
+const getGitlabCloneBaseUrl = (gitlab: GitlabInfo) => {
+	const baseUrl = gitlab?.gitlabInternalUrl || gitlab?.gitlabUrl || "";
+	if (!baseUrl) return baseUrl
+	return /^[a-z][a-z\d+.-]*:\/\//i.test(baseUrl) ? baseUrl : `https://${baseUrl}`
+}
 
 const getGitlabRepoClone = (
-	gitlab: GitlabInfo,
+	gitlabBaseUrl: string,
 	gitlabPathNamespace: string | null,
 ) => {
-	const url = getGitlabCloneBaseUrl(gitlab).replace(/^https?:\/\//, "");
+	const url = gitlabBaseUrl.replace(/^https?:\/\//i, "");
 	const repoClone = `${url.replace(/\/+$/, "")}/${gitlabPathNamespace}.git`;
 	return repoClone;
 };
@@ -171,8 +174,9 @@ export const cloneGitlabRepository = async ({
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const gitlabBaseUrl = getGitlabCloneBaseUrl(gitlab);
-	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
-	const cloneUrl = `${gitlabBaseUrl.startsWith("https://") ? "https" : "http"}://${repoClone}`;
+	const repoClone = getGitlabRepoClone(gitlabBaseUrl, gitlabPathNamespace);
+	const cloneProtocol = gitlabBaseUrl ? new URL(gitlabBaseUrl).protocol : "http:";
+	const cloneUrl = `${cloneProtocol}//${repoClone}`;
 	const authorization = `Authorization: Basic ${Buffer.from(`oauth2:${gitlab?.accessToken ?? ""}`).toString("base64")}`;
 	const cloneConfig = getGitCloneAuthConfig({
 		authorization,
