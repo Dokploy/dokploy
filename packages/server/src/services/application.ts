@@ -10,6 +10,7 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import { mechanizePreviewDockerContainer } from "@dokploy/server/utils/builders/preview";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
@@ -448,7 +449,13 @@ export const deployPreviewApplication = async ({
 			} else {
 				await execAsync(commandWithLog);
 			}
-			await mechanizeDockerContainer(application);
+			const isActive = await mechanizePreviewDockerContainer(
+				application,
+				previewDeploymentId,
+			);
+			if (!isActive) {
+				return false;
+			}
 		}
 		const successComment = getIssueComment(
 			application.name,
@@ -562,7 +569,13 @@ export const rebuildPreviewApplication = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
-		await mechanizeDockerContainer(application);
+		const isActive = await mechanizePreviewDockerContainer(
+			application,
+			previewDeploymentId,
+		);
+		if (!isActive) {
+			return false;
+		}
 
 		const successComment = getIssueComment(
 			application.name,
