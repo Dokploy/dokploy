@@ -43,6 +43,16 @@ const clone = async () => {
 	return command.replace(/\\/g, "");
 };
 
+const expectCloneAuthentication = (command: string, host: string) => {
+	const authorization = `Authorization: Basic ${Buffer.from("x-access-token:gh-token").toString("base64")}`
+	const cloneUrl = `https://${host}/acme/web.git`;
+
+	expect(command).toContain(
+		`-c 'http.https://${host}/.extraheader=${authorization}' clone --branch main --depth 1 ${cloneUrl}`,
+	)
+	expect(command).not.toMatch(/https:\/\/[^/\s'"]+@/)
+}
+
 describe("cloneGithubRepository host", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -53,9 +63,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.com");
 		expect(command).not.toContain("ghe.com");
 	});
 
@@ -64,9 +72,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@acme.ghe.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "acme.ghe.com");
 		expect(command).not.toContain("github.com");
 	});
 
@@ -77,9 +83,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.corp.acme.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.corp.acme.com");
 	});
 
 	it("keeps an explicit port in the clone host", async () => {
@@ -89,9 +93,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.acme.com:8443/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.acme.com:8443");
 	});
 
 	it("falls back to github.com for a provider stored before this feature", async () => {
@@ -99,8 +101,6 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.com");
 	});
 });
