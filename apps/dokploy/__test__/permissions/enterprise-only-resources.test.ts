@@ -42,6 +42,7 @@ const ENTERPRISE_RESOURCES = [
 	"auditLog",
 	"vaultProvider",
 	"dnsProvider",
+	"ai",
 ];
 
 describe("enterpriseOnlyResources set", () => {
