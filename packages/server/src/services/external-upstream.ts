@@ -9,12 +9,57 @@ import {
 	DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
 	validateExternalUpstreamTargetUrl as validateExternalUpstreamTargetUrlInput,
 } from "@dokploy/server/utils/network/external-upstream";
+import { manageExternalUpstreamDomain } from "@dokploy/server/utils/traefik/external-upstream";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { scheduleJob } from "node-schedule";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
 
 export type ExternalUpstream = typeof externalUpstreams.$inferSelect;
+
+let externalUpstreamRefreshInProgress = false;
+
+export const refreshExternalUpstreamDomains = async () => {
+	if (externalUpstreamRefreshInProgress) {
+		return;
+	}
+
+	externalUpstreamRefreshInProgress = true;
+	try {
+		const services = await db.query.externalUpstreams.findMany({
+			with: { domains: true },
+		});
+
+		for (const service of services) {
+			for (const domain of service.domains) {
+				try {
+					await manageExternalUpstreamDomain(service, domain);
+				} catch (error) {
+					console.error(
+						`[External Upstream] Failed to refresh ${service.appName} (${domain.host})`,
+						error,
+					);
+				}
+			}
+		}
+	} finally {
+		externalUpstreamRefreshInProgress = false;
+	}
+};
+
+export const initExternalUpstreamDnsRefresh = () => {
+	const refresh = async () => {
+		try {
+			await refreshExternalUpstreamDomains();
+		} catch (error) {
+			console.error("[External Upstream] DNS refresh failed", error);
+		}
+	};
+
+	scheduleJob("external-upstream-dns-refresh", "*/5 * * * *", refresh);
+	void refresh();
+};
 
 const getBlockedCidrs = async () => {
 	const settings = await getWebServerSettings();

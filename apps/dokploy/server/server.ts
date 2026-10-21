@@ -6,6 +6,7 @@ import {
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
+	initExternalUpstreamDnsRefresh,
 	initEnterpriseBackupCronJobs,
 	initializeNetwork,
 	initSchedules,
@@ -62,6 +63,7 @@ void app.prepare().then(async () => {
 			createDefaultMiddlewares();
 			await initializeNetwork();
 			await initCronJobs();
+			initExternalUpstreamDnsRefresh();
 			await initSchedules();
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
