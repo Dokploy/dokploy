@@ -1,3 +1,4 @@
+import { telegramProxyUrlSchema } from "@dokploy/server/utils/notifications/telegram-proxy";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import {
 	AlertTriangle,
@@ -75,6 +76,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			botToken: z.string().min(1, { message: "Bot Token is required" }),
 			chatId: z.string().min(1, { message: "Chat ID is required" }),
 			messageThreadId: z.string().optional(),
+			proxyUrl: telegramProxyUrlSchema,
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -375,6 +377,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					volumeBackup: notification.volumeBackup,
 					botToken: notification.telegram?.botToken,
 					messageThreadId: notification.telegram?.messageThreadId || "",
+					proxyUrl: notification.telegram?.proxyUrl || "",
 					chatId: notification.telegram?.chatId,
 					type: notification.notificationType,
 					name: notification.name,
@@ -608,6 +611,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				volumeBackup: volumeBackup,
 				botToken: data.botToken,
 				messageThreadId: data.messageThreadId || "",
+				proxyUrl: data.proxyUrl || "",
 				chatId: data.chatId,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
@@ -1022,6 +1026,29 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormDescription>
 														Optional. Use it when you want to send notifications
 														to a specific topic in a group.
+													</FormDescription>
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="proxyUrl"
+											defaultValue=""
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>SOCKS5 Proxy URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="socks5://user:password@host:1080"
+															{...field}
+															value={field.value ?? ""}
+														/>
+													</FormControl>
+													<FormMessage />
+													<FormDescription>
+														Optional. Supports socks5:// and socks5h:// URLs,
+														with optional username and password. DNS is resolved
+														through the proxy. Leave empty to connect directly.
 													</FormDescription>
 												</FormItem>
 											)}
@@ -2033,6 +2060,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											botToken: data.botToken,
 											chatId: data.chatId,
 											messageThreadId: data.messageThreadId || "",
+											proxyUrl: data.proxyUrl || "",
 										});
 									} else if (data.type === "discord") {
 										await testDiscordConnection({

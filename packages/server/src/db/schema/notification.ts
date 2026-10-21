@@ -10,7 +10,10 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { telegramProxyUrlSchema } from "../../utils/notifications/telegram-proxy";
 import { organization } from "./account";
+
+export { telegramProxyUrlSchema } from "../../utils/notifications/telegram-proxy";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -103,6 +106,7 @@ export const telegram = pgTable("telegram", {
 	botToken: text("botToken").notNull(),
 	chatId: text("chatId").notNull(),
 	messageThreadId: text("messageThreadId"),
+	proxyUrl: text("proxyUrl"),
 });
 
 export const discord = pgTable("discord", {
@@ -309,7 +313,8 @@ export const apiCreateTelegram = notificationsSchema
 		chatId: z.string().min(1),
 		messageThreadId: z.string(),
 	})
-	.required();
+	.required()
+	.extend({ proxyUrl: telegramProxyUrlSchema });
 
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
@@ -321,6 +326,7 @@ export const apiTestTelegramConnection = apiCreateTelegram.pick({
 	botToken: true,
 	chatId: true,
 	messageThreadId: true,
+	proxyUrl: true,
 });
 
 export const apiCreateDiscord = notificationsSchema

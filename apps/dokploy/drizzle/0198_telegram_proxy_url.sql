@@ -1,0 +1,1 @@
+ALTER TABLE "telegram" ADD COLUMN "proxyUrl" text;
