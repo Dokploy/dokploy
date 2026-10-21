@@ -87,6 +87,10 @@ export const whitelabelingRouter = createTRPCRouter({
 				errorPageDescription: null,
 				ogImageUrl: null,
 				footerText: null,
+				logoLightUrl: null,
+				loginLogoLightUrl: null,
+				faviconLightUrl: null,
+				dualModeBranding: false,
 			},
 		});
 

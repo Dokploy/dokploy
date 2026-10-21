@@ -1,6 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { webServerSettings } from "@dokploy/server/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 
 /**
  * Get the web server settings (singleton - only one row should exist)
@@ -41,4 +41,45 @@ export const updateWebServerSettings = async (
 		.returning();
 
 	return updated;
+};
+
+export const setWebServerProviderIds = async (
+	organizationId: string,
+	ids: string[],
+) => {
+	const current = await getWebServerSettings();
+	if (!current) {
+		return null;
+	}
+
+	const [updated] = await db
+		.update(webServerSettings)
+		.set({
+			telemetryProviderIds: ids,
+			vectorAgentOrganizationId: ids.length > 0 ? organizationId : null,
+			updatedAt: new Date(),
+		})
+		.where(
+			and(
+				eq(webServerSettings.id, current.id),
+				or(
+					isNull(webServerSettings.vectorAgentOrganizationId),
+					eq(webServerSettings.vectorAgentOrganizationId, organizationId),
+				),
+			),
+		)
+		.returning();
+
+	return updated ?? null;
+};
+
+export const releaseWebServerAgent = async (organizationId: string) => {
+	await db
+		.update(webServerSettings)
+		.set({
+			telemetryProviderIds: [],
+			vectorAgentOrganizationId: null,
+			updatedAt: new Date(),
+		})
+		.where(eq(webServerSettings.vectorAgentOrganizationId, organizationId));
 };

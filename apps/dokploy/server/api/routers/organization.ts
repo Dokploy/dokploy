@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import {
+	deleteOrganization,
 	getTwoFactorStatuses,
 	getUserTwoFactorStatus,
 	hasValidLicense,
@@ -341,9 +342,7 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.delete(organization)
-				.where(eq(organization.id, input.organizationId));
+			const result = await deleteOrganization(input.organizationId);
 
 			await audit(ctx, {
 				action: "delete",
