@@ -117,6 +117,7 @@ export const AddPreviewDomain = ({
 	const onSubmit = async (data: Domain) => {
 		await mutateAsync({
 			domainId,
+			domainType: "preview",
 			previewDeploymentId,
 			...data,
 		})

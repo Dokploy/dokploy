@@ -37,40 +37,59 @@ import {
 	apiUpdateDomain,
 } from "@/server/db/schema";
 
+type DomainPermissionContext = Parameters<
+	typeof checkServicePermissionAndAccess
+>[0];
+
+const findExternalUpstreamInActiveOrganization = async (
+	ctx: DomainPermissionContext,
+	externalUpstreamId: string,
+) => {
+	const externalUpstream = await findExternalUpstreamById(externalUpstreamId);
+	if (
+		externalUpstream.environment.project.organizationId !==
+		ctx.session.activeOrganizationId
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this external upstream",
+		});
+	}
+	return externalUpstream;
+};
+
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (input.domainType === "compose" && input.composeId) {
-					await checkServicePermissionAndAccess(ctx, input.composeId, {
-						domain: ["create"],
-					});
-				} else if (input.domainType === "application" && input.applicationId) {
+				if (input.applicationId) {
 					await checkServicePermissionAndAccess(ctx, input.applicationId, {
 						domain: ["create"],
 					});
+				} else if (input.composeId) {
+					await checkServicePermissionAndAccess(ctx, input.composeId, {
+						domain: ["create"],
+					});
 				} else if (
-					input.domainType === "externalUpstream" &&
 					input.externalUpstreamId
 				) {
-					const externalUpstream = await findExternalUpstreamById(
+					await findExternalUpstreamInActiveOrganization(
+						ctx,
 						input.externalUpstreamId,
 					);
-					if (
-						externalUpstream.environment.project.organizationId !==
-						ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message:
-								"You are not authorized to create a domain for this external upstream",
-						});
-					}
-
 					await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
 						domain: ["create"],
 					});
+				} else if (input.previewDeploymentId) {
+					const previewDeployment = await findPreviewDeploymentById(
+						input.previewDeploymentId,
+					);
+					await checkServicePermissionAndAccess(
+						ctx,
+						previewDeployment.applicationId,
+						{ domain: ["create"] },
+					);
 				}
 				const domain = await createDomain(input);
 				await audit(ctx, {
@@ -113,6 +132,10 @@ export const domainRouter = createTRPCRouter({
 			if (!input.externalUpstreamId) {
 				return [];
 			}
+			await findExternalUpstreamInActiveOrganization(
+				ctx,
+				input.externalUpstreamId,
+			);
 			await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
 				domain: ["read"],
 			});
@@ -142,6 +165,12 @@ export const domainRouter = createTRPCRouter({
 		.input(apiUpdateDomain)
 		.mutation(async ({ input, ctx }) => {
 			const currentDomain = await findDomainById(input.domainId);
+			if (currentDomain.externalUpstreamId) {
+				await findExternalUpstreamInActiveOrganization(
+					ctx,
+					currentDomain.externalUpstreamId,
+				);
+			}
 			const serviceId =
 				currentDomain.applicationId ||
 				currentDomain.composeId ||
@@ -191,6 +220,12 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindDomain)
 		.mutation(async ({ input, ctx }) => {
 			const currentDomain = await findDomainById(input.domainId);
+			if (currentDomain.externalUpstreamId) {
+				await findExternalUpstreamInActiveOrganization(
+					ctx,
+					currentDomain.externalUpstreamId,
+				);
+			}
 			const serviceId =
 				currentDomain.applicationId ||
 				currentDomain.composeId ||
@@ -249,6 +284,12 @@ export const domainRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
 		const domain = await findDomainById(input.domainId);
+		if (domain.externalUpstreamId) {
+			await findExternalUpstreamInActiveOrganization(
+				ctx,
+				domain.externalUpstreamId,
+			);
+		}
 		const serviceId =
 			domain.applicationId || domain.composeId || domain.externalUpstreamId;
 		if (serviceId) {
@@ -269,6 +310,12 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindDomain)
 		.mutation(async ({ input, ctx }) => {
 			const domain = await findDomainById(input.domainId);
+			if (domain.externalUpstreamId) {
+				await findExternalUpstreamInActiveOrganization(
+					ctx,
+					domain.externalUpstreamId,
+				);
+			}
 			const serviceId =
 				domain.applicationId || domain.composeId || domain.externalUpstreamId;
 			if (serviceId) {

@@ -113,31 +113,66 @@ export const apiCreateDomain = createSchema
 		forwardAuthEnabled: true,
 	})
 	.superRefine((input, ctx) => {
-		const hasOtherService = Boolean(
-			input.applicationId || input.composeId || input.previewDeploymentId,
-		);
+		const targetFields = [
+			{ type: "application", field: "applicationId", id: input.applicationId },
+			{ type: "compose", field: "composeId", id: input.composeId },
+			{
+				type: "preview",
+				field: "previewDeploymentId",
+				id: input.previewDeploymentId,
+			},
+			{
+				type: "externalUpstream",
+				field: "externalUpstreamId",
+				id: input.externalUpstreamId,
+			},
+		] as const;
+		const selectedTargets = targetFields.filter(({ id }) => Boolean(id));
 
-		if (input.externalUpstreamId && input.domainType !== "externalUpstream") {
+		if (selectedTargets.length > 1) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["domainType"],
-				message: "External upstream domains must use the externalUpstream type",
-			});
-		}
-
-		if (input.domainType === "externalUpstream" && !input.externalUpstreamId) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["externalUpstreamId"],
-				message: "External upstream domains require an externalUpstreamId",
-			});
-		}
-
-		if (input.externalUpstreamId && hasOtherService) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["externalUpstreamId"],
 				message: "A domain can only be associated with one service",
+			});
+		}
+
+		const selectedTarget = selectedTargets[0];
+		if (
+			selectedTarget &&
+			input.domainType &&
+			input.domainType !== selectedTarget.type
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["domainType"],
+				message: "The domain type must match its associated service",
+			});
+		}
+
+		if (
+			selectedTarget &&
+			!input.domainType &&
+			selectedTarget.type !== "application"
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["domainType"],
+				message: "The domain type is required for this service",
+			});
+		}
+
+		if (
+			input.domainType &&
+			!selectedTargets.some(({ type }) => type === input.domainType)
+		) {
+			const targetField = targetFields.find(
+				({ type }) => type === input.domainType,
+			)?.field;
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: [targetField || "domainType"],
+				message: "The domain type requires a matching service ID",
 			});
 		}
 	});

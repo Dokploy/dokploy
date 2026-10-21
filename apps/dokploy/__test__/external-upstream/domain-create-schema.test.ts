@@ -44,4 +44,33 @@ describe("external upstream domain creation input", () => {
 
 		expect(result.success).toBe(true);
 	});
+
+	it("rejects a mismatched application domain type", () => {
+		const result = apiCreateDomain.safeParse({
+			...domain,
+			domainType: "compose",
+			applicationId: "application-1",
+		});
+
+		expect(result.success).toBe(false);
+	});
+
+	it("requires a type for non-application service associations", () => {
+		const result = apiCreateDomain.safeParse({
+			...domain,
+			composeId: "compose-1",
+		});
+
+		expect(result.success).toBe(false);
+	});
+
+	it("accepts an explicitly associated preview domain", () => {
+		const result = apiCreateDomain.safeParse({
+			...domain,
+			domainType: "preview",
+			previewDeploymentId: "preview-1",
+		});
+
+		expect(result.success).toBe(true);
+	});
 });
