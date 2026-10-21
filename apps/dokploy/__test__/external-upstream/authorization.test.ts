@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
 	checkServicePermissionAndAccess: vi.fn(),
 	findEnvironmentById: vi.fn(),
 	findExternalUpstreamById: vi.fn(),
+	updateExternalUpstreamById: vi.fn(),
+	manageExternalUpstreamDomain: vi.fn(),
+	removeExternalUpstreamDomain: vi.fn(),
 	dbUpdate: vi.fn(),
 	audit: vi.fn(),
 }));
@@ -12,6 +15,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@dokploy/server", () => ({
 	findEnvironmentById: mocks.findEnvironmentById,
 	findExternalUpstreamById: mocks.findExternalUpstreamById,
+	updateExternalUpstreamById: mocks.updateExternalUpstreamById,
+	manageExternalUpstreamDomain: mocks.manageExternalUpstreamDomain,
+	removeExternalUpstreamDomain: mocks.removeExternalUpstreamDomain,
 }));
 
 vi.mock("@dokploy/server/db", () => ({
@@ -41,6 +47,10 @@ const { externalUpstreamRouter } = await import(
 const caller = externalUpstreamRouter.createCaller({
 	session: { activeOrganizationId: "org-1" },
 	user: { id: "user-1", email: "user@example.com", role: "member" },
+} as Parameters<typeof externalUpstreamRouter.createCaller>[0]);
+const ownerCaller = externalUpstreamRouter.createCaller({
+	session: { activeOrganizationId: "org-1" },
+	user: { id: "owner-1", email: "owner@example.com", role: "owner" },
 } as Parameters<typeof externalUpstreamRouter.createCaller>[0]);
 
 describe("moving an external upstream", () => {
@@ -102,5 +112,29 @@ describe("moving an external upstream", () => {
 			"create",
 		);
 		expect(mocks.dbUpdate).not.toHaveBeenCalled();
+	});
+});
+
+describe("updating an external upstream", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.checkServicePermissionAndAccess.mockResolvedValue(undefined);
+		mocks.findExternalUpstreamById.mockResolvedValue({
+			externalUpstreamId: "upstream-1",
+			appName: "upstream-1",
+			environment: { project: { organizationId: "org-2" } },
+			domains: [],
+		});
+	});
+
+	it("rejects an upstream owned by another organization before updating it", async () => {
+		await expect(
+			ownerCaller.update({
+				externalUpstreamId: "upstream-1",
+				name: "Changed name",
+			}),
+		).rejects.toThrow("You are not authorized to update this external upstream");
+
+		expect(mocks.updateExternalUpstreamById).not.toHaveBeenCalled();
 	});
 });

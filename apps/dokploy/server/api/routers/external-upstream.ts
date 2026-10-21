@@ -105,6 +105,16 @@ export const externalUpstreamRouter = createTRPCRouter({
 			});
 
 			const current = await findExternalUpstreamById(input.externalUpstreamId);
+			if (
+				current.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this external upstream",
+				});
+			}
+
 			const updated = await updateExternalUpstreamById(
 				input.externalUpstreamId,
 				input,
