@@ -5,7 +5,10 @@ import {
 	externalUpstreams,
 } from "@dokploy/server/db/schema";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
-import { validateExternalUpstreamTargetUrl as validateExternalUpstreamTargetUrlInput } from "@dokploy/server/utils/network/external-upstream";
+import {
+	DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
+	validateExternalUpstreamTargetUrl as validateExternalUpstreamTargetUrlInput,
+} from "@dokploy/server/utils/network/external-upstream";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -15,7 +18,10 @@ export type ExternalUpstream = typeof externalUpstreams.$inferSelect;
 
 const getBlockedCidrs = async () => {
 	const settings = await getWebServerSettings();
-	return settings?.externalUpstreamBlockedCidrs || [];
+	return (
+		settings?.externalUpstreamBlockedCidrs ??
+		DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS
+	);
 };
 
 const validateExternalUpstreamServiceTargetUrl = async (targetUrl: string) =>

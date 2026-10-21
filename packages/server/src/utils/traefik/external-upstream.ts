@@ -1,5 +1,10 @@
 import type { Domain } from "@dokploy/server/services/domain";
 import type { ExternalUpstream } from "@dokploy/server/services/external-upstream";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import {
+	DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
+	resolveExternalUpstreamTarget,
+} from "@dokploy/server/utils/network/external-upstream";
 import {
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
@@ -82,22 +87,40 @@ const createRouterConfig = (
 
 const createServiceConfig = (
 	service: ExternalUpstreamTraefikTarget,
+	urls: string[],
+	serversTransport: string | undefined,
 ): {
 	loadBalancer: {
-		servers: [{ url: string }];
+		servers: [{ url: string }, ...{ url: string }[]];
 		passHostHeader: boolean;
+		serversTransport?: string;
 	};
-} => ({
-	loadBalancer: {
-		servers: [{ url: service.targetUrl }],
-		passHostHeader: service.passHostHeader,
-	},
-});
+} => {
+	const [firstUrl, ...remainingUrls] = urls;
+	if (!firstUrl) {
+		throw new Error("Target URL hostname could not be resolved");
+	}
+
+	return {
+		loadBalancer: {
+			servers: [{ url: firstUrl }, ...remainingUrls.map((url) => ({ url }))],
+			passHostHeader: service.passHostHeader,
+			...(serversTransport ? { serversTransport } : {}),
+		},
+	};
+};
 
 export const manageExternalUpstreamDomain = async (
 	service: ExternalUpstreamTraefikTarget,
 	domain: Domain,
 ) => {
+	const settings = await getWebServerSettings();
+	const resolvedTarget = await resolveExternalUpstreamTarget({
+		targetUrl: service.targetUrl,
+		blockedCidrs:
+			settings?.externalUpstreamBlockedCidrs ??
+			DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
+	});
 	let config: FileConfig;
 
 	if (service.serverId) {
@@ -109,6 +132,8 @@ export const manageExternalUpstreamDomain = async (
 	const serviceName = `${service.appName}-service-${domain.uniqueConfigKey}`;
 	const routerName = `${service.appName}-router-${domain.uniqueConfigKey}`;
 	const routerNameSecure = `${service.appName}-router-websecure-${domain.uniqueConfigKey}`;
+	const hostHeaderMiddleware = `${service.appName}-host-header-${domain.uniqueConfigKey}`;
+	const serversTransport = `${service.appName}-servers-transport-${domain.uniqueConfigKey}`;
 
 	config.http = config.http || { routers: {}, services: {} };
 	config.http.routers = config.http.routers || {};
@@ -119,7 +144,6 @@ export const manageExternalUpstreamDomain = async (
 		domain,
 		domain.customEntrypoint || "web",
 	);
-
 	if (!domain.customEntrypoint && domain.https) {
 		config.http.routers[routerNameSecure] = createRouterConfig(
 			service,
@@ -130,7 +154,61 @@ export const manageExternalUpstreamDomain = async (
 		delete config.http.routers[routerNameSecure];
 	}
 
-	config.http.services[serviceName] = createServiceConfig(service);
+	const hasHttpRedirect = !domain.customEntrypoint && domain.https;
+	const upstreamRouters = [
+		{
+			router: config.http.routers[routerName],
+			active: !hasHttpRedirect,
+		},
+		{
+			router: config.http.routers[routerNameSecure],
+			active: Boolean(config.http.routers[routerNameSecure]),
+		},
+	];
+	const activeUpstreamRouters = upstreamRouters.filter(
+		({ router, active }) => router && active,
+	);
+
+	if (!service.passHostHeader && activeUpstreamRouters.length > 0) {
+		config.http.middlewares = config.http.middlewares || {};
+		config.http.middlewares[hostHeaderMiddleware] = {
+			headers: { customRequestHeaders: { Host: resolvedTarget.hostHeader } },
+		};
+	} else {
+		delete config.http.middlewares?.[hostHeaderMiddleware];
+	}
+
+	for (const { router, active } of upstreamRouters) {
+		if (!router) {
+			continue;
+		}
+
+		if (!service.passHostHeader && active) {
+			if (!router.middlewares?.includes(hostHeaderMiddleware)) {
+				router.middlewares?.push(hostHeaderMiddleware);
+			}
+		} else if (router.middlewares) {
+			router.middlewares = router.middlewares.filter(
+				(middleware) => middleware !== hostHeaderMiddleware,
+			);
+		}
+	}
+
+	const hasHttpsTarget = new URL(service.targetUrl).protocol === "https:";
+	if (hasHttpsTarget && resolvedTarget.serverName) {
+		config.http.serversTransports = config.http.serversTransports || {};
+		config.http.serversTransports[serversTransport] = {
+			serverName: resolvedTarget.serverName,
+		};
+	} else {
+		delete config.http.serversTransports?.[serversTransport];
+	}
+
+	config.http.services[serviceName] = createServiceConfig(
+		service,
+		resolvedTarget.urls,
+		hasHttpsTarget && resolvedTarget.serverName ? serversTransport : undefined,
+	);
 
 	await createPathMiddlewares(
 		{
@@ -162,6 +240,8 @@ export const removeExternalUpstreamDomain = async (
 	const routerKey = `${service.appName}-router-${uniqueConfigKey}`;
 	const routerSecureKey = `${service.appName}-router-websecure-${uniqueConfigKey}`;
 	const serviceKey = `${service.appName}-service-${uniqueConfigKey}`;
+	const hostHeaderMiddleware = `${service.appName}-host-header-${uniqueConfigKey}`;
+	const serversTransport = `${service.appName}-servers-transport-${uniqueConfigKey}`;
 
 	if (config.http?.routers?.[routerKey]) {
 		delete config.http.routers[routerKey];
@@ -171,6 +251,12 @@ export const removeExternalUpstreamDomain = async (
 	}
 	if (config.http?.services?.[serviceKey]) {
 		delete config.http.services[serviceKey];
+	}
+	if (config.http?.middlewares?.[hostHeaderMiddleware]) {
+		delete config.http.middlewares[hostHeaderMiddleware];
+	}
+	if (config.http?.serversTransports?.[serversTransport]) {
+		delete config.http.serversTransports[serversTransport];
 	}
 
 	await removePathMiddlewares(

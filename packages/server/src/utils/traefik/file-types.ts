@@ -25,6 +25,11 @@ export interface FileConfig {
 		middlewares?: {
 			[k: string]: HttpMiddleware;
 		};
+		serversTransports?: {
+			[k: string]: {
+				serverName?: string;
+			};
+		};
 		[k: string]: unknown;
 	};
 	tcp?: {

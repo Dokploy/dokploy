@@ -15,6 +15,11 @@ export const DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS = [
 
 const LOCALHOST_HOSTNAMES = new Set(["localhost", "localhost.localdomain"]);
 
+type ResolvedTargetAddress = {
+	address: string;
+	family: 4 | 6;
+};
+
 const addBlockedEntry = (blockList: BlockList, entry: string) => {
 	const value = entry.trim();
 	if (!value) {
@@ -58,56 +63,14 @@ export const validateBlockedCidrs = (blockedCidrs: string[]) => {
 	}
 };
 
-const isBlockedHost = async (host: string, blockedCidrs: string[]) => {
+const unwrapHostname = (host: string) => {
 	const normalizedHost = host.trim().toLowerCase();
-	const unwrappedHost =
-		normalizedHost.startsWith("[") && normalizedHost.endsWith("]")
-			? normalizedHost.slice(1, -1)
-			: normalizedHost;
-	if (
-		LOCALHOST_HOSTNAMES.has(normalizedHost) ||
-		normalizedHost.endsWith(".localhost")
-	) {
-		return true;
-	}
-
-	const blockList = new BlockList();
-	for (const entry of normalizeBlockedCidrs(blockedCidrs)) {
-		addBlockedEntry(blockList, entry);
-	}
-
-	const hostFamily = isIP(unwrappedHost);
-	if (hostFamily === 4 || hostFamily === 6) {
-		return blockList.check(
-			unwrappedHost,
-			hostFamily === 4 ? "ipv4" : "ipv6",
-		);
-	}
-
-	try {
-		const resolvedAddresses = await lookup(unwrappedHost, {
-			all: true,
-			verbatim: true,
-		});
-
-		return resolvedAddresses.some((resolved) =>
-			blockList.check(
-				resolved.address,
-				resolved.family === 4 ? "ipv4" : "ipv6",
-			),
-		);
-	} catch {
-		return false;
-	}
+	return normalizedHost.startsWith("[") && normalizedHost.endsWith("]")
+		? normalizedHost.slice(1, -1)
+		: normalizedHost;
 };
 
-export const validateExternalUpstreamTargetUrl = async ({
-	targetUrl,
-	blockedCidrs,
-}: {
-	targetUrl: string;
-	blockedCidrs: string[];
-}) => {
+const parseTargetUrl = (targetUrl: string) => {
 	let parsedUrl: URL;
 
 	try {
@@ -128,9 +91,99 @@ export const validateExternalUpstreamTargetUrl = async ({
 		throw new Error("Target URL must not include credentials");
 	}
 
-	if (await isBlockedHost(parsedUrl.hostname, blockedCidrs)) {
+	return parsedUrl;
+};
+
+const resolveTargetAddresses = async (
+	host: string,
+	blockedCidrs: string[],
+): Promise<ResolvedTargetAddress[]> => {
+	const normalizedHost = host.trim().toLowerCase();
+	const unwrappedHost = unwrapHostname(normalizedHost);
+	if (
+		LOCALHOST_HOSTNAMES.has(normalizedHost) ||
+		normalizedHost.endsWith(".localhost")
+	) {
 		throw new Error("Target URL points to a blocked network range");
 	}
 
+	const blockList = new BlockList();
+	for (const entry of normalizeBlockedCidrs(blockedCidrs)) {
+		addBlockedEntry(blockList, entry);
+	}
+
+	const hostFamily = isIP(unwrappedHost);
+	let resolvedAddresses: ResolvedTargetAddress[];
+
+	if (hostFamily === 4 || hostFamily === 6) {
+		resolvedAddresses = [{ address: unwrappedHost, family: hostFamily }];
+	} else {
+		try {
+			resolvedAddresses = (
+				await lookup(unwrappedHost, {
+					all: true,
+					verbatim: true,
+				})
+			).map(({ address, family }) => ({
+				address,
+				family: family === 4 ? 4 : 6,
+			}));
+		} catch {
+			throw new Error("Target URL hostname could not be resolved");
+		}
+	}
+
+	if (resolvedAddresses.length === 0) {
+		throw new Error("Target URL hostname could not be resolved");
+	}
+
+	if (
+		resolvedAddresses.some((resolved) =>
+			blockList.check(
+				resolved.address,
+				resolved.family === 4 ? "ipv4" : "ipv6",
+			),
+		)
+	) {
+		throw new Error("Target URL points to a blocked network range");
+	}
+
+	return resolvedAddresses;
+};
+
+export const resolveExternalUpstreamTarget = async ({
+	targetUrl,
+	blockedCidrs,
+}: {
+	targetUrl: string;
+	blockedCidrs: string[];
+}) => {
+	const parsedUrl = parseTargetUrl(targetUrl);
+	const host = unwrapHostname(parsedUrl.hostname);
+	const resolvedAddresses = await resolveTargetAddresses(
+		parsedUrl.hostname,
+		blockedCidrs,
+	);
+
+	return {
+		urls: resolvedAddresses.map(({ address, family }) => {
+			const pinnedUrl = new URL(parsedUrl);
+			pinnedUrl.hostname = family === 6 ? `[${address}]` : address;
+			return pinnedUrl.toString();
+		}),
+		hostHeader: parsedUrl.host,
+		serverName: isIP(host) === 0 ? host : undefined,
+	};
+};
+
+export const validateExternalUpstreamTargetUrl = async ({
+	targetUrl,
+	blockedCidrs,
+}: {
+	targetUrl: string;
+	blockedCidrs: string[];
+}) => {
+	const parsedUrl = parseTargetUrl(targetUrl);
+	await resolveTargetAddresses(parsedUrl.hostname, blockedCidrs);
 	return parsedUrl.toString();
 };
