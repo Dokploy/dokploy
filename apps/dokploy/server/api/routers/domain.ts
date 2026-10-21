@@ -54,6 +54,20 @@ export const domainRouter = createTRPCRouter({
 					input.domainType === "externalUpstream" &&
 					input.externalUpstreamId
 				) {
+					const externalUpstream = await findExternalUpstreamById(
+						input.externalUpstreamId,
+					);
+					if (
+						externalUpstream.environment.project.organizationId !==
+						ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message:
+								"You are not authorized to create a domain for this external upstream",
+						});
+					}
+
 					await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
 						domain: ["create"],
 					});

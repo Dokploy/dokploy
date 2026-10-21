@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	checkServicePermissionAndAccess: vi.fn(),
+	createDomain: vi.fn(),
 	findDomainById: vi.fn(),
 	findExternalUpstreamById: vi.fn(),
 	updateDomainById: vi.fn(),
@@ -10,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@dokploy/server", () => ({
+	createDomain: mocks.createDomain,
 	findDomainById: mocks.findDomainById,
 	findExternalUpstreamById: mocks.findExternalUpstreamById,
 	updateDomainById: mocks.updateDomainById,
@@ -72,5 +74,26 @@ describe("toggling an external upstream domain", () => {
 			{ externalUpstreamId: "upstream-1", appName: "upstream-1" },
 			expect.objectContaining({ enabled: false }),
 		);
+	});
+
+	it("rejects upstreams owned by another organization before creating a route", async () => {
+		mocks.findExternalUpstreamById.mockResolvedValue({
+			externalUpstreamId: "upstream-1",
+			environment: { project: { organizationId: "org-2" } },
+		});
+
+		await expect(
+			caller.create({
+				host: "service.example.com",
+				customCertResolver: "",
+				domainType: "externalUpstream",
+				externalUpstreamId: "upstream-1",
+			}),
+		).rejects.toThrow(
+			"You are not authorized to create a domain for this external upstream",
+		);
+
+		expect(mocks.checkServicePermissionAndAccess).not.toHaveBeenCalled();
+		expect(mocks.createDomain).not.toHaveBeenCalled();
 	});
 });
