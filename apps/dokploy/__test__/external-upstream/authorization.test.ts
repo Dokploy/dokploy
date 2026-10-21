@@ -56,7 +56,7 @@ describe("moving an external upstream", () => {
 			environment: { project: { organizationId: "org-1" } },
 		});
 		mocks.findEnvironmentById.mockResolvedValue({
-			project: { organizationId: "org-1" },
+			project: { projectId: "project-2", organizationId: "org-1" },
 		});
 		mocks.dbUpdate.mockReturnValue({
 			set: () => ({
@@ -79,6 +79,27 @@ describe("moving an external upstream", () => {
 			expect.anything(),
 			"upstream-1",
 			{ service: ["create"] },
+		);
+		expect(mocks.dbUpdate).not.toHaveBeenCalled();
+	});
+
+	it("requires access to the destination project", async () => {
+		mocks.checkServicePermissionAndAccess.mockResolvedValue(undefined);
+		mocks.checkServiceAccess.mockRejectedValue(
+			new Error("You don't have access to this project"),
+		);
+
+		await expect(
+			caller.move({
+				externalUpstreamId: "upstream-1",
+				targetEnvironmentId: "environment-2",
+			}),
+		).rejects.toThrow("You don't have access to this project");
+
+		expect(mocks.checkServiceAccess).toHaveBeenCalledWith(
+			expect.anything(),
+			"project-2",
+			"create",
 		);
 		expect(mocks.dbUpdate).not.toHaveBeenCalled();
 	});

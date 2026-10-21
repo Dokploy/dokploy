@@ -189,6 +189,12 @@ export const externalUpstreamRouter = createTRPCRouter({
 				});
 			}
 
+			await checkServiceAccess(
+				ctx,
+				targetEnvironment.project.projectId,
+				"create",
+			);
+
 			const updated = await db
 				.update(externalUpstreams)
 				.set({
