@@ -4638,6 +4638,9 @@ packages:
   '@types/swagger-ui-react@4.19.0':
     resolution: {integrity: sha512-uScp1xkLZJej0bt3/lO4U11ywWEBnI5CFCR0tqp+5Rvxl1Mj1v6VkGED0W70jJwqlBvbD+/a6bDiK8rjepCr8g==}
 
+  '@types/tar-stream@3.1.4':
+    resolution: {integrity: sha512-921gW0+g29mCJX0fRvqeHzBlE/XclDaAG0Ousy1LCghsOhvaKacDeRGEVzQP9IPfKn8Vysy7FEXAIxycpc/CMg==}
+
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
@@ -14091,6 +14094,10 @@ snapshots:
   '@types/swagger-ui-react@4.19.0':
     dependencies:
       '@types/react': 18.3.5
+
+  '@types/tar-stream@3.1.4':
+    dependencies:
+      '@types/node': 24.10.13
 
   '@types/trusted-types@2.0.7':
     optional: true
