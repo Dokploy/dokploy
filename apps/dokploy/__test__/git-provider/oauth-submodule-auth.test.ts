@@ -140,7 +140,7 @@ describe("OAuth Git provider submodule authentication", () => {
 			accessToken: "gitlab-token",
 			refreshToken: "gitlab-refresh-token",
 			expiresAt: Math.floor(Date.now() / 1000) + 3600,
-		})
+		});
 		const command = await cloneGitlabRepository({
 			appName: "gitlab-app",
 			gitlabRepository: "private-repository",
@@ -151,19 +151,19 @@ describe("OAuth Git provider submodule authentication", () => {
 			enableSubmodules: false,
 			serverId: null,
 			outputPathOverride: "/tmp/gitlab-app",
-		})
-		const cloneCommand = command.replace(/\\/g, "")
-		const authorization = Buffer.from("oauth2:gitlab-token").toString("base64")
+		});
+		const cloneCommand = command.replace(/\\/g, "");
+		const authorization = Buffer.from("oauth2:gitlab-token").toString("base64");
 
 		expect(cloneCommand).toContain(
 			`http.https://gitlab.internal/gitlab/.extraheader=Authorization: Basic ${authorization}`,
-		)
+		);
 		expect(cloneCommand).toContain(
 			"clone --branch main --depth 1 https://gitlab.internal/gitlab/team/private-repository.git",
-		)
-		expect(cloneCommand).not.toContain("http://gitlab.internal")
-		expect(cloneCommand).not.toMatch(/https?:\/\/[^/\s'"]+@/)
-	})
+		);
+		expect(cloneCommand).not.toContain("http://gitlab.internal");
+		expect(cloneCommand).not.toMatch(/https?:\/\/[^/\s'"]+@/);
+	});
 
 	it("rewrites Gitea SSH URLs to the configured internal URL", async () => {
 		const command = await cloneGiteaRepository({

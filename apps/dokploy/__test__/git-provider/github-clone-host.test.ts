@@ -106,9 +106,7 @@ describe("cloneGithubRepository host", () => {
 		expect(command).toContain(
 			"url.https://github.acme.com:8443/.insteadOf=git@github.acme.com:",
 		);
-		expect(command).toContain(
-			`case "$ssh_host" in '''github.acme.com''') ;;`,
-		);
+		expect(command).toContain(`case "$ssh_host" in '''github.acme.com''') ;;`);
 		expect(command).not.toContain("git@github.acme.com:8443:");
 		expect(command).not.toContain(
 			`case "$ssh_host" in '''github.acme.com:8443''') ;;`,
