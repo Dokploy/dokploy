@@ -132,6 +132,8 @@ interface CloneGitlabRepository {
 	appName: string;
 	gitlabBranch: string | null;
 	gitlabId: string | null;
+	gitlabRepository: string | null;
+	gitlabOwner: string | null;
 	gitlabPathNamespace: string | null;
 	enableSubmodules: boolean;
 	serverId: string | null;
