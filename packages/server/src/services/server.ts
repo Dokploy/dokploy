@@ -132,6 +132,7 @@ export const haveActiveServices = async (serverId: string) => {
 		with: {
 			applications: { columns: { applicationId: true } },
 			compose: { columns: { composeId: true } },
+			externalUpstreams: { columns: { externalUpstreamId: true } },
 			libsql: { columns: { libsqlId: true } },
 			mariadb: { columns: { mariadbId: true } },
 			mongo: { columns: { mongoId: true } },
@@ -148,6 +149,7 @@ export const haveActiveServices = async (serverId: string) => {
 	const total =
 		currentServer?.applications?.length +
 		currentServer?.compose?.length +
+		currentServer?.externalUpstreams?.length +
 		currentServer?.libsql?.length +
 		currentServer?.mariadb?.length +
 		currentServer?.mongo?.length +
