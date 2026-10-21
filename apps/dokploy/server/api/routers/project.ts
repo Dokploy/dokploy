@@ -39,6 +39,7 @@ import {
 	addNewProject,
 	checkPermission,
 	checkProjectAccess,
+	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { serviceColumns } from "@dokploy/server/services/project";
@@ -946,6 +947,41 @@ export const projectRouter = createTRPCRouter({
 					}
 				}
 
+				const servicesToDuplicate = input.includeServices
+					? input.selectedServices || []
+					: [];
+				const externalUpstreamsToDuplicate = new Map<
+					string,
+					Awaited<ReturnType<typeof findExternalUpstreamById>>
+				>();
+
+				for (const service of servicesToDuplicate) {
+					if (
+						service.type !== "external-upstream" ||
+						externalUpstreamsToDuplicate.has(service.id)
+					) {
+						continue;
+					}
+
+					await checkServicePermissionAndAccess(ctx, service.id, {
+						service: ["read"],
+					});
+
+					const externalUpstream = await findExternalUpstreamById(service.id);
+					if (
+						externalUpstream.environment.project.organizationId !==
+						ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message:
+								"You are not authorized to duplicate this external upstream",
+						});
+					}
+
+					externalUpstreamsToDuplicate.set(service.id, externalUpstream);
+				}
+
 				const targetProject = input.duplicateInSameProject
 					? sourceEnvironment
 					: await createProject(
@@ -958,8 +994,6 @@ export const projectRouter = createTRPCRouter({
 						).then((value) => value.environment);
 
 				if (input.includeServices) {
-					const servicesToDuplicate = input.selectedServices || [];
-
 					const duplicateService = async (id: string, type: string) => {
 						switch (type) {
 							case "application": {
@@ -1095,7 +1129,7 @@ export const projectRouter = createTRPCRouter({
 									applicationStatus,
 									createdAt,
 									...externalUpstream
-								} = await findExternalUpstreamById(id);
+								} = externalUpstreamsToDuplicate.get(id)!;
 
 								const newAppName = appName.substring(
 									0,
