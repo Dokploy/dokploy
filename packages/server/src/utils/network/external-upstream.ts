@@ -3,9 +3,13 @@ import { BlockList, isIP } from "node:net";
 
 export const DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS = [
 	"127.0.0.0/8",
+	"10.0.0.0/8",
+	"172.16.0.0/12",
+	"192.168.0.0/16",
 	"169.254.0.0/16",
 	"0.0.0.0/8",
 	"::1/128",
+	"fc00::/7",
 	"fe80::/10",
 ];
 
@@ -56,6 +60,10 @@ export const validateBlockedCidrs = (blockedCidrs: string[]) => {
 
 const isBlockedHost = async (host: string, blockedCidrs: string[]) => {
 	const normalizedHost = host.trim().toLowerCase();
+	const unwrappedHost =
+		normalizedHost.startsWith("[") && normalizedHost.endsWith("]")
+			? normalizedHost.slice(1, -1)
+			: normalizedHost;
 	if (
 		LOCALHOST_HOSTNAMES.has(normalizedHost) ||
 		normalizedHost.endsWith(".localhost")
@@ -68,13 +76,16 @@ const isBlockedHost = async (host: string, blockedCidrs: string[]) => {
 		addBlockedEntry(blockList, entry);
 	}
 
-	const hostFamily = isIP(host);
+	const hostFamily = isIP(unwrappedHost);
 	if (hostFamily === 4 || hostFamily === 6) {
-		return blockList.check(host, hostFamily === 4 ? "ipv4" : "ipv6");
+		return blockList.check(
+			unwrappedHost,
+			hostFamily === 4 ? "ipv4" : "ipv6",
+		);
 	}
 
 	try {
-		const resolvedAddresses = await lookup(host, {
+		const resolvedAddresses = await lookup(unwrappedHost, {
 			all: true,
 			verbatim: true,
 		});

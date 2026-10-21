@@ -61,6 +61,20 @@ describe("external upstream target validation", () => {
 		).rejects.toThrow("Target URL points to a blocked network range");
 	});
 
+	test.each([
+		"http://10.0.0.1",
+		"http://172.16.0.1",
+		"http://192.168.0.1",
+		"http://[fd00::1]",
+	])("rejects private network target %s by default", async (targetUrl) => {
+		await expect(
+			validateExternalUpstreamTargetUrl({
+				targetUrl,
+				blockedCidrs: DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
+			}),
+		).rejects.toThrow("Target URL points to a blocked network range");
+	});
+
 	test("accepts a public HTTP target", async () => {
 		await expect(
 			validateExternalUpstreamTargetUrl({

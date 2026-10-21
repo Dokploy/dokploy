@@ -133,7 +133,7 @@ export const webServerSettings = pgTable("webServerSettings", {
 		.array()
 		.notNull()
 		.default(
-			sql`ARRAY['127.0.0.0/8','169.254.0.0/16','0.0.0.0/8','::1/128','fe80::/10']::text[]`,
+			sql`ARRAY['127.0.0.0/8','10.0.0.0/8','172.16.0.0/12','192.168.0.0/16','169.254.0.0/16','0.0.0.0/8','::1/128','fc00::/7','fe80::/10']::text[]`,
 		),
 	// Concurrent builds on the local web server
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
