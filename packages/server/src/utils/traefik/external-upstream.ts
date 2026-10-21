@@ -21,6 +21,33 @@ type ExternalUpstreamTraefikTarget = Pick<
 	"appName" | "serverId" | "targetUrl" | "passHostHeader"
 >;
 
+const externalUpstreamConfigLocks = new Map<string, Promise<void>>();
+
+export const withExternalUpstreamConfigLock = async <T>(
+	service: ExternalUpstreamTraefikTarget,
+	operation: () => Promise<T>,
+) => {
+	const lockKey = `${service.serverId ?? "local"}:${service.appName}`;
+	const previousLock =
+		externalUpstreamConfigLocks.get(lockKey) ?? Promise.resolve();
+	let releaseLock = () => {};
+	const currentLock = new Promise<void>((resolve) => {
+		releaseLock = resolve;
+	});
+	const queuedLock = previousLock.then(() => currentLock);
+	externalUpstreamConfigLocks.set(lockKey, queuedLock);
+
+	await previousLock;
+	try {
+		return await operation();
+	} finally {
+		releaseLock();
+		if (externalUpstreamConfigLocks.get(lockKey) === queuedLock) {
+			externalUpstreamConfigLocks.delete(lockKey);
+		}
+	}
+};
+
 const toPunycode = (host: string): string => {
 	try {
 		return new URL(`http://${host}`).hostname;
@@ -110,12 +137,12 @@ const createServiceConfig = (
 	};
 };
 
-export const manageExternalUpstreamDomain = async (
+export const manageExternalUpstreamDomainLocked = async (
 	service: ExternalUpstreamTraefikTarget,
 	domain: Domain,
 ) => {
 	if (!domain.enabled) {
-		await removeExternalUpstreamDomain(service, domain.uniqueConfigKey);
+		await removeExternalUpstreamDomainLocked(service, domain.uniqueConfigKey);
 		return;
 	}
 
@@ -230,7 +257,15 @@ export const manageExternalUpstreamDomain = async (
 	}
 };
 
-export const removeExternalUpstreamDomain = async (
+export const manageExternalUpstreamDomain = async (
+	service: ExternalUpstreamTraefikTarget,
+	domain: Domain,
+) =>
+	withExternalUpstreamConfigLock(service, () =>
+		manageExternalUpstreamDomainLocked(service, domain),
+	);
+
+export const removeExternalUpstreamDomainLocked = async (
 	service: ExternalUpstreamTraefikTarget,
 	uniqueConfigKey: number,
 ) => {
@@ -284,3 +319,11 @@ export const removeExternalUpstreamDomain = async (
 		writeTraefikConfig(config, service.appName);
 	}
 };
+
+export const removeExternalUpstreamDomain = async (
+	service: ExternalUpstreamTraefikTarget,
+	uniqueConfigKey: number,
+) =>
+	withExternalUpstreamConfigLock(service, () =>
+		removeExternalUpstreamDomainLocked(service, uniqueConfigKey),
+	);

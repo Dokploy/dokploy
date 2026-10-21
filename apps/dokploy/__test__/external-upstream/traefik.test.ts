@@ -39,7 +39,10 @@ vi.mock("@dokploy/server/services/web-server-settings", () => ({
 vi.mock("node:dns/promises", () => ({ lookup: mocks.lookup }));
 
 import { DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS } from "@dokploy/server/utils/network/external-upstream";
-import { manageExternalUpstreamDomain } from "@dokploy/server/utils/traefik/external-upstream";
+import {
+	manageExternalUpstreamDomain,
+	removeExternalUpstreamDomain,
+} from "@dokploy/server/utils/traefik/external-upstream";
 
 const service = {
 	appName: "external-service",
@@ -89,6 +92,7 @@ describe("external upstream Traefik configuration", () => {
 		};
 		mocks.getWebServerSettings.mockClear();
 		mocks.loadOrCreateConfig.mockReturnValue(mocks.config);
+		mocks.loadOrCreateConfig.mockClear();
 		mocks.getWebServerSettings.mockResolvedValue({
 			externalUpstreamBlockedCidrs: DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
 		});
@@ -140,6 +144,34 @@ describe("external upstream Traefik configuration", () => {
 			"Target URL points to a blocked network range",
 		);
 		expect(mocks.writeTraefikConfig).not.toHaveBeenCalled();
+	});
+
+	test("serializes route removal with an in-progress refresh write", async () => {
+		let finishLookup: (
+			addresses: { address: string; family: number }[],
+		) => void = () => {};
+		const lookupResult = new Promise<{ address: string; family: number }[]>(
+			(resolve) => {
+				finishLookup = resolve;
+			},
+		);
+		mocks.lookup.mockReturnValueOnce(lookupResult);
+
+		const refresh = manageExternalUpstreamDomain(service, domain);
+		await vi.waitFor(() => expect(mocks.lookup).toHaveBeenCalled());
+
+		const removal = removeExternalUpstreamDomain(
+			service,
+			domain.uniqueConfigKey,
+		);
+		await Promise.resolve();
+		expect(mocks.loadOrCreateConfig).not.toHaveBeenCalled();
+
+		finishLookup([{ address: "93.184.216.34", family: 4 }]);
+		await Promise.all([refresh, removal]);
+
+		expect(mocks.config.http?.routers).toEqual({});
+		expect(mocks.config.http?.services).toEqual({});
 	});
 
 	test("removes routing for a disabled domain without resolving its target", async () => {

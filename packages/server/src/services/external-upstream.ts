@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateExternalUpstream,
 	buildExternalUpstreamAppName,
+	domains,
 	externalUpstreams,
 } from "@dokploy/server/db/schema";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
@@ -9,9 +10,12 @@ import {
 	DEFAULT_EXTERNAL_UPSTREAM_BLOCKED_CIDRS,
 	validateExternalUpstreamTargetUrl as validateExternalUpstreamTargetUrlInput,
 } from "@dokploy/server/utils/network/external-upstream";
-import { manageExternalUpstreamDomain } from "@dokploy/server/utils/traefik/external-upstream";
+import {
+	manageExternalUpstreamDomainLocked,
+	withExternalUpstreamConfigLock,
+} from "@dokploy/server/utils/traefik/external-upstream";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import type { z } from "zod";
 import { validUniqueServerAppName } from "./project";
@@ -34,7 +38,27 @@ export const refreshExternalUpstreamDomains = async () => {
 		for (const service of services) {
 			for (const domain of service.domains) {
 				try {
-					await manageExternalUpstreamDomain(service, domain);
+					await withExternalUpstreamConfigLock(service, async () => {
+						const currentService = await db.query.externalUpstreams.findFirst({
+							where: eq(
+								externalUpstreams.externalUpstreamId,
+								service.externalUpstreamId,
+							),
+						});
+						const currentDomain = await db.query.domains.findFirst({
+							where: and(
+								eq(domains.domainId, domain.domainId),
+								eq(domains.externalUpstreamId, service.externalUpstreamId),
+							),
+						});
+
+						if (currentService && currentDomain) {
+							await manageExternalUpstreamDomainLocked(
+								currentService,
+								currentDomain,
+							);
+						}
+					});
 				} catch (error) {
 					console.error(
 						`[External Upstream] Failed to refresh ${service.appName} (${domain.host})`,
