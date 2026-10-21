@@ -44,14 +44,14 @@ const clone = async () => {
 };
 
 const expectCloneAuthentication = (command: string, host: string) => {
-	const authorization = `Authorization: Basic ${Buffer.from("x-access-token:gh-token").toString("base64")}`
+	const authorization = `Authorization: Basic ${Buffer.from("x-access-token:gh-token").toString("base64")}`;
 	const cloneUrl = `https://${host}/acme/web.git`;
 
 	expect(command).toContain(
 		`-c 'http.https://${host}/.extraheader=${authorization}' clone --branch main --depth 1 ${cloneUrl}`,
-	)
-	expect(command).not.toMatch(/https:\/\/[^/\s'"]+@/)
-}
+	);
+	expect(command).not.toMatch(/https:\/\/[^/\s'"]+@/);
+};
 
 describe("cloneGithubRepository host", () => {
 	beforeEach(() => {
