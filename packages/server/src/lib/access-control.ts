@@ -29,6 +29,7 @@ export const statements = {
 	traefikFiles: ["read", "write"],
 	api: ["read"],
 	telemetryProvider: ["read", "create", "delete"],
+	sandbox: ["read", "create", "delete"],
 
 	// Enterprise-only resources (custom roles only)
 	volume: ["read", "create", "delete"],
@@ -123,6 +124,7 @@ export const ownerRole = ac.newRole({
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
 	telemetryProvider: ["read", "create", "delete"],
+	sandbox: ["read", "create", "delete"],
 	ai: ["read", "create", "update", "delete"],
 });
 
@@ -164,6 +166,7 @@ export const adminRole = ac.newRole({
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
 	telemetryProvider: ["read", "create", "delete"],
+	sandbox: ["read", "create", "delete"],
 	ai: ["read", "create", "update", "delete"],
 });
 
@@ -206,6 +209,7 @@ export const memberRole = ac.newRole({
 	destination: [],
 	notification: [],
 	telemetryProvider: [],
+	sandbox: [],
 	tag: ["read"],
 	auditLog: [],
 	// Members need provider/secret names for env editor autocomplete; values are never exposed

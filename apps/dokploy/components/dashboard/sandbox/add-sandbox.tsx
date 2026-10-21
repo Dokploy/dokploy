@@ -1,3 +1,4 @@
+import type { SandboxTemplateName } from "@dokploy/server/db/schema";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Box, PlusIcon } from "lucide-react";
 import { useRouter } from "next/router";
@@ -41,7 +42,7 @@ const schema = z
 	.object({
 		name: z.string().max(64).optional(),
 		source: z.enum(["template", "image"]),
-		template: z.enum(["base", "python", "node"]),
+		template: z.string().min(1),
 		image: z.string().max(255).optional(),
 		serverId: z.string().nullable(),
 		cpu: z.number().min(0.1).max(64),
@@ -57,12 +58,7 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-interface Props {
-	environmentId: string;
-	projectId: string;
-}
-
-export const AddSandbox = ({ environmentId, projectId }: Props) => {
+export const AddSandbox = () => {
 	const router = useRouter();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
@@ -95,9 +91,11 @@ export const AddSandbox = ({ environmentId, projectId }: Props) => {
 	const onSubmit = async (values: FormValues) => {
 		try {
 			const sandbox = await mutateAsync({
-				environmentId,
 				name: values.name?.trim() || undefined,
-				template: values.source === "template" ? values.template : undefined,
+				template:
+					values.source === "template"
+						? (values.template as SandboxTemplateName)
+						: undefined,
 				image: values.source === "image" ? values.image?.trim() : undefined,
 				serverId: values.serverId,
 				cpu: values.cpu,
@@ -107,12 +105,10 @@ export const AddSandbox = ({ environmentId, projectId }: Props) => {
 				envVars: values.envVars?.trim() || undefined,
 			});
 			toast.success("Sandbox created");
-			await utils.sandbox.list.invalidate({ environmentId });
+			await utils.sandbox.list.invalidate();
 			setOpen(false);
 			form.reset();
-			router.push(
-				`/dashboard/project/${projectId}/environment/${environmentId}/sandboxes/${sandbox.sandboxId}`,
-			);
+			router.push(`/dashboard/sandboxes/${sandbox.sandboxId}`);
 		} catch {
 			toast.error("Error creating the sandbox");
 		}
@@ -190,7 +186,7 @@ export const AddSandbox = ({ environmentId, projectId }: Props) => {
 														<span className="capitalize">{template.name}</span>
 														<span className="text-muted-foreground">
 															{" "}
-															· {template.image}
+															· {template.description}
 														</span>
 													</SelectItem>
 												))}

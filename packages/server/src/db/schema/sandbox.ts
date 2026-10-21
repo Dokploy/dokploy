@@ -9,7 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { environments } from "./environment";
+import { organization } from "./account";
 import { server } from "./server";
 import { encryptedText } from "./utils";
 
@@ -25,7 +25,19 @@ export const sandboxNetworkMode = pgEnum("sandboxNetworkMode", [
 	"internet",
 ]);
 
-export const SANDBOX_TEMPLATE_NAMES = ["base", "python", "node"] as const;
+export const SANDBOX_TEMPLATE_NAMES = [
+	"base",
+	"alpine",
+	"python",
+	"node",
+	"bun",
+	"deno",
+	"go",
+	"rust",
+	"ruby",
+	"java",
+	"php",
+] as const;
 export type SandboxTemplateName = (typeof SANDBOX_TEMPLATE_NAMES)[number];
 
 export const SANDBOX_DEFAULTS = {
@@ -33,6 +45,7 @@ export const SANDBOX_DEFAULTS = {
 	memoryMb: 512,
 	pidsLimit: 256,
 	timeoutMs: 300_000,
+	maxLifetimeMs: 24 * 60 * 60 * 1000,
 	workdir: "/home/user",
 	execTimeoutMs: 60_000,
 } as const;
@@ -43,9 +56,9 @@ export const sandboxes = pgTable("sandbox", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
-	environmentId: text("environmentId")
+	organizationId: text("organizationId")
 		.notNull()
-		.references(() => environments.environmentId, { onDelete: "cascade" }),
+		.references(() => organization.id, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -58,6 +71,7 @@ export const sandboxes = pgTable("sandbox", {
 	pidsLimit: integer("pidsLimit").notNull().default(SANDBOX_DEFAULTS.pidsLimit),
 	timeoutMs: integer("timeoutMs").notNull().default(SANDBOX_DEFAULTS.timeoutMs),
 	expiresAt: timestamp("expiresAt", { withTimezone: true }),
+	deadlineAt: timestamp("deadlineAt", { withTimezone: true }).notNull(),
 	lastActivityAt: timestamp("lastActivityAt", { withTimezone: true }),
 	networkMode: sandboxNetworkMode("networkMode").notNull().default("isolated"),
 	envVars: encryptedText("envVars"),
@@ -71,9 +85,9 @@ export const sandboxes = pgTable("sandbox", {
 });
 
 export const sandboxRelations = relations(sandboxes, ({ one }) => ({
-	environment: one(environments, {
-		fields: [sandboxes.environmentId],
-		references: [environments.environmentId],
+	organization: one(organization, {
+		fields: [sandboxes.organizationId],
+		references: [organization.id],
 	}),
 	server: one(server, {
 		fields: [sandboxes.serverId],
@@ -92,7 +106,6 @@ const absolutePath = z
 
 export const apiCreateSandbox = z
 	.object({
-		environmentId: z.string().min(1),
 		name: z.string().min(1).max(64).optional(),
 		template: z.enum(SANDBOX_TEMPLATE_NAMES).optional(),
 		image: z.string().min(1).max(255).optional(),
@@ -106,6 +119,12 @@ export const apiCreateSandbox = z
 			.min(10_000)
 			.max(24 * 60 * 60 * 1000)
 			.optional(),
+		maxLifetimeMs: z
+			.number()
+			.int()
+			.min(60_000)
+			.max(SANDBOX_DEFAULTS.maxLifetimeMs)
+			.optional(),
 		networkMode: z.enum(["isolated", "internet"]).optional(),
 		envVars: z.string().max(65_536).optional(),
 		workdir: absolutePath.optional(),
@@ -118,16 +137,6 @@ export const apiCreateSandbox = z
 export const apiFindOneSandbox = z.object({
 	sandboxId: z.string().min(1),
 });
-
-export const apiListSandboxes = z
-	.object({
-		environmentId: z.string().min(1).optional(),
-		projectId: z.string().min(1).optional(),
-	})
-	.refine((value) => !!value.environmentId || !!value.projectId, {
-		message: "Either environmentId or projectId is required",
-		path: ["environmentId"],
-	});
 
 export const apiExecSandbox = z.object({
 	sandboxId: z.string().min(1),

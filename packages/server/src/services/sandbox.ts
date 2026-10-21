@@ -2,22 +2,25 @@ import { posix } from "node:path";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateSandbox,
-	environments,
 	SANDBOX_DEFAULTS,
 	sandboxes,
 } from "@dokploy/server/db/schema";
 import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import type Dockerode from "dockerode";
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
 	buildSandboxContainerOptions,
+	getSandboxExpiry,
 	getSandboxNetworkName,
 	parseSandboxUser,
 	SANDBOX_LABEL,
+	SANDBOX_TIMEOUT_FILE,
 	type SandboxNetworkMode,
+	toSandboxTimeoutSeconds,
+	withSandboxActivity,
 } from "../utils/sandbox/container";
 import { runSandboxExec, type SandboxExecResult } from "../utils/sandbox/exec";
 import {
@@ -39,47 +42,90 @@ export type Sandbox = typeof sandboxes.$inferSelect;
 
 export const SANDBOX_MAX_FILE_BYTES = 10 * 1024 * 1024;
 const INTERNAL_EXEC_TIMEOUT_MS = 15_000;
+const STUCK_CREATING_MS = 10 * 60 * 1000;
 
 const statusCodeOf = (error: unknown) =>
 	(error as { statusCode?: number } | null)?.statusCode;
 
 const isNotFound = (error: unknown) => statusCodeOf(error) === 404;
 
+const isContainerGone = (error: unknown) => {
+	const message = error instanceof Error ? error.message : String(error);
+	return (
+		(statusCodeOf(error) === 404 && /no such container:/i.test(message)) ||
+		(statusCodeOf(error) === 409 &&
+			/is not running|removal .* in progress/i.test(message))
+	);
+};
+
+// Containers stop and remove themselves (see buildSandboxLifetimeCommand), so
+// the stored status is brought up to date whenever a sandbox is read instead
+// of by a background job.
+const settleSandboxStatus = async <T extends Sandbox>(sandbox: T) => {
+	const now = Date.now();
+	let data: Partial<Sandbox> | null = null;
+	if (sandbox.status === "running") {
+		const endsAt = Math.min(
+			sandbox.expiresAt?.getTime() ?? Number.POSITIVE_INFINITY,
+			sandbox.deadlineAt.getTime(),
+		);
+		if (endsAt <= now) {
+			data = { status: "killed", killedAt: new Date(endsAt) };
+		}
+	} else if (
+		sandbox.status === "creating" &&
+		Date.parse(sandbox.createdAt) <= now - STUCK_CREATING_MS
+	) {
+		data = { status: "error" };
+	}
+	if (!data) return sandbox;
+	await updateSandboxById(sandbox.sandboxId, data);
+	return { ...sandbox, ...data };
+};
+
+const markSandboxGone = async (sandbox: Sandbox) => {
+	await updateSandboxById(sandbox.sandboxId, {
+		status: "killed",
+		killedAt: new Date(),
+	});
+	return new TRPCError({
+		code: "PRECONDITION_FAILED",
+		message: "Sandbox is killed",
+	});
+};
+
+const withLiveContainer = async <T>(
+	sandbox: Sandbox,
+	run: () => Promise<T>,
+): Promise<T> => {
+	try {
+		return await run();
+	} catch (error) {
+		if (isContainerGone(error)) throw await markSandboxGone(sandbox);
+		throw error;
+	}
+};
+
 export const findSandboxById = async (sandboxId: string) => {
 	const result = await db.query.sandboxes.findFirst({
 		where: eq(sandboxes.sandboxId, sandboxId),
 		with: {
-			environment: { with: { project: true } },
 			server: { columns: { serverId: true, name: true, serverStatus: true } },
 		},
 	});
 	if (!result) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Sandbox not found" });
 	}
-	return result;
+	return settleSandboxStatus(result);
 };
 
-export const findSandboxesByEnvironmentId = (environmentId: string) =>
-	db.query.sandboxes.findMany({
-		where: eq(sandboxes.environmentId, environmentId),
+export const findSandboxesByOrganizationId = async (organizationId: string) => {
+	const rows = await db.query.sandboxes.findMany({
+		where: eq(sandboxes.organizationId, organizationId),
 		orderBy: desc(sandboxes.createdAt),
 		with: { server: { columns: { serverId: true, name: true } } },
 	});
-
-export const findSandboxesByProjectId = async (projectId: string) => {
-	const projectEnvironments = await db.query.environments.findMany({
-		where: eq(environments.projectId, projectId),
-		columns: { environmentId: true },
-	});
-	if (projectEnvironments.length === 0) return [];
-	return db.query.sandboxes.findMany({
-		where: inArray(
-			sandboxes.environmentId,
-			projectEnvironments.map((env) => env.environmentId),
-		),
-		orderBy: desc(sandboxes.createdAt),
-		with: { server: { columns: { serverId: true, name: true } } },
-	});
+	return Promise.all(rows.map(settleSandboxStatus));
 };
 
 export const updateSandboxById = async (
@@ -212,45 +258,50 @@ const prepareSandboxWorkdir = async (
 	await docker.getContainer(containerId).putArchive(tar, { path: parent });
 };
 
-const startSandboxContainer = async (sandbox: Sandbox, projectId: string) => {
+class SandboxExitedOnStartError extends Error {
+	constructor() {
+		super(
+			"The container exited right after starting. Sandbox images must include sh, sleep and date.",
+		);
+	}
+}
+
+const startSandboxContainer = async (sandbox: Sandbox) => {
 	const docker = await getRemoteDocker(sandbox.serverId);
 	await ensureSandboxImage(docker, sandbox.image);
 	await ensureSandboxNetwork(docker, sandbox.networkMode);
 	const container = await docker.createContainer(
-		buildSandboxContainerOptions({ ...sandbox, projectId }),
+		buildSandboxContainerOptions(sandbox),
 	);
 	try {
 		await container.start();
 		const user = await resolveSandboxUser(docker, container.id, sandbox.user);
 		await prepareSandboxWorkdir(docker, container.id, sandbox.workdir, user);
+		const running = await container
+			.inspect()
+			.then((info) => info.State.Running)
+			.catch(() => false);
+		if (!running) throw new SandboxExitedOnStartError();
 		const now = new Date();
 		return await updateSandboxById(sandbox.sandboxId, {
 			containerId: container.id,
 			user,
 			status: "running",
-			expiresAt: new Date(now.getTime() + sandbox.timeoutMs),
+			expiresAt: getSandboxExpiry(now, sandbox.timeoutMs, sandbox.deadlineAt),
 			lastActivityAt: now,
 		});
 	} catch (error) {
 		await container.remove({ force: true }).catch(() => {});
+		// AutoRemove may delete a container that exits at once (missing sh,
+		// sleep or date) before any of the steps above reports why.
+		if (isContainerGone(error)) throw new SandboxExitedOnStartError();
 		throw error;
 	}
 };
 
 export const createSandbox = async (
-	input: z.infer<typeof apiCreateSandbox>,
+	input: z.infer<typeof apiCreateSandbox> & { organizationId: string },
 ) => {
-	const environment = await db.query.environments.findFirst({
-		where: eq(environments.environmentId, input.environmentId),
-		columns: { environmentId: true, projectId: true },
-	});
-	if (!environment) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Environment not found",
-		});
-	}
-
 	const template = input.template ? SANDBOX_TEMPLATES[input.template] : null;
 	const image = input.image ?? template?.image;
 	if (!image) {
@@ -264,7 +315,7 @@ export const createSandbox = async (
 		.insert(sandboxes)
 		.values({
 			name: input.name ?? `sandbox-${Date.now().toString(36)}`,
-			environmentId: input.environmentId,
+			organizationId: input.organizationId,
 			serverId: input.serverId ?? null,
 			image,
 			template: input.template ?? null,
@@ -272,8 +323,13 @@ export const createSandbox = async (
 			memoryMb: input.memoryMb ?? SANDBOX_DEFAULTS.memoryMb,
 			pidsLimit: input.pidsLimit ?? SANDBOX_DEFAULTS.pidsLimit,
 			timeoutMs: input.timeoutMs ?? SANDBOX_DEFAULTS.timeoutMs,
+			deadlineAt: new Date(
+				Date.now() + (input.maxLifetimeMs ?? SANDBOX_DEFAULTS.maxLifetimeMs),
+			),
 			networkMode: input.networkMode ?? "isolated",
-			envVars: input.envVars ?? null,
+			envVars:
+				[...(template?.env ?? []), input.envVars].filter(Boolean).join("\n") ||
+				null,
 			workdir: input.workdir ?? template?.workdir ?? SANDBOX_DEFAULTS.workdir,
 			user: template?.user ?? null,
 			status: "creating",
@@ -287,7 +343,7 @@ export const createSandbox = async (
 	}
 
 	try {
-		const running = await startSandboxContainer(sandbox, environment.projectId);
+		const running = await startSandboxContainer(sandbox);
 		if (!running) throw new Error("Sandbox row disappeared during creation");
 		return running;
 	} catch (error) {
@@ -317,7 +373,7 @@ export const touchSandbox = async (sandbox: Sandbox) => {
 	const now = new Date();
 	return updateSandboxById(sandbox.sandboxId, {
 		lastActivityAt: now,
-		expiresAt: new Date(now.getTime() + sandbox.timeoutMs),
+		expiresAt: getSandboxExpiry(now, sandbox.timeoutMs, sandbox.deadlineAt),
 	});
 };
 
@@ -337,16 +393,21 @@ export const execInSandbox = async (
 	assertSandboxRunning(sandbox);
 	await touchSandbox(sandbox);
 	const docker = await getRemoteDocker(sandbox.serverId);
-	const result = await runSandboxExec(docker, sandbox.containerId, {
-		cmd: options.cmd,
-		cwd: options.cwd ?? sandbox.workdir,
-		env: options.env,
-		timeoutMs: options.timeoutMs ?? SANDBOX_DEFAULTS.execTimeoutMs,
-		onStdout: options.onStdout,
-		onStderr: options.onStderr,
-	});
-	if (result.containerKilled && !result.containerRestarted) {
-		await updateSandboxById(sandbox.sandboxId, { status: "error" });
+	const result = await withLiveContainer(sandbox, () =>
+		runSandboxExec(docker, sandbox.containerId, {
+			cmd: withSandboxActivity(options.cmd),
+			cwd: options.cwd ?? sandbox.workdir,
+			env: options.env,
+			timeoutMs: options.timeoutMs ?? SANDBOX_DEFAULTS.execTimeoutMs,
+			onStdout: options.onStdout,
+			onStderr: options.onStderr,
+		}),
+	);
+	if (result.containerKilled) {
+		await updateSandboxById(sandbox.sandboxId, {
+			status: "killed",
+			killedAt: new Date(),
+		});
 	}
 	return result;
 };
@@ -372,25 +433,29 @@ export const writeSandboxFile = async (
 	}
 	await touchSandbox(sandbox);
 	const docker = await getRemoteDocker(sandbox.serverId);
-	const mkdir = await runSandboxExec(docker, sandbox.containerId, {
-		cmd: `mkdir -p ${quote([dir])}`,
-		timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-	});
-	if (mkdir.exitCode !== 0) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: mkdir.stderr.trim() || `Unable to create directory ${dir}`,
+	return withLiveContainer(sandbox, async () => {
+		const mkdir = await runSandboxExec(docker, sandbox.containerId, {
+			cmd: withSandboxActivity(`mkdir -p ${quote([dir])}`),
+			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
 		});
-	}
-	const ids = parseSandboxUser(sandbox.user) ?? { uid: 0, gid: 0 };
-	const tar = await buildSandboxFileTar({
-		name,
-		content: options.content,
-		mode: options.mode,
-		...ids,
+		if (mkdir.exitCode !== 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: mkdir.stderr.trim() || `Unable to create directory ${dir}`,
+			});
+		}
+		const ids = parseSandboxUser(sandbox.user) ?? { uid: 0, gid: 0 };
+		const tar = await buildSandboxFileTar({
+			name,
+			content: options.content,
+			mode: options.mode,
+			...ids,
+		});
+		await docker
+			.getContainer(sandbox.containerId)
+			.putArchive(tar, { path: dir });
+		return { path: options.path, size: options.content.length };
 	});
-	await docker.getContainer(sandbox.containerId).putArchive(tar, { path: dir });
-	return { path: options.path, size: options.content.length };
 };
 
 export const readSandboxFile = async (sandbox: Sandbox, path: string) => {
@@ -403,6 +468,7 @@ export const readSandboxFile = async (sandbox: Sandbox, path: string) => {
 			.getContainer(sandbox.containerId)
 			.getArchive({ path });
 	} catch (error) {
+		if (isContainerGone(error)) throw await markSandboxGone(sandbox);
 		if (isNotFound(error)) {
 			throw new TRPCError({ code: "NOT_FOUND", message: "File not found" });
 		}
@@ -433,26 +499,28 @@ export const listSandboxFiles = async (sandbox: Sandbox, path?: string) => {
 	await touchSandbox(sandbox);
 	const target = path ?? sandbox.workdir;
 	const docker = await getRemoteDocker(sandbox.serverId);
-	const find = await runSandboxExec(docker, sandbox.containerId, {
-		cmd: buildSandboxFindCommand(target),
-		timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-		maxOutputBytes: 4 * 1024 * 1024,
-	});
-	if (find.exitCode === 0) {
-		return { path: target, entries: parseSandboxFindOutput(find.stdout) };
-	}
-	// busybox find has no -printf; fall back to a name-only listing.
-	const ls = await runSandboxExec(docker, sandbox.containerId, {
-		cmd: buildSandboxLsCommand(target),
-		timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-		maxOutputBytes: 4 * 1024 * 1024,
-	});
-	if (ls.exitCode === 0) {
-		return { path: target, entries: parseSandboxLsOutput(ls.stdout) };
-	}
-	throw new TRPCError({
-		code: "BAD_REQUEST",
-		message: (ls.stderr || find.stderr).trim() || "Unable to list files",
+	return withLiveContainer(sandbox, async () => {
+		const find = await runSandboxExec(docker, sandbox.containerId, {
+			cmd: withSandboxActivity(buildSandboxFindCommand(target)),
+			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
+			maxOutputBytes: 4 * 1024 * 1024,
+		});
+		if (find.exitCode === 0) {
+			return { path: target, entries: parseSandboxFindOutput(find.stdout) };
+		}
+		// busybox find has no -printf; fall back to a name-only listing.
+		const ls = await runSandboxExec(docker, sandbox.containerId, {
+			cmd: buildSandboxLsCommand(target),
+			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
+			maxOutputBytes: 4 * 1024 * 1024,
+		});
+		if (ls.exitCode === 0) {
+			return { path: target, entries: parseSandboxLsOutput(ls.stdout) };
+		}
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: (ls.stderr || find.stderr).trim() || "Unable to list files",
+		});
 	});
 };
 
@@ -461,11 +529,23 @@ export const setSandboxTimeout = async (
 	timeoutMs: number,
 ) => {
 	assertSandboxRunning(sandbox);
+	const docker = await getRemoteDocker(sandbox.serverId);
+	const ids = parseSandboxUser(sandbox.user) ?? { uid: 0, gid: 0 };
+	const tar = await buildSandboxFileTar({
+		name: posix.basename(SANDBOX_TIMEOUT_FILE),
+		content: Buffer.from(`${toSandboxTimeoutSeconds(timeoutMs)}\n`),
+		...ids,
+	});
+	await withLiveContainer(sandbox, () =>
+		docker
+			.getContainer(sandbox.containerId)
+			.putArchive(tar, { path: posix.dirname(SANDBOX_TIMEOUT_FILE) }),
+	);
 	const now = new Date();
 	return updateSandboxById(sandbox.sandboxId, {
 		timeoutMs,
 		lastActivityAt: now,
-		expiresAt: new Date(now.getTime() + timeoutMs),
+		expiresAt: getSandboxExpiry(now, timeoutMs, sandbox.deadlineAt),
 	});
 };
 
@@ -480,13 +560,13 @@ export const removeSandboxContainer = async (
 		if (statusCodeOf(error) !== 304 && !isNotFound(error)) throw error;
 	});
 	await container.remove({ force: true }).catch((error: unknown) => {
-		if (!isNotFound(error)) throw error;
+		// AutoRemove may already be deleting it after the stop above.
+		if (!isNotFound(error) && statusCodeOf(error) !== 409) throw error;
 	});
 };
 
 export const killSandbox = async (sandboxId: string) => {
 	const sandbox = await findSandboxById(sandboxId);
-	if (sandbox.status === "killed") return sandbox;
 	if (sandbox.containerId) {
 		try {
 			await removeSandboxContainer(sandbox.serverId, sandbox.containerId);
@@ -497,6 +577,7 @@ export const killSandbox = async (sandboxId: string) => {
 			);
 		}
 	}
+	if (sandbox.status === "killed") return sandbox;
 	return updateSandboxById(sandboxId, {
 		status: "killed",
 		killedAt: new Date(),

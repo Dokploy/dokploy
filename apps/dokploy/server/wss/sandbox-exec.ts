@@ -4,7 +4,7 @@ import {
 	findSandboxById,
 	validateRequest,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { checkPermission } from "@dokploy/server/services/permission";
 import { type RawData, type WebSocket, WebSocketServer } from "ws";
 import { z } from "zod";
 import { apiExecSandbox, SANDBOX_DEFAULTS } from "@/server/db/schema";
@@ -111,14 +111,9 @@ export const setupSandboxExecWebSocketServer = (
 		};
 
 		try {
-			await checkServicePermissionAndAccess(ctx, sandboxId, {
-				deployment: ["create"],
-			});
+			await checkPermission(ctx, { sandbox: ["create"] });
 			const sandbox = await findSandboxById(sandboxId);
-			if (
-				sandbox.environment.project.organizationId !==
-				session.activeOrganizationId
-			) {
+			if (sandbox.organizationId !== session.activeOrganizationId) {
 				ws.close(4003, "Not authorized");
 				return;
 			}

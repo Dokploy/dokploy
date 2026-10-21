@@ -169,10 +169,9 @@ describe("runSandboxExec", () => {
 		expect(killExecStart).toHaveBeenCalledWith({ Detach: true });
 		expect(kill).not.toHaveBeenCalled();
 		expect(result.containerKilled).toBe(false);
-		expect(result.containerRestarted).toBe(false);
 	});
 
-	it("kills and restarts the container when the process survives the marker kill", async () => {
+	it("kills the container when the process survives the marker kill", async () => {
 		const { docker, kill, start } = createDocker({
 			frames: [],
 			exitCode: 0,
@@ -186,25 +185,8 @@ describe("runSandboxExec", () => {
 		expect(result.timedOut).toBe(true);
 		expect(result.exitCode).toBe(SANDBOX_EXEC_TIMEOUT_EXIT_CODE);
 		expect(kill).toHaveBeenCalledWith({ signal: "SIGKILL" });
-		expect(start).toHaveBeenCalledTimes(1);
+		expect(start).not.toHaveBeenCalled();
 		expect(result.containerKilled).toBe(true);
-		expect(result.containerRestarted).toBe(true);
-	}, 10_000);
-
-	it("reports a failed restart so the sandbox can be marked as error", async () => {
-		const { docker, start } = createDocker({
-			frames: [],
-			exitCode: 0,
-			endAfterMs: 0,
-			dieOnKill: false,
-		});
-		start.mockRejectedValueOnce(new Error("no such container"));
-		const result = await runSandboxExec(docker as never, "ctr", {
-			cmd: "sleep 100",
-			timeoutMs: 50,
-		});
-		expect(result.containerKilled).toBe(true);
-		expect(result.containerRestarted).toBe(false);
 	}, 10_000);
 });
 

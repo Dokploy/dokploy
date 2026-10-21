@@ -16,24 +16,18 @@ import {
 import { api } from "@/utils/api";
 import { SandboxStatusBadge } from "./sandbox-status-badge";
 
-interface Props {
-	projectId: string;
-	environmentId: string;
-}
-
 export const formatExpiresIn = (expiresAt: Date | null, status: string) => {
 	if (status !== "running" || !expiresAt) return "—";
 	if (expiresAt.getTime() <= Date.now()) return "expired";
 	return formatDistanceToNow(expiresAt, { addSuffix: true });
 };
 
-export const ShowSandboxes = ({ projectId, environmentId }: Props) => {
+export const ShowSandboxes = () => {
 	const utils = api.useUtils();
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const { data: sandboxes, isLoading } = api.sandbox.list.useQuery(
-		{ environmentId },
-		{ refetchInterval: 10_000 },
-	);
+	const { data: sandboxes, isLoading } = api.sandbox.list.useQuery(undefined, {
+		refetchInterval: 10_000,
+	});
 	const { mutateAsync: kill } = api.sandbox.kill.useMutation();
 
 	if (isLoading) {
@@ -75,7 +69,7 @@ export const ShowSandboxes = ({ projectId, environmentId }: Props) => {
 						<TableRow key={sandbox.sandboxId}>
 							<TableCell className="font-medium">
 								<Link
-									href={`/dashboard/project/${projectId}/environment/${environmentId}/sandboxes/${sandbox.sandboxId}`}
+									href={`/dashboard/sandboxes/${sandbox.sandboxId}`}
 									className="hover:underline"
 								>
 									{sandbox.name}
@@ -104,7 +98,7 @@ export const ShowSandboxes = ({ projectId, environmentId }: Props) => {
 							</TableCell>
 							<TableCell className="text-right">
 								{sandbox.status === "running" &&
-									permissions?.deployment.create && (
+									permissions?.sandbox.create && (
 										<DialogAction
 											title="Kill sandbox"
 											description={`The container for "${sandbox.name}" will be stopped and removed.`}
@@ -112,7 +106,7 @@ export const ShowSandboxes = ({ projectId, environmentId }: Props) => {
 												await kill({ sandboxId: sandbox.sandboxId })
 													.then(() => {
 														toast.success("Sandbox killed");
-														utils.sandbox.list.invalidate({ environmentId });
+														utils.sandbox.list.invalidate();
 													})
 													.catch(() =>
 														toast.error("Error killing the sandbox"),

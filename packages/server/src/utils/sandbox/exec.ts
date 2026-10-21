@@ -27,7 +27,6 @@ export interface SandboxExecResult {
 	timedOut: boolean;
 	truncated: boolean;
 	containerKilled: boolean;
-	containerRestarted: boolean;
 }
 
 export const toSandboxEnvArray = (env?: Record<string, string> | string[]) =>
@@ -123,7 +122,6 @@ export const runSandboxExec = async (
 
 	let timedOut = false;
 	let containerKilled = false;
-	let containerRestarted = false;
 	let timeoutTask: Promise<void> | null = null;
 	const timer = setTimeout(() => {
 		timedOut = true;
@@ -138,8 +136,7 @@ export const runSandboxExec = async (
 			]);
 			if (!ended) {
 				// The marker kill could not run (e.g. PidsLimit exhausted, no
-				// grep). Killing and starting the container again drops every
-				// process while keeping the filesystem, so the sandbox stays usable.
+				// grep), so the whole container goes; AutoRemove deletes it.
 				await container
 					.kill({ signal: "SIGKILL" })
 					.then(() => {
@@ -147,14 +144,6 @@ export const runSandboxExec = async (
 					})
 					.catch(() => {});
 				stream.destroy();
-				if (containerKilled) {
-					await container
-						.start()
-						.then(() => {
-							containerRestarted = true;
-						})
-						.catch(() => {});
-				}
 			}
 		})();
 	}, options.timeoutMs);
@@ -179,6 +168,5 @@ export const runSandboxExec = async (
 		timedOut,
 		truncated: state.truncated,
 		containerKilled,
-		containerRestarted,
 	};
 };

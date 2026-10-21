@@ -16,7 +16,6 @@ import { SandboxConsole } from "@/components/dashboard/sandbox/sandbox-console";
 import { SandboxStatusBadge } from "@/components/dashboard/sandbox/sandbox-status-badge";
 import { formatExpiresIn } from "@/components/dashboard/sandbox/show-sandboxes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -41,10 +40,6 @@ const SandboxPage = (
 	const { sandboxId } = props;
 	const router = useRouter();
 	const utils = api.useUtils();
-	const { projectId, environmentId } = router.query as {
-		projectId: string;
-		environmentId: string;
-	};
 	const { data, refetch } = api.sandbox.one.useQuery(
 		{ sandboxId },
 		{ refetchInterval: 10_000 },
@@ -55,15 +50,14 @@ const SandboxPage = (
 	const { mutateAsync: remove } = api.sandbox.remove.useMutation();
 	const { config: whitelabeling } = useWhitelabeling();
 	const appName = whitelabeling?.appName || "Dokploy";
-	const listHref = `/dashboard/project/${projectId}/environment/${environmentId}/sandboxes`;
+	const listHref = "/dashboard/sandboxes";
 	const isRunning = data?.status === "running";
 
 	return (
 		<div className="pb-10">
-			<AdvanceBreadcrumb />
 			<Head>
 				<title>
-					Sandbox: {data?.name} - {data?.environment?.project?.name} | {appName}
+					Sandbox: {data?.name} | {appName}
 				</title>
 			</Head>
 			<Card className="bg-sidebar p-2.5 rounded-xl w-full">
@@ -88,13 +82,13 @@ const SandboxPage = (
 										Sandboxes
 									</Button>
 								</Link>
-								{isRunning && permissions?.deployment.create && (
+								{isRunning && permissions?.sandbox.create && (
 									<ExtendSandboxTimeout
 										sandboxId={sandboxId}
 										currentTimeoutMs={data?.timeoutMs ?? 300_000}
 									/>
 								)}
-								{isRunning && permissions?.deployment.create && (
+								{isRunning && permissions?.sandbox.create && (
 									<DialogAction
 										title="Kill sandbox"
 										description="The container will be stopped and removed. Files inside it are lost."
@@ -113,7 +107,7 @@ const SandboxPage = (
 										</Button>
 									</DialogAction>
 								)}
-								{permissions?.service.delete && (
+								{permissions?.sandbox.delete && (
 									<DialogAction
 										title="Delete sandbox"
 										description="Removes the sandbox record (and its container if still running)."
@@ -121,9 +115,7 @@ const SandboxPage = (
 											await remove({ sandboxId })
 												.then(async () => {
 													toast.success("Sandbox deleted");
-													await utils.sandbox.list.invalidate({
-														environmentId,
-													});
+													await utils.sandbox.list.invalidate();
 													router.push(listHref);
 												})
 												.catch(() => toast.error("Error deleting the sandbox"));
@@ -162,6 +154,16 @@ const SandboxPage = (
 									}
 								/>
 								<Field
+									label="Hard limit"
+									value={
+										data ? (
+											<DateTooltip date={data.deadlineAt.toISOString()} />
+										) : (
+											"—"
+										)
+									}
+								/>
+								<Field
 									label="Created"
 									value={data ? <DateTooltip date={data.createdAt} /> : "—"}
 								/>
@@ -175,7 +177,7 @@ const SandboxPage = (
 								/>
 							</CardContent>
 						</Card>
-						{permissions?.deployment.create && (
+						{permissions?.sandbox.create && (
 							<SandboxConsole
 								sandboxId={sandboxId}
 								enabled={isRunning}

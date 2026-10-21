@@ -1,19 +1,13 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { ArrowLeft, Box } from "lucide-react";
-import type {
-	GetServerSidePropsContext,
-	InferGetServerSidePropsType,
-} from "next";
+import { Box } from "lucide-react";
+import type { GetServerSidePropsContext } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { AddSandbox } from "@/components/dashboard/sandbox/add-sandbox";
 import { ShowSandboxes } from "@/components/dashboard/sandbox/show-sandboxes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -25,23 +19,15 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
-const SandboxesPage = (
-	props: InferGetServerSidePropsType<typeof getServerSideProps>,
-) => {
-	const { projectId, environmentId } = props;
-	const { data: environment } = api.environment.one.useQuery({ environmentId });
+const SandboxesPage = () => {
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { config: whitelabeling } = useWhitelabeling();
 	const appName = whitelabeling?.appName || "Dokploy";
 
 	return (
 		<div className="pb-10">
-			<AdvanceBreadcrumb />
 			<Head>
-				<title>
-					Sandboxes: {environment?.name} | {environment?.project?.name} |{" "}
-					{appName}
-				</title>
+				<title>Sandboxes | {appName}</title>
 			</Head>
 			<Card className="bg-sidebar p-2.5 rounded-xl w-full">
 				<div className="rounded-xl bg-background shadow-md">
@@ -52,32 +38,13 @@ const SandboxesPage = (
 								Sandboxes
 							</CardTitle>
 							<CardDescription>
-								Ephemeral containers for agents and automations in{" "}
-								{environment?.project?.name} / {environment?.name}.
+								Ephemeral containers for agents and automations.
 							</CardDescription>
 						</div>
-						<div className="flex gap-2">
-							<Link
-								href={`/dashboard/project/${projectId}/environment/${environmentId}`}
-							>
-								<Button variant="outline">
-									<ArrowLeft className="size-4" />
-									Services
-								</Button>
-							</Link>
-							{permissions?.service.create && (
-								<AddSandbox
-									projectId={projectId}
-									environmentId={environmentId}
-								/>
-							)}
-						</div>
+						{permissions?.sandbox.create && <AddSandbox />}
 					</CardHeader>
 					<CardContent className="py-8 border-t">
-						<ShowSandboxes
-							projectId={projectId}
-							environmentId={environmentId}
-						/>
+						<ShowSandboxes />
 					</CardContent>
 				</div>
 			</Card>
@@ -90,10 +57,8 @@ SandboxesPage.getLayout = (page: ReactElement) => {
 	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
-export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ projectId: string; environmentId: string }>,
-) {
-	const { params, req, res } = ctx;
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return { redirect: { permanent: false, destination: "/" } };
@@ -109,27 +74,10 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-	if (
-		typeof params?.projectId === "string" &&
-		typeof params?.environmentId === "string"
-	) {
-		try {
-			await helpers.environment.one.fetch({
-				environmentId: params.environmentId,
-			});
-			await helpers.sandbox.list.prefetch({
-				environmentId: params.environmentId,
-			});
-			return {
-				props: {
-					trpcState: helpers.dehydrate(),
-					projectId: params.projectId,
-					environmentId: params.environmentId,
-				},
-			};
-		} catch {
-			return { redirect: { permanent: false, destination: "/" } };
-		}
+	try {
+		await helpers.sandbox.list.fetch();
+		return { props: { trpcState: helpers.dehydrate() } };
+	} catch {
+		return { redirect: { permanent: false, destination: "/" } };
 	}
-	return { redirect: { permanent: false, destination: "/" } };
 }

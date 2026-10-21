@@ -1,7 +1,7 @@
 # Sandboxes
 
-A sandbox is an ephemeral, resource-limited Docker container that lives inside a
-Dokploy environment and is driven entirely through the API: create it, run
+A sandbox is an ephemeral, resource-limited Docker container that belongs to a
+Dokploy organization and is driven entirely through the API: create it, run
 commands, read and write files, and kill it. It is meant for AI agents and
 backends (SDK / REST / MCP), not for hosting services: it has no domain, no
 published ports and no persistent volumes.
@@ -14,30 +14,57 @@ Dokploy (the container is created through the existing SSH Docker connection).
 ```
 create  ─►  running  ─►  killed
   │                       ▲
-  └──── error ────────────┘   (reaper / reconcile / failed command)
+  └──── error               (image without sh/sleep/date, stuck creation)
 ```
 
 - `create` pulls the image if missing, creates the container, starts it and
   returns the record with `status: "running"` and `expiresAt`.
-- Every operation refreshes `lastActivityAt` and pushes `expiresAt` to
-  `now + timeoutMs`. An idle sandbox is killed by the reaper (runs every 15 s)
-  once `expiresAt` passes.
+- The container enforces its own lifetime; Dokploy runs no background job to
+  expire sandboxes:
+  - `deadlineAt` (`maxLifetimeMs` at creation, default and max 24 h) is a hard
+    limit. The container's main process is `sleep` until that moment, so it
+    stops even if Dokploy is down and even if the sandbox exhausted
+    `PidsLimit`.
+  - A background watcher inside the container (shell builtins plus
+    `sleep 5`) stops it after `timeoutMs` without activity. `exec`,
+    `writeFile` and `listFiles` mark activity; `readFile` does not.
+    `setTimeout` rewrites the timeout inside the container. If the watcher
+    cannot fork (`PidsLimit` exhausted) it exits and only `deadlineAt`
+    applies from then on.
+  - `AutoRemove` deletes the container once it stops.
+- The stored status catches up when the sandbox is read: a `running` row whose
+  `expiresAt` or `deadlineAt` has passed becomes `killed`, and any operation
+  that finds the container gone marks it `killed` and fails with
+  `Sandbox is killed`. `expiresAt` never goes past `deadlineAt`.
+- Images must include `sh`, `sleep` and `date`; otherwise `create` fails with
+  a clear error.
 - `kill` stops the container (2 s grace, then SIGKILL) and removes it. The row
   is kept with `status: "killed"` for history; `remove` deletes the row.
-- On startup Dokploy reconciles every server: containers labelled
-  `dokploy.sandbox=true` without a running row are removed, and rows marked
-  running whose container is gone are set to `error`.
 
 ## Templates
 
-| template | image (placeholder until `dokploy/sandbox-*` is published) | user      | workdir      |
-| -------- | ---------------------------------------------------------- | --------- | ------------ |
-| `base`   | `ubuntu:24.04`                                             | 1000:1000 | `/home/user` |
-| `python` | `python:3.12-slim`                                         | 1000:1000 | `/home/user` |
-| `node`   | `node:22-slim`                                             | 1000:1000 | `/home/user` |
+Every template runs as `1000:1000` with `/home/user` as workdir and `HOME`.
+Images are placeholders until `dokploy/sandbox-*` is published.
 
-A custom `image` can be used instead of a template. It must contain a POSIX
-`sh` and `tail`; it runs as the image's default user.
+| template | image                    | extra env                                     |
+| -------- | ------------------------ | --------------------------------------------- |
+| `base`   | `ubuntu:24.04`           |                                               |
+| `alpine` | `alpine:3.20`            |                                               |
+| `python` | `python:3.13-slim`       |                                               |
+| `node`   | `node:22-slim`           |                                               |
+| `bun`    | `oven/bun:1`             |                                               |
+| `deno`   | `denoland/deno:debian`   | `DENO_DIR` in the home                        |
+| `go`     | `golang:1.24`            |                                               |
+| `rust`   | `rust:1-slim`            | `CARGO_HOME` in the home (toolchain unchanged) |
+| `ruby`   | `ruby:3.3-slim`          | `GEM_HOME`, `BUNDLE_APP_CONFIG` in the home   |
+| `java`   | `eclipse-temurin:21-jdk` |                                               |
+| `php`    | `php:8.3-cli`            |                                               |
+
+Template env vars come before the ones passed in `envVars`, so the caller can
+override them.
+
+A custom `image` can be used instead of a template. It must contain `sh`,
+`sleep` and `date`; it runs as the image's default user.
 
 ## REST API
 
@@ -57,7 +84,6 @@ export DOKPLOY_KEY=xxxxxxxx
 curl -s -X POST "$DOKPLOY_URL/api/sandbox.create" \
   -H "x-api-key: $DOKPLOY_KEY" -H "content-type: application/json" \
   -d '{
-    "environmentId": "ENV_ID",
     "template": "python",
     "name": "agent-run-42",
     "cpu": 1,
@@ -121,8 +147,7 @@ curl -s -X POST "$DOKPLOY_URL/api/sandbox.setTimeout" \
   -H "x-api-key: $DOKPLOY_KEY" -H "content-type: application/json" \
   -d '{"sandboxId": "SANDBOX_ID", "timeoutMs": 900000}'
 
-curl -s "$DOKPLOY_URL/api/sandbox.list?environmentId=ENV_ID" -H "x-api-key: $DOKPLOY_KEY"
-curl -s "$DOKPLOY_URL/api/sandbox.list?projectId=PROJECT_ID" -H "x-api-key: $DOKPLOY_KEY"
+curl -s "$DOKPLOY_URL/api/sandbox.list" -H "x-api-key: $DOKPLOY_KEY"
 curl -s "$DOKPLOY_URL/api/sandbox.one?sandboxId=SANDBOX_ID" -H "x-api-key: $DOKPLOY_KEY"
 
 curl -s -X POST "$DOKPLOY_URL/api/sandbox.kill" \
@@ -159,13 +184,14 @@ The dashboard console on the sandbox page uses this protocol.
 
 ## Permissions
 
-- `create` requires `service:create` on the project (same as creating any
-  service); the creator is granted access to the new sandbox.
-- `one`, `list`, `readFile`, `listFiles` require `service:read` on the sandbox.
-- `exec`, `writeFile`, `setTimeout`, `kill` and the WebSocket require
-  `deployment:create` on the sandbox (the same permission used to start/stop
-  services).
-- `remove` requires `service:delete`.
+Sandboxes are an organization-level resource (`sandbox`), not tied to any
+project. Owners and admins have full access; members have none unless a custom
+role grants it.
+
+- `templates`, `one`, `list`, `readFile`, `listFiles` require `sandbox:read`.
+- `create`, `exec`, `writeFile`, `setTimeout`, `kill` and the WebSocket require
+  `sandbox:create`.
+- `remove` requires `sandbox:delete`.
 - Every operation also checks the sandbox belongs to the caller's active
   organization and, on creation, that the caller can access the target server.
 
@@ -189,14 +215,13 @@ Each sandbox container is created with:
   without that option is recreated automatically once no sandbox is attached
   to it). Sandboxes are never attached to `dokploy-network` or to any
   application network, and nothing is published through Traefik.
-- Labels `dokploy.sandbox=true`, `dokploy.sandboxId`, `dokploy.projectId` and
-  `dokploy.environmentId` so the reaper/reconcile can find orphans.
+- Labels `dokploy.sandbox=true`, `dokploy.sandboxId` and
+  `dokploy.organizationId`.
 - Commands run through `docker exec` with a per-command timeout; on timeout the
   whole process tree started by that exec is killed (matched by a marker env
   var, no `procps` needed). If that kill cannot run (for example the command
-  exhausted `PidsLimit`, so nothing can fork), the container is killed and
-  started again: every process is gone, files are kept and the sandbox stays
-  `running`. Only when the restart itself fails is the sandbox marked `error`.
+  exhausted `PidsLimit`, so nothing can fork), the container is killed and,
+  through `AutoRemove`, deleted; the sandbox becomes `killed`.
 
 Environment variables passed at creation are stored encrypted at rest and are
 never returned by the API.
@@ -214,5 +239,4 @@ never returned by the API.
   a pooled connection would make bursts of small operations faster.
 - `listFiles` needs GNU `find` for metadata; busybox images get names only.
 - Output of a single command is capped at 1 MiB per stream, files at 10 MiB.
-- Sandboxes are not shown in the environment services grid; they live in the
-  *Sandboxes* view of the environment.
+- Sandboxes cannot join project or application networks.

@@ -1,11 +1,8 @@
 import {
 	createSandbox,
 	execInSandbox,
-	findEnvironmentById,
-	findProjectById,
 	findSandboxById,
-	findSandboxesByEnvironmentId,
-	findSandboxesByProjectId,
+	findSandboxesByOrganizationId,
 	getAccessibleServerIds,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -17,51 +14,25 @@ import {
 	setSandboxTimeout,
 	writeSandboxFile,
 } from "@dokploy/server";
-import {
-	addNewService,
-	checkEnvironmentAccess,
-	checkServiceAccess,
-	checkServicePermissionAndAccess,
-	findMemberByUserId,
-} from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, withPermission } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateSandbox,
 	apiExecSandbox,
 	apiFindOneSandbox,
 	apiListFilesSandbox,
-	apiListSandboxes,
 	apiReadFileSandbox,
 	apiSetTimeoutSandbox,
 	apiWriteFileSandbox,
 } from "@/server/db/schema";
 
-type Ctx = {
-	user: { id: string; role: string };
-	session: { activeOrganizationId: string };
-};
-
-const findAccessibleSandbox = async (
-	ctx: Ctx,
+const findOrganizationSandbox = async (
 	sandboxId: string,
-	mode: "read" | "use" | "delete",
+	organizationId: string,
 ) => {
-	if (mode === "read") {
-		await checkServiceAccess(ctx, sandboxId, "read");
-	} else if (mode === "delete") {
-		await checkServiceAccess(ctx, sandboxId, "delete");
-	} else {
-		await checkServicePermissionAndAccess(ctx, sandboxId, {
-			deployment: ["create"],
-		});
-	}
 	const sandbox = await findSandboxById(sandboxId);
-	if (
-		sandbox.environment.project.organizationId !==
-		ctx.session.activeOrganizationId
-	) {
+	if (sandbox.organizationId !== organizationId) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "You are not authorized to access this sandbox",
@@ -76,27 +47,16 @@ const stripSecrets = <T extends { envVars: string | null }>(sandbox: T) => {
 };
 
 export const sandboxRouter = createTRPCRouter({
-	templates: protectedProcedure.query(() =>
+	templates: withPermission("sandbox", "read").query(() =>
 		Object.entries(SANDBOX_TEMPLATES).map(([name, template]) => ({
 			name,
 			...template,
 		})),
 	),
 
-	create: protectedProcedure
+	create: withPermission("sandbox", "create")
 		.input(apiCreateSandbox)
 		.mutation(async ({ input, ctx }) => {
-			const environment = await findEnvironmentById(input.environmentId);
-			const project = await findProjectById(environment.projectId);
-			await checkServiceAccess(ctx, project.projectId, "create");
-
-			if (project.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this project",
-				});
-			}
-
 			const webServerSettings = await getWebServerSettings();
 			if (
 				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
@@ -118,8 +78,10 @@ export const sandboxRouter = createTRPCRouter({
 				}
 			}
 
-			const sandbox = await createSandbox(input);
-			await addNewService(ctx, sandbox.sandboxId);
+			const sandbox = await createSandbox({
+				...input,
+				organizationId: ctx.session.activeOrganizationId,
+			});
 			await audit(ctx, {
 				action: "create",
 				resourceType: "sandbox",
@@ -129,63 +91,30 @@ export const sandboxRouter = createTRPCRouter({
 			return stripSecrets(sandbox);
 		}),
 
-	one: protectedProcedure
+	one: withPermission("sandbox", "read")
 		.input(apiFindOneSandbox)
 		.query(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "read");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			return stripSecrets(sandbox);
 		}),
 
-	list: protectedProcedure
-		.input(apiListSandboxes)
-		.query(async ({ input, ctx }) => {
-			let sandboxes: Awaited<ReturnType<typeof findSandboxesByEnvironmentId>>;
-			if (input.environmentId) {
-				await checkEnvironmentAccess(ctx, input.environmentId, "read");
-				const environment = await findEnvironmentById(input.environmentId);
-				if (
-					environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-				sandboxes = await findSandboxesByEnvironmentId(input.environmentId);
-			} else {
-				const project = await findProjectById(input.projectId ?? "");
-				if (project.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-					const member = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (!member.accessedProjects.includes(project.projectId)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this project",
-						});
-					}
-				}
-				sandboxes = await findSandboxesByProjectId(project.projectId);
-			}
+	list: withPermission("sandbox", "read").query(async ({ ctx }) => {
+		const sandboxes = await findSandboxesByOrganizationId(
+			ctx.session.activeOrganizationId,
+		);
+		return sandboxes.map(stripSecrets);
+	}),
 
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				const member = await findMemberByUserId(
-					ctx.user.id,
-					ctx.session.activeOrganizationId,
-				);
-				sandboxes = sandboxes.filter((sandbox) =>
-					member.accessedServices.includes(sandbox.sandboxId),
-				);
-			}
-			return sandboxes.map(stripSecrets);
-		}),
-
-	exec: protectedProcedure
+	exec: withPermission("sandbox", "create")
 		.input(apiExecSandbox)
 		.mutation(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "use");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			const result = await execInSandbox(sandbox, {
 				cmd: input.cmd,
 				cwd: input.cwd,
@@ -201,10 +130,13 @@ export const sandboxRouter = createTRPCRouter({
 			};
 		}),
 
-	writeFile: protectedProcedure
+	writeFile: withPermission("sandbox", "create")
 		.input(apiWriteFileSandbox)
 		.mutation(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "use");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			return writeSandboxFile(sandbox, {
 				path: input.path,
 				content: Buffer.from(input.content, input.encoding),
@@ -212,10 +144,13 @@ export const sandboxRouter = createTRPCRouter({
 			});
 		}),
 
-	readFile: protectedProcedure
+	readFile: withPermission("sandbox", "read")
 		.input(apiReadFileSandbox)
 		.query(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "read");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			const file = await readSandboxFile(sandbox, input.path);
 			return {
 				path: file.path,
@@ -225,17 +160,23 @@ export const sandboxRouter = createTRPCRouter({
 			};
 		}),
 
-	listFiles: protectedProcedure
+	listFiles: withPermission("sandbox", "read")
 		.input(apiListFilesSandbox)
 		.query(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "read");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			return listSandboxFiles(sandbox, input.path);
 		}),
 
-	setTimeout: protectedProcedure
+	setTimeout: withPermission("sandbox", "create")
 		.input(apiSetTimeoutSandbox)
 		.mutation(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "use");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			const updated = await setSandboxTimeout(sandbox, input.timeoutMs);
 			await audit(ctx, {
 				action: "update",
@@ -247,10 +188,13 @@ export const sandboxRouter = createTRPCRouter({
 			return updated ? stripSecrets(updated) : null;
 		}),
 
-	kill: protectedProcedure
+	kill: withPermission("sandbox", "create")
 		.input(apiFindOneSandbox)
 		.mutation(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(ctx, input.sandboxId, "use");
+			const sandbox = await findOrganizationSandbox(
+				input.sandboxId,
+				ctx.session.activeOrganizationId,
+			);
 			const killed = await killSandbox(sandbox.sandboxId);
 			await audit(ctx, {
 				action: "stop",
@@ -261,13 +205,12 @@ export const sandboxRouter = createTRPCRouter({
 			return killed ? stripSecrets(killed) : null;
 		}),
 
-	remove: protectedProcedure
+	remove: withPermission("sandbox", "delete")
 		.input(apiFindOneSandbox)
 		.mutation(async ({ input, ctx }) => {
-			const sandbox = await findAccessibleSandbox(
-				ctx,
+			const sandbox = await findOrganizationSandbox(
 				input.sandboxId,
-				"delete",
+				ctx.session.activeOrganizationId,
 			);
 			await removeSandbox(sandbox.sandboxId);
 			await audit(ctx, {

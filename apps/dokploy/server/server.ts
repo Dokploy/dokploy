@@ -8,7 +8,6 @@ import {
 	initCronJobs,
 	initEnterpriseBackupCronJobs,
 	initializeNetwork,
-	initSandboxReaper,
 	initSchedules,
 	initVolumeBackupsCronJobs,
 	sendDokployRestartNotifications,
@@ -71,7 +70,6 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 		await initEnterpriseBackupCronJobs();
-		void initSandboxReaper();
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
