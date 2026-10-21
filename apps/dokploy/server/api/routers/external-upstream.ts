@@ -169,7 +169,9 @@ export const externalUpstreamRouter = createTRPCRouter({
 	move: protectedProcedure
 		.input(apiMoveExternalUpstream)
 		.mutation(async ({ input, ctx }) => {
-			await checkServiceAccess(ctx, input.externalUpstreamId, "read");
+			await checkServicePermissionAndAccess(ctx, input.externalUpstreamId, {
+				service: ["create"],
+			});
 			const service = await findExternalUpstreamById(input.externalUpstreamId);
 			const targetEnvironment = await findEnvironmentById(
 				input.targetEnvironmentId,
