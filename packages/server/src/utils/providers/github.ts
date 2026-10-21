@@ -236,7 +236,7 @@ export const cloneGithubRepository = async ({
 		authorization,
 		cloneBaseUrl: cloneBase.origin,
 		enableSubmodules,
-		sshHosts: [cloneBase.host],
+		sshHosts: [cloneBase.hostname],
 	});
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
@@ -249,7 +249,7 @@ export const cloneGithubRepository = async ({
 			cloneBaseUrl: cloneBase.origin,
 			gitCloneConfig: cloneConfig,
 			outputPath,
-			sshHosts: [cloneBase.host],
+			sshHosts: [cloneBase.hostname],
 		})};`;
 	}
 

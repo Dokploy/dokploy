@@ -30,14 +30,14 @@ const provider = (githubUrl: string) => ({
 	githubInstallationId: "42",
 });
 
-const clone = async () => {
+const clone = async (enableSubmodules = false) => {
 	const command = await cloneGithubRepository({
 		appName: "my-app",
 		owner: "acme",
 		repository: "web",
 		branch: "main",
 		githubId: "gh-1",
-		enableSubmodules: false,
+		enableSubmodules,
 		serverId: null,
 	});
 	return command.replace(/\\/g, "");
@@ -94,6 +94,25 @@ describe("cloneGithubRepository host", () => {
 		const command = await clone();
 
 		expectCloneAuthentication(command, "github.acme.com:8443");
+	});
+
+	it("matches SSH submodules by hostname without the HTTPS port", async () => {
+		mockFindGithubById.mockResolvedValue(
+			provider("https://github.acme.com:8443"),
+		);
+
+		const command = await clone(true);
+
+		expect(command).toContain(
+			"url.https://github.acme.com:8443/.insteadOf=git@github.acme.com:",
+		);
+		expect(command).toContain(
+			`case "$ssh_host" in '''github.acme.com''') ;;`,
+		);
+		expect(command).not.toContain("git@github.acme.com:8443:");
+		expect(command).not.toContain(
+			`case "$ssh_host" in '''github.acme.com:8443''') ;;`,
+		);
 	});
 
 	it("falls back to github.com for a provider stored before this feature", async () => {
