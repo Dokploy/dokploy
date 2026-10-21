@@ -92,25 +92,55 @@ const createSchema = createInsertSchema(domains, {
 		.optional(),
 });
 
-export const apiCreateDomain = createSchema.pick({
-	host: true,
-	path: true,
-	port: true,
-	customEntrypoint: true,
-	https: true,
-	applicationId: true,
-	externalUpstreamId: true,
-	certificateType: true,
-	customCertResolver: true,
-	composeId: true,
-	serviceName: true,
-	domainType: true,
-	previewDeploymentId: true,
-	internalPath: true,
-	stripPath: true,
-	middlewares: true,
-	forwardAuthEnabled: true,
-});
+export const apiCreateDomain = createSchema
+	.pick({
+		host: true,
+		path: true,
+		port: true,
+		customEntrypoint: true,
+		https: true,
+		applicationId: true,
+		externalUpstreamId: true,
+		certificateType: true,
+		customCertResolver: true,
+		composeId: true,
+		serviceName: true,
+		domainType: true,
+		previewDeploymentId: true,
+		internalPath: true,
+		stripPath: true,
+		middlewares: true,
+		forwardAuthEnabled: true,
+	})
+	.superRefine((input, ctx) => {
+		const hasOtherService = Boolean(
+			input.applicationId || input.composeId || input.previewDeploymentId,
+		);
+
+		if (input.externalUpstreamId && input.domainType !== "externalUpstream") {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["domainType"],
+				message: "External upstream domains must use the externalUpstream type",
+			});
+		}
+
+		if (input.domainType === "externalUpstream" && !input.externalUpstreamId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["externalUpstreamId"],
+				message: "External upstream domains require an externalUpstreamId",
+			});
+		}
+
+		if (input.externalUpstreamId && hasOtherService) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["externalUpstreamId"],
+				message: "A domain can only be associated with one service",
+			});
+		}
+	});
 
 export const apiFindDomain = z.object({
 	domainId: z.string().min(1),
