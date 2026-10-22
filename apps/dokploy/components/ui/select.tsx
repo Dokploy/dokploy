@@ -10,9 +10,6 @@ function Select({
 	return (
 		<SelectPrimitive.Root
 			data-slot="select"
-			// Radix's hidden native <select> emits "" when the value is set before
-			// the options mount (e.g. form.reset), wiping the field. Items can't have
-			// an empty value, so "" is never a real selection.
 			onValueChange={(value) => {
 				if (value !== "") onValueChange?.(value);
 			}}
