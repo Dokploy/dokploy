@@ -84,6 +84,10 @@ export const azureDevopsRepositoryPath = z
 			!path.replace(/\\/g, "/").split("/").includes(".."),
 		"Path must stay inside the repository",
 	);
+export const azureDevopsComposePath = azureDevopsRepositoryPath.refine(
+	(path) => !/^(?:[/\\]|[a-zA-Z]:)/.test(path),
+	"Compose path must be relative to the repository",
+);
 export const azureDevopsSourceFields = z.object({
 	azureDevopsId: z.string().min(1),
 	azureDevopsProjectId: z.string().uuid(),

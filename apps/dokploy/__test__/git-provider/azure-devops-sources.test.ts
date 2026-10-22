@@ -19,6 +19,7 @@ const current = vi.hoisted(() => ({
 	name: "Service",
 	applicationId: "app",
 	composeId: "compose",
+	composePath: "./docker-compose.yml",
 }));
 vi.mock("@dokploy/server", () => ({
 	IS_CLOUD: true,
@@ -132,6 +133,42 @@ describe("Azure DevOps Application and Compose source mutations", () => {
 			compose.update({ composeId: "compose", azureDevopsId: "forbidden" }),
 		).rejects.toThrow("Forbidden");
 		expect(mocks.updateApp).not.toHaveBeenCalled();
+		expect(mocks.updateCompose).not.toHaveBeenCalled();
+	});
+	it("authorizes path-only Compose source changes", async () => {
+		await compose.update({
+			composeId: "compose",
+			composePath: "deploy/compose.yml",
+		});
+		expect(mocks.access).toHaveBeenCalledWith(
+			{ activeOrganizationId: "org", userId: "user" },
+			current,
+			undefined,
+		);
+		expect(mocks.updateCompose).toHaveBeenCalledWith("compose", {
+			composeId: "compose",
+			composePath: "deploy/compose.yml",
+		});
+	});
+	it("rejects path-only edits when the provider source cannot be edited", async () => {
+		mocks.access.mockRejectedValue(new Error("Forbidden"));
+		await expect(
+			compose.update({ composeId: "compose", composePath: "other.yml" }),
+		).rejects.toThrow("Forbidden");
+		expect(mocks.updateCompose).not.toHaveBeenCalled();
+	});
+	it.each([
+		"../outside.yml",
+		"deploy/../../outside.yml",
+		"deploy\\..\\outside.yml",
+		"/outside.yml",
+		"C:\\outside.yml",
+		"\\\\host\\share\\outside.yml",
+		"compose.yml\nother.yml",
+	])("rejects an unsafe path-only Compose update: %s", async (composePath) => {
+		await expect(
+			compose.update({ composeId: "compose", composePath }),
+		).rejects.toThrow();
 		expect(mocks.updateCompose).not.toHaveBeenCalled();
 	});
 	it("prevents bypassing source edit restrictions through disconnect or another Application provider", async () => {

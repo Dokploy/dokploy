@@ -36,7 +36,7 @@ import {
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
-	azureDevopsRepositoryPath,
+	azureDevopsComposePath,
 	azureDevopsSourceFields,
 } from "@dokploy/server/db/schema";
 import { assertAzureDevopsSourceAccess } from "@dokploy/server/services/azure-devops";
@@ -212,7 +212,8 @@ export const composeRouter = createTRPCRouter({
 				Object.keys(input).some((key) => key.startsWith("azureDevops")) ||
 				input.sourceType !== undefined ||
 				input.autoDeploy !== undefined ||
-				input.triggerType !== undefined
+				input.triggerType !== undefined ||
+				input.composePath !== undefined
 			) {
 				const currentSource = await findComposeById(input.composeId);
 				if (
@@ -241,8 +242,10 @@ export const composeRouter = createTRPCRouter({
 					});
 				if ((input.sourceType ?? currentSource.sourceType) === "azureDevops") {
 					azureDevopsSourceFields.parse({ ...currentSource, ...input });
-					azureDevopsRepositoryPath.parse(
-						input.composePath ?? currentSource.composePath ?? "/",
+					azureDevopsComposePath.parse(
+						input.composePath ??
+							currentSource.composePath ??
+							"./docker-compose.yml",
 					);
 					if (input.triggerType === "tag")
 						throw new TRPCError({
