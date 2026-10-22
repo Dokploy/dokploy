@@ -1380,13 +1380,6 @@
       "when": 1788995453103,
       "tag": "0196_worthless_ravenous",
       "breakpoints": true
-    },
-    {
-      "idx": 197,
-      "version": "7",
-      "when": 1790609715152,
-      "tag": "0197_aberrant_psynapse",
-      "breakpoints": true
     }
   ]
 }
