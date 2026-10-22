@@ -39,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { generateServerSideHelper } from "@/utils/create-server-helpers";
@@ -342,21 +343,39 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						>
 							<div className="flex flex-col gap-2">
 								<Label htmlFor="totp-code">2FA Code</Label>
-								{/* Plain input instead of InputOTP: Bitwarden's inline suggestion can't fill InputOTP's hidden input (input-otp#152) */}
-								<Input
-									id="totp-code"
-									name="totp"
-									value={twoFactorCode}
-									onChange={(e) => {
-										const code = e.target.value.replace(/\D/g, "");
-										setTwoFactorCode(code);
-										if (code.length === 6) verifyTwoFactorCode(code);
-									}}
-									autoComplete="one-time-code"
-									inputMode="numeric"
-									maxLength={6}
-									autoFocus
-								/>
+								{/* Visible input so password managers can autofill it */}
+								<div className="group relative isolate w-56">
+									<Input
+										id="totp-code"
+										name="totp"
+										value={twoFactorCode}
+										onChange={(e) => {
+											const code = e.target.value.replace(/\D/g, "");
+											setTwoFactorCode(code);
+											if (code.length === 6) verifyTwoFactorCode(code);
+										}}
+										autoComplete="one-time-code"
+										inputMode="numeric"
+										maxLength={6}
+										autoFocus
+										className={cn(
+											"h-8 border-0 py-0 pr-0 pl-[calc((2rem_-_1ch)/2)] font-mono text-base tracking-[calc(2rem_-_1ch)] focus-visible:ring-0 md:text-base dark:bg-transparent",
+											twoFactorCode.length === 6 && "caret-transparent",
+										)}
+									/>
+									<div
+										aria-hidden
+										className="pointer-events-none absolute inset-y-0 left-0 -z-10 flex"
+									>
+										{[0, 1, 2, 3, 4, 5].map((slot) => (
+											<div
+												key={slot}
+												data-active={slot === Math.min(twoFactorCode.length, 5)}
+												className="relative size-8 border-y border-r border-input first:rounded-l-lg first:border-l last:rounded-r-lg dark:bg-input/30 group-focus-within:data-[active=true]:z-10 group-focus-within:data-[active=true]:border-ring group-focus-within:data-[active=true]:ring-3 group-focus-within:data-[active=true]:ring-ring/50"
+											/>
+										))}
+									</div>
+								</div>
 								<CardDescription>
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>
