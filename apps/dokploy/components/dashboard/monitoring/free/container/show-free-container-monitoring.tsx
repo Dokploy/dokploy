@@ -46,6 +46,7 @@ const defaultData = {
 interface Props {
 	appName: string;
 	appType?: "application" | "stack" | "docker-compose";
+	serviceId?: string;
 }
 export interface DockerStats {
 	cpu: {
@@ -120,6 +121,7 @@ export const convertMemoryToBytes = (
 export const ContainerFreeMonitoring = ({
 	appName,
 	appType = "application",
+	serviceId,
 }: Props) => {
 	const { data } = api.application.readAppMonitoring.useQuery(
 		{ appName },
@@ -171,7 +173,11 @@ export const ContainerFreeMonitoring = ({
 		if (!appName) return;
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?appName=${appName}&appType=${appType}`;
+		const params = new URLSearchParams({ appName, appType });
+		if (serviceId) {
+			params.append("serviceId", serviceId);
+		}
+		const wsUrl = `${protocol}//${window.location.host}/listen-docker-stats-monitoring?${params.toString()}`;
 		const ws = new WebSocket(wsUrl);
 
 		ws.onmessage = (e) => {
@@ -205,7 +211,7 @@ export const ContainerFreeMonitoring = ({
 		};
 
 		return () => ws.close();
-	}, [appName]);
+	}, [appName, serviceId]);
 
 	return (
 		<div className="rounded-xl bg-background flex flex-col gap-4">
