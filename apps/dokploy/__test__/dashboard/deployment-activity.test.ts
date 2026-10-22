@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	bucketDeploymentsByDay,
 	type DeploymentStatus,
 	getActivityWindowStart,
+	watchLocalDay,
 } from "@/components/dashboard/home/deployment-activity";
 
 // Dates are built with the local-time constructor so the assertions hold in
@@ -164,5 +165,80 @@ describe("bucketDeploymentsByDay", () => {
 		expect(days).toHaveLength(30);
 		expect(days[0]?.date).toBe("2026-09-22");
 		expect(days.at(-1)?.date).toBe("2026-10-21");
+	});
+});
+
+describe("day rollover with unchanged deployments", () => {
+	// Mirrors ShowHome: polling keeps the same array reference, so only the
+	// local-day trigger from watchLocalDay can move the window forward.
+	const deployments = Object.freeze([
+		deployment(local(10, 15, 9), "done"),
+		deployment(local(10, 18, 9), "error"),
+		deployment(local(10, 21, 9), "done"),
+	]);
+
+	let stop: (() => void) | undefined;
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(local(10, 21, 23, 59, 0));
+	});
+
+	afterEach(() => {
+		stop?.();
+		vi.useRealTimers();
+	});
+
+	it("moves the window forward at local midnight without new data", () => {
+		let today = local(10, 21, 0);
+		let activity = bucketDeploymentsByDay(deployments, today);
+		const onDayChange = vi.fn((day: Date) => {
+			today = day;
+			activity = bucketDeploymentsByDay(deployments, today);
+		});
+		stop = watchLocalDay(onDayChange);
+
+		expect(activity.days[0]?.date).toBe("2026-10-15");
+		expect(activity.total).toBe(3);
+
+		vi.advanceTimersByTime(59_999);
+		expect(onDayChange).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(1);
+		expect(onDayChange).toHaveBeenCalledTimes(1);
+		expect(today).toEqual(local(10, 22, 0));
+		expect(activity.days.map((d) => d.date)).toEqual([
+			"2026-10-16",
+			"2026-10-17",
+			"2026-10-18",
+			"2026-10-19",
+			"2026-10-20",
+			"2026-10-21",
+			"2026-10-22",
+		]);
+		expect(activity.total).toBe(2);
+		expect(activity.days.at(-1)).toMatchObject({ total: 0 });
+	});
+
+	it("keeps firing on each following midnight", () => {
+		const onDayChange = vi.fn();
+		stop = watchLocalDay(onDayChange);
+
+		vi.advanceTimersByTime(60_000);
+		vi.advanceTimersByTime(24 * 60 * 60 * 1000);
+
+		expect(onDayChange.mock.calls.map(([day]) => day)).toEqual([
+			local(10, 22, 0),
+			local(10, 23, 0),
+		]);
+	});
+
+	it("stops firing after cleanup", () => {
+		const onDayChange = vi.fn();
+		watchLocalDay(onDayChange)();
+
+		vi.advanceTimersByTime(2 * 24 * 60 * 60 * 1000);
+
+		expect(onDayChange).not.toHaveBeenCalled();
 	});
 });

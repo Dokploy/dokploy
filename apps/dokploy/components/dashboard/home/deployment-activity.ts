@@ -51,6 +51,33 @@ type DeploymentLike = {
 
 const toDayKey = (date: Date) => format(date, "yyyy-MM-dd");
 
+/**
+ * Calls `onDayChange` with the new local midnight each time the local day
+ * rolls over, and returns a cleanup function. The delay is recomputed from the
+ * clock on every tick, so a timer that fires early, late (sleep, background-tab
+ * throttling), or across a DST change still lands on the right day.
+ */
+export const watchLocalDay = (onDayChange: (day: Date) => void) => {
+	let current = startOfDay(new Date());
+	let timer: ReturnType<typeof setTimeout>;
+
+	const schedule = () => {
+		const now = new Date();
+		const delay = startOfDay(addDays(now, 1)).getTime() - now.getTime();
+		timer = setTimeout(() => {
+			const today = startOfDay(new Date());
+			if (today.getTime() !== current.getTime()) {
+				current = today;
+				onDayChange(today);
+			}
+			schedule();
+		}, delay);
+	};
+
+	schedule();
+	return () => clearTimeout(timer);
+};
+
 /** Local midnight of the first day in a window of `days` calendar days ending today. */
 export const getActivityWindowStart = (now: Date, days = ACTIVITY_DAYS) =>
 	startOfDay(subDays(now, days - 1));

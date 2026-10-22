@@ -1,7 +1,7 @@
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, startOfDay } from "date-fns";
 import { ArrowRight, Rocket, Server } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,7 @@ import {
 	bucketDeploymentsByDay,
 	deploymentStatusStyles,
 	getActivityWindowStart,
+	watchLocalDay,
 } from "./deployment-activity";
 import { DeploymentActivityChart } from "./deployment-activity-chart";
 
@@ -22,6 +23,14 @@ function DeploymentsMessage({ children }: { children: ReactNode }) {
 			<span>{children}</span>
 		</div>
 	);
+}
+
+// Polling returns the same `deployments` reference when nothing changed, so the
+// activity window needs its own trigger to move forward at local midnight.
+function useLocalDay() {
+	const [day, setDay] = useState(() => startOfDay(new Date()));
+	useEffect(() => watchLocalDay(setDay), []);
+	return day;
 }
 
 function getServiceInfo(d: any) {
@@ -158,11 +167,15 @@ export const ShowHome = () => {
 			.slice(0, 10);
 	}, [deployments]);
 
+	const today = useLocalDay();
+
 	const { activity, deployStats } = useMemo(() => {
-		const now = new Date();
-		const activity = bucketDeploymentsByDay(deployments ?? [], now);
-		const lastStart = getActivityWindowStart(now).getTime();
-		const prevStart = getActivityWindowStart(now, ACTIVITY_DAYS * 2).getTime();
+		const activity = bucketDeploymentsByDay(deployments ?? [], today);
+		const lastStart = getActivityWindowStart(today).getTime();
+		const prevStart = getActivityWindowStart(
+			today,
+			ACTIVITY_DAYS * 2,
+		).getTime();
 
 		let prevCount = 0;
 		for (const d of deployments ?? []) {
@@ -182,7 +195,7 @@ export const ShowHome = () => {
 		}
 
 		return { activity, deployStats: { value: String(lastCount), delta } };
-	}, [deployments]);
+	}, [deployments, today]);
 
 	const deploymentsStateView = isLoadingDeployments ? (
 		<div className="p-5">
