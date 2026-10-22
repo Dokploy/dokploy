@@ -10,6 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { azureDevops } from "./azure-devops";
 import { backups } from "./backups";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
@@ -36,6 +37,7 @@ export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"gitlab",
 	"bitbucket",
 	"gitea",
+	"azureDevops",
 	"raw",
 ]);
 
@@ -73,6 +75,15 @@ export const compose = pgTable("compose", {
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	// Gitea
+	azureDevopsId: text("azureDevopsId").references(
+		() => azureDevops.azureDevopsId,
+		{ onDelete: "set null" },
+	),
+	azureDevopsProjectId: text("azureDevopsProjectId"),
+	azureDevopsRepositoryId: text("azureDevopsRepositoryId"),
+	azureDevopsProjectName: text("azureDevopsProjectName"),
+	azureDevopsRepositoryName: text("azureDevopsRepositoryName"),
+	azureDevopsBranch: text("azureDevopsBranch"),
 	giteaRepository: text("giteaRepository"),
 	giteaOwner: text("giteaOwner"),
 	giteaBranch: text("giteaBranch"),
@@ -158,6 +169,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
 	}),
+	azureDevops: one(azureDevops, {
+		fields: [compose.azureDevopsId],
+		references: [azureDevops.azureDevopsId],
+	}),
 	gitea: one(gitea, {
 		fields: [compose.giteaId],
 		references: [gitea.giteaId],
@@ -190,7 +205,15 @@ const createSchema = createInsertSchema(compose, {
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
 	sourceType: z
-		.enum(["git", "github", "gitlab", "bitbucket", "gitea", "raw"])
+		.enum([
+			"git",
+			"github",
+			"gitlab",
+			"bitbucket",
+			"azureDevops",
+			"gitea",
+			"raw",
+		])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	composeStatus: z.enum(["idle", "running", "done", "error"]).optional(),

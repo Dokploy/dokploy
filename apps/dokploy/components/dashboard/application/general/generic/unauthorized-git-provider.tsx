@@ -1,4 +1,5 @@
 import { AlertCircle, GitBranch, Unlink } from "lucide-react";
+import { AzureDevopsIcon } from "@/components/icons/azure-devops-icon";
 import {
 	BitbucketIcon,
 	GiteaIcon,
@@ -22,6 +23,8 @@ interface Props {
 export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 	const getProviderIcon = (sourceType: string) => {
 		switch (sourceType) {
+			case "azureDevops":
+				return <AzureDevopsIcon className="size-5 dark:text-[#5ea0ef]" />;
 			case "github":
 				return <GithubIcon className="size-5 text-muted-foreground" />;
 			case "gitlab":
@@ -39,6 +42,12 @@ export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 
 	const getRepositoryInfo = () => {
 		switch (service.sourceType) {
+			case "azureDevops":
+				return {
+					repo: service.azureDevopsRepositoryName,
+					branch: service.azureDevopsBranch,
+					owner: service.azureDevopsProjectName,
+				};
 			case "github":
 				return {
 					repo: service.repository,

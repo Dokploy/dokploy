@@ -9,6 +9,7 @@ import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
+import { cloneAzureDevopsRepository } from "../providers/azure-devops";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -31,7 +32,9 @@ export const cloneCompose = async (compose: Compose) => {
 		...compose,
 		type: "compose" as const,
 	};
-	if (compose.sourceType === "github") {
+	if (compose.sourceType === "azureDevops") {
+		command += await cloneAzureDevopsRepository(entity);
+	} else if (compose.sourceType === "github") {
 		command += await cloneGithubRepository(entity);
 	} else if (compose.sourceType === "gitlab") {
 		command += await cloneGitlabRepository(entity);
@@ -86,7 +89,7 @@ export const loadDockerComposeRemote = async (
 		}
 		const { stdout, stderr } = await execAsyncRemote(
 			compose.serverId,
-			`cat ${path}`,
+			`cat ${quote([path])}`,
 		);
 
 		if (stderr) {

@@ -1,4 +1,9 @@
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import {
+	azureDevopsClient,
+	evaluateAzureDevopsPush,
+	IS_CLOUD,
+	shouldDeploy,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -56,11 +61,25 @@ export default async function handler(
 			return;
 		}
 
-		const deploymentTitle = extractCommitMessage(req.headers, req.body);
-		const deploymentHash = extractHash(req.headers, req.body);
+		let deploymentTitle = extractCommitMessage(req.headers, req.body);
+		let deploymentHash = extractHash(req.headers, req.body);
 		const sourceType = composeResult.sourceType;
 
-		if (sourceType === "github") {
+		if (sourceType === "azureDevops") {
+			const result = await evaluateAzureDevopsPush(
+				req.method,
+				req.body,
+				composeResult,
+				() => azureDevopsClient(composeResult.azureDevopsId!),
+			);
+			if (!result.deploy) {
+				res.status(result.status).json({ message: result.reason });
+				return;
+			}
+			deploymentTitle = result.title;
+			deploymentHash = result.hash;
+			if (result.fallbackReason) console.info(result.fallbackReason);
+		} else if (sourceType === "github") {
 			const branchName = extractBranchName(req.headers, req.body);
 			const normalizedCommits = req.body?.commits?.flatMap((commit: any) => [
 				...(commit.added || []),

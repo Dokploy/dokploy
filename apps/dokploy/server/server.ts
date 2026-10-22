@@ -4,6 +4,7 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	IS_CLOUD,
+	initAzureDevopsHooks,
 	initCancelDeployments,
 	initCronJobs,
 	initEnterpriseBackupCronJobs,
@@ -67,6 +68,7 @@ void app.prepare().then(async () => {
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
 		}
+		initAzureDevopsHooks();
 		await initEnterpriseBackupCronJobs();
 
 		if (!IS_CLOUD) {

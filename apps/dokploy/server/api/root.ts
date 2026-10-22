@@ -2,6 +2,7 @@ import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
+import { azureDevopsRouter } from "./routers/azure-devops";
 import { backupRouter } from "./routers/backup";
 import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
@@ -81,6 +82,7 @@ export const appRouter = createTRPCRouter({
 	dockerImage: dockerImageRouter,
 	dockerVolume: dockerVolumeRouter,
 	domain: domainRouter,
+	azureDevops: azureDevopsRouter,
 	gitea: giteaRouter,
 	gitProvider: gitProviderRouter,
 	github: githubRouter,

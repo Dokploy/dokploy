@@ -110,6 +110,14 @@ export const DeleteService = ({ id, type }: Props) => {
 						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
 					);
 					toast.success("Service deleted successfully");
+					if (
+						result &&
+						"azureDevopsCleanup" in result &&
+						result.azureDevopsCleanup.length
+					)
+						toast.warning(
+							"Service deleted; Azure DevOps subscription cleanup is pending. Review Settings → Git Providers for subscription details.",
+						);
 					setIsOpen(false);
 				})
 				.catch(() => {

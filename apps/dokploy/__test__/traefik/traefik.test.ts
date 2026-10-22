@@ -5,6 +5,13 @@ import { expect, test } from "vitest";
 const baseApp: ApplicationNested = {
 	railpackVersion: "0.15.4",
 	rollbackActive: false,
+	azureDevopsId: null,
+	azureDevopsProjectId: null,
+	azureDevopsRepositoryId: null,
+	azureDevopsProjectName: null,
+	azureDevopsRepositoryName: null,
+	azureDevopsBranch: null,
+	azureDevopsBuildPath: "/",
 	applicationId: "",
 	previewLabels: [],
 	networkIds: [],
