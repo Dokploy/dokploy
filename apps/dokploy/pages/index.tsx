@@ -5,7 +5,6 @@ import {
 } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Fingerprint } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -38,12 +37,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-	InputOTP,
-	InputOTPGroup,
-	InputOTPSeparator,
-	InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
@@ -183,12 +176,15 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 			toast.error("Please enter a valid 6-digit code");
 			return;
 		}
+		await verifyTwoFactorCode(twoFactorCode);
+	};
+
+	const verifyTwoFactorCode = async (code: string) => {
+		if (isTwoFactorLoading) return;
 
 		setIsTwoFactorLoading(true);
 		try {
-			const { error } = await authClient.twoFactor.verifyTotp({
-				code: twoFactorCode.replace(/\s/g, ""),
-			});
+			const { error } = await authClient.twoFactor.verifyTotp({ code });
 
 			if (error) {
 				toast.error(error.message);
@@ -346,27 +342,21 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						>
 							<div className="flex flex-col gap-2">
 								<Label htmlFor="totp-code">2FA Code</Label>
-								<InputOTP
+								{/* Plain input instead of InputOTP: Bitwarden's inline suggestion can't fill InputOTP's hidden input (input-otp#152) */}
+								<Input
 									id="totp-code"
 									name="totp"
 									value={twoFactorCode}
-									onChange={setTwoFactorCode}
+									onChange={(e) => {
+										const code = e.target.value.replace(/\D/g, "");
+										setTwoFactorCode(code);
+										if (code.length === 6) verifyTwoFactorCode(code);
+									}}
+									autoComplete="one-time-code"
+									inputMode="numeric"
 									maxLength={6}
-									pattern={REGEXP_ONLY_DIGITS}
 									autoFocus
-								>
-									<InputOTPGroup>
-										<InputOTPSlot index={0} />
-										<InputOTPSlot index={1} />
-										<InputOTPSlot index={2} />
-									</InputOTPGroup>
-									<InputOTPSeparator />
-									<InputOTPGroup>
-										<InputOTPSlot index={3} />
-										<InputOTPSlot index={4} />
-										<InputOTPSlot index={5} />
-									</InputOTPGroup>
-								</InputOTP>
+								/>
 								<CardDescription>
 									Enter the 6-digit code from your authenticator app
 								</CardDescription>
