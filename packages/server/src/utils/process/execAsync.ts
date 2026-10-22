@@ -23,6 +23,10 @@ export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
 
+// Node embeds the full command in error.message; it may carry secrets.
+const withoutCommand = (message: string, command: string) =>
+	message.split(command).join("[command omitted]");
+
 export const execAsync = async (
 	command: string,
 	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
@@ -42,13 +46,16 @@ export const execAsync = async (
 			// @ts-expect-error
 			const stderr = error.stderr?.toString() || "";
 
-			throw new ExecError(`Command execution failed: ${error.message}`, {
-				command,
-				stdout,
-				stderr,
-				exitCode,
-				originalError: error,
-			});
+			throw new ExecError(
+				`Command execution failed: ${withoutCommand(error.message, command)}`,
+				{
+					command,
+					stdout,
+					stderr,
+					exitCode,
+					originalError: error,
+				},
+			);
 		}
 		throw error;
 	}
@@ -71,13 +78,16 @@ export const execAsyncStream = (
 		const childProcess = exec(command, options, (error) => {
 			if (error) {
 				reject(
-					new ExecError(`Command execution failed: ${error.message}`, {
-						command,
-						stdout: stdoutComplete,
-						stderr: stderrComplete,
-						exitCode: error.code,
-						originalError: error,
-					}),
+					new ExecError(
+						`Command execution failed: ${withoutCommand(error.message, command)}`,
+						{
+							command,
+							stdout: stdoutComplete,
+							stderr: stderrComplete,
+							exitCode: error.code,
+							originalError: error,
+						},
+					),
 				);
 				return;
 			}
