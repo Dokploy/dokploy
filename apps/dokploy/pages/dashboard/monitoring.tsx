@@ -109,13 +109,16 @@ export async function getServerSideProps(
 		};
 	}
 
-	const canView = await hasPermission(
-		{
-			user: { id: user.id },
-			session: { activeOrganizationId: session?.activeOrganizationId || "" },
-		},
-		{ monitoring: ["read"] },
-	);
+	const permissionCtx = {
+		user: { id: user.id },
+		session: { activeOrganizationId: session?.activeOrganizationId || "" },
+	};
+	// Host stats come from the docker stats socket, which requires docker.read.
+	// Checked separately because a member's "Access to Docker" is a legacy
+	// override that only applies when every requested resource has one.
+	const canView =
+		(await hasPermission(permissionCtx, { monitoring: ["read"] })) &&
+		(await hasPermission(permissionCtx, { docker: ["read"] }));
 
 	if (!canView) {
 		return {

@@ -192,9 +192,11 @@ const MENU: Menu = {
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
-			// Only enabled in non-cloud environments and if user has monitoring.read
+			// Host stats also need docker.read, which the stats socket requires
 			isEnabled: ({ isCloud, permissions }) =>
-				!isCloud && !!permissions?.monitoring.read,
+				!isCloud &&
+				!!permissions?.monitoring.read &&
+				!!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
