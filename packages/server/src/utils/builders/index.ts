@@ -5,6 +5,10 @@ import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
+	getSwarmServiceUpdateTimeoutMs,
+	waitForSwarmServiceUpdate,
+} from "../docker/swarm-update";
+import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
@@ -186,18 +190,10 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 	};
 
+	const service = docker.getService(appName);
+	let inspect: Awaited<ReturnType<typeof service.inspect>>;
 	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
-
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-			TaskTemplate: {
-				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
-			},
-		});
+		inspect = await service.inspect();
 	} catch (error) {
 		console.log(error);
 		if (authConfig) {
@@ -205,7 +201,36 @@ export const mechanizeDockerContainer = async (
 		} else {
 			await docker.createService(settings);
 		}
+		return;
 	}
+
+	const previousVersion = Number(inspect.Version.Index);
+	const expectedForceUpdate =
+		Number(inspect.Spec.TaskTemplate.ForceUpdate ?? 0) + 1;
+	await service.update({
+		version: previousVersion,
+		...settings,
+		TaskTemplate: {
+			...settings.TaskTemplate,
+			ForceUpdate: expectedForceUpdate,
+		},
+	});
+
+	if (settings.Mode?.ReplicatedJob || settings.Mode?.GlobalJob) return;
+
+	const replicas =
+		settings.Mode?.Replicated?.Replicas ??
+		inspect.ServiceStatus?.DesiredTasks ??
+		1;
+	await waitForSwarmServiceUpdate(docker, service, {
+		expectedForceUpdate,
+		previousVersion,
+		timeoutMs: getSwarmServiceUpdateTimeoutMs({
+			replicas,
+			rollbackConfig: settings.RollbackConfig,
+			updateConfig: settings.UpdateConfig,
+		}),
+	});
 };
 
 const getImageName = async (application: ApplicationNested) => {
