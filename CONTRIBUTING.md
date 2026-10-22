@@ -53,7 +53,7 @@ feat: add new feature
 
 Before you start, please make the clone based on the `canary` branch, since the `main` branch is the source of truth and should always reflect the latest stable release, also the PRs will be merged to the `canary` branch.
 
-We use Node v24.4.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 24.4.0 && nvm use` in the root directory.
+We use Node v24.22.1 and recommend this specific version. If you have nvm installed, you can run `nvm install 24.22.1 && nvm use` in the root directory.
 
 ```bash
 git clone https://github.com/dokploy/dokploy.git
@@ -120,11 +120,19 @@ pnpm run docker:push
 
 ## Password Reset
 
-In the case you lost your password, you can reset it using the following command
+In the case you lost your password, you can reset the owner's password using the following command
 
 ```bash
-pnpm run reset-password
+pnpm --filter=dokploy run reset-password
 ```
+
+To reset the password of a specific user instead, pass their email as an argument
+
+```bash
+pnpm --filter=dokploy run reset-password user@example.com
+```
+
+Both commands print the new randomly generated password to the console.
 
 If you want to test the webhooks on development mode using localtunnel, make sure to install [`localtunnel`](https://localtunnel.app/)
 

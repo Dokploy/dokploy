@@ -60,6 +60,9 @@ export const SearchCommand = () => {
 		enabled: !!session,
 	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery(undefined, {
+		enabled: !!session,
+	});
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {
@@ -150,7 +153,7 @@ export const SearchCommand = () => {
 										{application.type === "compose" && (
 											<CircuitBoard className="h-6 w-6 mr-2" />
 										)}
-										<span className="flex-grow">
+										<span className="grow">
 											{project.name} / {application.environmentName} /{" "}
 											{application.name}{" "}
 											<div style={{ display: "none" }}>{application.id}</div>
@@ -167,7 +170,7 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Application"} hidden={true}>
 						<CommandItem
 							onSelect={() => {
-								router.push("/dashboard/projects");
+								router.push("/dashboard/home");
 								setOpen(false);
 							}}
 						>
@@ -175,7 +178,7 @@ export const SearchCommand = () => {
 						</CommandItem>
 						<CommandItem
 							onSelect={() => {
-								router.push("/dashboard/deployments");
+								router.push("/dashboard/overview?tab=deployments");
 								setOpen(false);
 							}}
 						>
@@ -183,14 +186,16 @@ export const SearchCommand = () => {
 						</CommandItem>
 						{!isCloud && (
 							<>
-								<CommandItem
-									onSelect={() => {
-										router.push("/dashboard/monitoring");
-										setOpen(false);
-									}}
-								>
-									Monitoring
-								</CommandItem>
+								{permissions?.monitoring.read && permissions?.docker.read && (
+									<CommandItem
+										onSelect={() => {
+											router.push("/dashboard/monitoring");
+											setOpen(false);
+										}}
+									>
+										Monitoring
+									</CommandItem>
+								)}
 								<CommandItem
 									onSelect={() => {
 										router.push("/dashboard/traefik");

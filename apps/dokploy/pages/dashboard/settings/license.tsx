@@ -38,7 +38,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -46,7 +46,7 @@ export async function getServerSideProps(
 	if (user.role !== "owner") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/dashboard/settings/profile",
 			},
 		};

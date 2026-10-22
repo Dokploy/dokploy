@@ -12,19 +12,22 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   generate-and-commit:
     name: Generate OpenAPI and commit to Dokploy repo
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Dokploy repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 24.4.0
+          node-version: 24.22.1
           cache: "pnpm"
 
       - name: Install dependencies
@@ -67,4 +70,67 @@ jobs:
           git push
           
           echo "✅ OpenAPI synced to website successfully"
+
+      - name: Sync to MCP repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/mcp.git mcp-repo
+
+          cd mcp-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to MCP repository successfully"
+
+      - name: Sync to CLI repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+
+          cd cli-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to CLI repository successfully"
+
+      - name: Sync to SDK repository
+        run: |
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/sdk.git sdk-repo
+
+          cd sdk-repo
+
+          cp -f ../openapi.json openapi.json
+
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+
+          git add openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+
+          git push
+
+          echo "✅ OpenAPI synced to SDK repository successfully"
 

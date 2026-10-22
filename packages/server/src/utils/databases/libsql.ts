@@ -1,5 +1,7 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions, PortConfig } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
+import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -9,6 +11,7 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type LibsqlNested = InferResultType<
 	"libsql",
@@ -17,7 +20,8 @@ export type LibsqlNested = InferResultType<
 		environment: { with: { project: true } };
 	}
 >;
-export const buildLibsql = async (libsql: LibsqlNested) => {
+export const buildLibsql = async (rawLibsql: LibsqlNested) => {
+	const libsql = await withResolvedVaultRefs(rawLibsql);
 	const {
 		appName,
 		env,
@@ -46,6 +50,8 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		env ? `\n${env}` : ""
 	}${sqldNode === "replica" ? `\nSQLD_PRIMARY_URL="${sqldPrimaryUrl}"` : ""}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(libsql);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -54,7 +60,6 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 	} = generateConfigContainer(libsql);
 	const resources = calculateResources({
 		memoryLimit,
@@ -94,9 +99,20 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 							Args: ["-c", finalCommand],
 						}
 					: {}),
-				Labels,
+				Labels: {
+					...Labels,
+					...buildDokployLabels({
+						organizationId: libsql.environment.project.organizationId,
+						projectId: libsql.environment.projectId,
+						projectName: libsql.environment.project.name,
+						environmentId: libsql.environmentId,
+						environmentName: libsql.environment.name,
+						applicationId: libsql.libsqlId,
+						applicationName: libsql.name,
+					}),
+				},
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -140,7 +156,11 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 					: []),
 			],
 		},
-		UpdateConfig,
+		UpdateConfig: libsql.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 	try {
 		const service = docker.getService(appName);

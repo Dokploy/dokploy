@@ -32,6 +32,7 @@ import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant"
 import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
+import { AddImport } from "@/components/dashboard/project/add-import";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
@@ -258,6 +259,7 @@ export const extractServicesFromEnvironment = (
 				serverId: item.serverId,
 				serverName: item?.server?.name || null,
 				lastDeployDate,
+				icon: item.icon || null,
 			};
 		}) || [];
 
@@ -509,6 +511,14 @@ const EnvironmentPage = (
 		deploy: api.mongo.deploy.useMutation(),
 	};
 
+	const libsqlActions = {
+		start: api.libsql.start.useMutation(),
+		stop: api.libsql.stop.useMutation(),
+		move: api.libsql.move.useMutation(),
+		delete: api.libsql.remove.useMutation(),
+		deploy: api.libsql.deploy.useMutation(),
+	};
+
 	const handleBulkStart = async () => {
 		let success = 0;
 		setIsBulkActionLoading(true);
@@ -540,6 +550,9 @@ const EnvironmentPage = (
 						break;
 					case "mongo":
 						await mongoActions.start.mutateAsync({ mongoId: serviceId });
+						break;
+					case "libsql":
+						await libsqlActions.start.mutateAsync({ libsqlId: serviceId });
 						break;
 				}
 				success++;
@@ -587,6 +600,9 @@ const EnvironmentPage = (
 						break;
 					case "mongo":
 						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
+						break;
+					case "libsql":
+						await libsqlActions.stop.mutateAsync({ libsqlId: serviceId });
 						break;
 				}
 				success++;
@@ -664,6 +680,12 @@ const EnvironmentPage = (
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
+					case "libsql":
+						await libsqlActions.move.mutateAsync({
+							libsqlId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
 				}
 				await utils.environment.one.invalidate({
 					environmentId,
@@ -733,6 +755,11 @@ const EnvironmentPage = (
 							mongoId: serviceId,
 						});
 						break;
+					case "libsql":
+						await libsqlActions.delete.mutateAsync({
+							libsqlId: serviceId,
+						});
+						break;
 				}
 				await utils.environment.one.invalidate({
 					environmentId,
@@ -797,6 +824,11 @@ const EnvironmentPage = (
 					case "mongo":
 						await mongoActions.deploy.mutateAsync({
 							mongoId: serviceId,
+						});
+						break;
+					case "libsql":
+						await libsqlActions.deploy.mutateAsync({
+							libsqlId: serviceId,
 						});
 						break;
 				}
@@ -1008,7 +1040,9 @@ const EnvironmentPage = (
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									{currentEnvironment.project.name}
+									<p className="text-base font-medium max-w-[250px] truncate">
+										{currentEnvironment.project.name}
+									</p>
 									<AdvancedEnvironmentSelector
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
@@ -1061,6 +1095,10 @@ const EnvironmentPage = (
 													projectName={projectData?.name}
 													environmentId={environmentId}
 												/>
+												<AddImport
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
 											</DropdownMenuContent>
 										</DropdownMenu>
 									)}
@@ -1069,7 +1107,7 @@ const EnvironmentPage = (
 						</div>
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							<>
-								<div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+								<div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
 									<div className="flex items-center gap-4">
 										<div className="flex items-center gap-2">
 											<Checkbox
@@ -1590,9 +1628,9 @@ const EnvironmentPage = (
 														<ContextMenuTrigger asChild>
 															<Link
 																href={`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`}
-																className="block"
+																className="block h-full"
 															>
-																<Card className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border">
+																<Card className="flex flex-col h-full group relative cursor-pointer bg-transparent transition-colors hover:bg-border">
 																	{service.serverId && (
 																		<div className="absolute -left-1 -top-2">
 																			<ServerIcon className="size-4 text-muted-foreground" />
@@ -1625,19 +1663,19 @@ const EnvironmentPage = (
 
 																	<CardHeader>
 																		<CardTitle className="flex items-center justify-between">
-																			<div className="flex flex-row items-center gap-2 justify-between w-full">
-																				<div className="flex flex-col gap-2">
-																					<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+																			<div className="flex flex-row items-center gap-2 justify-between w-full min-w-0">
+																				<div className="flex flex-col gap-2 min-w-0 flex-1">
+																					<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap break-words">
 																						{service.name}
 																					</span>
 																					{service.description && (
-																						<span className="text-sm font-medium text-muted-foreground">
+																						<span className="text-sm font-medium text-muted-foreground wrap-anywhere line-clamp-3">
 																							{service.description}
 																						</span>
 																					)}
 																				</div>
 
-																				<span className="text-sm font-medium text-muted-foreground self-start">
+																				<span className="text-sm font-medium text-muted-foreground self-start shrink-0">
 																					{service.type === "postgres" && (
 																						<PostgresqlIcon className="h-7 w-7" />
 																					)}
@@ -1664,9 +1702,17 @@ const EnvironmentPage = (
 																						) : (
 																							<GlobeIcon className="h-6 w-6" />
 																						))}
-																					{service.type === "compose" && (
-																						<CircuitBoard className="h-6 w-6" />
-																					)}
+																					{service.type === "compose" &&
+																						(service.icon ? (
+																							// biome-ignore lint/performance/noImgElement: compose icon is data URL
+																							<img
+																								src={service.icon}
+																								alt={service.name}
+																								className="size-7 object-contain rounded-sm"
+																							/>
+																						) : (
+																							<CircuitBoard className="h-6 w-6" />
+																						))}
 																					{service.type === "libsql" && (
 																						<LibsqlIcon className="h-6 w-6" />
 																					)}
@@ -1797,7 +1843,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -1843,7 +1889,7 @@ export async function getServerSideProps(
 					// Try to find default, otherwise use first accessible
 					const targetEnv =
 						accessibleEnvironments.find((env) => env.isDefault) ||
-						accessibleEnvironments[0];
+						accessibleEnvironments[0]!;
 
 					return {
 						redirect: {
@@ -1856,7 +1902,7 @@ export async function getServerSideProps(
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/dashboard/projects",
+						destination: "/dashboard/home",
 					},
 				};
 			}

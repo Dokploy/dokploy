@@ -4,35 +4,36 @@
 	"type": "module",
 	"scripts": {
 		"dev": "PORT=4000 tsx watch src/index.ts",
+		"dev:inngest": "npx --yes inngest-cli@1.9.0 dev -u http://localhost:4000/api/inngest --no-discovery",
 		"build": "rimraf dist && tsc --project tsconfig.json",
 		"start": "node dist/index.js",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"inngest": "3.40.1",
+		"inngest": "3.54.0",
 		"@dokploy/server": "workspace:*",
-		"@hono/node-server": "^1.14.3",
+		"@hono/node-server": "^1.19.15",
 		"@hono/zod-validator": "0.7.6",
 		"dotenv": "^16.4.5",
-		"hono": "^4.11.7",
+		"hono": "^4.13.5",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
-		"react": "18.2.0",
-		"react-dom": "18.2.0",
+		"react": "19.2.7",
+		"react-dom": "19.2.7",
 		"redis": "4.7.0",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@types/node": "^24.4.0",
-		"@types/react": "^18.2.37",
-		"@types/react-dom": "^18.2.15",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
 		"rimraf": "6.1.3",
-		"tsx": "^4.16.2",
-		"typescript": "^5.8.3"
+		"tsx": "^4.22.4",
+		"typescript": "^7.0.2"
 	},
 	"packageManager": "pnpm@10.22.0",
 	"engines": {
-		"node": "^24.4.0",
+		"node": "^24.22.1",
 		"pnpm": ">=10.22.0"
 	}
 }

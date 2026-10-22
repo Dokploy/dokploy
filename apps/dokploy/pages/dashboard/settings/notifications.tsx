@@ -28,7 +28,7 @@ export async function getServerSideProps(
 	if (!user || user.role === "member") {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};

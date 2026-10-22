@@ -1,87 +1,83 @@
+import { OTPInput, OTPInputContext } from "input-otp";
+import { MinusIcon } from "lucide-react";
 import * as React from "react";
-
 import { cn } from "@/lib/utils";
 
-const InputOTP = React.forwardRef<
-	HTMLInputElement,
-	Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> & {
-		value: string;
-		onChange: (value: string) => void;
-		maxLength: number;
-	}
->(({ className, value, onChange, maxLength, ...props }, ref) => {
-	const [focusedIndex, setFocusedIndex] = React.useState<number | null>(null);
-	const inputRef = React.useRef<HTMLInputElement>(null);
-	const previousValueRef = React.useRef<string>(value);
+function InputOTP({
+	className,
+	containerClassName,
+	...props
+}: React.ComponentProps<typeof OTPInput> & {
+	containerClassName?: string;
+}) {
+	return (
+		<OTPInput
+			data-slot="input-otp"
+			containerClassName={cn(
+				"cn-input-otp flex items-center has-disabled:opacity-50",
+				containerClassName,
+			)}
+			spellCheck={false}
+			className={cn("disabled:cursor-not-allowed", className)}
+			{...props}
+		/>
+	);
+}
 
-	React.useImperativeHandle(ref, () => inputRef.current!);
+function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {
+	return (
+		<div
+			data-slot="input-otp-group"
+			className={cn(
+				"flex items-center rounded-lg has-aria-invalid:border-destructive has-aria-invalid:ring-3 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40",
+				className,
+			)}
+			{...props}
+		/>
+	);
+}
 
-	React.useEffect(() => {
-		if (value !== previousValueRef.current) {
-			const newLength = value.length;
-			setFocusedIndex(newLength);
-			previousValueRef.current = value;
-		}
-	}, [value]);
-
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const newValue = e.target.value.replace(/\D/g, "").slice(0, maxLength);
-		onChange(newValue);
-	};
-
-	const handleBoxClick = (index: number) => {
-		inputRef.current?.focus();
-		setFocusedIndex(index);
-	};
-
-	const slots = Array.from({ length: maxLength }, (_, i) => {
-		const char = value[i] || "";
-		const isActive =
-			focusedIndex === i || (focusedIndex === null && i === value.length);
-		const isFilled = !!char;
-
-		return (
-			<div
-				key={i}
-				onClick={() => handleBoxClick(i)}
-				className={cn(
-					"relative flex h-11 w-11 items-center justify-center rounded-lg border-2 border-input bg-background text-base font-semibold transition-all cursor-text hover:border-ring/50",
-					isActive && "border-ring ring-2 ring-ring/20 ring-offset-1",
-					isFilled && "border-primary/50 bg-primary/5",
-					className,
-				)}
-			>
-				<span className="text-foreground">{char}</span>
-				{isActive && !char && (
-					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-						<div className="h-5 w-0.5 animate-caret-blink bg-primary duration-1000" />
-					</div>
-				)}
-			</div>
-		);
-	});
+function InputOTPSlot({
+	index,
+	className,
+	...props
+}: React.ComponentProps<"div"> & {
+	index: number;
+}) {
+	const inputOTPContext = React.useContext(OTPInputContext);
+	const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {};
 
 	return (
-		<div className="relative">
-			<input
-				ref={inputRef}
-				type="text"
-				value={value}
-				onChange={handleChange}
-				onFocus={() => setFocusedIndex(value.length)}
-				onBlur={() => setFocusedIndex(null)}
-				autoComplete="one-time-code"
-				inputMode="numeric"
-				pattern="[0-9]*"
-				maxLength={maxLength}
-				className="absolute inset-0 w-full h-full opacity-0 cursor-default"
-				style={{ caretColor: "transparent" }}
-				{...props}
-			/>
-			<div className="flex items-center gap-2">{slots}</div>
+		<div
+			data-slot="input-otp-slot"
+			data-active={isActive}
+			className={cn(
+				"relative flex size-8 items-center justify-center border-y border-r border-input text-sm transition-all outline-none first:rounded-l-lg first:border-l last:rounded-r-lg aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-3 data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:bg-input/30 dark:data-[active=true]:aria-invalid:ring-destructive/40",
+				className,
+			)}
+			{...props}
+		>
+			{char}
+			{hasFakeCaret && (
+				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+					<div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
+				</div>
+			)}
 		</div>
 	);
-});
-InputOTP.displayName = "InputOTP";
+}
 
-export { InputOTP };
+function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
+	return (
+		<div
+			data-slot="input-otp-separator"
+			className="flex items-center [&_svg:not([class*='size-'])]:size-4"
+			role="separator"
+			{...props}
+		>
+			<MinusIcon />
+		</div>
+	);
+}
+
+export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator };

@@ -53,7 +53,7 @@ export const UserNav = () => {
 				</SidebarMenuButton>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+				className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
 				side="bottom"
 				align="end"
 				sideOffset={4}
@@ -80,21 +80,23 @@ export const UserNav = () => {
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={() => {
-							router.push("/dashboard/projects");
+							router.push("/dashboard/home");
 						}}
 					>
 						Projects
 					</DropdownMenuItem>
 					{!isCloud ? (
 						<>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/monitoring");
-								}}
-							>
-								Monitoring
-							</DropdownMenuItem>
+							{permissions?.monitoring.read && permissions?.docker.read && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/monitoring");
+									}}
+								>
+									Monitoring
+								</DropdownMenuItem>
+							)}
 							{permissions?.traefikFiles.read && (
 								<DropdownMenuItem
 									className="cursor-pointer"

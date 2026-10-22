@@ -1,6 +1,7 @@
 import {
 	createBackup,
 	findBackupById,
+	findBackupsByDbId,
 	findComposeByBackupId,
 	findComposeById,
 	findLibsqlByBackupId,
@@ -48,6 +49,7 @@ import {
 	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import {
 	createTRPCRouter,
@@ -55,6 +57,7 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertDatabaseBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateBackup,
 	apiFindOneBackup,
@@ -92,6 +95,22 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["create"],
 					});
+				}
+
+				if (IS_CLOUD) {
+					const dbType = (
+						["postgres", "mysql", "mariadb", "mongo", "libsql"] as const
+					).find((type) => input[`${type}Id`]);
+					if (dbType) {
+						const existingBackups = await findBackupsByDbId(
+							input[`${dbType}Id`]!,
+							dbType,
+						);
+						await assertDatabaseBackupLimit(
+							ctx.session.activeOrganizationId,
+							existingBackups.length,
+						);
+					}
 				}
 
 				const newBackup = await createBackup(input);
@@ -458,9 +477,26 @@ export const backupRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				const destination = await findDestinationById(input.destinationId);
+				if (destination.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this destination.",
+					});
+				}
+				if (input.serverId) {
+					const targetServer = await findServerById(input.serverId);
+					if (
+						targetServer.organizationId !== ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this server.",
+						});
+					}
+				}
 				const rcloneFlags = getS3Credentials(destination);
 				const bucketPath = `:s3:${destination.bucket}`;
 
@@ -475,7 +511,7 @@ export const backupRouter = createTRPCRouter({
 						: input.search;
 
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
-				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} "${searchPath}" --no-mimetype --no-modtime 2>/dev/null`;
+				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} ${quote([searchPath])} --no-mimetype --no-modtime 2>/dev/null`;
 
 				let stdout = "";
 

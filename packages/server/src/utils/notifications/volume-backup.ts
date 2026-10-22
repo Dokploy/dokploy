@@ -1,10 +1,12 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import { VolumeBackupEmail } from "@dokploy/server/emails/emails/volume-backup";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	escapeHtml,
+	formatTelegramErrorMessage,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -88,7 +90,7 @@ export const sendVolumeBackupNotifications = async ({
 		try {
 			if (email || resend) {
 				const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
-				const htmlContent = await renderAsync(
+				const htmlContent = await render(
 					VolumeBackupEmail({
 						projectName,
 						applicationName,
@@ -223,13 +225,13 @@ export const sendVolumeBackupNotifications = async ({
 				const statusEmoji = type === "success" ? "✅" : "❌";
 				const typeStatus = type === "success" ? "Successful" : "Failed";
 				const errorMsg = isError
-					? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
+					? `\n\n<b>Error:</b>\n<pre>${formatTelegramErrorMessage(errorMessage)}</pre>`
 					: "";
 				const sizeInfo = backupSize
-					? `\n<b>Backup Size:</b> ${backupSize}`
+					? `\n<b>Backup Size:</b> ${escapeHtml(backupSize)}`
 					: "";
 
-				const messageText = `<b>${statusEmoji} Volume Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Volume Name:</b> ${volumeName}\n<b>Service Type:</b> ${serviceType}${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+				const messageText = `<b>${statusEmoji} Volume Backup ${typeStatus}</b>\n\n<b>Project:</b> ${escapeHtml(projectName)}\n<b>Application:</b> ${escapeHtml(applicationName)}\n<b>Volume Name:</b> ${escapeHtml(volumeName)}\n<b>Service Type:</b> ${escapeHtml(serviceType)}${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
 
 				await sendTelegramNotification(telegram, messageText);
 			}

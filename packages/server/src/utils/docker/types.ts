@@ -497,6 +497,7 @@ export interface ComposeSpecification {
 	 */
 	include?: DefinitionsInclude[];
 	services?: PropertiesServices;
+	models?: PropertiesModels;
 	networks?: PropertiesNetworks;
 	volumes?: PropertiesVolumes;
 	secrets?: PropertiesSecrets;
@@ -648,6 +649,15 @@ export interface DefinitionsService {
 	mem_swappiness?: number;
 	memswap_limit?: number | string;
 	network_mode?: string;
+	models?:
+		| ListOfStrings
+		| {
+				[k: string]: {
+					endpoint_var?: string;
+					model_var?: string;
+					[key: `x-${string}`]: unknown;
+				} | null;
+		  };
 	networks?:
 		| ListOfStrings
 		| {
@@ -876,4 +886,14 @@ export interface DefinitionsConfig {
 	 * via the `patternProperty` "^x-".
 	 */
 	[k: string]: unknown;
+}
+export interface PropertiesModels {
+	[k: string]: DefinitionsModel;
+}
+export interface DefinitionsModel {
+	name?: string;
+	model: string;
+	context_size?: number;
+	runtime_flags?: string[];
+	[key: `x-${string}`]: unknown;
 }

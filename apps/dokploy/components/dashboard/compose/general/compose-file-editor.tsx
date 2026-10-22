@@ -49,12 +49,12 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	const composeFile = form.watch("composeFile");
 
 	useEffect(() => {
-		if (data && !composeFile) {
+		if (data) {
 			form.reset({
 				composeFile: data.composeFile || "",
 			});
 		}
-	}, [form, form.reset, data]);
+	}, [form, data]);
 
 	useEffect(() => {
 		if (data?.composeFile !== undefined) {
@@ -135,7 +135,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="overflow-auto">
 									<FormControl className="">
-										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
+										<div className="flex flex-col gap-4 w-full outline-hidden focus:outline-hidden overflow-auto">
 											<CodeEditor
 												// disabled
 												language="yaml"

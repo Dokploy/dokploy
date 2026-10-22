@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const loginSchema = z.object({
@@ -29,6 +31,9 @@ const loginSchema = z.object({
 		.string()
 		.min(1, {
 			message: "Email is required",
+		})
+		.max(255, {
+			message: "Email must be at most 255 characters",
 		})
 		.email({
 			message: "Email must be a valid email",
@@ -87,6 +92,11 @@ export default function Home() {
 						logoUrl={
 							whitelabeling?.loginLogoUrl || whitelabeling?.logoUrl || undefined
 						}
+						logoLightUrl={
+							whitelabeling?.loginLogoLightUrl ||
+							whitelabeling?.logoLightUrl ||
+							undefined
+						}
 					/>
 					<span className="font-medium text-sm">
 						{whitelabeling?.appName || "Dokploy"}
@@ -107,6 +117,7 @@ export default function Home() {
 						{!temp.is2FAEnabled ? (
 							<Form {...form}>
 								<form
+									method="post"
 									onSubmit={form.handleSubmit(onSubmit)}
 									className="grid gap-4"
 								>
@@ -118,7 +129,11 @@ export default function Home() {
 												<FormItem>
 													<FormLabel>Email</FormLabel>
 													<FormControl>
-														<Input placeholder="Email" {...field} />
+														<Input
+															placeholder="Email"
+															maxLength={255}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -157,17 +172,24 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(_context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
 	}
 
+	const helpers = generateServerSideHelper(appRouter, context);
+	// Prefetch the public branding so the logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	return {
-		props: {},
+		props: {
+			trpcState: helpers.dehydrate(),
+		},
 	};
 }

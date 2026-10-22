@@ -3,32 +3,89 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import type { Job } from "bullmq";
-import { Queue } from "bullmq";
-import { deploymentWorker } from "./deployments-queue";
-import { redisConfig } from "./redis-connection";
+import { resolveBuildsConcurrency } from "./concurrency";
+import { processDeploymentJob } from "./deployments-queue";
+import { type InMemoryJob, InMemoryQueue } from "./in-memory-queue";
+import type { DeploymentJob } from "./queue-types";
 
-/** No-op queue when Redis is disabled (e.g. IS_CLOUD). Avoids BullMQ connection errors. */
-const createNoopQueue = () => ({
-	getJobs: () => Promise.resolve([] as Job[]),
-	add: () =>
-		Promise.resolve({ id: "noop", remove: () => Promise.resolve() } as Job),
+/**
+ * Deployment queue.
+ *
+ * Self-hosted uses an in-memory, per-group FIFO queue with configurable
+ * concurrency per server. Cloud does not use the queue at all — deployments
+ * run directly in the background — so we expose a no-op.
+ */
+
+interface DeploymentQueue {
+	add: (
+		name: string,
+		data: DeploymentJob,
+		opts?: Record<string, unknown>,
+	) => Promise<{ id: string }>;
+	getJobs: (states?: Array<"waiting" | "active">) => Promise<InMemoryJob[]>;
+	close: () => Promise<void>;
+	on: (...args: unknown[]) => void;
+	run: () => Promise<void>;
+	removeWaiting: (predicate: (data: DeploymentJob) => boolean) => number;
+	clearWaiting: () => number;
+}
+
+const createNoopQueue = (): DeploymentQueue => ({
+	add: () => Promise.resolve({ id: "noop" }),
+	getJobs: () => Promise.resolve([]),
 	close: () => Promise.resolve(),
 	on: () => {},
+	run: () => Promise.resolve(),
+	removeWaiting: () => 0,
+	clearWaiting: () => 0,
 });
 
-const myQueue = !IS_CLOUD
-	? new Queue("deployments", { connection: redisConfig })
-	: (createNoopQueue() as unknown as Queue);
+const createInMemoryQueue = (): DeploymentQueue => {
+	const queue = new InMemoryQueue({
+		resolveConcurrency: resolveBuildsConcurrency,
+	});
+	queue.process(processDeploymentJob);
+
+	return {
+		add: (_name, data) => queue.add(data),
+		getJobs: (states) => queue.getJobs(states),
+		close: () => queue.close(),
+		on: () => {},
+		run: () => queue.run(),
+		removeWaiting: (predicate) => queue.removeWaiting(predicate),
+		clearWaiting: () => queue.clearWaiting(),
+	};
+};
+
+// Use a global singleton so the deployment queue is shared across every module
+// instance. In dev (tsx/Next) the same file can be evaluated more than once
+// (relative import in server.ts vs `@/` alias in the routers); without this the
+// worker and the `add()` calls would land on different queue instances.
+const globalForQueue = globalThis as unknown as {
+	__dokployDeploymentQueue?: DeploymentQueue;
+};
+
+if (!globalForQueue.__dokployDeploymentQueue) {
+	globalForQueue.__dokployDeploymentQueue = !IS_CLOUD
+		? createInMemoryQueue()
+		: createNoopQueue();
+}
+
+const myQueue: DeploymentQueue = globalForQueue.__dokployDeploymentQueue;
+
+/** Start processing jobs. Called once on server startup (self-hosted). */
+export const startDeploymentWorker = () => myQueue.run();
 
 export const getJobsByApplicationId = async (applicationId: string) => {
 	const jobs = await myQueue.getJobs();
-	return jobs.filter((job) => job?.data?.applicationId === applicationId);
+	return jobs.filter(
+		(job) => (job.data as any)?.applicationId === applicationId,
+	);
 };
 
 export const getJobsByComposeId = async (composeId: string) => {
 	const jobs = await myQueue.getJobs();
-	return jobs.filter((job) => job?.data?.composeId === composeId);
+	return jobs.filter((job) => (job.data as any)?.composeId === composeId);
 };
 
 if (!IS_CLOUD) {
@@ -36,42 +93,31 @@ if (!IS_CLOUD) {
 		myQueue.close();
 		process.exit(0);
 	});
-
-	myQueue.on("error", (error) => {
-		if ((error as any).code === "ECONNREFUSED") {
-			console.error(
-				"Make sure you have installed Redis and it is running.",
-				error,
-			);
-		}
-	});
 }
 
 export const cleanQueuesByApplication = async (applicationId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
+	const removed = myQueue.removeWaiting(
+		(data) => (data as any)?.applicationId === applicationId,
+	);
+	if (removed > 0) {
+		console.log(
+			`Removed ${removed} waiting job(s) for application ${applicationId}`,
+		);
+	}
+};
 
-	for (const job of jobs) {
-		if (job?.data?.applicationId === applicationId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for application ${applicationId}`);
-		}
+export const cleanQueuesByCompose = async (composeId: string) => {
+	const removed = myQueue.removeWaiting(
+		(data) => (data as any)?.composeId === composeId,
+	);
+	if (removed > 0) {
+		console.log(`Removed ${removed} waiting job(s) for compose ${composeId}`);
 	}
 };
 
 export const cleanAllDeploymentQueue = async () => {
-	deploymentWorker.cancelAllJobs("User requested cancellation");
+	myQueue.clearWaiting();
 	return true;
-};
-
-export const cleanQueuesByCompose = async (composeId: string) => {
-	const jobs = await myQueue.getJobs(["waiting", "delayed"]);
-
-	for (const job of jobs) {
-		if (job?.data?.composeId === composeId) {
-			await job.remove();
-			console.log(`Removed job ${job.id} for compose ${composeId}`);
-		}
-	}
 };
 
 export const killDockerBuild = async (

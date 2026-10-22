@@ -1,10 +1,12 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DokployBackupEmail from "@dokploy/server/emails/emails/dokploy-backup";
-import { renderAsync } from "@react-email/components";
+import { render } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
+	escapeHtml,
+	formatTelegramErrorMessage,
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -66,7 +68,7 @@ export const sendDokployBackupNotifications = async ({
 
 		try {
 			if (email || resend) {
-				const template = await renderAsync(
+				const template = await render(
 					DokployBackupEmail({
 						type,
 						errorMessage,
@@ -186,10 +188,10 @@ export const sendDokployBackupNotifications = async ({
 				const statusEmoji = type === "success" ? "✅" : "❌";
 				const typeStatus = type === "success" ? "Successful" : "Failed";
 				const errorMsg = isError
-					? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
+					? `\n\n<b>Error:</b>\n<pre>${formatTelegramErrorMessage(errorMessage)}</pre>`
 					: "";
 				const sizeInfo = backupSize
-					? `\n<b>Backup Size:</b> ${backupSize}`
+					? `\n<b>Backup Size:</b> ${escapeHtml(backupSize)}`
 					: "";
 
 				const messageText = `<b>${statusEmoji} Dokploy Backup ${typeStatus}</b>\n\n<b>Backup Type:</b> Complete Dokploy Instance${sizeInfo}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;

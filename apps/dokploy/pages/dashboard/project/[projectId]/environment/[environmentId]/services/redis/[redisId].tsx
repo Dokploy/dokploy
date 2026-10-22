@@ -1,5 +1,6 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -9,6 +10,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
@@ -20,6 +22,7 @@ import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-gene
 import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/general/show-internal-redis-credentials";
 import { UpdateRedis } from "@/components/dashboard/redis/update-redis";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { RedisIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
@@ -62,6 +65,7 @@ const Redis = (
 	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: environments } = api.environment.byProjectId.useQuery({
 		projectId: data?.environment?.projectId || "",
 	});
@@ -86,9 +90,9 @@ const Redis = (
 			<div className="w-full">
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
+						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<CardTitle className="text-xl flex min-w-0 flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
 										<div className="absolute -right-1  -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
@@ -96,19 +100,29 @@ const Redis = (
 
 										<RedisIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
-									{data?.name}
+									<span className="min-w-0 truncate" title={data?.name}>
+										{data?.name}
+									</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>
 								)}
 
-								<span className="text-sm text-muted-foreground">
+								<span className="text-sm text-muted-foreground min-w-0 truncate">
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex flex-col h-fit w-fit gap-2">
-								<div className="flex flex-row h-fit w-fit gap-2">
+							<div className="flex max-w-[45%] min-w-0 flex-col h-fit gap-2 md:max-w-none md:w-fit">
+								<div className="flex max-w-full min-w-0 flex-row h-fit gap-2">
 									<Badge
+										className="min-w-0 max-w-full cursor-pointer overflow-hidden"
+										onClick={() => {
+											const ip = data?.server?.ipAddress || serverIp;
+											if (ip) {
+												copy(ip);
+												toast.success("IP Address Copied!");
+											}
+										}}
 										variant={
 											!data?.serverId
 												? "default"
@@ -117,7 +131,9 @@ const Redis = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										<span className="truncate">
+											{data?.server?.name || "Dokploy Server"}
+										</span>
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -128,7 +144,7 @@ const Redis = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>
@@ -146,6 +162,13 @@ const Redis = (
 								<div className="flex flex-row gap-2 justify-end">
 									{permissions?.service.create && (
 										<UpdateRedis redisId={redisId} />
+									)}
+									{permissions?.service.create && (
+										<TransferService
+											id={redisId}
+											type="redis"
+											serverId={data?.serverId}
+										/>
 									)}
 									{permissions?.service.delete && (
 										<DeleteService id={redisId} type="redis" />
@@ -187,7 +210,7 @@ const Redis = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-auto">
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
@@ -271,6 +294,7 @@ const Redis = (
 															<div> */}
 															<ContainerFreeMonitoring
 																appName={data?.appName || ""}
+																serviceId={data?.redisId}
 															/>
 															{/* </div> */}
 															{/* )} */}
@@ -286,6 +310,7 @@ const Redis = (
 												<ShowDockerLogs
 													serverId={data?.serverId || ""}
 													appName={data?.appName || ""}
+													serviceId={data?.redisId}
 												/>
 											</div>
 										</TabsContent>
@@ -329,7 +354,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -363,7 +388,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/projects",
+					destination: "/dashboard/home",
 				},
 			};
 		}

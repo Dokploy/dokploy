@@ -1,6 +1,35 @@
+import { decryptValue, encryptValue } from "@dokploy/server/lib/encryption";
 import { generatePassword } from "@dokploy/server/templates";
 import { faker } from "@faker-js/faker";
+import { customType } from "drizzle-orm/pg-core";
 import { customAlphabet } from "nanoid";
+
+/**
+ * Text column encrypted at rest (AES-256-GCM, key derived from
+ * BETTER_AUTH_SECRET). Legacy plaintext values are passed through on read
+ * and get encrypted the next time they are written.
+ */
+export const encryptedText = customType<{ data: string; driverData: string }>({
+	dataType() {
+		return "text";
+	},
+	toDriver(value) {
+		return encryptValue(value);
+	},
+	fromDriver(value) {
+		try {
+			return decryptValue(value);
+		} catch {
+			// Fail open so a key mismatch (e.g. restoring a backup under a
+			// different BETTER_AUTH_SECRET) degrades to showing ciphertext
+			// instead of breaking every query that touches the row.
+			console.error(
+				"Failed to decrypt an encrypted column; returning the raw value. This usually means BETTER_AUTH_SECRET changed after the value was encrypted.",
+			);
+			return value;
+		}
+	},
+});
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz123456789";
 
@@ -11,6 +40,12 @@ export const APP_NAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 
 export const APP_NAME_MESSAGE =
 	"App name can only contain letters, numbers, dots, underscores and hyphens";
+
+/** Docker volume name: must start alphanumeric, then letters/numbers/._- only. Safe for shell. */
+export const VOLUME_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+
+export const VOLUME_NAME_MESSAGE =
+	"Volume name must start with a letter or number and contain only letters, numbers, dots, underscores and hyphens";
 
 /** Database password: blocks shell-dangerous characters like $ ! ' " \ / and spaces. */
 export const DATABASE_PASSWORD_REGEX =

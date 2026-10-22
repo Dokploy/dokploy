@@ -652,6 +652,13 @@ export interface ErrorsMiddleware {
 	 * The URL for the error page (hosted by service). You can use {status} in the query, that will be replaced by the received status code.
 	 */
 	query?: string;
+	/**
+	 * Rewrites the returning status code, mapping the original status to a new one
+	 * (e.g. { "401": 302 } so the browser follows the redirect to the login page).
+	 */
+	statusRewrites?: {
+		[k: string]: number;
+	};
 }
 /**
  * The ForwardAuth middleware delegate the authentication to an external service. If the service response code is 2XX, access is granted and the original request is performed. Otherwise, the response from the authentication server is returned.

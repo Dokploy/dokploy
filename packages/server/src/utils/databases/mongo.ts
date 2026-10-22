@@ -1,5 +1,7 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
+import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -9,13 +11,15 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type MongoNested = InferResultType<
 	"mongo",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
 
-export const buildMongo = async (mongo: MongoNested) => {
+export const buildMongo = async (rawMongo: MongoNested) => {
+	const mongo = await withResolvedVaultRefs(rawMongo);
 	const {
 		appName,
 		env,
@@ -83,6 +87,8 @@ ${command ?? "wait $MONGOD_PID"}`;
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(mongo);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -91,7 +97,6 @@ ${command ?? "wait $MONGOD_PID"}`;
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -141,9 +146,20 @@ ${command ?? "wait $MONGOD_PID"}`;
 						Args: args,
 					}),
 				...(Ulimits && { Ulimits }),
-				Labels,
+				Labels: {
+					...Labels,
+					...buildDokployLabels({
+						organizationId: mongo.environment.project.organizationId,
+						projectId: mongo.environment.projectId,
+						projectName: mongo.environment.project.name,
+						environmentId: mongo.environmentId,
+						environmentName: mongo.environment.name,
+						applicationId: mongo.mongoId,
+						applicationName: mongo.name,
+					}),
+				},
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -167,7 +183,11 @@ ${command ?? "wait $MONGOD_PID"}`;
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: mongo.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 
 	try {

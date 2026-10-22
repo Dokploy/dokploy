@@ -32,6 +32,8 @@ const baseApp: ApplicationNested = {
 	railpackVersion: "0.15.4",
 	applicationId: "",
 	previewLabels: [],
+	networkIds: [],
+	detachDokployNetwork: false,
 	createEnvFile: true,
 	bitbucketRepositorySlug: "",
 	herokuVersion: "",

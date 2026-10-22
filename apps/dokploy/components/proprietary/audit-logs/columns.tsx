@@ -95,6 +95,8 @@ const RESOURCE_LABELS: Record<string, string> = {
 	notification: "Notification",
 	settings: "Settings",
 	session: "Session",
+	network: "Network",
+	telemetryProvider: "Logs & Metrics",
 };
 
 function MetadataCell({ metadata }: { metadata: string | null }) {

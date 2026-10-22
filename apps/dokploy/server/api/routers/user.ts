@@ -1,20 +1,26 @@
 import {
+	ACCOUNT_DELETION_CODE_TTL_MINUTES,
+	consumeAccountDeletionCode,
+	createAccountDeletionCode,
 	createApiKey,
 	createOrganizationUserWithCredentials,
+	findCredentialAccount,
 	findNotificationById,
 	findOrganizationById,
+	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
+	renderInvitationEmail,
+	sendAccountDeletionCodeEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import {
 	account,
 	apiAssignPermissions,
@@ -23,17 +29,22 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	organization,
+	session,
 	user,
 } from "@dokploy/server/db/schema";
 import {
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
+import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
+import { deleteAccount } from "@/server/utils/account-deletion";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -43,7 +54,7 @@ import {
 } from "../trpc";
 
 const apiCreateApiKey = z.object({
-	name: z.string().min(1),
+	name: apiKeyNameSchema,
 	prefix: z.string().optional(),
 	expiresIn: z.number().optional(),
 	metadata: z.object({
@@ -58,6 +69,47 @@ const apiCreateApiKey = z.object({
 	refillAmount: z.number().optional(),
 	refillInterval: z.number().optional(),
 });
+
+const hasRootAccess = (ctx: {
+	user: { id: string };
+	session: { impersonatedBy?: string } | null;
+}) => {
+	const rootId = process.env.USER_ADMIN_ID;
+	if (!IS_CLOUD || !rootId) {
+		return false;
+	}
+	return rootId === ctx.user.id || ctx.session?.impersonatedBy === rootId;
+};
+
+const assertCanDeleteOwnAccount = async (ctx: {
+	user: { id: string };
+	session: { impersonatedBy?: string };
+}) => {
+	if (!IS_CLOUD) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "This feature is only available in Dokploy Cloud",
+		});
+	}
+
+	if (ctx.session.impersonatedBy) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Accounts cannot be deleted while impersonating",
+		});
+	}
+
+	const ownedOrganization = await db.query.organization.findFirst({
+		where: eq(organization.ownerId, ctx.user.id),
+		columns: { id: true },
+	});
+	if (!ownedOrganization) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only organization owners can delete their account",
+		});
+	}
+};
 
 export const userRouter = createTRPCRouter({
 	all: withPermission("member", "read").query(async ({ ctx }) => {
@@ -135,8 +187,31 @@ export const userRouter = createTRPCRouter({
 			),
 			with: {
 				user: {
+					columns: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						email: true,
+						image: true,
+						allowImpersonation: true,
+						twoFactorEnabled: true,
+						stripeCustomerId: true,
+						stripeSubscriptionId: true,
+						serversQuantity: true,
+						isEnterpriseCloud: true,
+						sendInvoiceNotifications: true,
+					},
 					with: {
-						apiKeys: true,
+						apiKeys: {
+							columns: {
+								id: true,
+								name: true,
+								prefix: true,
+								enabled: true,
+								expiresAt: true,
+								createdAt: true,
+							},
+						},
 					},
 				},
 			},
@@ -147,17 +222,11 @@ export const userRouter = createTRPCRouter({
 	getPermissions: protectedProcedure.query(async ({ ctx }) => {
 		return resolvePermissions(ctx);
 	}),
+	listPasskeys: protectedProcedure.query(async ({ ctx }) => {
+		return findPasskeysByUserId(ctx.user.id);
+	}),
 	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
-		if (!IS_CLOUD) {
-			return false;
-		}
-		if (
-			process.env.USER_ADMIN_ID === ctx.user.id ||
-			ctx.session?.impersonatedBy === process.env.USER_ADMIN_ID
-		) {
-			return true;
-		}
-		return false;
+		return hasRootAccess(ctx);
 	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
@@ -228,6 +297,15 @@ export const userRouter = createTRPCRouter({
 						password: bcrypt.hashSync(input.password, 10),
 					})
 					.where(eq(account.userId, ctx.user.id));
+
+				await db
+					.delete(session)
+					.where(
+						and(
+							eq(session.userId, ctx.user.id),
+							ne(session.id, ctx.session.id),
+						),
+					);
 			}
 
 			try {
@@ -246,6 +324,93 @@ export const userRouter = createTRPCRouter({
 						error instanceof Error ? error.message : "Failed to update user",
 				});
 			}
+		}),
+	listSessions: protectedProcedure.query(async ({ ctx }) => {
+		const isOwner = ctx.user.role === "owner";
+
+		const sessions = await db
+			.select({
+				id: session.id,
+				userId: session.userId,
+				email: user.email,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				ipAddress: session.ipAddress,
+				userAgent: session.userAgent,
+				createdAt: session.createdAt,
+				expiresAt: session.expiresAt,
+			})
+			.from(session)
+			.innerJoin(user, eq(session.userId, user.id))
+			.innerJoin(
+				member,
+				and(
+					eq(member.userId, session.userId),
+					eq(member.organizationId, ctx.session.activeOrganizationId),
+				),
+			)
+			.where(isOwner ? undefined : eq(session.userId, ctx.user.id))
+			.orderBy(desc(session.createdAt));
+
+		return sessions.map((s) => ({
+			...s,
+			isCurrent: s.id === ctx.session.id,
+		}));
+	}),
+	revokeSession: protectedProcedure
+		.input(
+			z.object({
+				sessionId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const isOwner = ctx.user.role === "owner";
+
+			const [targetSession] = await db
+				.select({
+					id: session.id,
+					userId: session.userId,
+					userEmail: user.email,
+				})
+				.from(session)
+				.innerJoin(user, eq(session.userId, user.id))
+				.innerJoin(
+					member,
+					and(
+						eq(member.userId, session.userId),
+						eq(member.organizationId, ctx.session.activeOrganizationId),
+					),
+				)
+				.where(eq(session.id, input.sessionId));
+
+			if (!targetSession) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Session not found",
+				});
+			}
+			if (targetSession.id === ctx.session.id) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cannot revoke your own session. Use logout instead.",
+				});
+			}
+			if (!isOwner && targetSession.userId !== ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You can only revoke your own sessions",
+				});
+			}
+			await db.delete(session).where(eq(session.id, input.sessionId));
+
+			await audit(ctx, {
+				action: "logout",
+				resourceType: "session",
+				resourceId: targetSession.id,
+				resourceName: targetSession.userEmail,
+			});
+
+			return true;
 		}),
 	getUserByToken: publicProcedure
 		.input(apiFindOneToken)
@@ -331,6 +496,97 @@ export const userRouter = createTRPCRouter({
 				resourceId: input.userId,
 			});
 			return result;
+		}),
+	hasPassword: protectedProcedure.query(async ({ ctx }) => {
+		const credential = await findCredentialAccount(ctx.user.id);
+		return !!credential?.password;
+	}),
+	requestAccountDeletionCode: protectedProcedure
+		.input(z.object({ password: z.string().optional() }))
+		.mutation(async ({ ctx, input }) => {
+			await assertCanDeleteOwnAccount(ctx);
+
+			const credential = await findCredentialAccount(ctx.user.id);
+			if (
+				credential?.password &&
+				!bcrypt.compareSync(input.password ?? "", credential.password)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The password is incorrect",
+				});
+			}
+
+			const code = await createAccountDeletionCode(ctx.user.id);
+			try {
+				await sendAccountDeletionCodeEmail({
+					email: ctx.user.email,
+					userName: ctx.user.name || ctx.user.email,
+					code,
+					expiresInMinutes: ACCOUNT_DELETION_CODE_TTL_MINUTES,
+				});
+			} catch (error) {
+				console.error(error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "The confirmation email could not be sent",
+				});
+			}
+
+			return { expiresInMinutes: ACCOUNT_DELETION_CODE_TTL_MINUTES };
+		}),
+	deleteAccount: protectedProcedure
+		.input(z.object({ code: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			await assertCanDeleteOwnAccount(ctx);
+
+			const { requestedAt } = await consumeAccountDeletionCode(
+				ctx.user.id,
+				input.code,
+			);
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "user",
+				resourceId: ctx.user.id,
+				metadata: { selfService: true },
+			});
+
+			return deleteAccount(ctx.user.id, ctx.user.id, { requestedAt });
+		}),
+	deleteAccountByEmail: protectedProcedure
+		.input(z.object({ email: z.string().email() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!hasRootAccess(ctx)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the root account can delete accounts by email",
+				});
+			}
+
+			const target = await db.query.user.findFirst({
+				where: eq(user.email, input.email.trim().toLowerCase()),
+				columns: { id: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No account found with that email",
+				});
+			}
+
+			if (target.id === process.env.USER_ADMIN_ID) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The root account cannot be deleted",
+				});
+			}
+
+			return deleteAccount(
+				target.id,
+				ctx.session.impersonatedBy ?? ctx.user.id,
+			);
 		}),
 	assignPermissions: withPermission("member", "update")
 		.input(apiAssignPermissions)
@@ -593,6 +849,13 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
+			if (input.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Cannot create a user with the owner role",
+				});
+			}
+
 			return await createOrganizationUserWithCredentials({
 				organizationId: ctx.session.activeOrganizationId,
 				email: input.email,
@@ -639,27 +902,26 @@ export const userRouter = createTRPCRouter({
 			);
 
 			try {
-				const htmlContent = `
-\t\t\t\t<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-\t\t\t\t`;
+				const toEmail = currentInvitation?.email || "";
+				const orgName = organization?.name || "organization";
+				const subject = `You've been invited to join ${orgName} on Dokploy`;
+				const html = await renderInvitationEmail({
+					email: toEmail,
+					inviteLink,
+					organizationName: orgName,
+				});
 
 				if (email) {
 					await sendEmailNotification(
-						{
-							...email,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...email, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				} else if (resend) {
 					await sendResendNotification(
-						{
-							...resend,
-							toAddresses: [currentInvitation?.email || ""],
-						},
-						"Invitation to join organization",
-						htmlContent,
+						{ ...resend, toAddresses: [toEmail] },
+						subject,
+						html,
 					);
 				}
 			} catch (error) {

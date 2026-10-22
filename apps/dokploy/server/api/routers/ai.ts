@@ -1,6 +1,7 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
 	apiCreateAi,
+	apiSaveAiCustomProviders,
 	apiUpdateAi,
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
@@ -13,20 +14,26 @@ import {
 	deleteAiSettings,
 	getAiSettingById,
 	getAiSettingsByOrganizationId,
+	getCustomAiProviders,
+	maskAiApiKey,
+	mergeAiApiKey,
+	resolveAiApiKey,
 	saveAiSettings,
+	saveCustomAiProviders,
 	suggestVariants,
 } from "@dokploy/server/services/ai";
 import { createComposeByTemplate } from "@dokploy/server/services/compose";
 import {
 	addNewService,
 	checkServiceAccess,
+	hasPermission,
 } from "@dokploy/server/services/permission";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
 	getProviderHeaders,
 	getProviderName,
-	selectAIProvider,
 	type Model,
+	selectAIProvider,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
@@ -35,23 +42,48 @@ import { slugify } from "@/lib/slug";
 import {
 	adminProcedure,
 	createTRPCRouter,
-	protectedProcedure,
+	withAnyPermission,
+	withPermission,
 } from "@/server/api/trpc";
+import { audit } from "@/server/api/utils/audit";
 import { generatePassword } from "@/templates/utils";
 
+const resolveInputApiKey = (
+	input: { apiKey: string; apiUrl: string; aiId?: string },
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+) =>
+	resolveAiApiKey({
+		apiKey: input.apiKey,
+		apiUrl: input.apiUrl,
+		aiId: input.aiId,
+		organizationId: ctx.session.activeOrganizationId,
+		authorize: () => hasPermission(ctx, { ai: ["update"] }),
+	});
+
 export const aiRouter = createTRPCRouter({
-	one: adminProcedure
+	one: withAnyPermission("ai", ["read", "update"])
 		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+		.query(async ({ input, ctx }) => {
+			const setting = await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
+			return maskAiApiKey(setting);
 		}),
 
-	getModels: protectedProcedure
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
-		.query(async ({ input }) => {
+	getModels: withAnyPermission("ai", ["read", "create", "update"])
+		.input(
+			z.object({
+				apiUrl: z.string().min(1),
+				apiKey: z.string(),
+				aiId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
 			try {
+				const apiKey = await resolveInputApiKey(input, ctx);
 				const providerName = getProviderName(input.apiUrl);
-				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
+				const headers = getProviderHeaders(input.apiUrl, apiKey);
 				let response = null;
 				switch (providerName) {
 					case "ollama":
@@ -59,7 +91,7 @@ export const aiRouter = createTRPCRouter({
 						break;
 					case "gemini":
 						response = await fetch(
-							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
+							`${input.apiUrl}/models?key=${encodeURIComponent(apiKey)}`,
 							{ headers: {} },
 						);
 						break;
@@ -122,7 +154,7 @@ export const aiRouter = createTRPCRouter({
 							},
 						] as Model[];
 					default:
-						if (!input.apiKey)
+						if (!apiKey)
 							throw new TRPCError({
 								code: "BAD_REQUEST",
 								message: "API key must contain at least 1 character(s)",
@@ -174,33 +206,89 @@ export const aiRouter = createTRPCRouter({
 				});
 			}
 		}),
-	create: adminProcedure.input(apiCreateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.session.activeOrganizationId, input);
-	}),
-
-	update: adminProcedure.input(apiUpdateAi).mutation(async ({ ctx, input }) => {
-		return await saveAiSettings(ctx.session.activeOrganizationId, input);
-	}),
-
-	getAll: adminProcedure.query(async ({ ctx }) => {
-		return await getAiSettingsByOrganizationId(
-			ctx.session.activeOrganizationId,
-		);
-	}),
-
-	get: adminProcedure
-		.input(z.object({ aiId: z.string() }))
-		.query(async ({ input }) => {
-			return await getAiSettingById(input.aiId);
+	create: withPermission("ai", "create")
+		.input(apiCreateAi)
+		.mutation(async ({ ctx, input }) => {
+			const result = await saveAiSettings(
+				ctx.session.activeOrganizationId,
+				input,
+			);
+			await audit(ctx, {
+				action: "create",
+				resourceType: "ai",
+				resourceName: input.name,
+			});
+			return result;
 		}),
 
-	delete: adminProcedure
-		.input(z.object({ aiId: z.string() }))
-		.mutation(async ({ input }) => {
-			return await deleteAiSettings(input.aiId);
+	update: withPermission("ai", "update")
+		.input(apiUpdateAi)
+		.mutation(async ({ ctx, input }) => {
+			const existing = await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
+			if (input.apiKey) {
+				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
+			}
+			const result = await saveAiSettings(
+				ctx.session.activeOrganizationId,
+				input,
+				false,
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "ai",
+				resourceId: input.aiId,
+				resourceName: input.name,
+			});
+			return result;
 		}),
 
-	getEnabledProviders: protectedProcedure.query(async ({ ctx }) => {
+	getAll: withAnyPermission("ai", ["read", "create", "update", "delete"]).query(
+		async ({ ctx }) => {
+			const settings = await getAiSettingsByOrganizationId(
+				ctx.session.activeOrganizationId,
+			);
+			return settings.map(({ apiKey, ...rest }) => rest);
+		},
+	),
+
+	delete: withPermission("ai", "delete")
+		.input(z.object({ aiId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			const setting = await getAiSettingById(
+				input.aiId,
+				ctx.session.activeOrganizationId,
+			);
+			await deleteAiSettings(input.aiId, ctx.session.activeOrganizationId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "ai",
+				resourceId: input.aiId,
+				resourceName: setting.name,
+			});
+			return true;
+		}),
+
+	getCustomProviders: withAnyPermission("ai", [
+		"read",
+		"create",
+		"update",
+	]).query(async ({ ctx }) => {
+		return await getCustomAiProviders(ctx.session.activeOrganizationId);
+	}),
+
+	saveCustomProviders: adminProcedure
+		.input(apiSaveAiCustomProviders)
+		.mutation(async ({ ctx, input }) => {
+			return await saveCustomAiProviders(
+				ctx.session.activeOrganizationId,
+				input.providers,
+			);
+		}),
+
+	getEnabledProviders: withPermission("ai", "read").query(async ({ ctx }) => {
 		const settings = await getAiSettingsByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
@@ -209,7 +297,7 @@ export const aiRouter = createTRPCRouter({
 			.map((s) => ({ aiId: s.aiId, name: s.name, model: s.model }));
 	}),
 
-	analyzeLogs: protectedProcedure
+	analyzeLogs: withPermission("ai", "read")
 		.input(
 			z.object({
 				aiId: z.string().min(1),
@@ -219,18 +307,14 @@ export const aiRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const aiSettings = await getAiSettingById(input.aiId);
+				const aiSettings = await getAiSettingById(
+					input.aiId,
+					ctx.session.activeOrganizationId,
+				);
 				if (!aiSettings?.isEnabled) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "AI provider is not enabled",
-					});
-				}
-
-				if (aiSettings.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Access denied",
 					});
 				}
 
@@ -267,19 +351,21 @@ ${input.logs}`,
 			}
 		}),
 
-	testConnection: protectedProcedure
+	testConnection: withAnyPermission("ai", ["create", "update"])
 		.input(
 			z.object({
 				apiUrl: z.string().min(1),
 				apiKey: z.string(),
 				model: z.string().min(1),
+				aiId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const apiKey = await resolveInputApiKey(input, ctx);
 				const provider = selectAIProvider({
 					apiUrl: input.apiUrl,
-					apiKey: input.apiKey,
+					apiKey,
 				});
 				const model = provider(input.model);
 				const result = await generateText({
@@ -301,7 +387,7 @@ ${input.logs}`,
 			}
 		}),
 
-	suggest: protectedProcedure
+	suggest: withPermission("ai", "read")
 		.input(
 			z.object({
 				aiId: z.string(),
@@ -322,7 +408,7 @@ ${input.logs}`,
 				});
 			}
 		}),
-	deploy: protectedProcedure
+	deploy: withPermission("ai", "read")
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
 			const environment = await findEnvironmentById(input.environmentId);
@@ -346,7 +432,6 @@ ${input.logs}`,
 				name: input.name,
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
-				isolatedDeployment: true,
 				environmentId: input.environmentId,
 			});
 

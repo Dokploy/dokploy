@@ -45,6 +45,13 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
@@ -162,6 +169,26 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 	auditLog: {
 		label: "Audit Logs",
 		description: "View the audit log of actions performed in the organization",
+	},
+	vaultProvider: {
+		label: "Secrets Providers",
+		description:
+			"Manage external secret managers (HashiCorp Vault, AWS, Azure, Infisical, Doppler, Scaleway, Phase) and where their secrets can be referenced",
+	},
+	dnsProvider: {
+		label: "DNS Providers",
+		description:
+			"Manage DNS providers (Cloudflare, AWS Route53) and create, update, or delete their DNS records",
+	},
+	telemetryProvider: {
+		label: "Logs & Metrics",
+		description:
+			"Manage the providers (Grafana Loki, Prometheus, Datadog, New Relic, etc.) that container logs and metrics are shipped to",
+	},
+	ai: {
+		label: "AI Settings",
+		description:
+			"Manage AI providers, models, and use AI features (log analysis, suggestions)",
 	},
 };
 
@@ -311,6 +338,10 @@ const ACTION_META: Record<
 			label: "Delete",
 			description: "Remove servers from the organization",
 		},
+		terminal: {
+			label: "Terminal",
+			description: "Open an SSH root shell on remote servers",
+		},
 	},
 	registry: {
 		read: { label: "Read", description: "View configured Docker registries" },
@@ -419,6 +450,75 @@ const ACTION_META: Record<
 	auditLog: {
 		read: { label: "Read", description: "View the audit log history" },
 	},
+	vaultProvider: {
+		read: {
+			label: "Read",
+			description: "View providers and secret names for env autocomplete",
+		},
+		create: {
+			label: "Create",
+			description: "Connect new secret providers and test their connection",
+		},
+		update: {
+			label: "Update",
+			description:
+				"Edit provider credentials and project/environment assignments",
+		},
+		delete: { label: "Delete", description: "Remove secret providers" },
+	},
+	dnsProvider: {
+		read: {
+			label: "Read",
+			description: "View configured DNS providers and their zones/records",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Connect new DNS providers, test their connection, and create records",
+		},
+		update: {
+			label: "Update",
+			description: "Edit provider credentials and update existing records",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove DNS providers and delete their records",
+		},
+	},
+	telemetryProvider: {
+		read: {
+			label: "Read",
+			description: "View configured logs and metrics providers",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Add new providers, test their connection and deploy the Vector agent",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove logs and metrics providers",
+		},
+	},
+	ai: {
+		read: {
+			label: "Read",
+			description:
+				"View AI providers and use AI features (log analysis, suggestions)",
+		},
+		create: {
+			label: "Create",
+			description: "Add new AI provider configurations",
+		},
+		update: {
+			label: "Update",
+			description: "Edit AI provider settings and custom providers",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove AI provider configurations",
+		},
+	},
 };
 
 /** Resources that should be hidden from the custom role editor (better-auth internals) */
@@ -517,7 +617,7 @@ const ROLE_PRESETS: {
 			envVars: ["read", "write"],
 			projectEnvVars: ["read", "write"],
 			environmentEnvVars: ["read", "write"],
-			server: ["read", "create", "delete"],
+			server: ["read", "create", "delete", "terminal"],
 			registry: ["read", "create", "delete"],
 			certificate: ["read", "create", "delete"],
 			backup: ["read", "create", "delete", "restore"],
@@ -530,6 +630,7 @@ const ROLE_PRESETS: {
 			logs: ["read"],
 			monitoring: ["read"],
 			auditLog: ["read"],
+			ai: ["read", "create", "update", "delete"],
 		},
 	},
 ];
@@ -759,6 +860,78 @@ function HandleCustomRole({
 	);
 }
 
+const DefaultRoleSection = ({ customRoles }: { customRoles: string[] }) => {
+	const utils = api.useUtils();
+	const { data: auth } = api.user.get.useQuery();
+	const { data: activeOrganization } = api.organization.active.useQuery();
+	const { mutateAsync: updateOrganization, isPending: isUpdating } =
+		api.organization.update.useMutation();
+	const [selectedRole, setSelectedRole] = useState<string>();
+
+	if (auth?.role !== "owner" || !activeOrganization) {
+		return null;
+	}
+
+	const currentRole = activeOrganization.defaultRole ?? "member";
+	const value = selectedRole ?? currentRole;
+
+	const onSave = async () => {
+		await updateOrganization({
+			organizationId: activeOrganization.id,
+			name: activeOrganization.name,
+			logo: activeOrganization.logo ?? undefined,
+			defaultRole: value,
+		})
+			.then(() => {
+				toast.success("Default role updated");
+				utils.organization.active.invalidate();
+			})
+			.catch((error) => {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Error updating default role",
+				);
+			});
+	};
+
+	return (
+		<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border bg-muted/20 p-4">
+			<div className="space-y-0.5">
+				<p className="text-sm font-medium">Default role for new members</p>
+				<p className="text-xs text-muted-foreground">
+					Assigned automatically to users joining through SSO and preselected
+					when creating invitations.
+				</p>
+			</div>
+			<div className="flex items-center gap-2">
+				<Select value={value} onValueChange={setSelectedRole}>
+					<SelectTrigger className="w-40">
+						<SelectValue placeholder="Select a role" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="member">Member</SelectItem>
+						<SelectItem value="admin">Admin</SelectItem>
+						{customRoles.map((role) => (
+							<SelectItem key={role} value={role}>
+								{role}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<Button
+					size="sm"
+					isLoading={isUpdating}
+					disabled={value === currentRole}
+					onClick={onSave}
+				>
+					Save
+				</Button>
+			</div>
+		</div>
+	);
+};
+
 const CustomRolesContent = () => {
 	const {
 		data: customRoles,
@@ -800,6 +973,9 @@ const CustomRolesContent = () => {
 
 	return (
 		<div className="space-y-4">
+			<DefaultRoleSection
+				customRoles={customRoles?.map((role) => role.role) ?? []}
+			/>
 			<div className="flex justify-end">
 				<HandleCustomRole onSuccess={refetch} />
 			</div>

@@ -35,6 +35,8 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { AssignNetworks } from "@/components/dashboard/networks/assign-networks";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -93,6 +95,7 @@ const Service = (
 	);
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: serverIp } = api.settings.getIp.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 
@@ -120,35 +123,39 @@ const Service = (
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2 items-center">
+						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<CardTitle className="text-xl flex min-w-0 flex-row gap-2 items-center">
 									<div className="relative flex flex-row gap-4 items-center">
 										<ShowIconSettings
-											applicationId={applicationId}
+											serviceId={applicationId}
+											serviceType="application"
 											icon={data?.icon}
 										/>
 										<div className="absolute -right-1 -top-2 z-10">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 									</div>
-									{data?.name}
+									<span className="min-w-0 truncate" title={data?.name}>
+										{data?.name}
+									</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>
 								)}
 
-								<span className="text-sm text-muted-foreground">
+								<span className="text-sm text-muted-foreground min-w-0 truncate">
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex flex-col h-fit w-fit gap-2">
-								<div className="flex flex-row h-fit w-fit gap-2">
+							<div className="flex max-w-[45%] min-w-0 flex-col h-fit gap-2 md:max-w-none md:w-fit">
+								<div className="flex max-w-full min-w-0 flex-row h-fit gap-2">
 									<Badge
-										className="cursor-pointer"
+										className="min-w-0 max-w-full cursor-pointer overflow-hidden"
 										onClick={() => {
-											if (data?.server?.ipAddress) {
-												copy(data.server.ipAddress);
+											const ip = data?.server?.ipAddress || serverIp;
+											if (ip) {
+												copy(ip);
 												toast.success("IP Address Copied!");
 											}
 										}}
@@ -160,7 +167,9 @@ const Service = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										<span className="truncate">
+											{data?.server?.name || "Dokploy Server"}
+										</span>
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -171,7 +180,7 @@ const Service = (
 													</Label>
 												</TooltipTrigger>
 												<TooltipContent
-													className="z-[999] w-[300px]"
+													className="z-999 w-[300px]"
 													align="start"
 													side="top"
 												>
@@ -189,6 +198,13 @@ const Service = (
 								<div className="flex flex-row gap-2 justify-end">
 									{permissions?.service.create && (
 										<UpdateApplication applicationId={applicationId} />
+									)}
+									{permissions?.service.create && (
+										<TransferService
+											id={applicationId}
+											type="application"
+											serverId={data?.serverId}
+										/>
 									)}
 									{permissions?.service.delete && (
 										<DeleteService id={applicationId} type="application" />
@@ -329,6 +345,7 @@ const Service = (
 															<div>
 																<ContainerFreeMonitoring
 																	appName={data?.appName || ""}
+																	serviceId={data?.applicationId}
 																/>
 															</div>
 															{/* )} */}
@@ -345,6 +362,7 @@ const Service = (
 												<ShowDockerLogs
 													appName={data?.appName || ""}
 													serverId={data?.serverId || ""}
+													serviceId={data?.applicationId}
 												/>
 											</div>
 										</TabsContent>
@@ -361,7 +379,7 @@ const Service = (
 									)}
 									{permissions?.deployment.read && (
 										<TabsContent value="deployments" className="w-full pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg">
+											<div className="flex flex-col gap-4 ">
 												<ShowDeployments
 													id={applicationId}
 													type="application"
@@ -376,7 +394,7 @@ const Service = (
 											value="volume-backups"
 											className="w-full pt-2.5"
 										>
-											<div className="flex flex-col gap-4 border rounded-lg">
+											<div className="flex flex-col gap-4 ">
 												<ShowVolumeBackups
 													id={applicationId}
 													type="application"
@@ -415,6 +433,7 @@ const Service = (
 												<ShowBuildServer applicationId={applicationId} />
 												<ShowResources id={applicationId} type="application" />
 												<ShowVolumes id={applicationId} type="application" />
+												<AssignNetworks id={applicationId} type="application" />
 												<ShowRedirects applicationId={applicationId} />
 												<ShowSecurity applicationId={applicationId} />
 												<ShowPorts applicationId={applicationId} />
@@ -451,7 +470,7 @@ export async function getServerSideProps(
 	if (!user) {
 		return {
 			redirect: {
-				permanent: true,
+				permanent: false,
 				destination: "/",
 			},
 		};
@@ -490,7 +509,7 @@ export async function getServerSideProps(
 			return {
 				redirect: {
 					permanent: false,
-					destination: "/dashboard/projects",
+					destination: "/dashboard/home",
 				},
 			};
 		}

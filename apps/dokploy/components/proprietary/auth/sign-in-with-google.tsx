@@ -13,6 +13,9 @@ export function SignInWithGoogle() {
 		try {
 			const { error } = await authClient.signIn.social({
 				provider: "google",
+				callbackURL: "/dashboard/home",
+				newUserCallbackURL: "/dashboard/home?signup=google",
+				errorCallbackURL: "/",
 			});
 			if (error) {
 				toast.error(error.message);

@@ -64,6 +64,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	z.object({
 		buildType: z.literal(BuildType.nixpacks),
 		publishDirectory: z.string().optional(),
+		isStaticSpa: z.boolean().default(false),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
@@ -114,6 +115,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 			return {
 				buildType: BuildType.nixpacks,
 				publishDirectory: data.publishDirectory || undefined,
+				isStaticSpa: data.isStaticSpa ?? false,
 			};
 		case BuildType.paketo_buildpacks:
 			return {
@@ -156,7 +158,6 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	});
 
 	const buildType = form.watch("buildType");
-
 	const {
 		data: railpackVersions,
 		isLoading: isLoadingRailpackVersions,
@@ -165,6 +166,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		enabled: buildType === BuildType.railpack,
 		staleTime: 1000 * 60 * 60 * 24, // 24 hours
 	});
+	const publishDirectory = form.watch("publishDirectory");
 	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
 	useEffect(() => {
@@ -181,18 +183,24 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	}, [data, form]);
 
 	useEffect(() => {
-		if (railpackVersions?.length) {
-			if (
-				data?.railpackVersion &&
-				!railpackVersions.includes(data.railpackVersion)
-			) {
-				setIsManualRailpackVersion(true);
-			}
-			if (!form.getValues("railpackVersion")) {
-				form.setValue("railpackVersion", railpackVersions[0]);
-			}
+		if (
+			railpackVersions?.length &&
+			data?.railpackVersion &&
+			!railpackVersions.includes(data.railpackVersion)
+		) {
+			setIsManualRailpackVersion(true);
 		}
-	}, [railpackVersions, data?.railpackVersion, form]);
+	}, [railpackVersions, data?.railpackVersion]);
+
+	useEffect(() => {
+		if (
+			railpackVersions?.length &&
+			!isManualRailpackVersion &&
+			!form.getValues("railpackVersion")
+		) {
+			form.setValue("railpackVersion", railpackVersions[0]);
+		}
+	}, [railpackVersions, form, isManualRailpackVersion]);
 
 	useEffect(() => {
 		if (buildType === BuildType.railpack && isErrorRailpackVersions) {
@@ -208,9 +216,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	const onSubmit = async (data: AddTemplate) => {
 		const normalizedRailpackVersion =
 			data.buildType === BuildType.railpack
-				? normalizeRailpackVersion(
-						data.railpackVersion || railpackVersions?.[0] || "",
-					)
+				? normalizeRailpackVersion(data.railpackVersion ?? "")
 				: null;
 
 		if (data.buildType === BuildType.railpack && !normalizedRailpackVersion) {
@@ -236,7 +242,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					? data.herokuVersion
 					: null,
 			isStaticSpa:
-				data.buildType === BuildType.static ? data.isStaticSpa : null,
+				data.buildType === BuildType.static ||
+				data.buildType === BuildType.nixpacks
+					? data.isStaticSpa
+					: null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
 					? normalizedRailpackVersion
@@ -431,6 +440,30 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								)}
 							/>
 						)}
+						{buildType === BuildType.nixpacks && publishDirectory && (
+							<FormField
+								control={form.control}
+								name="isStaticSpa"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<div className="flex items-center gap-x-2 p-2">
+												<Checkbox
+													id="checkboxIsStaticSpaNixpacks"
+													value={String(field.value)}
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+												<FormLabel htmlFor="checkboxIsStaticSpaNixpacks">
+													Single Page Application (SPA)
+												</FormLabel>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						{buildType === BuildType.static && (
 							<FormField
 								control={form.control}
@@ -475,6 +508,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 															type="button"
 															variant="outline"
 															size="sm"
+															disabled={!railpackVersions?.length}
 															onClick={() => {
 																setIsManualRailpackVersion(false);
 																field.onChange(railpackVersions?.[0] ?? "");
@@ -539,10 +573,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													View releases
 												</a>
 											</FormDescription>
-											{isErrorRailpackVersions && !isManualRailpackVersion && (
+											{isErrorRailpackVersions && (
 												<p className="text-sm text-destructive">
-													Failed to load Railpack versions. Switch to manual
-													mode to set a custom version.
+													Failed to load Railpack versions. Enter a custom
+													version.
 												</p>
 											)}
 											<FormMessage />
