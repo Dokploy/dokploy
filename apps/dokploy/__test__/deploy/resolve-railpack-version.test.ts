@@ -21,7 +21,7 @@ describe("resolveRailpackVersion", () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
-	it("resolves latest for simultaneous builds and refreshes after five minutes", async () => {
+	it("resolves latest for simultaneous builds and refreshes after 24 hours", async () => {
 		const now = vi.spyOn(Date, "now").mockReturnValue(1_000);
 		const fetchMock = vi
 			.fn()
@@ -41,7 +41,11 @@ describe("resolveRailpackVersion", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		expect(fetchMock.mock.calls[0]?.[0]).toContain("/releases/latest");
 
-		now.mockReturnValue(1_000 + 5 * 60 * 1_000);
+		now.mockReturnValue(1_000 + 24 * 60 * 60 * 1_000 - 1);
+		expect(await resolveRailpackVersion("latest")).toBe("0.40.1");
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		now.mockReturnValue(1_000 + 24 * 60 * 60 * 1_000);
 		expect(await resolveRailpackVersion("latest")).toBe("0.41.0");
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});

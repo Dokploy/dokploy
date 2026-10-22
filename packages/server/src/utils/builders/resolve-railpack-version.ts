@@ -1,6 +1,6 @@
 const LATEST_RELEASE_URL =
 	"https://api.github.com/repos/railwayapp/railpack/releases/latest";
-const LATEST_CACHE_TTL = 1000 * 60 * 5;
+const LATEST_CACHE_TTL = 1000 * 60 * 60 * 24;
 
 let latestCache: { version: string; fetchedAt: number } | undefined;
 let pending: Promise<string> | undefined;
