@@ -32,6 +32,19 @@ services:
     image: nginx
 `;
 
+const defaultOnlyAnchorYaml = `
+x-common: &common
+  networks: [default]
+
+services:
+  api:
+    <<: *common
+    image: nginx
+  worker:
+    <<: *common
+    image: busybox
+`;
+
 const buildCompose = (composeFile: string, isolatedDeployment = false) =>
 	({
 		appName: "merge-app",
@@ -97,10 +110,16 @@ describe("compose services using YAML merge keys (#5625)", () => {
 	});
 
 	it("keeps anchor labels next to the Dokploy labels", async () => {
-		const result = await addDomainToCompose(buildCompose(listAnchorYaml), []);
+		const result = await addDomainToCompose(buildCompose(listAnchorYaml), [
+			domain,
+		]);
 
-		expect(result?.services?.worker?.labels).toEqual(
-			expect.arrayContaining(["com.example.team=platform"]),
+		expect(result?.services?.api?.labels).toEqual(
+			expect.arrayContaining([
+				"com.example.team=platform",
+				"traefik.enable=true",
+				"traefik.docker.network=dokploy-network",
+			]),
 		);
 	});
 
@@ -117,13 +136,14 @@ describe("compose services using YAML merge keys (#5625)", () => {
 	});
 
 	it("does not leak injected networks into sibling services", async () => {
-		const result = await addDomainToCompose(buildCompose(listAnchorYaml), [
-			domain,
-		]);
+		const result = await addDomainToCompose(
+			buildCompose(defaultOnlyAnchorYaml),
+			[domain],
+		);
 
-		expect(result?.services?.worker?.networks).toEqual([
-			"default",
-			"dokploy-network",
-		]);
+		expect(result?.services?.api?.networks).toEqual(
+			expect.arrayContaining(["default", "dokploy-network"]),
+		);
+		expect(result?.services?.worker?.networks).toEqual(["default"]);
 	});
 });
