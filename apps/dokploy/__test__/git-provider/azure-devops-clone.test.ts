@@ -22,7 +22,7 @@ vi.mock("@dokploy/server/services/azure-devops", () => ({
 }));
 vi.mock("@dokploy/server/utils/process/execAsync", async () => ({
 	...(await vi.importActual("@dokploy/server/utils/process/ExecError")),
-	execAsync: mocks.exec,
+	execAsyncStream: mocks.exec,
 	execAsyncRemote: mocks.remote,
 }));
 vi.mock("node:fs/promises", () => ({ appendFile: mocks.append }));
@@ -75,7 +75,7 @@ describe("Azure DevOps clone credential isolation", () => {
 					? [mocks.remote.mock.calls[0]![1], {}, mocks.remote.mock.calls[0]![3]]
 					: [
 							mocks.exec.mock.calls[0]![0],
-							mocks.exec.mock.calls[0]![1],
+							mocks.exec.mock.calls[0]![2],
 							undefined,
 						];
 				const output = execFileSync(
@@ -141,7 +141,7 @@ describe("Azure DevOps clone credential isolation", () => {
 			}),
 			expect.any(Object),
 		);
-		const [command, options] = mocks.exec.mock.calls[0]!;
+		const [command, , options] = mocks.exec.mock.calls[0]!;
 		expect(parse(command)).toContain(remoteUrl);
 		expect(options.env.GIT_CONFIG_VALUE_0).toContain("Basic");
 		expect(process.env.GIT_CONFIG_VALUE_0).toBe(inheritedAuth);
@@ -155,6 +155,7 @@ describe("Azure DevOps clone credential isolation", () => {
 		expect(input).toBe(
 			`Authorization: Basic ${Buffer.from(`:${token}`).toString("base64")}\n`,
 		);
+		expect(mocks.remote.mock.calls[0]![4]).toEqual({ includeStream: true });
 		expect(mocks.exec).not.toHaveBeenCalled();
 	});
 	it.each([false, true])(
@@ -189,6 +190,118 @@ describe("Azure DevOps clone credential isolation", () => {
 			expect(result.originalError).toBeUndefined();
 		},
 	);
+	it.each([false, true])(
+		"logs clone progress before the process exits (remote=%s)",
+		async (remote) => {
+			let finish:
+				| ((result: { stdout: string; stderr: string }) => void)
+				| undefined;
+			const execute = remote ? mocks.remote : mocks.exec;
+			execute.mockImplementationOnce((...args: unknown[]) => {
+				const onData = args[remote ? 2 : 1] as (
+					data: string,
+					stream: "stdout" | "stderr",
+				) => void;
+				onData("Receiving objects: 25%\r", "stderr");
+				return new Promise((resolve) => {
+					finish = resolve;
+				});
+			});
+			const cloning = cloneAzureDevopsRepository({
+				...source,
+				logPath: "/tmp/test.log",
+				serverId: remote ? "server" : null,
+			});
+			try {
+				await vi.waitFor(() => {
+					if (remote) expect(mocks.remote).toHaveBeenCalledTimes(2);
+					else
+						expect(mocks.append).toHaveBeenCalledWith(
+							"/tmp/test.log",
+							"Receiving objects: 25%\r",
+						);
+				});
+				expect(execute.mock.calls[0]![remote ? 1 : 0]).toContain("--progress");
+			} finally {
+				finish?.({ stdout: "", stderr: "Receiving objects: 25%\r" });
+				await cloning;
+			}
+		},
+	);
+	it.each([false, true])(
+		"redacts every credential split with interleaved output streams (remote=%s)",
+		async (remote) => {
+			const encoded = Buffer.from(`:${token}`).toString("base64");
+			const secrets = [token, encoded, `Authorization: Basic ${encoded}`];
+			(remote ? mocks.remote : mocks.exec).mockImplementationOnce(
+				async (...args: unknown[]) => {
+					const onData = args[remote ? 2 : 1] as (
+						data: string,
+						stream: "stdout" | "stderr",
+					) => void;
+					for (const secret of secrets) {
+						for (let split = 1; split < secret.length; split++) {
+							onData(`before ${secret.slice(0, split)}`, "stdout");
+							onData("progress\n", "stderr");
+							onData(`${secret.slice(split)} after\n`, "stdout");
+						}
+					}
+					onData(`terminated ${token.slice(0, 7)}`, "stderr");
+					return { stdout: "", stderr: "" };
+				},
+			);
+			await cloneAzureDevopsRepository({
+				...source,
+				logPath: "/tmp/test.log",
+				serverId: remote ? "server" : null,
+			});
+			const logged = remote
+				? mocks.remote.mock.calls
+						.slice(1)
+						.map(([, command]) => {
+							const payload = parse(command)[2] as string;
+							return Buffer.from(payload, "base64").toString();
+						})
+						.join("")
+				: mocks.append.mock.calls.map(([, content]) => content).join("");
+			for (const secret of secrets) expect(logged).not.toContain(secret);
+			expect(logged).not.toContain(token.slice(0, 7));
+			expect(logged.match(/\[REDACTED\]/g)).toHaveLength(
+				secrets.reduce((count, secret) => count + secret.length - 1, 1),
+			);
+		},
+	);
+	it("does not repeat already streamed output when cloning fails", async () => {
+		mocks.exec.mockImplementationOnce(async (_command, onData) => {
+			onData("Receiving objects\n", "stderr");
+			onData(token.slice(0, 7), "stderr");
+			throw new ExecError(token, {
+				command: "git clone",
+				stderr: `Receiving objects\n${token}`,
+			});
+		});
+		const error = await cloneAzureDevopsRepository({
+			...source,
+			logPath: "/tmp/test.log",
+		}).catch((error) => error);
+		const logged = mocks.append.mock.calls
+			.map(([, content]) => content)
+			.join("");
+		expect(logged).toBe("Receiving objects\n[REDACTED]");
+		expect(error.getDetailedMessage()).not.toContain(token);
+	});
+	it("reports log write failure without exposing the underlying error", async () => {
+		mocks.append.mockRejectedValueOnce(new Error(token));
+		mocks.exec.mockImplementationOnce(async (_command, onData) => {
+			onData("Receiving objects\n", "stderr");
+			return { stdout: "", stderr: "Receiving objects\n" };
+		});
+		await expect(
+			cloneAzureDevopsRepository({ ...source, logPath: "/tmp/test.log" }),
+		).rejects.toThrow(
+			"Could not write Azure DevOps clone output to deployment log.",
+		);
+	});
 	it("quotes branch and output paths against shell injection", () => {
 		const plan = prepareAzureDevopsClone(
 			{

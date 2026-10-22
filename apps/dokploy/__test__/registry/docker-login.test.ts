@@ -175,6 +175,20 @@ describe("docker login credentials", () => {
 		expect(onData.mock.calls).toEqual([[stdout], [stderr]]);
 	});
 
+	it("labels remote output streams only when requested", async () => {
+		const onData = vi.fn();
+		stderr = "warning";
+		await execAsyncRemote("test-server", "cat", onData, "synthetic-input\n", {
+			includeStream: true,
+		});
+		expect(onData.mock.calls).toEqual([
+			[stdout, "stdout"],
+			[stderr, "stderr"],
+		]);
+		expect(remoteInput).toBe("synthetic-input\n");
+		expect(remoteStream.writableEnded).toBe(true);
+	});
+
 	it.each([undefined, "test-server"])(
 		"does not retain passwords echoed by a failed login on %s",
 		async (serverId) => {
