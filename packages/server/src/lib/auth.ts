@@ -74,6 +74,11 @@ const createBetterAuth = () =>
 			"/organization/create",
 			"/organization/update",
 			"/organization/delete",
+			// GHSA-j8v8-g9cx-5qf4: SCIM providers are managed via tRPC, org-scoped only.
+			"/scim/generate-token",
+			"/scim/list-provider-connections",
+			"/scim/get-provider-connection",
+			"/scim/delete-provider-connection",
 			...(!IS_CLOUD ? ["/verify-email"] : []),
 		],
 		secret: betterAuthSecret,
