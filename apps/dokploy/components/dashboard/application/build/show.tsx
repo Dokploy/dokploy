@@ -567,7 +567,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 											</FormControl>
 											<FormDescription>
 												Select Latest to follow new releases, pin a version, or
-												enter a custom version.{" "}
+												enter a custom version. Latest checks for new releases
+												every 24 hours.{" "}
 												<a
 													href="https://github.com/railwayapp/railpack/releases"
 													target="_blank"
