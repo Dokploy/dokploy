@@ -66,6 +66,7 @@ import {
 	apiUpdateBackup,
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
+import { streamRestoreLogs } from "./restore-log-stream";
 
 interface RcloneFile {
 	Path: string;
@@ -580,10 +581,7 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 			const destination = await findDestinationById(input.destinationId);
-			const queue: string[] = [];
-			let done = false;
-			const onLog = (log: string) => queue.push(log);
-			const runRestore = async () => {
+			yield* streamRestoreLogs(async (onLog) => {
 				if (input.backupType === "database") {
 					if (input.databaseType === "postgres") {
 						const postgres = await findPostgresById(input.databaseId);
@@ -607,26 +605,6 @@ export const backupRouter = createTRPCRouter({
 					const compose = await findComposeById(input.databaseId);
 					await restoreComposeBackup(compose, destination, input, onLog);
 				}
-			};
-			runRestore()
-				.catch((error) => {
-					onLog(
-						`Error: ${error instanceof Error ? error.message : String(error)}`,
-					);
-				})
-				.finally(() => {
-					done = true;
-				});
-			while (!done || queue.length > 0) {
-				if (queue.length > 0) {
-					yield queue.shift()!;
-				} else {
-					await new Promise((r) => setTimeout(r, 50));
-				}
-
-				if (signal?.aborted) {
-					return;
-				}
-			}
+			}, signal);
 		}),
 });
