@@ -71,6 +71,9 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const [isTwoFactor, setIsTwoFactor] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [twoFactorCode, setTwoFactorCode] = useState("");
+	const [twoFactorCaret, setTwoFactorCaret] = useState(0);
+	// Clamped so a caret left over from before the code was cleared can't point past it.
+	const twoFactorCursor = Math.min(twoFactorCaret, twoFactorCode.length);
 	const [isBackupCodeModalOpen, setIsBackupCodeModalOpen] = useState(false);
 	const [backupCode, setBackupCode] = useState("");
 	const loginForm = useForm<LoginForm>({
@@ -352,15 +355,20 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 										onChange={(e) => {
 											const code = e.target.value.replace(/\D/g, "");
 											setTwoFactorCode(code);
+											setTwoFactorCaret(e.target.selectionStart ?? code.length);
 											if (code.length === 6) verifyTwoFactorCode(code);
 										}}
+										onSelect={(e) =>
+											setTwoFactorCaret(e.currentTarget.selectionStart ?? 0)
+										}
 										autoComplete="one-time-code"
 										inputMode="numeric"
 										maxLength={6}
+										readOnly={isTwoFactorLoading}
 										autoFocus
 										className={cn(
 											"h-8 border-0 py-0 pr-0 pl-[calc((2rem_-_1ch)/2)] font-mono text-base tracking-[calc(2rem_-_1ch)] focus-visible:ring-0 md:text-base dark:bg-transparent",
-											twoFactorCode.length === 6 && "caret-transparent",
+											twoFactorCursor === 6 && "caret-transparent",
 										)}
 									/>
 									<div
@@ -370,7 +378,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 										{[0, 1, 2, 3, 4, 5].map((slot) => (
 											<div
 												key={slot}
-												data-active={slot === Math.min(twoFactorCode.length, 5)}
+												data-active={slot === Math.min(twoFactorCursor, 5)}
 												className="relative size-8 border-y border-r border-input first:rounded-l-lg first:border-l last:rounded-r-lg dark:bg-input/30 group-focus-within:data-[active=true]:z-10 group-focus-within:data-[active=true]:border-ring group-focus-within:data-[active=true]:ring-3 group-focus-within:data-[active=true]:ring-ring/50"
 											/>
 										))}
