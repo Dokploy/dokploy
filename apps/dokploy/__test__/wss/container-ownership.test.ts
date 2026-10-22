@@ -1,38 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockFindApp = vi.hoisted(() => vi.fn());
-const mockFindLibsql = vi.hoisted(() => vi.fn());
+const mockRows = vi.hoisted(() => new Map<unknown, { appName: string }>());
 const mockExec = vi.hoisted(() => vi.fn());
-vi.mock("@dokploy/server/db", () => {
-	const none = { findFirst: async () => undefined };
-	return {
-		db: {
-			query: {
-				applications: { findFirst: mockFindApp },
-				compose: none,
-				postgres: none,
-				mysql: none,
-				mariadb: none,
-				mongo: none,
-				redis: none,
-				libsql: { findFirst: mockFindLibsql },
-			},
-		},
-	};
-});
+vi.mock("@dokploy/server/db", () => ({
+	db: {
+		select: () => ({
+			from: (table: unknown) => ({
+				where: () => ({
+					limit: async () => {
+						const row = mockRows.get(table);
+						return row ? [row] : [];
+					},
+				}),
+			}),
+		}),
+	},
+}));
 vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsync: mockExec,
 	execAsyncRemote: mockExec,
 }));
 
+import { applications, libsql } from "@dokploy/server/db/schema";
 import { containerBelongsToService } from "@/server/wss/container-ownership";
 
 const labels = (l: Record<string, string>) => ({ stdout: JSON.stringify(l) });
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mockFindApp.mockResolvedValue({ appName: "app-mine-abc123" });
-	mockFindLibsql.mockResolvedValue(undefined);
+	mockRows.clear();
+	mockRows.set(applications, { appName: "app-mine-abc123" });
 });
 
 describe("containerBelongsToService", () => {
@@ -58,8 +55,8 @@ describe("containerBelongsToService", () => {
 	});
 
 	it("resolves libsql services", async () => {
-		mockFindApp.mockResolvedValue(undefined);
-		mockFindLibsql.mockResolvedValue({ appName: "libsql-abc" });
+		mockRows.clear();
+		mockRows.set(libsql, { appName: "libsql-abc" });
 		mockExec.mockResolvedValue(
 			labels({ "com.docker.swarm.service.name": "libsql-abc" }),
 		);
@@ -67,7 +64,7 @@ describe("containerBelongsToService", () => {
 	});
 
 	it("denies an unknown service", async () => {
-		mockFindApp.mockResolvedValue(undefined);
+		mockRows.clear();
 		expect(await containerBelongsToService("nope", "c1")).toBe(false);
 	});
 });

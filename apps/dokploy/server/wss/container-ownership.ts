@@ -22,42 +22,26 @@ const OWNERSHIP_LABELS = [
 	"com.docker.stack.namespace",
 ];
 
+const SERVICE_TABLES = [
+	{ table: applications, id: applications.applicationId },
+	{ table: compose, id: compose.composeId },
+	{ table: postgres, id: postgres.postgresId },
+	{ table: mysql, id: mysql.mysqlId },
+	{ table: mariadb, id: mariadb.mariadbId },
+	{ table: mongo, id: mongo.mongoId },
+	{ table: redis, id: redis.redisId },
+	{ table: libsql, id: libsql.libsqlId },
+];
+
 const findServiceAppName = async (serviceId: string) => {
-	const [app, comp, pg, my, maria, mon, red, lib] = await Promise.all([
-		db.query.applications.findFirst({
-			where: eq(applications.applicationId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.compose.findFirst({
-			where: eq(compose.composeId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.postgres.findFirst({
-			where: eq(postgres.postgresId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.mysql.findFirst({
-			where: eq(mysql.mysqlId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.mariadb.findFirst({
-			where: eq(mariadb.mariadbId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.mongo.findFirst({
-			where: eq(mongo.mongoId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.redis.findFirst({
-			where: eq(redis.redisId, serviceId),
-			columns: { appName: true },
-		}),
-		db.query.libsql.findFirst({
-			where: eq(libsql.libsqlId, serviceId),
-			columns: { appName: true },
-		}),
-	]);
-	return (app ?? comp ?? pg ?? my ?? maria ?? mon ?? red ?? lib)?.appName;
+	for (const { table, id } of SERVICE_TABLES) {
+		const [row] = await db
+			.select({ appName: table.appName })
+			.from(table)
+			.where(eq(id, serviceId))
+			.limit(1);
+		if (row) return row.appName;
+	}
 };
 
 // Service access alone must not allow `docker exec` into other tenants' containers.
