@@ -18,7 +18,7 @@ jobs:
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 24.4.0
+          node-version: 24.22.1
           cache: "pnpm"
       
       - name: Install Nixpacks
