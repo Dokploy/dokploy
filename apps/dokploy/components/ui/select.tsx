@@ -4,9 +4,21 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Select({
+	onValueChange,
 	...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-	return <SelectPrimitive.Root data-slot="select" {...props} />;
+	return (
+		<SelectPrimitive.Root
+			data-slot="select"
+			// Radix's hidden native <select> emits "" when the value is set before
+			// the options mount (e.g. form.reset), wiping the field. Items can't have
+			// an empty value, so "" is never a real selection.
+			onValueChange={(value) => {
+				if (value !== "") onValueChange?.(value);
+			}}
+			{...props}
+		/>
+	);
 }
 
 function SelectGroup({
