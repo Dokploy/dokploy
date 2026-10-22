@@ -10,11 +10,8 @@ import {
 } from "@dokploy/server";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
-import {
-	canAccessDockerOverWss,
-	findServiceAppName,
-	isServiceContainerName,
-} from "./authorize";
+import { canAccessDockerOverWss, isServiceContainerName } from "./authorize";
+import { findServiceAppName } from "./container-ownership";
 
 type AppType = "application" | "stack" | "docker-compose";
 

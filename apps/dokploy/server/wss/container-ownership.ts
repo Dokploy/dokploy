@@ -33,7 +33,7 @@ const SERVICE_TABLES = [
 	{ table: libsql, id: libsql.libsqlId },
 ];
 
-const findServiceAppName = async (serviceId: string) => {
+export const findServiceAppName = async (serviceId: string) => {
 	for (const { table, id } of SERVICE_TABLES) {
 		const [row] = await db
 			.select({ appName: table.appName })
