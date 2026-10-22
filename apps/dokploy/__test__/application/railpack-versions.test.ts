@@ -12,7 +12,7 @@ describe("getRailpackVersions", () => {
 		vi.restoreAllMocks();
 	});
 
-	it("loads up to 100 releases, normalizes tags, and caches the result", async () => {
+	it("loads up to 20 releases, normalizes tags, and caches the result", async () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValue(releases(["v0.39.0", "0.38.0"]));
@@ -24,7 +24,7 @@ describe("getRailpackVersions", () => {
 		expect(await getRailpackVersions()).toEqual(["0.39.0", "0.38.0"]);
 		expect(await getRailpackVersions()).toEqual(["0.39.0", "0.38.0"]);
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(fetchMock.mock.calls[0]?.[0]).toContain("per_page=100");
+		expect(fetchMock.mock.calls[0]?.[0]).toContain("per_page=20");
 	});
 
 	it("shares one request between simultaneous callers", async () => {

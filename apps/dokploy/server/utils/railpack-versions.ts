@@ -1,6 +1,6 @@
 const CACHE_TTL = 1000 * 60 * 60 * 24;
 const RELEASES_URL =
-	"https://api.github.com/repos/railwayapp/railpack/releases?per_page=100";
+	"https://api.github.com/repos/railwayapp/railpack/releases?per_page=20";
 
 let cache: { versions: string[]; fetchedAt: number } | undefined;
 let pending: Promise<string[]> | undefined;
