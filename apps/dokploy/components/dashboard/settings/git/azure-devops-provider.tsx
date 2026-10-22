@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
 import { AzureDevopsIcon } from "@/components/icons/azure-devops-icon";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
+import {
+	azureDevopsProviderFormReducer,
+	initialAzureDevopsProviderForm,
+} from "./azure-devops-provider-form";
 
 export const AzureDevopsProviderDialog = ({
 	azureDevopsId,
@@ -19,9 +23,14 @@ export const AzureDevopsProviderDialog = ({
 	azureDevopsId?: string;
 }) => {
 	const [open, setOpen] = useState(false);
-	const [name, setName] = useState("");
-	const [baseUrl, setBaseUrl] = useState("");
-	const [token, setToken] = useState("");
+	const [{ name, baseUrl, token }, dispatch] = useReducer(
+		azureDevopsProviderFormReducer,
+		initialAzureDevopsProviderForm,
+	);
+	const onOpenChange = (value: boolean) => {
+		setOpen(value);
+		dispatch({ type: "reset" });
+	};
 	const { data, isPending } = api.azureDevops.one.useQuery(
 		{ azureDevopsId: azureDevopsId || "" },
 		{ enabled: !!azureDevopsId && open },
@@ -32,13 +41,15 @@ export const AzureDevopsProviderDialog = ({
 	const utils = api.useUtils();
 	useEffect(() => {
 		if (open) {
-			setName(data?.gitProvider.name || "");
-			setBaseUrl(data?.baseUrl || "");
-			setToken("");
+			dispatch({
+				type: "hydrate",
+				name: data?.gitProvider.name || "",
+				baseUrl: data?.baseUrl || "",
+			});
 		}
 	}, [data, open]);
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>
 				<Button
 					variant={azureDevopsId ? "ghost" : "default"}
@@ -80,10 +91,12 @@ export const AzureDevopsProviderDialog = ({
 							await Promise.all([
 								utils.gitProvider.getAll.invalidate(),
 								utils.azureDevops.providers.invalidate(),
+								...(azureDevopsId
+									? [utils.azureDevops.one.invalidate({ azureDevopsId })]
+									: []),
 							]);
 							toast.success("Azure DevOps provider saved");
-							setToken("");
-							setOpen(false);
+							onOpenChange(false);
 						} catch (error) {
 							toast.error(
 								error instanceof Error
@@ -99,7 +112,13 @@ export const AzureDevopsProviderDialog = ({
 							id="azure-name"
 							required
 							value={name}
-							onChange={(event) => setName(event.target.value)}
+							onChange={(event) =>
+								dispatch({
+									type: "change",
+									field: "name",
+									value: event.target.value,
+								})
+							}
 						/>
 					</div>
 					<div className="space-y-2">
@@ -111,7 +130,13 @@ export const AzureDevopsProviderDialog = ({
 							aria-describedby="azure-url-help"
 							required
 							value={baseUrl}
-							onChange={(event) => setBaseUrl(event.target.value)}
+							onChange={(event) =>
+								dispatch({
+									type: "change",
+									field: "baseUrl",
+									value: event.target.value,
+								})
+							}
 						/>
 						<p id="azure-url-help" className="text-sm text-muted-foreground">
 							Services: https://azure-devops.visualstudio.com
@@ -131,7 +156,13 @@ export const AzureDevopsProviderDialog = ({
 							autoComplete="new-password"
 							required={!azureDevopsId}
 							value={token}
-							onChange={(event) => setToken(event.target.value)}
+							onChange={(event) =>
+								dispatch({
+									type: "change",
+									field: "token",
+									value: event.target.value,
+								})
+							}
 						/>
 						<p className="text-sm text-muted-foreground">
 							{azureDevopsId ? "Leave empty to keep the current PAT. " : ""}
