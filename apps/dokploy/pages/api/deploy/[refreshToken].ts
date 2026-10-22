@@ -32,6 +32,14 @@ const getPackageVersion = (headers: any, body: any) => {
 	return null;
 };
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -267,10 +275,10 @@ export default async function handler(
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

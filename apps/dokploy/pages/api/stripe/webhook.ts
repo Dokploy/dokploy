@@ -158,11 +158,9 @@ export default async function handler(
 				newSubscription.customer as string,
 			);
 
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
-
-			if (admin.isEnterpriseCloud) {
+			// The account may already be gone when the deletion flow cancelled
+			// the subscription; nothing left to disable.
+			if (!admin || admin.isEnterpriseCloud) {
 				break;
 			}
 
@@ -314,11 +312,7 @@ export default async function handler(
 			const customer = event.data.object as Stripe.Customer;
 
 			const admin = await findUserByStripeCustomerId(customer.id);
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
-
-			if (admin.isEnterpriseCloud) {
+			if (!admin || admin.isEnterpriseCloud) {
 				break;
 			}
 
