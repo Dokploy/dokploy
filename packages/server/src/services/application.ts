@@ -439,6 +439,7 @@ export const deployPreviewApplication = async ({
 				...application,
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
+				pullRequestNumber: previewDeployment.pullRequestNumber,
 			});
 			command += await getBuildCommand(application);
 
