@@ -30,17 +30,27 @@ const provider = (githubUrl: string) => ({
 	githubInstallationId: "42",
 });
 
-const clone = async () => {
+const clone = async (enableSubmodules = false) => {
 	const command = await cloneGithubRepository({
 		appName: "my-app",
 		owner: "acme",
 		repository: "web",
 		branch: "main",
 		githubId: "gh-1",
-		enableSubmodules: false,
+		enableSubmodules,
 		serverId: null,
 	});
 	return command.replace(/\\/g, "");
+};
+
+const expectCloneAuthentication = (command: string, host: string) => {
+	const authorization = `Authorization: Basic ${Buffer.from("x-access-token:gh-token").toString("base64")}`;
+	const cloneUrl = `https://${host}/acme/web.git`;
+
+	expect(command).toContain(
+		`-c 'http.https://${host}/.extraheader=${authorization}' clone --branch main --depth 1 ${cloneUrl}`,
+	);
+	expect(command).not.toMatch(/https:\/\/[^/\s'"]+@/);
 };
 
 describe("cloneGithubRepository host", () => {
@@ -53,9 +63,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.com");
 		expect(command).not.toContain("ghe.com");
 	});
 
@@ -64,9 +72,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@acme.ghe.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "acme.ghe.com");
 		expect(command).not.toContain("github.com");
 	});
 
@@ -77,9 +83,7 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.corp.acme.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.corp.acme.com");
 	});
 
 	it("keeps an explicit port in the clone host", async () => {
@@ -89,8 +93,23 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
+		expectCloneAuthentication(command, "github.acme.com:8443");
+	});
+
+	it("matches SSH submodules by hostname without the HTTPS port", async () => {
+		mockFindGithubById.mockResolvedValue(
+			provider("https://github.acme.com:8443"),
+		);
+
+		const command = await clone(true);
+
 		expect(command).toContain(
-			"https://oauth2:gh-token@github.acme.com:8443/acme/web.git",
+			"url.https://github.acme.com:8443/.insteadOf=git@github.acme.com:",
+		);
+		expect(command).toContain(`case "$ssh_host" in '''github.acme.com''') ;;`);
+		expect(command).not.toContain("git@github.acme.com:8443:");
+		expect(command).not.toContain(
+			`case "$ssh_host" in '''github.acme.com:8443''') ;;`,
 		);
 	});
 
@@ -99,8 +118,6 @@ describe("cloneGithubRepository host", () => {
 
 		const command = await clone();
 
-		expect(command).toContain(
-			"https://oauth2:gh-token@github.com/acme/web.git",
-		);
+		expectCloneAuthentication(command, "github.com");
 	});
 });
