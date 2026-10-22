@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 # Set up PNPM
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@10.22.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.34.7 --activate
 
 # Create workspace directory
 WORKDIR /workspaces/dokploy
