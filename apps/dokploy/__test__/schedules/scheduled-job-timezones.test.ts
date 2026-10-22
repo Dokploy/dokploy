@@ -6,7 +6,9 @@ const mocks = vi.hoisted(() => ({
 	removeRepeatable: vi.fn(),
 }));
 
-vi.mock("bullmq", () => ({
+// BullMQ is a dependency of the schedules workspace, not the dokploy test workspace.
+// Mock its resolved path so the queue never attempts a real Redis connection.
+vi.mock("../../../schedules/node_modules/bullmq", () => ({
 	Queue: class {
 		add = mocks.add;
 		removeRepeatable = mocks.removeRepeatable;
@@ -14,12 +16,14 @@ vi.mock("bullmq", () => ({
 }));
 vi.mock("../../../schedules/src/logger.js", () => ({ logger: {} }));
 
-const { removeJob, scheduleJob } = await import(
+const { jobQueue, removeJob, scheduleJob } = await import(
 	"../../../schedules/src/queue.js"
 );
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	expect(jobQueue.add).toBe(mocks.add);
+	expect(jobQueue.removeRepeatable).toBe(mocks.removeRepeatable);
 });
 
 describe("scheduled job timezone contract", () => {
