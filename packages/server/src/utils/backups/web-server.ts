@@ -3,6 +3,8 @@ import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
+import { applications } from "@dokploy/server/db/schema";
 import {
 	ENCRYPTION_KEY_BACKUP_FILE,
 	exportEncryptionKeys,
@@ -13,10 +15,12 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { eq } from "drizzle-orm";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import { getWebServerBackupFilters } from "./web-server-filters";
 
 function formatBytes(bytes?: number) {
 	if (bytes === undefined) return "Unknown size";
@@ -81,8 +85,15 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
 			await execAsync(cleanupCommand);
 
+			const dropApps = await db.query.applications.findMany({
+				columns: { appName: true },
+				where: eq(applications.sourceType, "drop"),
+			});
+			const filters = getWebServerBackupFilters(
+				dropApps.map(({ appName }) => appName),
+			).join(" ");
 			await execAsync(
-				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${filters} ${BASE_PATH}/ ${tempDir}/filesystem/`,
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
