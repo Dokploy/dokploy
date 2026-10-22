@@ -25,7 +25,6 @@ export const canAccessDockerOverWss = async (
 	serverId?: string | null,
 	serviceId?: string | null,
 ): Promise<boolean> => {
-	// return false;
 	if (!user || !session?.activeOrganizationId) return false;
 
 	const ctx = buildCtx(user, session.activeOrganizationId);
