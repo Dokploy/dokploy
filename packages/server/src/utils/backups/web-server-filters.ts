@@ -1,13 +1,7 @@
-import { quote } from "shell-quote";
-
-// rsync filter rules for the web-server backup. Git and raw sources are
-// re-created under */code/ on every deploy, so those checkouts are skipped;
-// drop (zip upload) apps keep theirs, since it is the only copy of their code.
-// Includes must come before the excludes: rsync applies the first match.
-export const getWebServerBackupFilters = (dropAppNames: string[]) => [
-	...dropAppNames.map(
-		(appName) => `--include=${quote([`applications/${appName}/code/***`])}`,
-	),
-	"--exclude='applications/*/code/'",
-	"--exclude='compose/*/code/'",
+// rsync excludes for the web-server backup. Every deploy re-clones */code/,
+// so its .git history is never needed. The working tree stays in the backup:
+// compose bind mounts like ./data live there, and restore replaces BASE_PATH.
+export const WEB_SERVER_BACKUP_EXCLUDES = [
+	"--exclude='applications/*/code/.git/'",
+	"--exclude='compose/*/code/.git/'",
 ];
