@@ -113,9 +113,6 @@ export async function getServerSideProps(
 		user: { id: user.id },
 		session: { activeOrganizationId: session?.activeOrganizationId || "" },
 	};
-	// Host stats come from the docker stats socket, which requires docker.read.
-	// Checked separately because a member's "Access to Docker" is a legacy
-	// override that only applies when every requested resource has one.
 	const canView =
 		(await hasPermission(permissionCtx, { monitoring: ["read"] })) &&
 		(await hasPermission(permissionCtx, { docker: ["read"] }));
