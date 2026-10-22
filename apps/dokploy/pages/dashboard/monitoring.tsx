@@ -113,9 +113,11 @@ export async function getServerSideProps(
 		user: { id: user.id },
 		session: { activeOrganizationId: session?.activeOrganizationId || "" },
 	};
-	const canView =
-		(await hasPermission(permissionCtx, { monitoring: ["read"] })) &&
-		(await hasPermission(permissionCtx, { docker: ["read"] }));
+	const [canReadMonitoring, canReadDocker] = await Promise.all([
+		hasPermission(permissionCtx, { monitoring: ["read"] }),
+		hasPermission(permissionCtx, { docker: ["read"] }),
+	]);
+	const canView = canReadMonitoring && canReadDocker;
 
 	if (!canView) {
 		return {
