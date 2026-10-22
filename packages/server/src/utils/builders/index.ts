@@ -19,6 +19,7 @@ import { getHerokuCommand } from "./heroku";
 import { getNixpacksCommand } from "./nixpacks";
 import { getPaketoCommand } from "./paketo";
 import { getRailpackCommand } from "./railpack";
+import { resolveRailpackVersion } from "./resolve-railpack-version";
 import { getStaticCommand } from "./static";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
@@ -63,7 +64,12 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 				command = getDockerCommand(application);
 				break;
 			case "railpack":
-				command = getRailpackCommand(application);
+				command = getRailpackCommand({
+					...application,
+					railpackVersion: await resolveRailpackVersion(
+						application.railpackVersion,
+					),
+				});
 				break;
 		}
 	}

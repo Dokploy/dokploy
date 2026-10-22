@@ -95,7 +95,7 @@ elif sudo -n true 2>/dev/null; then
 else
 	SUDO_CMD=""
 fi
-$SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
+$SUDO_CMD env RAILPACK_VERSION="$RAILPACK_VERSION" bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 docker buildx create --name ${builderName} --driver docker-container || true
 
 echo "Preparing Railpack build plan..." ;

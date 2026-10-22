@@ -186,6 +186,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		if (
 			railpackVersions?.length &&
 			data?.railpackVersion &&
+			data.railpackVersion !== "latest" &&
 			!railpackVersions.includes(data.railpackVersion)
 		) {
 			setIsManualRailpackVersion(true);
@@ -539,6 +540,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 															)}
 														</SelectTrigger>
 														<SelectContent>
+															<SelectItem value="latest">
+																Latest (auto-update on build)
+															</SelectItem>
 															<SelectItem value="manual">
 																<span className="font-medium">
 																	✏️ Manual (Custom Version)
@@ -552,7 +556,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 																			variant="secondary"
 																			className="ml-2 px-1 text-xs"
 																		>
-																			Latest
+																			Newest listed
 																		</Badge>
 																	)}
 																</SelectItem>
@@ -562,8 +566,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												)}
 											</FormControl>
 											<FormDescription>
-												Select a Railpack version or choose manual to enter a
-												custom version.{" "}
+												Select Latest to follow new releases, pin a version, or
+												enter a custom version.{" "}
 												<a
 													href="https://github.com/railwayapp/railpack/releases"
 													target="_blank"
