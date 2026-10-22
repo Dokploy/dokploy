@@ -3,7 +3,12 @@ import { db } from "@dokploy/server/db";
 import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
 	createScheduleSchema,
+	databaseScheduleIdColumns,
+	getDatabaseScheduleId,
+	isDatabaseScheduleType,
+	isValidDatabaseScheduleTarget,
 	schedules,
+	scheduleType,
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
 import { runCommand } from "@dokploy/server/index";
@@ -24,15 +29,45 @@ import { TRPCError } from "@trpc/server";
 import { asc, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
+import { checkDatabaseScheduleAccess } from "@/server/api/utils/database-schedule-access";
 import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+
+const databaseTargetColumns = Object.values(databaseScheduleIdColumns);
+
+const assertDatabaseScheduleTarget = (
+	input: z.infer<typeof createScheduleSchema>,
+) => {
+	if (!isValidDatabaseScheduleTarget(input)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"A database schedule must target exactly one database and no other service.",
+		});
+	}
+};
 
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
+			assertDatabaseScheduleTarget(input);
 			await assertHostScheduleAccess(ctx, input.scheduleType, input.serverId);
+
+			const databaseId = getDatabaseScheduleId(input);
+			if (isDatabaseScheduleType(input.scheduleType) && databaseId) {
+				await checkDatabaseScheduleAccess(ctx, input.scheduleType, databaseId, {
+					schedule: ["create"],
+				});
+				if (IS_CLOUD) {
+					await assertScheduledJobLimit(
+						ctx.session.activeOrganizationId,
+						input.scheduleType,
+						databaseId,
+					);
+				}
+			}
 
 			const serviceId = input.applicationId || input.composeId;
 			if (serviceId) {
@@ -46,7 +81,7 @@ export const scheduleRouter = createTRPCRouter({
 						serviceId,
 					);
 				}
-			} else {
+			} else if (!databaseId) {
 				await checkPermission(ctx, { schedule: ["create"] });
 
 				if (IS_CLOUD && input.scheduleType === "server" && input.serverId) {
@@ -89,6 +124,37 @@ export const scheduleRouter = createTRPCRouter({
 		.input(updateScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
 			const existingSchedule = await findScheduleById(input.scheduleId);
+			if (isDatabaseScheduleType(existingSchedule.scheduleType)) {
+				const immutableColumns = [
+					...databaseTargetColumns,
+					"applicationId",
+					"composeId",
+					"serverId",
+					"organizationId",
+				] as const;
+				if (
+					(input.scheduleType &&
+						input.scheduleType !== existingSchedule.scheduleType) ||
+					immutableColumns.some(
+						(column) =>
+							input[column] !== undefined &&
+							input[column] !== existingSchedule[column],
+					)
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "The database schedule target cannot be changed.",
+					});
+				}
+			} else if (
+				isDatabaseScheduleType(input.scheduleType) ||
+				databaseTargetColumns.some((column) => input[column])
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The schedule target cannot be changed to a database.",
+				});
+			}
 
 			if (
 				IS_CLOUD &&
@@ -117,13 +183,22 @@ export const scheduleRouter = createTRPCRouter({
 				);
 			}
 
+			const databaseId = getDatabaseScheduleId(existingSchedule);
+			if (isDatabaseScheduleType(existingSchedule.scheduleType) && databaseId) {
+				await checkDatabaseScheduleAccess(
+					ctx,
+					existingSchedule.scheduleType,
+					databaseId,
+					{ schedule: ["update"] },
+				);
+			}
 			const serviceId =
 				existingSchedule.applicationId || existingSchedule.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["update"],
 				});
-			} else {
+			} else if (!databaseId) {
 				await checkPermission(ctx, { schedule: ["update"] });
 			}
 			const updatedSchedule = await updateSchedule(input);
@@ -138,10 +213,10 @@ export const scheduleRouter = createTRPCRouter({
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
+						cronSchedule: existingSchedule.cronExpression,
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
-						timezone: updatedSchedule.timezone,
+						timezone: existingSchedule.timezone,
 					});
 				}
 			} else {
@@ -171,12 +246,21 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.serverId,
 			);
 
+			const databaseId = getDatabaseScheduleId(scheduleItem);
+			if (isDatabaseScheduleType(scheduleItem.scheduleType) && databaseId) {
+				await checkDatabaseScheduleAccess(
+					ctx,
+					scheduleItem.scheduleType,
+					databaseId,
+					{ schedule: ["delete"] },
+				);
+			}
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["delete"],
 				});
-			} else {
+			} else if (!databaseId) {
 				await checkPermission(ctx, { schedule: ["delete"] });
 			}
 			await deleteSchedule(input.scheduleId);
@@ -204,16 +288,15 @@ export const scheduleRouter = createTRPCRouter({
 		.input(
 			z.object({
 				id: z.string(),
-				scheduleType: z.enum([
-					"application",
-					"compose",
-					"server",
-					"dokploy-server",
-				]),
+				scheduleType: z.enum(scheduleType.enumValues),
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			if (
+			if (isDatabaseScheduleType(input.scheduleType)) {
+				await checkDatabaseScheduleAccess(ctx, input.scheduleType, input.id, {
+					schedule: ["read"],
+				});
+			} else if (
 				input.scheduleType === "application" ||
 				input.scheduleType === "compose"
 			) {
@@ -249,6 +332,12 @@ export const scheduleRouter = createTRPCRouter({
 				}
 			}
 			const where = {
+				postgres: eq(schedules.postgresId, input.id),
+				mysql: eq(schedules.mysqlId, input.id),
+				mariadb: eq(schedules.mariadbId, input.id),
+				mongo: eq(schedules.mongoId, input.id),
+				redis: eq(schedules.redisId, input.id),
+				libsql: eq(schedules.libsqlId, input.id),
 				application: eq(schedules.applicationId, input.id),
 				compose: eq(schedules.composeId, input.id),
 				server: eq(schedules.serverId, input.id),
@@ -278,6 +367,55 @@ export const scheduleRouter = createTRPCRouter({
 							serverId: true,
 						},
 					},
+					postgres: {
+						columns: {
+							postgresId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+					mysql: {
+						columns: {
+							mysqlId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+					mariadb: {
+						columns: {
+							mariadbId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+					mongo: {
+						columns: {
+							mongoId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+					redis: {
+						columns: {
+							redisId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+					libsql: {
+						columns: {
+							libsqlId: true,
+							appName: true,
+							name: true,
+							serverId: true,
+						},
+					},
+
 					deployments: {
 						orderBy: [desc(deployments.createdAt)],
 					},
@@ -289,12 +427,21 @@ export const scheduleRouter = createTRPCRouter({
 		.input(z.object({ scheduleId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			const schedule = await findScheduleById(input.scheduleId);
+			const databaseId = getDatabaseScheduleId(schedule);
+			if (isDatabaseScheduleType(schedule.scheduleType) && databaseId) {
+				await checkDatabaseScheduleAccess(
+					ctx,
+					schedule.scheduleType,
+					databaseId,
+					{ schedule: ["read"] },
+				);
+			}
 			const serviceId = schedule.applicationId || schedule.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["read"],
 				});
-			} else {
+			} else if (!databaseId) {
 				await checkPermission(ctx, { schedule: ["read"] });
 
 				if (schedule.scheduleType === "server" && schedule.serverId) {
@@ -322,12 +469,21 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.serverId,
 			);
 
+			const databaseId = getDatabaseScheduleId(scheduleItem);
+			if (isDatabaseScheduleType(scheduleItem.scheduleType) && databaseId) {
+				await checkDatabaseScheduleAccess(
+					ctx,
+					scheduleItem.scheduleType,
+					databaseId,
+					{ schedule: ["create"] },
+				);
+			}
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
 				});
-			} else {
+			} else if (!databaseId) {
 				await checkPermission(ctx, { schedule: ["create"] });
 			}
 			try {

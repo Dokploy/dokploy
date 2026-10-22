@@ -13,6 +13,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { schedules } from "./schedule";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -102,6 +103,7 @@ export const mariadb = pgTable("mariadb", {
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
+	schedules: many(schedules),
 	environment: one(environments, {
 		fields: [mariadb.environmentId],
 		references: [environments.environmentId],

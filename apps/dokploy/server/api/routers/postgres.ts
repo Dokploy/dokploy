@@ -53,6 +53,7 @@ import {
 	projects,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
+import { cancelDatabaseScheduleJobs } from "@/server/utils/database-schedules";
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -321,6 +322,8 @@ export const postgresRouter = createTRPCRouter({
 				resourceName: postgres.appName,
 			});
 			const backups = await findBackupsByDbId(input.postgresId, "postgres");
+
+			await cancelDatabaseScheduleJobs("postgres", input.postgresId);
 
 			const cleanupOperations = [
 				async () => await removeService(postgres?.appName, postgres.serverId),

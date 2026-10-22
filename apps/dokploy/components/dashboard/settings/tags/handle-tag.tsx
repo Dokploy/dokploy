@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Palette, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";

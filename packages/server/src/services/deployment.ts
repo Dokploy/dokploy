@@ -38,7 +38,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { removeRollbackById } from "./rollbacks";
-import { findScheduleById } from "./schedule";
+import { findScheduleById, getScheduleServerId } from "./schedule";
 import { findServerById, type Server } from "./server";
 import { findVolumeBackupById } from "./volume-backups";
 
@@ -448,10 +448,7 @@ export const createDeploymentSchedule = async (
 ) => {
 	const schedule = await findScheduleById(deployment.scheduleId);
 
-	const serverId =
-		schedule.application?.serverId ||
-		schedule.compose?.serverId ||
-		schedule.server?.serverId;
+	const serverId = getScheduleServerId(schedule);
 	await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
 	await db
 		.update(deployments)
@@ -629,8 +626,13 @@ export const removeDeployment = async (deploymentId: string) => {
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
 			const command = `rm -f ${logPath};`;
-			if (deployment.serverId) {
-				await execAsyncRemote(deployment.serverId, command);
+			const serverId =
+				deployment.serverId ||
+				(deployment.scheduleId
+					? getScheduleServerId(await findScheduleById(deployment.scheduleId))
+					: null);
+			if (serverId) {
+				await execAsyncRemote(serverId, command);
 			} else {
 				await execAsync(command);
 			}

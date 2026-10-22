@@ -13,6 +13,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { schedules } from "./schedule";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -99,6 +100,7 @@ export const mongo = pgTable("mongo", {
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
+	schedules: many(schedules),
 	environment: one(environments, {
 		fields: [mongo.environmentId],
 		references: [environments.environmentId],
