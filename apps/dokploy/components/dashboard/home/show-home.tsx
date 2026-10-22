@@ -1,19 +1,28 @@
 import { formatDistanceToNow } from "date-fns";
 import { ArrowRight, Rocket, Server } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
+import {
+	ACTIVITY_DAYS,
+	bucketDeploymentsByDay,
+	deploymentStatusStyles,
+	getActivityWindowStart,
+} from "./deployment-activity";
+import { DeploymentActivityChart } from "./deployment-activity-chart";
 
-type DeploymentStatus = "idle" | "running" | "done" | "error";
-
-const statusDotClass: Record<string, string> = {
-	done: "bg-emerald-500",
-	running: "bg-amber-500",
-	error: "bg-red-500",
-	idle: "bg-muted-foreground/40",
-};
+function DeploymentsMessage({ children }: { children: ReactNode }) {
+	return (
+		<div className="min-h-100 flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
+			<Rocket className="size-8 opacity-40" />
+			<span>{children}</span>
+		</div>
+	);
+}
 
 function getServiceInfo(d: any) {
 	const app = d.application;
@@ -114,13 +123,14 @@ export const ShowHome = () => {
 	const { data: homeStats } = api.project.homeStats.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const canReadDeployments = !!permissions?.deployment.read;
-	const { data: deployments } = api.deployment.allCentralized.useQuery(
-		undefined,
-		{
-			enabled: canReadDeployments,
-			refetchInterval: 10000,
-		},
-	);
+	const {
+		data: deployments,
+		isLoading: isLoadingDeployments,
+		isError: isDeploymentsError,
+	} = api.deployment.allCentralized.useQuery(undefined, {
+		enabled: canReadDeployments,
+		refetchInterval: 10000,
+	});
 
 	const firstName = auth?.user?.firstName?.trim();
 
@@ -148,22 +158,19 @@ export const ShowHome = () => {
 			.slice(0, 10);
 	}, [deployments]);
 
-	const deployStats = useMemo(() => {
-		const now = Date.now();
-		const weekMs = 7 * 24 * 60 * 60 * 1000;
-		const lastStart = now - weekMs;
-		const prevStart = now - 2 * weekMs;
+	const { activity, deployStats } = useMemo(() => {
+		const now = new Date();
+		const activity = bucketDeploymentsByDay(deployments ?? [], now);
+		const lastStart = getActivityWindowStart(now).getTime();
+		const prevStart = getActivityWindowStart(now, ACTIVITY_DAYS * 2).getTime();
 
-		const last: NonNullable<typeof deployments> = [];
-		const prev: NonNullable<typeof deployments> = [];
+		let prevCount = 0;
 		for (const d of deployments ?? []) {
 			const t = new Date(d.createdAt).getTime();
-			if (t >= lastStart) last.push(d);
-			else if (t >= prevStart) prev.push(d);
+			if (t >= prevStart && t < lastStart) prevCount++;
 		}
 
-		const lastCount = last.length;
-		const prevCount = prev.length;
+		const lastCount = activity.total;
 		let delta: string | undefined;
 		if (prevCount > 0) {
 			const pct = Math.round(((lastCount - prevCount) / prevCount) * 100);
@@ -174,8 +181,16 @@ export const ShowHome = () => {
 			delta = "no activity yet";
 		}
 
-		return { value: String(lastCount), delta };
+		return { activity, deployStats: { value: String(lastCount), delta } };
 	}, [deployments]);
+
+	const deploymentsStateView = isLoadingDeployments ? (
+		<div className="p-5">
+			<Skeleton className="h-80 w-full" />
+		</div>
+	) : isDeploymentsError && !deployments ? (
+		<DeploymentsMessage>Could not load deployments.</DeploymentsMessage>
+	) : null;
 
 	return (
 		<div className="w-full">
@@ -232,75 +247,110 @@ export const ShowHome = () => {
 						/>
 					</div>
 
-					<div className="rounded-xl border bg-background">
-						<div className="flex items-center justify-between px-5 py-4 border-b">
+					<Tabs
+						defaultValue="activity"
+						className="gap-0 rounded-xl border bg-background"
+					>
+						<div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b">
 							<div className="flex items-center gap-2">
 								<Rocket className="size-4 text-muted-foreground" />
-								<h2 className="text-sm font-semibold">Recent deployments</h2>
+								<h2 className="text-sm font-semibold">Deployments</h2>
 							</div>
 							{canReadDeployments && (
-								<Link
-									href="/dashboard/overview?tab=deployments"
-									className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-								>
-									view all →
-								</Link>
+								<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+									<TabsList>
+										<TabsTrigger value="activity">
+											Last {ACTIVITY_DAYS} days
+										</TabsTrigger>
+										<TabsTrigger value="recent">Recent</TabsTrigger>
+									</TabsList>
+									<Link
+										href="/dashboard/overview?tab=deployments"
+										className="text-xs text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+									>
+										view all →
+									</Link>
+								</div>
 							)}
 						</div>
 						{!canReadDeployments ? (
-							<div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
-								<Rocket className="size-8 opacity-40" />
-								<span>You do not have permission to view deployments.</span>
-							</div>
-						) : recentDeployments.length === 0 ? (
-							<div className="min-h-[400px] flex flex-col items-center justify-center gap-3 text-center text-sm text-muted-foreground p-10">
-								<Rocket className="size-8 opacity-40" />
-								<span>No deployments yet.</span>
-							</div>
+							<DeploymentsMessage>
+								You do not have permission to view deployments.
+							</DeploymentsMessage>
 						) : (
-							<ul className="divide-y">
-								{recentDeployments.map((d) => {
-									const info = getServiceInfo(d);
-									if (!info) return null;
-									const status = (d.status ?? "idle") as DeploymentStatus;
-									return (
-										<li key={d.deploymentId}>
-											<Link
-												href={info.href}
-												className="flex items-center gap-4 px-5 py-4 hover:bg-muted/40 transition-colors"
-											>
-												<span
-													className={`size-2 rounded-full shrink-0 ${statusDotClass[status] ?? statusDotClass.idle}`}
-													aria-hidden
+							<>
+								<TabsContent value="activity">
+									{deploymentsStateView ??
+										(activity.total === 0 ? (
+											<DeploymentsMessage>
+												No deployments in the last {ACTIVITY_DAYS} days.
+											</DeploymentsMessage>
+										) : (
+											<div className="p-5">
+												<DeploymentActivityChart
+													days={activity.days}
+													total={activity.total}
 												/>
-												<div className="flex flex-col min-w-0 flex-1">
-													<span className="text-sm truncate">{info.name}</span>
-													<span className="text-xs text-muted-foreground truncate">
-														{info.projectName} · {info.environment}
-													</span>
-												</div>
-												<span className="text-xs text-muted-foreground w-36 hidden lg:flex items-center justify-end gap-1.5 truncate">
-													<Server className="size-3 shrink-0" />
-													<span className="truncate">{info.serverName}</span>
-												</span>
-												<span className="text-xs text-muted-foreground w-20 text-right hidden sm:inline">
-													{status}
-												</span>
-												<span className="text-xs text-muted-foreground w-24 text-right hidden md:inline">
-													{formatDistanceToNow(new Date(d.createdAt), {
-														addSuffix: true,
-													})}
-												</span>
-												<span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-													logs →
-												</span>
-											</Link>
-										</li>
-									);
-								})}
-							</ul>
+											</div>
+										))}
+								</TabsContent>
+								<TabsContent value="recent">
+									{deploymentsStateView ??
+										(recentDeployments.length === 0 ? (
+											<DeploymentsMessage>
+												No deployments yet.
+											</DeploymentsMessage>
+										) : (
+											<ul className="divide-y">
+												{recentDeployments.map((d) => {
+													const info = getServiceInfo(d);
+													if (!info) return null;
+													const status = d.status ?? "running";
+													return (
+														<li key={d.deploymentId}>
+															<Link
+																href={info.href}
+																className="flex items-center gap-4 px-5 py-4 hover:bg-muted/40 transition-colors"
+															>
+																<span
+																	className={`size-2 rounded-full shrink-0 ${deploymentStatusStyles[status].dotClass}`}
+																	aria-hidden
+																/>
+																<div className="flex flex-col min-w-0 flex-1">
+																	<span className="text-sm truncate">
+																		{info.name}
+																	</span>
+																	<span className="text-xs text-muted-foreground truncate">
+																		{info.projectName} · {info.environment}
+																	</span>
+																</div>
+																<span className="text-xs text-muted-foreground w-36 hidden lg:flex items-center justify-end gap-1.5 truncate">
+																	<Server className="size-3 shrink-0" />
+																	<span className="truncate">
+																		{info.serverName}
+																	</span>
+																</span>
+																<span className="text-xs text-muted-foreground w-20 text-right hidden sm:inline">
+																	{status}
+																</span>
+																<span className="text-xs text-muted-foreground w-24 text-right hidden md:inline">
+																	{formatDistanceToNow(new Date(d.createdAt), {
+																		addSuffix: true,
+																	})}
+																</span>
+																<span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+																	logs →
+																</span>
+															</Link>
+														</li>
+													);
+												})}
+											</ul>
+										))}
+								</TabsContent>
+							</>
 						)}
-					</div>
+					</Tabs>
 				</div>
 			</Card>
 		</div>
