@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { toast } from "sonner";
-import { GithubIcon } from "@/components/icons/data-tools-icons";
+import { GiteaIcon, GithubIcon } from "@/components/icons/data-tools-icons";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -42,6 +43,7 @@ interface Props {
 
 export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 	const { data } = api.application.one.useQuery({ applicationId });
+	const isGitea = data?.sourceType === "gitea";
 
 	const { mutateAsync: deletePreviewDeployment, isPending } =
 		api.previewDeployment.delete.useMutation();
@@ -95,6 +97,19 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 								each pull request you create.
 							</span>
 						</div>
+						{isGitea && (
+							<AlertBlock type="info">
+								<strong>Gitea / Forgejo:</strong> preview deployments are driven
+								by the webhook you added for this application (its URL is shown
+								in the Deployments tab). In the repository webhook settings,
+								choose <strong>Custom Events</strong> and enable{" "}
+								<strong>Pull Request</strong> and{" "}
+								<strong>Pull Request Synchronized</strong> - without the latter,
+								previews are created but never updated when new commits are
+								pushed. Enable <strong>Pull Request Label</strong> as well if
+								you use the preview labels filter.
+							</AlertBlock>
+						)}
 						{isLoadingPreviewDeployments ? (
 							<div className="flex w-full flex-row items-center justify-center gap-3 min-h-[35vh]">
 								<Loader2 className="size-5 text-muted-foreground animate-spin" />
@@ -173,7 +188,11 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 																window.open(deployment.pullRequestURL, "_blank")
 															}
 														>
-															<GithubIcon className="size-4" />
+															{isGitea ? (
+																<GiteaIcon className="size-4" />
+															) : (
+																<GithubIcon className="size-4" />
+															)}
 															Pull Request
 														</Button>
 														<ShowModalLogs
