@@ -10,6 +10,7 @@ import {
 	findPreviewDeploymentById,
 	findScheduleById,
 	findVolumeBackupById,
+	getAccessibleServerIds,
 	IS_CLOUD,
 	removeDeployment,
 	resolveServicePath,
@@ -150,8 +151,8 @@ export const deploymentRouter = createTRPCRouter({
 					}
 				}
 			} else if (input.type === "server") {
-				const targetServer = await findServerById(input.id);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+				const accessibleServerIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleServerIds.has(input.id)) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You don't have access to this server.",
