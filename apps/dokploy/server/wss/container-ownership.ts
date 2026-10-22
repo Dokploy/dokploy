@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import {
 	applications,
 	compose,
+	libsql,
 	mariadb,
 	mongo,
 	mysql,
@@ -22,7 +23,7 @@ const OWNERSHIP_LABELS = [
 ];
 
 const findServiceAppName = async (serviceId: string) => {
-	const [app, comp, pg, my, maria, mon, red] = await Promise.all([
+	const [app, comp, pg, my, maria, mon, red, lib] = await Promise.all([
 		db.query.applications.findFirst({
 			where: eq(applications.applicationId, serviceId),
 			columns: { appName: true },
@@ -51,8 +52,12 @@ const findServiceAppName = async (serviceId: string) => {
 			where: eq(redis.redisId, serviceId),
 			columns: { appName: true },
 		}),
+		db.query.libsql.findFirst({
+			where: eq(libsql.libsqlId, serviceId),
+			columns: { appName: true },
+		}),
 	]);
-	return (app ?? comp ?? pg ?? my ?? maria ?? mon ?? red)?.appName;
+	return (app ?? comp ?? pg ?? my ?? maria ?? mon ?? red ?? lib)?.appName;
 };
 
 // Service access alone must not allow `docker exec` into other tenants' containers.

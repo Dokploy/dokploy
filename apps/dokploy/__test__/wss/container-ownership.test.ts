@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFindApp = vi.hoisted(() => vi.fn());
+const mockFindLibsql = vi.hoisted(() => vi.fn());
 const mockExec = vi.hoisted(() => vi.fn());
 vi.mock("@dokploy/server/db", () => {
 	const none = { findFirst: async () => undefined };
@@ -14,6 +15,7 @@ vi.mock("@dokploy/server/db", () => {
 				mariadb: none,
 				mongo: none,
 				redis: none,
+				libsql: { findFirst: mockFindLibsql },
 			},
 		},
 	};
@@ -30,6 +32,7 @@ const labels = (l: Record<string, string>) => ({ stdout: JSON.stringify(l) });
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockFindApp.mockResolvedValue({ appName: "app-mine-abc123" });
+	mockFindLibsql.mockResolvedValue(undefined);
 });
 
 describe("containerBelongsToService", () => {
@@ -52,6 +55,15 @@ describe("containerBelongsToService", () => {
 		expect(await containerBelongsToService("svc", "c1")).toBe(false);
 		mockExec.mockRejectedValue(new Error("No such object"));
 		expect(await containerBelongsToService("svc", "c1")).toBe(false);
+	});
+
+	it("resolves libsql services", async () => {
+		mockFindApp.mockResolvedValue(undefined);
+		mockFindLibsql.mockResolvedValue({ appName: "libsql-abc" });
+		mockExec.mockResolvedValue(
+			labels({ "com.docker.swarm.service.name": "libsql-abc" }),
+		);
+		expect(await containerBelongsToService("svc", "c1")).toBe(true);
 	});
 
 	it("denies an unknown service", async () => {
