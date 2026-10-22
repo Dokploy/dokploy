@@ -15,8 +15,6 @@ vi.mock("@dokploy/server", () => ({
 	getAccessibleServerIds: mockGetAccessibleServerIds,
 }));
 
-vi.mock("@dokploy/server/db", () => ({ db: {} }));
-
 import {
 	canAccessDockerOverWss,
 	canAccessTerminalOverWss,
