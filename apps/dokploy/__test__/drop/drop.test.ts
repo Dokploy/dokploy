@@ -9,12 +9,11 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 const OUTPUT_BASE = "./__test__/drop/zips/output";
 const { APPLICATIONS_PATH } = paths();
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
-	const actual = await importOriginal();
+	const actual =
+		await importOriginal<typeof import("@dokploy/server/constants")>();
 	return {
-		// @ts-expect-error
 		...actual,
 		paths: () => ({
-			// @ts-expect-error
 			...actual.paths(),
 			BASE_PATH: OUTPUT_BASE,
 			APPLICATIONS_PATH: OUTPUT_BASE,

@@ -371,15 +371,24 @@ export const applicationRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			await db
-				.update(applications)
-				.set({ refreshToken: nanoid() })
-				.where(eq(applications.applicationId, input.applicationId));
-			await syncAzureDevopsWebhook("application", input.applicationId, true);
-			const azureDevopsCleanup = await getAzureDevopsHookStatus(
+			let azureDevopsCleanup = await getAzureDevopsHookStatus(
 				"application",
 				input.applicationId,
 			);
+			if (
+				application.sourceType === "azureDevops" ||
+				azureDevopsCleanup.length
+			) {
+				await db
+					.update(applications)
+					.set({ refreshToken: nanoid() })
+					.where(eq(applications.applicationId, input.applicationId));
+				await syncAzureDevopsWebhook("application", input.applicationId, true);
+				azureDevopsCleanup = await getAzureDevopsHookStatus(
+					"application",
+					input.applicationId,
+				);
+			}
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
@@ -800,7 +809,6 @@ export const applicationRouter = createTRPCRouter({
 				azureDevopsProjectName: null,
 				azureDevopsRepositoryName: null,
 				azureDevopsBranch: null,
-				refreshToken: nanoid(),
 				giteaRepository: null,
 				giteaOwner: null,
 				giteaBranch: null,

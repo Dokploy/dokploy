@@ -48,7 +48,7 @@ export interface GiteaProviderType {
 	gitProvider: {
 		name: string;
 		gitProviderId: string;
-		providerType: "github" | "gitlab" | "bitbucket" | "gitea" | "azureDevops";
+		providerType: "github" | "gitlab" | "bitbucket" | "gitea";
 		createdAt: string;
 		organizationId: string;
 	};

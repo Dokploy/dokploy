@@ -66,19 +66,26 @@ export const syncAzureDevopsWebhook = async (
 	serviceId: string,
 	remove = false,
 ) => {
+	const current =
+		serviceType === "application"
+			? await db.query.applications.findFirst({
+					where: eq(applications.applicationId, serviceId),
+					with: { environment: { with: { project: true } } },
+				})
+			: await db.query.compose.findFirst({
+					where: eq(compose.composeId, serviceId),
+					with: { environment: { with: { project: true } } },
+				});
+	if (
+		current?.sourceType !== "azureDevops" &&
+		!(await getAzureDevopsHookStatus(serviceType, serviceId)).length
+	)
+		return [];
+
 	// Commit the intent before contacting Azure so a process crash after a
 	// successful POST still leaves enough information to recover or clean up.
 	if (!remove) {
-		const service =
-			serviceType === "application"
-				? await db.query.applications.findFirst({
-						where: eq(applications.applicationId, serviceId),
-						with: { environment: { with: { project: true } } },
-					})
-				: await db.query.compose.findFirst({
-						where: eq(compose.composeId, serviceId),
-						with: { environment: { with: { project: true } } },
-					});
+		const service = current;
 		if (service?.sourceType === "azureDevops" && service.azureDevopsId) {
 			const provider = await db.query.azureDevops.findFirst({
 				where: eq(azureDevops.azureDevopsId, service.azureDevopsId),

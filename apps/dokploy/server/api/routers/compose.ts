@@ -305,15 +305,24 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			await db
-				.update(composeTable)
-				.set({ refreshToken: nanoid() })
-				.where(eq(composeTable.composeId, input.composeId));
-			await syncAzureDevopsWebhook("compose", input.composeId, true);
-			const azureDevopsCleanup = await getAzureDevopsHookStatus(
+			let azureDevopsCleanup = await getAzureDevopsHookStatus(
 				"compose",
 				input.composeId,
 			);
+			if (
+				composeResult.sourceType === "azureDevops" ||
+				azureDevopsCleanup.length
+			) {
+				await db
+					.update(composeTable)
+					.set({ refreshToken: nanoid() })
+					.where(eq(composeTable.composeId, input.composeId));
+				await syncAzureDevopsWebhook("compose", input.composeId, true);
+				azureDevopsCleanup = await getAzureDevopsHookStatus(
+					"compose",
+					input.composeId,
+				);
+			}
 			const result = await db
 				.delete(composeTable)
 				.where(eq(composeTable.composeId, input.composeId))
@@ -825,7 +834,6 @@ export const composeRouter = createTRPCRouter({
 				azureDevopsProjectName: null,
 				azureDevopsRepositoryName: null,
 				azureDevopsBranch: null,
-				refreshToken: nanoid(),
 				giteaRepository: null,
 				giteaOwner: null,
 				giteaBranch: null,

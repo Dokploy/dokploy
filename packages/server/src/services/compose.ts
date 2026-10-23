@@ -392,8 +392,14 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-expect-error
-			errorMessage: error?.message || "Error building",
+			errorMessage:
+				error !== null &&
+				typeof error === "object" &&
+				"message" in error &&
+				typeof error.message === "string" &&
+				error.message
+					? error.message
+					: "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 		});

@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
 	records: [] as Record<string, unknown>[],
 	remote: [] as Record<string, unknown>[],
 	locked: vi.fn(),
+	transaction: vi.fn(),
 	post: vi.fn(),
 	put: vi.fn(),
 	failDelete: false,
@@ -78,7 +79,10 @@ vi.mock("@dokploy/server/db", () => {
 	return {
 		db: {
 			...tx,
-			transaction: async (callback: (tx: unknown) => unknown) => callback(tx),
+			transaction: (callback: (tx: unknown) => unknown) => {
+				state.transaction();
+				return callback(tx);
+			},
 		},
 	};
 });
@@ -164,6 +168,41 @@ beforeEach(() => {
 });
 
 describe("Azure DevOps hook lifecycle", () => {
+	describe.each(["application", "compose"] as const)("%s scope", (type) => {
+		it.each(["github", "gitlab", "bitbucket", "gitea", "git"])(
+			"skips transactions for %s services without Azure hooks",
+			async (sourceType) => {
+				state.service!.sourceType = sourceType;
+				for (const remove of [false, true]) {
+					expect(await syncAzureDevopsWebhook(type, "service", remove)).toEqual(
+						[],
+					);
+				}
+				expect(state.transaction).not.toHaveBeenCalled();
+				expect(state.locked).not.toHaveBeenCalled();
+				expect(fetch).not.toHaveBeenCalled();
+			},
+		);
+		it.each([false, true])(
+			"cleans up retained hooks after changing providers (remove=%s)",
+			async (remove) => {
+				await syncAzureDevopsWebhook(type, "service");
+				state.service!.sourceType = "github";
+				state.service!.azureDevopsId = null;
+				vi.clearAllMocks();
+				expect(await syncAzureDevopsWebhook(type, "service", remove)).toEqual(
+					[],
+				);
+				expect(state.transaction).toHaveBeenCalledOnce();
+				expect(state.locked).toHaveBeenCalledOnce();
+				expect(state.remote).toHaveLength(0);
+				expect(fetch).toHaveBeenCalledWith(
+					expect.any(URL),
+					expect.objectContaining({ method: "DELETE" }),
+				);
+			},
+		);
+	});
 	it("does not require hook permissions when first saved in manual mode", async () => {
 		state.service!.autoDeploy = false;
 		expect(

@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
 	updateCompose: vi.fn(),
 	access: vi.fn(),
 	permission: vi.fn(),
+	rotateToken: vi.fn(),
+	hookStatus: vi.fn(),
+	syncHook: vi.fn(),
 }));
 const current = vi.hoisted(() => ({
 	sourceType: "azureDevops",
@@ -28,6 +31,7 @@ vi.mock("@dokploy/server", () => ({
 	updateCompose: mocks.updateCompose,
 	findApplicationById: async () => current,
 	findComposeById: async () => current,
+	findPreviewDeploymentsByApplicationId: async () => [],
 }));
 vi.mock("@dokploy/server/index", () => ({
 	IS_CLOUD: true,
@@ -36,12 +40,28 @@ vi.mock("@dokploy/server/index", () => ({
 	updateCompose: mocks.updateCompose,
 	findApplicationById: async () => current,
 	findComposeById: async () => current,
+	findPreviewDeploymentsByApplicationId: async () => [],
 }));
 vi.mock("@dokploy/server/services/azure-devops", () => ({
 	assertAzureDevopsSourceAccess: mocks.access,
 }));
 vi.mock("@dokploy/server/services/permission", () => ({
 	checkServicePermissionAndAccess: mocks.permission,
+	checkServiceAccess: mocks.permission,
+}));
+vi.mock("@dokploy/server/services/azure-devops-hooks", () => ({
+	getAzureDevopsHookStatus: mocks.hookStatus,
+	syncAzureDevopsWebhook: mocks.syncHook,
+}));
+vi.mock("@dokploy/server/db", () => ({
+	db: {
+		update: () => ({
+			set: mocks.rotateToken.mockReturnValue({ where: async () => undefined }),
+		}),
+		delete: () => ({
+			where: () => ({ returning: async () => [current] }),
+		}),
+	},
 }));
 vi.mock("@dokploy/server/lib/auth", () => ({ validateRequest: vi.fn() }));
 vi.mock("@/server/api/utils/audit", () => ({ audit: vi.fn() }));
@@ -70,12 +90,69 @@ const source = {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	current.sourceType = "azureDevops";
+	mocks.hookStatus.mockResolvedValue([]);
+	mocks.syncHook.mockResolvedValue([]);
 	mocks.updateApp.mockResolvedValue({ applicationId: "app" });
 	mocks.updateCompose.mockResolvedValue({ composeId: "compose" });
 	mocks.access.mockResolvedValue(undefined);
 });
 
 describe("Azure DevOps Application and Compose source mutations", () => {
+	describe.each([
+		{
+			type: "application",
+			disconnect: () => app.disconnectGitProvider({ applicationId: "app" }),
+			remove: () => app.delete({ applicationId: "app" }),
+			update: mocks.updateApp,
+			id: "app",
+		},
+		{
+			type: "compose",
+			disconnect: () => compose.disconnectGitProvider({ composeId: "compose" }),
+			remove: () =>
+				compose.delete({ composeId: "compose", deleteVolumes: false }),
+			update: mocks.updateCompose,
+			id: "compose",
+		},
+	])("$type cleanup scope", ({ type, disconnect, remove, update, id }) => {
+		it.each(["azureDevops", "github", "gitlab", "bitbucket", "gitea", "git"])(
+			"leaves token rotation to the service when disconnecting %s",
+			async (sourceType) => {
+				current.sourceType = sourceType;
+				await disconnect();
+				expect(update).toHaveBeenCalledOnce();
+				expect(update.mock.calls[0]?.[1]).not.toHaveProperty("refreshToken");
+			},
+		);
+		it.each(["github", "gitlab", "bitbucket", "gitea", "git"])(
+			"deletes a %s service without rotating its token or syncing Azure hooks",
+			async (sourceType) => {
+				current.sourceType = sourceType;
+				expect(await remove()).toMatchObject({ azureDevopsCleanup: [] });
+				expect(mocks.rotateToken).not.toHaveBeenCalled();
+				expect(mocks.syncHook).not.toHaveBeenCalled();
+			},
+		);
+		it.each(["azureDevops", "github"])(
+			"rotates the token and reports retained cleanup records when deleting %s",
+			async (sourceType) => {
+				current.sourceType = sourceType;
+				const records = [{ id: "hook", status: "cleanupPending" }];
+				mocks.hookStatus.mockResolvedValue(records);
+				expect(await remove()).toMatchObject({ azureDevopsCleanup: records });
+				expect(mocks.rotateToken).toHaveBeenCalledExactlyOnceWith({
+					refreshToken: expect.any(String),
+				});
+				expect(mocks.syncHook).toHaveBeenCalledExactlyOnceWith(type, id, true);
+			},
+		);
+		it("cleans up an Azure source even without a local hook record", async () => {
+			expect(await remove()).toMatchObject({ azureDevopsCleanup: [] });
+			expect(mocks.rotateToken).toHaveBeenCalledOnce();
+			expect(mocks.syncHook).toHaveBeenCalledExactlyOnceWith(type, id, true);
+		});
+	});
 	it("allows automatic deployment updates with an unset watch-path list", async () => {
 		await app.update({ applicationId: "app", autoDeploy: false });
 		await compose.update({ composeId: "compose", autoDeploy: true });

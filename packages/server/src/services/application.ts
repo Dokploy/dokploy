@@ -314,8 +314,14 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-expect-error
-			errorMessage: error?.message || "Error building",
+			errorMessage:
+				error !== null &&
+				typeof error === "object" &&
+				"message" in error &&
+				typeof error.message === "string" &&
+				error.message
+					? error.message
+					: "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 		});
@@ -437,7 +443,7 @@ export const deployPreviewApplication = async ({
 		owner: application?.owner || "",
 		repository: application?.repository || "",
 		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId, 10),
 		githubId: application?.githubId || "",
 	};
 	try {
@@ -460,7 +466,10 @@ export const deployPreviewApplication = async ({
 				});
 			}
 
-			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+			issueParams.comment_id = Number.parseInt(
+				result?.pullRequestCommentId,
+				10,
+			);
 		}
 		const buildingComment = getIssueComment(
 			application.name,
@@ -552,7 +561,7 @@ export const rebuildPreviewApplication = async ({
 		owner: application?.owner || "",
 		repository: application?.repository || "",
 		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId, 10),
 		githubId: application?.githubId || "",
 	};
 
@@ -576,7 +585,10 @@ export const rebuildPreviewApplication = async ({
 				});
 			}
 
-			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+			issueParams.comment_id = Number.parseInt(
+				result?.pullRequestCommentId,
+				10,
+			);
 		}
 
 		const buildingComment = getIssueComment(
@@ -671,7 +683,7 @@ export const getApplicationStats = async (appName: string) => {
 	});
 
 	const container = containers[0];
-	if (!container || container?.State !== "running") {
+	if (container?.State !== "running") {
 		return null;
 	}
 
