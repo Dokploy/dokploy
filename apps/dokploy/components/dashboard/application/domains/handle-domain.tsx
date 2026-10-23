@@ -88,7 +88,11 @@ export const domain = z
 			});
 		}
 
-		if (input.certificateType === "custom" && !input.customCertResolver) {
+		if (
+			input.https &&
+			input.certificateType === "custom" &&
+			!input.customCertResolver
+		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["customCertResolver"],
@@ -245,6 +249,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const host = form.watch("host");
 	const isTraefikMeDomain = host?.includes("sslip.io") || false;
 
+	const httpsDefaults = {
+		https: domainDefaults?.https ?? false,
+		certificateType: domainDefaults?.https
+			? domainDefaults.certificateType
+			: undefined,
+	};
+
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -273,16 +284,27 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				port: undefined,
 				useCustomEntrypoint: false,
 				customEntrypoint: undefined,
-				https: domainDefaults?.https ?? false,
-				certificateType: domainDefaults?.https
-					? domainDefaults.certificateType
-					: undefined,
+				...httpsDefaults,
 				customCertResolver: undefined,
 				domainType: type,
 				middlewares: [],
 			});
 		}
-	}, [form, data, isPending, domainId, domainDefaults]);
+	}, [form, data, isPending, domainId]);
+
+	// Defaults can arrive after the user started filling the form, so only
+	// the HTTPS fields are set, and only while the user hasn't touched them.
+	useEffect(() => {
+		if (domainId || !domainDefaults) return;
+		if (
+			form.getFieldState("https").isDirty ||
+			form.getFieldState("certificateType").isDirty
+		) {
+			return;
+		}
+		form.setValue("https", httpsDefaults.https);
+		form.setValue("certificateType", httpsDefaults.certificateType);
+	}, [form, domainId, domainDefaults]);
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
