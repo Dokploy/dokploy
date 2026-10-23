@@ -14,6 +14,7 @@ import { z } from "zod";
 import { domain } from "../validations/domain";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { externalUpstreams } from "./external-upstream";
 import { previewDeployments } from "./preview-deployments";
 import { certificateType } from "./shared";
 
@@ -21,6 +22,7 @@ export const domainType = pgEnum("domainType", [
 	"compose",
 	"application",
 	"preview",
+	"externalUpstream",
 ]);
 
 export const domains = pgTable("domain", {
@@ -47,6 +49,10 @@ export const domains = pgTable("domain", {
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
 	),
+	externalUpstreamId: text("externalUpstreamId").references(
+		() => externalUpstreams.externalUpstreamId,
+		{ onDelete: "cascade" },
+	),
 	previewDeploymentId: text("previewDeploymentId").references(
 		(): AnyPgColumn => previewDeployments.previewDeploymentId,
 		{ onDelete: "cascade" },
@@ -64,6 +70,10 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 		fields: [domains.applicationId],
 		references: [applications.applicationId],
 	}),
+	externalUpstream: one(externalUpstreams, {
+		fields: [domains.externalUpstreamId],
+		references: [externalUpstreams.externalUpstreamId],
+	}),
 	compose: one(compose, {
 		fields: [domains.composeId],
 		references: [compose.composeId],
@@ -77,27 +87,95 @@ export const domainsRelations = relations(domains, ({ one }) => ({
 const createSchema = createInsertSchema(domains, {
 	...domain.shape,
 	// Override pgEnum so Zod 4 infers only string literals, not numeric enum index
-	domainType: z.enum(["compose", "application", "preview"]).optional(),
+	domainType: z
+		.enum(["compose", "application", "preview", "externalUpstream"])
+		.optional(),
 });
 
-export const apiCreateDomain = createSchema.pick({
-	host: true,
-	path: true,
-	port: true,
-	customEntrypoint: true,
-	https: true,
-	applicationId: true,
-	certificateType: true,
-	customCertResolver: true,
-	composeId: true,
-	serviceName: true,
-	domainType: true,
-	previewDeploymentId: true,
-	internalPath: true,
-	stripPath: true,
-	middlewares: true,
-	forwardAuthEnabled: true,
-});
+export const apiCreateDomain = createSchema
+	.pick({
+		host: true,
+		path: true,
+		port: true,
+		customEntrypoint: true,
+		https: true,
+		applicationId: true,
+		externalUpstreamId: true,
+		certificateType: true,
+		customCertResolver: true,
+		composeId: true,
+		serviceName: true,
+		domainType: true,
+		previewDeploymentId: true,
+		internalPath: true,
+		stripPath: true,
+		middlewares: true,
+		forwardAuthEnabled: true,
+	})
+	.superRefine((input, ctx) => {
+		const targetFields = [
+			{ type: "application", field: "applicationId", id: input.applicationId },
+			{ type: "compose", field: "composeId", id: input.composeId },
+			{
+				type: "preview",
+				field: "previewDeploymentId",
+				id: input.previewDeploymentId,
+			},
+			{
+				type: "externalUpstream",
+				field: "externalUpstreamId",
+				id: input.externalUpstreamId,
+			},
+		] as const;
+		const selectedTargets = targetFields.filter(({ id }) => Boolean(id));
+
+		if (selectedTargets.length > 1) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["domainType"],
+				message: "A domain can only be associated with one service",
+			});
+		}
+
+		const selectedTarget = selectedTargets[0];
+		if (
+			selectedTarget &&
+			input.domainType &&
+			input.domainType !== selectedTarget.type
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["domainType"],
+				message: "The domain type must match its associated service",
+			});
+		}
+
+		if (
+			selectedTarget &&
+			!input.domainType &&
+			selectedTarget.type !== "application"
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["domainType"],
+				message: "The domain type is required for this service",
+			});
+		}
+
+		if (
+			input.domainType &&
+			!selectedTargets.some(({ type }) => type === input.domainType)
+		) {
+			const targetField = targetFields.find(
+				({ type }) => type === input.domainType,
+			)?.field;
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: [targetField || "domainType"],
+				message: "The domain type requires a matching service ID",
+			});
+		}
+	});
 
 export const apiFindDomain = z.object({
 	domainId: z.string().min(1),
@@ -105,6 +183,10 @@ export const apiFindDomain = z.object({
 
 export const apiFindDomainByApplication = createSchema.pick({
 	applicationId: true,
+});
+
+export const apiFindDomainByExternalUpstream = createSchema.pick({
+	externalUpstreamId: true,
 });
 
 export const apiCreateTraefikMeDomain = createSchema.pick({}).extend({

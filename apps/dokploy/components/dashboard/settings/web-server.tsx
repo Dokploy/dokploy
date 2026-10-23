@@ -13,6 +13,7 @@ import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
+import { ExternalUpstreamSettings } from "./web-server/external-upstream-settings";
 import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
@@ -49,6 +50,8 @@ export const WebServer = () => {
 
 							<UpdateServer />
 						</div>
+
+						<ExternalUpstreamSettings />
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
 							<span className="text-sm text-muted-foreground flex items-center gap-1.5">

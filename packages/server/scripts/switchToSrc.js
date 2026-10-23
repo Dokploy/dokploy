@@ -12,23 +12,5 @@ const pkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
 
 pkg.main = "./src/index.ts";
 
-// Modificar los exports
-pkg.exports = {
-	".": "./src/index.ts",
-	"./db": {
-		import: "./src/db/index.ts",
-		require: "./dist/db/index.cjs.js",
-	},
-	"./setup/*": {
-		import: "./src/setup/*.ts",
-		require: "./dist/setup/index.cjs.js",
-	},
-	"./constants": {
-		import: "./src/constants/index.ts",
-		require: "./dist/constants.cjs.js",
-	},
-};
-
-// Guardar los cambios en package.json
 fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
-console.log("Switched exports to use src for development");
+console.log("Switched main entry to src for development");

@@ -76,7 +76,9 @@ export const domain = z
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
-		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		domainType: z
+			.enum(["application", "compose", "preview", "externalUpstream"])
+			.optional(),
 		middlewares: z.array(z.string()).optional(),
 	})
 	.superRefine((input, ctx) => {
@@ -140,7 +142,7 @@ type Domain = z.infer<typeof domain>;
 
 interface Props {
 	id: string;
-	type: "application" | "compose";
+	type: "application" | "compose" | "externalUpstream";
 	domainId?: string;
 	children: React.ReactNode;
 }
@@ -149,6 +151,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const [isManualInput, setIsManualInput] = useState(false);
+	const isExternalUpstream = type === "externalUpstream";
 
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -160,7 +163,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		},
 	);
 
-	const { data: application } =
+	const { data: serviceData } =
 		type === "application"
 			? api.application.one.useQuery(
 					{
@@ -170,14 +173,23 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 						enabled: isOpen && !!id,
 					},
 				)
-			: api.compose.one.useQuery(
-					{
-						composeId: id,
-					},
-					{
-						enabled: isOpen && !!id,
-					},
-				);
+			: type === "compose"
+				? api.compose.one.useQuery(
+						{
+							composeId: id,
+						},
+						{
+							enabled: isOpen && !!id,
+						},
+					)
+				: api.externalUpstream.one.useQuery(
+						{
+							externalUpstreamId: id,
+						},
+						{
+							enabled: isOpen && !!id,
+						},
+					);
 
 	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
@@ -189,7 +201,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const { data: canGenerateTraefikMeDomains } =
 		api.domain.canGenerateTraefikMeDomains.useQuery(
 			{
-				serverId: application?.serverId || "",
+				serverId: serviceData?.serverId || "",
 			},
 			{
 				enabled: isOpen,
@@ -302,7 +314,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			...(data.domainType === "compose" && {
 				composeId: id,
 			}),
+			...(data.domainType === "externalUpstream" && {
+				externalUpstreamId: id,
+			}),
 			...data,
+			...(isExternalUpstream && {
+				port: undefined,
+			}),
 			customEntrypoint: data.useCustomEntrypoint ? data.customEntrypoint : null,
 		})
 			.then(async () => {
@@ -323,6 +341,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				} else if (data.domainType === "compose") {
 					await utils.domain.byComposeId.invalidate({
 						composeId: id,
+					});
+				} else if (data.domainType === "externalUpstream") {
+					await utils.domain.byExternalUpstreamId.invalidate({
+						externalUpstreamId: id,
+					});
+					await utils.externalUpstream.one.invalidate({
+						externalUpstreamId: id,
 					});
 				}
 
@@ -349,6 +374,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				{type === "compose" && <ComposeRedeployAlert className="mb-4" />}
+				{isExternalUpstream && (
+					<AlertBlock type="info" className="mb-4">
+						Protocol, host, and port come from the upstream target URL. Domain
+						settings here only control the public host/path, TLS, and middleware
+						behavior.
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form
@@ -530,7 +562,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															href="/dashboard/settings/server"
 															className="text-primary"
 														>
-															{application?.serverId
+															{serviceData?.serverId
 																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 																: "Web Server -> Server -> Update Server IP"}
 														</Link>{" "}
@@ -558,8 +590,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																isLoading={isLoadingGenerate}
 																onClick={() => {
 																	generateDomain({
-																		appName: application?.appName || "",
-																		serverId: application?.serverId || "",
+																		appName: serviceData?.appName || "",
+																		serverId: serviceData?.serverId || "",
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -594,10 +626,18 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Path</FormLabel>
+												<FormLabel>
+													{isExternalUpstream ? "Public Path" : "Path"}
+												</FormLabel>
 												<FormControl>
 													<Input placeholder={"/"} {...field} />
 												</FormControl>
+												{isExternalUpstream && (
+													<FormDescription>
+														The path exposed publicly on this domain before the
+														request is proxied to the upstream target.
+													</FormDescription>
+												)}
 												<FormMessage />
 											</FormItem>
 										);
@@ -610,10 +650,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Internal Path</FormLabel>
+												<FormLabel>
+													{isExternalUpstream
+														? "Upstream Path Prefix"
+														: "Internal Path"}
+												</FormLabel>
 												<FormDescription>
-													The path where your application expects to receive
-													requests internally (defaults to "/")
+													{isExternalUpstream
+														? 'An optional path prefix added before forwarding the request to the upstream target (defaults to "/").'
+														: 'The path where your application expects to receive requests internally (defaults to "/")'}
 												</FormDescription>
 												<FormControl>
 													<Input placeholder={"/"} {...field} />
@@ -632,8 +677,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Strip Path</FormLabel>
 												<FormDescription>
-													Remove the external path from the request before
-													forwarding to the application
+													{isExternalUpstream
+														? "Remove the public path from the request before forwarding it to the upstream target"
+														: "Remove the external path from the request before forwarding to the application"}
 												</FormDescription>
 												<FormMessage />
 											</div>
@@ -647,26 +693,28 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									)}
 								/>
 
-								<FormField
-									control={form.control}
-									name="port"
-									render={({ field }) => {
-										return (
-											<FormItem>
-												<FormLabel>Container Port</FormLabel>
-												<FormDescription>
-													The port where your application is running inside the
-													container (e.g., 3000 for Node.js, 80 for Nginx, 8080
-													for Java)
-												</FormDescription>
-												<FormControl>
-													<NumberInput placeholder={"3000"} {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										);
-									}}
-								/>
+								{!isExternalUpstream && (
+									<FormField
+										control={form.control}
+										name="port"
+										render={({ field }) => {
+											return (
+												<FormItem>
+													<FormLabel>Container Port</FormLabel>
+													<FormDescription>
+														The port where your application is running inside
+														the container (e.g., 3000 for Node.js, 80 for Nginx,
+														8080 for Java)
+													</FormDescription>
+													<FormControl>
+														<NumberInput placeholder={"3000"} {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
 
 								<FormField
 									control={form.control}

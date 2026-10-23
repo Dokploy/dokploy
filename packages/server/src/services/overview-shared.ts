@@ -123,7 +123,7 @@ export interface OverviewDomain {
 	certificateType: "letsencrypt" | "none" | "custom";
 	createdAt: string;
 	enabled: boolean;
-	domainType: "application" | "compose" | "preview" | null;
+	domainType: "application" | "compose" | "externalUpstream" | "preview" | null;
 	serviceOwnerId: string;
 	serviceOwnerType: OverviewDomainOwnerType;
 	serviceName: string;

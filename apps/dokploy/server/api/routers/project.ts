@@ -3,6 +3,7 @@ import {
 	createBackup,
 	createCompose,
 	createDomain,
+	createExternalUpstream,
 	createLibsql,
 	createMariadb,
 	createMongo,
@@ -19,6 +20,7 @@ import {
 	findApplicationById,
 	findComposeById,
 	findEnvironmentById,
+	findExternalUpstreamById,
 	findLibsqlById,
 	findMariadbById,
 	findMongoById,
@@ -37,6 +39,7 @@ import {
 	addNewProject,
 	checkPermission,
 	checkProjectAccess,
+	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { serviceColumns } from "@dokploy/server/services/project";
@@ -58,6 +61,7 @@ import {
 	applications,
 	compose,
 	environments,
+	externalUpstreams,
 	libsql,
 	mariadb,
 	mongo,
@@ -153,6 +157,12 @@ export const projectRouter = createTRPCRouter({
 									with: { server: { columns: { name: true } } },
 									where: buildServiceFilter(
 										compose.composeId,
+										accessedServices,
+									),
+								},
+								externalUpstreams: {
+									where: buildServiceFilter(
+										externalUpstreams.externalUpstreamId,
 										accessedServices,
 									),
 								},
@@ -260,6 +270,17 @@ export const projectRouter = createTRPCRouter({
 									applicationStatus: true,
 								},
 							},
+							externalUpstreams: {
+								where: buildServiceFilter(
+									externalUpstreams.externalUpstreamId,
+									accessedServices,
+								),
+								columns: {
+									externalUpstreamId: true,
+									name: true,
+									applicationStatus: true,
+								},
+							},
 							libsql: {
 								where: buildServiceFilter(libsql.libsqlId, accessedServices),
 								columns: {
@@ -347,6 +368,13 @@ export const projectRouter = createTRPCRouter({
 								applicationStatus: true,
 							},
 						},
+						externalUpstreams: {
+							columns: {
+								externalUpstreamId: true,
+								name: true,
+								applicationStatus: true,
+							},
+						},
 						mariadb: {
 							columns: {
 								mariadbId: true,
@@ -422,6 +450,17 @@ export const projectRouter = createTRPCRouter({
 							applications: {
 								columns: {
 									applicationId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							externalUpstreams: {
+								columns: {
+									externalUpstreamId: true,
 									appName: true,
 									name: true,
 									createdAt: true,
@@ -577,6 +616,10 @@ export const projectRouter = createTRPCRouter({
 							where: applyFilter(applications.applicationId),
 							columns: { applicationStatus: true },
 						},
+						externalUpstreams: {
+							where: applyFilter(externalUpstreams.externalUpstreamId),
+							columns: { applicationStatus: true },
+						},
 						compose: {
 							where: applyFilter(compose.composeId),
 							columns: { composeStatus: true },
@@ -625,6 +668,7 @@ export const projectRouter = createTRPCRouter({
 			for (const env of project.environments) {
 				environmentsCount++;
 				applicationsCount += env.applications.length;
+				applicationsCount += env.externalUpstreams.length;
 				composeCount += env.compose.length;
 				databasesCount +=
 					env.libsql.length +
@@ -635,6 +679,7 @@ export const projectRouter = createTRPCRouter({
 					env.redis.length;
 
 				for (const a of env.applications) bump(a.applicationStatus);
+				for (const s of env.externalUpstreams) bump(s.applicationStatus);
 				for (const c of env.compose) bump(c.composeStatus);
 				for (const s of env.libsql) bump(s.applicationStatus);
 				for (const s of env.mariadb) bump(s.applicationStatus);
@@ -851,6 +896,7 @@ export const projectRouter = createTRPCRouter({
 							type: z.enum([
 								"application",
 								"compose",
+								"external-upstream",
 								"libsql",
 								"mariadb",
 								"mongo",
@@ -901,6 +947,41 @@ export const projectRouter = createTRPCRouter({
 					}
 				}
 
+				const servicesToDuplicate = input.includeServices
+					? input.selectedServices || []
+					: [];
+				const externalUpstreamsToDuplicate = new Map<
+					string,
+					Awaited<ReturnType<typeof findExternalUpstreamById>>
+				>();
+
+				for (const service of servicesToDuplicate) {
+					if (
+						service.type !== "external-upstream" ||
+						externalUpstreamsToDuplicate.has(service.id)
+					) {
+						continue;
+					}
+
+					await checkServicePermissionAndAccess(ctx, service.id, {
+						service: ["read"],
+					});
+
+					const externalUpstream = await findExternalUpstreamById(service.id);
+					if (
+						externalUpstream.environment.project.organizationId !==
+						ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message:
+								"You are not authorized to duplicate this external upstream",
+						});
+					}
+
+					externalUpstreamsToDuplicate.set(service.id, externalUpstream);
+				}
+
 				const targetProject = input.duplicateInSameProject
 					? sourceEnvironment
 					: await createProject(
@@ -913,8 +994,6 @@ export const projectRouter = createTRPCRouter({
 						).then((value) => value.environment);
 
 				if (input.includeServices) {
-					const servicesToDuplicate = input.selectedServices || [];
-
 					const duplicateService = async (id: string, type: string) => {
 						switch (type) {
 							case "application": {
@@ -1037,6 +1116,41 @@ export const projectRouter = createTRPCRouter({
 										...rest,
 										composeId: newCompose.composeId,
 										domainType: "compose",
+									});
+								}
+
+								break;
+							}
+							case "external-upstream": {
+								const {
+									externalUpstreamId,
+									domains,
+									appName,
+									applicationStatus,
+									createdAt,
+									...externalUpstream
+								} = externalUpstreamsToDuplicate.get(id)!;
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
+								const newExternalUpstream = await createExternalUpstream({
+									...externalUpstream,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${externalUpstream.name} (copy)`
+										: externalUpstream.name,
+									environmentId: targetProject?.environmentId || "",
+								});
+
+								for (const domain of domains) {
+									const { domainId, ...rest } = domain;
+									await createDomain({
+										...rest,
+										externalUpstreamId: newExternalUpstream.externalUpstreamId,
+										domainType: "externalUpstream",
 									});
 								}
 
