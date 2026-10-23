@@ -23,6 +23,7 @@ const providerLabels: Record<string, string> = {
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
 	phase: "Phase",
+	oci: "OCI Vault",
 };
 
 export const ShowVaultProviders = () => {

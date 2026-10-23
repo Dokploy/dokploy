@@ -604,6 +604,25 @@ export const PhaseIcon = ({ className }: Props) => (
 	</svg>
 );
 
+export const OciIcon = ({ className }: Props) => (
+	<svg
+		viewBox="0 0 24 24"
+		fill="none"
+		xmlns="http://www.w3.org/2000/svg"
+		className={className}
+	>
+		<rect
+			x="2.5"
+			y="6.5"
+			width="19"
+			height="11"
+			rx="5.5"
+			stroke="#C74634"
+			strokeWidth="3"
+		/>
+	</svg>
+);
+
 export const vaultProviderIcons = {
 	hashicorp: HashicorpVaultIcon,
 	infisical: InfisicalIcon,
@@ -613,4 +632,5 @@ export const vaultProviderIcons = {
 	azure: AzureIcon,
 	scaleway: ScalewayIcon,
 	phase: PhaseIcon,
+	oci: OciIcon,
 } as const;

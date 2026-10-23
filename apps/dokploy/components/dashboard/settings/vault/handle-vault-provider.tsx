@@ -34,6 +34,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
 const providerLabels = {
@@ -45,6 +46,7 @@ const providerLabels = {
 	azure: "Azure Key Vault",
 	scaleway: "Scaleway Secret Manager",
 	phase: "Phase",
+	oci: "OCI Vault",
 } as const;
 
 type ProviderType = keyof typeof providerLabels;
@@ -67,6 +69,7 @@ const VaultProviderSchema = z
 			"azure",
 			"scaleway",
 			"phase",
+			"oci",
 		]),
 		url: z.string(),
 		token: z.string(),
@@ -99,6 +102,14 @@ const VaultProviderSchema = z
 		phaseEnv: z.string(),
 		phasePath: z.string(),
 		phaseApiUrl: z.string(),
+		ociRegion: z.string(),
+		ociTenancyId: z.string(),
+		ociUserId: z.string(),
+		ociFingerprint: z.string(),
+		ociPrivateKey: z.string(),
+		ociPassphrase: z.string(),
+		ociVaultId: z.string(),
+		ociCompartmentId: z.string(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -194,6 +205,34 @@ const VaultProviderSchema = z
 				path: ["phaseApiUrl"],
 			});
 		}
+		if (data.providerType === "oci") {
+			const ocidPrefixes = [
+				["ociTenancyId", ["ocid1.tenancy."]],
+				["ociUserId", ["ocid1.user."]],
+				["ociVaultId", ["ocid1.vault."]],
+				["ociCompartmentId", ["ocid1.compartment.", "ocid1.tenancy."]],
+			] as const;
+			for (const [field, prefixes] of ocidPrefixes) {
+				const value = data[field].trim();
+				if (value && !prefixes.some((prefix) => value.startsWith(prefix))) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: `Must be an OCID starting with ${prefixes.join(" or ")}`,
+						path: [field],
+					});
+				}
+			}
+			if (
+				data.ociFingerprint &&
+				!/^([0-9a-f]{2}:){15}[0-9a-f]{2}$/i.test(data.ociFingerprint.trim())
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Enter the API key fingerprint (e.g. 12:34:...:ef)",
+					path: ["ociFingerprint"],
+				});
+			}
+		}
 
 		const required: Partial<
 			Record<ProviderType, [keyof typeof data, string][]>
@@ -236,6 +275,15 @@ const VaultProviderSchema = z
 				["phaseToken", "Service Account REST API token is required"],
 				["phaseAppId", "App ID is required"],
 				["phaseEnv", "Environment is required"],
+			],
+			oci: [
+				["ociRegion", "Region is required"],
+				["ociTenancyId", "Tenancy OCID is required"],
+				["ociUserId", "User OCID is required"],
+				["ociFingerprint", "Fingerprint is required"],
+				["ociPrivateKey", "Private key is required"],
+				["ociVaultId", "Vault OCID is required"],
+				["ociCompartmentId", "Compartment OCID is required"],
 			],
 		};
 
@@ -303,6 +351,14 @@ const defaultValues: VaultProviderForm = {
 	phaseEnv: "",
 	phasePath: "/",
 	phaseApiUrl: "https://api.phase.dev",
+	ociRegion: "",
+	ociTenancyId: "",
+	ociUserId: "",
+	ociFingerprint: "",
+	ociPrivateKey: "",
+	ociPassphrase: "",
+	ociVaultId: "",
+	ociCompartmentId: "",
 	assignments: [],
 };
 
@@ -374,6 +430,18 @@ const buildConfig = (data: VaultProviderForm) => {
 				env: data.phaseEnv,
 				path: data.phasePath || "/",
 				apiUrl: data.phaseApiUrl || "https://api.phase.dev",
+			};
+		case "oci":
+			return {
+				providerType: "oci" as const,
+				region: data.ociRegion,
+				tenancyId: data.ociTenancyId,
+				userId: data.ociUserId,
+				fingerprint: data.ociFingerprint,
+				privateKey: data.ociPrivateKey,
+				passphrase: data.ociPassphrase || undefined,
+				vaultId: data.ociVaultId,
+				compartmentId: data.ociCompartmentId,
 			};
 	}
 };
@@ -506,6 +574,16 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 					phaseEnv: provider.config.env,
 					phasePath: provider.config.path,
 					phaseApiUrl: provider.config.apiUrl,
+				}),
+				...(provider.config.providerType === "oci" && {
+					ociRegion: provider.config.region,
+					ociTenancyId: provider.config.tenancyId,
+					ociUserId: provider.config.userId,
+					ociFingerprint: provider.config.fingerprint,
+					ociPrivateKey: provider.config.privateKey,
+					ociPassphrase: provider.config.passphrase ?? "",
+					ociVaultId: provider.config.vaultId,
+					ociCompartmentId: provider.config.compartmentId,
 				}),
 			});
 		} else if (!vaultProviderId) {
@@ -1191,6 +1269,140 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 								<FormDescription>
 									Reference format:{" "}
 									<code>{"${{vault.<name>.SECRET_KEY}}"}</code>
+								</FormDescription>
+							</>
+						)}
+
+						{providerType === "oci" && (
+							<>
+								<div className="grid grid-cols-2 gap-4">
+									<FormField
+										control={form.control}
+										name="ociRegion"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Region</FormLabel>
+												<FormControl>
+													<Input placeholder="eu-madrid-1" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="ociFingerprint"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Fingerprint</FormLabel>
+												<FormControl>
+													<Input placeholder="12:34:...:ef" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<FormField
+									control={form.control}
+									name="ociTenancyId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Tenancy OCID</FormLabel>
+											<FormControl>
+												<Input placeholder="ocid1.tenancy.oc1..." {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="ociUserId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>User OCID</FormLabel>
+											<FormControl>
+												<Input placeholder="ocid1.user.oc1..." {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="ociPrivateKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Private Key</FormLabel>
+											<FormControl>
+												<Textarea
+													className="font-mono text-xs"
+													placeholder="-----BEGIN PRIVATE KEY-----"
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>
+												The PEM private key of an API key added to the user
+												above
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="ociPassphrase"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Passphrase (optional)</FormLabel>
+											<FormControl>
+												<Input type="password" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="ociVaultId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Vault OCID</FormLabel>
+											<FormControl>
+												<Input placeholder="ocid1.vault.oc1..." {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="ociCompartmentId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Compartment OCID</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="ocid1.compartment.oc1..."
+													{...field}
+												/>
+											</FormControl>
+											<FormDescription>
+												The compartment that holds the secrets, used to list
+												them. Use the tenancy OCID for the root compartment.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormDescription>
+									Reference format:{" "}
+									<code>{"${{vault.<name>.secret-name}}"}</code> or{" "}
+									<code>{"${{vault.<name>.secret-name:field}}"}</code> for JSON
+									secrets. Resolution requires <code>read secret-bundles</code>.
+									Testing and discovery require <code>inspect secrets</code>.
+									The secret's master encryption key must be enabled.
 								</FormDescription>
 							</>
 						)}
