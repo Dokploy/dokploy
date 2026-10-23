@@ -46,7 +46,9 @@ describe("getContainerLogs", () => {
 		const result = await getContainerLogs("my-app", 10, "all", "match");
 		expect(result).toBe("match line 1\nmatch line 2\n");
 		expect(executedLogCommand).toContain("grep -iF 'match' | tail -n 10");
-		expect(executedLogCommand).not.toContain("docker container logs --timestamps --tail");
+		expect(executedLogCommand).not.toContain(
+			"docker container logs --timestamps --tail",
+		);
 
 		execAsyncSpy.mockRestore();
 	});
