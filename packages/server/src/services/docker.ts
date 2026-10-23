@@ -830,6 +830,61 @@ export const readContainerFile = async (
 	};
 };
 
+export const readContainerFileTail = async (
+	containerId: string,
+	filePath: string,
+	lines: number = 200,
+	maxBytes: number = 65536,
+	serverId?: string,
+) => {
+	const boundedLines = Math.min(
+		Math.max(1, Math.floor(Number(lines) || 200)),
+		5000,
+	);
+	const boundedMaxBytes = Math.min(
+		Math.max(1024, Math.floor(Number(maxBytes) || 65536)),
+		524288,
+	);
+
+	const command = `docker exec ${quote([containerId])} tail -n ${boundedLines} ${quote([filePath])} | tail -c ${boundedMaxBytes + 1} | base64 | tr -d '\\n'`;
+	const { stdout, stderr } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (stderr && !stdout) {
+		if (stderr.includes("executable file not found")) {
+			throw new Error(NO_SHELL_UTILITIES_ERROR);
+		}
+		throw new Error(stderr);
+	}
+
+	const buffer = Buffer.from(stdout.trim(), "base64");
+	const truncated = buffer.byteLength > boundedMaxBytes;
+	let finalBuffer = truncated
+		? buffer.subarray(buffer.byteLength - boundedMaxBytes)
+		: buffer;
+
+	if (truncated) {
+		// Skip leading UTF-8 continuation bytes (10xxxxxx, up to 3 bytes) when byte-offset truncation splits a multi-byte character
+		let startIndex = 0;
+		while (
+			startIndex < finalBuffer.byteLength &&
+			startIndex < 3 &&
+			(finalBuffer[startIndex] & 0b11000000) === 0b10000000
+		) {
+			startIndex++;
+		}
+		if (startIndex > 0) {
+			finalBuffer = finalBuffer.subarray(startIndex);
+		}
+	}
+
+	return {
+		content: finalBuffer.toString("utf-8"),
+		truncated,
+	};
+};
+
 export const writeContainerFile = async (
 	containerId: string,
 	filePath: string,
