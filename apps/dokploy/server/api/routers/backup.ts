@@ -35,7 +35,8 @@ import {
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
-	getS3Credentials,
+	getRcloneCredentials,
+	getRcloneDestination,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
 import {
@@ -508,8 +509,8 @@ export const backupRouter = createTRPCRouter({
 						});
 					}
 				}
-				const rcloneFlags = getS3Credentials(destination);
-				const bucketPath = `:s3:${destination.bucket}`;
+				const rcloneFlags = getRcloneCredentials(destination);
+				const bucketPath = getRcloneDestination(destination);
 
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =

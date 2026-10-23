@@ -13,6 +13,17 @@ import { runPostgresBackup } from "./postgres";
 import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
 
+export type RcloneDestinationConfig = Pick<
+	Destination,
+	| "provider"
+	| "accessKey"
+	| "secretAccessKey"
+	| "bucket"
+	| "region"
+	| "endpoint"
+	| "additionalFlags"
+>;
+
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
 		schedule,
@@ -68,7 +79,7 @@ export const normalizeS3Path = (prefix: string) => {
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
-export const getS3Credentials = (destination: Destination) => {
+export const getS3Credentials = (destination: RcloneDestinationConfig) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
 	const rcloneFlags = [
@@ -89,6 +100,117 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	return rcloneFlags;
+};
+
+export type RcloneBackend = "s3" | "sftp" | "ftp" | "webdav";
+
+export const getRcloneBackend = (provider?: string | null): RcloneBackend => {
+	switch ((provider || "").toLowerCase().trim()) {
+		case "sftp":
+			return "sftp";
+		case "ftp":
+			return "ftp";
+		case "webdav":
+			return "webdav";
+		default:
+			return "s3";
+	}
+};
+
+const getObscuredPassFlag = (backend: RcloneBackend, password: string) => {
+	// rclone `pass` flags only accept an obscured value; the password is
+	// obscured on the machine that runs rclone, never stored in the command.
+	return `--${backend}-pass=$(rclone obscure ${quote([password])})`;
+};
+
+export const getSftpCredentials = (destination: RcloneDestinationConfig) => {
+	const { accessKey, secretAccessKey, region, endpoint } = destination;
+	const rcloneFlags = [
+		`--sftp-host=${quote([endpoint])}`,
+		`--sftp-user=${quote([accessKey])}`,
+	];
+
+	if (region) {
+		rcloneFlags.push(`--sftp-port=${quote([region])}`);
+	}
+	if (secretAccessKey) {
+		rcloneFlags.push(getObscuredPassFlag("sftp", secretAccessKey));
+	}
+
+	return rcloneFlags;
+};
+
+export const getFtpCredentials = (destination: RcloneDestinationConfig) => {
+	const { accessKey, secretAccessKey, region, endpoint } = destination;
+	const rcloneFlags = [
+		`--ftp-host=${quote([endpoint])}`,
+		`--ftp-user=${quote([accessKey])}`,
+	];
+
+	if (region) {
+		rcloneFlags.push(`--ftp-port=${quote([region])}`);
+	}
+	if (secretAccessKey) {
+		rcloneFlags.push(getObscuredPassFlag("ftp", secretAccessKey));
+	}
+
+	return rcloneFlags;
+};
+
+export const getWebdavCredentials = (destination: RcloneDestinationConfig) => {
+	const { accessKey, secretAccessKey, endpoint } = destination;
+	const rcloneFlags = [
+		`--webdav-url=${quote([endpoint])}`,
+		`--webdav-user=${quote([accessKey])}`,
+	];
+
+	if (secretAccessKey) {
+		rcloneFlags.push(getObscuredPassFlag("webdav", secretAccessKey));
+	}
+
+	return rcloneFlags;
+};
+
+export const getRcloneCredentials = (destination: RcloneDestinationConfig) => {
+	const backend = getRcloneBackend(destination.provider);
+	const rcloneFlags = (() => {
+		switch (backend) {
+			case "sftp":
+				return getSftpCredentials(destination);
+			case "ftp":
+				return getFtpCredentials(destination);
+			case "webdav":
+				return getWebdavCredentials(destination);
+			default:
+				return getS3Credentials(destination);
+		}
+	})();
+
+	if (backend !== "s3" && destination.additionalFlags?.length) {
+		rcloneFlags.push(...destination.additionalFlags);
+	}
+
+	return rcloneFlags;
+};
+
+export const getRcloneDestination = (
+	destination: RcloneDestinationConfig,
+	relativePath = "",
+) => {
+	const backend = getRcloneBackend(destination.provider);
+
+	if (backend === "s3") {
+		return relativePath
+			? `:s3:${destination.bucket}/${relativePath}`
+			: `:s3:${destination.bucket}`;
+	}
+
+	const normalizedBucket = normalizeS3Path(destination.bucket).replace(
+		/\/$/,
+		"",
+	);
+	const normalizedPath = `/${normalizedBucket}${relativePath ? `/${relativePath}` : ""}`;
+	return `:${backend}:${normalizedPath}`;
 };
 
 // User-controlled values (database name, user, password) are passed to the
