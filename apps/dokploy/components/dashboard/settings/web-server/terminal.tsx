@@ -6,6 +6,8 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
+import { attachSelectionCopy } from "@/lib/terminal-clipboard";
 import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
 import { getLocalServerData } from "./local-server-config";
 
@@ -77,12 +79,20 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		term.onResize(({ cols, rows }) => sendResize(cols, rows));
 
 		const resizeObserver = new ResizeObserver(() => addonFit.fit());
+		let detachSelectionCopy: (() => void) | null = null;
 		if (termRef.current) {
 			resizeObserver.observe(termRef.current);
+			detachSelectionCopy = attachSelectionCopy(term, termRef.current, () =>
+				toast.success("Copied to clipboard", {
+					id: `terminal-copy-${id}`,
+					duration: 2000,
+				}),
+			);
 		}
 
 		return () => {
 			resizeObserver.disconnect();
+			detachSelectionCopy?.();
 			ws.readyState === WebSocket.OPEN && ws.close();
 		};
 	}, [id, serverId]);
