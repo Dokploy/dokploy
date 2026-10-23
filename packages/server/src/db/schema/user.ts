@@ -232,14 +232,19 @@ export const apiReadStatsLogs = z.object({
 		.optional(),
 });
 
-export const apiUpdateUser = createSchema.partial().extend({
-	email: z
-		.string()
-		.email("Please enter a valid email address")
-		.min(1, "Email is required")
-		.optional(),
-	password: z.string().optional(),
-	currentPassword: z.string().optional(),
-	firstName: z.string().optional(),
-	lastName: z.string().optional(),
-});
+// twoFactorEnabled only changes through better-auth's enroll/disable flow,
+// where the organization 2FA requirement is enforced.
+export const apiUpdateUser = createSchema
+	.omit({ twoFactorEnabled: true })
+	.partial()
+	.extend({
+		email: z
+			.string()
+			.email("Please enter a valid email address")
+			.min(1, "Email is required")
+			.optional(),
+		password: z.string().optional(),
+		currentPassword: z.string().optional(),
+		firstName: z.string().optional(),
+		lastName: z.string().optional(),
+	});

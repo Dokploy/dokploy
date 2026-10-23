@@ -507,12 +507,16 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 	if (IS_CLOUD) {
 		try {
-			const { user } = await validateRequest(context.req);
+			const { user } = await validateRequest(context.req, {
+				allowPending: true,
+			});
 			if (user) {
 				return {
 					redirect: {
 						permanent: false,
-						destination: "/dashboard/home",
+						destination: user.twoFactorSetupRequired
+							? "/two-factor-setup"
+							: "/dashboard/home",
 					},
 				};
 			}
@@ -537,13 +541,15 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
-	const { user } = await validateRequest(context.req);
+	const { user } = await validateRequest(context.req, { allowPending: true });
 
 	if (user) {
 		return {
 			redirect: {
 				permanent: false,
-				destination: "/dashboard/home",
+				destination: user.twoFactorSetupRequired
+					? "/two-factor-setup"
+					: "/dashboard/home",
 			},
 		};
 	}

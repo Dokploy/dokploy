@@ -67,6 +67,7 @@ export const organization = pgTable("organization", {
 	createdAt: timestamp("created_at").notNull(),
 	metadata: text("metadata"),
 	defaultRole: text("default_role"),
+	require2FA: boolean("require_2fa").notNull().default(false),
 	ownerId: text("owner_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
@@ -134,6 +135,7 @@ export const member = pgTable("member", {
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	isDefault: boolean("is_default").notNull().default(false),
+	require2FA: boolean("require_2fa").notNull().default(false),
 	// Permissions
 	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
 	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
@@ -200,6 +202,7 @@ export const invitation = pgTable("invitation", {
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
 	teamId: text("team_id"),
+	require2FA: boolean("require_2fa").notNull().default(false),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
