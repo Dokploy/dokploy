@@ -241,7 +241,7 @@ ${setupMainDirectory()}
 ${setupDirectories()}
 
 echo -e "8. Setting up Traefik"
-${createTraefikConfig()}
+${createServerTraefikConfig()}
 
 echo -e "9. Setting up Middlewares"
 ${createDefaultMiddlewares()}
@@ -463,10 +463,14 @@ export const setupSwarm = () => `
 		fi
 	`;
 
-const setupNetwork = () => `
+const isSwarmWorker = `[ "$($SUDO_CMD docker info --format '{{.Swarm.LocalNodeState}} {{.Swarm.ControlAvailable}}' 2>/dev/null)" = "active false" ]`;
+
+export const setupNetwork = () => `
 	# Check if the dokploy-network already exists
 	if $SUDO_CMD docker network ls | grep -q 'dokploy-network'; then
 		echo "Network dokploy-network already exists ✅"
+	elif ${isSwarmWorker}; then
+		echo "Swarm worker: dokploy-network is managed by the Swarm manager ✅"
 	else
 		# Create the dokploy-network if it doesn't exist
 		if $SUDO_CMD docker network create --driver overlay --attachable dokploy-network; then
@@ -662,21 +666,56 @@ else
 fi
 `;
 
-const createTraefikConfig = () => {
-	const config = getDefaultServerTraefikConfig();
+const removeSwarmProviderAwk = `
+/^providers:[[:space:]]*(#.*)?$/ { inProviders = 1; childIndent = -1; print; next }
+inProviders && /^[^[:space:]#]/ { inProviders = 0 }
+skipping {
+	if ($0 ~ /^[[:space:]]*$/) { blanks = blanks $0 "\\n"; next }
+	match($0, /^[[:space:]]*/)
+	if (RLENGTH > swarmIndent) { blanks = ""; next }
+	skipping = 0; printf "%s", blanks; blanks = ""
+}
+inProviders && /^[[:space:]]+[^[:space:]#]/ {
+	match($0, /^[[:space:]]*/)
+	if (childIndent < 0) childIndent = RLENGTH
+	if (RLENGTH == childIndent && $0 ~ /^[[:space:]]*swarm:([[:space:]]|$)/) { swarmIndent = RLENGTH; skipping = 1; removed = 1; next }
+}
+{ print }
+END { printf "%s", blanks; exit !removed }
+`;
 
-	const command = `
-	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
-		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
+export const createServerTraefikConfig = (
+	traefikDir = "/etc/dokploy/traefik",
+) => {
+	const config = getDefaultServerTraefikConfig();
+	const workerConfig = getDefaultServerTraefikConfig(false);
+	const configPath = `${traefikDir}/traefik.yml`;
+
+	return `
+	if [ -f "${traefikDir}/dynamic/acme.json" ]; then
+		chmod 600 "${traefikDir}/dynamic/acme.json"
 	fi
-	if [ -f "/etc/dokploy/traefik/traefik.yml" ]; then
+	if [ -f "${configPath}" ]; then
 		echo "Traefik config already exists ✅"
+		if ${isSwarmWorker}; then
+			if awk '${removeSwarmProviderAwk}' "${configPath}" > "${configPath}.tmp"; then
+				cp "${configPath}" "${configPath}.bak"
+				# Write in place: the file is bind-mounted, a new inode would not reach the container.
+				cat "${configPath}.tmp" > "${configPath}"
+				echo "Removed Swarm provider from Traefik config (Swarm worker), backup at ${configPath}.bak ✅"
+				if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
+					$SUDO_CMD docker restart dokploy-traefik > /dev/null
+					echo "Traefik restarted ✅"
+				fi
+			fi
+			rm -f "${configPath}.tmp"
+		fi
+	elif ${isSwarmWorker}; then
+		echo "${workerConfig}" > "${configPath}"
 	else
-		echo "${config}" > /etc/dokploy/traefik/traefik.yml
+		echo "${config}" > "${configPath}"
 	fi
 	`;
-
-	return command;
 };
 
 const createDefaultMiddlewares = () => {
