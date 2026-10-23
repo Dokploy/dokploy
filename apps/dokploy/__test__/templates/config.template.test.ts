@@ -316,7 +316,10 @@ describe("processTemplate", () => {
 				config: {
 					domains: [],
 					env: [
-						{ ADMIN_PASSWORD: "${admin_password}", USER_PASSWORD: "${user_password}" },
+						{
+							ADMIN_PASSWORD: "${admin_password}",
+							USER_PASSWORD: "${user_password}",
+						},
 						{ PORT: 3000, IS_ACTIVE: true },
 					],
 				},
