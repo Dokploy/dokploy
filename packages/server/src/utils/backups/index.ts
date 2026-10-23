@@ -17,17 +17,6 @@ import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
 
-	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
-		with: {
-			user: true,
-		},
-	});
-
-	if (!admin) {
-		return;
-	}
-
 	const webServerSettings = await getWebServerSettings();
 
 	if (webServerSettings?.enableDockerCleanup) {
@@ -39,7 +28,12 @@ export const initCronJobs = async () => {
 
 				await cleanupAll();
 
-				await sendDockerCleanupNotifications(admin.user.id);
+				const owner = await db.query.member.findFirst({
+					where: eq(member.role, "owner"),
+				});
+				if (owner) {
+					await sendDockerCleanupNotifications(owner.organizationId);
+				}
 			});
 		} catch (error) {
 			console.error("[Backup] Docker Cleanup Error", error);
@@ -49,7 +43,7 @@ export const initCronJobs = async () => {
 	const servers = await getAllServers();
 
 	for (const server of servers) {
-		const { serverId, enableDockerCleanup, name } = server;
+		const { serverId, enableDockerCleanup, name, organizationId } = server;
 		if (enableDockerCleanup) {
 			try {
 				scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
@@ -60,7 +54,7 @@ export const initCronJobs = async () => {
 					await cleanupAll(serverId);
 
 					await sendDockerCleanupNotifications(
-						admin.user.id,
+						organizationId,
 						`Docker cleanup for Server ${name} (${serverId})`,
 					);
 				});
