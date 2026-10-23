@@ -142,7 +142,9 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 											? `v${data.currentVersion}`
 											: data.image}
 									</span>
-									<span className="text-muted-foreground">Latest version</span>
+									<span className="text-muted-foreground">
+										Recommended by Dokploy
+									</span>
 									<span className="justify-self-end font-medium">
 										v{data.recommendedVersion}
 									</span>
@@ -173,10 +175,10 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 									type="warning"
 									icon={<AlertCircle className="size-4" />}
 								>
-									Traefik v{data.recommendedVersion} is available. Updating
-									recreates the Traefik container, so your applications may be
-									unreachable for a few seconds. Env variables and port mappings
-									are kept.
+									Dokploy recommends Traefik v{data.recommendedVersion}.
+									Updating is optional and recreates the Traefik container, so
+									your applications may be unreachable for a few seconds. Env
+									variables and port mappings are kept.
 								</AlertBlock>
 							)}
 							{data.versionStatus === "up-to-date" &&
@@ -185,12 +187,13 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 										type="success"
 										icon={<CheckCircle2 className="size-4" />}
 									>
-										Traefik is on the latest version.
+										Traefik is on the version recommended by Dokploy.
 									</AlertBlock>
 								)}
 							{data.versionStatus === "newer" && (
 								<AlertBlock type="info" icon={<Info className="size-4" />}>
-									Traefik is newer than the latest version. No update needed.
+									Traefik is newer than the version recommended by Dokploy. No
+									update needed.
 								</AlertBlock>
 							)}
 							{data.versionStatus === "custom" && (

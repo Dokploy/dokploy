@@ -13,6 +13,7 @@ import {
 	ensureTraefikImage,
 	initializeStandaloneTraefik,
 	initializeTraefikService,
+	restoreInterruptedTraefik,
 	TRAEFIK_VERSION,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
@@ -459,6 +460,7 @@ export const checkPortInUse = async (
 };
 
 export const writeTraefikSetup = async (input: TraefikOptions) => {
+	await restoreInterruptedTraefik(input.serverId);
 	const resourceType = await getDockerResourceType(
 		"dokploy-traefik",
 		input.serverId,

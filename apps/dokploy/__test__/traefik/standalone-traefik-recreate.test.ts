@@ -1,6 +1,7 @@
 import {
 	initializeStandaloneTraefik,
 	lastLogLine,
+	restoreInterruptedTraefik,
 	TRAEFIK_VERSION,
 } from "@dokploy/server/setup/traefik-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -377,6 +378,72 @@ describe("initializeStandaloneTraefik", () => {
 
 		expect(error).toBeNull();
 		expect(fake.log).toEqual(["create new", "start new"]);
+	});
+});
+
+describe("restoreInterruptedTraefik", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.useFakeTimers();
+		vi.spyOn(console, "log").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	it("brings back the backup when an interrupted recreate left only it", async () => {
+		const fake = fakeDocker({ oldRunning: null, staleBackup: true });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([
+			"rename stale -> dokploy-traefik",
+			"start stale",
+		]);
+		expect(fake.containers).toEqual([
+			{ id: "stale", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("leaves things alone when Traefik exists", async () => {
+		const fake = fakeDocker({ staleBackup: true });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([]);
+	});
+
+	it("does nothing when there is no backup", async () => {
+		const fake = fakeDocker({ oldRunning: null });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([]);
+	});
+
+	it("restores the backup before recreating", async () => {
+		const fake = fakeDocker({ oldRunning: null, staleBackup: true });
+
+		const error = await recreate(fake);
+
+		expect(error).toBeNull();
+		expect(fake.log).toEqual([
+			"rename stale -> dokploy-traefik",
+			"start stale",
+			"rename stale -> dokploy-traefik-previous",
+			"stop stale",
+			"create new",
+			"start new",
+			"remove stale",
+		]);
+		expect(fake.containers).toEqual([
+			{ id: "new", name: "dokploy-traefik", running: true },
+		]);
 	});
 });
 
