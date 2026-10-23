@@ -262,20 +262,21 @@ export function processEnvVars(
 
 	// Handle array of env vars
 	if (Array.isArray(template.config.env)) {
-		return template.config.env.map((env) => {
+		return template.config.env.flatMap((env) => {
 			if (typeof env === "string") {
-				return processValue(env, variables, schema);
+				return [processValue(env, variables, schema)];
 			}
-			// Si es un objeto, asumimos que es un par clave-valor
+			// Si es un objeto, procesamos todos sus pares clave-valor
 			if (typeof env === "object" && env !== null) {
-				const keys = Object.keys(env);
-				if (keys.length > 0) {
-					const key = keys[0];
-					return `${key}=${env[key as keyof typeof env]}`;
-				}
+				return Object.entries(env).map(([key, value]) => {
+					if (typeof value === "string") {
+						return `${key}=${processValue(value, variables, schema)}`;
+					}
+					return `${key}=${value}`;
+				});
 			}
 			// Para valores primitivos (boolean, number)
-			return String(env);
+			return [String(env)];
 		});
 	}
 
