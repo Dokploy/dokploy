@@ -99,6 +99,9 @@ const recreateStandaloneTraefik = async ({
 	const settings: ContainerCreateOptions = {
 		name: containerName,
 		Image: imageName,
+		Labels: {
+			"dokploy.traefik": "true",
+		},
 		NetworkingConfig: {
 			EndpointsConfig: {
 				"dokploy-network": {},
