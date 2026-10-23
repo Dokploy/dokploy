@@ -35,6 +35,7 @@ export const gitProviderRouter = createTRPCRouter({
 				bitbucket: true,
 				github: true,
 				gitea: true,
+				azureDevops: { columns: { personalAccessToken: false } },
 			},
 			orderBy: desc(gitProvider.createdAt),
 			where: inArray(gitProvider.gitProviderId, [...accessibleIds]),
@@ -42,6 +43,9 @@ export const gitProviderRouter = createTRPCRouter({
 
 		return results.map((r) => ({
 			...r,
+			azureDevops: r.azureDevops
+				? { ...r.azureDevops, isConfigured: true }
+				: null,
 			isOwner: r.userId === ctx.session.userId,
 			github: r.github
 				? {

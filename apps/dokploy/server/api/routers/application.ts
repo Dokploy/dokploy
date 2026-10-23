@@ -34,6 +34,16 @@ import {
 	writeConfigRemote,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import {
+	apiSaveAzureDevopsProvider,
+	azureDevopsRepositoryPath,
+	azureDevopsSourceFields,
+} from "@dokploy/server/db/schema";
+import { assertAzureDevopsSourceAccess } from "@dokploy/server/services/azure-devops";
+import {
+	getAzureDevopsHookStatus,
+	syncAzureDevopsWebhook,
+} from "@dokploy/server/services/azure-devops-hooks";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
@@ -278,6 +288,8 @@ export const applicationRouter = createTRPCRouter({
 						return application.gitlab?.gitProviderId;
 					case "bitbucket":
 						return application.bitbucket?.gitProviderId;
+					case "azureDevops":
+						return application.azureDevops?.gitProviderId;
 					case "gitea":
 						return application.gitea?.gitProviderId;
 					default:
@@ -359,6 +371,24 @@ export const applicationRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
+			let azureDevopsCleanup = await getAzureDevopsHookStatus(
+				"application",
+				input.applicationId,
+			);
+			if (
+				application.sourceType === "azureDevops" ||
+				azureDevopsCleanup.length
+			) {
+				await db
+					.update(applications)
+					.set({ refreshToken: nanoid() })
+					.where(eq(applications.applicationId, input.applicationId));
+				await syncAzureDevopsWebhook("application", input.applicationId, true);
+				azureDevopsCleanup = await getAzureDevopsHookStatus(
+					"application",
+					input.applicationId,
+				);
+			}
 			const result = await db
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
@@ -396,7 +426,7 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: application.applicationId,
 				resourceName: application.appName,
 			});
-			return application;
+			return { ...application, azureDevopsCleanup };
 		}),
 
 	stop: protectedProcedure
@@ -539,6 +569,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				repository: input.repository,
 				branch: input.branch,
@@ -565,6 +599,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
@@ -592,6 +630,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
 				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
@@ -612,12 +654,50 @@ export const applicationRouter = createTRPCRouter({
 			});
 			return true;
 		}),
+	saveAzureDevopsProvider: protectedProcedure
+		.input(apiSaveAzureDevopsProvider)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				service: ["create"],
+			});
+			const current = await findApplicationById(input.applicationId);
+			if (
+				current.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			)
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Service not found",
+				});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				current,
+				input.azureDevopsId,
+			);
+			const { applicationId, ...source } = input;
+			const saved = await updateApplication(applicationId, {
+				...source,
+				sourceType: "azureDevops",
+				triggerType: "push",
+			});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "application",
+				resourceId: applicationId,
+				resourceName: current.name,
+			});
+			return saved;
+		}),
 	saveGiteaProvider: protectedProcedure
 		.input(apiSaveGiteaProvider)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				giteaRepository: input.giteaRepository,
 				giteaOwner: input.giteaOwner,
@@ -643,6 +723,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				dockerImage: input.dockerImage,
 				username: input.username,
@@ -665,6 +749,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
@@ -689,6 +777,10 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findApplicationById(input.applicationId),
+			);
 			await updateApplication(input.applicationId, {
 				repository: null,
 				branch: null,
@@ -711,6 +803,12 @@ export const applicationRouter = createTRPCRouter({
 				bitbucketBuildPath: null,
 				bitbucketId: null,
 
+				azureDevopsId: null,
+				azureDevopsProjectId: null,
+				azureDevopsRepositoryId: null,
+				azureDevopsProjectName: null,
+				azureDevopsRepositoryName: null,
+				azureDevopsBranch: null,
 				giteaRepository: null,
 				giteaOwner: null,
 				giteaBranch: null,
@@ -767,6 +865,51 @@ export const applicationRouter = createTRPCRouter({
 				}
 			}
 
+			if (
+				Object.keys(input).some((key) => key.startsWith("azureDevops")) ||
+				input.sourceType !== undefined ||
+				input.autoDeploy !== undefined ||
+				input.triggerType !== undefined
+			) {
+				const currentSource = await findApplicationById(input.applicationId);
+				if (
+					currentSource.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				)
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Service not found",
+					});
+				await assertAzureDevopsSourceAccess(
+					ctx.session,
+					currentSource,
+					input.azureDevopsId,
+				);
+				if (
+					(input.sourceType ?? currentSource.sourceType) !== "azureDevops" &&
+					Object.entries(input).some(
+						([key, value]) => key.startsWith("azureDevops") && value != null,
+					)
+				)
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Select the Azure DevOps source before setting Azure DevOps fields",
+					});
+				if ((input.sourceType ?? currentSource.sourceType) === "azureDevops") {
+					azureDevopsSourceFields.parse({ ...currentSource, ...input });
+					azureDevopsRepositoryPath.parse(
+						input.azureDevopsBuildPath ??
+							currentSource.azureDevopsBuildPath ??
+							"/",
+					);
+					if (input.triggerType === "tag")
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Azure DevOps supports push deployments only",
+						});
+				}
+			}
 			const { applicationId, ...rest } = input;
 			const updateApp = await updateApplication(applicationId, {
 				...rest,
@@ -923,6 +1066,7 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const app = await findApplicationById(applicationId);
+			await assertAzureDevopsSourceAccess(ctx.session, app);
 
 			await updateApplication(applicationId, {
 				sourceType: "drop",

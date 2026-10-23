@@ -6,6 +6,7 @@ import { SaveDockerProvider } from "@/components/dashboard/application/general/g
 import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
 import { SaveGiteaProvider } from "@/components/dashboard/application/general/generic/save-gitea-provider";
 import { SaveGithubProvider } from "@/components/dashboard/application/general/generic/save-github-provider";
+import { AzureDevopsIcon } from "@/components/icons/azure-devops-icon";
 import {
 	BitbucketIcon,
 	DockerIcon,
@@ -17,6 +18,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
+import { SaveAzureDevopsProvider } from "./save-azure-devops-provider";
 import { SaveBitbucketProvider } from "./save-bitbucket-provider";
 import { SaveDragNDrop } from "./save-drag-n-drop";
 import { SaveGitlabProvider } from "./save-gitlab-provider";
@@ -29,13 +31,15 @@ type TabState =
 	| "drop"
 	| "gitlab"
 	| "bitbucket"
-	| "gitea";
+	| "gitea"
+	| "azureDevops";
 
 interface Props {
 	applicationId: string;
 }
 
 export const ShowProviderForm = ({ applicationId }: Props) => {
+	const utils = api.useUtils();
 	const { data: githubProviders, isPending: isLoadingGithub } =
 		api.github.githubProviders.useQuery();
 	const { data: gitlabProviders, isPending: isLoadingGitlab } =
@@ -59,6 +63,16 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 	const handleDisconnect = async () => {
 		try {
 			await disconnectGitProvider({ applicationId });
+			if (application?.sourceType === "azureDevops") {
+				const hooks = await utils.azureDevops.hookStatus.fetch({
+					serviceId: applicationId,
+					serviceType: "application",
+				});
+				if (hooks.some((hook) => hook.status === "cleanupPending"))
+					toast.warning(
+						"Repository disconnected; Azure DevOps subscription cleanup is pending. Review Settings → Git Providers for subscription details.",
+					);
+			}
 			toast.success("Repository disconnected successfully");
 			await refetch();
 		} catch (error) {
@@ -201,6 +215,13 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 								Git
 							</TabsTrigger>
 							<TabsTrigger
+								value="azureDevops"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-[#0078d4] data-[state=active]:text-[#0078d4] after:bg-[#0078d4] dark:data-[state=active]:text-[#5ea0ef]"
+							>
+								<AzureDevopsIcon className="dark:text-[#5ea0ef]" />
+								Azure DevOps
+							</TabsTrigger>
+							<TabsTrigger
 								value="drop"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
@@ -299,6 +320,9 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					</TabsContent>
 					<TabsContent value="drop" className="w-full p-2">
 						<SaveDragNDrop applicationId={applicationId} />
+					</TabsContent>
+					<TabsContent value="azureDevops" className="w-full p-2">
+						<SaveAzureDevopsProvider applicationId={applicationId} />
 					</TabsContent>
 				</Tabs>
 			</CardContent>

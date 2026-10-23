@@ -59,6 +59,7 @@ export const createRollback = async (
 			github,
 			gitlab,
 			gitea,
+			azureDevops,
 			...rest
 		} = await findApplicationById(deployment.applicationId);
 

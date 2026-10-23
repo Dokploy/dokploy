@@ -61,21 +61,38 @@ export const execAsync = async (
 	}
 };
 
-interface ExecOptions {
+interface OutputOptions {
+	includeStream?: boolean;
+}
+
+interface ExecOptions extends OutputOptions {
 	cwd?: string;
 	env?: NodeJS.ProcessEnv;
 }
 
+type OutputHandler = (data: string, stream?: "stdout" | "stderr") => void;
+
+const emitOutput = (
+	onData: OutputHandler | undefined,
+	data: string,
+	stream: "stdout" | "stderr",
+	includeStream = false,
+) => {
+	if (includeStream) onData?.(data, stream);
+	else onData?.(data);
+};
+
 export const execAsyncStream = (
 	command: string,
-	onData?: (data: string) => void,
+	onData?: OutputHandler,
 	options: ExecOptions = {},
 ): Promise<{ stdout: string; stderr: string }> => {
+	const { includeStream, ...execOptions } = options;
 	return new Promise((resolve, reject) => {
 		let stdoutComplete = "";
 		let stderrComplete = "";
 
-		const childProcess = exec(command, options, (error) => {
+		const childProcess = exec(command, execOptions, (error) => {
 			if (error) {
 				reject(
 					new ExecError(
@@ -97,17 +114,13 @@ export const execAsyncStream = (
 		childProcess.stdout?.on("data", (data: Buffer | string) => {
 			const stringData = data.toString();
 			stdoutComplete += stringData;
-			if (onData) {
-				onData(stringData);
-			}
+			emitOutput(onData, stringData, "stdout", includeStream);
 		});
 
 		childProcess.stderr?.on("data", (data: Buffer | string) => {
 			const stringData = data.toString();
 			stderrComplete += stringData;
-			if (onData) {
-				onData(stringData);
-			}
+			emitOutput(onData, stringData, "stderr", includeStream);
 		});
 
 		childProcess.on("error", (error) => {
@@ -165,8 +178,9 @@ export const execFileAsync = async (
 export const execAsyncRemote = async (
 	serverId: string | null,
 	command: string,
-	onData?: (data: string) => void,
+	onData?: OutputHandler,
 	input?: string,
+	options: OutputOptions = {},
 ): Promise<{ stdout: string; stderr: string }> => {
 	if (!serverId) return { stdout: "", stderr: "" };
 	const server = await findServerById(serverId);
@@ -214,11 +228,21 @@ export const execAsyncRemote = async (
 						})
 						.on("data", (data: string) => {
 							stdout += data.toString();
-							onData?.(data.toString());
+							emitOutput(
+								onData,
+								data.toString(),
+								"stdout",
+								options.includeStream,
+							);
 						})
 						.stderr.on("data", (data) => {
 							stderr += data.toString();
-							onData?.(data.toString());
+							emitOutput(
+								onData,
+								data.toString(),
+								"stderr",
+								options.includeStream,
+							);
 						});
 					if (input !== undefined) {
 						stream.on("error", (error: Error) => {

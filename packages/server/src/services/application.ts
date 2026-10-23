@@ -18,6 +18,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { cloneAzureDevopsRepository } from "@dokploy/server/utils/providers/azure-devops";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import { buildRemoteDocker } from "@dokploy/server/utils/providers/docker";
 import {
@@ -29,10 +30,15 @@ import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
+import {
+	azureHookFieldsChanged,
+	syncAzureDevopsWebhook,
+} from "./azure-devops-hooks";
 import {
 	createDeployment,
 	createDeploymentPreview,
@@ -113,6 +119,7 @@ export const findApplicationById = async (applicationId: string) => {
 					githubWebhookSecret: false,
 				},
 			},
+			azureDevops: { columns: { personalAccessToken: false } },
 			bitbucket: { columns: { appPassword: false, apiToken: false } },
 			gitea: {
 				columns: {
@@ -150,14 +157,49 @@ export const updateApplication = async (
 	applicationData: Partial<Application>,
 ) => {
 	const { appName, ...rest } = applicationData;
-	const application = await db
-		.update(applications)
-		.set({
-			...rest,
-		})
-		.where(eq(applications.applicationId, applicationId))
-		.returning();
+	if (rest.sourceType !== undefined || rest.azureDevopsId !== undefined) {
+		const current = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, applicationId),
+			columns: { sourceType: true, azureDevopsId: true },
+		});
+		if (
+			current?.sourceType === "azureDevops" &&
+			((rest.sourceType && rest.sourceType !== "azureDevops") ||
+				(rest.azureDevopsId !== undefined &&
+					rest.azureDevopsId !== current.azureDevopsId))
+		)
+			rest.refreshToken = nanoid();
+		if (rest.sourceType && rest.sourceType !== "azureDevops") {
+			rest.azureDevopsId = null;
+			rest.azureDevopsProjectId = null;
+			rest.azureDevopsRepositoryId = null;
+			rest.azureDevopsBranch = null;
+			rest.azureDevopsProjectName = null;
+			rest.azureDevopsRepositoryName = null;
+		}
+	}
+	const persist = (database: Pick<typeof db, "update">) =>
+		database
+			.update(applications)
+			.set(rest)
+			.where(eq(applications.applicationId, applicationId))
+			.returning();
+	const application = rest.azureDevopsId
+		? await db.transaction(async (tx) => {
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtextextended(${`azure-provider:${rest.azureDevopsId}`}, 0))`,
+				);
+				return persist(tx);
+			})
+		: await persist(db);
 
+	if (azureHookFieldsChanged(applicationData)) {
+		try {
+			await syncAzureDevopsWebhook("application", applicationId);
+		} catch {
+			console.error("Azure DevOps hook sync will be retried.");
+		}
+	}
 	return application[0];
 };
 
@@ -201,7 +243,12 @@ export const deployApplication = async ({
 
 	try {
 		let command = "set -e;";
-		if (application.sourceType === "github") {
+		if (application.sourceType === "azureDevops") {
+			command += await cloneAzureDevopsRepository({
+				...applicationEntity,
+				logPath: deployment.logPath,
+			});
+		} else if (application.sourceType === "github") {
 			command += await cloneGithubRepository(applicationEntity);
 		} else if (application.sourceType === "gitlab") {
 			command += await cloneGitlabRepository(applicationEntity);
@@ -395,7 +442,7 @@ export const deployPreviewApplication = async ({
 		owner: application?.owner || "",
 		repository: application?.repository || "",
 		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId, 10),
 		githubId: application?.githubId || "",
 	};
 	try {
@@ -418,7 +465,10 @@ export const deployPreviewApplication = async ({
 				});
 			}
 
-			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+			issueParams.comment_id = Number.parseInt(
+				result?.pullRequestCommentId,
+				10,
+			);
 		}
 		const buildingComment = getIssueComment(
 			application.name,
@@ -510,7 +560,7 @@ export const rebuildPreviewApplication = async ({
 		owner: application?.owner || "",
 		repository: application?.repository || "",
 		issue_number: previewDeployment.pullRequestNumber,
-		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
+		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId, 10),
 		githubId: application?.githubId || "",
 	};
 
@@ -534,7 +584,10 @@ export const rebuildPreviewApplication = async ({
 				});
 			}
 
-			issueParams.comment_id = Number.parseInt(result?.pullRequestCommentId);
+			issueParams.comment_id = Number.parseInt(
+				result?.pullRequestCommentId,
+				10,
+			);
 		}
 
 		const buildingComment = getIssueComment(
@@ -629,7 +682,7 @@ export const getApplicationStats = async (appName: string) => {
 	});
 
 	const container = containers[0];
-	if (!container || container?.State !== "running") {
+	if (container?.State !== "running") {
 		return null;
 	}
 

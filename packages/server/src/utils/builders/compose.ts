@@ -53,7 +53,7 @@ Compose Type: ${composeType} ✅`;
 	const bashCommand = `
 	set -e
 	{
-		echo "${logBox}";
+		echo ${quote([logBox])};
 
 		${newCompose}
 
