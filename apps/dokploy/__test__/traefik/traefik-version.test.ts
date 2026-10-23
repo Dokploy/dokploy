@@ -2,6 +2,8 @@ import {
 	getTraefikOverview,
 	parseTraefikImageVersion,
 	pullTraefikImage,
+	readEnvironmentVariableList,
+	readEnvironmentVariables,
 } from "@dokploy/server/services/settings";
 import { TRAEFIK_VERSION } from "@dokploy/server/setup/traefik-setup";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,7 +70,7 @@ describe("getTraefikOverview", () => {
 		);
 	});
 
-	it("reads a swarm service's state from its task", async () => {
+	it("reads a swarm service's image and state from the same task", async () => {
 		mockOutput(
 			mocks.execAsync,
 			`traefik:v${TRAEFIK_VERSION}@sha256:abc123|running|${startedAt}`,
@@ -81,6 +83,11 @@ describe("getTraefikOverview", () => {
 		expect(mocks.execAsync).toHaveBeenCalledWith(
 			expect.stringContaining(
 				"docker service ps dokploy-traefik --filter desired-state=running",
+			),
+		);
+		expect(mocks.execAsync).toHaveBeenCalledWith(
+			expect.stringContaining(
+				`docker inspect "$task" --format '{{.Spec.ContainerSpec.Image}}|{{.Status.State}}|{{.Status.Timestamp}}'`,
 			),
 		);
 	});
@@ -260,5 +267,39 @@ describe("pullTraefikImage", () => {
 		} finally {
 			vi.useRealTimers();
 		}
+	});
+});
+
+describe("readEnvironmentVariableList", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("returns the container's env exactly as Docker stores it", async () => {
+		const env = ["TOKEN=abc#def", 'QUOTED="kept"', "MULTI=line1\nline2"];
+		mockOutput(mocks.execAsync, "standalone");
+		mockOutput(mocks.execAsync, JSON.stringify(env));
+
+		await expect(
+			readEnvironmentVariableList("dokploy-traefik"),
+		).resolves.toEqual(env);
+	});
+
+	it("returns an empty list when the container has no env", async () => {
+		mockOutput(mocks.execAsync, "standalone");
+		mockOutput(mocks.execAsync, "null");
+
+		await expect(
+			readEnvironmentVariableList("dokploy-traefik"),
+		).resolves.toEqual([]);
+	});
+
+	it("keeps readEnvironmentVariables returning the joined text", async () => {
+		mockOutput(mocks.execAsync, "standalone");
+		mockOutput(mocks.execAsync, JSON.stringify(["A=1", "B=2"]));
+
+		await expect(readEnvironmentVariables("dokploy-traefik")).resolves.toBe(
+			"A=1\nB=2",
+		);
 	});
 });

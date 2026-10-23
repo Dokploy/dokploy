@@ -4,9 +4,8 @@ const mocks = vi.hoisted(() => ({
 	findServerById: vi.fn(),
 	getTraefikOverview: vi.fn(),
 	pullTraefikImage: vi.fn(),
-	readEnvironmentVariables: vi.fn(),
+	readEnvironmentVariableList: vi.fn(),
 	readPorts: vi.fn(),
-	prepareEnvironmentVariables: vi.fn(),
 	writeTraefikSetup: vi.fn(),
 }));
 

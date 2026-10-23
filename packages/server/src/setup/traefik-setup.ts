@@ -37,11 +37,32 @@ export interface TraefikOptions {
 	}[];
 }
 
-export const initializeStandaloneTraefik = async ({
+// Overlapping recreates of one server would remove each other's containers.
+const recreateQueue = new Map<string, Promise<void>>();
+
+export const initializeStandaloneTraefik = (options: TraefikOptions = {}) => {
+	const key = options.serverId ?? "local";
+	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(() =>
+		recreateStandaloneTraefik(options),
+	);
+	// So a hung Docker call can't block later recreates.
+	const settled = Promise.race([run.catch(() => {}), sleep(5 * 60_000)]).then(
+		() => {},
+	);
+	recreateQueue.set(key, settled);
+	void settled.then(() => {
+		if (recreateQueue.get(key) === settled) {
+			recreateQueue.delete(key);
+		}
+	});
+	return run;
+};
+
+const recreateStandaloneTraefik = async ({
 	env,
 	serverId,
 	additionalPorts = [],
-}: TraefikOptions = {}) => {
+}: TraefikOptions) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
@@ -101,15 +122,14 @@ export const initializeStandaloneTraefik = async ({
 	const docker = await getRemoteDocker(serverId);
 	await ensureTraefikImage(serverId);
 
-	// The running container is kept, stopped, until its replacement proves it
-	// stays up, so a failed recreate can put it back instead of leaving none.
+	// Kept until the new container stays up, so it can be restored on failure.
 	const currentInfo = await docker
 		.getContainer(containerName)
 		.inspect()
 		.catch(() => null);
 	const previous = currentInfo ? docker.getContainer(currentInfo.Id) : null;
 	if (previous) {
-		// Left behind by an interrupted recreate; it would block the rename.
+		// Left behind by an interrupted recreate.
 		await docker
 			.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
 			.remove({ force: true })
@@ -152,8 +172,7 @@ export const initializeStandaloneTraefik = async ({
 
 const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 
-// docker.pull resolves as soon as the download starts, and registry errors
-// arrive as events inside the stream, so follow it to the end and check.
+// docker.pull resolves before the download ends and reports errors in the stream.
 export const ensureTraefikImage = async (serverId?: string) => {
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const docker = await getRemoteDocker(serverId);
@@ -183,8 +202,7 @@ export const ensureTraefikImage = async (serverId?: string) => {
 	await image.inspect();
 };
 
-// restart: always hides a Traefik that exits on start (for example on a bad
-// static config), so it only counts as up if its start time holds.
+// restart: always hides a container that exits on start.
 const waitUntilStable = async (container: Container) => {
 	await sleep(3000);
 	const first = await container.inspect();
@@ -207,7 +225,7 @@ const waitUntilStable = async (container: Container) => {
 
 const ANSI_COLOR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 
-// Logs of a container without a TTY arrive as frames with an 8-byte header.
+// Non-TTY container logs come in frames with an 8-byte header.
 export const lastLogLine = (logs: Buffer) => {
 	let text = "";
 	for (let offset = 0; offset + 8 <= logs.length; ) {

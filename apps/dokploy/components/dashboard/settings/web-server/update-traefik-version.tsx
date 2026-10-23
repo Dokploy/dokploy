@@ -33,8 +33,6 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 	const [isWaiting, setIsWaiting] = useState(false);
 	const utils = api.useUtils();
 
-	// No retries: an unreachable server would otherwise spin for a minute or
-	// more before showing why. While another tab's update runs, keep refreshing.
 	const { data, isPending, isFetching, refetch, error, isError } =
 		api.settings.getTraefikOverview.useQuery(
 			{ serverId },
@@ -51,9 +49,7 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 
 	const isInProgress = isUpdating || isWaiting || !!data?.isUpdating;
 
-	// Polls the overview rather than /api/health, which can't see a remote
-	// server's Traefik and would report success even if the new container never
-	// starts. The vanilla client keeps the half-recreated states off screen.
+	// /api/health can't see a remote server's Traefik, so poll its overview.
 	const waitForTraefik = async (): Promise<
 		{ ok: true } | { ok: false; error: string | null }
 	> => {
@@ -73,14 +69,13 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 					overview.state === "running" &&
 					overview.versionStatus === "up-to-date" &&
 					!!overview.startedAt;
-				// A crash-looping container is briefly "running"; only count it once
-				// two checks in a row see the same start time.
+				// A crash-looping container is briefly running; require the same start twice.
 				if (isUp && overview.startedAt === confirmedStart) {
 					return { ok: true };
 				}
 				confirmedStart = isUp ? overview.startedAt : null;
 			} catch {
-				// Expected while the UI itself is served through the Traefik being replaced.
+				// Expected while the UI is served through the Traefik being replaced.
 			}
 			await wait(3000);
 		}
@@ -125,8 +120,6 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 				</DialogHeader>
 
 				{isError && !isInProgress && (
-					// AlertBlock's default 24px icon sits below a single line of
-					// text-sm; a 16px icon lines up with the first line.
 					<AlertBlock type="error" icon={<AlertTriangle className="size-4" />}>
 						{error?.message}
 					</AlertBlock>

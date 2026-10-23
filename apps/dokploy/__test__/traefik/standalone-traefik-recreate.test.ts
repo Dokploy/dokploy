@@ -62,6 +62,7 @@ const fakeDocker = ({
 	}
 	let hasImage = imagePresent;
 	let restarts = 0;
+	let created = 0;
 	let createdWith: Record<string, unknown> | undefined;
 
 	const find = (ref: string) => {
@@ -131,9 +132,11 @@ const fakeDocker = ({
 				throw new Error(`Conflict: ${name} is already in use`);
 			}
 			createdWith = settings;
-			containers.push({ id: "new", name, running: false });
-			log.push("create new");
-			return container("new");
+			created += 1;
+			const id = created === 1 ? "new" : `new${created}`;
+			containers.push({ id, name, running: false });
+			log.push(`create ${id}`);
+			return container(id);
 		},
 	};
 
@@ -297,6 +300,62 @@ describe("initializeStandaloneTraefik", () => {
 		expect(error?.message).toBe(
 			"port is already allocated. Restoring the previous Traefik also failed: name already in use",
 		);
+	});
+
+	it("runs overlapping recreates of the same server one after another", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		const first = initializeStandaloneTraefik({
+			additionalPorts: [
+				{ targetPort: 8080, publishedPort: 8080, protocol: "tcp" },
+			],
+		});
+		const second = initializeStandaloneTraefik();
+		await vi.runAllTimersAsync();
+
+		await expect(first).resolves.toBeUndefined();
+		await expect(second).resolves.toBeUndefined();
+		expect(fake.log).toEqual([
+			"rename old -> dokploy-traefik-previous",
+			"stop old",
+			"create new",
+			"start new",
+			"remove old",
+			"rename new -> dokploy-traefik-previous",
+			"stop new",
+			"create new2",
+			"start new2",
+			"remove new",
+		]);
+		expect(fake.containers).toEqual([
+			{ id: "new2", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("still runs the next recreate after one fails", async () => {
+		const fake = fakeDocker({
+			startError: new Error("port is already allocated"),
+		});
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		const first = initializeStandaloneTraefik().then(
+			() => null,
+			(error: Error) => error,
+		);
+		const second = initializeStandaloneTraefik().then(
+			() => null,
+			(error: Error) => error,
+		);
+		await vi.runAllTimersAsync();
+
+		expect((await first)?.message).toContain(
+			"The previous Traefik was restored",
+		);
+		expect(await second).toBeNull();
+		expect(fake.containers).toEqual([
+			{ id: "new2", name: "dokploy-traefik", running: true },
+		]);
 	});
 
 	it("creates Traefik when none exists yet, as on a fresh setup", async () => {

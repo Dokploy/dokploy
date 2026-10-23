@@ -4,9 +4,8 @@ const mocks = vi.hoisted(() => ({
 	findServerById: vi.fn(),
 	getTraefikOverview: vi.fn(),
 	pullTraefikImage: vi.fn(),
-	readEnvironmentVariables: vi.fn(),
+	readEnvironmentVariableList: vi.fn(),
 	readPorts: vi.fn(),
-	prepareEnvironmentVariables: vi.fn(),
 	writeTraefikSetup: vi.fn(),
 }));
 
@@ -39,6 +38,13 @@ const caller = settingsRouter.createCaller({
 	user: { id: "user-1", email: "admin@example.com", role: "admin" },
 } as Parameters<typeof settingsRouter.createCaller>[0]);
 
+const TRAEFIK_ENV = [
+	"CF_DNS_API_TOKEN=abc#def",
+	'QUOTED="kept"',
+	"MULTI=line1\nline2",
+	"LITERAL=${{not-a-ref}}",
+];
+
 const overview = (versionStatus: string) => ({
 	state: "running",
 	startedAt: "2026-10-23T03:00:00Z",
@@ -57,11 +63,10 @@ describe("Traefik update endpoints", () => {
 		}));
 		mocks.getTraefikOverview.mockResolvedValue(overview("outdated"));
 		mocks.pullTraefikImage.mockResolvedValue(undefined);
-		mocks.readEnvironmentVariables.mockResolvedValue("KEY=value");
+		mocks.readEnvironmentVariableList.mockResolvedValue(TRAEFIK_ENV);
 		mocks.readPorts.mockResolvedValue([
 			{ targetPort: 8080, publishedPort: 8080, protocol: "tcp" },
 		]);
-		mocks.prepareEnvironmentVariables.mockReturnValue(["KEY=value"]);
 		mocks.writeTraefikSetup.mockResolvedValue(undefined);
 		vi.spyOn(console, "error").mockImplementation(() => {});
 	});
@@ -129,7 +134,7 @@ describe("Traefik update endpoints", () => {
 
 		expect(mocks.pullTraefikImage).toHaveBeenCalledWith("server-a");
 		expect(mocks.writeTraefikSetup).toHaveBeenCalledWith({
-			env: ["KEY=value"],
+			env: TRAEFIK_ENV,
 			additionalPorts: [
 				{ targetPort: 8080, publishedPort: 8080, protocol: "tcp" },
 			],
@@ -145,7 +150,7 @@ describe("Traefik update endpoints", () => {
 
 		const pulledAt = mocks.pullTraefikImage.mock.invocationCallOrder[0]!;
 		expect(
-			mocks.readEnvironmentVariables.mock.invocationCallOrder[0],
+			mocks.readEnvironmentVariableList.mock.invocationCallOrder[0],
 		).toBeLessThan(pulledAt);
 		expect(mocks.readPorts.mock.invocationCallOrder[0]).toBeLessThan(pulledAt);
 	});

@@ -316,7 +316,12 @@ export const reloadDockerResource = async (
 export const readEnvironmentVariables = async (
 	resourceName: string,
 	serverId?: string,
-) => {
+) => (await readEnvironmentVariableList(resourceName, serverId)).join("\n");
+
+export const readEnvironmentVariableList = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<string[]> => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
 	let command = "";
 	if (resourceType === "service") {
@@ -333,9 +338,9 @@ export const readEnvironmentVariables = async (
 		result = stdout.trim();
 	}
 	if (result === "null") {
-		return "";
+		return [];
 	}
-	return JSON.parse(result)?.join("\n");
+	return JSON.parse(result) ?? [];
 };
 
 export const readPorts = async (
@@ -480,7 +485,7 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 };
 
 const splitImageReference = (image: string) => {
-	// Swarm service images carry a digest, e.g. traefik:v3.7.16@sha256:...
+	// Swarm service images carry a @sha256 digest.
 	const reference = image.split("@")[0] ?? "";
 	const tagStart = reference.lastIndexOf(":");
 	// A colon followed by a slash is a registry port, not a tag.
@@ -498,8 +503,7 @@ export const parseTraefikImageVersion = (image: string) => {
 	return tag ? (semver.coerce(tag)?.version ?? null) : null;
 };
 
-// Neither exec helper has a timeout, so a hung Docker daemon or SSH session
-// would otherwise keep the request open forever.
+// The exec helpers have no timeout of their own.
 const rejectAfter = <T>(promise: Promise<T>, ms: number, message: string) => {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const deadline = new Promise<never>((_, reject) => {
@@ -526,20 +530,18 @@ type TraefikVersionStatus =
 export const getTraefikOverview = async (serverId?: string) => {
 	const recommendedVersion = TRAEFIK_VERSION;
 
-	// One round trip that, unlike getDockerResourceType, lets SSH failures
-	// throw so an unreachable server isn't reported as a missing Traefik. A
-	// swarm task may run on another manager, so its state comes from the task.
+	// Unlike getDockerResourceType, an unreachable server throws instead of
+	// being reported as a missing Traefik.
 	const command = `
 if ! docker info >/dev/null 2>&1; then
 	echo "docker-unavailable"
 elif docker service inspect dokploy-traefik >/dev/null 2>&1; then
-	image=$(docker service inspect dokploy-traefik --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')
 	task=$(docker service ps dokploy-traefik --filter desired-state=running --no-trunc -q | head -n 1)
 	[ -z "$task" ] && task=$(docker service ps dokploy-traefik --no-trunc -q | head -n 1)
 	if [ -n "$task" ]; then
-		docker inspect "$task" --format "$image|{{.Status.State}}|{{.Status.Timestamp}}"
+		docker inspect "$task" --format '{{.Spec.ContainerSpec.Image}}|{{.Status.State}}|{{.Status.Timestamp}}'
 	else
-		echo "$image|stopped|"
+		echo "$(docker service inspect dokploy-traefik --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')|stopped|"
 	fi
 elif docker container inspect dokploy-traefik >/dev/null 2>&1; then
 	docker container inspect dokploy-traefik --format '{{.Config.Image}}|{{.State.Status}}|{{.State.StartedAt}}'
@@ -598,8 +600,7 @@ fi`;
 	};
 };
 
-// Stops waiting before proxies like Cloudflare cut the request at ~100s. The
-// download itself keeps going, so a retry finds the image already there.
+// Stays under proxy timeouts (~100s); the download continues in the background.
 export const pullTraefikImage = (serverId?: string) =>
 	rejectAfter(
 		ensureTraefikImage(serverId),

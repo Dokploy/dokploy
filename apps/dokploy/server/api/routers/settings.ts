@@ -29,6 +29,7 @@ import {
 	readConfig,
 	readConfigInPath,
 	readDirectory,
+	readEnvironmentVariableList,
 	readEnvironmentVariables,
 	readMainConfig,
 	readMonitoringConfig,
@@ -111,8 +112,6 @@ const resolveTraefikFilePath = (
 	return resolved;
 };
 
-// One Traefik update per server at a time: a second recreate racing the first
-// can remove the container the first one just created.
 const traefikUpdateLocks = new Map<string, symbol>();
 const traefikUpdateErrors = new Map<string, string>();
 
@@ -1159,8 +1158,7 @@ export const settingsRouter = createTRPCRouter({
 			const lock = Symbol(lockKey);
 			traefikUpdateLocks.set(lockKey, lock);
 			traefikUpdateErrors.delete(lockKey);
-			// The lock expires on its own, so by the time this update settles a
-			// newer one may hold the key; leave its lock and result alone.
+			// The lock can expire mid-update; never touch a newer update's lock.
 			const ownsKey = () => {
 				const holder = traefikUpdateLocks.get(lockKey);
 				return holder === undefined || holder === lock;
@@ -1180,9 +1178,7 @@ export const settingsRouter = createTRPCRouter({
 						message: `Traefik is not older than the recommended version v${overview.recommendedVersion}`,
 					});
 				}
-				// A stopped container reports no published ports, so recreating it
-				// would silently drop its additional port mappings. They are read
-				// before the download for the same reason.
+				// A stopped container reports no published ports, so they would be lost.
 				if (overview.state !== "running") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -1190,7 +1186,11 @@ export const settingsRouter = createTRPCRouter({
 							"Traefik is not running. Start it with Reload, then update it.",
 					});
 				}
-				const env = await readEnvironmentVariables("dokploy-traefik", serverId);
+				// Not re-parsed as dotenv, which would cut values at "#".
+				const env = await readEnvironmentVariableList(
+					"dokploy-traefik",
+					serverId,
+				);
 				const ports = await readPorts("dokploy-traefik", serverId);
 
 				try {
@@ -1204,7 +1204,7 @@ export const settingsRouter = createTRPCRouter({
 				}
 
 				recreate = writeTraefikSetup({
-					env: prepareEnvironmentVariables(env),
+					env,
 					additionalPorts: ports,
 					serverId,
 				});
@@ -1213,9 +1213,7 @@ export const settingsRouter = createTRPCRouter({
 				throw error;
 			}
 
-			// Run in background so the request returns immediately; the client
-			// polls the overview until Traefik is back. A hung Docker call must not
-			// block updates until Dokploy restarts, so the lock expires on its own.
+			// Expires in case a Docker call hangs.
 			const lockTimer = setTimeout(release, 5 * 60_000);
 			void recreate
 				.catch((err) => {
