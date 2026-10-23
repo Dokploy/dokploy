@@ -126,6 +126,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
+		// Client may have disconnected during the awaits; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
