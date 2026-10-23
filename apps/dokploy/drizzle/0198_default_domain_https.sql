@@ -1,0 +1,2 @@
+ALTER TABLE "webServerSettings" ADD COLUMN "defaultDomainHttps" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "webServerSettings" ADD COLUMN "defaultDomainCertificateType" "certificateType" DEFAULT 'none' NOT NULL;
