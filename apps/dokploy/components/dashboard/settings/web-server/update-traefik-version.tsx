@@ -136,14 +136,16 @@ export const UpdateTraefikVersion = ({ children, serverId }: Props) => {
 						<div className="space-y-4">
 							{data.versionStatus !== "not-found" && (
 								<div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg border p-4 text-sm">
-									<span className="text-muted-foreground">Current version</span>
+									<span className="text-muted-foreground">
+										Installed version
+									</span>
 									<span className="justify-self-end text-right font-medium break-all">
 										{data.currentVersion && data.versionStatus !== "custom"
 											? `v${data.currentVersion}`
 											: data.image}
 									</span>
 									<span className="text-muted-foreground">
-										Recommended by Dokploy
+										Recommended version
 									</span>
 									<span className="justify-self-end font-medium">
 										v{data.recommendedVersion}
