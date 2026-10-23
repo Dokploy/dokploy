@@ -16,6 +16,7 @@ import {
 } from "@dokploy/server/utils/docker/domain";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
+import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
 	ExecError,
@@ -369,6 +370,11 @@ export const deployCompose = async ({
 			environmentName: compose.environment.name,
 		});
 	} catch (error) {
+		const errorMessage = await getBuildErrorMessage(
+			error,
+			deployment.logPath,
+			compose.serverId,
+		);
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -392,14 +398,7 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			errorMessage:
-				error !== null &&
-				typeof error === "object" &&
-				"message" in error &&
-				typeof error.message === "string" &&
-				error.message
-					? error.message
-					: "Error building",
+			errorMessage,
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 		});

@@ -28,7 +28,10 @@ import {
 	scheduleBackup,
 	updateBackupById,
 } from "@dokploy/server";
-import { findDestinationById } from "@dokploy/server/services/destination";
+import {
+	findDestinationById,
+	findDestinationByIdForOrganization,
+} from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
@@ -95,6 +98,10 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["create"],
 					});
+					await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				if (IS_CLOUD) {
@@ -206,6 +213,10 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["update"],
 					});
+					await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				await updateBackupById(input.backupId, input);
@@ -267,7 +278,7 @@ export const backupRouter = createTRPCRouter({
 
 				const value = await removeBackupById(input.backupId);
 				if (IS_CLOUD && value) {
-					removeJob({
+					await removeJob({
 						backupId: input.backupId,
 						cronSchedule: value.schedule,
 						type: "backup",
@@ -579,7 +590,12 @@ export const backupRouter = createTRPCRouter({
 					backup: ["restore"],
 				});
 			}
-			const destination = await findDestinationById(input.destinationId);
+			const destination = input.databaseId
+				? await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					)
+				: await findDestinationById(input.destinationId);
 			const queue: string[] = [];
 			let done = false;
 			const onLog = (log: string) => queue.push(log);

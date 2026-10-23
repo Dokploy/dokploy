@@ -11,6 +11,7 @@ import {
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
+import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
 	ExecError,
@@ -292,6 +293,11 @@ export const deployApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
+		const errorMessage = await getBuildErrorMessage(
+			error,
+			deployment.logPath,
+			serverId,
+		);
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -314,14 +320,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			errorMessage:
-				error !== null &&
-				typeof error === "object" &&
-				"message" in error &&
-				typeof error.message === "string" &&
-				error.message
-					? error.message
-					: "Error building",
+			errorMessage,
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 		});

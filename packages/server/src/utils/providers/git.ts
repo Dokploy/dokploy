@@ -18,6 +18,12 @@ interface CloneGitRepository {
 	outputPathOverride?: string;
 }
 
+// Header auth keeps the token out of build logs.
+export const getGitTokenAuthConfig = (cloneUrl: string, token: string) => {
+	const credentials = Buffer.from(`oauth2:${token}`).toString("base64");
+	return `-c ${quote([`http.${new URL(cloneUrl).origin}/.extraHeader=Authorization: Basic ${credentials}`])}`;
+};
+
 export const cloneGitRepository = async ({
 	type = "application",
 	...entity

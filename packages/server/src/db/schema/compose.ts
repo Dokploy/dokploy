@@ -1,3 +1,4 @@
+import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -186,8 +187,20 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 	patches: many(patch),
 }));
 
+const branchField = z
+	.string()
+	.min(1)
+	.regex(VALID_BRANCH_REGEX, "Invalid branch name")
+	.nullable()
+	.optional();
+
 const createSchema = createInsertSchema(compose, {
 	name: z.string().min(1),
+	branch: branchField,
+	gitlabBranch: branchField,
+	bitbucketBranch: branchField,
+	giteaBranch: branchField,
+	customGitBranch: branchField,
 	appName: z
 		.string()
 		.min(1)
