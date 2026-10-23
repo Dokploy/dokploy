@@ -86,6 +86,7 @@
     "semver": "7.7.3",
     "shell-quote": "^1.11.0",
     "slugify": "^1.6.6",
+    "socks-proxy-agent": "8.0.5",
     "ssh2": "~1.16.0",
     "toml": "5.0.1",
     "undici": "^6.21.3",

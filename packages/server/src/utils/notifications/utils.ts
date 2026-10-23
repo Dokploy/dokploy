@@ -1,3 +1,4 @@
+import { request as httpsRequest } from "node:https";
 import type {
 	custom,
 	discord,
@@ -14,6 +15,7 @@ import type {
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
 export const sendEmailNotification = async (
 	connection: typeof email.$inferInsert,
@@ -125,6 +127,68 @@ export const formatTelegramErrorMessage = (errorMessage: string) => {
 
 const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff;
 
+const sendTelegramThroughProxy = async (
+	url: string,
+	proxyUrl: string,
+	body: string,
+): Promise<Pick<Response, "ok" | "status" | "text">> => {
+	let proxy: URL;
+	try {
+		proxy = new URL(proxyUrl);
+	} catch {
+		throw new Error("Invalid Telegram SOCKS5 proxy URL");
+	}
+	if (proxy.protocol !== "socks5:" && proxy.protocol !== "socks5h:") {
+		throw new Error("Telegram proxy must use SOCKS5");
+	}
+	// Resolve Telegram's hostname at the proxy, including for socks5:// URLs.
+	proxy.protocol = "socks5h:";
+	let agent: SocksProxyAgent | undefined;
+	try {
+		agent = new SocksProxyAgent(proxy, { timeout: 30_000 });
+		// URL.hostname retains IPv6 brackets, but socks expects an unbracketed host.
+		agent.proxy.host = proxy.hostname.replace(/^\[|\]$/g, "");
+		return await new Promise((resolve, reject) => {
+			const request = httpsRequest(
+				url,
+				{
+					method: "POST",
+					agent,
+					headers: { "Content-Type": "application/json" },
+				},
+				(response) => {
+					const chunks: Buffer[] = [];
+					response.on("data", (chunk: Buffer) => chunks.push(chunk));
+					response.once("error", reject);
+					response.once("end", () => {
+						const status = response.statusCode ?? 0;
+						resolve({
+							ok: status >= 200 && status < 300,
+							status,
+							text: async () => Buffer.concat(chunks).toString("utf8"),
+						});
+					});
+				},
+			);
+			request.once("error", reject);
+			request.setTimeout(30_000, () => {
+				request.destroy(new Error("Telegram notification request timed out"));
+			});
+			request.end(body);
+		});
+	} catch (error) {
+		// SocksClientError carries proxy credentials in its options. Do not forward
+		// that object to the notification logger or expose it as an error cause.
+		throw new Error(
+			error instanceof Error
+				? error.message
+				: "Telegram SOCKS5 proxy request failed",
+		);
+	} finally {
+		agent?.destroy();
+	}
+};
+
 export const sendTelegramNotification = async (
 	connection: typeof telegram.$inferInsert,
 	messageText: string,
@@ -135,20 +199,24 @@ export const sendTelegramNotification = async (
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
-		const response = await fetch(url, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				chat_id: connection.chatId,
-				message_thread_id: connection.messageThreadId,
-				text: messageText,
-				parse_mode: "HTML",
-				disable_web_page_preview: true,
-				reply_markup: {
-					inline_keyboard: inlineButton,
-				},
-			}),
+		const body = JSON.stringify({
+			chat_id: connection.chatId,
+			message_thread_id: connection.messageThreadId,
+			text: messageText,
+			parse_mode: "HTML",
+			disable_web_page_preview: true,
+			reply_markup: {
+				inline_keyboard: inlineButton,
+			},
 		});
+		const proxyUrl = connection.proxyUrl?.trim();
+		const response = proxyUrl
+			? await sendTelegramThroughProxy(url, proxyUrl, body)
+			: await fetch(url, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body,
+				});
 		if (!response.ok) {
 			const body = await response.text();
 			throw new Error(

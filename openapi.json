@@ -27497,6 +27497,17 @@
                   },
                   "messageThreadId": {
                     "type": "string"
+                  },
+                  "proxyUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "Optional SOCKS5 proxy URL. Use an empty string or null to connect directly."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -27640,6 +27651,17 @@
                   },
                   "organizationId": {
                     "type": "string"
+                  },
+                  "proxyUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "Optional SOCKS5 proxy URL. Use an empty string or null to connect directly."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -27735,6 +27757,17 @@
                   },
                   "messageThreadId": {
                     "type": "string"
+                  },
+                  "proxyUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "description": "Optional SOCKS5 proxy URL. Use an empty string or null to connect directly."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [

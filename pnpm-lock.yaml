@@ -765,6 +765,9 @@ importers:
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
+      socks-proxy-agent:
+        specifier: 8.0.5
+        version: 8.0.5
       ssh2:
         specifier: ~1.16.0
         version: 1.16.0
@@ -8513,6 +8516,10 @@ packages:
   smart-buffer@4.2.0:
     resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
     engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+
+  socks-proxy-agent@8.0.5:
+    resolution: {integrity: sha512-HehCEsotFqbPW9sJ8WVYB6UbmIMv7kUUORIF2Nncq4VQvBfNBLibW9YZR5dlYCSUhwcD628pRllm7n+E+YTzJw==}
+    engines: {node: '>= 14'}
 
   socks@2.8.8:
     resolution: {integrity: sha512-NlGELfPrgX2f1TAAcz0WawlLn+0r3FyhhCRpFFK2CemXenPYvzMWWZINv3eDNo9ucdwme7oCHRY0Jnbs4aIkog==}
@@ -18204,14 +18211,20 @@ snapshots:
 
   slugify@1.6.6: {}
 
-  smart-buffer@4.2.0:
-    optional: true
+  smart-buffer@4.2.0: {}
+
+  socks-proxy-agent@8.0.5:
+    dependencies:
+      agent-base: 7.1.4
+      debug: 4.4.3
+      socks: 2.8.8
+    transitivePeerDependencies:
+      - supports-color
 
   socks@2.8.8:
     dependencies:
       ip-address: 10.7.4
       smart-buffer: 4.2.0
-    optional: true
 
   sonic-boom@4.2.1:
     dependencies:
