@@ -6,6 +6,7 @@ import {
 	loadOrCreateConfigRemote,
 	removeTraefikConfig,
 	removeTraefikConfigRemote,
+	writeAppTraefikConfig,
 	writeTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
@@ -16,6 +17,68 @@ import {
 	removeForwardAuthMiddleware,
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+
+const setSwarmVipConnectionReuse = (
+	config: FileConfig,
+	app: Pick<ApplicationNested, "appName" | "swarmVipConnectionReuse">,
+) => {
+	const transportName = `${app.appName}-swarm-vip`;
+	for (const [name, service] of Object.entries(config.http?.services ?? {})) {
+		if (
+			name.startsWith(`${app.appName}-service-`) &&
+			"loadBalancer" in service &&
+			service.loadBalancer
+		) {
+			if (app.swarmVipConnectionReuse) {
+				if (service.loadBalancer.serversTransport === transportName) {
+					delete service.loadBalancer.serversTransport;
+				}
+			} else if (service.loadBalancer.serversTransport === undefined) {
+				// A transport the user set through the Traefik editor carries its own
+				// settings; replacing it would drop them with no way to restore it.
+				service.loadBalancer.serversTransport = transportName;
+			}
+		}
+	}
+	if (app.swarmVipConnectionReuse) {
+		delete config.http?.serversTransports?.[transportName];
+		if (
+			config.http?.serversTransports &&
+			Object.keys(config.http.serversTransports).length === 0
+		) {
+			delete config.http.serversTransports;
+		}
+	} else {
+		config.http ??= {};
+		config.http.serversTransports ??= {};
+		config.http.serversTransports[transportName] = {
+			maxIdleConnsPerHost: -1,
+		};
+	}
+};
+
+export const reconcileSwarmVipConnectionReuse = async (
+	app: Pick<
+		ApplicationNested,
+		"appName" | "serverId" | "swarmVipConnectionReuse"
+	>,
+) => {
+	let config: FileConfig;
+	if (app.serverId) {
+		config = await loadOrCreateConfigRemote(app.serverId, app.appName);
+	} else {
+		config = loadOrCreateConfig(app.appName);
+	}
+
+	if (
+		Object.keys(config.http?.routers ?? {}).length === 0 &&
+		Object.keys(config.http?.services ?? {}).length === 0
+	) {
+		return;
+	}
+	setSwarmVipConnectionReuse(config, app);
+	await writeAppTraefikConfig(config, app.appName, app.serverId);
+};
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
@@ -60,6 +123,7 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	}
 
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
+	setSwarmVipConnectionReuse(config, app);
 
 	await createPathMiddlewares(app, domain);
 	// SSO forward-auth: writes the per-app forwardAuth + errors middlewares (the

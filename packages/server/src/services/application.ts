@@ -28,6 +28,7 @@ import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
 import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
+import { reconcileSwarmVipConnectionReuse } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -150,6 +151,30 @@ export const updateApplication = async (
 	applicationData: Partial<Application>,
 ) => {
 	const { appName, ...rest } = applicationData;
+	const previous =
+		applicationData.swarmVipConnectionReuse === undefined
+			? undefined
+			: await db.query.applications.findFirst({
+					where: eq(applications.applicationId, applicationId),
+					columns: { appName: true, serverId: true },
+					with: { previewDeployments: { columns: { appName: true } } },
+				});
+	if (previous && applicationData.swarmVipConnectionReuse !== undefined) {
+		// Domain route files are only rewritten on domain changes, so apply the
+		// transport to the existing primary and preview routes now. This runs
+		// on every save, before the database write, so a partly failed save is
+		// repaired by saving either value again.
+		for (const routeAppName of [
+			previous.appName,
+			...previous.previewDeployments.map((preview) => preview.appName),
+		]) {
+			await reconcileSwarmVipConnectionReuse({
+				appName: routeAppName,
+				serverId: previous.serverId,
+				swarmVipConnectionReuse: applicationData.swarmVipConnectionReuse,
+			});
+		}
+	}
 	const application = await db
 		.update(applications)
 		.set({

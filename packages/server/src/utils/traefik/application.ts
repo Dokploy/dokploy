@@ -109,21 +109,11 @@ export const loadOrCreateConfigRemote = async (
 	const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 	const fileConfig: FileConfig = { http: { routers: {}, services: {} } };
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-	try {
-		const { stdout } = await execAsyncRemote(
-			serverId,
-			`cat ${quote([configPath])}`,
-		);
-
-		if (!stdout) return fileConfig;
-
-		const parsedConfig = (parse(stdout) as FileConfig) || {
-			http: { routers: {}, services: {} },
-		};
-		return parsedConfig;
-	} catch {
-		return fileConfig;
-	}
+	const { stdout } = await execAsyncRemote(
+		serverId,
+		`cd ${quote([DYNAMIC_TRAEFIK_PATH])} && if [ -e ${quote([configPath])} ]; then cat ${quote([configPath])}; fi`,
+	);
+	return (parse(stdout) as FileConfig) || fileConfig;
 };
 
 export const readConfig = (appName: string) => {
@@ -258,14 +248,10 @@ export const writeTraefikConfig = (
 	traefikConfig: FileConfig,
 	appName: string,
 ) => {
-	try {
-		const { DYNAMIC_TRAEFIK_PATH } = paths();
-		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const yamlStr = stringify(traefikConfig);
-		fs.writeFileSync(configPath, yamlStr, "utf8");
-	} catch (e) {
-		console.error("Error saving the YAML config file:", e);
-	}
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+	const yamlStr = stringify(traefikConfig);
+	fs.writeFileSync(configPath, yamlStr, "utf8");
 };
 
 export const writeTraefikConfigRemote = async (
@@ -273,14 +259,10 @@ export const writeTraefikConfigRemote = async (
 	appName: string,
 	serverId: string,
 ) => {
-	try {
-		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
-		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const yamlStr = stringify(traefikConfig);
-		await writeFileRemote(serverId, configPath, yamlStr);
-	} catch (e) {
-		console.error("Error saving the YAML config file:", e);
-	}
+	const { DYNAMIC_TRAEFIK_PATH } = paths(true);
+	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
+	const yamlStr = stringify(traefikConfig);
+	await writeFileRemote(serverId, configPath, yamlStr);
 };
 
 const isEmptyHttpRoutersAndServices = (traefikConfig: FileConfig) =>

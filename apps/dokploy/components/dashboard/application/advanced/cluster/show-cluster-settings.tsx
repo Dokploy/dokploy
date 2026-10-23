@@ -17,6 +17,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -32,6 +33,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { AddSwarmSettings } from "./modify-swarm-settings";
 
@@ -43,6 +45,7 @@ interface Props {
 const AddRedirectSchema = z.object({
 	replicas: z.number().min(1, "Replicas must be at least 1"),
 	registryId: z.string().optional(),
+	swarmVipConnectionReuse: z.boolean().optional(),
 });
 
 type AddCommand = z.infer<typeof AddRedirectSchema>;
@@ -83,6 +86,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 			...(type === "application" && data && "registryId" in data
 				? {
 						registryId: data?.registryId || "",
+						swarmVipConnectionReuse: data.swarmVipConnectionReuse,
 					}
 				: {}),
 			replicas: data?.replicas || 1,
@@ -90,18 +94,32 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		resolver: zodResolver(AddRedirectSchema),
 	});
 
+	const isApplication = type === "application" && data && "registryId" in data;
+	const registryId = isApplication ? data.registryId : undefined;
+	const swarmVipConnectionReuse = isApplication
+		? data.swarmVipConnectionReuse
+		: undefined;
+	const replicas = data?.replicas;
+
+	// The application page polls this query, so reset only when a field shown
+	// here changes; otherwise each poll would discard unsaved edits.
 	useEffect(() => {
-		if (data?.command) {
-			form.reset({
-				...(type === "application" && data && "registryId" in data
-					? {
-							registryId: data?.registryId || "",
-						}
-					: {}),
-				replicas: data?.replicas || 1,
-			});
-		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
+		if (replicas === undefined) return;
+		form.reset({
+			...(isApplication
+				? { registryId: registryId || "", swarmVipConnectionReuse }
+				: {}),
+			replicas: replicas || 1,
+		});
+	}, [
+		form,
+		id,
+		type,
+		isApplication,
+		registryId,
+		swarmVipConnectionReuse,
+		replicas,
+	]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
@@ -117,6 +135,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 							data?.registryId === "none" || !data?.registryId
 								? null
 								: data?.registryId,
+						swarmVipConnectionReuse: data?.swarmVipConnectionReuse,
 					}
 				: {}),
 			replicas: data?.replicas,
@@ -125,8 +144,10 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				toast.success("Command Updated");
 				await refetch();
 			})
-			.catch(() => {
-				toast.error("Error updating the command");
+			.catch((error) => {
+				const message = error.message || "Error updating cluster settings";
+				form.setError("root.server", { message });
+				toast.error(message);
 			});
 	};
 
@@ -179,6 +200,29 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 
 						{type === "application" && (
 							<>
+								<FormField
+									control={form.control}
+									name="swarmVipConnectionReuse"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+											<div className="space-y-0.5">
+												<FormLabel>Reuse backend connections</FormLabel>
+												<FormDescription>
+													Turn this off to avoid reusing backend connections
+													during rolling updates. Requires Traefik's standard
+													proxy and internal API. Custom transports are
+													unchanged.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
 								{registries && registries?.length === 0 ? (
 									<div className="pt-10">
 										<div className="flex flex-col items-center gap-3">

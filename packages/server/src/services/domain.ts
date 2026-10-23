@@ -14,6 +14,7 @@ import type { z } from "zod";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { findPreviewDeploymentById } from "./preview-deployment";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
@@ -128,16 +129,25 @@ export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
-	const domain = await db
+	const changes = {
+		...domainData,
+		...(domainData.host && { host: domainData.host.trim() }),
+	};
+	const domain = { ...(await findDomainById(domainId)), ...changes };
+	if (domain.applicationId) {
+		const application = await findApplicationById(domain.applicationId);
+		await manageDomain(application, domain);
+	} else if (domain.previewDeploymentId) {
+		const preview = await findPreviewDeploymentById(domain.previewDeploymentId);
+		const application = await findApplicationById(preview.applicationId);
+		await manageDomain({ ...application, appName: preview.appName }, domain);
+	}
+	const [updated] = await db
 		.update(domains)
-		.set({
-			...domainData,
-			...(domainData.host && { host: domainData.host.trim() }),
-		})
+		.set(changes)
 		.where(eq(domains.domainId, domainId))
 		.returning();
-
-	return domain[0];
+	return updated;
 };
 
 export const removeDomainById = async (domainId: string) => {
