@@ -17,6 +17,7 @@ import { sendDokployBackupNotifications } from "../notifications/dokploy-backup"
 import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
 import { getBackupTimestamp, getS3Credentials, normalizeS3Path } from "./utils";
+import { WEB_SERVER_BACKUP_EXCLUDES } from "./web-server-filters";
 
 function formatBytes(bytes?: number) {
 	if (bytes === undefined) return "Unknown size";
@@ -82,7 +83,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(cleanupCommand);
 
 			await execAsync(
-				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				`rsync -a --ignore-errors --no-specials --no-devices --exclude='volume-backups/' --exclude='${ENCRYPTION_KEY_BACKUP_FILE}' ${WEB_SERVER_BACKUP_EXCLUDES.join(" ")} ${BASE_PATH}/ ${tempDir}/filesystem/`,
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
