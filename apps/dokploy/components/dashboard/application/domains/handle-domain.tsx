@@ -179,6 +179,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					},
 				);
 
+	const { data: domainDefaults } = api.settings.getDomainDefaults.useQuery(
+		undefined,
+		{ enabled: !domainId },
+	);
+
 	const { mutateAsync, isError, error, isPending } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
@@ -268,14 +273,16 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				port: undefined,
 				useCustomEntrypoint: false,
 				customEntrypoint: undefined,
-				https: false,
-				certificateType: undefined,
+				https: domainDefaults?.https ?? false,
+				certificateType: domainDefaults?.https
+					? domainDefaults.certificateType
+					: undefined,
 				customCertResolver: undefined,
 				domainType: type,
 				middlewares: [],
 			});
 		}
-	}, [form, data, isPending, domainId]);
+	}, [form, data, isPending, domainId, domainDefaults]);
 
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
@@ -563,6 +570,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
+																			form.setValue("https", false);
+																			form.setValue(
+																				"certificateType",
+																				undefined,
+																			);
+																			form.setValue(
+																				"customCertResolver",
+																				undefined,
+																			);
 																		})
 																		.catch((err) => {
 																			toast.error(err.message);
