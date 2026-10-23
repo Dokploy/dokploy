@@ -35,14 +35,6 @@ import {
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
-	getS3Credentials,
-	normalizeS3Path,
-} from "@dokploy/server/utils/backups/utils";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
-import {
 	restoreComposeBackup,
 	restoreLibsqlBackup,
 	restoreMariadbBackup,
@@ -52,14 +44,18 @@ import {
 	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
-import { quote } from "shell-quote";
-import { z } from "zod";
 import {
 	createTRPCRouter,
 	protectedProcedure,
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { listBackupFiles } from "@/server/api/utils/backup-file-listing";
+import {
+	backupFilePageQuery,
+	backupFileQuery,
+	paginateBackupFiles,
+} from "@/server/api/utils/backup-file-pagination";
 import { assertDatabaseBackupLimit } from "@/server/api/utils/plan-limits";
 import {
 	apiCreateBackup,
@@ -69,18 +65,6 @@ import {
 	apiUpdateBackup,
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
-
-interface RcloneFile {
-	Path: string;
-	Name: string;
-	Size: number;
-	IsDir: boolean;
-	Tier?: string;
-	Hashes?: {
-		MD5?: string;
-		SHA1?: string;
-	};
-}
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -481,97 +465,30 @@ export const backupRouter = createTRPCRouter({
 			return true;
 		}),
 	listBackupFiles: withPermission("backup", "read")
-		.input(
-			z.object({
-				destinationId: z.string(),
-				search: z.string(),
-				serverId: z.string().optional(),
-			}),
-		)
+		.input(backupFileQuery)
 		.query(async ({ input, ctx }) => {
 			try {
-				const destination = await findDestinationById(input.destinationId);
-				if (destination.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this destination.",
-					});
-				}
-				if (input.serverId) {
-					const targetServer = await findServerById(input.serverId);
-					if (
-						targetServer.organizationId !== ctx.session.activeOrganizationId
-					) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "You don't have access to this server.",
-						});
-					}
-				}
-				const rcloneFlags = getS3Credentials(destination);
-				const bucketPath = `:s3:${destination.bucket}`;
-
-				const lastSlashIndex = input.search.lastIndexOf("/");
-				const baseDir =
-					lastSlashIndex !== -1
-						? normalizeS3Path(input.search.slice(0, lastSlashIndex + 1))
-						: "";
-				const searchTerm =
-					lastSlashIndex !== -1
-						? input.search.slice(lastSlashIndex + 1)
-						: input.search;
-
-				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
-				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} ${quote([searchPath])} --no-mimetype --no-modtime 2>/dev/null`;
-
-				let stdout = "";
-
-				if (input.serverId) {
-					const result = await execAsyncRemote(input.serverId, listCommand);
-					stdout = result.stdout;
-				} else {
-					const result = await execAsync(listCommand);
-					stdout = result.stdout;
-				}
-
-				let files: RcloneFile[] = [];
-				try {
-					files = JSON.parse(stdout) as RcloneFile[];
-				} catch (error) {
-					console.error("Error parsing JSON response:", error);
-					console.error("Raw stdout:", stdout);
-					throw new Error("Failed to parse backup files list");
-				}
-
-				// Limit to first 100 files
-
-				const results = baseDir
-					? files.map((file) => ({
-							...file,
-							Path: `${baseDir}${file.Path}`,
-						}))
-					: files;
-
-				if (searchTerm) {
-					return results
-						.filter((file) =>
-							file.Path.toLowerCase().includes(searchTerm.toLowerCase()),
-						)
-						.slice(0, 100);
-				}
-
-				return results.slice(0, 100);
+				const files = await listBackupFiles(
+					input,
+					ctx.session.activeOrganizationId,
+				);
+				return files.slice(0, 100);
 			} catch (error) {
-				console.error("Error in listBackupFiles:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:
 						error instanceof Error
 							? error.message
 							: "Error listing backup files",
-					cause: error,
 				});
 			}
+		}),
+	listBackupFilesPage: withPermission("backup", "read")
+		.input(backupFilePageQuery)
+		.query(async ({ input, ctx }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+			const files = await listBackupFiles(input, organizationId);
+			return paginateBackupFiles(files, input, organizationId);
 		}),
 
 	restoreBackupWithLogs: protectedProcedure

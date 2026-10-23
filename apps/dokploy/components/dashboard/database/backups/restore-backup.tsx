@@ -1,6 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
-import debounce from "lodash/debounce";
 import {
 	CheckIcon,
 	ChevronsUpDown,
@@ -9,10 +8,11 @@ import {
 	RefreshCw,
 	RotateCcw,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { BackupFilePicker } from "@/components/shared/backup-file-picker";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -188,14 +188,6 @@ const RestoreBackupSchema = z
 		}
 	});
 
-export const formatBytes = (bytes: number): string => {
-	if (bytes === 0) return "0 Bytes";
-	const k = 1024;
-	const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
-};
-
 export const RestoreBackup = ({
 	id,
 	databaseType,
@@ -204,8 +196,6 @@ export const RestoreBackup = ({
 	trigger,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [search, setSearch] = useState("");
-	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
@@ -231,25 +221,9 @@ export const RestoreBackup = ({
 	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
 
-	const debouncedSetSearch = debounce((value: string) => {
-		setDebouncedSearchTerm(value);
-	}, 350);
-
-	const handleSearchChange = (value: string) => {
-		setSearch(value);
-		debouncedSetSearch(value);
-	};
-
-	const { data: files = [], isPending } = api.backup.listBackupFiles.useQuery(
-		{
-			destinationId: destinationId,
-			search: debouncedSearchTerm,
-			serverId: serverId ?? "",
-		},
-		{
-			enabled: isOpen && !!destinationId,
-		},
-	);
+	useEffect(() => {
+		form.setValue("backupFile", "");
+	}, [destinationId, serverId, id, databaseType, backupType, form]);
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -425,98 +399,20 @@ export const RestoreBackup = ({
 											</Badge>
 										)}
 									</FormLabel>
-									<Popover modal>
-										<PopoverTrigger asChild>
-											<FormControl>
-												<Button
-													variant="outline"
-													className={cn(
-														"w-full justify-between",
-														!field.value && "text-muted-foreground",
-													)}
-												>
-													<span className="truncate text-left flex-1 w-52">
-														{field.value || "Search and select a backup file"}
-													</span>
-													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-												</Button>
-											</FormControl>
-										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
-											<Command>
-												<CommandInput
-													placeholder="Search backup files..."
-													value={search}
-													onValueChange={handleSearchChange}
-													className="h-9"
-												/>
-												{isPending ? (
-													<div className="py-6 text-center text-sm">
-														Loading backup files...
-													</div>
-												) : files.length === 0 && search ? (
-													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files found for "{search}"
-													</div>
-												) : files.length === 0 ? (
-													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files available
-													</div>
-												) : (
-													<ScrollArea className="h-64">
-														<CommandGroup className="w-96">
-															{files?.map((file) => (
-																<CommandItem
-																	value={file.Path}
-																	key={file.Path}
-																	onSelect={() => {
-																		form.setValue("backupFile", file.Path);
-																		if (file.IsDir) {
-																			setSearch(`${file.Path}/`);
-																			setDebouncedSearchTerm(`${file.Path}/`);
-																		} else {
-																			setSearch(file.Path);
-																			setDebouncedSearchTerm(file.Path);
-																		}
-																	}}
-																>
-																	<div className="flex w-full flex-col gap-1">
-																		<div className="flex w-full justify-between">
-																			<span className="font-medium">
-																				{file.Path}
-																			</span>
-
-																			<CheckIcon
-																				className={cn(
-																					"ml-auto h-4 w-4",
-																					file.Path === field.value
-																						? "opacity-100"
-																						: "opacity-0",
-																				)}
-																			/>
-																		</div>
-																		<div className="flex items-center gap-4 text-xs text-muted-foreground">
-																			<span>
-																				Size: {formatBytes(file.Size)}
-																			</span>
-																			{file.IsDir && (
-																				<span className="text-blue-500">
-																					Directory
-																				</span>
-																			)}
-																			{file.Hashes?.MD5 && (
-																				<span>MD5: {file.Hashes.MD5}</span>
-																			)}
-																		</div>
-																	</div>
-																</CommandItem>
-															))}
-														</CommandGroup>
-													</ScrollArea>
-												)}
-											</Command>
-										</PopoverContent>
-									</Popover>
+									<BackupFilePicker
+										key={JSON.stringify([
+											id,
+											destinationId,
+											serverId,
+											databaseType,
+											backupType,
+										])}
+										destinationId={destinationId}
+										serverId={serverId}
+										enabled={isOpen}
+										value={field.value}
+										onChange={(path) => form.setValue("backupFile", path)}
+									/>
 									<FormMessage />
 								</FormItem>
 							)}
