@@ -52,7 +52,7 @@ const { cloneGiteaRepository } = await import(
 );
 
 const basic = (username: string, token: string) =>
-	Buffer.from(`${username}:${token}`).toString("base64")
+	Buffer.from(`${username}:${token}`).toString("base64");
 
 const base = { appName: "my-app", enableSubmodules: true, serverId: null };
 
