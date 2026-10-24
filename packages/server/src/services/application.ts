@@ -11,6 +11,7 @@ import {
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
+import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
 	ExecError,
@@ -245,6 +246,11 @@ export const deployApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
+		const errorMessage = await getBuildErrorMessage(
+			error,
+			deployment.logPath,
+			serverId,
+		);
 		let command = "";
 
 		// Only log details for non-ExecError errors
@@ -267,8 +273,7 @@ export const deployApplication = async ({
 			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
+			errorMessage,
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 		});
@@ -429,22 +434,22 @@ export const deployPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
 		application.rollbackRegistry = null;
-		application.registry = null;
 
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
 				...application,
+				serverId,
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
 			command += await getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (serverId) {
+				await execAsyncRemote(serverId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -548,11 +553,9 @@ export const rebuildPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
 		application.rollbackRegistry = null;
-		application.registry = null;
 
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
 		command += await getBuildCommand(application);

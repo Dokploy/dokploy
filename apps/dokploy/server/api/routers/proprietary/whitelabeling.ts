@@ -87,6 +87,8 @@ export const whitelabelingRouter = createTRPCRouter({
 				errorPageDescription: null,
 				ogImageUrl: null,
 				footerText: null,
+				passwordResetGuide: null,
+				supportEmail: null,
 				logoLightUrl: null,
 				loginLogoLightUrl: null,
 				faviconLightUrl: null,

@@ -106,6 +106,7 @@ export const pipeBetweenServers = async ({
 		bytes += chunk.length;
 		onProgress?.(bytes);
 	});
+	from.stdout.on("error", () => {});
 	from.stdout.pipe(to.stdin);
 
 	const targetExit = to.exit.then((code) => {

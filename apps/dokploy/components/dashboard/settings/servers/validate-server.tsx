@@ -152,6 +152,15 @@ export const ValidateServer = ({ serverId }: Props) => {
 															: "Not Created"
 													}
 												/>
+												<StatusRow
+													label="Traefik Installed"
+													isEnabled={data?.traefik?.enabled}
+													description={
+														data?.traefik?.enabled
+															? `Installed: ${data?.traefik?.version}`
+															: undefined
+													}
+												/>
 											</>
 										)}
 										<StatusRow

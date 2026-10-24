@@ -37,6 +37,12 @@ const safeUrlField = z
 		message: "Only http:// and https:// URLs are allowed",
 	});
 
+const safeEmailField = z
+	.string()
+	.refine((val) => val === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+		message: "Enter a valid email address",
+	});
+
 const formSchema = z
 	.object({
 		appName: z.string(),
@@ -51,6 +57,8 @@ const formSchema = z
 		errorPageDescription: z.string(),
 		footerText: z.string(),
 		ogImageUrl: safeUrlField,
+		passwordResetGuide: z.string().optional(),
+		supportEmail: safeEmailField.optional(),
 		logoLightUrl: z.string(),
 		loginLogoLightUrl: z.string(),
 		faviconLightUrl: z.string(),
@@ -218,6 +226,8 @@ export function WhitelabelingSettings() {
 			errorPageDescription: "",
 			footerText: "",
 			ogImageUrl: "",
+			passwordResetGuide: "",
+			supportEmail: "",
 			logoLightUrl: "",
 			loginLogoLightUrl: "",
 			faviconLightUrl: "",
@@ -241,6 +251,8 @@ export function WhitelabelingSettings() {
 				errorPageDescription: data.errorPageDescription ?? "",
 				footerText: data.footerText ?? "",
 				ogImageUrl: data.ogImageUrl ?? "",
+				passwordResetGuide: data.passwordResetGuide ?? "",
+				supportEmail: data.supportEmail ?? "",
 				logoLightUrl: data.logoLightUrl ?? "",
 				loginLogoLightUrl: data.loginLogoLightUrl ?? "",
 				faviconLightUrl: data.faviconLightUrl ?? "",
@@ -275,6 +287,8 @@ export function WhitelabelingSettings() {
 				errorPageDescription: values.errorPageDescription || null,
 				footerText: values.footerText || null,
 				ogImageUrl: values.ogImageUrl || null,
+				passwordResetGuide: values.passwordResetGuide || null,
+				supportEmail: values.supportEmail || null,
 				logoLightUrl: values.logoLightUrl || null,
 				loginLogoLightUrl: values.loginLogoLightUrl || null,
 				faviconLightUrl: values.faviconLightUrl || null,
