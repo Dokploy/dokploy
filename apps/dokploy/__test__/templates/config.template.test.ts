@@ -305,6 +305,42 @@ describe("processTemplate", () => {
 			expect(result.envs).toContain("DEBUG_MODE=true");
 			expect(result.envs).toContain("SOME_NUMBER=42");
 		});
+
+		it("should process env vars when provided as an array of tables/objects with variable substitution", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					admin_password: "${password:32}",
+					user_password: "${password:16}",
+				},
+				config: {
+					domains: [],
+					env: [
+						{
+							ADMIN_PASSWORD: "${admin_password}",
+							USER_PASSWORD: "${user_password}",
+						},
+						{ PORT: 3000, IS_ACTIVE: true },
+					],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(4);
+			const adminPassword = result.envs.find((env: string) =>
+				env.startsWith("ADMIN_PASSWORD="),
+			);
+			const userPassword = result.envs.find((env: string) =>
+				env.startsWith("USER_PASSWORD="),
+			);
+
+			expect(adminPassword).toBeDefined();
+			expect(userPassword).toBeDefined();
+			expect(adminPassword?.split("=")[1]).toHaveLength(32);
+			expect(userPassword?.split("=")[1]).toHaveLength(16);
+			expect(result.envs).toContain("PORT=3000");
+			expect(result.envs).toContain("IS_ACTIVE=true");
+		});
 	});
 
 	describe("mounts processing", () => {
