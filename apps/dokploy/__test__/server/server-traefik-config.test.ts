@@ -203,14 +203,19 @@ api:
 			`providers: { swarm: { exposedByDefault: false }, docker: {} }
 `,
 		],
-	])("leaves a worker config with %s untouched and warns", (_form, original) => {
-		const { config, backup, dockerCalls, output } = runStep(WORKER, original);
+	])(
+		"leaves a worker config with %s untouched and warns",
+		(_form, original) => {
+			const { config, backup, dockerCalls, output } = runStep(WORKER, original);
 
-		expect(config).toBe(original);
-		expect(backup).toBeNull();
-		expect(dockerCalls.some((call) => call.startsWith("restart"))).toBe(false);
-		expect(output).toContain("Could not remove providers.swarm");
-	});
+			expect(config).toBe(original);
+			expect(backup).toBeNull();
+			expect(dockerCalls.some((call) => call.startsWith("restart"))).toBe(
+				false,
+			);
+			expect(output).toContain("Could not remove providers.swarm");
+		},
+	);
 
 	it("leaves a worker config without the Swarm provider untouched", () => {
 		const original = `${getDefaultServerTraefikConfig(false)}\n`;
