@@ -4,7 +4,6 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiTransferService,
 	deployments,
-	network,
 	type ServiceType,
 } from "@dokploy/server/db/schema";
 import { removeService } from "@dokploy/server/utils/docker/utils";
@@ -33,7 +32,7 @@ import {
 import { createRedirectMiddleware } from "@dokploy/server/utils/traefik/redirect";
 import { createSecurityMiddleware } from "@dokploy/server/utils/traefik/security";
 import { TRPCError } from "@trpc/server";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
@@ -54,6 +53,7 @@ import { deployMariadb, findMariadbById, updateMariadbById } from "./mariadb";
 import { deployMongo, findMongoById, updateMongoById } from "./mongo";
 import { createFileMount } from "./mount";
 import { deployMySql, findMySqlById, updateMySqlById } from "./mysql";
+import { resolveNetworkIds } from "./network";
 import {
 	deployPostgres,
 	findPostgresById,
@@ -274,27 +274,6 @@ const startOnSource = async (service: TransferableService, log: Logger) => {
 		service.serverId ?? null,
 		`docker service scale ${q(service.appName)}=${replicas} >/dev/null 2>&1 || true`,
 	);
-};
-
-const resolveNetworkIds = async (
-	networkIds: string[] | null | undefined,
-	targetServerId: string | null,
-) => {
-	if (!networkIds || networkIds.length === 0) {
-		return { kept: [] as string[], dropped: [] as string[] };
-	}
-	const rows = await db.query.network.findMany({
-		where: inArray(network.networkId, networkIds),
-		columns: { networkId: true, name: true, serverId: true },
-	});
-	return {
-		kept: rows
-			.filter((row) => (row.serverId ?? null) === targetServerId)
-			.map((row) => row.networkId),
-		dropped: rows
-			.filter((row) => (row.serverId ?? null) !== targetServerId)
-			.map((row) => row.name),
-	};
 };
 
 const moveTraefikConfig = async (
