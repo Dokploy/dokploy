@@ -668,6 +668,7 @@ fi
 
 const removeSwarmProviderAwk = `
 /^providers:[[:space:]]*(#.*)?$/ { inProviders = 1; childIndent = -1; print; next }
+/^providers:/ && /swarm/ { unsupported = 1 }
 inProviders && /^[^[:space:]#]/ { inProviders = 0 }
 skipping {
 	if ($0 ~ /^[[:space:]]*$/) { blanks = blanks $0 "\\n"; next }
@@ -678,10 +679,14 @@ skipping {
 inProviders && /^[[:space:]]+[^[:space:]#]/ {
 	match($0, /^[[:space:]]*/)
 	if (childIndent < 0) childIndent = RLENGTH
-	if (RLENGTH == childIndent && $0 ~ /^[[:space:]]*swarm:([[:space:]]|$)/) { swarmIndent = RLENGTH; skipping = 1; removed = 1; next }
+	if (RLENGTH == childIndent) {
+		if ($0 ~ /^[[:space:]]*swarm:[[:space:]]*(#.*)?$/) { swarmIndent = RLENGTH; skipping = 1; removed = 1; next }
+		if ($0 ~ /^[[:space:]]*swarm:[[:space:]]*[{][^{}]*[}][[:space:]]*(#.*)?$/) { removed = 1; next }
+		if ($0 ~ /^[[:space:]]*[^[:space:]]?swarm[^[:space:]]?[[:space:]]*:/) unsupported = 1
+	}
 }
 { print }
-END { printf "%s", blanks; exit !removed }
+END { printf "%s", blanks; if (unsupported) exit 2; exit !removed }
 `;
 
 export const createServerTraefikConfig = (
@@ -698,17 +703,25 @@ export const createServerTraefikConfig = (
 	if [ -f "${configPath}" ]; then
 		echo "Traefik config already exists ✅"
 		if ${isSwarmWorker}; then
-			if awk '${removeSwarmProviderAwk}' "${configPath}" > "${configPath}.tmp"; then
-				cp "${configPath}" "${configPath}.bak"
-				# Write in place: the file is bind-mounted, a new inode would not reach the container.
-				cat "${configPath}.tmp" > "${configPath}"
-				echo "Removed Swarm provider from Traefik config (Swarm worker), backup at ${configPath}.bak ✅"
-				if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
-					$SUDO_CMD docker restart dokploy-traefik > /dev/null
-					echo "Traefik restarted ✅"
+			(
+				command -v flock > /dev/null && flock 9
+				tmp=$(mktemp)
+				status=0
+				awk '${removeSwarmProviderAwk}' "${configPath}" > "$tmp" || status=$?
+				if [ "$status" -eq 0 ]; then
+					cp "${configPath}" "${configPath}.bak"
+					# Write in place: the file is bind-mounted, a new inode would not reach the container.
+					cat "$tmp" > "${configPath}"
+					echo "Removed Swarm provider from Traefik config (Swarm worker), backup at ${configPath}.bak ✅"
+					if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
+						$SUDO_CMD docker restart dokploy-traefik > /dev/null
+						echo "Traefik restarted ✅"
+					fi
+				elif [ "$status" -eq 2 ]; then
+					echo "⚠️ Could not remove providers.swarm from ${configPath} automatically. Swarm workers can't use it, remove it manually and restart dokploy-traefik."
 				fi
-			fi
-			rm -f "${configPath}.tmp"
+				rm -f "$tmp"
+			) 9> /tmp/dokploy-traefik-config.lock
 		fi
 	elif ${isSwarmWorker}; then
 		echo "${workerConfig}" > "${configPath}"

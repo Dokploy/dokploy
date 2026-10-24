@@ -5,6 +5,7 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
+	rmSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,14 +15,23 @@ import {
 	getDefaultServerTraefikConfig,
 	setupNetwork,
 } from "@dokploy/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
 const WORKER = "active false";
 const MANAGER = "active true";
 
+const sandboxes: string[] = [];
+
+afterEach(() => {
+	for (const dir of sandboxes.splice(0)) {
+		rmSync(dir, { recursive: true, force: true });
+	}
+});
+
 const makeSandbox = (swarmRole: string) => {
 	const dir = mkdtempSync(path.join(tmpdir(), "dokploy-traefik-step-"));
+	sandboxes.push(dir);
 	const binDir = path.join(dir, "bin");
 	const dockerLog = path.join(dir, "docker.log");
 	mkdirSync(binDir);
@@ -166,6 +176,40 @@ api:
 		const { config } = runStep(WORKER, original);
 
 		expect(parse(config)).toEqual(withoutSwarm(original));
+	});
+
+	it.each([
+		[
+			"a multiline flow mapping",
+			`providers:
+  swarm: {
+    exposedByDefault: false
+  }
+  docker:
+    exposedByDefault: false
+`,
+		],
+		[
+			"a quoted key",
+			`providers:
+  "swarm":
+    exposedByDefault: false
+  docker:
+    exposedByDefault: false
+`,
+		],
+		[
+			"an inline providers mapping",
+			`providers: { swarm: { exposedByDefault: false }, docker: {} }
+`,
+		],
+	])("leaves a worker config with %s untouched and warns", (_form, original) => {
+		const { config, backup, dockerCalls, output } = runStep(WORKER, original);
+
+		expect(config).toBe(original);
+		expect(backup).toBeNull();
+		expect(dockerCalls.some((call) => call.startsWith("restart"))).toBe(false);
+		expect(output).toContain("Could not remove providers.swarm");
 	});
 
 	it("leaves a worker config without the Swarm provider untouched", () => {
