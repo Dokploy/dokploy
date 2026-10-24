@@ -42,6 +42,7 @@ vi.mock("@dokploy/server/services/volume-backups", () => ({
 vi.mock("@dokploy/server/utils/backups/utils", () => ({
 	getBackupCommand: vi.fn(() => "echo backup"),
 	getBackupTimestamp: vi.fn(() => "2024"),
+	getBackupFileName: vi.fn(() => "2024.sql.gz"),
 	getS3Credentials: vi.fn(() => []),
 	normalizeS3Path: vi.fn(() => ""),
 }));
