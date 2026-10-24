@@ -468,13 +468,15 @@ export const getDefaultTraefikConfig = () => {
 	return yamlStr;
 };
 
-export const getDefaultServerTraefikConfig = () => {
+export const getDefaultServerTraefikConfig = (withSwarmProvider = true) => {
 	const configObject: MainTraefikConfig = {
 		providers: {
-			swarm: {
-				exposedByDefault: false,
-				watch: true,
-			},
+			...(withSwarmProvider && {
+				swarm: {
+					exposedByDefault: false,
+					watch: true,
+				},
+			}),
 			docker: {
 				exposedByDefault: false,
 				watch: true,
