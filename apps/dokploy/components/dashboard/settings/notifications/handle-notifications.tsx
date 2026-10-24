@@ -55,6 +55,7 @@ const notificationBaseSchema = z.object({
 	appBuildError: z.boolean().default(false),
 	databaseBackup: z.boolean().default(false),
 	dokployBackup: z.boolean().default(false),
+	domainChanged: z.boolean().default(false),
 	volumeBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
@@ -357,6 +358,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
 					webhookUrl: notification.slack?.webhookUrl,
@@ -372,6 +374,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					botToken: notification.telegram?.botToken,
 					messageThreadId: notification.telegram?.messageThreadId || "",
@@ -388,6 +391,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.discord?.webhookUrl,
@@ -403,6 +407,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					smtpServer: notification.email?.smtpServer,
@@ -422,6 +427,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					apiKey: notification.resend?.apiKey,
@@ -438,6 +444,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					appToken: notification.gotify?.appToken,
@@ -455,6 +462,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					accessToken: notification.ntfy?.accessToken || "",
@@ -472,6 +480,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.mattermost?.webhookUrl,
@@ -488,6 +497,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					type: notification.notificationType,
 					webhookUrl: notification.lark?.webhookUrl,
 					name: notification.name,
@@ -502,6 +512,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.teams?.webhookUrl,
@@ -516,6 +527,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					type: notification.notificationType,
 					endpoint: notification.custom?.endpoint || "",
 					headers: notification.custom?.headers
@@ -538,6 +550,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					dokployBackup: notification.dokployBackup,
+					domainChanged: notification.domainChanged,
 					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					userKey: notification.pushover?.userKey,
@@ -577,6 +590,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			dokployRestart,
 			databaseBackup,
 			dokployBackup,
+			domainChanged,
 			volumeBackup,
 			dockerCleanup,
 			serverThreshold,
@@ -589,6 +603,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				channel: data.channel,
@@ -605,6 +620,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				botToken: data.botToken,
 				messageThreadId: data.messageThreadId || "",
@@ -622,6 +638,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				decoration: data.decoration,
@@ -638,6 +655,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				smtpServer: data.smtpServer,
 				smtpPort: data.smtpPort,
@@ -658,6 +676,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				apiKey: data.apiKey,
 				fromAddress: data.fromAddress,
@@ -675,6 +694,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
 				appToken: data.appToken,
@@ -693,6 +713,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
 				accessToken: data.accessToken || "",
@@ -711,6 +732,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				channel: data.channel || undefined,
@@ -728,6 +750,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				name: data.name,
@@ -743,6 +766,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				name: data.name,
@@ -770,6 +794,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				endpoint: data.endpoint,
 				headers: headersRecord,
@@ -790,6 +815,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				dokployBackup: dokployBackup,
+				domainChanged: domainChanged,
 				volumeBackup: volumeBackup,
 				userKey: data.userKey,
 				apiToken: data.apiToken,
@@ -1936,6 +1962,28 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
 													Trigger the action when Docker cleanup is performed.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="domainChanged"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-xs gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Domain Changes</FormLabel>
+												<FormDescription>
+													Trigger the action when a domain is added, updated or
+													removed.
 												</FormDescription>
 											</div>
 											<FormControl>

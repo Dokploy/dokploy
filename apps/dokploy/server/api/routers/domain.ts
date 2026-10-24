@@ -1,6 +1,7 @@
 import {
 	createDomain,
 	findApplicationById,
+	findComposeById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
@@ -12,6 +13,7 @@ import {
 	manageDomain,
 	removeDomain,
 	removeDomainById,
+	sendDomainChangedNotifications,
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
@@ -53,6 +55,22 @@ export const domainRouter = createTRPCRouter({
 					resourceId: domain.domainId,
 					resourceName: domain.host,
 				});
+				const service = domain.applicationId
+					? await findApplicationById(domain.applicationId)
+					: domain.composeId
+						? await findComposeById(domain.composeId)
+						: null;
+				if (service) {
+					await sendDomainChangedNotifications({
+						event: "created",
+						domain,
+						projectName: service.environment.project.name,
+						serviceName: service.name,
+						serviceType: domain.applicationId ? "application" : "compose",
+						environmentName: service.environment.name,
+						organizationId: service.environment.project.organizationId,
+					});
+				}
 				return domain;
 			} catch (error) {
 				throw new TRPCError({
@@ -140,6 +158,22 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
+			const service = domain.applicationId
+				? await findApplicationById(domain.applicationId)
+				: domain.composeId
+					? await findComposeById(domain.composeId)
+					: null;
+			if (service) {
+				await sendDomainChangedNotifications({
+					event: "updated",
+					domain,
+					projectName: service.environment.project.name,
+					serviceName: service.name,
+					serviceType: domain.applicationId ? "application" : "compose",
+					environmentName: service.environment.name,
+					organizationId: service.environment.project.organizationId,
+				});
+			}
 			return result;
 		}),
 	toggleEnable: protectedProcedure
@@ -189,6 +223,22 @@ export const domainRouter = createTRPCRouter({
 				await manageDomain(application, domain);
 			}
 
+			const service = domain.applicationId
+				? await findApplicationById(domain.applicationId)
+				: domain.composeId
+					? await findComposeById(domain.composeId)
+					: null;
+			if (service) {
+				await sendDomainChangedNotifications({
+					event: "updated",
+					domain,
+					projectName: service.environment.project.name,
+					serviceName: service.name,
+					serviceType: domain.applicationId ? "application" : "compose",
+					environmentName: service.environment.name,
+					organizationId: service.environment.project.organizationId,
+				});
+			}
 			return {
 				...result,
 				requiresRedeploy: domain.domainType === "compose",
@@ -242,6 +292,22 @@ export const domainRouter = createTRPCRouter({
 				await removeDomain(application, domain.uniqueConfigKey);
 			}
 
+			const service = domain.applicationId
+				? await findApplicationById(domain.applicationId)
+				: domain.composeId
+					? await findComposeById(domain.composeId)
+					: null;
+			if (service) {
+				await sendDomainChangedNotifications({
+					event: "removed",
+					domain,
+					projectName: service.environment.project.name,
+					serviceName: service.name,
+					serviceType: domain.applicationId ? "application" : "compose",
+					environmentName: service.environment.name,
+					organizationId: service.environment.project.organizationId,
+				});
+			}
 			return result;
 		}),
 

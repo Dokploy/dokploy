@@ -22,6 +22,7 @@ import {
 	removePreviewDeployment,
 	removeService,
 	removeTraefikConfig,
+	sendDomainChangedNotifications,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -396,6 +397,17 @@ export const applicationRouter = createTRPCRouter({
 				resourceId: application.applicationId,
 				resourceName: application.appName,
 			});
+			for (const domain of application.domains) {
+				await sendDomainChangedNotifications({
+					event: "removed",
+					domain,
+					projectName: application.environment.project.name,
+					serviceName: application.name,
+					serviceType: "application",
+					environmentName: application.environment.name,
+					organizationId: application.environment.project.organizationId,
+				});
+			}
 			return application;
 		}),
 

@@ -28,6 +28,7 @@ import {
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
 	removeDomainById,
+	sendDomainChangedNotifications,
 	startCompose,
 	stopCompose,
 	updateCompose,
@@ -275,6 +276,17 @@ export const composeRouter = createTRPCRouter({
 				resourceId: composeResult.composeId,
 				resourceName: composeResult.appName,
 			});
+			for (const domain of composeResult.domains) {
+				await sendDomainChangedNotifications({
+					event: "removed",
+					domain,
+					projectName: composeResult.environment.project.name,
+					serviceName: composeResult.name,
+					serviceType: "compose",
+					environmentName: composeResult.environment.name,
+					organizationId: composeResult.environment.project.organizationId,
+				});
+			}
 			return composeResult;
 		}),
 	cleanQueues: protectedProcedure
