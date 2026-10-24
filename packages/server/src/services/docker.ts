@@ -460,8 +460,9 @@ export const getContainerLogs = async (
 		: `docker container logs --timestamps --tail ${tail} ${sinceFlag} ${target}`;
 
 	const escapedSearch = search?.replace(/'/g, "'\\''") ?? "";
+	// grep exits 1 when nothing matches; that is an empty result, not an error.
 	const command = search
-		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}'`
+		? `${baseCommand} 2>&1 | grep -iF '${escapedSearch}' || [ $? -eq 1 ]`
 		: `${baseCommand} 2>&1`;
 
 	try {
