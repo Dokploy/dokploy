@@ -706,6 +706,7 @@ export const createServerTraefikConfig = (
 			(
 				command -v flock > /dev/null && flock 9
 				tmp=$(mktemp)
+				trap 'rm -f "$tmp"' EXIT
 				status=0
 				awk '${removeSwarmProviderAwk}' "${configPath}" > "$tmp" || status=$?
 				if [ "$status" -eq 0 ]; then
@@ -720,7 +721,6 @@ export const createServerTraefikConfig = (
 				elif [ "$status" -eq 2 ]; then
 					echo "⚠️ Could not remove providers.swarm from ${configPath} automatically. Swarm workers can't use it, remove it manually and restart dokploy-traefik."
 				fi
-				rm -f "$tmp"
 			) 9> /tmp/dokploy-traefik-config.lock
 		fi
 	elif ${isSwarmWorker}; then
