@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
+import { sendDomainChangedNotifications } from "@dokploy/server/utils/notifications/domain-changed";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
@@ -14,9 +15,39 @@ import type { z } from "zod";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { findComposeById } from "./compose";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
+
+const notifyDomainChange = (
+	event: "created" | "updated" | "removed",
+	domain: Domain,
+) => {
+	const service = domain.applicationId
+		? findApplicationById(domain.applicationId)
+		: domain.composeId
+			? findComposeById(domain.composeId)
+			: null;
+	if (!service) return;
+
+	// Delivery waits on external endpoints, so it must not hold up the request.
+	service
+		.then((service) =>
+			sendDomainChangedNotifications({
+				event,
+				domain,
+				projectName: service.environment.project.name,
+				serviceName: service.name,
+				serviceType: domain.applicationId ? "application" : "compose",
+				environmentName: service.environment.name,
+				organizationId: service.environment.project.organizationId,
+			}),
+		)
+		.catch((error) =>
+			console.error("Error sending domain change notifications:", error),
+		);
+};
 
 export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 	const result = await db.transaction(async (tx) => {
@@ -44,6 +75,7 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 		return domain;
 	});
 
+	notifyDomainChange("created", result);
 	return result;
 };
 
@@ -137,6 +169,9 @@ export const updateDomainById = async (
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
+	if (domain[0]) {
+		notifyDomainChange("updated", domain[0]);
+	}
 	return domain[0];
 };
 
@@ -147,6 +182,9 @@ export const removeDomainById = async (domainId: string) => {
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
+	if (result[0]) {
+		notifyDomainChange("removed", result[0]);
+	}
 	return result[0];
 };
 

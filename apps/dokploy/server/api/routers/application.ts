@@ -398,7 +398,7 @@ export const applicationRouter = createTRPCRouter({
 				resourceName: application.appName,
 			});
 			for (const domain of application.domains) {
-				await sendDomainChangedNotifications({
+				sendDomainChangedNotifications({
 					event: "removed",
 					domain,
 					projectName: application.environment.project.name,
@@ -406,7 +406,9 @@ export const applicationRouter = createTRPCRouter({
 					serviceType: "application",
 					environmentName: application.environment.name,
 					organizationId: application.environment.project.organizationId,
-				});
+				}).catch((error) =>
+					console.error("Error sending domain change notifications:", error),
+				);
 			}
 			return application;
 		}),

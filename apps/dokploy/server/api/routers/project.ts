@@ -18,6 +18,8 @@ import {
 	deleteProject,
 	findApplicationById,
 	findComposeById,
+	findDomainsByApplicationId,
+	findDomainsByComposeId,
 	findEnvironmentById,
 	findLibsqlById,
 	findMariadbById,
@@ -28,6 +30,7 @@ import {
 	findRedisById,
 	findUserById,
 	IS_CLOUD,
+	sendDomainChangedNotifications,
 	updateProjectById,
 	updateUser,
 } from "@dokploy/server";
@@ -776,7 +779,43 @@ export const projectRouter = createTRPCRouter({
 					});
 				}
 				await checkProjectAccess(ctx, "delete", input.projectId);
+				const projectServices = await Promise.all(
+					currentProject.environments.flatMap((environment) => [
+						...environment.applications.map(async (application) => ({
+							environment,
+							name: application.name,
+							serviceType: "application" as const,
+							domains: await findDomainsByApplicationId(
+								application.applicationId,
+							),
+						})),
+						...environment.compose.map(async (compose) => ({
+							environment,
+							name: compose.name,
+							serviceType: "compose" as const,
+							domains: await findDomainsByComposeId(compose.composeId),
+						})),
+					]),
+				);
 				const deletedProject = await deleteProject(input.projectId);
+				for (const service of projectServices) {
+					for (const domain of service.domains) {
+						sendDomainChangedNotifications({
+							event: "removed",
+							domain,
+							projectName: currentProject.name,
+							serviceName: service.name,
+							serviceType: service.serviceType,
+							environmentName: service.environment.name,
+							organizationId: currentProject.organizationId,
+						}).catch((error) =>
+							console.error(
+								"Error sending domain change notifications:",
+								error,
+							),
+						);
+					}
+				}
 
 				await audit(ctx, {
 					action: "delete",

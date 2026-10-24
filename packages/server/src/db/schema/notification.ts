@@ -269,7 +269,6 @@ export const apiCreateSlack = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -281,7 +280,8 @@ export const apiCreateSlack = notificationsSchema
 		webhookUrl: z.string().min(1),
 		channel: z.string(),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
@@ -299,7 +299,6 @@ export const apiCreateTelegram = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -312,7 +311,8 @@ export const apiCreateTelegram = notificationsSchema
 		chatId: z.string().min(1),
 		messageThreadId: z.string(),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
@@ -331,7 +331,6 @@ export const apiCreateDiscord = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -343,7 +342,8 @@ export const apiCreateDiscord = notificationsSchema
 		webhookUrl: z.string().min(1),
 		decoration: z.boolean(),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
@@ -364,7 +364,6 @@ export const apiCreateEmail = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -380,7 +379,8 @@ export const apiCreateEmail = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
@@ -402,7 +402,6 @@ export const apiCreateResend = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -415,7 +414,8 @@ export const apiCreateResend = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateResend = apiCreateResend.partial().extend({
 	notificationId: z.string().min(1),
@@ -434,7 +434,6 @@ export const apiCreateGotify = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -448,7 +447,8 @@ export const apiCreateGotify = notificationsSchema
 		priority: z.number().min(1),
 		decoration: z.boolean(),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	notificationId: z.string().min(1),
@@ -471,7 +471,6 @@ export const apiCreateNtfy = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -485,7 +484,8 @@ export const apiCreateNtfy = notificationsSchema
 		accessToken: z.string().optional(),
 		priority: z.number().min(1),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
 	notificationId: z.string().min(1),
@@ -587,7 +587,6 @@ export const apiCreateLark = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -598,7 +597,8 @@ export const apiCreateLark = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateLark = apiCreateLark.partial().extend({
 	notificationId: z.string().min(1),
@@ -615,7 +615,6 @@ export const apiCreateTeams = notificationsSchema
 		appBuildError: true,
 		databaseBackup: true,
 		dokployBackup: true,
-		domainChanged: true,
 		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
@@ -626,7 +625,8 @@ export const apiCreateTeams = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 	})
-	.required();
+	.required()
+	.extend({ domainChanged: z.boolean().optional() });
 
 export const apiUpdateTeams = apiCreateTeams.partial().extend({
 	notificationId: z.string().min(1),
