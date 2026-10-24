@@ -215,7 +215,7 @@ export const createDeploymentPreview = async (
 	await removeLastTenDeployments(
 		deployment.previewDeploymentId,
 		"previewDeployment",
-		serverId,
+		previewDeployment.application.serverId,
 	);
 	try {
 		const appName = `${previewDeployment.appName}`;
