@@ -4,7 +4,7 @@ import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { findDestinationById } from "@dokploy/server/services/destination";
+import { findDestinationByIdForOrganization } from "@dokploy/server/services/destination";
 import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
@@ -24,7 +24,10 @@ export const runComposeBackup = async (
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType, serviceName } = backup;
-	const destination = await findDestinationById(backup.destinationId);
+	const destination = await findDestinationByIdForOrganization(
+		backup.destinationId,
+		project.organizationId,
+	);
 	const backupFileName = getBackupFileName(
 		backup.customName,
 		databaseType === "mongo" ? "bson.gz" : "sql.gz",

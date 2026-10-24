@@ -45,7 +45,7 @@ export const apiCreateCertificate = createInsertSchema(certificates, {
 	privateKey: z.string().min(1),
 	autoRenew: z.boolean().optional(),
 	serverId: z.string().optional(),
-});
+}).omit({ certificatePath: true });
 
 export const apiFindCertificate = z.object({
 	certificateId: z.string().min(1),

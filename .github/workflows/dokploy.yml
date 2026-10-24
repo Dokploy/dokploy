@@ -207,7 +207,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24.4.0
+          node-version: 24.22.1
           cache: pnpm
 
       - name: Generate OpenAPI specification

@@ -18,6 +18,7 @@ const FREE_TIER_RESOURCES = [
 	"gitProviders",
 	"traefikFiles",
 	"api",
+	"telemetryProvider",
 ];
 
 const ENTERPRISE_RESOURCES = [
@@ -41,6 +42,7 @@ const ENTERPRISE_RESOURCES = [
 	"auditLog",
 	"vaultProvider",
 	"dnsProvider",
+	"ai",
 ];
 
 describe("enterpriseOnlyResources set", () => {

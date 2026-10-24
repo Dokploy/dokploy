@@ -8,6 +8,7 @@ import {
 	user,
 	verification,
 } from "@dokploy/server/db/schema";
+import { removeVectorAgents } from "@dokploy/server/services/organization";
 import { TRPCError } from "@trpc/server";
 import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -128,6 +129,15 @@ export const consumeAccountDeletionCode = async (
 };
 
 export const deleteUserAccountData = async (userId: string) => {
+	// The owned organizations go away by FK cascade, which skips deleteOrganization's agent cleanup.
+	const ownedOrganizations = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+		columns: { id: true },
+	});
+	for (const org of ownedOrganizations) {
+		await removeVectorAgents(org.id);
+	}
+
 	return db.transaction(async (tx) => {
 		const target = await tx.query.user.findFirst({
 			where: eq(user.id, userId),
