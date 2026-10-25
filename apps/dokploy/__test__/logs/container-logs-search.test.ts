@@ -17,6 +17,7 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
 const runShell = promisify(exec);
 
 const fakeLogs = `printf '%s\\n' \
+	'2026-10-07T04:39:18Z Starting node -v check' \
 	'2026-10-07T04:39:19Z Prisma schema loaded' \
 	'2026-10-07T04:39:22Z [PrismaService] Prisma client connected' \
 	'2026-10-07T05:00:00Z [ImportProcessor] Scheduled import triggered' \
@@ -55,6 +56,13 @@ describe.skipIf(process.platform === "win32")("buildLogSearchCommand", () => {
 		);
 		expect(stdout).toBe("");
 	});
+
+	it("treats a search starting with a dash as text", async () => {
+		const { stdout } = await runShell(
+			buildLogSearchCommand(fakeLogs, "-v", 5),
+		);
+		expect(stdout).toBe("2026-10-07T04:39:18Z Starting node -v check\n");
+	});
 });
 
 describe("getContainerLogs", () => {
@@ -81,7 +89,7 @@ describe("getContainerLogs", () => {
 		const command = vi.mocked(execAsync).mock.calls[0]?.[0] ?? "";
 		expect(command).not.toContain("--tail");
 		expect(command).toContain("--since 24h");
-		expect(command).toMatch(/\| grep -iF 'Prisma' \| tail -n 5$/);
+		expect(command).toMatch(/\| grep -iF -- 'Prisma' \| tail -n 5$/);
 		expect(execAsync).toHaveBeenCalledTimes(1);
 	});
 

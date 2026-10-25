@@ -427,7 +427,7 @@ export const buildLogSearchCommand = (
 	tail: number,
 ) => {
 	const escapedSearch = search.replace(/'/g, "'\\''");
-	return `${logsCommand} 2>&1 | grep -iF '${escapedSearch}' | tail -n ${tail}`;
+	return `${logsCommand} 2>&1 | grep -iF -- '${escapedSearch}' | tail -n ${tail}`;
 };
 
 export const getContainerLogs = async (
