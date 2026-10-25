@@ -25,6 +25,13 @@ export type Mount = typeof mounts.$inferSelect;
 
 export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 	try {
+		// An empty filePath would write the content over the service's whole files/ directory
+		if (input.type === "file" && !input.filePath?.trim()) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "File path is required for file mounts",
+			});
+		}
 		const { serviceId, ...rest } = input;
 		const value = await db
 			.insert(mounts)

@@ -777,6 +777,10 @@ export const createFile = async (
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+		// Docker creates missing bind sources as directories if the stack was deployed before the mount existed
+		if (fs.statSync(fullPath, { throwIfNoEntry: false })?.isDirectory()) {
+			fs.rmSync(fullPath, { recursive: true });
+		}
 		fs.writeFileSync(fullPath, content || "");
 	} catch (error) {
 		throw error;
@@ -799,6 +803,7 @@ export const getCreateFileCommand = (
 	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${quote([directory])};
+		if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
 		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
