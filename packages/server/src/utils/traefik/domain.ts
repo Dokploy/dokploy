@@ -6,6 +6,7 @@ import {
 	loadOrCreateConfigRemote,
 	removeTraefikConfig,
 	removeTraefikConfigRemote,
+	withTraefikConfigLock,
 	writeTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
@@ -17,14 +18,27 @@ import {
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
-export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
+export const manageDomain = (app: ApplicationNested, domain: Domain) =>
+	withTraefikConfigLock(app.appName, app.serverId, () =>
+		applyDomain(app, domain),
+	);
+
+export const removeDomain = (
+	application: ApplicationNested,
+	uniqueKey: number,
+) =>
+	withTraefikConfigLock(application.appName, application.serverId, () =>
+		deleteDomain(application, uniqueKey),
+	);
+
+const applyDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
 
 	// A disabled domain keeps its configuration in the database but must never
 	// expose a traefik router. Guarding here covers every caller (create, update,
 	// forward-auth, toggle) so a disabled domain can't be revived from any path.
 	if (!domain.enabled) {
-		await removeDomain(app, domain.uniqueConfigKey);
+		await deleteDomain(app, domain.uniqueConfigKey);
 		return;
 	}
 
@@ -74,7 +88,7 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	}
 };
 
-export const removeDomain = async (
+const deleteDomain = async (
 	application: ApplicationNested,
 	uniqueKey: number,
 ) => {

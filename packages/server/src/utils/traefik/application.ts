@@ -89,6 +89,27 @@ export const removeTraefikConfigRemote = async (
 	}
 };
 
+const configLocks = new Map<string, Promise<unknown>>();
+
+// In-process only: Dokploy runs a single dashboard process per host.
+export const withTraefikConfigLock = async <T>(
+	appName: string,
+	serverId: string | null | undefined,
+	fn: () => Promise<T>,
+): Promise<T> => {
+	const key = `${serverId ?? "local"}:${appName}`;
+	const previous = configLocks.get(key) ?? Promise.resolve();
+	const current = previous.catch(() => {}).then(fn);
+	configLocks.set(key, current);
+	try {
+		return await current;
+	} finally {
+		if (configLocks.get(key) === current) {
+			configLocks.delete(key);
+		}
+	}
+};
+
 export const loadOrCreateConfig = (appName: string): FileConfig => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
