@@ -14,7 +14,10 @@ type MockCreateServiceOptions = {
 
 type MockServiceInspect = {
 	Version: { Index: number };
-	Spec: { TaskTemplate: { ForceUpdate?: number } };
+	Spec: {
+		TaskTemplate: { ForceUpdate?: number };
+		Labels?: Record<string, string>;
+	};
 	ServiceStatus?: { DesiredTasks: number };
 };
 
@@ -97,7 +100,7 @@ describe("mechanizeDockerContainer", () => {
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
-		waitForSwarmServiceUpdateMock.mockClear();
+		waitForSwarmServiceUpdateMock.mockReset();
 		getSwarmServiceUpdateTimeoutMsMock.mockClear();
 		getSwarmServiceUpdateTimeoutMsMock.mockReturnValue(120_000);
 		getRemoteDockerMock.mockResolvedValue({
@@ -268,5 +271,41 @@ describe("mechanizeDockerContainer", () => {
 
 		expect(updateMock).toHaveBeenCalledOnce();
 		expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
+	});
+
+	describe("when the service already exists", () => {
+		const mockExistingService = (spec: Partial<MockServiceInspect["Spec"]>) => {
+			inspectMock.mockResolvedValue({
+				Version: { Index: 7 },
+				Spec: { TaskTemplate: { ForceUpdate: 2 }, ...spec },
+			});
+		};
+
+		it("keeps service labels that were added outside Dokploy", async () => {
+			const labels = {
+				"traefik.enable": "true",
+				"traefik.http.routers.app-web.rule": "Host(`app.example.com`)",
+			};
+			mockExistingService({ Labels: labels });
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(createServiceMock).not.toHaveBeenCalled();
+			expect(updateMock).toHaveBeenCalledOnce();
+			expect(updateMock).toHaveBeenCalledWith(
+				expect.objectContaining({ Labels: labels }),
+			);
+		});
+
+		it("sends empty labels when the service has none", async () => {
+			mockExistingService({});
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(updateMock).toHaveBeenCalledOnce();
+			expect(updateMock).toHaveBeenCalledWith(
+				expect.objectContaining({ Labels: {} }),
+			);
+		});
 	});
 });
