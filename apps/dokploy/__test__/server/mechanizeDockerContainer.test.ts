@@ -27,6 +27,7 @@ const {
 	serviceMock,
 	getServiceMock,
 	createServiceMock,
+	listTasksMock,
 	getRemoteDockerMock,
 	waitForSwarmServiceUpdateMock,
 	getSwarmServiceUpdateTimeoutMsMock,
@@ -38,9 +39,13 @@ const {
 	const createService = vi.fn<
 		(opts: MockCreateServiceOptions) => Promise<void>
 	>(async () => undefined);
+	const listTasks = vi.fn<(opts: { filters: string }) => Promise<unknown[]>>(
+		async () => [{ ID: "task-1" }],
+	);
 	const getRemoteDocker = vi.fn(async () => ({
 		getService,
 		createService,
+		listTasks,
 	}));
 	return {
 		inspectMock: inspect,
@@ -48,6 +53,7 @@ const {
 		serviceMock: service,
 		getServiceMock: getService,
 		createServiceMock: createService,
+		listTasksMock: listTasks,
 		getRemoteDockerMock: getRemoteDocker,
 		waitForSwarmServiceUpdateMock: vi.fn(async () => undefined),
 		getSwarmServiceUpdateTimeoutMsMock: vi.fn(() => 120_000),
@@ -99,6 +105,8 @@ describe("mechanizeDockerContainer", () => {
 		updateMock.mockResolvedValue(undefined);
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
+		listTasksMock.mockReset();
+		listTasksMock.mockResolvedValue([{ ID: "task-1" }]);
 		getRemoteDockerMock.mockClear();
 		waitForSwarmServiceUpdateMock.mockReset();
 		getSwarmServiceUpdateTimeoutMsMock.mockClear();
@@ -106,6 +114,7 @@ describe("mechanizeDockerContainer", () => {
 		getRemoteDockerMock.mockResolvedValue({
 			getService: getServiceMock,
 			createService: createServiceMock,
+			listTasks: listTasksMock,
 		});
 	});
 
@@ -306,6 +315,45 @@ describe("mechanizeDockerContainer", () => {
 			expect(updateMock).toHaveBeenCalledWith(
 				expect.objectContaining({ Labels: {} }),
 			);
+		});
+
+		it("does not wait for the rollout when no task was running", async () => {
+			mockExistingService({});
+			listTasksMock.mockResolvedValue([]);
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(listTasksMock).toHaveBeenCalledWith({
+				filters: JSON.stringify({
+					service: ["test-app"],
+					"desired-state": ["running"],
+				}),
+			});
+			expect(listTasksMock.mock.invocationCallOrder[0]).toBeLessThan(
+				updateMock.mock.invocationCallOrder[0] ?? 0,
+			);
+			expect(updateMock).toHaveBeenCalledOnce();
+			expect(waitForSwarmServiceUpdateMock).not.toHaveBeenCalled();
+		});
+
+		it("waits for the rollout when a task was running", async () => {
+			mockExistingService({});
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(listTasksMock).toHaveBeenCalledOnce();
+			expect(updateMock).toHaveBeenCalledOnce();
+			expect(waitForSwarmServiceUpdateMock).toHaveBeenCalledOnce();
+		});
+
+		it("still waits for the rollout when tasks cannot be listed", async () => {
+			mockExistingService({});
+			listTasksMock.mockRejectedValue(new Error("listing failed"));
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(updateMock).toHaveBeenCalledOnce();
+			expect(waitForSwarmServiceUpdateMock).toHaveBeenCalledOnce();
 		});
 	});
 });

@@ -207,6 +207,23 @@ export const mechanizeDockerContainer = async (
 	const previousVersion = Number(inspect.Version.Index);
 	const expectedForceUpdate =
 		Number(inspect.Spec.TaskTemplate.ForceUpdate ?? 0) + 1;
+
+	// Swarm's updater exits early when no existing task needs replacing and
+	// never writes UpdateStatus, so with no running task (stopped or scaled to
+	// 0) there is no rollout to wait for. If listing fails, wait as before.
+	let hasRunningTasks = true;
+	try {
+		const runningTasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [appName],
+				"desired-state": ["running"],
+			}),
+		});
+		hasRunningTasks = runningTasks.length > 0;
+	} catch (error) {
+		console.log(error);
+	}
+
 	await service.update({
 		version: previousVersion,
 		...settings,
@@ -221,6 +238,7 @@ export const mechanizeDockerContainer = async (
 	});
 
 	if (settings.Mode?.ReplicatedJob || settings.Mode?.GlobalJob) return;
+	if (!hasRunningTasks) return;
 
 	const replicas =
 		settings.Mode?.Replicated?.Replicas ??
