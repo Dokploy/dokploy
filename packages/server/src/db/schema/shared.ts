@@ -209,3 +209,31 @@ export const UlimitSwarmSchema = z
 	.strict();
 
 export const UlimitsSwarmSchema = z.array(UlimitSwarmSchema);
+
+// Resource values are stored as strings and handed to Docker as integers.
+// Empty or zero means no limit; anything else must be a whole number Docker
+// accepts, so a bad value is rejected on save instead of failing the deploy.
+const resourceValueSchema = (minimum: number, unit: string) =>
+	z
+		.string()
+		.regex(/^\d*$/, {
+			message: `Must be a whole number of ${unit}`,
+			abort: true,
+		})
+		.refine((value) => /^0*$/.test(value) || Number(value) >= minimum, {
+			message: `Must be at least ${minimum} ${unit}`,
+		})
+		.nullable()
+		.optional();
+
+// The engine refuses memory limits below 6 MiB.
+export const resourceBytesSchema = resourceValueSchema(
+	6 * 1024 * 1024,
+	"bytes",
+);
+
+// Swarm refuses CPU values below 0.001 CPU.
+export const resourceNanoCpusSchema = resourceValueSchema(
+	1_000_000,
+	"nanoCPUs (1000000000 = 1 CPU)",
+);
