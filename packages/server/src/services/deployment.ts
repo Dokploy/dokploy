@@ -16,6 +16,10 @@ import {
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
+import {
+	getBuildExecutionServerId,
+	getBuildServerId,
+} from "@dokploy/server/utils/builders/build-server";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import {
 	execAsync,
@@ -133,7 +137,8 @@ export const createDeployment = async (
 		application.serverId,
 	);
 	try {
-		const serverId = application.buildServerId || application.serverId;
+		const buildServerId = getBuildServerId(application);
+		const serverId = getBuildExecutionServerId(application);
 
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
@@ -146,7 +151,7 @@ export const createDeployment = async (
 			const command = `
 				mkdir -p ${LOGS_PATH}/${application.appName};
             	echo "Initializing deployment" >> ${logFilePath};
-			    echo "Building on ${serverId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
+			    echo "Building on ${buildServerId ? "Build Server" : "Remote Server"}" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -166,9 +171,7 @@ export const createDeployment = async (
 				logPath: logFilePath,
 				description: deployment.description || "",
 				startedAt: new Date().toISOString(),
-				...(application.buildServerId && {
-					buildServerId: application.buildServerId,
-				}),
+				...(buildServerId && { buildServerId }),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
