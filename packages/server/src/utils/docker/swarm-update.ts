@@ -173,15 +173,10 @@ export const waitForSwarmServiceUpdate = async (
 			if (!operationStartedAt) {
 				const isExpectedUpdate =
 					currentForceUpdate === options.expectedForceUpdate;
-				const isExpectedRollback =
-					state?.startsWith("rollback_") &&
-					Boolean(
-						await getLatestTaskFailure(
-							docker,
-							service.id,
-							options.expectedForceUpdate,
-						),
-					);
+				// A rollback restores the previous spec, so its ForceUpdate is no
+				// longer ours. Our update cleared the update status, so a rollback
+				// seen after the version moved on is this update's rollback.
+				const isExpectedRollback = Boolean(state?.startsWith("rollback_"));
 
 				if (!isExpectedUpdate && !isExpectedRollback) {
 					throw new Error(

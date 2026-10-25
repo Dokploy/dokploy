@@ -116,6 +116,64 @@ describe("waitForSwarmServiceUpdate", () => {
 		);
 	});
 
+	it("reports a rollback seen on the first poll when task lookup fails", async () => {
+		const service = createService([
+			{
+				Version: { Index: 12 },
+				Spec: { TaskTemplate: { ForceUpdate: 3 } },
+				UpdateStatus: {
+					State: "rollback_completed",
+					Message: "rollback completed",
+					StartedAt: "operation-1",
+				},
+			},
+		]);
+		const docker = {
+			listTasks: vi.fn(async () => {
+				throw new Error("task lookup failed");
+			}),
+		} as unknown as DockerClient;
+
+		await expect(
+			waitForSwarmServiceUpdate(docker, service, {
+				expectedForceUpdate: 4,
+				previousVersion: 10,
+				timeoutMs: 1_000,
+			}),
+		).rejects.toThrow(/^Swarm service update rolled back: rollback completed$/);
+	});
+
+	it("reports a rollback seen on the first poll without a failed task", async () => {
+		const service = createService([
+			{
+				Version: { Index: 12 },
+				Spec: { TaskTemplate: { ForceUpdate: 3 } },
+				UpdateStatus: {
+					State: "rollback_completed",
+					Message: "rollback completed",
+					StartedAt: "operation-1",
+				},
+			},
+		]);
+		const docker = {
+			listTasks: vi.fn(async () => [
+				{
+					Version: { Index: 20 },
+					Spec: { ForceUpdate: 4 },
+					Status: { State: "complete", ContainerStatus: { ExitCode: 0 } },
+				},
+			]),
+		} as unknown as DockerClient;
+
+		await expect(
+			waitForSwarmServiceUpdate(docker, service, {
+				expectedForceUpdate: 4,
+				previousVersion: 10,
+				timeoutMs: 1_000,
+			}),
+		).rejects.toThrow(/^Swarm service update rolled back: rollback completed$/);
+	});
+
 	it("reports a paused update even when task lookup fails", async () => {
 		const service = createService([
 			{
@@ -190,6 +248,28 @@ describe("waitForSwarmServiceUpdate", () => {
 		).rejects.toThrow(
 			"Swarm service update was superseded by another operation",
 		);
+	});
+
+	it("rejects another update in progress on the first poll", async () => {
+		const service = createService([
+			{
+				Version: { Index: 12 },
+				Spec: { TaskTemplate: { ForceUpdate: 5 } },
+				UpdateStatus: { State: "updating", StartedAt: "operation-2" },
+			},
+		]);
+		const docker = { listTasks: vi.fn() } as unknown as DockerClient;
+
+		await expect(
+			waitForSwarmServiceUpdate(docker, service, {
+				expectedForceUpdate: 4,
+				previousVersion: 10,
+				timeoutMs: 1_000,
+			}),
+		).rejects.toThrow(
+			"Swarm service update was superseded by another operation",
+		);
+		expect(docker.listTasks).not.toHaveBeenCalled();
 	});
 
 	it("times out instead of waiting forever", async () => {
