@@ -90,18 +90,18 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		resolver: zodResolver(AddRedirectSchema),
 	});
 
+	const savedReplicas = data?.replicas;
+	const savedRegistryId =
+		data && "registryId" in data ? data.registryId : undefined;
+
+	// Not on the whole `data`: the page polls it and a reset would wipe unsaved edits
 	useEffect(() => {
-		if (data) {
-			form.reset({
-				...(type === "application" && "registryId" in data
-					? {
-							registryId: data.registryId || "",
-						}
-					: {}),
-				replicas: data.replicas || 1,
-			});
-		}
-	}, [form, data, type]);
+		if (savedReplicas === undefined) return;
+		form.reset({
+			...(type === "application" ? { registryId: savedRegistryId || "" } : {}),
+			replicas: savedReplicas || 1,
+		});
+	}, [form, id, type, savedReplicas, savedRegistryId]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
