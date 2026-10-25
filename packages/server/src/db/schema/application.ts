@@ -546,9 +546,7 @@ export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),
 });
 
-export const apiUpdateApplication = createSchema
-	.partial()
-	.extend({
-		applicationId: z.string().min(1),
-	})
-	.omit({ serverId: true });
+export const apiUpdateApplication = createSchema.partial().extend({
+	applicationId: z.string().min(1),
+	serverId: z.string().nullable().optional(),
+});
