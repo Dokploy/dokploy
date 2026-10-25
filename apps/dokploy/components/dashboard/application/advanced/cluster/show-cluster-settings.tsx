@@ -91,17 +91,17 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data?.command) {
+		if (data) {
 			form.reset({
-				...(type === "application" && data && "registryId" in data
+				...(type === "application" && "registryId" in data
 					? {
-							registryId: data?.registryId || "",
+							registryId: data.registryId || "",
 						}
 					: {}),
-				replicas: data?.replicas || 1,
+				replicas: data.replicas || 1,
 			});
 		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
+	}, [form, data, type]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
@@ -206,7 +206,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 													<FormLabel>Select a registry</FormLabel>
 													<Select
 														onValueChange={field.onChange}
-														defaultValue={field.value}
+														value={field.value}
 													>
 														<SelectTrigger>
 															<SelectValue placeholder="Select a registry" />
