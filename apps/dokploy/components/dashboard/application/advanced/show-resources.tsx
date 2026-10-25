@@ -73,6 +73,9 @@ const resourceValueSchema = (minimum: number, unit: string) =>
 			message: `Must be a whole number of ${unit}`,
 			abort: true,
 		})
+		.refine((value) => Number.isSafeInteger(Number(value)), {
+			message: `Must be at most ${Number.MAX_SAFE_INTEGER} ${unit}`,
+		})
 		.refine((value) => /^0*$/.test(value) || Number(value) >= minimum, {
 			message: `Must be at least ${minimum} ${unit}`,
 		})

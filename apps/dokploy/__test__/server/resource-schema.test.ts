@@ -43,6 +43,21 @@ describe("resourceBytesSchema", () => {
 			"Must be at least 6291456 bytes",
 		]);
 	});
+
+	it("accepts the largest safe integer", () => {
+		expect(resourceBytesSchema.safeParse("9007199254740991").success).toBe(
+			true,
+		);
+	});
+
+	it.each(["9007199254740992", "9007199254740993", "1".repeat(40)])(
+		"refuses %j as above the safe integer range",
+		(value) => {
+			expect(messagesOf(resourceBytesSchema.safeParse(value))).toEqual([
+				"Must be at most 9007199254740991 bytes",
+			]);
+		},
+	);
 });
 
 describe("resourceNanoCpusSchema", () => {
@@ -67,6 +82,21 @@ describe("resourceNanoCpusSchema", () => {
 			"Must be at least 1000000 nanoCPUs (1000000000 = 1 CPU)",
 		]);
 	});
+
+	it("accepts the largest safe integer", () => {
+		expect(resourceNanoCpusSchema.safeParse("9007199254740991").success).toBe(
+			true,
+		);
+	});
+
+	it.each(["9007199254740992", "9007199254740993", "1".repeat(40)])(
+		"refuses %j as above the safe integer range",
+		(value) => {
+			expect(messagesOf(resourceNanoCpusSchema.safeParse(value))).toEqual([
+				"Must be at most 9007199254740991 nanoCPUs (1000000000 = 1 CPU)",
+			]);
+		},
+	);
 });
 
 describe("update schemas validate resource values", () => {
