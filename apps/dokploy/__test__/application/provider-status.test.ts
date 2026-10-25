@@ -154,3 +154,42 @@ describe("saving an application provider", () => {
 		},
 	);
 });
+
+describe("saving the Docker provider", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it("clears the build server and build registry but keeps run settings", async () => {
+		await caller.saveDockerProvider({
+			applicationId: "app-1",
+			dockerImage: "nginx:alpine",
+			username: "",
+			password: "",
+			registryUrl: "",
+		});
+
+		const [, update] = mockUpdateApplication.mock.calls[0] ?? [];
+		expect(update).toMatchObject({
+			sourceType: "docker",
+			buildServerId: null,
+			buildRegistryId: null,
+		});
+		for (const kept of [
+			"registryId",
+			"rollbackRegistryId",
+			"command",
+			"args",
+		]) {
+			expect(update).not.toHaveProperty(kept);
+		}
+	});
+
+	it("leaves the build server alone for built sources", async () => {
+		const github = providerChanges.find(({ name }) => name === "GitHub");
+		await github?.save();
+
+		const [, update] = mockUpdateApplication.mock.calls[0] ?? [];
+		expect(update).not.toHaveProperty("buildServerId");
+	});
+});
