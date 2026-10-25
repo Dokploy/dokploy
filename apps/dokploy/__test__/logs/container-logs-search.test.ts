@@ -58,9 +58,7 @@ describe.skipIf(process.platform === "win32")("buildLogSearchCommand", () => {
 	});
 
 	it("treats a search starting with a dash as text", async () => {
-		const { stdout } = await runShell(
-			buildLogSearchCommand(fakeLogs, "-v", 5),
-		);
+		const { stdout } = await runShell(buildLogSearchCommand(fakeLogs, "-v", 5));
 		expect(stdout).toBe("2026-10-07T04:39:18Z Starting node -v check\n");
 	});
 });
