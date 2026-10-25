@@ -3,7 +3,11 @@ import { sleep } from "../process/execAsync";
 
 const DEFAULT_MONITOR_NS = 30_000_000_000;
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
-const MIN_UPDATE_TIMEOUT_MS = 2 * 60 * 1_000;
+// The derived budget ignores image pull time, container start and the
+// health-check start period, so without a generous floor a large image or a
+// slow health check reports a rollout as failed while Swarm is still
+// converging.
+const MIN_UPDATE_TIMEOUT_MS = 10 * 60 * 1_000;
 const UPDATE_TIMEOUT_BUFFER_MS = 60 * 1_000;
 
 type SwarmUpdateConfig = {

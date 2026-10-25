@@ -241,7 +241,7 @@ describe("getSwarmServiceUpdateTimeoutMs", () => {
 	});
 
 	it("keeps small updates above a safe minimum", () => {
-		expect(getSwarmServiceUpdateTimeoutMs({ replicas: 1 })).toBe(120_000);
+		expect(getSwarmServiceUpdateTimeoutMs({ replicas: 1 })).toBe(600_000);
 	});
 
 	it("does not truncate a valid rollout window", () => {
