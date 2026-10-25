@@ -12,21 +12,14 @@ import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
-import { getKeepLatestNBackupsCommand, scheduleBackup } from "./utils";
+import {
+	getKeepLatestNBackupsCommand,
+	getServiceAppName,
+	scheduleBackup,
+} from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
-
-	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
-		with: {
-			user: true,
-		},
-	});
-
-	if (!admin) {
-		return;
-	}
 
 	const webServerSettings = await getWebServerSettings();
 
@@ -39,7 +32,12 @@ export const initCronJobs = async () => {
 
 				await cleanupAll();
 
-				await sendDockerCleanupNotifications(admin.user.id);
+				const owner = await db.query.member.findFirst({
+					where: eq(member.role, "owner"),
+				});
+				if (owner) {
+					await sendDockerCleanupNotifications(owner.organizationId);
+				}
 			});
 		} catch (error) {
 			console.error("[Backup] Docker Cleanup Error", error);
@@ -49,7 +47,7 @@ export const initCronJobs = async () => {
 	const servers = await getAllServers();
 
 	for (const server of servers) {
-		const { serverId, enableDockerCleanup, name } = server;
+		const { serverId, enableDockerCleanup, name, organizationId } = server;
 		if (enableDockerCleanup) {
 			try {
 				scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
@@ -60,7 +58,7 @@ export const initCronJobs = async () => {
 					await cleanupAll(serverId);
 
 					await sendDockerCleanupNotifications(
-						admin.user.id,
+						organizationId,
 						`Docker cleanup for Server ${name} (${serverId})`,
 					);
 				});
@@ -107,21 +105,6 @@ export const initCronJobs = async () => {
 			console.error("[Backup] Log Cleanup Error", error);
 		}
 	}
-};
-
-const getServiceAppName = (backup: BackupSchedule): string => {
-	if (backup.compose?.appName) {
-		return backup.serviceName
-			? `${backup.compose.appName}_${backup.serviceName}`
-			: backup.compose.appName;
-	}
-	const serviceAppName =
-		backup.postgres?.appName ||
-		backup.mysql?.appName ||
-		backup.mariadb?.appName ||
-		backup.mongo?.appName ||
-		backup.libsql?.appName;
-	return serviceAppName || backup.appName;
 };
 
 export const keepLatestNBackups = async (

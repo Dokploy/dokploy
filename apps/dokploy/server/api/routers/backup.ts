@@ -15,8 +15,11 @@ import {
 	findPostgresByBackupId,
 	findPostgresById,
 	findServerById,
+	getBackupDownloadUrl,
 	IS_CLOUD,
 	keepLatestNBackups,
+	listBackupFilesByBackupId,
+	type RcloneFile,
 	removeBackupById,
 	removeScheduleBackup,
 	runLibsqlBackup,
@@ -28,7 +31,10 @@ import {
 	scheduleBackup,
 	updateBackupById,
 } from "@dokploy/server";
-import { findDestinationById } from "@dokploy/server/services/destination";
+import {
+	findDestinationById,
+	findDestinationByIdForOrganization,
+} from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
@@ -67,18 +73,6 @@ import {
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 
-interface RcloneFile {
-	Path: string;
-	Name: string;
-	Size: number;
-	IsDir: boolean;
-	Tier?: string;
-	Hashes?: {
-		MD5?: string;
-		SHA1?: string;
-	};
-}
-
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
@@ -95,6 +89,10 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["create"],
 					});
+					await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				if (IS_CLOUD) {
@@ -206,6 +204,10 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["update"],
 					});
+					await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				await updateBackupById(input.backupId, input);
@@ -267,7 +269,7 @@ export const backupRouter = createTRPCRouter({
 
 				const value = await removeBackupById(input.backupId);
 				if (IS_CLOUD && value) {
-					removeJob({
+					await removeJob({
 						backupId: input.backupId,
 						cronSchedule: value.schedule,
 						type: "backup",
@@ -563,6 +565,27 @@ export const backupRouter = createTRPCRouter({
 			}
 		}),
 
+	listBackupFilesByBackupId: withPermission("backup", "read")
+		.input(z.object({ backupId: z.string() }))
+		.query(({ input, ctx }) => listBackupFilesByBackupId(ctx, input.backupId)),
+
+	getDownloadUrl: withPermission("backup", "read")
+		.input(z.object({ backupId: z.string(), fileName: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const result = await getBackupDownloadUrl(
+				ctx,
+				input.backupId,
+				input.fileName,
+			);
+			await audit(ctx, {
+				action: "download",
+				resourceType: "backup",
+				resourceId: input.backupId,
+				metadata: { file: input.fileName },
+			});
+			return result;
+		}),
+
 	restoreBackupWithLogs: protectedProcedure
 		.meta({
 			openapi: {
@@ -579,7 +602,12 @@ export const backupRouter = createTRPCRouter({
 					backup: ["restore"],
 				});
 			}
-			const destination = await findDestinationById(input.destinationId);
+			const destination = input.databaseId
+				? await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					)
+				: await findDestinationById(input.destinationId);
 			const queue: string[] = [];
 			let done = false;
 			const onLog = (log: string) => queue.push(log);

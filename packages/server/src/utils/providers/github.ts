@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { Octokit } from "octokit";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { getGitTokenAuthConfig } from "./git";
 
 export const DEFAULT_GITHUB_URL = "https://github.com";
 export const DEFAULT_GITHUB_API_URL = "https://api.github.com";
@@ -229,10 +230,10 @@ export const cloneGithubRepository = async ({
 	const repoclone = `${cloneBase.host}/${owner}/${repository}.git`;
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	const cloneUrl = `${cloneBase.protocol}//oauth2:${token}@${repoclone}`;
+	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${getGitTokenAuthConfig(cloneUrl, token)} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 
 	return command;
 };

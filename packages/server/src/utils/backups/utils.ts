@@ -61,6 +61,13 @@ export const removeScheduleBackup = (backupId: string) => {
 export const getBackupTimestamp = () =>
 	new Date().toISOString().replace(/[:.]/g, "-");
 
+export const getBackupFileName = (
+	customName: string | null | undefined,
+	extension: string,
+	fixedPrefix?: string,
+) =>
+	`${[fixedPrefix, customName, getBackupTimestamp()].filter(Boolean).join("-")}.${extension}`;
+
 export const normalizeS3Path = (prefix: string) => {
 	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
@@ -320,11 +327,12 @@ export const getKeepLatestNBackupsCommand = (
 	const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
 
 	// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+	// sort by server mtime: custom names break lexical order
 	// the S3 path is double-quoted: the backup prefix is user input and may
 	// contain spaces or other shell-special characters (e.g. issue #4354)
-	const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" "${backupFilesPath}"`;
+	const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" --format "tp" --use-server-modtime "${backupFilesPath}"`;
 	// when we pipe the above command with this one, we only get the list of files we want to delete
-	const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+	const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | cut -d';' -f2- | xargs -I{}`;
 	// this command deletes the files; the {} placeholder stays inside the
 	// quotes so xargs substitutes the full path as a single argument
 	// to test the deletion before actually deleting we can add --dry-run before "${backupFilesPath}{}"
@@ -332,3 +340,22 @@ export const getKeepLatestNBackupsCommand = (
 
 	return `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 };
+
+export const getServiceAppName = (backup: BackupSchedule) => {
+	if (backup.compose?.appName) {
+		return backup.serviceName
+			? `${backup.compose.appName}_${backup.serviceName}`
+			: backup.compose.appName;
+	}
+	return (
+		backup.postgres?.appName ||
+		backup.mysql?.appName ||
+		backup.mariadb?.appName ||
+		backup.mongo?.appName ||
+		backup.libsql?.appName ||
+		backup.appName
+	);
+};
+
+export const getBackupFolder = (backup: BackupSchedule) =>
+	`${getServiceAppName(backup)}/${normalizeS3Path(backup.prefix)}`;

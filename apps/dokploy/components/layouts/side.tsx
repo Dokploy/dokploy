@@ -29,6 +29,7 @@ import {
 	type LucideIcon,
 	Package,
 	Palette,
+	ScrollText,
 	Server,
 	ShieldCheck,
 	Smartphone,
@@ -191,9 +192,11 @@ const MENU: Menu = {
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
-			// Only enabled in non-cloud environments and if user has monitoring.read
+			// Only enabled in non-cloud environments (product decision) and if user has monitoring.read and docker.read
 			isEnabled: ({ isCloud, permissions }) =>
-				!isCloud && !!permissions?.monitoring.read,
+				!isCloud &&
+				!!permissions?.monitoring.read &&
+				!!permissions?.docker.read,
 		},
 		{
 			isSingle: true,
@@ -350,7 +353,13 @@ const MENU: Menu = {
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
-			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+			isEnabled: ({ permissions }) =>
+				!!(
+					permissions?.ai.read ||
+					permissions?.ai.create ||
+					permissions?.ai.update ||
+					permissions?.ai.delete
+				),
 		},
 		{
 			isSingle: true,
@@ -373,6 +382,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
+		},
+		{
+			isSingle: true,
+			title: "Logs & Metrics",
+			url: "/dashboard/settings/logs-and-metrics",
+			icon: ScrollText,
+			isEnabled: ({ permissions }) => !!permissions?.telemetryProvider.read,
 		},
 		{
 			isSingle: true,
