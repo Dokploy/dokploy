@@ -1,5 +1,5 @@
 {
-  "id": "e4dfd17c-2a17-4d2a-973e-0fa52512966e",
+  "id": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
   "prevId": "e2f2cd03-52dd-457a-8854-1ef6d0b5d168",
   "version": "7",
   "dialect": "postgresql",
@@ -1012,171 +1012,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.azure_devops": {
-      "name": "azure_devops",
-      "schema": "",
-      "columns": {
-        "azureDevopsId": {
-          "name": "azureDevopsId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "gitProviderId": {
-          "name": "gitProviderId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "baseUrl": {
-          "name": "baseUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "personalAccessToken": {
-          "name": "personalAccessToken",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "azure_devops_gitProviderId_git_provider_gitProviderId_fk": {
-          "name": "azure_devops_gitProviderId_git_provider_gitProviderId_fk",
-          "tableFrom": "azure_devops",
-          "tableTo": "git_provider",
-          "columnsFrom": [
-            "gitProviderId"
-          ],
-          "columnsTo": [
-            "gitProviderId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.azure_devops_hook": {
-      "name": "azure_devops_hook",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serviceId": {
-          "name": "serviceId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serviceType": {
-          "name": "serviceType",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "azureDevopsId": {
-          "name": "azureDevopsId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "baseUrl": {
-          "name": "baseUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "projectId": {
-          "name": "projectId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subscriptionId": {
-          "name": "subscriptionId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "configurationHash": {
-          "name": "configurationHash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "lastSyncedAt": {
-          "name": "lastSyncedAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "azure_devops_hook_service_provider": {
-          "name": "azure_devops_hook_service_provider",
-          "columns": [
-            {
-              "expression": "serviceType",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "serviceId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "azureDevopsId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.ai": {
       "name": "ai",
       "schema": "",
@@ -1555,49 +1390,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "azureDevopsId": {
-          "name": "azureDevopsId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsProjectId": {
-          "name": "azureDevopsProjectId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsRepositoryId": {
-          "name": "azureDevopsRepositoryId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsProjectName": {
-          "name": "azureDevopsProjectName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsRepositoryName": {
-          "name": "azureDevopsRepositoryName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsBranch": {
-          "name": "azureDevopsBranch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsBuildPath": {
-          "name": "azureDevopsBuildPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'/'"
-        },
         "giteaRepository": {
           "name": "giteaRepository",
           "type": "text",
@@ -1939,19 +1731,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "application_azureDevopsId_azure_devops_azureDevopsId_fk": {
-          "name": "application_azureDevopsId_azure_devops_azureDevopsId_fk",
-          "tableFrom": "application",
-          "tableTo": "azure_devops",
-          "columnsFrom": [
-            "azureDevopsId"
-          ],
-          "columnsTo": [
-            "azureDevopsId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "application_customGitSSHKeyId_ssh-key_sshKeyId_fk": {
           "name": "application_customGitSSHKeyId_ssh-key_sshKeyId_fk",
           "tableFrom": "application",
@@ -2302,6 +2081,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "customName": {
+          "name": "customName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "serviceName": {
           "name": "serviceName",
@@ -2819,42 +2604,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "azureDevopsId": {
-          "name": "azureDevopsId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsProjectId": {
-          "name": "azureDevopsProjectId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsRepositoryId": {
-          "name": "azureDevopsRepositoryId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsProjectName": {
-          "name": "azureDevopsProjectName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsRepositoryName": {
-          "name": "azureDevopsRepositoryName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "azureDevopsBranch": {
-          "name": "azureDevopsBranch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "giteaRepository": {
           "name": "giteaRepository",
           "type": "text",
@@ -3034,19 +2783,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "compose_azureDevopsId_azure_devops_azureDevopsId_fk": {
-          "name": "compose_azureDevopsId_azure_devops_azureDevopsId_fk",
-          "tableFrom": "compose",
-          "tableTo": "azure_devops",
-          "columnsFrom": [
-            "azureDevopsId"
-          ],
-          "columnsTo": [
-            "azureDevopsId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "compose_customGitSSHKeyId_ssh-key_sshKeyId_fk": {
           "name": "compose_customGitSSHKeyId_ssh-key_sshKeyId_fk",
           "tableFrom": "compose",
@@ -9307,7 +9043,6 @@
         "gitlab",
         "bitbucket",
         "gitea",
-        "azureDevops",
         "drop"
       ]
     },
@@ -9348,7 +9083,6 @@
         "gitlab",
         "bitbucket",
         "gitea",
-        "azureDevops",
         "raw"
       ]
     },
@@ -9389,8 +9123,7 @@
         "github",
         "gitlab",
         "bitbucket",
-        "gitea",
-        "azureDevops"
+        "gitea"
       ]
     },
     "public.mountType": {

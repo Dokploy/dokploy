@@ -15,8 +15,10 @@ import {
 	DEFAULT_UPDATE_DATA,
 	findServerById,
 	getDockerDiskUsage,
+	getDockerResourceType,
 	getDokployImageTag,
 	getLogCleanupStatus,
+	getTraefikOverview,
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -24,9 +26,11 @@ import {
 	paths,
 	prepareEnvironmentVariables,
 	processLogs,
+	pullTraefikImage,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
+	readEnvironmentVariableList,
 	readEnvironmentVariables,
 	readMainConfig,
 	readMonitoringConfig,
@@ -107,6 +111,23 @@ const resolveTraefikFilePath = (
 		});
 	}
 	return resolved;
+};
+
+const traefikUpdateLocks = new Map<string, symbol>();
+const traefikUpdateErrors = new Map<string, string>();
+
+const assertTraefikAccess = async (
+	serverId: string | undefined,
+	organizationId: string,
+) => {
+	if (serverId) {
+		const server = await findServerById(serverId);
+		if (server.organizationId !== organizationId) {
+			throw new TRPCError({ code: "UNAUTHORIZED" });
+		}
+	} else if (IS_CLOUD) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
 };
 
 export const settingsRouter = createTRPCRouter({
@@ -581,6 +602,15 @@ export const settingsRouter = createTRPCRouter({
 	updateServer: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return true;
+		}
+
+		const resourceType = await getDockerResourceType("dokploy");
+		if (resourceType !== "service") {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"Dokploy is not running as a Docker service, so in-panel updates are unavailable here. Update manually instead.",
+			});
 		}
 
 		const data = await getUpdateData(packageInfo.version);
@@ -1106,6 +1136,115 @@ export const settingsRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports;
+		}),
+	getTraefikOverview: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input, ctx }) => {
+			await assertTraefikAccess(
+				input?.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			const key = input?.serverId ?? "local";
+			const overview = await getTraefikOverview(input?.serverId);
+			return {
+				...overview,
+				isUpdating: traefikUpdateLocks.has(key),
+				lastUpdateError: traefikUpdateErrors.get(key) ?? null,
+			};
+		}),
+	updateTraefik: adminProcedure
+		.input(apiServerSchema)
+		.mutation(async ({ input, ctx }) => {
+			const serverId = input?.serverId;
+			await assertTraefikAccess(serverId, ctx.session.activeOrganizationId);
+
+			const lockKey = serverId ?? "local";
+			if (traefikUpdateLocks.has(lockKey)) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "A Traefik update is already running on this server",
+				});
+			}
+			const lock = Symbol(lockKey);
+			traefikUpdateLocks.set(lockKey, lock);
+			traefikUpdateErrors.delete(lockKey);
+			// The lock can expire mid-update; never touch a newer update's lock.
+			const ownsKey = () => {
+				const holder = traefikUpdateLocks.get(lockKey);
+				return holder === undefined || holder === lock;
+			};
+			const release = () => {
+				if (traefikUpdateLocks.get(lockKey) === lock) {
+					traefikUpdateLocks.delete(lockKey);
+				}
+			};
+
+			let recreate: Promise<void>;
+			try {
+				const overview = await getTraefikOverview(serverId);
+				if (overview.versionStatus !== "outdated") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Traefik is not older than the recommended version v${overview.recommendedVersion}`,
+					});
+				}
+				// A stopped container reports no published ports, so they would be lost.
+				if (overview.state !== "running") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Traefik is not running. Start it with Reload, then update it.",
+					});
+				}
+				// Not re-parsed as dotenv, which would cut values at "#".
+				const env = await readEnvironmentVariableList(
+					"dokploy-traefik",
+					serverId,
+				);
+				const ports = await readPorts("dokploy-traefik", serverId);
+
+				try {
+					await pullTraefikImage(serverId);
+				} catch (error) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Failed to pull Traefik v${overview.recommendedVersion}: ${error instanceof Error ? error.message : error}`,
+						cause: error,
+					});
+				}
+
+				recreate = writeTraefikSetup({
+					env,
+					additionalPorts: ports,
+					serverId,
+				});
+			} catch (error) {
+				release();
+				throw error;
+			}
+
+			// Expires in case a Docker call hangs.
+			const lockTimer = setTimeout(release, 5 * 60_000);
+			void recreate
+				.catch((err) => {
+					if (ownsKey()) {
+						traefikUpdateErrors.set(
+							lockKey,
+							err instanceof Error ? err.message : String(err),
+						);
+					}
+					console.error("updateTraefik background recreate:", err);
+				})
+				.finally(() => {
+					clearTimeout(lockTimer);
+					release();
+				});
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "traefik-version",
+			});
+			return true;
 		}),
 	updateLogCleanup: protectedProcedure
 		.input(

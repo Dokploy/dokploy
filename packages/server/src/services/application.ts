@@ -484,22 +484,22 @@ export const deployPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
 		application.rollbackRegistry = null;
-		application.registry = null;
 
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
 				...application,
+				serverId,
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
 			command += await getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (serverId) {
+				await execAsyncRemote(serverId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -606,11 +606,9 @@ export const rebuildPreviewApplication = async ({
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.rollbackActive = false;
-		application.buildRegistry = null;
 		application.rollbackRegistry = null;
-		application.registry = null;
 
-		const serverId = application.serverId;
+		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
 		command += await getBuildCommand(application);
