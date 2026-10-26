@@ -1,4 +1,7 @@
 import {
+	CONTAINER_FILE_TAIL_MAX_BYTES,
+	CONTAINER_FILE_TAIL_MAX_LINES,
+	ContainerFileTailError,
 	containerKill,
 	containerRemove,
 	containerRestart,
@@ -16,6 +19,7 @@ import {
 	getStackContainersByAppName,
 	listContainerFiles,
 	readContainerFile,
+	readContainerFileTail,
 	uploadFileToContainer,
 	writeContainerFile,
 } from "@dokploy/server";
@@ -386,6 +390,61 @@ export const dockerRouter = createTRPCRouter({
 				input.path,
 				input.serverId,
 			);
+		}),
+
+	readContainerFileTail: withPermission("docker", "read")
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/, "Invalid container id."),
+				path: containerPathSchema,
+				lines: z
+					.number()
+					.int()
+					.min(1)
+					.max(CONTAINER_FILE_TAIL_MAX_LINES)
+					.default(200),
+				maxBytes: z
+					.number()
+					.int()
+					.min(1)
+					.max(CONTAINER_FILE_TAIL_MAX_BYTES)
+					.default(65536),
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			try {
+				return await readContainerFileTail(
+					input.containerId,
+					input.path,
+					input.lines,
+					input.maxBytes,
+					input.serverId,
+				);
+			} catch (error) {
+				if (!(error instanceof ContainerFileTailError)) throw error;
+				throw new TRPCError({
+					code:
+						error.code === "READ_TIMEOUT"
+							? "TIMEOUT"
+							: error.code === "CONTAINER_UNAVAILABLE" ||
+									error.code === "FILE_UNAVAILABLE"
+								? "NOT_FOUND"
+								: error.code === "UTILITY_UNAVAILABLE"
+									? "PRECONDITION_FAILED"
+									: "BAD_REQUEST",
+					message: error.message,
+					cause: error,
+				});
+			}
 		}),
 
 	writeContainerFile: withPermission("docker", "read")
