@@ -1,8 +1,8 @@
 import {
 	checkUserRepositoryPermissions,
-	createPreviewDeployment,
 	createSecurityBlockedComment,
 	findGithubById,
+	findOrCreatePreviewDeployment,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
 	IS_CLOUD,
@@ -368,7 +368,6 @@ export default async function handler(
 			return;
 		}
 
-		// opened or synchronize or reopened
 		if (
 			action === "opened" ||
 			action === "synchronize" ||
@@ -376,12 +375,6 @@ export default async function handler(
 			action === "labeled" ||
 			action === "unlabeled"
 		) {
-			const shouldCreateDeployment =
-				action === "opened" ||
-				action === "synchronize" ||
-				action === "reopened" ||
-				action === "labeled";
-
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
@@ -408,17 +401,73 @@ export default async function handler(
 					eq(applications.owner, owner),
 					eq(applications.githubId, githubResult.githubId),
 				),
-				with: {
-					previewDeployments: true,
-				},
 			});
+
+			const prLabels: string[] = (githubBody?.pull_request?.labels ?? []).map(
+				(label: { name: string }) => label.name,
+			);
+			// GitHub sends one `labeled`/`unlabeled` event per label, and labels
+			// unrelated to previews (review state, size, ...) change far more often
+			// than the preview label, so only the preview label itself may create,
+			// redeploy or remove a preview. The remaining actions always may.
+			const changedLabel = githubBody?.label?.name;
+			const concernsPreview = (previewLabels: string[]) =>
+				action === "labeled" || action === "unlabeled"
+					? previewLabels.includes(changedLabel)
+					: true;
+			const carriesPreviewLabel = (previewLabels: string[]) =>
+				previewLabels.length === 0 ||
+				prLabels.some((name) => previewLabels.includes(name));
+
+			if (action === "unlabeled") {
+				let removed = 0;
+				for (const app of apps) {
+					const previewLabels = app.previewLabels ?? [];
+					if (
+						!concernsPreview(previewLabels) ||
+						carriesPreviewLabel(previewLabels)
+					) {
+						continue;
+					}
+					const previewDeployment = await findPreviewDeploymentByApplicationId(
+						app.applicationId,
+						prId,
+					);
+					if (!previewDeployment) continue;
+					try {
+						await removePreviewDeployment(
+							previewDeployment.previewDeploymentId,
+						);
+						removed++;
+					} catch (error) {
+						console.log(error);
+					}
+				}
+				return res.status(200).json({
+					message:
+						removed > 0
+							? `Removed ${removed} preview deployments`
+							: "No preview deployments to remove",
+				});
+			}
+
+			const candidateApps = apps.filter((app) => {
+				const previewLabels = app.previewLabels ?? [];
+				return (
+					concernsPreview(previewLabels) && carriesPreviewLabel(previewLabels)
+				);
+			});
+
+			if (candidateApps.length === 0) {
+				return res.status(200).json({ message: "No apps to deploy" });
+			}
 
 			// SECURITY: Check collaborator permissions per application setting
 			const secureApps: typeof apps = [];
 			const blockedApps: string[] = [];
 			let userPermission: string | null = null;
 
-			for (const app of apps) {
+			for (const app of candidateApps) {
 				// If the app requires collaborator permissions, verify them
 				if (app.previewRequireCollaboratorPermissions !== false) {
 					try {
@@ -479,44 +528,26 @@ export default async function handler(
 			}
 
 			for (const app of secureApps) {
-				// check for labels
-				if (app?.previewLabels && app?.previewLabels?.length > 0) {
-					let hasLabel = false;
-					const labels = githubBody?.pull_request?.labels;
-					for (const label of labels) {
-						if (app?.previewLabels?.includes(label.name)) {
-							hasLabel = true;
-							break;
-						}
-					}
-					if (!hasLabel) continue;
-				}
-
-				const previewDeploymentResult =
-					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
-
-				let previewDeploymentId =
-					previewDeploymentResult?.previewDeploymentId || "";
-
-				if (!previewDeploymentResult && shouldCreateDeployment) {
-					// The limit only applies to new previews, existing ones must
-					// still be redeployed when the pull request is updated.
-					const previewLimit = app?.previewLimit ?? 3;
-					if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
-						console.warn(
-							`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
-						);
-						continue;
-					}
-					const previewDeployment = await createPreviewDeployment({
+				// The limit only applies to new previews, existing ones must
+				// still be redeployed when the pull request is updated.
+				const previewLimit = app?.previewLimit ?? 3;
+				const { previewDeployment } = await findOrCreatePreviewDeployment(
+					{
 						applicationId: app.applicationId as string,
 						branch: prBranch,
 						pullRequestId: prId,
 						pullRequestNumber: prNumber,
 						pullRequestTitle: prTitle,
 						pullRequestURL: prURL,
-					});
-					previewDeploymentId = previewDeployment.previewDeploymentId;
+					},
+					previewLimit,
+				);
+
+				if (!previewDeployment) {
+					console.warn(
+						`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
+					);
+					continue;
 				}
 
 				const jobData: DeploymentJob = {
@@ -527,25 +558,35 @@ export default async function handler(
 					applicationType: "application-preview",
 					server: !!app.serverId,
 					serverId: app.serverId ?? undefined,
-					previewDeploymentId,
+					previewDeploymentId: previewDeployment.previewDeploymentId,
 				};
 
-				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
-						});
-						continue;
-					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
-					);
+				if (IS_CLOUD && app.serverId) {
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
 				}
+
+				// A pull request created with the preview label arrives as `opened`
+				// plus one `labeled` event; one build of a commit is enough.
+				const jobs = await myQueue.getJobs(["waiting", "active"]);
+				const alreadyQueued = jobs.some(
+					(job) =>
+						job.data.applicationType === "application-preview" &&
+						job.data.previewDeploymentId === jobData.previewDeploymentId &&
+						job.data.descriptionLog === jobData.descriptionLog,
+				);
+				if (alreadyQueued) continue;
+
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
 		}
