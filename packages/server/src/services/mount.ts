@@ -8,7 +8,6 @@ import {
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
-	encodeBase64,
 	getCreateFileCommand,
 	isValidMountFilePath,
 } from "@dokploy/server/utils/docker/utils";
@@ -191,6 +190,12 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
+	if (mountData.filePath && !isValidMountFilePath(mountData.filePath)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid file path: ${mountData.filePath}`,
+		});
+	}
 	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
@@ -276,17 +281,14 @@ export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
-	const directory = path.dirname(fullPath);
 
 	try {
 		const serverId = await getServerId(mount);
-		const encodedContent = encodeBase64(mount.content || "");
-		const command = `
-			mkdir -p ${quote([directory])};
-			if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
-			echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
-		`;
+		const command = getCreateFileCommand(
+			basePath,
+			mount.filePath,
+			mount.content || "",
+		);
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
@@ -304,7 +306,7 @@ export const updateFileMount = async (mountId: string) => {
 
 export const deleteFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
-	if (!mount.filePath) return;
+	if (!mount.filePath || !isValidMountFilePath(mount.filePath)) return;
 	const basePath = await getBaseFilesPath(mountId);
 
 	const fullPath = path.join(basePath, mount.filePath);
