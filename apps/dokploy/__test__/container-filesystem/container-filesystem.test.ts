@@ -1,13 +1,17 @@
 import { Readable, Writable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getContainerMock, getRemoteDockerMock, listContainersMock, listTasksMock } =
-	vi.hoisted(() => ({
-		getContainerMock: vi.fn(),
-		getRemoteDockerMock: vi.fn(),
-		listContainersMock: vi.fn(),
-		listTasksMock: vi.fn(),
-	}));
+const {
+	getContainerMock,
+	getRemoteDockerMock,
+	listContainersMock,
+	listTasksMock,
+} = vi.hoisted(() => ({
+	getContainerMock: vi.fn(),
+	getRemoteDockerMock: vi.fn(),
+	listContainersMock: vi.fn(),
+	listTasksMock: vi.fn(),
+}));
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
@@ -412,15 +416,21 @@ describe("compose container ownership", () => {
 		expect(listTasksMock).not.toHaveBeenCalled();
 	});
 
-	it("matches stack containers by swarm service name prefix", async () => {
+	it("matches stack containers by exact stack namespace", async () => {
 		listContainersMock.mockResolvedValue([
 			dockerContainer({
-				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+				Labels: {
+					"com.docker.stack.namespace": "my-stack",
+					"com.docker.swarm.service.name": "my-stack_web",
+				},
 			}),
 			dockerContainer({
 				Id: OTHER_CONTAINER_ID,
 				Names: ["/other.1.xxxxxxxxx"],
-				Labels: { "com.docker.swarm.service.name": "my-stack-unrelated" },
+				Labels: {
+					"com.docker.stack.namespace": "my-stack_other",
+					"com.docker.swarm.service.name": "my-stack_other_web",
+				},
 			}),
 		]);
 
@@ -439,12 +449,42 @@ describe("compose container ownership", () => {
 			],
 			expectedRunningCount: 0,
 		});
+		expect(listContainersMock).toHaveBeenCalledWith({
+			filters: JSON.stringify({
+				status: ["running"],
+				label: ["com.docker.stack.namespace=my-stack"],
+			}),
+		});
+	});
+
+	it("rejects a container from another stack with an overlapping name prefix", async () => {
+		listContainersMock.mockResolvedValue([
+			dockerContainer({
+				Labels: {
+					"com.docker.stack.namespace": "my-stack_other",
+					"com.docker.swarm.service.name": "my-stack_other_web",
+				},
+			}),
+		]);
+
+		await expect(
+			getComposeFilesystemContainer(
+				"my-stack",
+				"stack",
+				APPLICATION_CONTAINER_ID,
+				"server-1",
+			),
+		).rejects.toMatchObject({ code: "CONTAINER_NOT_FOUND" });
+		expect(getContainerMock).not.toHaveBeenCalled();
 	});
 
 	it("flags when swarm reports more running tasks than are visible from this node", async () => {
 		listContainersMock.mockResolvedValue([
 			dockerContainer({
-				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+				Labels: {
+					"com.docker.stack.namespace": "my-stack",
+					"com.docker.swarm.service.name": "my-stack_web",
+				},
 			}),
 		]);
 		listTasksMock.mockResolvedValue([
@@ -473,12 +513,18 @@ describe("compose container ownership", () => {
 	it("does not flag anything when the visible count exactly matches the running task count", async () => {
 		listContainersMock.mockResolvedValue([
 			dockerContainer({
-				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+				Labels: {
+					"com.docker.stack.namespace": "my-stack",
+					"com.docker.swarm.service.name": "my-stack_web",
+				},
 			}),
 			dockerContainer({
 				Id: OTHER_CONTAINER_ID,
 				Names: ["/my-stack_db.1.yyyyyyyyy"],
-				Labels: { "com.docker.swarm.service.name": "my-stack_db" },
+				Labels: {
+					"com.docker.stack.namespace": "my-stack",
+					"com.docker.swarm.service.name": "my-stack_db",
+				},
 			}),
 		]);
 		listTasksMock.mockResolvedValue([
@@ -497,13 +543,41 @@ describe("compose container ownership", () => {
 		expect(result.expectedRunningCount).toBe(result.containers.length);
 	});
 
+	it("reports running worker tasks even when no containers are reachable locally", async () => {
+		listTasksMock.mockResolvedValue([
+			{
+				ID: "worker-task",
+				NodeID: "worker-node",
+				ServiceID: "stack-service",
+				ServiceAnnotations: {
+					Name: "my-stack_web",
+					Labels: { "com.docker.stack.namespace": "my-stack" },
+				},
+				DesiredState: "running",
+				Status: {
+					State: "running",
+					ContainerStatus: { ContainerID: APPLICATION_CONTAINER_ID },
+				},
+			},
+		]);
+
+		await expect(
+			getComposeFilesystemContainers("my-stack", "stack", "server-1"),
+		).resolves.toEqual({ containers: [], expectedRunningCount: 1 });
+	});
+
 	it("does not fail container listing when the swarm task cross-check is unavailable", async () => {
 		listContainersMock.mockResolvedValue([
 			dockerContainer({
-				Labels: { "com.docker.swarm.service.name": "my-stack_web" },
+				Labels: {
+					"com.docker.stack.namespace": "my-stack",
+					"com.docker.swarm.service.name": "my-stack_web",
+				},
 			}),
 		]);
-		listTasksMock.mockRejectedValue(new Error("this node is not a swarm manager"));
+		listTasksMock.mockRejectedValue(
+			new Error("this node is not a swarm manager"),
+		);
 
 		const result = await getComposeFilesystemContainers(
 			"my-stack",

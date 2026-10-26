@@ -290,42 +290,30 @@ export const getApplicationFilesystemContainer = async (
 	};
 };
 
-// Compose deploys multiple containers under one entity, labeled differently
-// depending on how it was deployed: plain `docker compose` tags every
-// container with `com.docker.compose.project=<appName>`, while a swarm
-// `docker stack deploy` names each sub-service `<appName>_<service>`, so its
-// containers carry `com.docker.swarm.service.name=<appName>_<service>`.
+// Both deployment modes attach an exact project/stack label to containers.
+// Service-name prefixes are not an ownership boundary: a different stack
+// named `<appName>_other` would also match `<appName>_`.
 const getRunningComposeContainers = async (
 	docker: DockerClient,
 	appName: string,
 	composeType: "docker-compose" | "stack",
 ): Promise<ContainerInfo[]> => {
-	if (composeType === "docker-compose") {
-		const filters = {
-			status: ["running"],
-			label: [`com.docker.compose.project=${appName}`],
-		};
-		const containers = await docker.listContainers({
-			filters: JSON.stringify(filters),
-		});
-		return containers.filter(
-			(container) =>
-				container.State === "running" &&
-				container.Labels?.["com.docker.compose.project"] === appName,
-		);
-	}
-
-	const filters = { status: ["running"] };
+	const projectLabel =
+		composeType === "docker-compose"
+			? "com.docker.compose.project"
+			: "com.docker.stack.namespace";
+	const filters = {
+		status: ["running"],
+		label: [`${projectLabel}=${appName}`],
+	};
 	const containers = await docker.listContainers({
 		filters: JSON.stringify(filters),
 	});
-	return containers.filter((container) => {
-		if (container.State !== "running") return false;
-		const serviceName = container.Labels?.["com.docker.swarm.service.name"];
-		return (
-			serviceName === appName || serviceName?.startsWith(`${appName}_`)
-		);
-	});
+	return containers.filter(
+		(container) =>
+			container.State === "running" &&
+			container.Labels?.[projectLabel] === appName,
+	);
 };
 
 // `listContainers()` only ever sees containers on the one node this
@@ -581,7 +569,7 @@ const inspectContainerPath = async (
 				const stat = requireArchiveStat(response);
 				const type = entryTypeFromArchiveStat(stat);
 
-				if (type === "symlink" || Boolean(stat.linkTarget)) {
+				if (type === "symlink" || stat.linkTarget) {
 					throw new ContainerFilesystemError(
 						"SYMLINK_NOT_SUPPORTED",
 						"Paths containing symlinks cannot be opened from the file browser.",
