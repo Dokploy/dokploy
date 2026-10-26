@@ -156,7 +156,7 @@ export const RestoreVolumeBackups = ({
 					<form
 						id="hook-form-restore-backup"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
+						className="grid w-full grid-cols-1 gap-4"
 					>
 						<FormField
 							control={form.control}
