@@ -10,6 +10,7 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import { getBuildExecutionServerId } from "@dokploy/server/utils/builders/build-server";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
@@ -186,7 +187,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
-	const serverId = application.buildServerId || application.serverId;
+	const serverId = getBuildExecutionServerId(application);
 	const applicationEntity = {
 		...application,
 		serverId: serverId,
@@ -308,7 +309,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
-	const serverId = application.buildServerId || application.serverId;
+	const serverId = getBuildExecutionServerId(application);
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
 	const deployment = await createDeployment({
