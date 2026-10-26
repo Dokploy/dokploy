@@ -785,12 +785,15 @@ export const applicationRouter = createTRPCRouter({
 									"You are not authorized to deploy to the selected server",
 							});
 						}
-					} else if (IS_CLOUD) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message:
-								"The Dokploy server is not available as a deployment target",
-						});
+					} else {
+						const webServerSettings = await getWebServerSettings();
+						if (IS_CLOUD || webServerSettings?.remoteServersOnly) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message:
+									"The Dokploy server is not available as a deployment target",
+							});
+						}
 					}
 
 					await changeApplicationServer(applicationId, targetServerId);
@@ -840,6 +843,12 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const application = await findApplicationById(input.applicationId);
+			if (application.applicationStatus === "running") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Application is currently busy or running a deployment",
+				});
+			}
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: input.title || "Manual deployment",
