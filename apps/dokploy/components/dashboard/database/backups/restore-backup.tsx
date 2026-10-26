@@ -387,10 +387,13 @@ export const RestoreBackup = ({
 									<FormLabel className="flex items-center justify-between gap-2">
 										<span className="shrink-0">Search Backup Files</span>
 										{field.value && (
-											<Badge variant="outline" className="min-w-0 max-w-[70%]">
+											<Badge
+												variant="outline"
+												className="min-w-0 max-w-[70%] shrink"
+											>
 												<span className="min-w-0 truncate">{field.value}</span>
 												<Copy
-													className="ml-2 size-4 cursor-pointer"
+													className="ml-2 size-4 shrink-0 cursor-pointer"
 													onClick={(e) => {
 														e.stopPropagation();
 														e.preventDefault();
