@@ -43,6 +43,7 @@ export type ServiceFilesystemType =
 	| "mariadb"
 	| "mongo"
 	| "redis"
+	| "libsql"
 	| "compose";
 
 interface Props {
@@ -243,10 +244,13 @@ export const ShowContainerFileSystem = ({ serviceType, serviceId }: Props) => {
 				path,
 				fileName: file.name,
 			});
-			const response = await fetch(`/api/filesystem/upload?${params.toString()}`, {
-				method: "POST",
-				body: file,
-			});
+			const response = await fetch(
+				`/api/filesystem/upload?${params.toString()}`,
+				{
+					method: "POST",
+					body: file,
+				},
+			);
 			const data = await response.json().catch(() => ({}));
 
 			if (!response.ok) {
@@ -273,8 +277,8 @@ export const ShowContainerFileSystem = ({ serviceType, serviceId }: Props) => {
 						Files System
 					</CardTitle>
 					<CardDescription>
-						Browse files from a running container for this service. The
-						selected container can be replaced by a deployment.
+						Browse files from a running container for this service. The selected
+						container can be replaced by a deployment.
 					</CardDescription>
 					<AlertBlock type="warning">
 						Files outside persistent mounts are usually ephemeral and can
@@ -296,9 +300,9 @@ export const ShowContainerFileSystem = ({ serviceType, serviceId }: Props) => {
 							{typeof expectedRunningCount === "number" &&
 								expectedRunningCount > containers.length && (
 									<AlertBlock type="warning">
-										Showing {containers.length} of {expectedRunningCount} running
-										containers. The rest are replicas on other cluster nodes that
-										this Dokploy server has no direct connection to.
+										Showing {containers.length} of {expectedRunningCount}{" "}
+										running containers. The rest are replicas on other cluster
+										nodes that this Dokploy server has no direct connection to.
 									</AlertBlock>
 								)}
 							<div className="flex flex-col gap-3 sm:flex-row sm:items-center">

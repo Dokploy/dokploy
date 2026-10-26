@@ -2,6 +2,7 @@ import {
 	ContainerFilesystemError,
 	findApplicationById,
 	findComposeById,
+	findLibsqlById,
 	findMariadbById,
 	findMongoById,
 	findMySqlById,
@@ -29,6 +30,7 @@ export const FILESYSTEM_SERVICE_TYPES = [
 	"mariadb",
 	"mongo",
 	"redis",
+	"libsql",
 	"compose",
 ] as const;
 
@@ -41,10 +43,13 @@ const finders = {
 	mariadb: findMariadbById,
 	mongo: findMongoById,
 	redis: findRedisById,
+	libsql: findLibsqlById,
 	compose: findComposeById,
 } satisfies Record<FilesystemServiceType, (id: string) => Promise<unknown>>;
 
-type FilesystemService = Awaited<ReturnType<(typeof finders)[FilesystemServiceType]>> & {
+type FilesystemService = Awaited<
+	ReturnType<(typeof finders)[FilesystemServiceType]>
+> & {
 	appName: string;
 	serverId?: string | null;
 	composeType?: "docker-compose" | "stack";

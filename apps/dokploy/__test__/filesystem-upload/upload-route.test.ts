@@ -32,6 +32,7 @@ vi.mock("@/server/api/utils/service-filesystem", () => ({
 		"mariadb",
 		"mongo",
 		"redis",
+		"libsql",
 		"compose",
 	],
 	getAuthorizedServiceFilesystemContainer:
@@ -159,6 +160,28 @@ describe("POST /api/filesystem/upload", () => {
 			expect(
 				getAuthorizedServiceFilesystemContainerMock,
 			).not.toHaveBeenCalled();
+		});
+	});
+
+	it("authorizes libsql uploads with read and write access", async () => {
+		await withServer(async (baseUrl) => {
+			const response = await fetch(
+				`${baseUrl}/api/filesystem/upload?${uploadParams({ serviceType: "libsql", serviceId: "libsql-1" })}`,
+				{ method: "POST", body: "hi" },
+			);
+
+			expect(response.status).toBe(200);
+			await response.json();
+			expect(getAuthorizedServiceFilesystemContainerMock).toHaveBeenCalledWith(
+				{
+					user: { id: "user-1" },
+					session: { activeOrganizationId: "org-1" },
+				},
+				"libsql",
+				"libsql-1",
+				"a".repeat(64),
+				["read", "write"],
+			);
 		});
 	});
 
