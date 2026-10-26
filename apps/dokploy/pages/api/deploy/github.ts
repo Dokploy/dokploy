@@ -16,7 +16,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
+import { deploy, fetchDeployApiJobs } from "@/server/utils/deploy";
 import {
 	extractCommitMessage,
 	extractHash,
@@ -25,6 +25,47 @@ import {
 
 const getGithubRepositoryOwner = (githubBody: any) =>
 	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
+
+type PreviewDeploymentJob = Extract<
+	DeploymentJob,
+	{ applicationType: "application-preview" }
+>;
+
+/**
+ * Removes a preview together with the builds still waiting for it. A build
+ * that is already running stops before creating the service once it finds
+ * the preview gone (`deployPreviewApplication`).
+ */
+const removePreviewWithPendingBuilds = async (previewDeploymentId: string) => {
+	myQueue.removeWaiting(
+		(data) =>
+			data.applicationType === "application-preview" &&
+			data.previewDeploymentId === previewDeploymentId,
+	);
+	await removePreviewDeployment(previewDeploymentId);
+};
+
+/**
+ * Whether a build of this preview at this commit is already waiting or
+ * running: in the in-memory queue, or on the server's deployment queue when
+ * the cloud dispatches to it directly.
+ */
+const isPreviewBuildPending = async (jobData: PreviewDeploymentJob) => {
+	const pending: Array<Record<string, unknown>> =
+		IS_CLOUD && jobData.serverId
+			? (await fetchDeployApiJobs(jobData.serverId))
+					.filter((job) => job.state === "pending" || job.state === "active")
+					.map((job) => job.data)
+			: (await myQueue.getJobs(["waiting", "active"])).map(
+					(job) => job.data as Record<string, unknown>,
+				);
+	return pending.some(
+		(data) =>
+			data.applicationType === "application-preview" &&
+			data.previewDeploymentId === jobData.previewDeploymentId &&
+			data.descriptionLog === jobData.descriptionLog,
+	);
+};
 
 export const config = {
 	api: {
@@ -356,7 +397,7 @@ export default async function handler(
 			if (previewDeploymentResult.length > 0) {
 				for (const previewDeployment of previewDeploymentResult) {
 					try {
-						await removePreviewDeployment(
+						await removePreviewWithPendingBuilds(
 							previewDeployment.previewDeploymentId,
 						);
 					} catch (error) {
@@ -435,7 +476,7 @@ export default async function handler(
 					);
 					if (!previewDeployment) continue;
 					try {
-						await removePreviewDeployment(
+						await removePreviewWithPendingBuilds(
 							previewDeployment.previewDeploymentId,
 						);
 						removed++;
@@ -550,7 +591,7 @@ export default async function handler(
 					continue;
 				}
 
-				const jobData: DeploymentJob = {
+				const jobData: PreviewDeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: "Preview Deployment",
 					descriptionLog: `Hash: ${deploymentHash}`,
@@ -561,23 +602,16 @@ export default async function handler(
 					previewDeploymentId: previewDeployment.previewDeploymentId,
 				};
 
+				// A pull request created with the preview label arrives as `opened`
+				// plus one `labeled` event; one build of a commit is enough.
+				if (await isPreviewBuildPending(jobData)) continue;
+
 				if (IS_CLOUD && app.serverId) {
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
 					continue;
 				}
-
-				// A pull request created with the preview label arrives as `opened`
-				// plus one `labeled` event; one build of a commit is enough.
-				const jobs = await myQueue.getJobs(["waiting", "active"]);
-				const alreadyQueued = jobs.some(
-					(job) =>
-						job.data.applicationType === "application-preview" &&
-						job.data.previewDeploymentId === jobData.previewDeploymentId &&
-						job.data.descriptionLog === jobData.descriptionLog,
-				);
-				if (alreadyQueued) continue;
 
 				await myQueue.add(
 					"deployments",

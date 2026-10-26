@@ -11,12 +11,17 @@ const mocks = vi.hoisted(() => ({
 	composeFindMany: vi.fn(),
 	queueAdd: vi.fn(),
 	queueGetJobs: vi.fn(),
+	queueRemoveWaiting: vi.fn(),
 	verify: vi.fn(),
 	shouldDeploy: vi.fn(),
 	checkUserRepositoryPermissions: vi.fn(),
 	findOrCreatePreviewDeployment: vi.fn(),
 	findPreviewDeploymentByApplicationId: vi.fn(),
+	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	removePreviewDeployment: vi.fn(),
+	deploy: vi.fn(),
+	fetchDeployApiJobs: vi.fn(),
+	cloud: { value: false },
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -66,7 +71,9 @@ vi.mock("@dokploy/server/db", () => ({
 }));
 
 vi.mock("@dokploy/server", () => ({
-	IS_CLOUD: false,
+	get IS_CLOUD() {
+		return mocks.cloud.value;
+	},
 	shouldDeploy: mocks.shouldDeploy,
 	checkUserRepositoryPermissions: mocks.checkUserRepositoryPermissions,
 	createSecurityBlockedComment: vi.fn(),
@@ -74,7 +81,8 @@ vi.mock("@dokploy/server", () => ({
 	findOrCreatePreviewDeployment: mocks.findOrCreatePreviewDeployment,
 	findPreviewDeploymentByApplicationId:
 		mocks.findPreviewDeploymentByApplicationId,
-	findPreviewDeploymentsByPullRequestId: vi.fn(),
+	findPreviewDeploymentsByPullRequestId:
+		mocks.findPreviewDeploymentsByPullRequestId,
 	getBitbucketHeaders: vi.fn(() => ({})),
 	removePreviewDeployment: mocks.removePreviewDeployment,
 }));
@@ -91,11 +99,13 @@ vi.mock("@/server/queues/queueSetup", () => ({
 	myQueue: {
 		add: mocks.queueAdd,
 		getJobs: mocks.queueGetJobs,
+		removeWaiting: mocks.queueRemoveWaiting,
 	},
 }));
 
 vi.mock("@/server/utils/deploy", () => ({
-	deploy: vi.fn(),
+	deploy: mocks.deploy,
+	fetchDeployApiJobs: mocks.fetchDeployApiJobs,
 }));
 
 import handler from "@/pages/api/deploy/github";
@@ -439,8 +449,13 @@ describe("GitHub app webhook preview deployments", () => {
 			githubWebhookSecret: "webhook-secret",
 		});
 		mocks.verify.mockResolvedValue(true);
+		mocks.cloud.value = false;
 		mocks.queueAdd.mockResolvedValue({ id: "job-id" });
 		mocks.queueGetJobs.mockResolvedValue([]);
+		mocks.queueRemoveWaiting.mockReturnValue(0);
+		mocks.deploy.mockResolvedValue({});
+		mocks.fetchDeployApiJobs.mockResolvedValue([]);
+		mocks.findPreviewDeploymentsByPullRequestId.mockResolvedValue([]);
 		mocks.checkUserRepositoryPermissions.mockResolvedValue({
 			hasWriteAccess: true,
 			permission: "admin",
@@ -654,6 +669,39 @@ describe("GitHub app webhook preview deployments", () => {
 			});
 		});
 
+		it("drops the preview's waiting builds before removing it", async () => {
+			mocks.findPreviewDeploymentByApplicationId.mockResolvedValue({
+				previewDeploymentId: "existing-preview-0",
+			});
+
+			await handler(
+				createPullRequestRequest("unlabeled", {
+					labels: [],
+					label: "preview",
+				}),
+				createResponse(),
+			);
+
+			expect(mocks.queueRemoveWaiting).toHaveBeenCalledTimes(1);
+			expect(mocks.queueRemoveWaiting.mock.invocationCallOrder[0]).toBeLessThan(
+				mocks.removePreviewDeployment.mock.invocationCallOrder[0] ?? 0,
+			);
+			const matches = mocks.queueRemoveWaiting.mock.calls[0]?.[0] as (
+				data: unknown,
+			) => boolean;
+			expect(matches(previewJob("existing-preview-0", "abc123").data)).toBe(
+				true,
+			);
+			expect(matches(previewJob("other-preview", "abc123").data)).toBe(false);
+			expect(
+				matches({
+					applicationId: "application-id",
+					applicationType: "application",
+					type: "deploy",
+				}),
+			).toBe(false);
+		});
+
 		it("keeps the preview while another preview label remains", async () => {
 			mocks.applicationsFindMany.mockResolvedValue([
 				createApplication({ previewLabels: ["preview", "deploy"] }),
@@ -670,6 +718,86 @@ describe("GitHub app webhook preview deployments", () => {
 
 			expect(mocks.removePreviewDeployment).not.toHaveBeenCalled();
 			expect(mocks.queueAdd).not.toHaveBeenCalled();
+		});
+	});
+
+	it("removes the previews and their waiting builds when the pull request closes", async () => {
+		mocks.findPreviewDeploymentsByPullRequestId.mockResolvedValue([
+			{ previewDeploymentId: "existing-preview-0" },
+			{ previewDeploymentId: "existing-preview-1" },
+		]);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("closed"), res);
+
+		expect(mocks.findPreviewDeploymentsByPullRequestId).toHaveBeenCalledWith(
+			987,
+		);
+		expect(mocks.queueRemoveWaiting).toHaveBeenCalledTimes(2);
+		expect(mocks.removePreviewDeployment.mock.calls.map(([id]) => id)).toEqual([
+			"existing-preview-0",
+			"existing-preview-1",
+		]);
+		expect(res.json).toHaveBeenCalledWith({
+			message: "Preview Deployment Closed",
+		});
+	});
+
+	describe("in the cloud, deploying straight to the server", () => {
+		beforeEach(() => {
+			mocks.cloud.value = true;
+			mocks.applicationsFindMany.mockResolvedValue([
+				createApplication({ serverId: "remote-server-id" }),
+			]);
+		});
+
+		it("dispatches one build when none is pending on the server", async () => {
+			await handler(createPullRequestRequest("opened"), createResponse());
+
+			expect(mocks.fetchDeployApiJobs).toHaveBeenCalledWith("remote-server-id");
+			expect(mocks.deploy).toHaveBeenCalledTimes(1);
+			expect(mocks.deploy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					previewDeploymentId: "new-preview-id",
+					serverId: "remote-server-id",
+					descriptionLog: "Hash: abc123",
+				}),
+			);
+			expect(mocks.queueAdd).not.toHaveBeenCalled();
+		});
+
+		it("does not dispatch a build of a commit already on the server's queue", async () => {
+			mocks.fetchDeployApiJobs.mockResolvedValue([
+				{
+					id: "run-1",
+					state: "active",
+					...previewJob("new-preview-id", "abc123"),
+				},
+			]);
+
+			await handler(
+				createPullRequestRequest("labeled", {
+					labels: ["preview"],
+					label: "preview",
+				}),
+				createResponse(),
+			);
+
+			expect(mocks.deploy).not.toHaveBeenCalled();
+		});
+
+		it("ignores finished runs of the same commit", async () => {
+			mocks.fetchDeployApiJobs.mockResolvedValue([
+				{
+					id: "run-1",
+					state: "completed",
+					...previewJob("new-preview-id", "abc123"),
+				},
+			]);
+
+			await handler(createPullRequestRequest("synchronize"), createResponse());
+
+			expect(mocks.deploy).toHaveBeenCalledTimes(1);
 		});
 	});
 

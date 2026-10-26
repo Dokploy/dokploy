@@ -255,6 +255,12 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
+export const previewDeploymentExists = async (previewDeploymentId: string) =>
+	(await db.$count(
+		previewDeployments,
+		eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+	)) > 0;
+
 const previewCreationLocks = new Map<string, Promise<void>>();
 
 /**
