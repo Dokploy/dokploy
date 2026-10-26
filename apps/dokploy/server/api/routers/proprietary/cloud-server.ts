@@ -1,27 +1,27 @@
 import { createServer, haveActiveServices, IS_CLOUD } from "@dokploy/server";
 import {
-	apiCreateManagedServer,
-	apiDeleteManagedServer,
-	apiFindManagedServerAction,
-	apiFindOneManagedServer,
-	apiManagedServerPowerAction,
-	apiUpdateManagedServerFirewall,
-	apiUpgradeManagedServer,
-} from "@dokploy/server/db/schema/managed-server";
+	apiCloudServerPowerAction,
+	apiCreateCloudServer,
+	apiDeleteCloudServer,
+	apiFindCloudServerAction,
+	apiFindOneCloudServer,
+	apiUpdateCloudServerFirewall,
+	apiUpgradeCloudServer,
+} from "@dokploy/server/db/schema/cloud-server";
 import {
-	createManagedServer,
-	deletePendingManagedServer,
-	disableManagedServerFirewall,
-	findManagedServerById,
-	findManagedServersByOrg,
-	getManagedServerFirewall,
-	getManagedServerPowerAction,
-	getManagedServerVmInfo,
-	runManagedServerPowerAction,
-	terminateManagedServer,
-	updateManagedServer,
-	updateManagedServerFirewall,
-} from "@dokploy/server/services/managed-server";
+	createCloudServer,
+	deletePendingCloudServer,
+	disableCloudServerFirewall,
+	findCloudServerById,
+	findCloudServersByOrg,
+	getCloudServerFirewall,
+	getCloudServerPowerAction,
+	getCloudServerVmInfo,
+	runCloudServerPowerAction,
+	terminateCloudServer,
+	updateCloudServer,
+	updateCloudServerFirewall,
+} from "@dokploy/server/services/cloud-server";
 import {
 	DOKPLOY_PLANS,
 	getDigitalOceanRegions,
@@ -31,16 +31,16 @@ import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
-	cancelManagedServerSubscription,
-	createManagedServerCheckout,
-	expireManagedServerCheckout,
+	cancelCloudServerSubscription,
+	createCloudServerCheckout,
+	expireCloudServerCheckout,
 	getUpgradeOptions,
-	previewManagedServerUpgrade,
-	upgradeManagedServer,
-} from "@/server/utils/managed-server-billing";
+	previewCloudServerUpgrade,
+	upgradeCloudServer,
+} from "@/server/utils/cloud-server-billing";
 import { adminProcedure, createTRPCRouter } from "../../trpc";
 
-export const managedServerRouter = createTRPCRouter({
+export const cloudServerRouter = createTRPCRouter({
 	getPlans: adminProcedure.query(async () => {
 		if (!IS_CLOUD) {
 			throw new TRPCError({
@@ -63,7 +63,7 @@ export const managedServerRouter = createTRPCRouter({
 
 	list: adminProcedure.query(async ({ ctx }) => {
 		if (!IS_CLOUD) return [];
-		const servers = await findManagedServersByOrg(
+		const servers = await findCloudServersByOrg(
 			ctx.session.activeOrganizationId,
 		);
 		return servers.map((s) => {
@@ -77,12 +77,12 @@ export const managedServerRouter = createTRPCRouter({
 	}),
 
 	one: adminProcedure
-		.input(apiFindOneManagedServer)
+		.input(apiFindOneCloudServer)
 		.query(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
@@ -90,7 +90,7 @@ export const managedServerRouter = createTRPCRouter({
 		}),
 
 	purchase: adminProcedure
-		.input(apiCreateManagedServer)
+		.input(apiCreateCloudServer)
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({
@@ -118,7 +118,7 @@ export const managedServerRouter = createTRPCRouter({
 					.toLowerCase()
 					.replace(/[^a-z0-9-]/g, "x");
 
-			const managedRecord = await createManagedServer({
+			const managedRecord = await createCloudServer({
 				organizationId: ctx.session.activeOrganizationId,
 				plan: input.plan,
 				zone: input.zone,
@@ -127,39 +127,39 @@ export const managedServerRouter = createTRPCRouter({
 			});
 
 			try {
-				const session = await createManagedServerCheckout({
+				const session = await createCloudServerCheckout({
 					ownerId: ctx.user.ownerId,
-					managedServerId: managedRecord.managedServerId,
+					cloudServerId: managedRecord.cloudServerId,
 					plan,
 					regionName: region.description,
 				});
-				await updateManagedServer(managedRecord.managedServerId, {
+				await updateCloudServer(managedRecord.cloudServerId, {
 					stripeCheckoutSessionId: session.id,
 				});
 				if (!session.url) throw new Error("Stripe did not return a URL");
 				return { url: session.url };
 			} catch (err) {
-				await deletePendingManagedServer(managedRecord.managedServerId);
+				await deletePendingCloudServer(managedRecord.cloudServerId);
 				throw err;
 			}
 		}),
 
 	delete: adminProcedure
-		.input(apiDeleteManagedServer)
+		.input(apiDeleteCloudServer)
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 
 			if (record.status === "pending") {
 				if (record.stripeCheckoutSessionId) {
-					await expireManagedServerCheckout(record.stripeCheckoutSessionId);
+					await expireCloudServerCheckout(record.stripeCheckoutSessionId);
 				}
-				await deletePendingManagedServer(input.managedServerId);
+				await deletePendingCloudServer(input.cloudServerId);
 				return { cancelledOrder: true };
 			}
 
@@ -171,26 +171,26 @@ export const managedServerRouter = createTRPCRouter({
 				});
 			}
 
-			await updateManagedServer(input.managedServerId, {
+			await updateCloudServer(input.cloudServerId, {
 				status: "terminating",
 			});
 
 			if (record.stripeSubscriptionId) {
 				try {
-					await cancelManagedServerSubscription(record.stripeSubscriptionId);
+					await cancelCloudServerSubscription(record.stripeSubscriptionId);
 				} catch (err) {
-					await updateManagedServer(input.managedServerId, {
+					await updateCloudServer(input.cloudServerId, {
 						status: record.status,
 					});
 					throw err;
 				}
 			}
 
-			terminateManagedServer(input.managedServerId, {
+			terminateCloudServer(input.cloudServerId, {
 				removeLinkedServer: true,
 			}).catch(async (err) => {
-				console.error("[managed-server] termination failed:", err);
-				await updateManagedServer(input.managedServerId, {
+				console.error("[cloud-server] termination failed:", err);
+				await updateCloudServer(input.cloudServerId, {
 					status: "error",
 					errorMessage: `Termination failed: ${err?.message ?? "Unknown error"}`,
 				});
@@ -200,12 +200,12 @@ export const managedServerRouter = createTRPCRouter({
 		}),
 
 	reconnect: adminProcedure
-		.input(apiFindOneManagedServer)
+		.input(apiFindOneCloudServer)
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
@@ -229,7 +229,7 @@ export const managedServerRouter = createTRPCRouter({
 				});
 			}
 
-			const name = record.hostname ?? record.managedServerId;
+			const name = record.hostname ?? record.cloudServerId;
 
 			const serverRecord = await createServer(
 				{
@@ -245,60 +245,60 @@ export const managedServerRouter = createTRPCRouter({
 				ctx.session.activeOrganizationId,
 			);
 
-			await updateManagedServer(input.managedServerId, {
+			await updateCloudServer(input.cloudServerId, {
 				serverId: serverRecord.serverId,
 				status: "ready",
 			});
 
-			return findManagedServerById(input.managedServerId);
+			return findCloudServerById(input.cloudServerId);
 		}),
 
 	vmInfo: adminProcedure
-		.input(apiFindOneManagedServer)
+		.input(apiFindOneCloudServer)
 		.query(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return getManagedServerVmInfo(record);
+			return getCloudServerVmInfo(record);
 		}),
 
 	powerAction: adminProcedure
-		.input(apiManagedServerPowerAction)
+		.input(apiCloudServerPowerAction)
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return runManagedServerPowerAction(record, input.action);
+			return runCloudServerPowerAction(record, input.action);
 		}),
 
 	powerActionStatus: adminProcedure
-		.input(apiFindManagedServerAction)
+		.input(apiFindCloudServerAction)
 		.query(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return getManagedServerPowerAction(record, input.actionId);
+			return getCloudServerPowerAction(record, input.actionId);
 		}),
 
 	upgradeOptions: adminProcedure
-		.input(apiFindOneManagedServer)
+		.input(apiFindOneCloudServer)
 		.query(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
@@ -306,68 +306,68 @@ export const managedServerRouter = createTRPCRouter({
 		}),
 
 	upgradePreview: adminProcedure
-		.input(apiUpgradeManagedServer)
+		.input(apiUpgradeCloudServer)
 		.query(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return previewManagedServerUpgrade(record, input.plan);
+			return previewCloudServerUpgrade(record, input.plan);
 		}),
 
 	upgrade: adminProcedure
-		.input(apiUpgradeManagedServer.extend({ prorationDate: z.number().int() }))
+		.input(apiUpgradeCloudServer.extend({ prorationDate: z.number().int() }))
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			await upgradeManagedServer(record, input.plan, input.prorationDate);
+			await upgradeCloudServer(record, input.plan, input.prorationDate);
 			return { ok: true };
 		}),
 
 	firewall: adminProcedure
-		.input(apiFindOneManagedServer)
+		.input(apiFindOneCloudServer)
 		.query(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return getManagedServerFirewall(record);
+			return getCloudServerFirewall(record);
 		}),
 
 	updateFirewall: adminProcedure
-		.input(apiUpdateManagedServerFirewall)
+		.input(apiUpdateCloudServerFirewall)
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return updateManagedServerFirewall(record, input.rules);
+			return updateCloudServerFirewall(record, input.rules);
 		}),
 
 	disableFirewall: adminProcedure
-		.input(apiFindOneManagedServer)
+		.input(apiFindOneCloudServer)
 		.mutation(async ({ input, ctx }) => {
 			if (!IS_CLOUD) {
 				throw new TRPCError({ code: "BAD_REQUEST", message: "Cloud only" });
 			}
-			const record = await findManagedServerById(input.managedServerId);
+			const record = await findCloudServerById(input.cloudServerId);
 			if (record.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
-			return disableManagedServerFirewall(record);
+			return disableCloudServerFirewall(record);
 		}),
 });

@@ -2,11 +2,11 @@ import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
-import { ShowManagedServers } from "@/components/dashboard/settings/billing/show-managed-servers";
+import { ShowCloudServers } from "@/components/dashboard/settings/billing/show-cloud-servers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 const Page = () => {
-	return <ShowManagedServers />;
+	return <ShowCloudServers />;
 };
 
 export default Page;

@@ -16,11 +16,10 @@ export const getStripeClient = () =>
 		apiVersion: "2024-09-30.acacia",
 	});
 
-export const MANAGED_SERVER_METADATA_TYPE = "managed_server";
+export const CLOUD_SERVER_METADATA_TYPE = "cloud_server";
 
-export const isManagedServerSubscription = (
-	subscription: Stripe.Subscription,
-) => subscription.metadata?.type === MANAGED_SERVER_METADATA_TYPE;
+export const isCloudServerSubscription = (subscription: Stripe.Subscription) =>
+	subscription.metadata?.type === CLOUD_SERVER_METADATA_TYPE;
 
 export const planFromPriceIds = (priceIds: string[]): BillingPlan | null => {
 	if (
@@ -62,7 +61,7 @@ export const getCurrentPlanForUser = async (
 
 	const relevantSubs = subscriptions.data.filter(
 		(sub) =>
-			!isManagedServerSubscription(sub) &&
+			!isCloudServerSubscription(sub) &&
 			(sub.status === "active" || sub.status === "trialing"),
 	);
 	if (relevantSubs.length === 0) return null;
@@ -141,7 +140,7 @@ export const getBillingStatus = async (
 	});
 	const subscriptions = {
 		data: allSubscriptions.data.filter(
-			(sub) => !isManagedServerSubscription(sub),
+			(sub) => !isCloudServerSubscription(sub),
 		),
 	};
 

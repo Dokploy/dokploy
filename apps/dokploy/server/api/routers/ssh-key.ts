@@ -6,7 +6,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { managedServer } from "@dokploy/server/db/schema/managed-server";
+import { cloudServer } from "@dokploy/server/db/schema/cloud-server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import {
@@ -58,10 +58,10 @@ export const sshRouter = createTRPCRouter({
 					});
 				}
 
-				const linkedManagedServer = await db.query.managedServer.findFirst({
-					where: eq(managedServer.sshKeyId, input.sshKeyId),
+				const linkedCloudServer = await db.query.cloudServer.findFirst({
+					where: eq(cloudServer.sshKeyId, input.sshKeyId),
 				});
-				if (linkedManagedServer) {
+				if (linkedCloudServer) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message:

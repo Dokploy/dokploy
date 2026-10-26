@@ -1,44 +1,44 @@
 import { findUserById, updateUser } from "@dokploy/server";
 import {
-	claimManagedServerForProvisioning,
-	claimManagedServerForUpgrade,
-	deletePendingManagedServer,
-	findManagedServerById,
-	findManagedServerBySubscriptionId,
-	findSuspendedManagedServersBefore,
-	type ManagedServer,
-	powerOnManagedServerVm,
-	provisionManagedServer,
+	type CloudServer,
+	claimCloudServerForProvisioning,
+	claimCloudServerForUpgrade,
+	deletePendingCloudServer,
+	findCloudServerById,
+	findCloudServerBySubscriptionId,
+	findSuspendedCloudServersBefore,
+	powerOnCloudServerVm,
+	provisionCloudServer,
 	releaseProviderResources,
-	resizeManagedServerVm,
-	resumeManagedServer,
-	suspendManagedServer,
-	terminateManagedServer,
-	updateManagedServer,
-} from "@dokploy/server/services/managed-server";
+	resizeCloudServerVm,
+	resumeCloudServer,
+	suspendCloudServer,
+	terminateCloudServer,
+	updateCloudServer,
+} from "@dokploy/server/services/cloud-server";
 import {
 	DOKPLOY_PLANS,
 	type DokployPlan,
 	deleteDigitalOceanDropletsByTag,
+	getCloudServerTag,
 	getDigitalOceanRegions,
-	getManagedServerTag,
 } from "@dokploy/server/utils/digitalocean";
 import { TRPCError } from "@trpc/server";
 import { scheduleJob } from "node-schedule";
 import Stripe from "stripe";
 import {
+	CLOUD_SERVER_METADATA_TYPE,
 	getStripeClient,
-	isManagedServerSubscription,
-	MANAGED_SERVER_METADATA_TYPE,
+	isCloudServerSubscription,
 } from "@/server/utils/billing";
 import { WEBSITE_URL } from "@/server/utils/stripe";
 
 const SUSPENSION_GRACE_DAYS = 7;
 const CHECKOUT_EXPIRATION_MINUTES = 30;
 
-const getManagedServerId = (metadata?: Stripe.Metadata | null) =>
-	metadata?.type === MANAGED_SERVER_METADATA_TYPE
-		? (metadata.managedServerId ?? null)
+const getCloudServerId = (metadata?: Stripe.Metadata | null) =>
+	metadata?.type === CLOUD_SERVER_METADATA_TYPE
+		? (metadata.cloudServerId ?? null)
 		: null;
 
 const getOrCreateStripeCustomer = async (ownerId: string, stripe: Stripe) => {
@@ -58,10 +58,10 @@ const getOrCreateStripeCustomer = async (ownerId: string, stripe: Stripe) => {
 };
 
 const PLAN_PRODUCT_ENV: Record<string, string> = {
-	hobby: "MANAGED_SERVER_HOBBY_PRODUCT_ID",
-	starter: "MANAGED_SERVER_STARTER_PRODUCT_ID",
-	pro: "MANAGED_SERVER_PRO_PRODUCT_ID",
-	business: "MANAGED_SERVER_BUSINESS_PRODUCT_ID",
+	hobby: "CLOUD_SERVER_HOBBY_PRODUCT_ID",
+	starter: "CLOUD_SERVER_STARTER_PRODUCT_ID",
+	pro: "CLOUD_SERVER_PRO_PRODUCT_ID",
+	business: "CLOUD_SERVER_BUSINESS_PRODUCT_ID",
 };
 
 const getPlanProductId = (plan: DokployPlan) => {
@@ -71,9 +71,9 @@ const getPlanProductId = (plan: DokployPlan) => {
 	return productId;
 };
 
-export const createManagedServerCheckout = async (params: {
+export const createCloudServerCheckout = async (params: {
 	ownerId: string;
-	managedServerId: string;
+	cloudServerId: string;
 	plan: DokployPlan;
 	regionName: string;
 }) => {
@@ -81,8 +81,8 @@ export const createManagedServerCheckout = async (params: {
 	const customer = await getOrCreateStripeCustomer(params.ownerId, stripe);
 	const { plan } = params;
 	const metadata = {
-		type: MANAGED_SERVER_METADATA_TYPE,
-		managedServerId: params.managedServerId,
+		type: CLOUD_SERVER_METADATA_TYPE,
+		cloudServerId: params.cloudServerId,
 	};
 
 	return stripe.checkout.sessions.create({
@@ -111,15 +111,15 @@ export const createManagedServerCheckout = async (params: {
 	});
 };
 
-export const expireManagedServerCheckout = async (sessionId: string) => {
+export const expireCloudServerCheckout = async (sessionId: string) => {
 	await getStripeClient()
 		.checkout.sessions.expire(sessionId)
 		.catch((err) =>
-			console.error("[managed-server] failed to expire checkout:", err),
+			console.error("[cloud-server] failed to expire checkout:", err),
 		);
 };
 
-export const cancelManagedServerSubscription = async (
+export const cancelCloudServerSubscription = async (
 	subscriptionId: string,
 	stripe: Stripe = getStripeClient(),
 ) => {
@@ -170,54 +170,52 @@ const refundAndCancelSubscription = async (
 	const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
 		expand: ["latest_invoice"],
 	});
-	await cancelManagedServerSubscription(subscriptionId, stripe);
+	await cancelCloudServerSubscription(subscriptionId, stripe);
 	await refundInvoice(stripe, subscription.latest_invoice);
 };
 
 const handleProvisioningFailure = async (
 	stripe: Stripe,
-	record: ManagedServer,
+	record: CloudServer,
 	err: unknown,
 ) => {
 	const reason = err instanceof Error ? err.message : String(err);
-	console.error("[managed-server] provisioning failed:", reason);
+	console.error("[cloud-server] provisioning failed:", reason);
 
 	// Mark as error before cancelling so the subscription.deleted webhook leaves the record for the user to see.
-	await updateManagedServer(record.managedServerId, {
+	await updateCloudServer(record.cloudServerId, {
 		status: "error",
 		errorMessage: reason,
 	});
 
-	const latest = await findManagedServerById(record.managedServerId);
+	const latest = await findCloudServerById(record.cloudServerId);
 	await releaseProviderResources(latest).catch((cleanupErr) =>
-		console.error("[managed-server] cleanup failed:", cleanupErr),
+		console.error("[cloud-server] cleanup failed:", cleanupErr),
 	);
 
 	if (!latest.stripeSubscriptionId) return;
 	try {
 		await refundAndCancelSubscription(stripe, latest.stripeSubscriptionId);
-		await updateManagedServer(record.managedServerId, {
+		await updateCloudServer(record.cloudServerId, {
 			errorMessage: `${reason}. The payment has been refunded.`,
 		});
 	} catch (refundErr) {
-		console.error("[managed-server] refund failed:", refundErr);
+		console.error("[cloud-server] refund failed:", refundErr);
 	}
 };
 
 const handleCheckoutCompleted = async (
 	stripe: Stripe,
-	managedServerId: string,
+	cloudServerId: string,
 	subscriptionId: string,
 ) => {
-	const record = await claimManagedServerForProvisioning(
-		managedServerId,
+	const record = await claimCloudServerForProvisioning(
+		cloudServerId,
 		subscriptionId,
 	);
 
 	if (!record) {
-		const existing = await findManagedServerById(managedServerId).catch(
-			() => null,
-		);
+		const existing = await findCloudServerById(cloudServerId).catch(() => null);
 		if (existing?.stripeSubscriptionId === subscriptionId) return;
 		// Paid after the order was removed, there is nothing to provision.
 		await refundAndCancelSubscription(stripe, subscriptionId);
@@ -235,8 +233,8 @@ const handleCheckoutCompleted = async (
 	}
 
 	// Provisioning takes minutes, far longer than Stripe waits for a webhook response.
-	void provisionManagedServer({
-		managedServerId: record.managedServerId,
+	void provisionCloudServer({
+		cloudServerId: record.cloudServerId,
 		organizationId: record.organizationId,
 		doSize: plan.doSize,
 		swapGb: Math.min(plan.memoryGb, 4),
@@ -246,34 +244,32 @@ const handleCheckoutCompleted = async (
 };
 
 const handleSubscriptionUpdated = async (subscription: Stripe.Subscription) => {
-	const record = await findManagedServerBySubscriptionId(subscription.id);
+	const record = await findCloudServerBySubscriptionId(subscription.id);
 	if (!record) return;
 
 	if (subscription.status === "past_due" || subscription.status === "unpaid") {
-		await suspendManagedServer(record);
+		await suspendCloudServer(record);
 	} else if (subscription.status === "active") {
-		await resumeManagedServer(record);
+		await resumeCloudServer(record);
 	}
 };
 
 const handleSubscriptionDeleted = async (subscription: Stripe.Subscription) => {
-	const record = await findManagedServerBySubscriptionId(subscription.id);
+	const record = await findCloudServerBySubscriptionId(subscription.id);
 
 	if (!record) {
 		// The record is gone when the account was deleted, but the droplet would keep running.
-		const managedServerId = getManagedServerId(subscription.metadata);
-		if (managedServerId) {
-			await deleteDigitalOceanDropletsByTag(
-				getManagedServerTag(managedServerId),
-			);
+		const cloudServerId = getCloudServerId(subscription.metadata);
+		if (cloudServerId) {
+			await deleteDigitalOceanDropletsByTag(getCloudServerTag(cloudServerId));
 		}
 		return;
 	}
 
 	if (record.status === "error" || record.status === "terminating") return;
 
-	await updateManagedServer(record.managedServerId, { status: "terminating" });
-	await terminateManagedServer(record.managedServerId);
+	await updateCloudServer(record.cloudServerId, { status: "terminating" });
+	await terminateCloudServer(record.cloudServerId);
 };
 
 const PRORATION_DATE_MAX_AGE_SECONDS = 15 * 60;
@@ -285,7 +281,7 @@ const getPlan = (planId: string) => {
 	return plan;
 };
 
-export const getUpgradeOptions = async (record: ManagedServer) => {
+export const getUpgradeOptions = async (record: CloudServer) => {
 	if (record.status !== "ready" || !record.stripeSubscriptionId) return [];
 	const currentIndex = DOKPLOY_PLANS.findIndex((p) => p.id === record.plan);
 	const region = (await getDigitalOceanRegions()).find(
@@ -296,7 +292,7 @@ export const getUpgradeOptions = async (record: ManagedServer) => {
 	);
 };
 
-const assertUpgradeAllowed = async (record: ManagedServer, planId: string) => {
+const assertUpgradeAllowed = async (record: CloudServer, planId: string) => {
 	const target = getPlan(planId);
 	const options = await getUpgradeOptions(record);
 	if (!options.some((p) => p.id === target.id)) {
@@ -345,8 +341,8 @@ const getCurrentPriceData = (
 	recurring: { interval: "month" as const },
 });
 
-export const previewManagedServerUpgrade = async (
-	record: ManagedServer,
+export const previewCloudServerUpgrade = async (
+	record: CloudServer,
 	planId: string,
 ) => {
 	const { current, target } = await assertUpgradeAllowed(record, planId);
@@ -379,7 +375,7 @@ export const previewManagedServerUpgrade = async (
 
 const runUpgrade = async (params: {
 	stripe: Stripe;
-	record: ManagedServer;
+	record: CloudServer;
 	current: DokployPlan;
 	target: DokployPlan;
 	item: Stripe.SubscriptionItem;
@@ -388,23 +384,20 @@ const runUpgrade = async (params: {
 	const { stripe, record, current, target, item, upgradeInvoice } = params;
 
 	try {
-		await resizeManagedServerVm(
+		await resizeCloudServerVm(
 			record,
 			target.doSize,
 			Math.min(target.memoryGb, 4),
 		);
-		await updateManagedServer(record.managedServerId, {
+		await updateCloudServer(record.cloudServerId, {
 			plan: target.id,
 			status: "ready",
 		});
 	} catch (err) {
 		const reason = err instanceof Error ? err.message : String(err);
-		console.error("[managed-server] upgrade failed:", reason);
-		await powerOnManagedServerVm(record).catch((powerErr) =>
-			console.error(
-				"[managed-server] power on after failed upgrade:",
-				powerErr,
-			),
+		console.error("[cloud-server] upgrade failed:", reason);
+		await powerOnCloudServerVm(record).catch((powerErr) =>
+			console.error("[cloud-server] power on after failed upgrade:", powerErr),
 		);
 
 		let errorMessage = `Upgrade failed: ${reason}`;
@@ -422,20 +415,20 @@ const runUpgrade = async (params: {
 			errorMessage += ". The charge has been refunded.";
 		} catch (revertErr) {
 			console.error(
-				"[managed-server] failed to revert upgrade billing:",
+				"[cloud-server] failed to revert upgrade billing:",
 				revertErr,
 			);
 		}
 
-		await updateManagedServer(record.managedServerId, {
+		await updateCloudServer(record.cloudServerId, {
 			status: "ready",
 			errorMessage,
 		});
 	}
 };
 
-export const upgradeManagedServer = async (
-	record: ManagedServer,
+export const upgradeCloudServer = async (
+	record: CloudServer,
 	planId: string,
 	prorationDate: number,
 ) => {
@@ -451,7 +444,7 @@ export const upgradeManagedServer = async (
 	}
 
 	const { current, target } = await assertUpgradeAllowed(record, planId);
-	const claimed = await claimManagedServerForUpgrade(record.managedServerId);
+	const claimed = await claimCloudServerForUpgrade(record.cloudServerId);
 	if (!claimed) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -484,7 +477,7 @@ export const upgradeManagedServer = async (
 		);
 		upgradeInvoice = updated.latest_invoice;
 	} catch (err) {
-		await updateManagedServer(record.managedServerId, { status: "ready" });
+		await updateCloudServer(record.cloudServerId, { status: "ready" });
 		if (err instanceof Stripe.errors.StripeCardError) {
 			throw new TRPCError({ code: "BAD_REQUEST", message: err.message });
 		}
@@ -502,46 +495,46 @@ export const upgradeManagedServer = async (
 	});
 };
 
-/** Returns true when the event belongs to a managed server and was handled here. */
-export const handleManagedServerEvent = async (
+/** Returns true when the event belongs to a cloud server and was handled here. */
+export const handleCloudServerEvent = async (
 	stripe: Stripe,
 	event: Stripe.Event,
 ): Promise<boolean> => {
 	switch (event.type) {
 		case "checkout.session.completed": {
 			const session = event.data.object;
-			const managedServerId = getManagedServerId(session.metadata);
-			if (!managedServerId) return false;
+			const cloudServerId = getCloudServerId(session.metadata);
+			if (!cloudServerId) return false;
 			await handleCheckoutCompleted(
 				stripe,
-				managedServerId,
+				cloudServerId,
 				session.subscription as string,
 			);
 			return true;
 		}
 		case "checkout.session.expired": {
-			const managedServerId = getManagedServerId(event.data.object.metadata);
-			if (!managedServerId) return false;
-			await deletePendingManagedServer(managedServerId);
+			const cloudServerId = getCloudServerId(event.data.object.metadata);
+			if (!cloudServerId) return false;
+			await deletePendingCloudServer(cloudServerId);
 			return true;
 		}
 		case "customer.subscription.created":
 		case "customer.subscription.trial_will_end":
-			return isManagedServerSubscription(event.data.object);
+			return isCloudServerSubscription(event.data.object);
 		case "customer.subscription.updated": {
-			if (!isManagedServerSubscription(event.data.object)) return false;
+			if (!isCloudServerSubscription(event.data.object)) return false;
 			await handleSubscriptionUpdated(event.data.object);
 			return true;
 		}
 		case "customer.subscription.deleted": {
-			if (!isManagedServerSubscription(event.data.object)) return false;
+			if (!isCloudServerSubscription(event.data.object)) return false;
 			await handleSubscriptionDeleted(event.data.object);
 			return true;
 		}
 		case "invoice.payment_succeeded":
 		case "invoice.payment_failed":
 			// Suspension and resume follow the subscription status, invoices only need to stay away from the plan logic.
-			return !!getManagedServerId(
+			return !!getCloudServerId(
 				event.data.object.subscription_details?.metadata,
 			);
 		default:
@@ -549,25 +542,25 @@ export const handleManagedServerEvent = async (
 	}
 };
 
-export const initManagedServerCrons = () => {
-	scheduleJob("managed-server-suspension-cleanup", "0 * * * *", async () => {
+export const initCloudServerCrons = () => {
+	scheduleJob("cloud-server-suspension-cleanup", "0 * * * *", async () => {
 		const cutoff = new Date(
 			Date.now() - SUSPENSION_GRACE_DAYS * 24 * 60 * 60 * 1000,
 		);
-		const expired = await findSuspendedManagedServersBefore(cutoff);
+		const expired = await findSuspendedCloudServersBefore(cutoff);
 
 		for (const record of expired) {
 			try {
-				await updateManagedServer(record.managedServerId, {
+				await updateCloudServer(record.cloudServerId, {
 					status: "terminating",
 				});
 				if (record.stripeSubscriptionId) {
-					await cancelManagedServerSubscription(record.stripeSubscriptionId);
+					await cancelCloudServerSubscription(record.stripeSubscriptionId);
 				}
-				await terminateManagedServer(record.managedServerId);
+				await terminateCloudServer(record.cloudServerId);
 			} catch (err) {
 				console.error(
-					`[managed-server] failed to remove suspended server ${record.managedServerId}:`,
+					`[cloud-server] failed to remove suspended server ${record.cloudServerId}:`,
 					err,
 				);
 			}

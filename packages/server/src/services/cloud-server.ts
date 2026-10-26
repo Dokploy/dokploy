@@ -1,9 +1,9 @@
 import { db } from "@dokploy/server/db";
 import { server } from "@dokploy/server/db/schema";
 import {
+	cloudServer,
 	type FirewallRule,
-	managedServer,
-} from "@dokploy/server/db/schema/managed-server";
+} from "@dokploy/server/db/schema/cloud-server";
 import { removeDeploymentsByServerId } from "@dokploy/server/services/deployment";
 import {
 	createServer,
@@ -29,10 +29,10 @@ import {
 	deleteDigitalOceanSshKey,
 	deleteDigitalOceanVpc,
 	ensureDigitalOceanDefaultVpc,
+	getCloudServerTag,
 	getDigitalOceanDroplet,
 	getDigitalOceanDropletAction,
 	getDigitalOceanFirewall,
-	getManagedServerTag,
 	getPrivateIPv4,
 	getPublicIPv4,
 	resizeDigitalOceanDroplet,
@@ -45,13 +45,13 @@ import { and, eq, isNotNull, lt, ne, notInArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { Client } from "ssh2";
 
-export type ManagedServer = typeof managedServer.$inferSelect;
+export type CloudServer = typeof cloudServer.$inferSelect;
 
-export const createManagedServer = async (
-	input: typeof managedServer.$inferInsert,
+export const createCloudServer = async (
+	input: typeof cloudServer.$inferInsert,
 ) => {
 	const record = await db
-		.insert(managedServer)
+		.insert(cloudServer)
 		.values(input)
 		.returning()
 		.then((r) => r[0]);
@@ -59,9 +59,9 @@ export const createManagedServer = async (
 	return record;
 };
 
-export const findManagedServerById = async (managedServerId: string) => {
-	const record = await db.query.managedServer.findFirst({
-		where: eq(managedServer.managedServerId, managedServerId),
+export const findCloudServerById = async (cloudServerId: string) => {
+	const record = await db.query.cloudServer.findFirst({
+		where: eq(cloudServer.cloudServerId, cloudServerId),
 		with: { server: true },
 	});
 	if (!record)
@@ -72,86 +72,86 @@ export const findManagedServerById = async (managedServerId: string) => {
 	return record;
 };
 
-export const findManagedServersByOrg = async (organizationId: string) => {
-	return db.query.managedServer.findMany({
-		where: eq(managedServer.organizationId, organizationId),
+export const findCloudServersByOrg = async (organizationId: string) => {
+	return db.query.cloudServer.findMany({
+		where: eq(cloudServer.organizationId, organizationId),
 		with: { server: true },
 		orderBy: (t, { desc }) => [desc(t.createdAt)],
 	});
 };
 
-export const updateManagedServer = async (
-	managedServerId: string,
-	data: Partial<typeof managedServer.$inferInsert>,
+export const updateCloudServer = async (
+	cloudServerId: string,
+	data: Partial<typeof cloudServer.$inferInsert>,
 ) => {
 	return db
-		.update(managedServer)
+		.update(cloudServer)
 		.set({ ...data, updatedAt: new Date().toISOString() })
-		.where(eq(managedServer.managedServerId, managedServerId))
+		.where(eq(cloudServer.cloudServerId, cloudServerId))
 		.returning()
 		.then((r) => r[0]);
 };
 
-export const deleteManagedServer = async (managedServerId: string) => {
+export const deleteCloudServer = async (cloudServerId: string) => {
 	return db
-		.delete(managedServer)
-		.where(eq(managedServer.managedServerId, managedServerId));
+		.delete(cloudServer)
+		.where(eq(cloudServer.cloudServerId, cloudServerId));
 };
 
-// Managed servers are billed on their own subscription, so they never count against the plan's server quota.
-export const isNotManagedServer = () =>
+// Cloud servers are billed on their own subscription, so they never count against the plan's server quota.
+export const isNotCloudServer = () =>
 	notInArray(
 		server.serverId,
 		db
-			.select({ serverId: managedServer.serverId })
-			.from(managedServer)
-			.where(isNotNull(managedServer.serverId)),
+			.select({ serverId: cloudServer.serverId })
+			.from(cloudServer)
+			.where(isNotNull(cloudServer.serverId)),
 	);
 
-export const hasActiveManagedServers = async (organizationId: string) => {
-	const record = await db.query.managedServer.findFirst({
+export const hasActiveCloudServers = async (organizationId: string) => {
+	const record = await db.query.cloudServer.findFirst({
 		where: and(
-			eq(managedServer.organizationId, organizationId),
-			eq(managedServer.status, "ready"),
+			eq(cloudServer.organizationId, organizationId),
+			eq(cloudServer.status, "ready"),
 		),
 	});
 	return !!record;
 };
 
-export const findManagedServerByServerId = async (serverId: string) => {
-	return db.query.managedServer.findFirst({
-		where: eq(managedServer.serverId, serverId),
+export const findCloudServerByServerId = async (serverId: string) => {
+	return db.query.cloudServer.findFirst({
+		where: eq(cloudServer.serverId, serverId),
 	});
 };
 
 export const findCloudServerIds = async (organizationId: string) => {
 	const rows = await db
-		.select({ serverId: managedServer.serverId })
-		.from(managedServer)
+		.select({ serverId: cloudServer.serverId })
+		.from(cloudServer)
 		.where(
 			and(
-				eq(managedServer.organizationId, organizationId),
-				isNotNull(managedServer.serverId),
+				eq(cloudServer.organizationId, organizationId),
+				isNotNull(cloudServer.serverId),
 			),
 		);
 	return new Set(rows.map((r) => r.serverId));
 };
 
-export const findManagedServerBySubscriptionId = async (
+export const findCloudServerBySubscriptionId = async (
 	stripeSubscriptionId: string,
 ) => {
-	return db.query.managedServer.findFirst({
-		where: eq(managedServer.stripeSubscriptionId, stripeSubscriptionId),
+	return db.query.cloudServer.findFirst({
+		where: eq(cloudServer.stripeSubscriptionId, stripeSubscriptionId),
 	});
 };
 
 // Stripe can deliver the same webhook more than once; only the call that flips "pending" gets to provision.
-export const claimManagedServerForProvisioning = async (
-	managedServerId: string,
+export const claimCloudServerForProvisioning = async (
+	cloudServerId: string,
 	stripeSubscriptionId: string,
 ) => {
 	return db
-		.update(managedServer)
+		.update(cloudServer)
 		.set({
 			status: "provisioning",
 			stripeSubscriptionId,
@@ -159,17 +159,17 @@ export const claimManagedServerForProvisioning = async (
 		})
 		.where(
 			and(
-				eq(managedServer.managedServerId, managedServerId),
-				eq(managedServer.status, "pending"),
+				eq(cloudServer.cloudServerId, cloudServerId),
+				eq(cloudServer.status, "pending"),
 			),
 		)
 		.returning()
 		.then((r) => r[0]);
 };
 
-export const claimManagedServerForUpgrade = async (managedServerId: string) => {
+export const claimCloudServerForUpgrade = async (cloudServerId: string) => {
 	return db
-		.update(managedServer)
+		.update(cloudServer)
 		.set({
 			status: "upgrading",
 			errorMessage: null,
@@ -177,30 +177,30 @@ export const claimManagedServerForUpgrade = async (managedServerId: string) => {
 		})
 		.where(
 			and(
-				eq(managedServer.managedServerId, managedServerId),
-				eq(managedServer.status, "ready"),
+				eq(cloudServer.cloudServerId, cloudServerId),
+				eq(cloudServer.status, "ready"),
 			),
 		)
 		.returning()
 		.then((r) => r[0]);
 };
 
-export const deletePendingManagedServer = async (managedServerId: string) => {
+export const deletePendingCloudServer = async (cloudServerId: string) => {
 	return db
-		.delete(managedServer)
+		.delete(cloudServer)
 		.where(
 			and(
-				eq(managedServer.managedServerId, managedServerId),
-				eq(managedServer.status, "pending"),
+				eq(cloudServer.cloudServerId, cloudServerId),
+				eq(cloudServer.status, "pending"),
 			),
 		);
 };
 
-export const findSuspendedManagedServersBefore = async (cutoff: Date) => {
-	return db.query.managedServer.findMany({
+export const findSuspendedCloudServersBefore = async (cutoff: Date) => {
+	return db.query.cloudServer.findMany({
 		where: and(
-			eq(managedServer.status, "suspended"),
-			lt(managedServer.suspendedAt, cutoff.toISOString()),
+			eq(cloudServer.status, "suspended"),
+			lt(cloudServer.suspendedAt, cutoff.toISOString()),
 		),
 	});
 };
@@ -209,11 +209,11 @@ export const findOrgNetworkInZone = async (
 	organizationId: string,
 	zone: string,
 ) => {
-	const record = await db.query.managedServer.findFirst({
+	const record = await db.query.cloudServer.findFirst({
 		where: and(
-			eq(managedServer.organizationId, organizationId),
-			eq(managedServer.zone, zone),
-			isNotNull(managedServer.providerNetworkId),
+			eq(cloudServer.organizationId, organizationId),
+			eq(cloudServer.zone, zone),
+			isNotNull(cloudServer.providerNetworkId),
 		),
 	});
 	return record?.providerNetworkId ?? null;
@@ -221,12 +221,12 @@ export const findOrgNetworkInZone = async (
 
 export const isNetworkUsedByOthers = async (
 	providerNetworkId: string,
-	managedServerId: string,
+	cloudServerId: string,
 ) => {
-	const record = await db.query.managedServer.findFirst({
+	const record = await db.query.cloudServer.findFirst({
 		where: and(
-			eq(managedServer.providerNetworkId, providerNetworkId),
-			ne(managedServer.managedServerId, managedServerId),
+			eq(cloudServer.providerNetworkId, providerNetworkId),
+			ne(cloudServer.cloudServerId, cloudServerId),
 		),
 	});
 	return !!record;
@@ -335,20 +335,20 @@ const ensureSwap = (host: string, privateKey: string, swapGb: number) =>
 		].join(" "),
 	);
 
-export const provisionManagedServer = async (params: {
-	managedServerId: string;
+export const provisionCloudServer = async (params: {
+	cloudServerId: string;
 	organizationId: string;
 	doSize: string;
 	swapGb: number;
 	zone: string;
 	hostname: string;
 }) => {
-	const { managedServerId, organizationId, doSize, swapGb, zone, hostname } =
+	const { cloudServerId, organizationId, doSize, swapGb, zone, hostname } =
 		params;
 	const { publicKey, privateKey } = await generateSSHKey("rsa");
 
 	const vpcId = await getOrCreateOrgNetwork(organizationId, zone);
-	await updateManagedServer(managedServerId, { providerNetworkId: vpcId });
+	await updateCloudServer(cloudServerId, { providerNetworkId: vpcId });
 
 	const providerSshKeyId = await createDigitalOceanSshKey({
 		name: hostname,
@@ -364,10 +364,10 @@ export const provisionManagedServer = async (params: {
 			vpcId,
 			sshKeyId: providerSshKeyId,
 			organizationId,
-			managedServerId,
+			cloudServerId,
 		});
 
-		await updateManagedServer(managedServerId, {
+		await updateCloudServer(cloudServerId, {
 			providerVmId: String(droplet.id),
 			hostname: droplet.name,
 		});
@@ -376,11 +376,11 @@ export const provisionManagedServer = async (params: {
 	} finally {
 		// The key is only read when the droplet is created, keeping it would just pile up keys in the DO account.
 		await deleteDigitalOceanSshKey(providerSshKeyId).catch((err) =>
-			console.error("[managed-server] failed to delete DO ssh key:", err),
+			console.error("[cloud-server] failed to delete DO ssh key:", err),
 		);
 	}
 
-	await updateManagedServer(managedServerId, {
+	await updateCloudServer(cloudServerId, {
 		ipAddress,
 		status: "configuring",
 	});
@@ -410,13 +410,13 @@ export const provisionManagedServer = async (params: {
 		organizationId,
 	);
 
-	await updateManagedServer(managedServerId, {
+	await updateCloudServer(cloudServerId, {
 		serverId: serverRecord.serverId,
 		sshKeyId: sshKey.sshKeyId,
 	});
 
 	await serverSetup(serverRecord.serverId);
-	await updateManagedServer(managedServerId, { status: "ready" });
+	await updateCloudServer(cloudServerId, { status: "ready" });
 };
 
 const deleteNetworkWhenFree = async (vpcId: string, maxAttempts = 12) => {
@@ -432,11 +432,11 @@ const deleteNetworkWhenFree = async (vpcId: string, maxAttempts = 12) => {
 			await sleep(10_000);
 		}
 	}
-	console.error(`[managed-server] could not delete VPC ${vpcId}`);
+	console.error(`[cloud-server] could not delete VPC ${vpcId}`);
 };
 
 const setLinkedServerStatus = async (
-	record: ManagedServer,
+	record: CloudServer,
 	serverStatus: "active" | "inactive",
 ) => {
 	if (!record.serverId) return;
@@ -446,7 +446,7 @@ const setLinkedServerStatus = async (
 		.where(eq(server.serverId, record.serverId));
 };
 
-export const releaseProviderResources = async (record: ManagedServer) => {
+export const releaseProviderResources = async (record: CloudServer) => {
 	if (record.providerFirewallId) {
 		await deleteDigitalOceanFirewall(record.providerFirewallId).catch((err) => {
 			if (err?.response?.status !== 404) throw err;
@@ -459,16 +459,16 @@ export const releaseProviderResources = async (record: ManagedServer) => {
 	}
 	// Covers a droplet that was created but whose id never got saved.
 	await deleteDigitalOceanDropletsByTag(
-		getManagedServerTag(record.managedServerId),
+		getCloudServerTag(record.cloudServerId),
 	);
 
 	const vpcId = record.providerNetworkId;
-	if (vpcId && !(await isNetworkUsedByOthers(vpcId, record.managedServerId))) {
+	if (vpcId && !(await isNetworkUsedByOthers(vpcId, record.cloudServerId))) {
 		await deleteNetworkWhenFree(vpcId);
 	}
 };
 
-const removeLinkedServer = async (record: ManagedServer) => {
+const removeLinkedServer = async (record: CloudServer) => {
 	if (!record.serverId) return;
 	const linkedServer = await findServerById(record.serverId);
 	await removeDeploymentsByServerId(linkedServer);
@@ -479,12 +479,12 @@ const removeLinkedServer = async (record: ManagedServer) => {
 
 // Only terminations the customer confirmed on a server without services remove it from Dokploy;
 // automatic ones (non-payment, Stripe cancellation) keep it inactive so its services can still be moved.
-export const terminateManagedServer = async (
-	managedServerId: string,
+export const terminateCloudServer = async (
+	cloudServerId: string,
 	options: { removeLinkedServer?: boolean } = {},
 ) => {
-	const record = await findManagedServerById(managedServerId);
-	await deleteManagedServer(managedServerId);
+	const record = await findCloudServerById(cloudServerId);
+	await deleteCloudServer(cloudServerId);
 	if (options.removeLinkedServer) {
 		await removeLinkedServer(record);
 	} else {
@@ -493,25 +493,25 @@ export const terminateManagedServer = async (
 	await releaseProviderResources(record);
 };
 
-export const suspendManagedServer = async (record: ManagedServer) => {
+export const suspendCloudServer = async (record: CloudServer) => {
 	if (record.status !== "ready") return;
 	if (record.providerVmId) {
 		await runDigitalOceanDropletAction(record.providerVmId, "power_off");
 	}
 	await setLinkedServerStatus(record, "inactive");
-	await updateManagedServer(record.managedServerId, {
+	await updateCloudServer(record.cloudServerId, {
 		status: "suspended",
 		suspendedAt: new Date().toISOString(),
 	});
 };
 
-export const resumeManagedServer = async (record: ManagedServer) => {
+export const resumeCloudServer = async (record: CloudServer) => {
 	if (record.status !== "suspended") return;
 	if (record.providerVmId) {
 		await runDigitalOceanDropletAction(record.providerVmId, "power_on");
 	}
 	await setLinkedServerStatus(record, "active");
-	await updateManagedServer(record.managedServerId, {
+	await updateCloudServer(record.cloudServerId, {
 		status: "ready",
 		suspendedAt: null,
 	});
@@ -547,7 +547,7 @@ const powerOffDroplet = async (dropletId: string) => {
 	}
 };
 
-export const powerOnManagedServerVm = async (record: ManagedServer) => {
+export const powerOnCloudServerVm = async (record: CloudServer) => {
 	if (!record.providerVmId) return;
 	const droplet = await getDigitalOceanDroplet(record.providerVmId);
 	if (droplet.status === "active") return;
@@ -558,8 +558,8 @@ export const powerOnManagedServerVm = async (record: ManagedServer) => {
 	await waitForDropletAction(record.providerVmId, powerOn.id);
 };
 
-export const resizeManagedServerVm = async (
-	record: ManagedServer,
+export const resizeCloudServerVm = async (
+	record: CloudServer,
 	doSize: string,
 	swapGb: number,
 ) => {
@@ -568,7 +568,7 @@ export const resizeManagedServerVm = async (
 	await powerOffDroplet(record.providerVmId);
 	const resize = await resizeDigitalOceanDroplet(record.providerVmId, doSize);
 	await waitForDropletAction(record.providerVmId, resize.id);
-	await powerOnManagedServerVm(record);
+	await powerOnCloudServerVm(record);
 
 	if (!record.ipAddress || !record.sshKeyId) return;
 	// The resize already succeeded at this point; a swap hiccup must not roll the upgrade back.
@@ -577,7 +577,7 @@ export const resizeManagedServerVm = async (
 		await waitForBootComplete(record.ipAddress, sshKey.privateKey);
 		await ensureSwap(record.ipAddress, sshKey.privateKey, swapGb);
 	} catch (err) {
-		console.error("[managed-server] failed to resize swap after upgrade:", err);
+		console.error("[cloud-server] failed to resize swap after upgrade:", err);
 	}
 };
 
@@ -625,15 +625,15 @@ const isSameRule = (a: FirewallRule, b: FirewallRule) =>
 	a.protocol === b.protocol &&
 	(a.protocol === "icmp" || b.protocol === "icmp" || a.ports === b.ports);
 
-const getMonitoringPort = async (record: ManagedServer) => {
+const getMonitoringPort = async (record: CloudServer) => {
 	if (!record.serverId) return DEFAULT_MONITORING_PORT;
 	const linkedServer = await findServerById(record.serverId);
 	return linkedServer.metricsConfig?.server?.port ?? DEFAULT_MONITORING_PORT;
 };
 
-const toFirewallParams = (record: ManagedServer, rules: FirewallRule[]) => ({
-	name: record.hostname ?? record.managedServerId,
-	tag: getManagedServerTag(record.managedServerId),
+const toFirewallParams = (record: CloudServer, rules: FirewallRule[]) => ({
+	name: record.hostname ?? record.cloudServerId,
+	tag: getCloudServerTag(record.cloudServerId),
 	inboundRules: toDigitalOceanRules(rules),
 });
 
@@ -646,7 +646,7 @@ const withoutSystemRules = (
 	);
 
 // The firewall is opt-in: without one the droplet behaves like a regular VPS with every port open.
-export const getManagedServerFirewall = async (record: ManagedServer) => {
+export const getCloudServerFirewall = async (record: CloudServer) => {
 	getProvisionedVmId(record);
 	const systemRules = getSystemFirewallRules(await getMonitoringPort(record));
 
@@ -671,8 +671,8 @@ export const getManagedServerFirewall = async (record: ManagedServer) => {
 	};
 };
 
-export const updateManagedServerFirewall = async (
-	record: ManagedServer,
+export const updateCloudServerFirewall = async (
+	record: CloudServer,
 	rules: FirewallRule[],
 ) => {
 	getProvisionedVmId(record);
@@ -686,32 +686,32 @@ export const updateManagedServerFirewall = async (
 		await updateDigitalOceanFirewall(record.providerFirewallId, params);
 	} else {
 		const firewallId = await createDigitalOceanFirewall(params);
-		await updateManagedServer(record.managedServerId, {
+		await updateCloudServer(record.cloudServerId, {
 			providerFirewallId: firewallId,
 		});
 	}
 
-	return getManagedServerFirewall(
-		await findManagedServerById(record.managedServerId),
+	return getCloudServerFirewall(
+		await findCloudServerById(record.cloudServerId),
 	);
 };
 
-export const disableManagedServerFirewall = async (record: ManagedServer) => {
+export const disableCloudServerFirewall = async (record: CloudServer) => {
 	getProvisionedVmId(record);
 	if (record.providerFirewallId) {
 		await deleteDigitalOceanFirewall(record.providerFirewallId).catch((err) => {
 			if (err?.response?.status !== 404) throw err;
 		});
-		await updateManagedServer(record.managedServerId, {
+		await updateCloudServer(record.cloudServerId, {
 			providerFirewallId: null,
 		});
 	}
-	return getManagedServerFirewall(
-		await findManagedServerById(record.managedServerId),
+	return getCloudServerFirewall(
+		await findCloudServerById(record.cloudServerId),
 	);
 };
 
-const getProvisionedVmId = (record: ManagedServer) => {
+const getProvisionedVmId = (record: CloudServer) => {
 	if (record.status !== "ready" || !record.providerVmId) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -721,7 +721,7 @@ const getProvisionedVmId = (record: ManagedServer) => {
 	return record.providerVmId;
 };
 
-export const getManagedServerVmInfo = async (record: ManagedServer) => {
+export const getCloudServerVmInfo = async (record: CloudServer) => {
 	const droplet = await getDigitalOceanDroplet(getProvisionedVmId(record));
 	return {
 		status: droplet.status,
@@ -732,12 +732,12 @@ export const getManagedServerVmInfo = async (record: ManagedServer) => {
 	};
 };
 
-export const runManagedServerPowerAction = async (
-	record: ManagedServer,
+export const runCloudServerPowerAction = async (
+	record: CloudServer,
 	action: DropletPowerAction,
 ) => runDigitalOceanDropletAction(getProvisionedVmId(record), action);
 
-export const getManagedServerPowerAction = async (
-	record: ManagedServer,
+export const getCloudServerPowerAction = async (
+	record: CloudServer,
 	actionId: number,
 ) => getDigitalOceanDropletAction(getProvisionedVmId(record), actionId);

@@ -35,10 +35,10 @@ import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
 import { auditLogRouter } from "./routers/proprietary/audit-log";
+import { cloudServerRouter } from "./routers/proprietary/cloud-server";
 import { customRoleRouter } from "./routers/proprietary/custom-role";
 import { forwardAuthRouter } from "./routers/proprietary/forward-auth";
 import { licenseKeyRouter } from "./routers/proprietary/license-key";
-import { managedServerRouter } from "./routers/proprietary/managed-server";
 import { scimRouter } from "./routers/proprietary/scim";
 import { ssoRouter } from "./routers/proprietary/sso";
 import { whitelabelingRouter } from "./routers/proprietary/whitelabeling";
@@ -125,7 +125,7 @@ export const appRouter = createTRPCRouter({
 	patch: patchRouter,
 	overview: overviewRouter,
 	transfer: transferRouter,
-	managedServer: managedServerRouter,
+	cloudServer: cloudServerRouter,
 });
 
 // export type definition of API

@@ -27,7 +27,7 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
-	hasActiveManagedServers,
+	hasActiveCloudServers,
 	IS_CLOUD,
 	updateProjectById,
 	updateUser,
@@ -81,7 +81,7 @@ export const projectRouter = createTRPCRouter({
 				if (
 					IS_CLOUD &&
 					admin.serversQuantity === 0 &&
-					!(await hasActiveManagedServers(ctx.session.activeOrganizationId))
+					!(await hasActiveCloudServers(ctx.session.activeOrganizationId))
 				) {
 					throw new TRPCError({
 						code: "NOT_FOUND",

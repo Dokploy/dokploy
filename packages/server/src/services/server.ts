@@ -5,7 +5,7 @@ import {
 	organization,
 	server,
 } from "@dokploy/server/db/schema";
-import { isNotManagedServer } from "@dokploy/server/services/managed-server";
+import { isNotCloudServer } from "@dokploy/server/services/cloud-server";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
@@ -92,7 +92,7 @@ export const findPlanServersByUserId = async (userId: string) => {
 	const orgs = await db.query.organization.findMany({
 		where: eq(organization.ownerId, userId),
 		with: {
-			servers: { where: isNotManagedServer() },
+			servers: { where: isNotCloudServer() },
 		},
 	});
 

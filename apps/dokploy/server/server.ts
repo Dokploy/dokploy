@@ -70,10 +70,10 @@ void app.prepare().then(async () => {
 		await initEnterpriseBackupCronJobs();
 
 		if (IS_CLOUD) {
-			const { initManagedServerCrons } = await import(
-				"./utils/managed-server-billing"
+			const { initCloudServerCrons } = await import(
+				"./utils/cloud-server-billing"
 			);
-			initManagedServerCrons();
+			initCloudServerCrons();
 		}
 
 		if (!IS_CLOUD) {

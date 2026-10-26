@@ -2,8 +2,8 @@ import {
 	createServer,
 	defaultCommand,
 	deleteServer,
+	findCloudServerByServerId,
 	findCloudServerIds,
-	findManagedServerByServerId,
 	findPlanServersByUserId,
 	findServerById,
 	findUserById,
@@ -139,7 +139,7 @@ export const serverRouter = createTRPCRouter({
 
 			return {
 				...redactServerSshKey(server),
-				isCloudServer: !!(await findManagedServerByServerId(server.serverId)),
+				isCloudServer: !!(await findCloudServerByServerId(server.serverId)),
 			};
 		}),
 	getDefaultCommand: withPermission("server", "read")
@@ -501,7 +501,7 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 
-				if (await findManagedServerByServerId(input.serverId)) {
+				if (await findCloudServerByServerId(input.serverId)) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message:
@@ -566,7 +566,7 @@ export const serverRouter = createTRPCRouter({
 
 				// Connection settings belong to the droplet; changing them would orphan the server the customer pays for.
 				if (
-					(await findManagedServerByServerId(input.serverId)) &&
+					(await findCloudServerByServerId(input.serverId)) &&
 					(input.ipAddress !== server.ipAddress ||
 						input.port !== server.port ||
 						input.username !== server.username ||

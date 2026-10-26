@@ -138,11 +138,6 @@ const STATUS_MAP: Record<
 		icon: <Loader2 className="size-3 animate-spin" />,
 		variant: "secondary",
 	},
-	terminated: {
-		label: "Terminated",
-		icon: <AlertCircle className="size-3" />,
-		variant: "outline",
-	},
 };
 
 const REGION_FLAGS: Record<string, FlagComponent> = {
@@ -212,13 +207,13 @@ function OrderServerDialog() {
 	const [selectedZone, setSelectedZone] = useState<string>("");
 
 	const { data: plans, isLoading: loadingPlans } =
-		api.managedServer.getPlans.useQuery(undefined, { enabled: open });
+		api.cloudServer.getPlans.useQuery(undefined, { enabled: open });
 	const { data: zones, isLoading: loadingZones } =
-		api.managedServer.getDataCenters.useQuery(undefined, { enabled: open });
+		api.cloudServer.getDataCenters.useQuery(undefined, { enabled: open });
 
 	const isLoadingOptions = loadingPlans || loadingZones;
 
-	const purchase = api.managedServer.purchase.useMutation({
+	const purchase = api.cloudServer.purchase.useMutation({
 		onSuccess: ({ url }) => {
 			window.location.href = url;
 		},
@@ -415,10 +410,10 @@ const POWER_ACTION_LABELS = {
 type PowerAction = keyof typeof POWER_ACTION_LABELS;
 
 function PowerControls({
-	managedServerId,
+	cloudServerId,
 	powerState,
 }: {
-	managedServerId: string;
+	cloudServerId: string;
 	powerState?: string;
 }) {
 	const utils = api.useUtils();
@@ -427,8 +422,8 @@ function PowerControls({
 		action: PowerAction;
 	} | null>(null);
 
-	const { data: actionStatus } = api.managedServer.powerActionStatus.useQuery(
-		{ managedServerId, actionId: pending?.id ?? 0 },
+	const { data: actionStatus } = api.cloudServer.powerActionStatus.useQuery(
+		{ cloudServerId, actionId: pending?.id ?? 0 },
 		{ enabled: !!pending, refetchInterval: 3000 },
 	);
 
@@ -440,17 +435,17 @@ function PowerControls({
 			toast.error(`${POWER_ACTION_LABELS[pending.action]} the server failed`);
 		}
 		setPending(null);
-		utils.managedServer.vmInfo.invalidate({ managedServerId });
-	}, [actionStatus, pending, managedServerId, utils]);
+		utils.cloudServer.vmInfo.invalidate({ cloudServerId });
+	}, [actionStatus, pending, cloudServerId, utils]);
 
-	const powerAction = api.managedServer.powerAction.useMutation({
+	const powerAction = api.cloudServer.powerAction.useMutation({
 		onSuccess: (action, { action: type }) =>
 			setPending({ id: action.id, action: type }),
 		onError: (err) => toast.error(err.message),
 	});
 
 	const run = (action: PowerAction) =>
-		powerAction.mutate({ managedServerId, action });
+		powerAction.mutate({ cloudServerId, action });
 
 	if (pending || powerAction.isPending) {
 		return (
@@ -529,8 +524,8 @@ const IN_PROGRESS_STATUSES = [
 	"terminating",
 ];
 
-type ManagedServerItem = RouterOutputs["managedServer"]["list"][number];
-type Plan = RouterOutputs["managedServer"]["getPlans"][number];
+type CloudServerItem = RouterOutputs["cloudServer"]["list"][number];
+type Plan = RouterOutputs["cloudServer"]["getPlans"][number];
 
 function DetailItem({
 	label,
@@ -578,7 +573,7 @@ function formatMoney(amount: number, currency: string) {
 	return formatter.format(amount / 10 ** digits);
 }
 
-type FirewallRule = RouterOutputs["managedServer"]["firewall"]["rules"][number];
+type FirewallRule = RouterOutputs["cloudServer"]["firewall"]["rules"][number];
 
 const ANYWHERE = ["0.0.0.0/0", "::/0"];
 
@@ -634,15 +629,15 @@ function FirewallRuleRow({
 	);
 }
 
-function FirewallDialog({ managedServerId }: { managedServerId: string }) {
+function FirewallDialog({ cloudServerId }: { cloudServerId: string }) {
 	const [open, setOpen] = useState(false);
 	const [rules, setRules] = useState<FirewallRule[] | null>(null);
 	const [protocol, setProtocol] = useState<"tcp" | "udp" | "icmp">("tcp");
 	const [ports, setPorts] = useState("");
 	const [sources, setSources] = useState("");
 
-	const { data, isLoading, error } = api.managedServer.firewall.useQuery(
-		{ managedServerId },
+	const { data, isLoading, error } = api.cloudServer.firewall.useQuery(
+		{ cloudServerId },
 		{ enabled: open, refetchOnWindowFocus: false },
 	);
 
@@ -652,15 +647,15 @@ function FirewallDialog({ managedServerId }: { managedServerId: string }) {
 
 	const utils = api.useUtils();
 	const onFirewallChanged = (
-		result: RouterOutputs["managedServer"]["firewall"],
+		result: RouterOutputs["cloudServer"]["firewall"],
 		message: string,
 	) => {
 		setRules(result.rules);
-		utils.managedServer.firewall.setData({ managedServerId }, result);
+		utils.cloudServer.firewall.setData({ cloudServerId }, result);
 		toast.success(message);
 	};
 
-	const update = api.managedServer.updateFirewall.useMutation({
+	const update = api.cloudServer.updateFirewall.useMutation({
 		onSuccess: (result) =>
 			onFirewallChanged(
 				result,
@@ -669,7 +664,7 @@ function FirewallDialog({ managedServerId }: { managedServerId: string }) {
 		onError: (err) => toast.error(err.message),
 	});
 
-	const disable = api.managedServer.disableFirewall.useMutation({
+	const disable = api.cloudServer.disableFirewall.useMutation({
 		onSuccess: (result) => onFirewallChanged(result, "Firewall disabled"),
 		onError: (err) => toast.error(err.message),
 	});
@@ -827,7 +822,7 @@ function FirewallDialog({ managedServerId }: { managedServerId: string }) {
 									title="Disable Firewall"
 									description="The firewall will be removed and every port on this server will be open to the internet."
 									type="destructive"
-									onClick={() => disable.mutate({ managedServerId })}
+									onClick={() => disable.mutate({ cloudServerId })}
 								>
 									<Button
 										variant="ghost"
@@ -846,7 +841,7 @@ function FirewallDialog({ managedServerId }: { managedServerId: string }) {
 							<Button
 								disabled={!canSave || update.isPending}
 								onClick={() => {
-									if (rules) update.mutate({ managedServerId, rules });
+									if (rules) update.mutate({ cloudServerId, rules });
 								}}
 							>
 								{update.isPending && (
@@ -863,29 +858,28 @@ function FirewallDialog({ managedServerId }: { managedServerId: string }) {
 	);
 }
 
-function UpgradeServerDialog({ managedServerId }: { managedServerId: string }) {
+function UpgradeServerDialog({ cloudServerId }: { cloudServerId: string }) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 	const [selectedPlan, setSelectedPlan] = useState("");
 
-	const { data: options, isLoading } =
-		api.managedServer.upgradeOptions.useQuery(
-			{ managedServerId },
-			{ enabled: open },
-		);
+	const { data: options, isLoading } = api.cloudServer.upgradeOptions.useQuery(
+		{ cloudServerId },
+		{ enabled: open },
+	);
 	const { data: preview, isFetching: isLoadingPreview } =
-		api.managedServer.upgradePreview.useQuery(
-			{ managedServerId, plan: selectedPlan },
+		api.cloudServer.upgradePreview.useQuery(
+			{ cloudServerId, plan: selectedPlan },
 			{ enabled: open && !!selectedPlan, refetchOnWindowFocus: false },
 		);
 
-	const upgrade = api.managedServer.upgrade.useMutation({
+	const upgrade = api.cloudServer.upgrade.useMutation({
 		onSuccess: () => {
 			toast.success(
 				"Upgrade started. Your server will be back online in a few minutes.",
 			);
 			setOpen(false);
-			utils.managedServer.list.invalidate();
+			utils.cloudServer.list.invalidate();
 		},
 		onError: (err) => toast.error(err.message),
 	});
@@ -1005,7 +999,7 @@ function UpgradeServerDialog({ managedServerId }: { managedServerId: string }) {
 							onClick={() => {
 								if (!preview) return;
 								upgrade.mutate({
-									managedServerId,
+									cloudServerId,
 									plan: selectedPlan,
 									prorationDate: preview.prorationDate,
 								});
@@ -1109,7 +1103,7 @@ function TerminateServerDialog({
 	);
 }
 
-function ManagedServerRow({
+function CloudServerRow({
 	server: s,
 	plan,
 	onReconnect,
@@ -1118,7 +1112,7 @@ function ManagedServerRow({
 	onUpdatePayment,
 	isOpeningPortal,
 }: {
-	server: ManagedServerItem;
+	server: CloudServerItem;
 	plan?: Plan;
 	onReconnect: () => void;
 	isReconnecting: boolean;
@@ -1130,8 +1124,8 @@ function ManagedServerRow({
 	const status = STATUS_MAP[s.status] ?? STATUS_MAP.error!;
 	const hasVm = s.status === "ready" && !!s.providerVmId;
 
-	const { data: vm } = api.managedServer.vmInfo.useQuery(
-		{ managedServerId: s.managedServerId },
+	const { data: vm } = api.cloudServer.vmInfo.useQuery(
+		{ cloudServerId: s.cloudServerId },
 		{ enabled: hasVm },
 	);
 
@@ -1200,13 +1194,13 @@ function ManagedServerRow({
 				<div className="flex items-center gap-2 shrink-0">
 					{hasVm && (
 						<PowerControls
-							managedServerId={s.managedServerId}
+							cloudServerId={s.cloudServerId}
 							powerState={vm?.status}
 						/>
 					)}
-					{hasVm && <FirewallDialog managedServerId={s.managedServerId} />}
+					{hasVm && <FirewallDialog cloudServerId={s.cloudServerId} />}
 					{s.status === "ready" && s.stripeSubscriptionId && (
-						<UpgradeServerDialog managedServerId={s.managedServerId} />
+						<UpgradeServerDialog cloudServerId={s.cloudServerId} />
 					)}
 					{s.status === "suspended" && (
 						<Button
@@ -1270,7 +1264,7 @@ function ManagedServerRow({
 						</Tooltip>
 					) : (
 						<TerminateServerDialog
-							serverName={s.hostname ?? s.managedServerId}
+							serverName={s.hostname ?? s.cloudServerId}
 							onConfirm={onDelete}
 						/>
 					)}
@@ -1340,11 +1334,11 @@ function ManagedServerRow({
 	);
 }
 
-export const ShowManagedServers = () => {
+export const ShowCloudServers = () => {
 	const router = useRouter();
 	const utils = api.useUtils();
 
-	const { data: servers, isLoading } = api.managedServer.list.useQuery(
+	const { data: servers, isLoading } = api.cloudServer.list.useQuery(
 		undefined,
 		{
 			refetchInterval: (query) =>
@@ -1354,7 +1348,7 @@ export const ShowManagedServers = () => {
 		},
 	);
 
-	const { data: plans } = api.managedServer.getPlans.useQuery(undefined, {
+	const { data: plans } = api.cloudServer.getPlans.useQuery(undefined, {
 		enabled: !!servers?.length,
 	});
 
@@ -1380,20 +1374,20 @@ export const ShowManagedServers = () => {
 		onError: (err) => toast.error(err.message),
 	});
 
-	const reconnect = api.managedServer.reconnect.useMutation({
+	const reconnect = api.cloudServer.reconnect.useMutation({
 		onSuccess: () => {
 			toast.success("Server reconnected successfully.");
-			utils.managedServer.list.invalidate();
+			utils.cloudServer.list.invalidate();
 		},
 		onError: (err) => toast.error(err.message),
 	});
 
-	const deleteServer = api.managedServer.delete.useMutation({
+	const deleteServer = api.cloudServer.delete.useMutation({
 		onSuccess: ({ cancelledOrder }) => {
 			toast.success(
 				cancelledOrder ? "Order cancelled." : "Server is being terminated.",
 			);
-			utils.managedServer.list.invalidate();
+			utils.cloudServer.list.invalidate();
 		},
 		onError: (err) => toast.error(err.message),
 	});
@@ -1462,17 +1456,17 @@ export const ShowManagedServers = () => {
 							) : (
 								<div className="space-y-3">
 									{servers?.map((s) => (
-										<ManagedServerRow
-											key={s.managedServerId}
+										<CloudServerRow
+											key={s.cloudServerId}
 											server={s}
 											plan={plans?.find((p) => p.id === s.plan)}
 											onReconnect={() =>
-												reconnect.mutate({ managedServerId: s.managedServerId })
+												reconnect.mutate({ cloudServerId: s.cloudServerId })
 											}
 											isReconnecting={reconnect.isPending}
 											onDelete={() =>
 												deleteServer.mutate({
-													managedServerId: s.managedServerId,
+													cloudServerId: s.cloudServerId,
 												})
 											}
 											onUpdatePayment={() => customerPortal.mutate()}

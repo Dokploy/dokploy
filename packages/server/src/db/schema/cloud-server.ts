@@ -6,7 +6,7 @@ import { organization } from "./account";
 import { server } from "./server";
 import { sshKeys } from "./ssh-key";
 
-export const managedServerStatus = pgEnum("managedServerStatus", [
+export const cloudServerStatus = pgEnum("cloudServerStatus", [
 	"pending",
 	"provisioning",
 	"configuring",
@@ -15,11 +15,10 @@ export const managedServerStatus = pgEnum("managedServerStatus", [
 	"error",
 	"suspended",
 	"terminating",
-	"terminated",
 ]);
 
-export const managedServer = pgTable("managed_server", {
-	managedServerId: text("managedServerId")
+export const cloudServer = pgTable("cloud_server", {
+	cloudServerId: text("cloudServerId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
@@ -30,7 +29,7 @@ export const managedServer = pgTable("managed_server", {
 		onDelete: "set null",
 	}),
 	plan: text("plan").notNull(),
-	status: managedServerStatus("status").notNull().default("pending"),
+	status: cloudServerStatus("status").notNull().default("pending"),
 	providerVmId: text("providerVmId"),
 	providerNetworkId: text("providerNetworkId"),
 	providerFirewallId: text("providerFirewallId"),
@@ -41,7 +40,6 @@ export const managedServer = pgTable("managed_server", {
 	ipAddress: text("ipAddress"),
 	hostname: text("hostname"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
-	stripePriceId: text("stripePriceId"),
 	stripeCheckoutSessionId: text("stripeCheckoutSessionId"),
 	suspendedAt: text("suspendedAt"),
 	errorMessage: text("errorMessage"),
@@ -53,42 +51,42 @@ export const managedServer = pgTable("managed_server", {
 		.$defaultFn(() => new Date().toISOString()),
 });
 
-export const managedServerRelations = relations(managedServer, ({ one }) => ({
+export const cloudServerRelations = relations(cloudServer, ({ one }) => ({
 	organization: one(organization, {
-		fields: [managedServer.organizationId],
+		fields: [cloudServer.organizationId],
 		references: [organization.id],
 	}),
 	server: one(server, {
-		fields: [managedServer.serverId],
+		fields: [cloudServer.serverId],
 		references: [server.serverId],
 	}),
 }));
 
-export const apiCreateManagedServer = z.object({
+export const apiCreateCloudServer = z.object({
 	plan: z.string().min(1),
 	zone: z.string().min(1),
 });
 
-export const apiFindOneManagedServer = z.object({
-	managedServerId: z.string().min(1),
+export const apiFindOneCloudServer = z.object({
+	cloudServerId: z.string().min(1),
 });
 
-export const apiDeleteManagedServer = z.object({
-	managedServerId: z.string().min(1),
+export const apiDeleteCloudServer = z.object({
+	cloudServerId: z.string().min(1),
 });
 
-export const apiManagedServerPowerAction = z.object({
-	managedServerId: z.string().min(1),
+export const apiCloudServerPowerAction = z.object({
+	cloudServerId: z.string().min(1),
 	action: z.enum(["reboot", "shutdown", "power_on"]),
 });
 
-export const apiFindManagedServerAction = z.object({
-	managedServerId: z.string().min(1),
+export const apiFindCloudServerAction = z.object({
+	cloudServerId: z.string().min(1),
 	actionId: z.number().int(),
 });
 
-export const apiUpgradeManagedServer = z.object({
-	managedServerId: z.string().min(1),
+export const apiUpgradeCloudServer = z.object({
+	cloudServerId: z.string().min(1),
 	plan: z.string().min(1),
 });
 
@@ -120,7 +118,7 @@ export const firewallRuleSchema = z.discriminatedUnion("protocol", [
 
 export type FirewallRule = z.infer<typeof firewallRuleSchema>;
 
-export const apiUpdateManagedServerFirewall = z.object({
-	managedServerId: z.string().min(1),
+export const apiUpdateCloudServerFirewall = z.object({
+	cloudServerId: z.string().min(1),
 	rules: z.array(firewallRuleSchema).max(40),
 });

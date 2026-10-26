@@ -229,7 +229,7 @@ export async function createDigitalOceanDroplet(params: {
 	vpcId: string;
 	sshKeyId: number;
 	organizationId: string;
-	managedServerId: string;
+	cloudServerId: string;
 }): Promise<DigitalOceanDroplet> {
 	const data = await digitalOceanFetch<{ droplet: DigitalOceanDroplet }>(
 		"/droplets",
@@ -246,7 +246,7 @@ export async function createDigitalOceanDroplet(params: {
 				tags: [
 					"dokploy-managed",
 					`org:${params.organizationId}`,
-					getManagedServerTag(params.managedServerId),
+					getCloudServerTag(params.cloudServerId),
 				],
 			}),
 		},
@@ -267,8 +267,8 @@ export async function deleteDigitalOceanDroplet(id: string): Promise<void> {
 	await digitalOceanFetch(`/droplets/${id}`, { method: "DELETE" });
 }
 
-export function getManagedServerTag(managedServerId: string) {
-	return `dokploy-ms:${managedServerId}`;
+export function getCloudServerTag(cloudServerId: string) {
+	return `dokploy-cs:${cloudServerId}`;
 }
 
 export async function deleteDigitalOceanDropletsByTag(
