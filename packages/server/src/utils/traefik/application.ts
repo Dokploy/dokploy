@@ -96,7 +96,7 @@ export const withTraefikConfigLock = async <T>(
 	serverId: string | null | undefined,
 	fn: () => Promise<T>,
 ): Promise<T> => {
-	const key = `${serverId ?? "dokploy"}:${appName}`;
+	const key = `${serverId ?? "local"}:${appName}`;
 	const previous = configLocks.get(key) ?? Promise.resolve();
 	const current = previous.catch(() => {}).then(fn);
 	configLocks.set(key, current);
