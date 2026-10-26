@@ -23,8 +23,7 @@ const getSingleQueryValue = (value: string | string[] | undefined) =>
 const isFilesystemServiceType = (
 	value: string | undefined,
 ): value is FilesystemServiceType =>
-	!!value &&
-	(FILESYSTEM_SERVICE_TYPES as readonly string[]).includes(value);
+	!!value && (FILESYSTEM_SERVICE_TYPES as readonly string[]).includes(value);
 
 const errorStatus = (error: unknown) => {
 	if (error instanceof ContainerFilesystemError) {
@@ -71,6 +70,7 @@ const readRequestBody = (
 				// been flushed (see the FILE_TOO_LARGE handling in `handler`).
 				if (!rejected) {
 					rejected = true;
+					chunks.length = 0;
 					req.pause();
 					reject(
 						new ContainerFilesystemError(
@@ -146,12 +146,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
 		res.status(200).json({ entry });
 	} catch (error) {
-		res.status(errorStatus(error)).json({ message: errorMessage(error) });
-
 		const isOversizedUpload =
 			error instanceof ContainerFilesystemError &&
 			error.code === "FILE_TOO_LARGE";
 		if (isOversizedUpload) {
+			res.setHeader("Connection", "close");
 			// The request stream was paused with an unread remainder still
 			// sitting on the socket. Now that the response has been handed
 			// to Node, drop the connection once it's actually been flushed
@@ -161,6 +160,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 				if (!req.destroyed) req.destroy();
 			});
 		}
+
+		res.status(errorStatus(error)).json({ message: errorMessage(error) });
 	}
 };
 

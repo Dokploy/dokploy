@@ -38,10 +38,16 @@ vi.mock("@/server/api/utils/service-filesystem", () => ({
 		getAuthorizedServiceFilesystemContainerMock,
 }));
 
-vi.mock("@dokploy/server", async (importOriginal) => {
-	const actual = await importOriginal<typeof import("@dokploy/server")>();
+vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
+	getRemoteDocker: vi.fn(),
+}));
+
+vi.mock("@dokploy/server", async () => {
+	const { ContainerFilesystemError } = await import(
+		"@dokploy/server/services/container-filesystem"
+	);
 	return {
-		...actual,
+		ContainerFilesystemError,
 		// Kept small so the "oversized" test doesn't need to push megabytes.
 		MAX_FILE_UPLOAD_BYTES: 20,
 		uploadFileToContainerDirectory: uploadFileToContainerDirectoryMock,
@@ -116,6 +122,7 @@ describe("POST /api/filesystem/upload", () => {
 			);
 
 			expect(response.status).toBe(413);
+			expect(response.headers.get("connection")).toBe("close");
 			const body = await response.json();
 			expect(body.message).toMatch(/limited to/i);
 			expect(uploadFileToContainerDirectoryMock).not.toHaveBeenCalled();
@@ -149,7 +156,9 @@ describe("POST /api/filesystem/upload", () => {
 			);
 
 			expect(response.status).toBe(400);
-			expect(getAuthorizedServiceFilesystemContainerMock).not.toHaveBeenCalled();
+			expect(
+				getAuthorizedServiceFilesystemContainerMock,
+			).not.toHaveBeenCalled();
 		});
 	});
 
