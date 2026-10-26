@@ -159,4 +159,5 @@ export const apiFindMountByApplicationId = z.object({
 
 export const apiUpdateMount = createSchema.partial().extend({
 	mountId: z.string().min(1),
+	expectedContent: z.string().nullable().optional(),
 });

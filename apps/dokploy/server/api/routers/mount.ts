@@ -174,13 +174,24 @@ export const mountRouter = createTRPCRouter({
 					volume: ["create"],
 				});
 			}
+			const { expectedContent, ...mountData } = input;
+			if (mount.type === "file" && expectedContent !== undefined) {
+				const currentContent = await readFileMountContent(input.mountId);
+				if (currentContent !== expectedContent) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The file changed on disk after you opened it. Reopen the editor to load the latest version.",
+					});
+				}
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "mount",
 				resourceId: input.mountId,
 				resourceName: input.mountPath,
 			});
-			return await updateMount(input.mountId, input);
+			return await updateMount(input.mountId, mountData);
 		}),
 	allNamedByApplicationId: protectedProcedure
 		.input(z.object({ applicationId: z.string().min(1) }))

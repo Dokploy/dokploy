@@ -291,14 +291,11 @@ export const readFileMountContent = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (mount.type !== "file" || !mount.filePath) return null;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
-	// filePath isn't validated and containers can put symlinks in the files
-	// directory, so never read anything that resolves outside of it.
-	if (!fullPath.startsWith(`${basePath}${path.sep}`)) return null;
+	const fullPath = quote([path.join(basePath, mount.filePath)]);
 
+	// Check the opened file's real path so symlinks can't escape the files dir.
+	const command = `base=$(realpath ${quote([basePath])}) && [ -f ${fullPath} ] && { real=$(readlink /proc/self/fd/3 2>/dev/null || realpath ${fullPath}) && case "$real" in "$base"/*) content=$(base64 <&3) && printf 'found:%s' "$content" | tr -d '\\n';; esac; } 3< ${fullPath}; exit 0`;
 	const serverId = await getServerId(mount);
-	const quotedPath = quote([fullPath]);
-	const command = `if [ -f ${quotedPath} ] && [ ! -L ${quotedPath} ] && content=$(base64 < ${quotedPath}); then printf 'found:%s' "$content" | tr -d '\\n'; fi`;
 	const { stdout } = serverId
 		? await execAsyncRemote(serverId, command)
 		: await execAsync(command);

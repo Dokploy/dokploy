@@ -27,7 +27,6 @@ vi.mock("@dokploy/server/db", () => ({
 	db: { query: { mounts: { findFirst: vi.fn() } } },
 }));
 
-// Runs the "remote" command locally so the SSH branch is exercised for real.
 vi.mock("@dokploy/server/utils/process/execAsync", async () => {
 	const actual = await vi.importActual<
 		typeof import("@dokploy/server/utils/process/execAsync")
@@ -117,6 +116,25 @@ describe("readFileMountContent", () => {
 		expect(await readFileMountContent("mount-1")).toBeNull();
 	});
 
+	it("doesn't follow parent directory symlinks out of the files directory", async () => {
+		const hostDir = path.join(baseDir, "host-config");
+		fs.mkdirSync(hostDir, { recursive: true });
+		fs.writeFileSync(path.join(hostDir, "app.env"), "host secret");
+		fs.mkdirSync(filesDir(), { recursive: true });
+		fs.symlinkSync(hostDir, path.join(filesDir(), "shared"));
+		mockMount({ filePath: "shared/app.env" });
+
+		expect(await readFileMountContent("mount-1")).toBeNull();
+	});
+
+	it("reads symlinks that stay inside the files directory", async () => {
+		writeFile("real.env", "A=1\n");
+		fs.symlinkSync("real.env", path.join(filesDir(), "app.env"));
+		mockMount();
+
+		expect(await readFileMountContent("mount-1")).toBe("A=1\n");
+	});
+
 	it("doesn't read paths that escape the files directory", async () => {
 		writeFile("../outside.env", "outside");
 		mockMount({ filePath: "../outside.env" });
@@ -124,7 +142,6 @@ describe("readFileMountContent", () => {
 		expect(await readFileMountContent("mount-1")).toBeNull();
 	});
 
-	// Root can read any file, so this only applies to non-root SSH users.
 	it.skipIf(process.getuid?.() === 0)(
 		"returns null instead of an empty string when the file can't be read",
 		async () => {
