@@ -1,5 +1,5 @@
 {
-  "id": "76dd2e18-59c0-4601-bdd6-5aafa1a2908a",
+  "id": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
   "prevId": "e2f2cd03-52dd-457a-8854-1ef6d0b5d168",
   "version": "7",
   "dialect": "postgresql",
@@ -2081,6 +2081,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "customName": {
+          "name": "customName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "serviceName": {
           "name": "serviceName",
@@ -7125,14 +7131,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "engine": {
-          "name": "engine",
-          "type": "redisEngine",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'redis'"
         }
       },
       "indexes": {},
@@ -9306,14 +9304,6 @@
         "azure",
         "scaleway",
         "phase"
-      ]
-    },
-    "public.redisEngine": {
-      "name": "redisEngine",
-      "schema": "public",
-      "values": [
-        "redis",
-        "valkey"
       ]
     }
   },
