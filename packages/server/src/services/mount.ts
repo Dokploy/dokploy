@@ -287,6 +287,26 @@ export const updateFileMount = async (mountId: string) => {
 	}
 };
 
+export const readFileMountContent = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+	if (mount.type !== "file" || !mount.filePath) return null;
+	const basePath = await getBaseFilesPath(mountId);
+	const fullPath = path.join(basePath, mount.filePath);
+	// filePath isn't validated and containers can put symlinks in the files
+	// directory, so never read anything that resolves outside of it.
+	if (!fullPath.startsWith(`${basePath}${path.sep}`)) return null;
+
+	const serverId = await getServerId(mount);
+	const quotedPath = quote([fullPath]);
+	const command = `if [ -f ${quotedPath} ] && [ ! -L ${quotedPath} ] && content=$(base64 < ${quotedPath}); then printf 'found:%s' "$content" | tr -d '\\n'; fi`;
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (!stdout.startsWith("found:")) return null;
+	return Buffer.from(stdout.slice("found:".length), "base64").toString("utf8");
+};
+
 export const deleteFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount.filePath) return;

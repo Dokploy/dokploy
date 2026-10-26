@@ -92,6 +92,13 @@ export const UpdateVolume = ({
 			enabled: !!mountId,
 		},
 	);
+	const { data: diskContent } = api.mounts.readFileContent.useQuery(
+		{ mountId },
+		{
+			enabled: !!mountId && isOpen && type === "file",
+			refetchOnWindowFocus: false,
+		},
+	);
 
 	const { mutateAsync, isPending, error, isError } =
 		api.mounts.update.useMutation();
@@ -123,14 +130,14 @@ export const UpdateVolume = ({
 				});
 			} else if (typeForm === "file") {
 				form.reset({
-					content: data.content || "",
+					content: diskContent ?? (data.content || ""),
 					mountPath: serviceType === "compose" ? "/" : data.mountPath,
 					filePath: data.filePath || "",
 					type: "file",
 				});
 			}
 		}
-	}, [form, form.reset, data]);
+	}, [form, form.reset, data, diskContent]);
 
 	const onSubmit = async (data: UpdateMount) => {
 		if (data.type === "bind") {

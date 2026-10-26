@@ -12,6 +12,7 @@ import {
 	findPostgresById,
 	findRedisById,
 	getServiceContainer,
+	readFileMountContent,
 	updateMount,
 } from "@dokploy/server";
 import type { ServiceType } from "@dokploy/server/db/schema/mount";
@@ -134,6 +135,26 @@ export const mountRouter = createTRPCRouter({
 				});
 			}
 			return mount;
+		}),
+	readFileContent: protectedProcedure
+		.input(apiFindOneMount)
+		.query(async ({ input, ctx }) => {
+			const mount = await findMountById(input.mountId);
+			const serviceId =
+				mount.applicationId ||
+				mount.postgresId ||
+				mount.mariadbId ||
+				mount.mongoId ||
+				mount.mysqlId ||
+				mount.redisId ||
+				mount.libsqlId ||
+				mount.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volume: ["read"],
+				});
+			}
+			return await readFileMountContent(input.mountId);
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMount)
