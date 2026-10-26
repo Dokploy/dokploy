@@ -296,11 +296,8 @@ export const ssoRouter = createTRPCRouter({
 				headers: requestToHeaders(ctx.req),
 			});
 
-			// Auto-clear hideSSOButton flag when provider is added
-			const settings = await getWebServerSettings();
-			if (settings?.hideSSOButton) {
-				await updateWebServerSettings({ hideSSOButton: false });
-			}
+			// A hidden SSO button would leave the new provider unreachable from the login page.
+			await updateWebServerSettings({ hideSSOButton: false });
 
 			return { success: true };
 		}),

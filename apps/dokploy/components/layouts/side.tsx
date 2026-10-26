@@ -509,27 +509,25 @@ function createMenuForAuthUser(opts: {
 					}),
 		) as T[];
 
-	const helpItems = filterEnabled(MENU.help)
-		.filter((item) => {
-			if (item.name === "Documentation") {
-				if (opts.whitelabeling?.docsUrl) return true;
-				return !opts.webSettings?.hideDocsLink;
-			}
-			if (item.name === "Support") {
-				if (opts.whitelabeling?.supportUrl) return true;
-				return !opts.webSettings?.hideSupportLink;
-			}
-			return true;
-		})
-		.map((item) => {
-			if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
-				return { ...item, url: opts.whitelabeling.docsUrl };
-			}
-			if (opts.whitelabeling?.supportUrl && item.name === "Support") {
-				return { ...item, url: opts.whitelabeling.supportUrl };
-			}
-			return item;
-		});
+	const helpOverrides: Record<
+		string,
+		{ url?: string | null; hidden?: boolean } | undefined
+	> = {
+		Documentation: {
+			url: opts.whitelabeling?.docsUrl,
+			hidden: opts.webSettings?.hideDocsLink,
+		},
+		Support: {
+			url: opts.whitelabeling?.supportUrl,
+			hidden: opts.webSettings?.hideSupportLink,
+		},
+	};
+	// A custom URL from Whitelabeling keeps the link visible even if the hide toggle is on.
+	const helpItems = filterEnabled(MENU.help).flatMap((item) => {
+		const { url, hidden } = helpOverrides[item.name] ?? {};
+		if (url) return [{ ...item, url }];
+		return hidden ? [] : [item];
+	});
 
 	return {
 		home: filterEnabled(MENU.home),

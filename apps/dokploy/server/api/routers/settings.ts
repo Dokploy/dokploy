@@ -525,8 +525,18 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
-	updateHideSocialIcons: enterpriseProcedure
-		.input(z.object({ hideSocialIcons: z.boolean() }))
+	updateVisibilityControls: enterpriseProcedure
+		.input(
+			z
+				.object({
+					hideSocialIcons: z.boolean(),
+					hideDocsLink: z.boolean(),
+					hideSupportLink: z.boolean(),
+					hideSSOButton: z.boolean(),
+					hidePasskeyButton: z.boolean(),
+				})
+				.partial(),
+		)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
@@ -535,154 +545,44 @@ export const settingsRouter = createTRPCRouter({
 				});
 			}
 
-			await updateWebServerSettings({
-				hideSocialIcons: input.hideSocialIcons,
-			});
+			const settings = await getWebServerSettings();
+			let conflict: string | undefined;
+			if (input.hideDocsLink && settings?.whitelabelingConfig?.docsUrl) {
+				conflict =
+					"A custom Documentation URL is configured in Whitelabeling. Remove it first to hide this link.";
+			} else if (
+				input.hideSupportLink &&
+				settings?.whitelabelingConfig?.supportUrl
+			) {
+				conflict =
+					"A custom Support URL is configured in Whitelabeling. Remove it first to hide this link.";
+			} else if (input.hideSSOButton && settings?.enforceSSO) {
+				conflict =
+					"Enforce SSO is enabled. Disable it before hiding the SSO button.";
+			} else if (
+				input.hideSSOButton &&
+				(await db.query.ssoProvider.findFirst())
+			) {
+				conflict =
+					"SSO providers are configured. Remove all SSO providers before hiding the SSO button.";
+			} else if (
+				input.hidePasskeyButton &&
+				(await db.query.passkey.findFirst())
+			) {
+				conflict =
+					"Users on this server have passkeys configured. They must remove their passkeys before this can be hidden.";
+			}
+			if (conflict) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: conflict });
+			}
+
+			await updateWebServerSettings(input);
 
 			await audit(ctx, {
 				action: "update",
 				resourceType: "settings",
-				resourceName: "hide-social-icons",
-			});
-			return true;
-		}),
-
-	updateHideDocsLink: enterpriseProcedure
-		.input(z.object({ hideDocsLink: z.boolean() }))
-		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "This feature is only available for self-hosted instances",
-				});
-			}
-
-			if (input.hideDocsLink) {
-				const settings = await getWebServerSettings();
-				if (settings?.whitelabelingConfig?.docsUrl) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"A custom Documentation URL is configured in Whitelabeling. Remove it first to hide this link.",
-					});
-				}
-			}
-
-			await updateWebServerSettings({
-				hideDocsLink: input.hideDocsLink,
-			});
-
-			await audit(ctx, {
-				action: "update",
-				resourceType: "settings",
-				resourceName: "hide-docs-link",
-			});
-			return true;
-		}),
-
-	updateHideSupportLink: enterpriseProcedure
-		.input(z.object({ hideSupportLink: z.boolean() }))
-		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "This feature is only available for self-hosted instances",
-				});
-			}
-
-			if (input.hideSupportLink) {
-				const settings = await getWebServerSettings();
-				if (settings?.whitelabelingConfig?.supportUrl) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"A custom Support URL is configured in Whitelabeling. Remove it first to hide this link.",
-					});
-				}
-			}
-
-			await updateWebServerSettings({
-				hideSupportLink: input.hideSupportLink,
-			});
-
-			await audit(ctx, {
-				action: "update",
-				resourceType: "settings",
-				resourceName: "hide-support-link",
-			});
-			return true;
-		}),
-
-	updateHideSSOButton: enterpriseProcedure
-		.input(z.object({ hideSSOButton: z.boolean() }))
-		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "This feature is only available for self-hosted instances",
-				});
-			}
-
-			if (input.hideSSOButton) {
-				const provider = await db.query.ssoProvider.findFirst();
-				if (provider) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"SSO providers are configured. Remove all SSO providers before hiding the SSO button.",
-					});
-				}
-				const settings = await getWebServerSettings();
-				if (settings?.enforceSSO) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"Enforce SSO is enabled. Disable it before hiding the SSO button.",
-					});
-				}
-			}
-
-			await updateWebServerSettings({
-				hideSSOButton: input.hideSSOButton,
-			});
-
-			await audit(ctx, {
-				action: "update",
-				resourceType: "settings",
-				resourceName: "hide-sso-button",
-			});
-			return true;
-		}),
-
-	updateHidePasskeyButton: enterpriseProcedure
-		.input(z.object({ hidePasskeyButton: z.boolean() }))
-		.mutation(async ({ input, ctx }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "This feature is only available for self-hosted instances",
-				});
-			}
-
-			if (input.hidePasskeyButton) {
-				const key = await db.query.passkey.findFirst();
-				if (key) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"Users on this server have passkeys configured. They must remove their passkeys before this can be hidden.",
-					});
-				}
-			}
-
-			await updateWebServerSettings({
-				hidePasskeyButton: input.hidePasskeyButton,
-			});
-
-			await audit(ctx, {
-				action: "update",
-				resourceType: "settings",
-				resourceName: "hide-passkey-button",
+				resourceName: "visibility-controls",
+				metadata: input,
 			});
 			return true;
 		}),
