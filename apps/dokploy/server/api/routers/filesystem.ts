@@ -1,4 +1,7 @@
-import { listContainerDirectory, readContainerFile } from "@dokploy/server";
+import {
+	listContainerDirectory,
+	readContainerFilePreview,
+} from "@dokploy/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
@@ -68,7 +71,7 @@ export const filesystemRouter = createTRPCRouter({
 					input.serviceId,
 					input.containerId,
 				);
-				return await readContainerFile(container, input.path);
+				return await readContainerFilePreview(container, input.path);
 			} catch (error) {
 				return toFilesystemTRPCError(error);
 			}

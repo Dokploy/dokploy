@@ -941,7 +941,7 @@ const readFirstArchiveFile = async (
 	return finished;
 };
 
-export const readContainerFile = async (
+export const readContainerFilePreview = async (
 	container: DockerContainer,
 	inputPath: string,
 ): Promise<ContainerFilePreview> => {
