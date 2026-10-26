@@ -1,1 +1,0 @@
-ALTER TYPE "public"."managedServerStatus" ADD VALUE 'upgrading' BEFORE 'error';

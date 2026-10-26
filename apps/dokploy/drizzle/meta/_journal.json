@@ -1387,41 +1387,6 @@
       "when": 1791456930312,
       "tag": "0197_logs_and_metrics",
       "breakpoints": true
-    },
-    {
-      "idx": 198,
-      "version": "7",
-      "when": 1792701087163,
-      "tag": "0198_tearful_nextwave",
-      "breakpoints": true
-    },
-    {
-      "idx": 199,
-      "version": "7",
-      "when": 1792702153101,
-      "tag": "0199_chilly_komodo",
-      "breakpoints": true
-    },
-    {
-      "idx": 200,
-      "version": "7",
-      "when": 1792733555278,
-      "tag": "0200_broad_silver_centurion",
-      "breakpoints": true
-    },
-    {
-      "idx": 201,
-      "version": "7",
-      "when": 1792734317479,
-      "tag": "0201_material_thunderbolt_ross",
-      "breakpoints": true
-    },
-    {
-      "idx": 202,
-      "version": "7",
-      "when": 1792979581068,
-      "tag": "0202_good_kree",
-      "breakpoints": true
     }
   ]
 }

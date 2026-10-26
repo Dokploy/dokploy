@@ -1,1 +1,0 @@
-ALTER TABLE "managed_server" ADD COLUMN "providerFirewallId" text;
