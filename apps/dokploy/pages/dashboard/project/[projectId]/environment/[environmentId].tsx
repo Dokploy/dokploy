@@ -1663,19 +1663,19 @@ const EnvironmentPage = (
 
 																	<CardHeader>
 																		<CardTitle className="flex items-center justify-between">
-																			<div className="flex flex-row items-center gap-2 justify-between w-full">
-																				<div className="flex flex-col gap-2">
-																					<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap">
+																			<div className="flex flex-row items-center gap-2 justify-between w-full min-w-0">
+																				<div className="flex flex-col gap-2 min-w-0 flex-1">
+																					<span className="text-base flex items-center gap-2 font-medium leading-none flex-wrap break-words">
 																						{service.name}
 																					</span>
 																					{service.description && (
-																						<span className="text-sm font-medium text-muted-foreground">
+																						<span className="text-sm font-medium text-muted-foreground wrap-anywhere line-clamp-3">
 																							{service.description}
 																						</span>
 																					)}
 																				</div>
 
-																				<span className="text-sm font-medium text-muted-foreground self-start">
+																				<span className="text-sm font-medium text-muted-foreground self-start shrink-0">
 																					{service.type === "postgres" && (
 																						<PostgresqlIcon className="h-7 w-7" />
 																					)}

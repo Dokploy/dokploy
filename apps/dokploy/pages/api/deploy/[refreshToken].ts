@@ -32,6 +32,14 @@ const getPackageVersion = (headers: any, body: any) => {
 	return null;
 };
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -108,13 +116,20 @@ export default async function handler(
 					return;
 				}
 
-				if (webhookDockerTag) {
-					if (webhookDockerTag !== applicationDockerTag) {
-						res.status(301).json({
-							message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
-						});
-						return;
-					}
+				// GHCR sends registry_package events for every manifest of a push,
+				// including untagged per-platform manifests and attestations
+				if (!webhookDockerTag) {
+					res.status(200).json({
+						message: "Untagged image version, skipping deployment",
+					});
+					return;
+				}
+
+				if (webhookDockerTag !== applicationDockerTag) {
+					res.status(301).json({
+						message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+					});
+					return;
 				}
 			}
 			// If webhook doesn't provide image info, we'll use the configured image (old behavior)
@@ -267,10 +282,10 @@ export default async function handler(
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				serverId: application.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && application.serverId) {
-				jobData.serverId = application.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

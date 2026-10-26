@@ -9,7 +9,7 @@ import { createAccessControl } from "better-auth/plugins/access";
  * The rest are Dokploy-specific resources.
  *
  * Enterprise-only resources (only assignable via custom roles):
- * deployment, envVars, server, registry, certificate, backup, domain, logs, monitoring
+ * deployment, envVars, server, registry, certificate, backup, domain, logs, monitoring, ai
  */
 export const statements = {
 	// better-auth organization plugin defaults
@@ -29,6 +29,7 @@ export const statements = {
 	gitProviders: ["read", "create", "delete"],
 	traefikFiles: ["read", "write"],
 	api: ["read"],
+	telemetryProvider: ["read", "create", "delete"],
 
 	// Enterprise-only resources (custom roles only)
 	volume: ["read", "create", "delete"],
@@ -51,6 +52,7 @@ export const statements = {
 	auditLog: ["read"],
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
+	ai: ["read", "create", "update", "delete"],
 } as const;
 
 /**
@@ -79,6 +81,7 @@ export const enterpriseOnlyResources = new Set<string>([
 	"auditLog",
 	"vaultProvider",
 	"dnsProvider",
+	"ai",
 ]);
 
 export const ac = createAccessControl(statements);
@@ -121,6 +124,8 @@ export const ownerRole = ac.newRole({
 	auditLog: ["read"],
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
+	telemetryProvider: ["read", "create", "delete"],
+	ai: ["read", "create", "update", "delete"],
 });
 
 /**
@@ -161,6 +166,8 @@ export const adminRole = ac.newRole({
 	auditLog: ["read"],
 	vaultProvider: ["read", "create", "update", "delete"],
 	dnsProvider: ["read", "create", "update", "delete"],
+	telemetryProvider: ["read", "create", "delete"],
+	ai: ["read", "create", "update", "delete"],
 });
 
 /**
@@ -202,9 +209,11 @@ export const memberRole = ac.newRole({
 	certificate: [],
 	destination: [],
 	notification: [],
+	telemetryProvider: [],
 	tag: ["read"],
 	auditLog: [],
 	// Members need provider/secret names for env editor autocomplete; values are never exposed
 	vaultProvider: ["read"],
 	dnsProvider: [],
+	ai: [],
 });

@@ -74,6 +74,11 @@ const createBetterAuth = () =>
 			"/organization/create",
 			"/organization/update",
 			"/organization/delete",
+			// GHSA-j8v8-g9cx-5qf4: SCIM providers are managed via tRPC, org-scoped only.
+			"/scim/generate-token",
+			"/scim/list-provider-connections",
+			"/scim/get-provider-connection",
+			"/scim/delete-provider-connection",
 			...(!IS_CLOUD ? ["/verify-email"] : []),
 		],
 		secret: betterAuthSecret,
@@ -125,6 +130,12 @@ const createBetterAuth = () =>
 					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
 					...(await resolveTrustedOrigins()),
 				].filter(Boolean);
+
+				if (ctx.path === "/admin/remove-user") {
+					throw new APIError("FORBIDDEN", {
+						message: "Use the account deletion flow to remove users",
+					});
+				}
 
 				const isBlockedAuthPath =
 					ctx.path.startsWith("/sign-in/email") ||
