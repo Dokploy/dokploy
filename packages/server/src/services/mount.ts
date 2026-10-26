@@ -10,6 +10,7 @@ import {
 	createFile,
 	encodeBase64,
 	getCreateFileCommand,
+	isValidMountFilePath,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
 import {
@@ -30,6 +31,13 @@ export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "File path is required for file mounts",
+			});
+		}
+		// Checked before insert: deleting a saved row runs rm -rf on its path
+		if (input.type === "file" && !isValidMountFilePath(input.filePath ?? "")) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid file path: ${input.filePath}`,
 			});
 		}
 		const { serviceId, ...rest } = input;
