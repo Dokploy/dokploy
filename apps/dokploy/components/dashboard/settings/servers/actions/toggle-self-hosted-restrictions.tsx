@@ -27,7 +27,7 @@ const controls = [
 		key: "hideSocialIcons",
 		label: "Hide Social Icons",
 		description:
-			"When enabled, GitHub, X, and Discord icons are hidden on login and registration pages.",
+			"When enabled, GitHub, X, and Discord icons are hidden on the login, registration, invitation and password reset pages.",
 	},
 	{
 		key: "hideDocsLink",
