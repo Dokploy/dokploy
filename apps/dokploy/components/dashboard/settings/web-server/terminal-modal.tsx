@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -25,17 +25,23 @@ interface Props {
 	children?: React.ReactNode;
 	serverId: string;
 	asButton?: boolean;
+	defaultOpen?: boolean;
 }
 
 export const TerminalModal = ({
 	children,
 	serverId,
 	asButton = false,
+	defaultOpen = false,
 }: Props) => {
 	const [terminalKey, setTerminalKey] = useState<string>(() =>
 		getTerminalKey(),
 	);
-	const [isOpen, setIsOpen] = useState(false);
+	const [isOpen, setIsOpen] = useState(defaultOpen);
+
+	useEffect(() => {
+		if (defaultOpen) setIsOpen(true);
+	}, [defaultOpen]);
 	const isLocalServer = serverId === "local";
 
 	const { data } = api.server.one.useQuery(

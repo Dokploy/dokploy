@@ -69,6 +69,13 @@ void app.prepare().then(async () => {
 		}
 		await initEnterpriseBackupCronJobs();
 
+		if (IS_CLOUD) {
+			const { initManagedServerCrons } = await import(
+				"./utils/managed-server-billing"
+			);
+			initManagedServerCrons();
+		}
+
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
 			const { startDeploymentWorker } = await import("./queues/queueSetup");

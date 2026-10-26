@@ -98,6 +98,7 @@
 		"clsx": "^2.1.1",
 		"cmdk": "^0.2.1",
 		"copy-to-clipboard": "^3.3.3",
+		"country-flag-icons": "1.5.19",
 		"date-fns": "3.6.0",
 		"dockerode": "4.0.2",
 		"dompurify": "^3.4.13",

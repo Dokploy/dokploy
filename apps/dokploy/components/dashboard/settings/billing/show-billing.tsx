@@ -85,8 +85,8 @@ const navigationItems = [
 		icon: CreditCard,
 	},
 	{
-		name: "Managed Servers",
-		href: "/dashboard/settings/managed-servers",
+		name: "Cloud Servers",
+		href: "/dashboard/settings/cloud-servers",
 		icon: Server,
 	},
 	{

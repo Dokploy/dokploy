@@ -64,7 +64,8 @@ export const sshRouter = createTRPCRouter({
 				if (linkedManagedServer) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "This SSH key is used by a managed server and cannot be deleted.",
+						message:
+							"This SSH key is used by a cloud server and cannot be deleted.",
 					});
 				}
 

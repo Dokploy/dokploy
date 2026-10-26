@@ -1,5 +1,5 @@
 import {
-	findServersByUserId,
+	findPlanServersByUserId,
 	findUserById,
 	IS_CLOUD,
 	updateUser,
@@ -399,7 +399,7 @@ export const stripeRouter = createTRPCRouter({
 	canCreateMoreServers: withPermission("server", "create").query(
 		async ({ ctx }) => {
 			const user = await findUserById(ctx.user.ownerId);
-			const servers = await findServersByUserId(user.id);
+			const servers = await findPlanServersByUserId(user.id);
 
 			if (!IS_CLOUD) {
 				return true;

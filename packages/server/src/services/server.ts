@@ -5,6 +5,7 @@ import {
 	organization,
 	server,
 } from "@dokploy/server/db/schema";
+import { isNotManagedServer } from "@dokploy/server/services/managed-server";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
@@ -85,6 +86,17 @@ export const findServersByUserId = async (userId: string) => {
 	const servers = orgs.flatMap((org) => org.servers);
 
 	return servers;
+};
+
+export const findPlanServersByUserId = async (userId: string) => {
+	const orgs = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+		with: {
+			servers: { where: isNotManagedServer() },
+		},
+	});
+
+	return orgs.flatMap((org) => org.servers);
 };
 
 export const findServersByOrganizationForVectorAgent = async (

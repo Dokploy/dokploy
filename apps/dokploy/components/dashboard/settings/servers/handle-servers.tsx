@@ -79,6 +79,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 		},
 	);
 
+	const isCloudServer = !!data?.isCloudServer;
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { mutateAsync, error, isPending, isError } = serverId
 		? api.server.update.useMutation()
@@ -173,66 +174,68 @@ export const HandleServers = ({ serverId, children }: Props) => {
 						remotely.
 					</DialogDescription>
 				</DialogHeader>
-				<div>
-					<p className="text-primary text-sm font-medium">
-						You may need to purchase or rent a Virtual Private Server (VPS) to
-						proceed. We recommend using one of these heavily tested providers:
-					</p>
-					<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
-						<li>
-							<a
-								href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
-								className="text-link underline"
-							>
-								Hostinger - Get 20% Discount
-							</a>
-						</li>
-						<li>
-							<a
-								href=" https://app.americancloud.com/register?ref=dokploy"
-								className="text-link underline"
-							>
-								American Cloud - Get $20 Credits
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://m.do.co/c/db24efd43f35"
-								className="text-link underline"
-							>
-								DigitalOcean - Get $200 Credits
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
-								className="text-link underline"
-							>
-								Hetzner - Get €20 Credits
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://www.vultr.com/?ref=9679828"
-								className="text-link underline"
-							>
-								Vultr
-							</a>
-						</li>
-						<li>
-							<a
-								href="https://www.linode.com/es/pricing/#compute-shared"
-								className="text-link underline"
-							>
-								Linode
-							</a>
-						</li>
-					</ul>
-					<AlertBlock className="mt-4 px-4">
-						You are free to use whatever provider, but we recommend to use one
-						of the above, to avoid issues.
-					</AlertBlock>
-				</div>
+				{!isCloudServer && (
+					<div>
+						<p className="text-primary text-sm font-medium">
+							You may need to purchase or rent a Virtual Private Server (VPS) to
+							proceed. We recommend using one of these heavily tested providers:
+						</p>
+						<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
+							<li>
+								<a
+									href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
+									className="text-link underline"
+								>
+									Hostinger - Get 20% Discount
+								</a>
+							</li>
+							<li>
+								<a
+									href=" https://app.americancloud.com/register?ref=dokploy"
+									className="text-link underline"
+								>
+									American Cloud - Get $20 Credits
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://m.do.co/c/db24efd43f35"
+									className="text-link underline"
+								>
+									DigitalOcean - Get $200 Credits
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
+									className="text-link underline"
+								>
+									Hetzner - Get €20 Credits
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://www.vultr.com/?ref=9679828"
+									className="text-link underline"
+								>
+									Vultr
+								</a>
+							</li>
+							<li>
+								<a
+									href="https://www.linode.com/es/pricing/#compute-shared"
+									className="text-link underline"
+								>
+									Linode
+								</a>
+							</li>
+						</ul>
+						<AlertBlock className="mt-4 px-4">
+							You are free to use whatever provider, but we recommend to use one
+							of the above, to avoid issues.
+						</AlertBlock>
+					</div>
+				)}
 				{!canCreateMoreServers && (
 					<AlertBlock type="warning" className="mt-4">
 						You cannot create more servers,{" "}
@@ -326,6 +329,18 @@ export const HandleServers = ({ serverId, children }: Props) => {
 								);
 							}}
 						/>
+						{isCloudServer && (
+							<AlertBlock type="info">
+								This is a Cloud Server, so its IP, port, username and SSH key
+								are managed by Dokploy Cloud.{" "}
+								<Link
+									href="/dashboard/settings/cloud-servers"
+									className="underline"
+								>
+									Manage it in Billing → Cloud Servers
+								</Link>
+							</AlertBlock>
+						)}
 						<FormField
 							control={form.control}
 							name="sshKeyId"
@@ -335,6 +350,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
+										disabled={isCloudServer}
 									>
 										<SelectTrigger>
 											<SelectValue placeholder="Select a SSH Key" />
@@ -367,7 +383,11 @@ export const HandleServers = ({ serverId, children }: Props) => {
 									<FormItem>
 										<FormLabel>IP Address</FormLabel>
 										<FormControl>
-											<Input placeholder="192.168.1.100" {...field} />
+											<Input
+												placeholder="192.168.1.100"
+												{...field}
+												disabled={isCloudServer}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -384,6 +404,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 											<Input
 												placeholder="22"
 												{...field}
+												disabled={isCloudServer}
 												onChange={(e) => {
 													const value = e.target.value;
 													if (value === "") {
@@ -411,7 +432,11 @@ export const HandleServers = ({ serverId, children }: Props) => {
 								<FormItem>
 									<FormLabel>Username</FormLabel>
 									<FormControl>
-										<Input placeholder="root" {...field} />
+										<Input
+											placeholder="root"
+											{...field}
+											disabled={isCloudServer}
+										/>
 									</FormControl>
 									<FormDescription>
 										Use &quot;root&quot; or a non-root user with passwordless

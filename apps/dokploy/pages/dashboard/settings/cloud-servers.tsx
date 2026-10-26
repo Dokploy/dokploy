@@ -12,12 +12,10 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Managed Servers">{page}</DashboardLayout>;
+	return <DashboardLayout metaName="Cloud Servers">{page}</DashboardLayout>;
 };
 
-export async function getServerSideProps(
-	ctx: GetServerSidePropsContext,
-) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {

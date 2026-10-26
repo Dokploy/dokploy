@@ -1,20 +1,35 @@
+import copy from "copy-to-clipboard";
+import type { FlagComponent } from "country-flag-icons/react/3x2";
+import { AU, CA, DE, GB, IN, NL, SG, US } from "country-flag-icons/react/3x2";
+import { addDays, format, formatDistanceToNow } from "date-fns";
 import {
 	AlertCircle,
 	CheckCircle2,
+	ChevronRight,
+	CircleArrowUp,
 	Clock,
+	Copy,
+	Cpu,
 	CreditCard,
-	ExternalLink,
 	FileText,
+	HardDrive,
 	Loader2,
+	Lock,
+	MemoryStick,
+	Play,
 	Plus,
+	Power,
 	RefreshCw,
+	RotateCw,
 	Server,
+	Shield,
+	SquareTerminal,
 	Trash2,
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -27,13 +42,20 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -42,8 +64,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
+import { api, type RouterOutputs } from "@/utils/api";
 
 const navigationItems = [
 	{
@@ -52,8 +79,8 @@ const navigationItems = [
 		icon: CreditCard,
 	},
 	{
-		name: "Managed Servers",
-		href: "/dashboard/settings/managed-servers",
+		name: "Cloud Servers",
+		href: "/dashboard/settings/cloud-servers",
 		icon: Server,
 	},
 	{
@@ -72,7 +99,7 @@ const STATUS_MAP: Record<
 	}
 > = {
 	pending: {
-		label: "Pending",
+		label: "Awaiting payment",
 		icon: <Clock className="size-3" />,
 		variant: "secondary",
 	},
@@ -91,9 +118,19 @@ const STATUS_MAP: Record<
 		icon: <CheckCircle2 className="size-3" />,
 		variant: "default",
 	},
+	upgrading: {
+		label: "Upgrading",
+		icon: <Loader2 className="size-3 animate-spin" />,
+		variant: "secondary",
+	},
 	error: {
 		label: "Error",
 		icon: <XCircle className="size-3" />,
+		variant: "destructive",
+	},
+	suspended: {
+		label: "Suspended",
+		icon: <AlertCircle className="size-3" />,
 		variant: "destructive",
 	},
 	terminating: {
@@ -108,8 +145,59 @@ const STATUS_MAP: Record<
 	},
 };
 
-function formatSpecs(cpus: number, memoryGb: number, storageGb: number) {
-	return `${cpus} vCPU · ${memoryGb} GB RAM · ${storageGb} GB NVMe`;
+const REGION_FLAGS: Record<string, FlagComponent> = {
+	AU,
+	CA,
+	DE,
+	GB,
+	IN,
+	NL,
+	SG,
+	US,
+};
+
+function RegionLabel({
+	countryCode,
+	name,
+}: {
+	countryCode?: string | null;
+	name: string;
+}) {
+	const Flag = countryCode ? REGION_FLAGS[countryCode] : undefined;
+	return (
+		<span className="inline-flex items-center gap-1.5">
+			{Flag && (
+				<Flag title={name} className="h-3 w-[18px] shrink-0 rounded-[2px]" />
+			)}
+			{name}
+		</span>
+	);
+}
+
+function PlanSpecs({
+	cpus,
+	memoryGb,
+	storageGb,
+}: {
+	cpus: number;
+	memoryGb: number;
+	storageGb: number;
+}) {
+	const specs = [
+		{ icon: Cpu, label: `${cpus} vCPU` },
+		{ icon: MemoryStick, label: `${memoryGb} GB RAM` },
+		{ icon: HardDrive, label: `${storageGb} GB NVMe` },
+	];
+	return (
+		<ul className="space-y-1 text-xs text-muted-foreground">
+			{specs.map(({ icon: Icon, label }) => (
+				<li key={label} className="flex items-center gap-1.5">
+					<Icon className="size-3.5 shrink-0" />
+					{label}
+				</li>
+			))}
+		</ul>
+	);
 }
 
 function formatPrice(priceCents: number) {
@@ -118,7 +206,7 @@ function formatPrice(priceCents: number) {
 
 const CONTINENT_ORDER = ["Europe", "Americas", "Asia-Pacific"];
 
-function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
+function OrderServerDialog() {
 	const [open, setOpen] = useState(false);
 	const [selectedPlan, setSelectedPlan] = useState<string>("");
 	const [selectedZone, setSelectedZone] = useState<string>("");
@@ -131,10 +219,8 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 	const isLoadingOptions = loadingPlans || loadingZones;
 
 	const purchase = api.managedServer.purchase.useMutation({
-		onSuccess: () => {
-			toast.success("Server order placed! Provisioning will take ~5 minutes.");
-			setOpen(false);
-			onSuccess();
+		onSuccess: ({ url }) => {
+			window.location.href = url;
 		},
 		onError: (err) => {
 			toast.error(err.message);
@@ -142,24 +228,32 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 	});
 
 	const plan = plans?.find((p) => p.id === selectedPlan);
+	const selectedZoneInfo = zones?.find((z) => z.id === selectedZone);
 
-	const groupedZones = zones?.reduce<Record<string, typeof zones>>((acc, z) => {
-		if (!acc[z.continent]) acc[z.continent] = [];
-		acc[z.continent]!.push(z);
-		return acc;
-	}, {});
+	const availableZones = selectedPlan
+		? zones?.filter((z) => z.plans.includes(selectedPlan))
+		: zones;
+
+	const groupedZones = availableZones?.reduce<Record<string, typeof zones>>(
+		(acc, z) => {
+			if (!acc[z.continent]) acc[z.continent] = [];
+			acc[z.continent]!.push(z);
+			return acc;
+		},
+		{},
+	);
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button size="sm">
 					<Plus className="size-4 mr-2" />
-					Order Server
+					New Cloud Server
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Order a Managed Server</DialogTitle>
+					<DialogTitle>New Cloud Server</DialogTitle>
 					<DialogDescription>
 						We'll provision and configure a server for you automatically. Ready
 						in ~5 minutes.
@@ -182,7 +276,13 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 										<button
 											key={p.id}
 											type="button"
-											onClick={() => setSelectedPlan(p.id)}
+											onClick={() => {
+												setSelectedPlan(p.id);
+												const zone = zones?.find((z) => z.id === selectedZone);
+												if (zone && !zone.plans.includes(p.id)) {
+													setSelectedZone("");
+												}
+											}}
 											className={cn(
 												"flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors",
 												selectedPlan === p.id
@@ -196,9 +296,11 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 													{formatPrice(p.priceCents)}
 												</p>
 											</div>
-											<p className="text-xs text-muted-foreground">
-												{formatSpecs(p.cpus, p.memoryGb, p.storageGb)}
-											</p>
+											<PlanSpecs
+												cpus={p.cpus}
+												memoryGb={p.memoryGb}
+												storageGb={p.storageGb}
+											/>
 										</button>
 									))}
 								</div>
@@ -217,18 +319,23 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 										sideOffset={4}
 										className="max-h-64 overflow-y-auto"
 									>
-										{CONTINENT_ORDER.filter((c) => groupedZones?.[c]).map((continent) => (
-											<div key={continent}>
-												<div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-													{continent}
+										{CONTINENT_ORDER.filter((c) => groupedZones?.[c]).map(
+											(continent) => (
+												<div key={continent}>
+													<div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+														{continent}
+													</div>
+													{groupedZones?.[continent]?.map((z) => (
+														<SelectItem key={z.id} value={z.id}>
+															<RegionLabel
+																countryCode={z.countryCode}
+																name={z.description}
+															/>
+														</SelectItem>
+													))}
 												</div>
-												{groupedZones?.[continent]?.map((z) => (
-													<SelectItem key={z.id} value={z.id}>
-														{z.description}
-													</SelectItem>
-												))}
-											</div>
-										))}
+											),
+										)}
 									</SelectContent>
 								</Select>
 							</div>
@@ -240,19 +347,32 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 										<span className="font-medium">{plan.name}</span>
 									</div>
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">Specs</span>
+										<span className="text-muted-foreground">CPU</span>
+										<span className="font-medium">{plan.cpus} vCPU</span>
+									</div>
+									<div className="flex justify-between">
+										<span className="text-muted-foreground">RAM</span>
+										<span className="font-medium">{plan.memoryGb} GB</span>
+									</div>
+									<div className="flex justify-between">
+										<span className="text-muted-foreground">Storage</span>
 										<span className="font-medium">
-											{formatSpecs(plan.cpus, plan.memoryGb, plan.storageGb)}
+											{plan.storageGb} GB NVMe
 										</span>
 									</div>
 									<div className="flex justify-between">
 										<span className="text-muted-foreground">Price</span>
-										<span className="font-medium">{formatPrice(plan.priceCents)}</span>
+										<span className="font-medium">
+											{formatPrice(plan.priceCents)}
+										</span>
 									</div>
 									<div className="flex justify-between">
 										<span className="text-muted-foreground">Zone</span>
 										<span className="font-medium">
-											{zones?.find((z) => z.id === selectedZone)?.description ?? selectedZone}
+											<RegionLabel
+												countryCode={selectedZoneInfo?.countryCode}
+												name={selectedZoneInfo?.description ?? selectedZone}
+											/>
 										</span>
 									</div>
 								</div>
@@ -272,10 +392,10 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 								{purchase.isPending ? (
 									<>
 										<Loader2 className="size-4 mr-2 animate-spin" />
-										Placing order...
+										Redirecting to checkout...
 									</>
 								) : (
-									"Order Server"
+									"Continue to payment"
 								)}
 							</Button>
 						</div>
@@ -286,21 +406,978 @@ function OrderServerDialog({ onSuccess }: { onSuccess: () => void }) {
 	);
 }
 
-const PLAN_LABELS: Record<string, string> = {
-	hobby: "Hobby",
-	starter: "Starter",
-	pro: "Pro",
-	business: "Business",
-};
+const POWER_ACTION_LABELS = {
+	reboot: "Restarting",
+	shutdown: "Stopping",
+	power_on: "Starting",
+} as const;
+
+type PowerAction = keyof typeof POWER_ACTION_LABELS;
+
+function PowerControls({
+	managedServerId,
+	powerState,
+}: {
+	managedServerId: string;
+	powerState?: string;
+}) {
+	const utils = api.useUtils();
+	const [pending, setPending] = useState<{
+		id: number;
+		action: PowerAction;
+	} | null>(null);
+
+	const { data: actionStatus } = api.managedServer.powerActionStatus.useQuery(
+		{ managedServerId, actionId: pending?.id ?? 0 },
+		{ enabled: !!pending, refetchInterval: 3000 },
+	);
+
+	useEffect(() => {
+		if (!pending || !actionStatus || actionStatus.status === "in-progress") {
+			return;
+		}
+		if (actionStatus.status === "errored") {
+			toast.error(`${POWER_ACTION_LABELS[pending.action]} the server failed`);
+		}
+		setPending(null);
+		utils.managedServer.vmInfo.invalidate({ managedServerId });
+	}, [actionStatus, pending, managedServerId, utils]);
+
+	const powerAction = api.managedServer.powerAction.useMutation({
+		onSuccess: (action, { action: type }) =>
+			setPending({ id: action.id, action: type }),
+		onError: (err) => toast.error(err.message),
+	});
+
+	const run = (action: PowerAction) =>
+		powerAction.mutate({ managedServerId, action });
+
+	if (pending || powerAction.isPending) {
+		return (
+			<Badge
+				variant="secondary"
+				className="flex items-center gap-1 text-xs h-5"
+			>
+				<Loader2 className="size-3 animate-spin" />
+				{pending ? POWER_ACTION_LABELS[pending.action] : "Sending"}...
+			</Badge>
+		);
+	}
+
+	if (powerState === "off") {
+		return (
+			<>
+				<Badge variant="outline" className="text-xs h-5">
+					Stopped
+				</Badge>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="sm" onClick={() => run("power_on")}>
+							<Play className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Start server</TooltipContent>
+				</Tooltip>
+			</>
+		);
+	}
+
+	if (powerState !== "active") return null;
+
+	return (
+		<>
+			<Tooltip>
+				<DialogAction
+					title="Restart Server"
+					description="The server will reboot. Your applications will be unavailable for a minute or two."
+					onClick={() => run("reboot")}
+				>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="sm">
+							<RotateCw className="size-4" />
+						</Button>
+					</TooltipTrigger>
+				</DialogAction>
+				<TooltipContent>Restart server</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<DialogAction
+					title="Stop Server"
+					description="The server will shut down and your applications will be offline until you start it again. Stopped servers are still billed."
+					type="destructive"
+					onClick={() => run("shutdown")}
+				>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="sm">
+							<Power className="size-4" />
+						</Button>
+					</TooltipTrigger>
+				</DialogAction>
+				<TooltipContent>Stop server</TooltipContent>
+			</Tooltip>
+		</>
+	);
+}
+
+const SUSPENSION_GRACE_DAYS = 7;
+
+const IN_PROGRESS_STATUSES = [
+	"pending",
+	"provisioning",
+	"configuring",
+	"upgrading",
+	"terminating",
+];
+
+type ManagedServerItem = RouterOutputs["managedServer"]["list"][number];
+type Plan = RouterOutputs["managedServer"]["getPlans"][number];
+
+function DetailItem({
+	label,
+	value,
+	copyValue,
+}: {
+	label: string;
+	value: React.ReactNode;
+	copyValue?: string;
+}) {
+	return (
+		<div className="flex items-center justify-between gap-4 min-w-0">
+			<span className="text-muted-foreground shrink-0">{label}</span>
+			<span className="flex items-center gap-1 font-medium min-w-0">
+				<span className="truncate">{value}</span>
+				{copyValue && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-6 shrink-0"
+								onClick={() => {
+									copy(copyValue);
+									toast.success(`${label} copied`);
+								}}
+							>
+								<Copy className="size-3" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>Copy {label}</TooltipContent>
+					</Tooltip>
+				)}
+			</span>
+		</div>
+	);
+}
+
+function formatMoney(amount: number, currency: string) {
+	const formatter = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currency.toUpperCase(),
+	});
+	const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+	return formatter.format(amount / 10 ** digits);
+}
+
+type FirewallRule = RouterOutputs["managedServer"]["firewall"]["rules"][number];
+
+const ANYWHERE = ["0.0.0.0/0", "::/0"];
+
+const FIREWALL_PRESETS = [
+	{ label: "PostgreSQL", port: "5432" },
+	{ label: "MySQL", port: "3306" },
+	{ label: "Redis", port: "6379" },
+	{ label: "MongoDB", port: "27017" },
+];
+
+function formatSources(sources: string[]) {
+	return ANYWHERE.every((a) => sources.includes(a)) && sources.length === 2
+		? "Anywhere"
+		: sources.join(", ");
+}
+
+function FirewallRuleRow({
+	rule,
+	locked,
+	onRemove,
+}: {
+	rule: FirewallRule;
+	locked?: boolean;
+	onRemove?: () => void;
+}) {
+	return (
+		<div className="grid grid-cols-[80px_120px_1fr_40px] items-center gap-2 px-3 py-2 text-sm">
+			<span className="font-medium uppercase">{rule.protocol}</span>
+			<span>{rule.protocol === "icmp" ? "—" : rule.ports}</span>
+			<span className="truncate text-muted-foreground">
+				{formatSources(rule.sources)}
+			</span>
+			{locked ? (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Lock className="size-4 text-muted-foreground justify-self-center" />
+					</TooltipTrigger>
+					<TooltipContent>
+						Required by Dokploy to manage this server
+					</TooltipContent>
+				</Tooltip>
+			) : (
+				<Button
+					variant="ghost"
+					size="icon"
+					className="size-8 text-destructive hover:text-destructive"
+					onClick={onRemove}
+				>
+					<Trash2 className="size-4" />
+				</Button>
+			)}
+		</div>
+	);
+}
+
+function FirewallDialog({ managedServerId }: { managedServerId: string }) {
+	const [open, setOpen] = useState(false);
+	const [rules, setRules] = useState<FirewallRule[] | null>(null);
+	const [protocol, setProtocol] = useState<"tcp" | "udp" | "icmp">("tcp");
+	const [ports, setPorts] = useState("");
+	const [sources, setSources] = useState("");
+
+	const { data, isLoading, error } = api.managedServer.firewall.useQuery(
+		{ managedServerId },
+		{ enabled: open, refetchOnWindowFocus: false },
+	);
+
+	useEffect(() => {
+		if (data && rules === null) setRules(data.rules);
+	}, [data, rules]);
+
+	const utils = api.useUtils();
+	const onFirewallChanged = (
+		result: RouterOutputs["managedServer"]["firewall"],
+		message: string,
+	) => {
+		setRules(result.rules);
+		utils.managedServer.firewall.setData({ managedServerId }, result);
+		toast.success(message);
+	};
+
+	const update = api.managedServer.updateFirewall.useMutation({
+		onSuccess: (result) =>
+			onFirewallChanged(
+				result,
+				data?.enabled ? "Firewall updated" : "Firewall enabled",
+			),
+		onError: (err) => toast.error(err.message),
+	});
+
+	const disable = api.managedServer.disableFirewall.useMutation({
+		onSuccess: (result) => onFirewallChanged(result, "Firewall disabled"),
+		onError: (err) => toast.error(err.message),
+	});
+
+	const isDirty =
+		!!data && !!rules && JSON.stringify(rules) !== JSON.stringify(data.rules);
+	const canSave = !!data && (!data.enabled || isDirty);
+
+	const addRule = () => {
+		const parsedSources = sources
+			.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean);
+		const ruleSources = parsedSources.length ? parsedSources : ANYWHERE;
+		if (protocol !== "icmp" && !ports.trim()) {
+			toast.error("Enter a port or a range, like 8080 or 8000-9000");
+			return;
+		}
+		const rule: FirewallRule =
+			protocol === "icmp"
+				? { protocol, sources: ruleSources }
+				: { protocol, ports: ports.trim(), sources: ruleSources };
+		setRules((current) => [...(current ?? []), rule]);
+		setPorts("");
+		setSources("");
+	};
+
+	return (
+		<Tooltip>
+			<Dialog
+				open={open}
+				onOpenChange={(value) => {
+					setOpen(value);
+					if (!value) setRules(null);
+				}}
+			>
+				<DialogTrigger asChild>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="sm">
+							<Shield className="size-4" />
+						</Button>
+					</TooltipTrigger>
+				</DialogTrigger>
+				<DialogContent className="max-w-2xl">
+					<DialogHeader>
+						<DialogTitle>Firewall</DialogTitle>
+						<DialogDescription>
+							Incoming traffic is blocked unless a rule allows it. Outgoing
+							traffic is always allowed.
+						</DialogDescription>
+					</DialogHeader>
+
+					{isLoading || (!rules && !error) ? (
+						<div className="flex justify-center py-6">
+							<Loader2 className="size-5 animate-spin text-muted-foreground" />
+						</div>
+					) : error ? (
+						<p className="text-sm text-destructive">{error.message}</p>
+					) : (
+						<div className="space-y-4">
+							{!data?.enabled && (
+								<p className="flex gap-2 rounded-lg bg-muted p-3 text-sm">
+									<AlertCircle className="size-4 shrink-0 mt-0.5" />
+									No firewall: every port on this server is open. Enable it to
+									only allow the ports below.
+								</p>
+							)}
+							<div className="rounded-lg border divide-y">
+								<div className="grid grid-cols-[80px_120px_1fr_40px] gap-2 px-3 py-2 text-xs font-medium text-muted-foreground">
+									<span>Protocol</span>
+									<span>Ports</span>
+									<span>Sources</span>
+									<span />
+								</div>
+								{data?.systemRules.map((rule) => (
+									<FirewallRuleRow
+										key={`system-${rule.protocol}-${"ports" in rule ? rule.ports : ""}`}
+										rule={rule}
+										locked
+									/>
+								))}
+								{rules?.map((rule, index) => (
+									<FirewallRuleRow
+										key={`${rule.protocol}-${"ports" in rule ? rule.ports : ""}-${index}`}
+										rule={rule}
+										onRemove={() =>
+											setRules((current) =>
+												(current ?? []).filter((_, i) => i !== index),
+											)
+										}
+									/>
+								))}
+							</div>
+
+							<div className="space-y-2">
+								<Label>Add a rule</Label>
+								<div className="grid grid-cols-[110px_1fr_1fr_auto] gap-2">
+									<Select
+										value={protocol}
+										onValueChange={(value) =>
+											setProtocol(value as "tcp" | "udp" | "icmp")
+										}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="tcp">TCP</SelectItem>
+											<SelectItem value="udp">UDP</SelectItem>
+											<SelectItem value="icmp">ICMP</SelectItem>
+										</SelectContent>
+									</Select>
+									<Input
+										placeholder="5432 or 8000-9000"
+										value={ports}
+										onChange={(e) => setPorts(e.target.value)}
+										disabled={protocol === "icmp"}
+									/>
+									<Input
+										placeholder="Anywhere, or 1.2.3.4, 10.0.0.0/8"
+										value={sources}
+										onChange={(e) => setSources(e.target.value)}
+									/>
+									<Button variant="outline" onClick={addRule}>
+										<Plus className="size-4" />
+									</Button>
+								</div>
+								<div className="flex flex-wrap gap-1.5">
+									{FIREWALL_PRESETS.map((preset) => (
+										<Badge
+											key={preset.label}
+											variant="outline"
+											className="cursor-pointer hover:border-primary"
+											onClick={() => {
+												setProtocol("tcp");
+												setPorts(preset.port);
+											}}
+										>
+											{preset.label} {preset.port}
+										</Badge>
+									))}
+								</div>
+								<p className="text-xs text-muted-foreground">
+									Leave sources empty to allow any IP. Only open database ports
+									to the IPs that need them.
+								</p>
+							</div>
+						</div>
+					)}
+
+					<DialogFooter className="sm:justify-between">
+						<div>
+							{data?.enabled && (
+								<DialogAction
+									title="Disable Firewall"
+									description="The firewall will be removed and every port on this server will be open to the internet."
+									type="destructive"
+									onClick={() => disable.mutate({ managedServerId })}
+								>
+									<Button
+										variant="ghost"
+										className="text-destructive hover:text-destructive"
+										disabled={disable.isPending}
+									>
+										Disable firewall
+									</Button>
+								</DialogAction>
+							)}
+						</div>
+						<div className="flex gap-2">
+							<Button variant="secondary" onClick={() => setOpen(false)}>
+								Close
+							</Button>
+							<Button
+								disabled={!canSave || update.isPending}
+								onClick={() => {
+									if (rules) update.mutate({ managedServerId, rules });
+								}}
+							>
+								{update.isPending && (
+									<Loader2 className="size-4 mr-2 animate-spin" />
+								)}
+								{data?.enabled ? "Save changes" : "Enable firewall"}
+							</Button>
+						</div>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<TooltipContent>Firewall</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function UpgradeServerDialog({ managedServerId }: { managedServerId: string }) {
+	const utils = api.useUtils();
+	const [open, setOpen] = useState(false);
+	const [selectedPlan, setSelectedPlan] = useState("");
+
+	const { data: options, isLoading } =
+		api.managedServer.upgradeOptions.useQuery(
+			{ managedServerId },
+			{ enabled: open },
+		);
+	const { data: preview, isFetching: isLoadingPreview } =
+		api.managedServer.upgradePreview.useQuery(
+			{ managedServerId, plan: selectedPlan },
+			{ enabled: open && !!selectedPlan, refetchOnWindowFocus: false },
+		);
+
+	const upgrade = api.managedServer.upgrade.useMutation({
+		onSuccess: () => {
+			toast.success(
+				"Upgrade started. Your server will be back online in a few minutes.",
+			);
+			setOpen(false);
+			utils.managedServer.list.invalidate();
+		},
+		onError: (err) => toast.error(err.message),
+	});
+
+	return (
+		<Tooltip>
+			<Dialog
+				open={open}
+				onOpenChange={(value) => {
+					setOpen(value);
+					if (!value) setSelectedPlan("");
+				}}
+			>
+				<DialogTrigger asChild>
+					<TooltipTrigger asChild>
+						<Button variant="ghost" size="sm">
+							<CircleArrowUp className="size-4" />
+						</Button>
+					</TooltipTrigger>
+				</DialogTrigger>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Upgrade Server</DialogTitle>
+						<DialogDescription>
+							Move this server to a bigger plan. Your IP address, apps and data
+							stay the same.
+						</DialogDescription>
+					</DialogHeader>
+
+					{isLoading ? (
+						<div className="flex justify-center py-6">
+							<Loader2 className="size-5 animate-spin text-muted-foreground" />
+						</div>
+					) : !options?.length ? (
+						<p className="text-sm text-muted-foreground py-4">
+							This server is already on the largest plan available in its
+							location.
+						</p>
+					) : (
+						<div className="space-y-4">
+							<div className="grid grid-cols-2 gap-2">
+								{options.map((p) => (
+									<button
+										key={p.id}
+										type="button"
+										onClick={() => setSelectedPlan(p.id)}
+										className={cn(
+											"flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors",
+											selectedPlan === p.id
+												? "border-primary bg-primary/5"
+												: "border-border hover:border-muted-foreground",
+										)}
+									>
+										<div className="flex items-center justify-between">
+											<p className="font-semibold text-sm">{p.name}</p>
+											<p className="text-sm font-medium text-primary">
+												{formatPrice(p.priceCents)}
+											</p>
+										</div>
+										<PlanSpecs
+											cpus={p.cpus}
+											memoryGb={p.memoryGb}
+											storageGb={p.storageGb}
+										/>
+									</button>
+								))}
+							</div>
+
+							{selectedPlan && (
+								<div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+									{isLoadingPreview || !preview ? (
+										<div className="flex items-center gap-2 text-muted-foreground">
+											<Loader2 className="size-4 animate-spin" />
+											Calculating price...
+										</div>
+									) : (
+										<>
+											<div className="flex justify-between">
+												<span className="text-muted-foreground">
+													Due today (prorated)
+												</span>
+												<span className="font-medium">
+													{formatMoney(preview.amountDue, preview.currency)}
+												</span>
+											</div>
+											<div className="flex justify-between">
+												<span className="text-muted-foreground">
+													Then, per month
+												</span>
+												<span className="font-medium">
+													{formatMoney(
+														preview.newMonthlyAmount,
+														preview.currency,
+													)}
+												</span>
+											</div>
+										</>
+									)}
+								</div>
+							)}
+
+							<p className="flex gap-2 text-xs text-muted-foreground">
+								<AlertCircle className="size-4 shrink-0" />
+								The server will be offline for a few minutes while it is
+								resized. The disk grows with the new plan, so this can't be
+								undone.
+							</p>
+						</div>
+					)}
+
+					<DialogFooter>
+						<Button variant="secondary" onClick={() => setOpen(false)}>
+							Cancel
+						</Button>
+						<Button
+							disabled={!preview || isLoadingPreview || upgrade.isPending}
+							onClick={() => {
+								if (!preview) return;
+								upgrade.mutate({
+									managedServerId,
+									plan: selectedPlan,
+									prorationDate: preview.prorationDate,
+								});
+							}}
+						>
+							{upgrade.isPending && (
+								<Loader2 className="size-4 mr-2 animate-spin" />
+							)}
+							{preview && !isLoadingPreview
+								? `Upgrade and pay ${formatMoney(preview.amountDue, preview.currency)}`
+								: "Upgrade"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<TooltipContent>Upgrade server</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function TerminateServerDialog({
+	serverName,
+	onConfirm,
+}: {
+	serverName: string;
+	onConfirm: () => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const [confirmation, setConfirmation] = useState("");
+
+	return (
+		<Tooltip>
+			<Dialog
+				open={open}
+				onOpenChange={(value) => {
+					setOpen(value);
+					if (!value) setConfirmation("");
+				}}
+			>
+				<DialogTrigger asChild>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-destructive hover:text-destructive"
+						>
+							<Trash2 className="size-4" />
+						</Button>
+					</TooltipTrigger>
+				</DialogTrigger>
+				<DialogContent className="sm:max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Terminate Server</DialogTitle>
+						<DialogDescription>
+							This will permanently destroy the server and all data on it. This
+							action cannot be undone.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-2">
+						<Label className="flex flex-wrap items-center gap-1 leading-relaxed">
+							To confirm, type
+							<Badge
+								variant="outline"
+								className="p-2 rounded-md cursor-pointer hover:border-primary"
+								onClick={() => {
+									copy(serverName);
+									toast.success("Copied to clipboard. Be careful!");
+								}}
+							>
+								{serverName}
+								<Copy className="size-3.5 ml-1 text-muted-foreground" />
+							</Badge>
+							in the box below:
+						</Label>
+						<Input
+							value={confirmation}
+							onChange={(e) => setConfirmation(e.target.value)}
+							placeholder="Enter the server name to confirm"
+							autoComplete="off"
+						/>
+					</div>
+					<DialogFooter>
+						<Button variant="secondary" onClick={() => setOpen(false)}>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							disabled={confirmation !== serverName}
+							onClick={() => {
+								onConfirm();
+								setOpen(false);
+							}}
+						>
+							Terminate
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<TooltipContent>Terminate server</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function ManagedServerRow({
+	server: s,
+	plan,
+	onReconnect,
+	isReconnecting,
+	onDelete,
+	onUpdatePayment,
+	isOpeningPortal,
+}: {
+	server: ManagedServerItem;
+	plan?: Plan;
+	onReconnect: () => void;
+	isReconnecting: boolean;
+	onDelete: () => void;
+	onUpdatePayment: () => void;
+	isOpeningPortal: boolean;
+}) {
+	const [open, setOpen] = useState(false);
+	const status = STATUS_MAP[s.status] ?? STATUS_MAP.error!;
+	const hasVm = s.status === "ready" && !!s.providerVmId;
+
+	const { data: vm } = api.managedServer.vmInfo.useQuery(
+		{ managedServerId: s.managedServerId },
+		{ enabled: hasVm },
+	);
+
+	const regionName = vm?.regionName ?? s.regionName;
+
+	return (
+		<Collapsible
+			open={open}
+			onOpenChange={setOpen}
+			className="rounded-lg border"
+		>
+			<div className="flex items-center justify-between gap-3 p-4">
+				<CollapsibleTrigger asChild>
+					<button
+						type="button"
+						className="flex items-center gap-3 text-left flex-1 min-w-0"
+					>
+						<ChevronRight
+							className={cn(
+								"size-4 text-muted-foreground shrink-0 transition-transform",
+								open && "rotate-90",
+							)}
+						/>
+						<Server className="size-5 text-muted-foreground shrink-0" />
+						<div className="space-y-0.5 min-w-0">
+							<div className="flex items-center gap-2">
+								<span className="font-medium text-sm">
+									{plan?.name ?? s.plan}
+								</span>
+								<Badge
+									variant={status?.variant}
+									className="flex items-center gap-1 text-xs h-5"
+								>
+									{status?.icon}
+									{status?.label}
+								</Badge>
+							</div>
+							<p className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+								<span className="truncate">
+									{[s.hostname, s.ipAddress].filter(Boolean).join(" · ")}
+								</span>
+								<span>·</span>
+								<RegionLabel countryCode={s.countryCode} name={regionName} />
+							</p>
+							{(s.status === "error" || s.status === "ready") &&
+								s.errorMessage && (
+									<p className="text-xs text-destructive break-all">
+										{s.errorMessage}
+									</p>
+								)}
+							{s.status === "suspended" && s.suspendedAt && (
+								<p className="text-xs text-destructive">
+									Payment failed. The server is powered off and will be deleted
+									on{" "}
+									{format(
+										addDays(new Date(s.suspendedAt), SUSPENSION_GRACE_DAYS),
+										"MMM d, yyyy",
+									)}{" "}
+									unless the payment is completed.
+								</p>
+							)}
+						</div>
+					</button>
+				</CollapsibleTrigger>
+
+				<div className="flex items-center gap-2 shrink-0">
+					{hasVm && (
+						<PowerControls
+							managedServerId={s.managedServerId}
+							powerState={vm?.status}
+						/>
+					)}
+					{hasVm && <FirewallDialog managedServerId={s.managedServerId} />}
+					{s.status === "ready" && s.stripeSubscriptionId && (
+						<UpgradeServerDialog managedServerId={s.managedServerId} />
+					)}
+					{s.status === "suspended" && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={onUpdatePayment}
+							disabled={isOpeningPortal}
+						>
+							<CreditCard className="size-3.5 mr-1.5" />
+							Update payment
+						</Button>
+					)}
+					{s.status === "ready" && !s.serverId && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={onReconnect}
+									disabled={isReconnecting}
+								>
+									{isReconnecting ? (
+										<Loader2 className="size-3.5 mr-1.5 animate-spin" />
+									) : (
+										<RefreshCw className="size-3.5 mr-1.5" />
+									)}
+									Reconnect
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Link this server to Dokploy again</TooltipContent>
+						</Tooltip>
+					)}
+					{s.status === "ready" && s.server && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="outline" size="sm" asChild>
+									<Link
+										href={`/dashboard/settings/servers?terminal=${s.serverId}`}
+									>
+										<SquareTerminal className="size-3.5 mr-1.5" />
+										Terminal
+									</Link>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Open the server terminal</TooltipContent>
+						</Tooltip>
+					)}
+					{s.status === "pending" ? (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-destructive hover:text-destructive"
+									onClick={onDelete}
+								>
+									<Trash2 className="size-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>Cancel order</TooltipContent>
+						</Tooltip>
+					) : (
+						<TerminateServerDialog
+							serverName={s.hostname ?? s.managedServerId}
+							onConfirm={onDelete}
+						/>
+					)}
+				</div>
+			</div>
+
+			<CollapsibleContent>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-2 border-t px-4 py-3 text-sm">
+					{plan && (
+						<>
+							<DetailItem label="CPU" value={`${plan.cpus} vCPU`} />
+							<DetailItem label="RAM" value={`${plan.memoryGb} GB`} />
+							<DetailItem label="Storage" value={`${plan.storageGb} GB NVMe`} />
+							<DetailItem label="Price" value={formatPrice(plan.priceCents)} />
+						</>
+					)}
+					<DetailItem
+						label="Location"
+						value={
+							<RegionLabel countryCode={s.countryCode} name={regionName} />
+						}
+					/>
+					{vm && <DetailItem label="OS" value={vm.os} />}
+					{s.ipAddress && (
+						<>
+							<DetailItem
+								label="Public IP"
+								value={s.ipAddress}
+								copyValue={s.ipAddress}
+							/>
+							<DetailItem
+								label="SSH"
+								value={
+									<code className="text-xs">{`ssh root@${s.ipAddress}`}</code>
+								}
+								copyValue={`ssh root@${s.ipAddress}`}
+							/>
+						</>
+					)}
+					{vm?.privateIp && (
+						<DetailItem
+							label="Private IP"
+							value={vm.privateIp}
+							copyValue={vm.privateIp}
+						/>
+					)}
+					<DetailItem
+						label="Created"
+						value={`${format(new Date(s.createdAt), "MMM d, yyyy")} (${formatDistanceToNow(new Date(s.createdAt), { addSuffix: true })})`}
+					/>
+					{s.server && (
+						<DetailItem
+							label="Dokploy server"
+							value={
+								<Link
+									href="/dashboard/settings/servers"
+									className="hover:underline"
+								>
+									{s.server.name}
+								</Link>
+							}
+						/>
+					)}
+				</div>
+			</CollapsibleContent>
+		</Collapsible>
+	);
+}
 
 export const ShowManagedServers = () => {
 	const router = useRouter();
 	const utils = api.useUtils();
 
-	const { data: servers, isLoading } = api.managedServer.list.useQuery();
+	const { data: servers, isLoading } = api.managedServer.list.useQuery(
+		undefined,
+		{
+			refetchInterval: (query) =>
+				query.state.data?.some((s) => IN_PROGRESS_STATUSES.includes(s.status))
+					? 5000
+					: false,
+		},
+	);
 
-	const syncStatus = api.managedServer.syncStatus.useMutation({
-		onSuccess: () => utils.managedServer.list.invalidate(),
+	const { data: plans } = api.managedServer.getPlans.useQuery(undefined, {
+		enabled: !!servers?.length,
+	});
+
+	useEffect(() => {
+		const { checkout, ...query } = router.query;
+		if (!checkout) return;
+		if (checkout === "success") {
+			toast.success(
+				"Payment received! Your server is being provisioned, this takes ~5 minutes.",
+			);
+		} else if (checkout === "cancelled") {
+			toast.info("Checkout cancelled. No charge was made.");
+		}
+		router.replace({ pathname: router.pathname, query }, undefined, {
+			shallow: true,
+		});
+	}, [router]);
+
+	const customerPortal = api.stripe.createCustomerPortalSession.useMutation({
+		onSuccess: ({ url }) => {
+			if (url) window.location.href = url;
+		},
+		onError: (err) => toast.error(err.message),
 	});
 
 	const reconnect = api.managedServer.reconnect.useMutation({
@@ -312,8 +1389,10 @@ export const ShowManagedServers = () => {
 	});
 
 	const deleteServer = api.managedServer.delete.useMutation({
-		onSuccess: () => {
-			toast.success("Server terminated.");
+		onSuccess: ({ cancelledOrder }) => {
+			toast.success(
+				cancelledOrder ? "Order cancelled." : "Server is being terminated.",
+			);
 			utils.managedServer.list.invalidate();
 		},
 		onError: (err) => toast.error(err.message),
@@ -358,14 +1437,13 @@ export const ShowManagedServers = () => {
 						<div className="mt-6 space-y-4">
 							<div className="flex items-center justify-between">
 								<div>
-									<h3 className="font-semibold text-base">Managed Servers</h3>
+									<h3 className="font-semibold text-base">Cloud Servers</h3>
 									<p className="text-sm text-muted-foreground">
-										Servers provisioned and managed by Dokploy Cloud
+										Servers provided by Dokploy Cloud, billed separately from
+										your plan
 									</p>
 								</div>
-								<OrderServerDialog
-									onSuccess={() => utils.managedServer.list.invalidate()}
-								/>
+								<OrderServerDialog />
 							</div>
 
 							{isLoading ? (
@@ -375,7 +1453,7 @@ export const ShowManagedServers = () => {
 							) : servers?.length === 0 ? (
 								<div className="text-center py-12 border rounded-lg border-dashed">
 									<Server className="size-10 mx-auto text-muted-foreground mb-3" />
-									<p className="text-sm font-medium">No managed servers yet</p>
+									<p className="text-sm font-medium">No cloud servers yet</p>
 									<p className="text-xs text-muted-foreground mt-1">
 										Order a server and we'll provision and configure it for you
 										automatically.
@@ -383,114 +1461,24 @@ export const ShowManagedServers = () => {
 								</div>
 							) : (
 								<div className="space-y-3">
-									{servers?.map((s) => {
-										const status =
-											STATUS_MAP[s.status] ?? STATUS_MAP.error!;
-										const isProvisioning = [
-											"pending",
-											"provisioning",
-											"configuring",
-										].includes(s.status);
-
-										return (
-											<div
-												key={s.managedServerId}
-												className="flex items-center justify-between rounded-lg border p-4"
-											>
-												<div className="flex items-center gap-3">
-													<Server className="size-5 text-muted-foreground shrink-0" />
-													<div className="space-y-0.5">
-														<div className="flex items-center gap-2">
-															<span className="font-medium text-sm">
-																{PLAN_LABELS[s.plan] ?? s.plan}
-															</span>
-															<Badge
-																variant={status?.variant}
-																className="flex items-center gap-1 text-xs h-5"
-															>
-																{status?.icon}
-																{status?.label}
-															</Badge>
-														</div>
-														<p className="text-xs text-muted-foreground">
-															{s.hostname ?? ""}
-															{s.ipAddress ? ` · ${s.ipAddress}` : ""}
-															{s.zone ? ` · ${s.zone}` : ""}
-														</p>
-													</div>
-												</div>
-
-												<div className="flex items-center gap-2">
-													{isProvisioning && (
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() =>
-																syncStatus.mutate({
-																	managedServerId: s.managedServerId,
-																})
-															}
-															disabled={syncStatus.isPending}
-														>
-															<Loader2
-																className={cn(
-																	"size-4",
-																	syncStatus.isPending && "animate-spin",
-																)}
-															/>
-														</Button>
-													)}
-													{s.status === "ready" && !s.serverId && (
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() =>
-																reconnect.mutate({
-																	managedServerId: s.managedServerId,
-																})
-															}
-															disabled={reconnect.isPending}
-														>
-															{reconnect.isPending ? (
-																<Loader2 className="size-3.5 mr-1.5 animate-spin" />
-															) : (
-																<RefreshCw className="size-3.5 mr-1.5" />
-															)}
-															Reconnect
-														</Button>
-													)}
-													{s.status === "ready" && s.server && (
-														<Button variant="outline" size="sm" asChild>
-															<Link
-																href={`/dashboard/settings/server?serverId=${s.serverId}`}
-															>
-																<ExternalLink className="size-3.5 mr-1.5" />
-																Open
-															</Link>
-														</Button>
-													)}
-													<DialogAction
-														title="Terminate Server"
-														description="This will permanently destroy the server and all data on it. This action cannot be undone."
-														type="destructive"
-														onClick={() =>
-															deleteServer.mutate({
-																managedServerId: s.managedServerId,
-															})
-														}
-													>
-														<Button
-															variant="ghost"
-															size="sm"
-															className="text-destructive hover:text-destructive"
-														>
-															<Trash2 className="size-4" />
-														</Button>
-													</DialogAction>
-												</div>
-											</div>
-										);
-									})}
+									{servers?.map((s) => (
+										<ManagedServerRow
+											key={s.managedServerId}
+											server={s}
+											plan={plans?.find((p) => p.id === s.plan)}
+											onReconnect={() =>
+												reconnect.mutate({ managedServerId: s.managedServerId })
+											}
+											isReconnecting={reconnect.isPending}
+											onDelete={() =>
+												deleteServer.mutate({
+													managedServerId: s.managedServerId,
+												})
+											}
+											onUpdatePayment={() => customerPortal.mutate()}
+											isOpeningPortal={customerPortal.isPending}
+										/>
+									))}
 								</div>
 							)}
 						</div>

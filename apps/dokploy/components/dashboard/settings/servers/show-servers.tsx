@@ -266,6 +266,10 @@ export const ShowServers = () => {
 																							<TerminalModal
 																								serverId={server.serverId}
 																								asButton={true}
+																								defaultOpen={
+																									router.query.terminal ===
+																									server.serverId
+																								}
 																							>
 																								<TooltipTrigger asChild>
 																									<Button
@@ -352,27 +356,51 @@ export const ShowServers = () => {
 
 																				<div className="flex-1" />
 
-																				{permissions?.server.delete && (
-																					<Tooltip>
-																						<DeleteServerModal
-																							serverId={server.serverId}
-																							serverName={server.name}
-																						>
+																				{permissions?.server.delete &&
+																					server.isCloudServer && (
+																						<Tooltip>
 																							<TooltipTrigger asChild>
 																								<Button
 																									variant="ghost"
 																									size="icon"
 																									className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+																									asChild
 																								>
-																									<Trash2 className="h-4 w-4" />
+																									<Link href="/dashboard/settings/cloud-servers">
+																										<Trash2 className="h-4 w-4" />
+																									</Link>
 																								</Button>
 																							</TooltipTrigger>
-																						</DeleteServerModal>
-																						<TooltipContent>
-																							<p>Delete Server</p>
-																						</TooltipContent>
-																					</Tooltip>
-																				)}
+																							<TooltipContent>
+																								<p>
+																									Cloud Server: terminate it in
+																									Billing → Cloud Servers
+																								</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
+																				{permissions?.server.delete &&
+																					!server.isCloudServer && (
+																						<Tooltip>
+																							<DeleteServerModal
+																								serverId={server.serverId}
+																								serverName={server.name}
+																							>
+																								<TooltipTrigger asChild>
+																									<Button
+																										variant="ghost"
+																										size="icon"
+																										className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+																									>
+																										<Trash2 className="h-4 w-4" />
+																									</Button>
+																								</TooltipTrigger>
+																							</DeleteServerModal>
+																							<TooltipContent>
+																								<p>Delete Server</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
 																			</TooltipProvider>
 																		</div>
 																	)}
