@@ -91,13 +91,12 @@ export const removeTraefikConfigRemote = async (
 
 const configLocks = new Map<string, Promise<unknown>>();
 
-// In-process only: Dokploy runs a single dashboard process per host.
 export const withTraefikConfigLock = async <T>(
 	appName: string,
 	serverId: string | null | undefined,
 	fn: () => Promise<T>,
 ): Promise<T> => {
-	const key = `${serverId ?? "local"}:${appName}`;
+	const key = `${serverId ?? "dokploy"}:${appName}`;
 	const previous = configLocks.get(key) ?? Promise.resolve();
 	const current = previous.catch(() => {}).then(fn);
 	configLocks.set(key, current);

@@ -18,123 +18,114 @@ import {
 } from "./forward-auth";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
-export const manageDomain = (app: ApplicationNested, domain: Domain) =>
-	withTraefikConfigLock(app.appName, app.serverId, () =>
-		applyDomain(app, domain),
-	);
-
-export const removeDomain = (
-	application: ApplicationNested,
-	uniqueKey: number,
-) =>
-	withTraefikConfigLock(application.appName, application.serverId, () =>
-		deleteDomain(application, uniqueKey),
-	);
-
-const applyDomain = async (app: ApplicationNested, domain: Domain) => {
+export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
 
 	// A disabled domain keeps its configuration in the database but must never
 	// expose a traefik router. Guarding here covers every caller (create, update,
 	// forward-auth, toggle) so a disabled domain can't be revived from any path.
 	if (!domain.enabled) {
-		await deleteDomain(app, domain.uniqueConfigKey);
+		await removeDomain(app, domain.uniqueConfigKey);
 		return;
 	}
 
-	let config: FileConfig;
+	await withTraefikConfigLock(appName, app.serverId, async () => {
+		let config: FileConfig;
 
-	if (app.serverId) {
-		config = await loadOrCreateConfigRemote(app.serverId, appName);
-	} else {
-		config = loadOrCreateConfig(appName);
-	}
-	const serviceName = `${appName}-service-${domain.uniqueConfigKey}`;
-	const routerName = `${appName}-router-${domain.uniqueConfigKey}`;
-	const routerNameSecure = `${appName}-router-websecure-${domain.uniqueConfigKey}`;
+		if (app.serverId) {
+			config = await loadOrCreateConfigRemote(app.serverId, appName);
+		} else {
+			config = loadOrCreateConfig(appName);
+		}
+		const serviceName = `${appName}-service-${domain.uniqueConfigKey}`;
+		const routerName = `${appName}-router-${domain.uniqueConfigKey}`;
+		const routerNameSecure = `${appName}-router-websecure-${domain.uniqueConfigKey}`;
 
-	config.http = config.http || { routers: {}, services: {} };
-	config.http.routers = config.http.routers || {};
-	config.http.services = config.http.services || {};
+		config.http = config.http || { routers: {}, services: {} };
+		config.http.routers = config.http.routers || {};
+		config.http.services = config.http.services || {};
 
-	config.http.routers[routerName] = await createRouterConfig(
-		app,
-		domain,
-		domain.customEntrypoint || "web",
-	);
-
-	if (!domain.customEntrypoint && domain.https) {
-		config.http.routers[routerNameSecure] = await createRouterConfig(
+		config.http.routers[routerName] = await createRouterConfig(
 			app,
 			domain,
-			"websecure",
+			domain.customEntrypoint || "web",
 		);
-	} else {
-		delete config.http.routers[routerNameSecure];
-	}
 
-	config.http.services[serviceName] = createServiceConfig(appName, domain);
+		if (!domain.customEntrypoint && domain.https) {
+			config.http.routers[routerNameSecure] = await createRouterConfig(
+				app,
+				domain,
+				"websecure",
+			);
+		} else {
+			delete config.http.routers[routerNameSecure];
+		}
 
-	await createPathMiddlewares(app, domain);
-	// SSO forward-auth: writes the per-app forwardAuth + errors middlewares (the
-	// /oauth2/* router lives on the central auth domain, not here). No-op unless
-	// the domain links a provider and the org has an auth domain configured.
-	await createForwardAuthMiddleware(app, domain);
+		config.http.services[serviceName] = createServiceConfig(appName, domain);
 
-	if (app.serverId) {
-		await writeTraefikConfigRemote(config, appName, app.serverId);
-	} else {
-		writeTraefikConfig(config, appName);
-	}
+		await createPathMiddlewares(app, domain);
+		// SSO forward-auth: writes the per-app forwardAuth + errors middlewares (the
+		// /oauth2/* router lives on the central auth domain, not here). No-op unless
+		// the domain links a provider and the org has an auth domain configured.
+		await createForwardAuthMiddleware(app, domain);
+
+		if (app.serverId) {
+			await writeTraefikConfigRemote(config, appName, app.serverId);
+		} else {
+			writeTraefikConfig(config, appName);
+		}
+	});
 };
 
-const deleteDomain = async (
+export const removeDomain = async (
 	application: ApplicationNested,
 	uniqueKey: number,
 ) => {
 	const { appName, serverId } = application;
-	let config: FileConfig;
+	await withTraefikConfigLock(appName, serverId, async () => {
+		let config: FileConfig;
 
-	if (serverId) {
-		config = await loadOrCreateConfigRemote(serverId, appName);
-	} else {
-		config = loadOrCreateConfig(appName);
-	}
-
-	const routerKey = `${appName}-router-${uniqueKey}`;
-	const routerSecureKey = `${appName}-router-websecure-${uniqueKey}`;
-
-	const serviceKey = `${appName}-service-${uniqueKey}`;
-	if (config.http?.routers?.[routerKey]) {
-		delete config.http.routers[routerKey];
-	}
-	if (config.http?.routers?.[routerSecureKey]) {
-		delete config.http.routers[routerSecureKey];
-	}
-	if (config.http?.services?.[serviceKey]) {
-		delete config.http.services[serviceKey];
-	}
-
-	await removePathMiddlewares(application, uniqueKey);
-	await removeForwardAuthMiddleware(application, uniqueKey);
-
-	// verify if is the last router if so we delete the router
-	if (
-		config?.http?.routers &&
-		Object.keys(config?.http?.routers).length === 0
-	) {
 		if (serverId) {
-			await removeTraefikConfigRemote(appName, serverId);
+			config = await loadOrCreateConfigRemote(serverId, appName);
 		} else {
-			await removeTraefikConfig(appName);
+			config = loadOrCreateConfig(appName);
 		}
-	} else {
-		if (serverId) {
-			await writeTraefikConfigRemote(config, appName, serverId);
+
+		const routerKey = `${appName}-router-${uniqueKey}`;
+		const routerSecureKey = `${appName}-router-websecure-${uniqueKey}`;
+
+		const serviceKey = `${appName}-service-${uniqueKey}`;
+		if (config.http?.routers?.[routerKey]) {
+			delete config.http.routers[routerKey];
+		}
+		if (config.http?.routers?.[routerSecureKey]) {
+			delete config.http.routers[routerSecureKey];
+		}
+		if (config.http?.services?.[serviceKey]) {
+			delete config.http.services[serviceKey];
+		}
+
+		await removePathMiddlewares(application, uniqueKey);
+		await removeForwardAuthMiddleware(application, uniqueKey);
+
+		// verify if is the last router if so we delete the router
+		if (
+			config?.http?.routers &&
+			Object.keys(config?.http?.routers).length === 0
+		) {
+			if (serverId) {
+				await removeTraefikConfigRemote(appName, serverId);
+			} else {
+				await removeTraefikConfig(appName);
+			}
 		} else {
-			writeTraefikConfig(config, appName);
+			if (serverId) {
+				await writeTraefikConfigRemote(config, appName, serverId);
+			} else {
+				writeTraefikConfig(config, appName);
+			}
 		}
-	}
+	});
 };
 
 /**
