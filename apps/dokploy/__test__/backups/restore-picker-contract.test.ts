@@ -117,10 +117,11 @@ describe("restore consumers use the paginated picker contract", () => {
 		(_name, element) => {
 			renderToStaticMarkup(element());
 			const { onChange } = mocks.picker.mock.calls[0]![0];
-			onChange("archive/hourly/path with spaces/2026-01-02T00-00-00-000Z.tar");
+			const fullPath = `archive/${"hourly/".repeat(80)}path with spaces/custom-name-2026-01-02T00-00-00-000Z.sql.gz`;
+			onChange(fullPath);
 			expect(mocks.form.setValue).toHaveBeenLastCalledWith(
 				"backupFile",
-				"archive/hourly/path with spaces/2026-01-02T00-00-00-000Z.tar",
+				fullPath,
 			);
 			onChange("");
 			expect(mocks.form.setValue).toHaveBeenLastCalledWith("backupFile", "");

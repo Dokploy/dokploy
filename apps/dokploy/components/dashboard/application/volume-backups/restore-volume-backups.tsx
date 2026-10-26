@@ -229,11 +229,11 @@ export const RestoreVolumeBackups = ({
 							name="backupFile"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel className="flex items-center">
-										Search Backup Files
+									<FormLabel className="flex items-center justify-between gap-2">
+										<span className="shrink-0">Search Backup Files</span>
 										{field.value && (
-											<Badge variant="outline" className="truncate w-52">
-												{field.value}
+											<Badge variant="outline" className="min-w-0 max-w-[70%]">
+												<span className="min-w-0 truncate">{field.value}</span>
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
 													onClick={(e) => {

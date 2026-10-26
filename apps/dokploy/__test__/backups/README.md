@@ -8,7 +8,8 @@ Directory listing and case-insensitive path/name filtering happen before
 pagination. Directories come first in descending full-path codepoint order.
 Native database (`.sql.gz`, `.bson.gz`), web-server (`webserver-backup-*.zip`)
 and volume (`<volume>-*.tar`) files follow, ordered by the valid UTC timestamp
-encoded by `getBackupTimestamp()`. Equal timestamps use descending full-path
+encoded by `getBackupTimestamp()`, including optional custom names generated
+by `getBackupFileName()`. Equal timestamps use descending full-path
 codepoint order. Nonstandard filenames come last in that same path order;
 their modification time is unknown.
 
@@ -52,3 +53,6 @@ the actual restore dialog. The popover must fit Radix's available height; its
 result list must shrink and scroll while search, Refresh, errors and continuation
 controls remain reachable. Repeat with a retry error and a narrow viewport.
 On very short viewports the popover itself can scroll so controls are not clipped.
+Use long custom filenames and nested paths in both dialogs. The selected badge
+and trigger must truncate within the form, while list paths wrap and preserve
+the complete selected path.

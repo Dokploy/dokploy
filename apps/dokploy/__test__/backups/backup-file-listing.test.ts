@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { getBackupFileName } from "@dokploy/server/utils/backups/utils";
 import { TRPCError } from "@trpc/server";
 import { parse } from "shell-quote";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,7 +78,10 @@ describe("native backup ordering", () => {
 	it.each([
 		"2026-01-02T03-04-05-006Z.sql.gz",
 		"2026-01-02T03-04-05-006Z.bson.gz",
+		"custom-database-2026-01-02T03-04-05-006Z.sql.gz",
+		"custom-mongo-2026-01-02T03-04-05-006Z.bson.gz",
 		"webserver-backup-2026-01-02T03-04-05-006Z.zip",
+		"webserver-backup-custom-name-2026-01-02T03-04-05-006Z.zip",
 		"volume-with-dashes-2026-01-02T03-04-05-006Z.tar",
 	])("recognizes the exact UTC timestamp in %s", (name) => {
 		expect(backupFileTimestamp(file(`nested/${name}`))).toBe(
@@ -89,7 +93,7 @@ describe("native backup ordering", () => {
 		"2026-13-01T03-04-05-006Z.bson.gz",
 		"2026-01-01T24-04-05-006Z.sql.gz",
 		"2026-01-01T03-04-60-006Z.sql.gz",
-		"prefix-2026-01-02T03-04-05-006Z.sql.gz",
+		"custom-2026-01-02T03-04-05-006Z.zip",
 		"2026-01-02T03:04:05.006Z.sql.gz",
 		"webserver-backup-2026-01-02T03-04-05-006Z.zip.bak",
 		"custom.sql.gz",
@@ -99,6 +103,26 @@ describe("native backup ordering", () => {
 			expect(backupFileTimestamp(file(name))).toBeNull();
 		},
 	);
+	it("orders generated custom names by timestamp rather than their prefixes", () => {
+		vi.useFakeTimers();
+		try {
+			vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+			const older = file(getBackupFileName("z-database", "sql.gz"));
+			vi.setSystemTime(new Date("2026-01-02T00:00:00.000Z"));
+			const newer = file(getBackupFileName("a-database", "bson.gz"));
+			vi.setSystemTime(new Date("2026-01-03T00:00:00.000Z"));
+			const newest = file(
+				getBackupFileName("a-webserver", "zip", "webserver-backup"),
+			);
+			expect(sortBackupFiles([older, newest, newer])).toEqual([
+				newest,
+				newer,
+				older,
+			]);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 	it("groups directories first, then timestamps, then fallback names with deterministic path ties", () => {
 		const entries = [
 			file("custom-A"),
@@ -325,6 +349,22 @@ describe("backup router listing contract", () => {
 		expect(mocks.remote).toHaveBeenCalledTimes(1);
 		expect(mocks.local).not.toHaveBeenCalled();
 	});
+	it.each(["listBackupFiles", "listBackupFilesPage"] as const)(
+		"%s rejects foreign destinations before local or remote enumeration",
+		async (procedure) => {
+			mocks.destination.mockResolvedValue({ organizationId: "organization-b" });
+			for (const serverId of [undefined, "server-a"]) {
+				await expect(
+					caller()[procedure]({ ...query, serverId }),
+				).rejects.toMatchObject({
+					message: "You don't have access to this destination.",
+				});
+			}
+			expect(mocks.local).not.toHaveBeenCalled();
+			expect(mocks.remote).not.toHaveBeenCalled();
+			expect(mocks.server).not.toHaveBeenCalled();
+		},
+	);
 	it("retains shell quoting, remote execution and metadata cost flags", async () => {
 		const prefix = "folder ' ; $(echo unsafe)`x`";
 		await caller().listBackupFilesPage({

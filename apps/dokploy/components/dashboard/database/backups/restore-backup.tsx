@@ -65,6 +65,8 @@ import { api } from "@/utils/api";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
+export { formatBytes } from "@/components/shared/backup-file-picker";
+
 type DatabaseType =
 	| Exclude<ServiceType, "application" | "redis">
 	| "web-server";
@@ -382,11 +384,11 @@ export const RestoreBackup = ({
 							name="backupFile"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel className="flex items-center justify-between">
-										Search Backup Files
+									<FormLabel className="flex items-center justify-between gap-2">
+										<span className="shrink-0">Search Backup Files</span>
 										{field.value && (
-											<Badge variant="outline" className="truncate">
-												{field.value}
+											<Badge variant="outline" className="min-w-0 max-w-[70%]">
+												<span className="min-w-0 truncate">{field.value}</span>
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
 													onClick={(e) => {

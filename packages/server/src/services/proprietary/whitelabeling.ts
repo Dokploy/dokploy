@@ -14,6 +14,8 @@ export interface PublicWhitelabelingConfig {
 	errorPageTitle: string | null;
 	errorPageDescription: string | null;
 	footerText: string | null;
+	passwordResetGuide: string | null;
+	supportEmail: string | null;
 	logoLightUrl: string | null;
 	loginLogoLightUrl: string | null;
 	faviconLightUrl: string | null;
@@ -58,6 +60,8 @@ export const getPublicWhitelabelingConfig =
 			errorPageTitle: config.errorPageTitle,
 			errorPageDescription: config.errorPageDescription,
 			footerText: config.footerText,
+			passwordResetGuide: config.passwordResetGuide ?? null,
+			supportEmail: config.supportEmail ?? null,
 			dualModeBranding: config.dualModeBranding ?? false,
 			logoLightUrl: config.dualModeBranding
 				? (config.logoLightUrl ?? null)

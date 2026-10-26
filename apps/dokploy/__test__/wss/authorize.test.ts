@@ -18,6 +18,7 @@ vi.mock("@dokploy/server", () => ({
 import {
 	canAccessDockerOverWss,
 	canAccessTerminalOverWss,
+	isServiceContainerName,
 } from "@/server/wss/authorize";
 
 const USER = { id: "user-1" };
@@ -75,6 +76,42 @@ describe("canAccessDockerOverWss", () => {
 		// Service path is authoritative — it must not fall through to docker/server.
 		expect(mockHasPermission).not.toHaveBeenCalled();
 		expect(mockGetAccessibleServerIds).not.toHaveBeenCalled();
+	});
+});
+
+describe("isServiceContainerName", () => {
+	it("matches an application or database only by its exact appName", () => {
+		expect(isServiceContainerName("web-abc", "application", "web-abc")).toBe(
+			true,
+		);
+		expect(isServiceContainerName("other-xyz", "application", "web-abc")).toBe(
+			false,
+		);
+		// Service access must not unlock the host-wide "dokploy" stats.
+		expect(isServiceContainerName("dokploy", "application", "web-abc")).toBe(
+			false,
+		);
+	});
+
+	it("matches stack tasks inside the service's namespace only", () => {
+		expect(
+			isServiceContainerName("stack-abc_web.1.task", "stack", "stack-abc"),
+		).toBe(true);
+		expect(
+			isServiceContainerName("stack-abcdef_web.1.task", "stack", "stack-abc"),
+		).toBe(false);
+	});
+
+	it("leaves compose containers to the project label filter", () => {
+		expect(
+			isServiceContainerName("custom-name", "docker-compose", "compose-abc"),
+		).toBe(true);
+	});
+
+	it("rejects an unknown appType", () => {
+		// The socket would apply no ownership filter for it.
+		expect(isServiceContainerName("web-abc", "invalid", "web-abc")).toBe(false);
+		expect(isServiceContainerName("web-abc", "", "web-abc")).toBe(false);
 	});
 });
 

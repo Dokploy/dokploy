@@ -1,15 +1,9 @@
 import { createHash } from "node:crypto";
+import type { RcloneFile } from "@dokploy/server/utils/backups/files";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-export interface RcloneFile {
-	Path: string;
-	Name: string;
-	Size: number;
-	IsDir: boolean;
-	Tier?: string;
-	Hashes?: { MD5?: string; SHA1?: string };
-}
+export type { RcloneFile } from "@dokploy/server/utils/backups/files";
 
 export const backupFileQuery = z.object({
 	destinationId: z.string(),
@@ -27,8 +21,8 @@ export const backupFilePageQuery = backupFileQuery.extend({
 
 const timestampPattern = "(\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}-\\d{3}Z)";
 const nativeNames = [
-	new RegExp(`^${timestampPattern}\\.(?:sql|bson)\\.gz$`),
-	new RegExp(`^webserver-backup-${timestampPattern}\\.zip$`),
+	new RegExp(`^(?:.+-)?${timestampPattern}\\.(?:sql|bson)\\.gz$`),
+	new RegExp(`^webserver-backup-(?:.+-)?${timestampPattern}\\.zip$`),
 	new RegExp(`^.+-${timestampPattern}\\.tar$`),
 ];
 

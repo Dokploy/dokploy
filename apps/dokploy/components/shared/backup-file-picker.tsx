@@ -19,7 +19,7 @@ import { api, type RouterOutputs } from "@/utils/api";
 
 type Page = RouterOutputs["backup"]["listBackupFilesPage"];
 
-const formatBytes = (bytes: number) => {
+export const formatBytes = (bytes: number) => {
 	if (bytes === 0) return "0 Bytes";
 	const k = 1024;
 	const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
@@ -168,7 +168,7 @@ export const BackupFilePicker = ({
 							!value && "text-muted-foreground",
 						)}
 					>
-						<span className="truncate text-left flex-1 w-52">
+						<span className="min-w-0 flex-1 truncate text-left">
 							{value || "Search and select a backup file"}
 						</span>
 						<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -176,7 +176,7 @@ export const BackupFilePicker = ({
 				</FormControl>
 			</PopoverTrigger>
 			<PopoverContent
-				className="max-h-(--radix-popover-content-available-height) w-96 max-w-[calc(100vw-2rem)] overflow-x-hidden overflow-y-auto p-0"
+				className="max-h-(--radix-popover-content-available-height) w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] overflow-x-hidden overflow-y-auto p-0"
 				align="start"
 				collisionPadding={8}
 			>
@@ -240,7 +240,7 @@ export const BackupFilePicker = ({
 													<div className="break-all font-medium">
 														{file.Path}
 													</div>
-													<div className="text-xs text-muted-foreground">
+													<div className="break-all text-xs text-muted-foreground">
 														{file.IsDir
 															? "Directory"
 															: `Size: ${formatBytes(file.Size)}`}
