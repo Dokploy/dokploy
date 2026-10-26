@@ -59,10 +59,11 @@ const ColorSelector = ({ id, value, onValueChange }: ColorSelectorProps) => {
 	const selectedColor = ENVIRONMENT_COLORS.find(
 		(color) => color.value === value,
 	);
+	const isUnknownColor = !!value && value !== NO_COLOR && !selectedColor;
 
 	return (
 		<Select
-			value={value || NO_COLOR}
+			value={isUnknownColor ? value : value || NO_COLOR}
 			onValueChange={(nextValue) =>
 				onValueChange(nextValue === NO_COLOR ? "" : nextValue)
 			}
@@ -75,10 +76,15 @@ const ColorSelector = ({ id, value, onValueChange }: ColorSelectorProps) => {
 								className="size-2.5 rounded-full"
 								style={{ backgroundColor: selectedColor.value }}
 							/>
+						) : isUnknownColor ? (
+							<span
+								className="size-2.5 rounded-full"
+								style={{ backgroundColor: value }}
+							/>
 						) : (
 							<span className="size-2.5 rounded-full border border-dashed border-muted-foreground" />
 						)}
-						{selectedColor?.label ?? "No color"}
+						{selectedColor?.label ?? (isUnknownColor ? value : "No color")}
 					</span>
 				</SelectValue>
 			</SelectTrigger>
@@ -89,6 +95,17 @@ const ColorSelector = ({ id, value, onValueChange }: ColorSelectorProps) => {
 						No color
 					</span>
 				</SelectItem>
+				{isUnknownColor && (
+					<SelectItem value={value}>
+						<span className="flex items-center gap-2">
+							<span
+								className="size-2.5 rounded-full"
+								style={{ backgroundColor: value }}
+							/>
+							{value}
+						</span>
+					</SelectItem>
+				)}
 				{ENVIRONMENT_COLORS.map((color) => (
 					<SelectItem key={color.value} value={color.value}>
 						<span className="flex items-center gap-2">
@@ -371,7 +388,17 @@ export const AdvancedEnvironmentSelector = ({
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-			<Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+			<Dialog
+				open={isCreateDialogOpen}
+				onOpenChange={(open) => {
+					setIsCreateDialogOpen(open);
+					if (!open) {
+						setName("");
+						setDescription("");
+						setColor("");
+					}
+				}}
+			>
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>Create Environment</DialogTitle>
