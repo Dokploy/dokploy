@@ -1037,9 +1037,9 @@ const EnvironmentPage = (
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 					<div className="rounded-xl bg-background shadow-md">
 						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
-							<CardHeader className="p-0">
+							<CardHeader className="p-0 min-w-0 flex-1 basis-full sm:basis-0 grid-cols-[minmax(0,1fr)]">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
-									<FolderInput className="size-6 text-muted-foreground self-center" />
+									<FolderInput className="size-6 shrink-0 text-muted-foreground self-center" />
 									<p className="text-base font-medium max-w-[250px] truncate">
 										{currentEnvironment.project.name}
 									</p>
@@ -1053,7 +1053,7 @@ const EnvironmentPage = (
 										</Button>
 									</EnvironmentVariables>
 								</CardTitle>
-								<CardDescription>
+								<CardDescription className="wrap-anywhere">
 									{currentEnvironment.description || "No description provided"}
 								</CardDescription>
 							</CardHeader>
