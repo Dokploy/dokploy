@@ -33,38 +33,78 @@ const SERVICE_TABLES = [
 	{ table: libsql, id: libsql.libsqlId },
 ];
 
-export const findServiceAppName = async (serviceId: string) => {
+const findService = async (serviceId: string) => {
 	for (const { table, id } of SERVICE_TABLES) {
 		const [row] = await db
-			.select({ appName: table.appName })
+			.select({ appName: table.appName, serverId: table.serverId })
 			.from(table)
 			.where(eq(id, serviceId))
 			.limit(1);
-		if (row) return row.appName;
+		if (row) return row;
 	}
 };
 
-// Service access alone must not allow `docker exec` into other tenants' containers.
+export const findServiceAppName = async (serviceId: string) =>
+	(await findService(serviceId))?.appName;
+
+const inspect = async (args: string[], serverId: string | null) => {
+	const command = quote(["docker", "inspect", ...args]);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+	return stdout.trim();
+};
+
+// Swarm log targets are task IDs (`docker service logs <task>`), so resolve
+// the task's service instead of reading container labels.
+const taskBelongsToApp = async (
+	taskId: string,
+	appName: string,
+	serverId: string | null,
+) => {
+	const swarmServiceId = await inspect(
+		["--type", "task", "--format", "{{.ServiceID}}", taskId],
+		serverId,
+	);
+	const spec = JSON.parse(
+		await inspect(
+			["--type", "service", "--format", "{{json .Spec}}", swarmServiceId],
+			serverId,
+		),
+	);
+	return (
+		spec?.Name === appName ||
+		spec?.Labels?.["com.docker.stack.namespace"] === appName
+	);
+};
+
+// Service access alone must not allow reaching other tenants' containers.
 export const containerBelongsToService = async (
 	serviceId: string,
 	containerId: string,
 	serverId?: string | null,
+	runType?: string | null,
 ): Promise<boolean> => {
 	try {
-		const appName = await findServiceAppName(serviceId);
-		if (!appName) return false;
-		const command = quote([
-			"docker",
-			"inspect",
-			"--format",
-			"{{json .Config.Labels}}",
-			containerId,
-		]);
-		const { stdout } = serverId
-			? await execAsyncRemote(serverId, command)
-			: await execAsync(command);
-		const labels = JSON.parse(stdout.trim()) ?? {};
-		return OWNERSHIP_LABELS.some((label) => labels[label] === appName);
+		const service = await findService(serviceId);
+		if (!service) return false;
+		const targetServerId = serverId || null;
+		if ((service.serverId || null) !== targetServerId) return false;
+		if (runType === "swarm") {
+			return await taskBelongsToApp(
+				containerId,
+				service.appName,
+				targetServerId,
+			);
+		}
+		const labels =
+			JSON.parse(
+				await inspect(
+					["--format", "{{json .Config.Labels}}", containerId],
+					targetServerId,
+				),
+			) ?? {};
+		return OWNERSHIP_LABELS.some((label) => labels[label] === service.appName);
 	} catch {
 		return false;
 	}
