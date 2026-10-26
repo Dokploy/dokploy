@@ -179,9 +179,12 @@ export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
-	if (caddyUnsupported(domainData)) {
+	if (caddyUnsupported(domainData) || domainData.enabled) {
 		const current = await findDomainById(domainId);
-		await assertCaddySupports(await findDomainServerId(current), domainData);
+		await assertCaddySupports(await findDomainServerId(current), {
+			...current,
+			...domainData,
+		});
 	}
 	const domain = await db
 		.update(domains)

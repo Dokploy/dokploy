@@ -10,6 +10,7 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 	syncAllCaddyInBackground,
@@ -63,6 +64,9 @@ void app.prepare().then(async () => {
 			syncAllCaddyInBackground();
 			createDefaultMiddlewares();
 			await initializeNetwork();
+			await restoreInterruptedTraefik().catch((error) => {
+				console.error("Failed to restore Traefik:", error);
+			});
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();

@@ -53,6 +53,17 @@ describe("findDomainServerId", () => {
 });
 
 describe("on a server that runs Caddy", () => {
+	it("refuses to re-enable a domain with an unsupported saved middleware", async () => {
+		returns(
+			{ applicationId: "app", enabled: false, middlewares: ["private"] },
+			{ serverId: "server" },
+			{ webServerProvider: "caddy" },
+		);
+		await expect(updateDomainById("domain", { enabled: true })).rejects.toThrow(
+			"is not available with Caddy",
+		);
+		expect(db.update).not.toHaveBeenCalled();
+	});
 	it.each([{ forwardAuthEnabled: true }, { middlewares: ["custom"] }])(
 		"an update to %j is refused before it is saved",
 		async (change) => {

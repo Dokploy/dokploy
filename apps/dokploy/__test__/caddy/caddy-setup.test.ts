@@ -214,8 +214,23 @@ describe("the dry run", () => {
 		expect(blockers).toEqual([
 			"Caddy rejects the configuration. Error: sites/custom.caddy:1: unrecognized directive",
 		]);
-		expect(written[`${root}/Caddyfile.check`]).toContain("host1.test");
+		const candidate = Object.keys(written).find((file) =>
+			file.startsWith(`${root}/Caddyfile.check-`),
+		);
+		expect(candidate).toBeDefined();
+		expect(written[candidate!]).toContain("host1.test");
 		expect(written[`${root}/Caddyfile`]).toBeUndefined();
+	});
+
+	it("uses separate candidate files for concurrent dry runs", async () => {
+		await Promise.all([
+			checkWebServerSwitch("caddy", SERVER),
+			checkWebServerSwitch("caddy", SERVER),
+		]);
+		const candidates = Object.keys(written).filter((file) =>
+			file.startsWith(`${root}/Caddyfile.check-`),
+		);
+		expect(candidates).toHaveLength(2);
 	});
 
 	it("asks to accept what Traefik does that did not come from Dokploy", async () => {

@@ -17,6 +17,7 @@ import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { SwitchWebServer } from "../../web-server/switch-web-server";
+import { UpdateTraefikVersion } from "../../web-server/update-traefik-version";
 import { ShowCaddyActions } from "./show-caddy-actions";
 
 interface Props {
@@ -205,6 +206,14 @@ const TraefikActions = ({
 							</DropdownMenuItem>
 						</SwitchWebServer>
 					)}
+					<UpdateTraefikVersion serverId={serverId}>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							<span>Check Version</span>
+						</DropdownMenuItem>
+					</UpdateTraefikVersion>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

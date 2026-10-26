@@ -127,6 +127,9 @@ ${HELPERS}
 reload() { docker exec "$caddy" caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1; }
 
 ${STALE_MARKER}
+# An interrupted Traefik recreate can leave a stopped rollback container.
+# Keep it available, but do not let a daemon restart bring it back beside Caddy.
+release "dokploy-traefik-previous" || fail "could not disable the retired Traefik restart policy"
 if running "$caddy" && ! running "$traefik"; then
 	reload || fail "Caddy is running but rejected its configuration"
 	release "$traefik"

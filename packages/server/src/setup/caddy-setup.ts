@@ -1,4 +1,4 @@
-import { X509Certificate } from "node:crypto";
+import { randomUUID, X509Certificate } from "node:crypto";
 import { quote } from "shell-quote";
 import { paths } from "../constants";
 import { findApplicationById } from "../services/application";
@@ -156,12 +156,13 @@ export const checkWebServerSwitch = async (
 	// Validating compiles every redirect pattern and reads the admin's own
 	// files and the uploaded certificates, as Caddy will when it starts.
 	await runOn(serverId, `mkdir -p ${quote([MAIN_CADDY_PATH])}`);
-	const candidate = `${MAIN_CADDY_PATH}/Caddyfile.check`;
+	const candidateName = `Caddyfile.check-${randomUUID()}`;
+	const candidate = `${MAIN_CADDY_PATH}/${candidateName}`;
 	await writeOn(serverId, candidate, caddyfile);
 	try {
 		await runOn(
 			serverId,
-			`docker run --rm --network none -v ${quote([`${MAIN_CADDY_PATH}:/etc/caddy`])} -v ${quote([`${CERTIFICATES_PATH}:${CERTIFICATES_PATH}:ro`])} ${CADDY_IMAGE} caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.check
+			`docker run --rm --network none -v ${quote([`${MAIN_CADDY_PATH}:/etc/caddy`])} -v ${quote([`${CERTIFICATES_PATH}:${CERTIFICATES_PATH}:ro`])} ${CADDY_IMAGE} caddy validate --adapter caddyfile --config /etc/caddy/${candidateName}
 status=$?
 rm -f ${quote([candidate])}
 exit $status`,
@@ -385,7 +386,9 @@ export const switchWebServer = async (
 	// Before the first await, so that a second request is refused above.
 	recordCaddySwitch(serverId, { target, status: "running", message: "" });
 	try {
-		const check = await checkWebServerSwitch(target, serverId);
+		const check = await withCaddyQueue(serverId, () =>
+			checkWebServerSwitch(target, serverId),
+		);
 		if (check.blockers.length) throw new Error(check.blockers.join("\n"));
 		if (check.acknowledge.length && !acknowledged) {
 			throw new Error(

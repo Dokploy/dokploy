@@ -195,6 +195,14 @@ describe("the switch scripts", () => {
 		});
 	});
 
+	it("to Caddy: preserves a retired Traefik without allowing restart on reboot", () => {
+		container(TRAEFIK, "running", "always");
+		container("dokploy-traefik-previous", "exited", "always");
+		expect(run(switchToCaddyScript).status).toBe(0);
+		expect(read("dokploy-traefik-previous.restart")).toBe("no");
+		expect(read("dokploy-traefik-previous.status")).toBe("exited");
+	});
+
 	it("to Caddy: only sets the restart policies when Caddy already serves", () => {
 		container(CADDY, "running", "no");
 		container(TRAEFIK, "exited", "always");

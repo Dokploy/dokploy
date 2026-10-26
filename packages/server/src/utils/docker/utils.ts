@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import { isEncrypted } from "@dokploy/server/lib/encryption";
 import type { Compose } from "@dokploy/server/services/compose";
 import { getWebServerProvider } from "@dokploy/server/services/web-server-settings";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
@@ -466,6 +467,12 @@ export const prepareEnvironmentVariables = (
 		if (source?.includes("${{vault.")) {
 			throw new Error(
 				"Unresolved vault reference: call withResolvedVaultRefs() on the entity before preparing environment variables",
+			);
+		}
+		// Undecryptable columns arrive as ciphertext that dotenv drops; compose prepends lines, so check each.
+		if (source?.split("\n").some((line) => isEncrypted(line.trim()))) {
+			throw new Error(
+				"Environment variables could not be decrypted. BETTER_AUTH_SECRET or ENCRYPTION_KEY changed after they were saved; restore the previous secret or re-enter the variables.",
 			);
 		}
 	}

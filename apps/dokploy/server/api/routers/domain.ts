@@ -49,13 +49,13 @@ export const domainRouter = createTRPCRouter({
 					});
 				}
 				const domain = await createDomain(input);
-				await syncCaddy(await findDomainServerId(domain));
 				await audit(ctx, {
 					action: "create",
 					resourceType: "domain",
 					resourceId: domain.domainId,
 					resourceName: domain.host,
 				});
+				await syncCaddy(await findDomainServerId(domain));
 				return domain;
 			} catch (error) {
 				throw new TRPCError({

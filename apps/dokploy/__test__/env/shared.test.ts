@@ -1,4 +1,6 @@
 import { prepareEnvironmentVariables } from "@dokploy/server/index";
+import { encryptValue } from "@dokploy/server/lib/encryption";
+import { getCreateEnvFileCommand } from "@dokploy/server/utils/builders/compose";
 import { describe, expect, it } from "vitest";
 
 const projectEnv = `
@@ -249,5 +251,44 @@ MIXED="\"Double \${{ENVIRONMENT}}\""
 			"QUOTED='production'",
 			'MIXED="Double production"',
 		]);
+	});
+});
+
+describe("prepareEnvironmentVariables with undecryptable values", () => {
+	it.each([
+		["service", encryptValue("KEY=value"), "", ""],
+		["project", "KEY=value", encryptValue("SHARED=1"), ""],
+		["environment", "KEY=value", "", encryptValue("SHARED=1")],
+	])(
+		"throws when the %s env is still encrypted",
+		(_, service, project, environment) => {
+			expect(() =>
+				prepareEnvironmentVariables(service, project, environment),
+			).toThrow(/could not be decrypted/);
+		},
+	);
+
+	it("throws when generated lines come before the encrypted value", () => {
+		expect(() =>
+			prepareEnvironmentVariables(
+				`APP_NAME=web\nCOMPOSE_PROJECT_NAME=web\n${encryptValue("KEY=value")}`,
+			),
+		).toThrow(/could not be decrypted/);
+	});
+
+	it("fails the compose .env file for an undecryptable service env", () => {
+		const compose = {
+			appName: "web-abc",
+			composePath: "./docker-compose.yml",
+			composeType: "docker-compose",
+			serverId: null,
+			randomize: false,
+			env: encryptValue("KEY=value"),
+			environment: { env: "SHARED=1", project: { env: "PROJECT=1" } },
+		} as unknown as Parameters<typeof getCreateEnvFileCommand>[0];
+
+		expect(() => getCreateEnvFileCommand(compose)).toThrow(
+			/could not be decrypted/,
+		);
 	});
 });
