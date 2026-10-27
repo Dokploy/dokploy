@@ -31,7 +31,7 @@ import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { encodeBase64 } from "../utils/docker/utils";
+import { encodeBase64, getCopyFileMountsCommand } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -364,6 +364,24 @@ export const rebuildApplication = async ({
 	return true;
 };
 
+// Mounts live on the deploy server, which may differ from the build server.
+const copyFileMountsToPreview = async (
+	serverId: string | null,
+	sourceAppName: string,
+	previewAppName: string,
+) => {
+	const command = getCopyFileMountsCommand(
+		sourceAppName,
+		previewAppName,
+		!!serverId,
+	);
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
+};
+
 export const deployPreviewApplication = async ({
 	applicationId,
 	titleLog = "Preview Deployment",
@@ -429,6 +447,7 @@ export const deployPreviewApplication = async ({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
+		const originalAppName = application.appName;
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
@@ -453,6 +472,11 @@ export const deployPreviewApplication = async ({
 			} else {
 				await execAsync(commandWithLog);
 			}
+			await copyFileMountsToPreview(
+				application.serverId,
+				originalAppName,
+				previewDeployment.appName,
+			);
 			await mechanizeDockerContainer(application);
 		}
 		const successComment = getIssueComment(
@@ -548,6 +572,7 @@ export const rebuildPreviewApplication = async ({
 		});
 
 		// Set application properties for preview deployment
+		const originalAppName = application.appName;
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
@@ -565,6 +590,11 @@ export const rebuildPreviewApplication = async ({
 		} else {
 			await execAsync(commandWithLog);
 		}
+		await copyFileMountsToPreview(
+			application.serverId,
+			originalAppName,
+			previewDeployment.appName,
+		);
 		await mechanizeDockerContainer(application);
 
 		const successComment = getIssueComment(

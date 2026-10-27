@@ -770,6 +770,24 @@ export const generateFileMounts = (
 		});
 };
 
+export const getCopyFileMountsCommand = (
+	sourceAppName: string,
+	targetAppName: string,
+	isRemote: boolean,
+) => {
+	const { APPLICATIONS_PATH } = paths(isRemote);
+	const absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+	const sourceDirectory = path.join(absoluteBasePath, sourceAppName, "files");
+	const targetDirectory = path.join(absoluteBasePath, targetAppName, "files");
+	return `
+		if [ -d ${quote([sourceDirectory])} ]; then
+			rm -rf ${quote([targetDirectory])};
+			mkdir -p ${quote([path.dirname(targetDirectory)])};
+			cp -a ${quote([sourceDirectory])} ${quote([targetDirectory])};
+		fi;
+	`;
+};
+
 export const isValidMountFilePath = (filePath: string) => {
 	const relative = path.relative("/base", path.join("/base", filePath));
 	return (
