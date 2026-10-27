@@ -119,6 +119,7 @@ interface DataTableProps {
 	columns: ColumnDef<AuditLog>[];
 	data: AuditLog[];
 	total: number;
+	exportLimit?: number;
 	pageIndex: number;
 	pageSize: number;
 	filters: AuditLogFilters;
@@ -136,6 +137,7 @@ export function DataTable({
 	columns,
 	data,
 	total,
+	exportLimit,
 	pageIndex,
 	pageSize,
 	filters,
@@ -279,7 +281,11 @@ export function DataTable({
 					</Button>
 				)}
 				<div className="ml-auto flex items-center gap-2">
-					<ExportAuditLogs filters={appliedFilters} total={total} />
+					<ExportAuditLogs
+						filters={appliedFilters}
+						total={total}
+						exportLimit={exportLimit}
+					/>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline">

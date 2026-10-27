@@ -68,10 +68,11 @@ export const auditLogRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			return getAuditLogs({
+			const result = await getAuditLogs({
 				organizationId: ctx.session.activeOrganizationId,
 				...input,
 			});
+			return { ...result, exportLimit: MAX_EXPORT_ROWS };
 		}),
 	export: licensedAuditLogProcedure
 		.input(auditLogFiltersSchema)

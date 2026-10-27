@@ -138,14 +138,26 @@ const downloadFile = (content: string, filename: string, mimeType: string) => {
 interface ExportAuditLogsProps {
 	filters: AuditLogQueryFilters;
 	total: number;
+	exportLimit?: number;
 }
 
-export function ExportAuditLogs({ filters, total }: ExportAuditLogsProps) {
+export function ExportAuditLogs({
+	filters,
+	total,
+	exportLimit,
+}: ExportAuditLogsProps) {
 	const utils = api.useUtils();
 	const [isExporting, setIsExporting] = React.useState(false);
 	const hasFilters = Object.values(filters).some(
 		(value) => value !== undefined,
 	);
+	const isCapped = exportLimit !== undefined && total > exportLimit;
+	const exportCount = isCapped ? exportLimit : total;
+	const scopeNote = isCapped
+		? `Only the newest ${exportCount.toLocaleString()} of ${total.toLocaleString()} entries are included. Narrow the filters or date range to export older ones.`
+		: hasFilters
+			? "Only entries matching your current filters are included."
+			: "No filters applied, so all entries are included.";
 
 	const handleExport = async (exportFormat: ExportFormat) => {
 		setIsExporting(true);
@@ -196,13 +208,10 @@ export function ExportAuditLogs({ filters, total }: ExportAuditLogsProps) {
 			<DropdownMenuContent align="end" className="w-72">
 				<DropdownMenuLabel className="flex flex-col gap-0.5 py-1.5">
 					<span className="text-sm text-foreground">
-						Export {total.toLocaleString()} {total === 1 ? "entry" : "entries"}
+						Export {exportCount.toLocaleString()}{" "}
+						{exportCount === 1 ? "entry" : "entries"}
 					</span>
-					<span className="font-normal">
-						{hasFilters
-							? "Only entries matching your current filters are included."
-							: "No filters applied, so all entries are included."}
-					</span>
+					<span className="font-normal">{scopeNote}</span>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				{EXPORT_FORMATS.map((exportFormat) => (

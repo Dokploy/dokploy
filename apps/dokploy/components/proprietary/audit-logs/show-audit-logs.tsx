@@ -75,6 +75,7 @@ function AuditLogsContent() {
 			columns={columns}
 			data={data?.logs ?? []}
 			total={data?.total ?? 0}
+			exportLimit={data?.exportLimit}
 			pageIndex={pageIndex}
 			pageSize={pageSize}
 			filters={filters}
