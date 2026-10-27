@@ -11,6 +11,7 @@ import {
 import { api } from "@/utils/api";
 import { columns } from "./columns";
 import { type AuditLogFilters, DataTable } from "./data-table";
+import type { AuditLogQueryFilters } from "./export-audit-logs";
 
 function AuditLogsContent() {
 	const [pageIndex, setPageIndex] = React.useState(0);
@@ -54,13 +55,17 @@ function AuditLogsContent() {
 		setPageIndex(0);
 	};
 
-	const { data, isLoading } = api.auditLog.all.useQuery({
+	const appliedFilters: AuditLogQueryFilters = {
 		userEmail: debouncedText.userEmail || undefined,
 		resourceName: debouncedText.resourceName || undefined,
 		action: filters.action || undefined,
 		resourceType: filters.resourceType || undefined,
 		from: filters.dateRange?.from,
 		to: filters.dateRange?.to,
+	};
+
+	const { data, isLoading } = api.auditLog.all.useQuery({
+		...appliedFilters,
 		limit: pageSize,
 		offset: pageIndex * pageSize,
 	});
@@ -73,6 +78,7 @@ function AuditLogsContent() {
 			pageIndex={pageIndex}
 			pageSize={pageSize}
 			filters={filters}
+			appliedFilters={appliedFilters}
 			onPageChange={setPageIndex}
 			onPageSizeChange={handlePageSizeChange}
 			onFilterChange={handleFilterChange}

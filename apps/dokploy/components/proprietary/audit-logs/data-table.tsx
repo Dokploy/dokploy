@@ -43,6 +43,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import {
+	type AuditLogQueryFilters,
+	ExportAuditLogs,
+} from "./export-audit-logs";
 
 const ACTION_OPTIONS = [
 	{ value: "create", label: "Created" },
@@ -118,6 +122,7 @@ interface DataTableProps {
 	pageIndex: number;
 	pageSize: number;
 	filters: AuditLogFilters;
+	appliedFilters: AuditLogQueryFilters;
 	onPageChange: (page: number) => void;
 	onPageSizeChange: (size: number) => void;
 	onFilterChange: <K extends keyof AuditLogFilters>(
@@ -134,6 +139,7 @@ export function DataTable({
 	pageIndex,
 	pageSize,
 	filters,
+	appliedFilters,
 	onPageChange,
 	onPageSizeChange,
 	onFilterChange,
@@ -272,28 +278,31 @@ export function DataTable({
 						Clear
 					</Button>
 				)}
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="outline" className="ml-auto">
-							Columns <ChevronDown className="ml-2 h-4 w-4" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						{table
-							.getAllColumns()
-							.filter((col) => col.getCanHide())
-							.map((col) => (
-								<DropdownMenuCheckboxItem
-									key={col.id}
-									className="capitalize"
-									checked={col.getIsVisible()}
-									onCheckedChange={(value) => col.toggleVisibility(!!value)}
-								>
-									{col.id}
-								</DropdownMenuCheckboxItem>
-							))}
-					</DropdownMenuContent>
-				</DropdownMenu>
+				<div className="ml-auto flex items-center gap-2">
+					<ExportAuditLogs filters={appliedFilters} total={total} />
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline">
+								Columns <ChevronDown className="ml-2 h-4 w-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							{table
+								.getAllColumns()
+								.filter((col) => col.getCanHide())
+								.map((col) => (
+									<DropdownMenuCheckboxItem
+										key={col.id}
+										className="capitalize"
+										checked={col.getIsVisible()}
+										onCheckedChange={(value) => col.toggleVisibility(!!value)}
+									>
+										{col.id}
+									</DropdownMenuCheckboxItem>
+								))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</div>
 
 			<div className="rounded-md border overflow-auto">
