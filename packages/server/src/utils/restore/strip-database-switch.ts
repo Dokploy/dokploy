@@ -95,11 +95,11 @@ BEGIN {
     }
     if (block && pair == "*/") {
       endWord()
-      block = 0
+      block = block == 3 ? 2 : 0
       i++
       continue
     }
-    if (block == 1) continue
+    if (block == 1 || block == 3) continue
     if (!block && substr(line, i, length(delimiter)) == delimiter) {
       endWord()
       output(substr(line, chunk, i - chunk + length(delimiter)))
@@ -108,8 +108,14 @@ BEGIN {
       finishStatement()
       continue
     }
-    if (!block && pair == "/*") {
+    if (pair == "/*") {
       endWord()
+      # mysqldump event wrappers can contain ordinary comments with quote text.
+      if (block == 2) {
+        block = 3
+        i++
+        continue
+      }
       marker = substr(line, i + 2, 1)
       block = marker == "!" || substr(line, i + 2, 2) == "M!" ? 2 : 1
       if (block == 2) {

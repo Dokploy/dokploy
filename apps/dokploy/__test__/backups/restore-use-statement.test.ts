@@ -62,6 +62,32 @@ describe("restore drops database-switch statements (mysql/mariadb)", () => {
 	});
 
 	it.each([
+		["unpaired event apostrophe", "user's event note", "user note"],
+		["paired comment apostrophes", "user's event note", "user's note"],
+		["neutral event comment", "user event note", "user note"],
+	])("preserves dumped event comments: %s", (_name, eventNote, routineNote) => {
+		const content = [
+			"DELIMITER ;;",
+			"/*!50106 CREATE*/ /*!50117 DEFINER=`root`@`localhost`*/ /*!50106 EVENT `disabled_event` ON SCHEDULE EVERY 1 DAY DISABLE DO BEGIN",
+			` /* ${eventNote} */`,
+			" INSERT INTO event_audit VALUES(1);",
+			"END */ ;;",
+			"DELIMITER ;",
+			"DELIMITER ;;",
+			"CREATE DEFINER=`root`@`localhost` PROCEDURE `totals`()",
+			"BEGIN",
+			` /* ${routineNote} */`,
+			" SELECT 'café routine text';",
+			"END ;;",
+			"DELIMITER ;",
+			"",
+		].join("\n");
+		expect(filter(`${content}USE source_db;SELECT 2;\n`)).toBe(
+			`${content}SELECT 2;\n`,
+		);
+	});
+
+	it.each([
 		"  uSe\n `source;db`;",
 		"CREATE\nDATABASE /*!32312 IF NOT EXISTS*/ `source``db`;",
 		"CREATE SCHEMA `source_db`;",
@@ -131,21 +157,18 @@ USE is still text
 		expect(filter(content)).toBe(content.replaceAll("USE source_db;", ""));
 	});
 
-	it.each(["SELECT 'unfinished", "/* unfinished"])(
-		"reports malformed SQL: %s",
-		(input) => {
-			const result = spawnSync(
-				"/bin/bash",
-				["-c", stripDatabaseSwitchCommand],
-				{
-					input,
-					encoding: "utf8",
-				},
-			);
-			expect(result.status).toBe(2);
-			expect(result.stderr).toContain("Unterminated SQL quote or comment");
-		},
-	);
+	it.each([
+		"SELECT 'unfinished",
+		"/* unfinished",
+		"/*!50106 CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO BEGIN /* note */ END",
+	])("reports malformed SQL: %s", (input) => {
+		const result = spawnSync("/bin/bash", ["-c", stripDatabaseSwitchCommand], {
+			input,
+			encoding: "utf8",
+		});
+		expect(result.status).toBe(2);
+		expect(result.stderr).toContain("Unterminated SQL quote or comment");
+	});
 
 	it.each(["mysql", "mariadb"] as const)(
 		"propagates producer and filter failures through the %s pipeline",
