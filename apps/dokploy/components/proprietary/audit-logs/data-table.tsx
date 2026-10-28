@@ -10,7 +10,7 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
-import { format } from "date-fns";
+import { endOfDay, format } from "date-fns";
 import { CalendarIcon, ChevronDown, X } from "lucide-react";
 import React from "react";
 import type { DateRange } from "react-day-picker";
@@ -257,7 +257,12 @@ export function DataTable({
 						<Calendar
 							mode="range"
 							selected={filters.dateRange}
-							onSelect={(range) => onFilterChange("dateRange", range)}
+							onSelect={(range) =>
+								onFilterChange(
+									"dateRange",
+									range?.to ? { ...range, to: endOfDay(range.to) } : range,
+								)
+							}
 							numberOfMonths={2}
 							autoFocus
 						/>
