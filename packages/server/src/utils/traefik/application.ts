@@ -182,11 +182,11 @@ export const readMonitoringConfig = async (dateRange?: {
 
 	const limit =
 		dateRange?.start || dateRange?.end ? Number.POSITIVE_INFINITY : 500;
-	// Traefik appends entries on completion and `time` has second precision,
-	// so stop only once a whole second before the start has been reached.
+	// Entries can be written slightly out of order; stop a minute past the start.
 	const startSecond = dateRange?.start
 		? Math.floor(new Date(dateRange.start).getTime() / 1000) * 1000
 		: Number.NEGATIVE_INFINITY;
+	const stopBefore = startSecond - 60_000;
 
 	const lines: string[] = [];
 	let reachedStart = false;
@@ -197,9 +197,13 @@ export const readMonitoringConfig = async (dateRange?: {
 		}
 		try {
 			const log = JSON.parse(trimmed);
-			if (new Date(log.time).getTime() < startSecond) {
+			const time = new Date(log.time).getTime();
+			if (time < stopBefore) {
 				reachedStart = true;
-			} else if (log.ServiceName !== "dokploy-service-app@file") {
+			} else if (
+				time >= startSecond &&
+				log.ServiceName !== "dokploy-service-app@file"
+			) {
 				lines.push(trimmed);
 			}
 		} catch {}

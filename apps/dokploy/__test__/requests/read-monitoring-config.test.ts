@@ -102,6 +102,15 @@ describe("readMonitoringConfig", () => {
 		expect(paths).toEqual(["/req-10", "/req-5", "/req-11"]);
 	});
 
+	it("keeps scanning past an out-of-order entry just before the start", async () => {
+		writeLog([entry(0), entry(100), entry(98), entry(101)]);
+
+		const paths = await read({
+			start: new Date(BASE + 99 * 1000).toISOString(),
+		});
+		expect(paths).toEqual(["/req-100", "/req-101"]);
+	});
+
 	it("reads the whole file when only an end date is given", async () => {
 		writeLog(Array.from({ length: 2000 }, (_, i) => entry(i)));
 
