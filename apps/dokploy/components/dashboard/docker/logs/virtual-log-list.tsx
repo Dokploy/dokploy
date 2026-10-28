@@ -5,6 +5,8 @@ import { TerminalLine } from "./terminal-line";
 import type { LogLine } from "./utils";
 
 const VERTICAL_PADDING = 16;
+// Above this, render only visible rows; below it, keep every row in the DOM so Ctrl+F works.
+const VIRTUALIZE_THRESHOLD = 5000;
 
 interface Props {
 	logs: LogLine[];
@@ -23,9 +25,11 @@ export const VirtualLogList = ({
 }: Props) => {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
+	const virtualize = logs.length > VIRTUALIZE_THRESHOLD;
 
 	const virtualizer = useVirtualizer({
 		count: logs.length,
+		enabled: virtualize,
 		getScrollElement: () => scrollRef.current,
 		estimateSize: () => 20,
 		overscan: 20,
@@ -44,21 +48,25 @@ export const VirtualLogList = ({
 	};
 
 	useEffect(() => {
-		if (autoScroll && logs.length > 0) {
+		if (!autoScroll || logs.length === 0) return;
+		if (virtualize) {
 			virtualizer.scrollToIndex(logs.length - 1, { align: "end" });
+		} else if (scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
 		}
-	}, [logs, autoScroll]);
+	}, [logs, autoScroll, virtualize]);
 
 	return (
 		<div
 			ref={scrollRef}
 			onScroll={handleScroll}
 			className={cn(
-				"overflow-y-auto border px-4 rounded custom-logs-scrollbar",
+				"overflow-y-auto border rounded custom-logs-scrollbar",
+				virtualize ? "px-4" : "p-4",
 				className,
 			)}
 		>
-			{logs.length > 0 ? (
+			{virtualize ? (
 				<div
 					className="relative w-full"
 					style={{ height: virtualizer.getTotalSize() }}
@@ -79,6 +87,15 @@ export const VirtualLogList = ({
 						</div>
 					))}
 				</div>
+			) : logs.length > 0 ? (
+				logs.map((log, index) => (
+					<TerminalLine
+						key={`${log.rawTimestamp ?? ""}-${index}`}
+						log={log}
+						noTimestamp={noTimestamp}
+						searchTerm={searchTerm}
+					/>
+				))
 			) : (
 				children
 			)}
