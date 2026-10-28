@@ -1,6 +1,5 @@
-import fs, { createReadStream, writeFileSync } from "node:fs";
+import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
 import { quote } from "shell-quote";
@@ -171,48 +170,68 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	}
 };
 
-export const readMonitoringConfig = async (readAll = false) => {
+export const readMonitoringConfig = async (dateRange?: {
+	start?: string;
+	end?: string;
+}) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
-	if (fs.existsSync(configPath)) {
-		if (!readAll) {
-			// Read first 500 lines using streams
-			let content = "";
-			let validCount = 0;
-
-			const fileStream = createReadStream(configPath, { encoding: "utf8" });
-			const readline = createInterface({
-				input: fileStream,
-				crlfDelay: Number.POSITIVE_INFINITY,
-			});
-
-			for await (const line of readline) {
-				try {
-					const trimmed = line.trim();
-					if (
-						trimmed !== "" &&
-						trimmed.startsWith("{") &&
-						trimmed.endsWith("}")
-					) {
-						const log = JSON.parse(trimmed);
-						// Exclude Dokploy service app and Dashboard requests
-						if (log.ServiceName !== "dokploy-service-app@file") {
-							content += `${line}\n`;
-							validCount++;
-							if (validCount >= 500) {
-								break;
-							}
-						}
-					}
-				} catch {
-					// Ignore invalid JSON
-				}
-			}
-			return content;
-		}
-		return fs.readFileSync(configPath, "utf8");
+	if (!fs.existsSync(configPath)) {
+		return null;
 	}
-	return null;
+
+	const limit =
+		dateRange?.start || dateRange?.end ? Number.POSITIVE_INFINITY : 500;
+	// Traefik appends entries on completion and `time` has second precision,
+	// so stop only once a whole second before the start has been reached.
+	const startSecond = dateRange?.start
+		? Math.floor(new Date(dateRange.start).getTime() / 1000) * 1000
+		: Number.NEGATIVE_INFINITY;
+
+	const lines: string[] = [];
+	let reachedStart = false;
+	const collect = (line: string) => {
+		const trimmed = line.trim();
+		if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+			return;
+		}
+		try {
+			const log = JSON.parse(trimmed);
+			if (new Date(log.time).getTime() < startSecond) {
+				reachedStart = true;
+			} else if (log.ServiceName !== "dokploy-service-app@file") {
+				lines.push(trimmed);
+			}
+		} catch {}
+	};
+
+	const file = await fs.promises.open(configPath, "r");
+	try {
+		let position = (await file.stat()).size;
+		let carry = Buffer.alloc(0);
+		while (position > 0 && lines.length < limit && !reachedStart) {
+			const size = Math.min(64 * 1024, position);
+			position -= size;
+			const chunk = Buffer.alloc(size);
+			await file.read(chunk, 0, size, position);
+			// Split on bytes so a multi-byte character cut by the chunk edge stays intact.
+			const buffer = Buffer.concat([chunk, carry]);
+			let end = buffer.length;
+			let newline = buffer.lastIndexOf(0x0a, end - 1);
+			while (newline !== -1 && lines.length < limit && !reachedStart) {
+				collect(buffer.toString("utf8", newline + 1, end));
+				end = newline;
+				newline = end > 0 ? buffer.lastIndexOf(0x0a, end - 1) : -1;
+			}
+			carry = buffer.subarray(0, end);
+		}
+		if (lines.length < limit && !reachedStart) {
+			collect(carry.toString("utf8"));
+		}
+	} finally {
+		await file.close();
+	}
+	return lines.reverse().join("\n");
 };
 
 export const readConfigInPath = async (pathFile: string, serverId?: string) => {
