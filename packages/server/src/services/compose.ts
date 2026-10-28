@@ -338,10 +338,14 @@ export const deployCompose = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, command);
-		} else {
-			await execAsync(command);
+		try {
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+		} catch (logError) {
+			console.error("Failed to write the deployment error log", logError);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
@@ -453,10 +457,14 @@ export const rebuildCompose = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, command);
-		} else {
-			await execAsync(command);
+		try {
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+		} catch (logError) {
+			console.error("Failed to write the deployment error log", logError);
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
