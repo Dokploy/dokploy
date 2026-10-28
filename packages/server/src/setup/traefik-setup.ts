@@ -62,6 +62,9 @@ export const readEnvValue = (env: string[] | undefined, key: string) => {
 	return entry ? entry.slice(prefix.length).trim() : "";
 };
 
+export const hasEnvValue = (env: string[] | undefined, key: string) =>
+	Boolean(env?.some((item) => item.startsWith(`${key}=`)));
+
 export const isValidIPv4Address = (value: string) => {
 	const parts = value.split(".");
 	if (parts.length !== 4) {
@@ -91,14 +94,15 @@ export const isAddressInSubnet = (address: string, subnet: string) => {
 
 // The env passed by the caller is the source of truth: it is the "Traefik Env"
 // setting, so an operator can add or remove the address there. Callers that
-// don't pass an env (the startup path) inherit the value from the running
-// container, so that a recreate never drops it.
-const resolveStaticIp = async (
+// don't pass an env (the startup path) inherit it from the running container,
+// so that a recreate keeps the settings instead of dropping them - otherwise
+// the address would be gone on the next recreate.
+const resolveTraefikEnv = async (
 	docker: Dockerode,
 	env: string[] | undefined,
-): Promise<string> => {
+): Promise<string[] | undefined> => {
 	if (env) {
-		return readEnvValue(env, STATIC_IP_ENV_KEY);
+		return env;
 	}
 	let current: ContainerInspectInfo | null = null;
 	try {
@@ -106,9 +110,7 @@ const resolveStaticIp = async (
 	} catch {
 		current = null;
 	}
-	return (
-		readEnvValue(current?.Config?.Env, STATIC_IP_ENV_KEY) || TRAEFIK_STATIC_IP
-	);
+	return current?.Config?.Env;
 };
 
 // A wrong address fails with Docker's "invalid endpoint settings", which says
@@ -120,17 +122,20 @@ const assertStaticIpIsUsable = async (docker: Dockerode, address: string) => {
 		);
 	}
 	const network = await docker.getNetwork(TRAEFIK_NETWORK_NAME).inspect();
-	const subnet = network.IPAM?.Config?.find(
-		(config: { Subnet?: string }) => config.Subnet,
-	)?.Subnet;
-	if (!subnet) {
+	// A network can have several subnets, and an IPv6 one can come first.
+	const ipamConfig: { Subnet?: string }[] = network.IPAM?.Config ?? [];
+	const subnets = ipamConfig
+		.map((config) => config.Subnet)
+		.filter((subnet): subnet is string => Boolean(subnet))
+		.filter((subnet) => isValidIPv4Address(subnet.split("/")[0] ?? ""));
+	if (subnets.length === 0) {
 		throw new Error(
-			`Could not read the subnet of the "${TRAEFIK_NETWORK_NAME}" network`,
+			`Could not read the IPv4 subnet of the "${TRAEFIK_NETWORK_NAME}" network`,
 		);
 	}
-	if (!isAddressInSubnet(address, subnet)) {
+	if (!subnets.some((subnet) => isAddressInSubnet(address, subnet))) {
 		throw new Error(
-			`${STATIC_IP_ENV_KEY} "${address}" is not inside the "${TRAEFIK_NETWORK_NAME}" subnet (${subnet})`,
+			`${STATIC_IP_ENV_KEY} "${address}" is not inside the "${TRAEFIK_NETWORK_NAME}" network (${subnets.join(", ")})`,
 		);
 	}
 	const containers: Record<string, NetworkContainer> = network.Containers ?? {};
@@ -144,6 +149,23 @@ const assertStaticIpIsUsable = async (docker: Dockerode, address: string) => {
 			`${STATIC_IP_ENV_KEY} "${address}" is already used by the container "${conflict.Name}"`,
 		);
 	}
+};
+
+// Checks the address without touching the container, so the editor can report
+// a wrong value instead of storing it.
+export const validateTraefikStaticIp = async ({
+	env,
+	serverId,
+}: {
+	env: string[];
+	serverId?: string;
+}) => {
+	const address = readEnvValue(env, STATIC_IP_ENV_KEY);
+	if (!address) {
+		return;
+	}
+	const docker = await getRemoteDocker(serverId);
+	await assertStaticIpIsUsable(docker, address);
 };
 
 export const initializeStandaloneTraefik = (options: TraefikOptions = {}) => {
@@ -175,9 +197,12 @@ const recreateStandaloneTraefik = async ({
 
 	const docker = await getRemoteDocker(serverId);
 	// Restores a container left behind by an interrupted recreate before the
-	// address is read, so the value can be inherited from it.
+	// env is read, so the settings can be inherited from it.
 	await restoreInterruptedTraefik(serverId);
-	const staticIp = await resolveStaticIp(docker, env);
+	const resolvedEnv = await resolveTraefikEnv(docker, env);
+	const staticIp = hasEnvValue(resolvedEnv, STATIC_IP_ENV_KEY)
+		? readEnvValue(resolvedEnv, STATIC_IP_ENV_KEY)
+		: TRAEFIK_STATIC_IP;
 	if (staticIp) {
 		await assertStaticIpIsUsable(docker, staticIp);
 	}
@@ -234,7 +259,7 @@ const recreateStandaloneTraefik = async ({
 			],
 			PortBindings: portBindings,
 		},
-		Env: env,
+		Env: resolvedEnv,
 	};
 
 	// Kept until the new container stays up, so it can be restored on failure.

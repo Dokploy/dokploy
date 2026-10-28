@@ -2,6 +2,7 @@ import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
 	TRAEFIK_NETWORK_NAME,
+	validateTraefikStaticIp,
 } from "@dokploy/server/setup/traefik-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,7 +15,7 @@ vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 }));
 
 interface FakeNetwork {
-	subnet: string;
+	subnets: string[];
 	containers: { Name: string; IPv4Address: string }[];
 }
 
@@ -27,7 +28,7 @@ interface FakeOptions {
 const fakeDocker = ({
 	oldRunning = true,
 	oldEnv = [],
-	network = { subnet: "10.0.1.0/24", containers: [] },
+	network = { subnets: ["10.0.1.0/24"], containers: [] },
 }: FakeOptions = {}) => {
 	const log: string[] = [];
 	const containers: {
@@ -107,7 +108,12 @@ const fakeDocker = ({
 			createdWith = settings;
 			created += 1;
 			const id = created === 1 ? "new" : `new${created}`;
-			containers.push({ id, name, running: false, env: [] });
+			containers.push({
+				id,
+				name,
+				running: false,
+				env: (settings.Env as string[] | undefined) ?? [],
+			});
 			log.push(`create ${id}`);
 			return container(id);
 		},
@@ -116,7 +122,7 @@ const fakeDocker = ({
 				Name: name,
 				IPAM: {
 					Driver: "default",
-					Config: [{ Subnet: network.subnet }],
+					Config: network.subnets.map((Subnet) => ({ Subnet })),
 				},
 				Containers: Object.fromEntries(
 					network.containers.map((entry, index) => [
@@ -169,6 +175,9 @@ const endpointOf = (fake: ReturnType<typeof fakeDocker>) => {
 	return created?.NetworkingConfig.EndpointsConfig[TRAEFIK_NETWORK_NAME];
 };
 
+const envOf = (fake: ReturnType<typeof fakeDocker>) =>
+	(fake.createdWith() as { Env?: string[] } | undefined)?.Env;
+
 describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -214,10 +223,63 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 		});
 	});
 
+	it("keeps the address over two consecutive recreates", async () => {
+		const fake = fakeDocker({ oldEnv: ["TRAEFIK_STATIC_IP=10.0.1.45"] });
+
+		const first = await recreate(fake);
+		expect(first).toBeNull();
+		expect(endpointOf(fake)).toEqual({
+			IPAMConfig: { IPv4Address: "10.0.1.45" },
+		});
+		// The replacement container has to keep the setting, otherwise the next
+		// recreate would pin it once and drop it afterwards.
+		expect(envOf(fake)).toEqual(["TRAEFIK_STATIC_IP=10.0.1.45"]);
+
+		const second = await recreate(fake);
+		expect(second).toBeNull();
+		expect(endpointOf(fake)).toEqual({
+			IPAMConfig: { IPv4Address: "10.0.1.45" },
+		});
+		expect(envOf(fake)).toEqual(["TRAEFIK_STATIC_IP=10.0.1.45"]);
+	});
+
+	it("accepts an address in a network with several IPv4 subnets", async () => {
+		const fake = fakeDocker({
+			network: { subnets: ["10.0.1.0/24", "10.0.2.0/24"], containers: [] },
+		});
+
+		const error = await recreate(fake, {
+			env: ["TRAEFIK_STATIC_IP=10.0.2.45"],
+		});
+
+		expect(error).toBeNull();
+		expect(endpointOf(fake)).toEqual({
+			IPAMConfig: { IPv4Address: "10.0.2.45" },
+		});
+	});
+
+	it("accepts an address on a dual-stack network with the IPv6 subnet first", async () => {
+		const fake = fakeDocker({
+			network: {
+				subnets: ["fd00::/64", "10.0.1.0/24"],
+				containers: [],
+			},
+		});
+
+		const error = await recreate(fake, {
+			env: ["TRAEFIK_STATIC_IP=10.0.1.45"],
+		});
+
+		expect(error).toBeNull();
+		expect(endpointOf(fake)).toEqual({
+			IPAMConfig: { IPv4Address: "10.0.1.45" },
+		});
+	});
+
 	it("does not treat the Traefik containers as a conflict", async () => {
 		const fake = fakeDocker({
 			network: {
-				subnet: "10.0.1.0/24",
+				subnets: ["10.0.1.0/24"],
 				containers: [
 					{ Name: "dokploy-traefik", IPv4Address: "10.0.1.45/24" },
 					{
@@ -252,7 +314,7 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 		expect(fake.createdWith()).toBeUndefined();
 	});
 
-	it("reports an address outside the network subnet", async () => {
+	it("reports an address outside the network subnets", async () => {
 		const fake = fakeDocker();
 
 		const error = await recreate(fake, {
@@ -260,7 +322,7 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 		});
 
 		expect(error?.message).toContain(
-			'TRAEFIK_STATIC_IP "10.9.9.9" is not inside the "dokploy-network" subnet (10.0.1.0/24)',
+			'TRAEFIK_STATIC_IP "10.9.9.9" is not inside the "dokploy-network" network (10.0.1.0/24)',
 		);
 		expect(fake.createdWith()).toBeUndefined();
 	});
@@ -268,7 +330,7 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 	it("reports an address that another container already uses", async () => {
 		const fake = fakeDocker({
 			network: {
-				subnet: "10.0.1.0/24",
+				subnets: ["10.0.1.0/24"],
 				containers: [{ Name: "some-app", IPv4Address: "10.0.1.45/24" }],
 			},
 		});
@@ -281,6 +343,41 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 			'TRAEFIK_STATIC_IP "10.0.1.45" is already used by the container "some-app"',
 		);
 		expect(fake.createdWith()).toBeUndefined();
+	});
+});
+
+describe("validateTraefikStaticIp", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.spyOn(console, "log").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("accepts a valid address", async () => {
+		mocks.getRemoteDocker.mockResolvedValue(fakeDocker().docker);
+
+		await expect(
+			validateTraefikStaticIp({ env: ["TRAEFIK_STATIC_IP=10.0.1.45"] }),
+		).resolves.toBeUndefined();
+	});
+
+	it("does nothing when no address is configured", async () => {
+		mocks.getRemoteDocker.mockResolvedValue(fakeDocker().docker);
+
+		await expect(validateTraefikStaticIp({ env: [] })).resolves.toBeUndefined();
+	});
+
+	it("reports a wrong address before it is stored", async () => {
+		mocks.getRemoteDocker.mockResolvedValue(fakeDocker().docker);
+
+		await expect(
+			validateTraefikStaticIp({ env: ["TRAEFIK_STATIC_IP=10.9.9.9"] }),
+		).rejects.toThrow(
+			'TRAEFIK_STATIC_IP "10.9.9.9" is not inside the "dokploy-network" network (10.0.1.0/24)',
+		);
 	});
 });
 
