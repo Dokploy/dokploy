@@ -7,10 +7,13 @@ import {
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import type Dockerode from "dockerode";
 import type {
 	Container,
 	ContainerCreateOptions,
+	ContainerInspectInfo,
 	CreateServiceOptions,
+	NetworkContainer,
 } from "dockerode";
 import { stringify } from "yaml";
 import { paths } from "../constants";
@@ -26,6 +29,16 @@ export const TRAEFIK_PORT =
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
 export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.7.16";
+// Operators can pin the Traefik container to a fixed address on the
+// dokploy-network, so that setups which point at it (split-DNS, firewall
+// rules, NAT targets, monitoring) keep working across recreates.
+export const TRAEFIK_STATIC_IP = process.env.TRAEFIK_STATIC_IP || "";
+export const TRAEFIK_NETWORK_NAME = "dokploy-network";
+
+const STATIC_IP_ENV_KEY = "TRAEFIK_STATIC_IP";
+// The Traefik containers keep the address across a recreate, so they must not
+// be reported as a conflict with themselves.
+const TRAEFIK_CONTAINER_NAMES = ["dokploy-traefik", "dokploy-traefik-previous"];
 
 export interface TraefikOptions {
 	env?: string[];
@@ -39,6 +52,99 @@ export interface TraefikOptions {
 
 // Overlapping recreates of one server would remove each other's containers.
 const recreateQueue = new Map<string, Promise<void>>();
+
+export const readEnvValue = (env: string[] | undefined, key: string) => {
+	if (!env) {
+		return "";
+	}
+	const prefix = `${key}=`;
+	const entry = env.find((item) => item.startsWith(prefix));
+	return entry ? entry.slice(prefix.length).trim() : "";
+};
+
+export const isValidIPv4Address = (value: string) => {
+	const parts = value.split(".");
+	if (parts.length !== 4) {
+		return false;
+	}
+	return parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
+};
+
+const ipv4ToNumber = (value: string) =>
+	value.split(".").reduce((total, part) => total * 256 + Number(part), 0);
+
+export const isAddressInSubnet = (address: string, subnet: string) => {
+	const [network, prefixRaw] = subnet.split("/");
+	const prefix = Number(prefixRaw);
+	if (
+		!network ||
+		!isValidIPv4Address(network) ||
+		!Number.isInteger(prefix) ||
+		prefix < 0 ||
+		prefix > 32
+	) {
+		return false;
+	}
+	const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+	return (ipv4ToNumber(address) & mask) === (ipv4ToNumber(network) & mask);
+};
+
+// The env passed by the caller is the source of truth: it is the "Traefik Env"
+// setting, so an operator can add or remove the address there. Callers that
+// don't pass an env (the startup path) inherit the value from the running
+// container, so that a recreate never drops it.
+const resolveStaticIp = async (
+	docker: Dockerode,
+	env: string[] | undefined,
+): Promise<string> => {
+	if (env) {
+		return readEnvValue(env, STATIC_IP_ENV_KEY);
+	}
+	let current: ContainerInspectInfo | null = null;
+	try {
+		current = await docker.getContainer("dokploy-traefik").inspect();
+	} catch {
+		current = null;
+	}
+	return (
+		readEnvValue(current?.Config?.Env, STATIC_IP_ENV_KEY) || TRAEFIK_STATIC_IP
+	);
+};
+
+// A wrong address fails with Docker's "invalid endpoint settings", which says
+// nothing about the cause. Check it upfront and report what is wrong.
+const assertStaticIpIsUsable = async (docker: Dockerode, address: string) => {
+	if (!isValidIPv4Address(address)) {
+		throw new Error(
+			`${STATIC_IP_ENV_KEY} "${address}" is not a valid IPv4 address`,
+		);
+	}
+	const network = await docker.getNetwork(TRAEFIK_NETWORK_NAME).inspect();
+	const subnet = network.IPAM?.Config?.find(
+		(config: { Subnet?: string }) => config.Subnet,
+	)?.Subnet;
+	if (!subnet) {
+		throw new Error(
+			`Could not read the subnet of the "${TRAEFIK_NETWORK_NAME}" network`,
+		);
+	}
+	if (!isAddressInSubnet(address, subnet)) {
+		throw new Error(
+			`${STATIC_IP_ENV_KEY} "${address}" is not inside the "${TRAEFIK_NETWORK_NAME}" subnet (${subnet})`,
+		);
+	}
+	const containers: Record<string, NetworkContainer> = network.Containers ?? {};
+	const conflict = Object.values(containers).find(
+		(container) =>
+			container.IPv4Address?.split("/")[0] === address &&
+			!TRAEFIK_CONTAINER_NAMES.includes(container.Name),
+	);
+	if (conflict) {
+		throw new Error(
+			`${STATIC_IP_ENV_KEY} "${address}" is already used by the container "${conflict.Name}"`,
+		);
+	}
+};
 
 export const initializeStandaloneTraefik = (options: TraefikOptions = {}) => {
 	const key = options.serverId ?? "local";
@@ -66,6 +172,16 @@ const recreateStandaloneTraefik = async ({
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
+
+	const docker = await getRemoteDocker(serverId);
+	// Restores a container left behind by an interrupted recreate before the
+	// address is read, so the value can be inherited from it.
+	await restoreInterruptedTraefik(serverId);
+	const staticIp = await resolveStaticIp(docker, env);
+	if (staticIp) {
+		await assertStaticIpIsUsable(docker, staticIp);
+	}
+	await ensureTraefikImage(serverId);
 
 	const exposedPorts: Record<string, {}> = {
 		[`${TRAEFIK_PORT}/tcp`]: {},
@@ -101,7 +217,9 @@ const recreateStandaloneTraefik = async ({
 		Image: imageName,
 		NetworkingConfig: {
 			EndpointsConfig: {
-				"dokploy-network": {},
+				[TRAEFIK_NETWORK_NAME]: staticIp
+					? { IPAMConfig: { IPv4Address: staticIp } }
+					: {},
 			},
 		},
 		ExposedPorts: exposedPorts,
@@ -118,10 +236,6 @@ const recreateStandaloneTraefik = async ({
 		},
 		Env: env,
 	};
-
-	const docker = await getRemoteDocker(serverId);
-	await restoreInterruptedTraefik(serverId);
-	await ensureTraefikImage(serverId);
 
 	// Kept until the new container stays up, so it can be restored on failure.
 	const currentInfo = await docker
@@ -273,6 +387,13 @@ export const initializeTraefikService = async ({
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const appName = "dokploy-traefik";
+
+	// Swarm assigns an address per task, so there is nothing to pin. Failing
+	// loudly is better than silently ignoring the setting.
+	const staticIp = readEnvValue(env, STATIC_IP_ENV_KEY) || TRAEFIK_STATIC_IP;
+	if (staticIp) {
+		throw new Error(`${STATIC_IP_ENV_KEY} is not supported in swarm mode`);
+	}
 
 	const settings: CreateServiceOptions = {
 		Name: appName,
