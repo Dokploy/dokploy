@@ -89,6 +89,19 @@ describe("getBuildErrorMessage", () => {
 		expect(message).toBe("Error building");
 	});
 
+	it("reports a lost SSH connection instead of reading the log", async () => {
+		const error = new ExecError("SSH connection error: Keepalive timeout", {
+			command: SCRIPT,
+			serverId: "server-1",
+			originalError: new Error("Keepalive timeout"),
+		});
+
+		const message = await getBuildErrorMessage(error, LOG_PATH, "server-1");
+
+		expect(message).toBe("SSH connection error: Keepalive timeout");
+		expect(mockExecAsyncRemote).not.toHaveBeenCalled();
+	});
+
 	it("keeps the message of errors that are not build commands", async () => {
 		const message = await getBuildErrorMessage(
 			new Error("Repository not found"),

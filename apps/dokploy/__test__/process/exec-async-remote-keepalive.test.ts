@@ -47,8 +47,10 @@ vi.mock("@dokploy/server/services/server", () => ({
 
 import {
 	execAsyncRemote,
+	sshKeepalive,
 	writeFileRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 
 describe("remote exec over SSH", () => {
 	beforeEach(() => {
@@ -60,7 +62,7 @@ describe("remote exec over SSH", () => {
 		await vi.waitFor(() => expect(clients[0]?.connectConfig).toBeDefined());
 		const client = clients[0]!;
 
-		expect(client.connectConfig?.keepaliveInterval).toBeGreaterThan(0);
+		expect(client.connectConfig).toMatchObject(sshKeepalive);
 
 		client.stream.emit("close", 0);
 		await expect(pending).resolves.toEqual({ stdout: "", stderr: "" });
@@ -86,6 +88,12 @@ describe("remote exec over SSH", () => {
 		writeFileRemote("server-1", "/tmp/file", "content").catch(() => {});
 		await vi.waitFor(() => expect(clients[0]?.connectConfig).toBeDefined());
 
-		expect(clients[0]!.connectConfig?.keepaliveInterval).toBeGreaterThan(0);
+		expect(clients[0]!.connectConfig).toMatchObject(sshKeepalive);
+	});
+
+	it("enables SSH keepalive for the remote Docker API", async () => {
+		const remoteDocker = await getRemoteDocker("server-1");
+
+		expect((remoteDocker.modem as any).sshOptions).toMatchObject(sshKeepalive);
 	});
 });
