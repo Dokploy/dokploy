@@ -200,9 +200,14 @@ const recreateStandaloneTraefik = async ({
 	// env is read, so the settings can be inherited from it.
 	await restoreInterruptedTraefik(serverId);
 	const resolvedEnv = await resolveTraefikEnv(docker, env);
+	// The process default only applies to callers that don't pass an env at
+	// all: an env is the operator's choice, and for a remote server the
+	// address of the local Dokploy process would be the wrong one.
 	const staticIp = hasEnvValue(resolvedEnv, STATIC_IP_ENV_KEY)
 		? readEnvValue(resolvedEnv, STATIC_IP_ENV_KEY)
-		: TRAEFIK_STATIC_IP;
+		: env === undefined
+			? TRAEFIK_STATIC_IP
+			: "";
 	if (staticIp) {
 		await assertStaticIpIsUsable(docker, staticIp);
 	}
@@ -415,7 +420,10 @@ export const initializeTraefikService = async ({
 
 	// Swarm assigns an address per task, so there is nothing to pin. Failing
 	// loudly is better than silently ignoring the setting.
-	const staticIp = readEnvValue(env, STATIC_IP_ENV_KEY) || TRAEFIK_STATIC_IP;
+	const staticIp =
+		env === undefined
+			? TRAEFIK_STATIC_IP
+			: readEnvValue(env, STATIC_IP_ENV_KEY);
 	if (staticIp) {
 		throw new Error(`${STATIC_IP_ENV_KEY} is not supported in swarm mode`);
 	}

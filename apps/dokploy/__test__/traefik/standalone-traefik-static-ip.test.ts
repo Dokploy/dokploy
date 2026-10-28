@@ -346,6 +346,61 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 	});
 });
 
+describe("the TRAEFIK_STATIC_IP process default", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.useFakeTimers();
+		vi.spyOn(console, "log").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		vi.unstubAllEnvs();
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+		vi.resetModules();
+	});
+
+	it("applies it on the startup path, which passes no env", async () => {
+		vi.stubEnv("TRAEFIK_STATIC_IP", "10.0.1.99");
+		vi.resetModules();
+		const { initializeStandaloneTraefik } = await import(
+			"@dokploy/server/setup/traefik-setup"
+		);
+		const fake = fakeDocker({ oldEnv: [] });
+
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		const result = initializeStandaloneTraefik().then(
+			() => null,
+			(error: Error) => error,
+		);
+		await vi.runAllTimersAsync();
+
+		expect(await result).toBeNull();
+		expect(endpointOf(fake)).toEqual({
+			IPAMConfig: { IPv4Address: "10.0.1.99" },
+		});
+	});
+
+	it("does not apply it when an env is given without the key", async () => {
+		vi.stubEnv("TRAEFIK_STATIC_IP", "10.0.1.99");
+		vi.resetModules();
+		const { initializeStandaloneTraefik } = await import(
+			"@dokploy/server/setup/traefik-setup"
+		);
+		const fake = fakeDocker();
+
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		const result = initializeStandaloneTraefik({ env: [] }).then(
+			() => null,
+			(error: Error) => error,
+		);
+		await vi.runAllTimersAsync();
+
+		expect(await result).toBeNull();
+		expect(endpointOf(fake)).toEqual({});
+	});
+});
+
 describe("validateTraefikStaticIp", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
