@@ -20,7 +20,7 @@
 		"pino-pretty": "11.2.2",
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
-		"zod": "^4.3.6"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"rimraf": "6.1.3",

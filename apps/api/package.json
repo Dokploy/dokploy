@@ -21,7 +21,7 @@
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
 		"redis": "4.7.0",
-		"zod": "^4.3.6"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"@types/node": "^24.4.0",
