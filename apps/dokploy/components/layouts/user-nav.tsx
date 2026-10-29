@@ -45,11 +45,15 @@ export const UserNav = () => {
 							)}
 						</AvatarFallback>
 					</Avatar>
-					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">Account</span>
-						<span className="truncate text-xs">{data?.user?.email}</span>
+					<div className="grid flex-1 text-left text-sm leading-tight transition-opacity duration-200 ease-linear group-data-[collapsible=icon]:opacity-0">
+						<span className="truncate font-semibold group-data-[collapsible=icon]:text-clip">
+							Account
+						</span>
+						<span className="truncate text-xs group-data-[collapsible=icon]:text-clip">
+							{data?.user?.email}
+						</span>
 					</div>
-					<ChevronsUpDown className="ml-auto size-4" />
+					<ChevronsUpDown className="ml-auto size-4 transition-opacity duration-200 ease-linear group-data-[collapsible=icon]:opacity-0" />
 				</SidebarMenuButton>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
