@@ -587,6 +587,9 @@ export const getProviderByHeader = (headers: any) => {
 	return null;
 };
 
+const DIFFSTAT_PAGE_LIMIT = 10;
+const DIFFSTAT_TIMEOUT_MS = 10_000;
+
 export const extractCommittedPaths = async (
 	body: any,
 	bitbucket: Bitbucket | null,
@@ -597,6 +600,8 @@ export const extractCommittedPaths = async (
 	const committedPaths: string[] = [];
 	const username =
 		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
+	const signal = AbortSignal.timeout(DIFFSTAT_TIMEOUT_MS);
+	let pages = 0;
 	for (const change of changes) {
 		const newHash = change.new?.target?.hash;
 		if (!newHash) continue;
@@ -607,14 +612,18 @@ export const extractCommittedPaths = async (
 			`https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${spec}`;
 		try {
 			while (url) {
+				if (++pages > DIFFSTAT_PAGE_LIMIT) {
+					throw new Error(`more than ${DIFFSTAT_PAGE_LIMIT} diffstat pages`);
+				}
 				const response = await fetch(url, {
 					headers: getBitbucketHeaders(bitbucket!),
+					signal,
 				});
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}`);
 				}
-				const data: { values: any[]; next?: string } = await response.json();
-				for (const value of data.values) {
+				const data: { values?: any[]; next?: string } = await response.json();
+				for (const value of data.values ?? []) {
 					if (value?.new?.path) committedPaths.push(value.new.path);
 					if (value?.old?.path) committedPaths.push(value.old.path);
 				}

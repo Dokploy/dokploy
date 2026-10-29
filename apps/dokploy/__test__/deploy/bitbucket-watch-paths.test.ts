@@ -229,4 +229,37 @@ describe("Bitbucket webhook with watch paths", () => {
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
 	});
+
+	it("deploys without reading every page of a huge diffstat", async () => {
+		fetchMock.mockImplementation(async () =>
+			json({
+				values: [diffstat("modified", "docs/a.md", "docs/a.md")],
+				next: `${API}/diffstat/big..base0?page=n`,
+			}),
+		);
+		const res = createResponse();
+
+		await handler(pushRequest("big"), res);
+
+		expect(fetchMock).toHaveBeenCalledTimes(10);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
+
+	it("deploys when a diffstat request times out", async () => {
+		fetchMock.mockRejectedValueOnce(
+			new DOMException(
+				"The operation was aborted due to timeout",
+				"TimeoutError",
+			),
+		);
+		const res = createResponse();
+
+		await handler(pushRequest("slow1"), res);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			`${API}/diffstat/slow1..base0`,
+			expect.objectContaining({ signal: expect.any(AbortSignal) }),
+		);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+	});
 });
