@@ -16,6 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
           node-version: 24.22.1
           cache: "pnpm"
       
