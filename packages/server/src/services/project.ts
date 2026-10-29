@@ -14,6 +14,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { createProductionEnvironment } from "./environment";
+import {
+	lockVaultAssignmentScope,
+	removeProjectFromVaultAssignments,
+} from "./vault-provider";
 
 export type Project = typeof projects.$inferSelect;
 
@@ -121,13 +125,26 @@ export const findProjectById = async (projectId: string) => {
 };
 
 export const deleteProject = async (projectId: string) => {
-	const project = await db
-		.delete(projects)
-		.where(eq(projects.projectId, projectId))
-		.returning()
-		.then((value) => value[0]);
+	return await db.transaction(async (tx) => {
+		const existing = await tx.query.projects.findFirst({
+			where: eq(projects.projectId, projectId),
+			columns: { organizationId: true },
+		});
+		if (!existing) return undefined;
 
-	return project;
+		await lockVaultAssignmentScope(tx, existing.organizationId);
+		await removeProjectFromVaultAssignments(
+			tx,
+			existing.organizationId,
+			projectId,
+		);
+
+		return await tx
+			.delete(projects)
+			.where(eq(projects.projectId, projectId))
+			.returning()
+			.then((value) => value[0]);
+	});
 };
 
 export const updateProjectById = async (
