@@ -31,6 +31,11 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+	ServerServicesList,
+	useServerServices,
+} from "@/components/dashboard/settings/servers/server-services-list";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1021,14 +1026,21 @@ function UpgradeServerDialog({ cloudServerId }: { cloudServerId: string }) {
 }
 
 function TerminateServerDialog({
+	serverId,
 	serverName,
 	onConfirm,
 }: {
+	serverId: string | null;
 	serverName: string;
 	onConfirm: () => void;
 }) {
 	const [open, setOpen] = useState(false);
 	const [confirmation, setConfirmation] = useState("");
+	const { services, isLoading, deletingId, deleteService } = useServerServices(
+		serverId ?? "",
+		open && !!serverId,
+	);
+	const hasServices = (services?.length ?? 0) > 0;
 
 	return (
 		<Tooltip>
@@ -1058,36 +1070,55 @@ function TerminateServerDialog({
 							action cannot be undone.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="space-y-2">
-						<Label className="flex flex-wrap items-center gap-1 leading-relaxed">
-							To confirm, type
-							<Badge
-								variant="outline"
-								className="p-2 rounded-md cursor-pointer hover:border-primary"
-								onClick={() => {
-									copy(serverName);
-									toast.success("Copied to clipboard. Be careful!");
-								}}
-							>
-								{serverName}
-								<Copy className="size-3.5 ml-1 text-muted-foreground" />
-							</Badge>
-							in the box below:
-						</Label>
-						<Input
-							value={confirmation}
-							onChange={(e) => setConfirmation(e.target.value)}
-							placeholder="Enter the server name to confirm"
-							autoComplete="off"
-						/>
-					</div>
+					{isLoading ? (
+						<div className="flex justify-center py-6">
+							<Loader2 className="size-5 animate-spin text-muted-foreground" />
+						</div>
+					) : hasServices ? (
+						<div className="flex flex-col gap-3">
+							<AlertBlock type="warning">
+								This server has {services?.length} service
+								{services?.length === 1 ? "" : "s"}. Delete them or move them to
+								another server before terminating it.
+							</AlertBlock>
+							<ServerServicesList
+								services={services ?? []}
+								deletingId={deletingId}
+								onDelete={deleteService}
+							/>
+						</div>
+					) : (
+						<div className="space-y-2">
+							<Label className="flex flex-wrap items-center gap-1 leading-relaxed">
+								To confirm, type
+								<Badge
+									variant="outline"
+									className="p-2 rounded-md cursor-pointer hover:border-primary"
+									onClick={() => {
+										copy(serverName);
+										toast.success("Copied to clipboard. Be careful!");
+									}}
+								>
+									{serverName}
+									<Copy className="size-3.5 ml-1 text-muted-foreground" />
+								</Badge>
+								in the box below:
+							</Label>
+							<Input
+								value={confirmation}
+								onChange={(e) => setConfirmation(e.target.value)}
+								placeholder="Enter the server name to confirm"
+								autoComplete="off"
+							/>
+						</div>
+					)}
 					<DialogFooter>
 						<Button variant="secondary" onClick={() => setOpen(false)}>
 							Cancel
 						</Button>
 						<Button
 							variant="destructive"
-							disabled={confirmation !== serverName}
+							disabled={hasServices || confirmation !== serverName}
 							onClick={() => {
 								onConfirm();
 								setOpen(false);
@@ -1264,6 +1295,7 @@ function CloudServerRow({
 						</Tooltip>
 					) : (
 						<TerminateServerDialog
+							serverId={s.serverId}
 							serverName={s.hostname ?? s.cloudServerId}
 							onConfirm={onDelete}
 						/>
