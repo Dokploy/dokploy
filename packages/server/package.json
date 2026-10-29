@@ -73,7 +73,7 @@
     "node-os-utils": "2.0.1",
     "node-pty": "1.1.0",
     "node-schedule": "2.1.1",
-    "nodemailer": "10.0.15",
+    "nodemailer": "10.1.4",
     "octokit": "3.1.2",
     "pino": "9.4.0",
     "pino-pretty": "11.2.2",
@@ -87,11 +87,11 @@
     "shell-quote": "^1.11.0",
     "slugify": "^1.6.6",
     "ssh2": "~1.16.0",
-    "toml": "4.2.0",
-    "undici": "^6.21.3",
+    "toml": "5.0.1",
+    "undici": "^6.29.1",
     "ws": "8.21.0",
     "yaml": "2.8.3",
-    "zod": "^4.3.6"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/bcrypt": "5.0.2",
@@ -118,7 +118,7 @@
   },
   "packageManager": "pnpm@10.22.0",
   "engines": {
-    "node": "^24.4.0",
+    "node": "^24.22.1",
     "pnpm": ">=10.22.0"
   }
 }

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import { isEncrypted } from "@dokploy/server/lib/encryption";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
@@ -467,6 +468,12 @@ export const prepareEnvironmentVariables = (
 				"Unresolved vault reference: call withResolvedVaultRefs() on the entity before preparing environment variables",
 			);
 		}
+		// Undecryptable columns arrive as ciphertext that dotenv drops; compose prepends lines, so check each.
+		if (source?.split("\n").some((line) => isEncrypted(line.trim()))) {
+			throw new Error(
+				"Environment variables could not be decrypted. BETTER_AUTH_SECRET or ENCRYPTION_KEY changed after they were saved; restore the previous secret or re-enter the variables.",
+			);
+		}
 	}
 	const projectVars = parse(projectEnv ?? "");
 	const environmentVars = parse(environmentEnv ?? "");
@@ -763,13 +770,27 @@ export const generateFileMounts = (
 		});
 };
 
+export const isValidMountFilePath = (filePath: string) => {
+	const relative = path.relative("/base", path.join("/base", filePath));
+	return (
+		!!relative && relative !== ".." && !relative.startsWith(`..${path.sep}`)
+	);
+};
+
+const resolveMountFilePath = (outputPath: string, filePath: string) => {
+	if (!isValidMountFilePath(filePath)) {
+		throw new Error(`Invalid file path: ${filePath}`);
+	}
+	return path.join(outputPath, filePath);
+};
+
 export const createFile = async (
 	outputPath: string,
 	filePath: string,
 	content: string,
 ) => {
 	try {
-		const fullPath = path.join(outputPath, filePath);
+		const fullPath = resolveMountFilePath(outputPath, filePath);
 		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
@@ -777,6 +798,10 @@ export const createFile = async (
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+		// Docker creates missing bind sources as empty directories if the stack was deployed before the mount existed
+		if (fs.statSync(fullPath, { throwIfNoEntry: false })?.isDirectory()) {
+			fs.rmdirSync(fullPath);
+		}
 		fs.writeFileSync(fullPath, content || "");
 	} catch (error) {
 		throw error;
@@ -790,7 +815,7 @@ export const getCreateFileCommand = (
 	filePath: string,
 	content: string,
 ) => {
-	const fullPath = path.join(outputPath, filePath);
+	const fullPath = resolveMountFilePath(outputPath, filePath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 		return `mkdir -p ${quote([fullPath])};`;
 	}
@@ -799,6 +824,7 @@ export const getCreateFileCommand = (
 	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${quote([directory])};
+		if [ -d ${quote([fullPath])} ]; then rmdir ${quote([fullPath])}; fi;
 		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };

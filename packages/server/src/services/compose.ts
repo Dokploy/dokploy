@@ -17,9 +17,9 @@ import {
 } from "@dokploy/server/utils/docker/domain";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
+import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
-	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -42,6 +42,7 @@ import {
 	createDeploymentCompose,
 	updateDeployment,
 	updateDeploymentStatus,
+	writeDeploymentErrorLog,
 } from "./deployment";
 import { generateApplyPatchesCommand } from "./patch";
 import { validUniqueServerAppName } from "./project";
@@ -392,21 +393,6 @@ export const deployCompose = async ({
 		type: "compose" as const,
 	};
 
-	const logErrorToTarget = async (error: unknown) => {
-		let command = "";
-		if (!(error instanceof ExecError)) {
-			const message = error instanceof Error ? error.message : String(error);
-			const encodedMessage = encodeBase64(message);
-			command += `echo "${encodedMessage}" | base64 -d >> ${quote([deployment.logPath])};`;
-		}
-		command += `echo "\nError occurred ❌, check the logs for details." >> ${quote([deployment.logPath])};`;
-		if (logTarget) {
-			await execAsyncRemote(logTarget, command);
-		} else {
-			await execAsync(command);
-		}
-	};
-
 	const deployLogPath =
 		logTarget !== deployTarget
 			? `${deployment.logPath}.deploy`
@@ -471,7 +457,12 @@ export const deployCompose = async ({
 		} catch {
 			// Best effort: deploy logs may not exist yet.
 		}
-		await logErrorToTarget(error);
+		const errorMessage = await getBuildErrorMessage(
+			error,
+			deployment.logPath,
+			logTarget,
+		);
+		await writeDeploymentErrorLog(deployment, logTarget, error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",
@@ -480,8 +471,7 @@ export const deployCompose = async ({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
+			errorMessage,
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 		});
@@ -602,21 +592,7 @@ export const rebuildCompose = async ({
 		} catch {
 			// Best effort: deploy logs may not exist yet.
 		}
-
-		let command = "";
-
-		if (!(error instanceof ExecError)) {
-			const message = error instanceof Error ? error.message : String(error);
-			const encodedMessage = encodeBase64(message);
-			command += `echo "${encodedMessage}" | base64 -d >> ${quote([deployment.logPath])};`;
-		}
-
-		command += `echo "\nError occurred ❌, check the logs for details." >> ${quote([deployment.logPath])};`;
-		if (logTarget) {
-			await execAsyncRemote(logTarget, command);
-		} else {
-			await execAsync(command);
-		}
+		await writeDeploymentErrorLog(deployment, logTarget, error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",

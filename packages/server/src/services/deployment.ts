@@ -16,8 +16,10 @@ import {
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
+import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -210,22 +212,22 @@ export const createDeploymentPreview = async (
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
 	);
+	const { buildServerId } = previewDeployment.application;
+	const serverId = buildServerId || previewDeployment.application.serverId;
 	await removeLastTenDeployments(
 		deployment.previewDeploymentId,
 		"previewDeployment",
-		previewDeployment?.application?.serverId,
+		previewDeployment.application.serverId,
 	);
 	try {
 		const appName = `${previewDeployment.appName}`;
-		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
+		if (serverId) {
+			const server = await findServerById(serverId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
@@ -249,6 +251,7 @@ export const createDeploymentPreview = async (
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
 				startedAt: new Date().toISOString(),
+				...(buildServerId && { buildServerId }),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -984,6 +987,30 @@ export const updateDeploymentStatus = async (
 		.returning();
 
 	return application;
+};
+
+export const writeDeploymentErrorLog = async (
+	deployment: Pick<Deployment, "deploymentId" | "logPath">,
+	serverId: string | null | undefined,
+	error: unknown,
+) => {
+	const message = error instanceof Error ? error.message : String(error);
+	let command = "";
+	if (!(error instanceof ExecError)) {
+		command += `echo "${encodeBase64(message)}" | base64 -d >> "${deployment.logPath}";`;
+	}
+
+	command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+	try {
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (logError) {
+		console.error("Failed to write the deployment error log", logError);
+		await updateDeployment(deployment.deploymentId, { errorMessage: message });
+	}
 };
 
 export const createServerDeployment = async (

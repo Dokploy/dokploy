@@ -29,20 +29,32 @@ const mockMemberData = (
 let memberToReturn: ReturnType<typeof mockMemberData> =
 	mockMemberData("member");
 
-vi.mock("@dokploy/server/db", () => ({
-	db: {
-		query: {
-			member: {
-				findFirst: vi.fn(() => Promise.resolve(memberToReturn)),
-				findMany: vi.fn(() => Promise.resolve([])),
-			},
-			organizationRole: {
-				findFirst: vi.fn(),
-				findMany: vi.fn(() => Promise.resolve([])),
+// Every service/project id used below belongs to the caller's org-1.
+vi.mock("@dokploy/server/db", () => {
+	const selectChain = {
+		from: () => selectChain,
+		innerJoin: () => selectChain,
+		where: () => Promise.resolve([{ organizationId: "org-1" }]),
+	};
+	return {
+		db: {
+			select: vi.fn(() => selectChain),
+			query: {
+				member: {
+					findFirst: vi.fn(() => Promise.resolve(memberToReturn)),
+					findMany: vi.fn(() => Promise.resolve([])),
+				},
+				organizationRole: {
+					findFirst: vi.fn(),
+					findMany: vi.fn(() => Promise.resolve([])),
+				},
+				projects: {
+					findFirst: vi.fn(() => Promise.resolve({ organizationId: "org-1" })),
+				},
 			},
 		},
-	},
-}));
+	};
+});
 
 vi.mock("@dokploy/server/services/proprietary/license-key", () => ({
 	hasValidLicense: vi.fn(() => Promise.resolve(false)),

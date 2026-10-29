@@ -1,5 +1,5 @@
 {
-  "id": "bf16a3c7-9d5d-4c2f-83ce-f87c7878dd23",
+  "id": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
   "prevId": "e2f2cd03-52dd-457a-8854-1ef6d0b5d168",
   "version": "7",
   "dialect": "postgresql",
@@ -2082,6 +2082,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "customName": {
+          "name": "customName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "serviceName": {
           "name": "serviceName",
           "type": "text",
@@ -2773,18 +2779,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'[]'::jsonb"
-        },
-        "buildServerId": {
-          "name": "buildServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "buildRegistryId": {
-          "name": "buildRegistryId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -2878,32 +2872,6 @@
             "serverId"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "compose_buildServerId_server_serverId_fk": {
-          "name": "compose_buildServerId_server_serverId_fk",
-          "tableFrom": "compose",
-          "tableTo": "server",
-          "columnsFrom": [
-            "buildServerId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "compose_buildRegistryId_registry_registryId_fk": {
-          "name": "compose_buildRegistryId_registry_registryId_fk",
-          "tableFrom": "compose",
-          "tableTo": "registry",
-          "columnsFrom": [
-            "buildRegistryId"
-          ],
-          "columnsTo": [
-            "registryId"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
