@@ -240,10 +240,9 @@ export default async function handler(
 					"",
 			);
 
-			const shouldDeployPaths = shouldDeploy(
-				application.watchPaths,
-				committedPaths,
-			);
+			const shouldDeployPaths =
+				committedPaths === null ||
+				shouldDeploy(application.watchPaths, committedPaths);
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
@@ -595,29 +594,40 @@ export const extractCommittedPaths = async (
 ) => {
 	const changes = body.push?.changes || [];
 
-	const commitHashes = changes
-		.map((change: any) => change.new?.target?.hash)
-		.filter(Boolean);
 	const committedPaths: string[] = [];
 	const username =
 		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
-	for (const commit of commitHashes) {
-		const url = `https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${commit}`;
+	for (const change of changes) {
+		const newHash = change.new?.target?.hash;
+		if (!newHash) continue;
+		const oldHash = change.old?.target?.hash;
+		// Bitbucket range specs are "new..old", the reverse of git diff
+		const spec = oldHash ? `${newHash}..${oldHash}` : newHash;
+		let url: string | undefined =
+			`https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${spec}`;
 		try {
-			const response = await fetch(url, {
-				headers: getBitbucketHeaders(bitbucket!),
-			});
-			const data = await response.json();
-			for (const value of data.values) {
-				if (value?.new?.path) committedPaths.push(value.new.path);
+			while (url) {
+				const response = await fetch(url, {
+					headers: getBitbucketHeaders(bitbucket!),
+				});
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+				const data: { values: any[]; next?: string } = await response.json();
+				for (const value of data.values) {
+					if (value?.new?.path) committedPaths.push(value.new.path);
+					if (value?.old?.path) committedPaths.push(value.old.path);
+				}
+				url = data.next;
 			}
 		} catch (error) {
 			console.error(
-				`Error fetching Bitbucket diffstat for commit ${commit}:`,
+				`Error fetching Bitbucket diffstat for ${spec}:`,
 				error instanceof Error ? error.message : "Unknown error",
 			);
 
-			return [];
+			// Unknown paths: deploy instead of silently skipping
+			return null;
 		}
 	}
 
