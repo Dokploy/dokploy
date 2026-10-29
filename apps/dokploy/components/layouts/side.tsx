@@ -1211,8 +1211,9 @@ export default function Page({ children }: Props) {
 						</SidebarMenuItem>
 						{(whitelabeling?.footerText || dokployVersion) && (
 							// -mt-2 cancels the parent gap so the collapsed row takes no space.
-							<div className="grid grid-rows-[1fr] transition-[grid-template-rows,margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-2 group-data-[collapsible=icon]:grid-rows-[0fr] group-data-[collapsible=icon]:opacity-0">
-								<div className="flex min-h-0 flex-col gap-2 overflow-hidden whitespace-nowrap px-3 text-center text-xs text-muted-foreground">
+							<div className="grid grid-rows-[1fr] overflow-hidden transition-[grid-template-rows,margin,opacity] duration-200 ease-linear group-data-[collapsible=icon]:-mt-2 group-data-[collapsible=icon]:grid-rows-[0fr] group-data-[collapsible=icon]:opacity-0">
+								{/* On desktop the text keeps the expanded footer width, so long footers wrap the same way during the animation and do not reflow. */}
+								<div className="flex min-h-0 w-full flex-col gap-2 px-3 text-center text-xs text-muted-foreground md:w-[calc(var(--sidebar-width)-2rem)]">
 									{whitelabeling?.footerText && (
 										<div>{whitelabeling.footerText}</div>
 									)}
