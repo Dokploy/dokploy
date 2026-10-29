@@ -20,8 +20,10 @@ import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications
 import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
+	appendFileRemote,
 	execAsync,
 	execAsyncRemote,
+	readFileRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import {
@@ -36,7 +38,6 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
@@ -259,7 +260,29 @@ const runWithLog = async (
 	}
 };
 
-const appendDeployLogsIfSplit = async (
+const readFileOnTarget = async (
+	serverId: string | null,
+	path: string,
+): Promise<Buffer | null> => {
+	if (serverId) return readFileRemote(serverId, path);
+	try {
+		return await fsPromises.readFile(path);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+		throw error;
+	}
+};
+
+const appendFileOnTarget = (
+	serverId: string | null,
+	path: string,
+	content: string | Buffer,
+) =>
+	serverId
+		? appendFileRemote(serverId, path, content)
+		: fsPromises.appendFile(path, content);
+
+export const appendDeployLogsIfSplit = async (
 	deployTarget: string | null,
 	deployLogPath: string,
 	logTarget: string | null,
@@ -267,45 +290,28 @@ const appendDeployLogsIfSplit = async (
 ) => {
 	if (logTarget === deployTarget) return;
 
-	await appendLogFromTarget(
-		deployTarget,
-		deployLogPath,
-		logTarget,
-		mainLogPath,
-		"Deploy phase",
-	);
-};
-
-const appendLogFromTarget = async (
-	fromServerId: string | null,
-	fromLogPath: string,
-	toServerId: string | null,
-	toLogPath: string,
-	sectionLabel: string,
-) => {
-	let content = "";
-	if (fromServerId) {
-		const result = await execAsyncRemote(
-			fromServerId,
-			`cat ${quote([fromLogPath])} 2>/dev/null || true`,
-		);
-		content = result.stdout;
-	} else {
-		const result = await execAsync(
-			`cat ${quote([fromLogPath])} 2>/dev/null || true`,
-		);
-		content = result.stdout;
-	}
-
-	if (!content.trim()) return;
-
-	const section = `\n=== ${sectionLabel} ===\n${content}`;
-	const encoded = encodeBase64(section);
-	const appendCommand = `echo "${encoded}" | base64 -d >> ${quote([toLogPath])}`;
-	if (toServerId) {
-		await execAsyncRemote(toServerId, appendCommand);
-	} else {
-		await execAsync(appendCommand);
+	try {
+		const deployLog = await readFileOnTarget(deployTarget, deployLogPath);
+		if (deployLog?.toString().trim()) {
+			await appendFileOnTarget(
+				logTarget,
+				mainLogPath,
+				Buffer.concat([Buffer.from("\n=== Deploy phase ===\n"), deployLog]),
+			);
+		}
+		const rmCommand = `rm -f ${quote([deployLogPath])}`;
+		if (deployTarget) {
+			await execAsyncRemote(deployTarget, rmCommand);
+		} else {
+			await execAsync(rmCommand);
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		await appendFileOnTarget(
+			logTarget,
+			mainLogPath,
+			`\n⚠️ Could not copy the deploy-phase log (${message}). It is still on the deploy server at ${deployLogPath}.\n`,
+		).catch(() => {});
 	}
 };
 
