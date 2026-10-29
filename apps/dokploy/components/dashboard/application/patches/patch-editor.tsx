@@ -4,12 +4,12 @@ import {
 	File,
 	Folder,
 	Loader2,
+	Maximize2,
 	Save,
 	Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -19,8 +19,16 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { CreateFileDialog } from "./create-file-dialog";
+import { PatchDiffEditor, type PatchViewMode } from "./patch-diff-editor";
 
 interface Props {
 	id: string;
@@ -43,6 +51,8 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 	const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
 		new Set(),
 	);
+	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [viewMode, setViewMode] = useState<PatchViewMode>("editor");
 
 	const utils = api.useUtils();
 	const { data: directories, isPending: isDirLoading } =
@@ -78,9 +88,13 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 
 	useEffect(() => {
 		if (fileData !== undefined) {
-			setFileContent(fileData);
+			setFileContent(fileData.patchedContent);
 		}
 	}, [fileData]);
+
+	useEffect(() => {
+		setViewMode("editor");
+	}, [selectedFile]);
 
 	const handleFileSelect = (filePath: string) => {
 		setSelectedFile(filePath);
@@ -159,7 +173,7 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 			.mutateAsync({
 				patchId: selectedFilePatch.patchId,
 				type: "update",
-				content: fileData || "",
+				content: fileData?.originalContent || "",
 			})
 			.then(() => {
 				toast.success("Deletion unmarked");
@@ -170,7 +184,10 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 			});
 	};
 
-	const hasChanges = fileData !== undefined && fileContent !== fileData;
+	const hasChanges =
+		fileData !== undefined &&
+		fileData.patchType !== "delete" &&
+		fileContent !== fileData.patchedContent;
 
 	const renderTree = useCallback(
 		(entries: DirectoryEntry[], depth = 0) => {
@@ -284,6 +301,14 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 								<Button
 									variant="outline"
 									size="sm"
+									onClick={() => setIsFullscreen(true)}
+								>
+									<Maximize2 className="mr-2 h-4 w-4" />
+									Full screen
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
 									onClick={handleMarkForDeletion}
 									disabled={isMarkingDeletion}
 								>
@@ -305,12 +330,32 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 								</Button>
 							</>
 						)}
+						<Select
+							value={viewMode}
+							onValueChange={(value) => setViewMode(value as PatchViewMode)}
+						>
+							<SelectTrigger className="w-[170px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="editor">Editor</SelectItem>
+								<SelectItem value="diff">Diff mode</SelectItem>
+							</SelectContent>
+						</Select>
 					</div>
 				)}
 			</CardHeader>
 			<CardContent className="p-0">
-				<div className="grid grid-cols-[250px_1fr] border-t h-[600px]">
-					<div className="border-r h-full overflow-hidden">
+				<div
+					className={`grid border-t h-[600px] ${
+						isFullscreen ? "grid-cols-[1fr]" : "grid-cols-[250px_1fr]"
+					}`}
+				>
+					<div
+						className={`border-r h-full overflow-hidden ${
+							isFullscreen ? "hidden" : ""
+						}`}
+					>
 						<ScrollArea className="h-full">
 							<div className="p-2 space-y-1">
 								<div className="group flex items-center gap-2 px-2 py-1.5 mb-1">
@@ -347,14 +392,19 @@ export const PatchEditor = ({ id, type, repoPath, onClose }: Props) => {
 							<div className="flex items-center justify-center h-full">
 								<Loader2 className="h-6 w-6 animate-spin" />
 							</div>
-						) : selectedFile ? (
-							<CodeEditor
-								value={fileData || ""}
-								onChange={(value) => setFileContent(value || "")}
-								className="h-full w-full"
-								wrapperClassName="h-full"
-								lineWrapping
+						) : selectedFile && fileData ? (
+							<PatchDiffEditor
+								filePath={selectedFile}
+								originalContent={fileData.originalContent}
+								value={fileContent}
+								onChange={setFileContent}
+								patchType={fileData.patchType}
+								mode={viewMode}
 							/>
+						) : selectedFile ? (
+							<div className="flex items-center justify-center h-full text-muted-foreground">
+								Loading file preview...
+							</div>
 						) : (
 							<div className="flex items-center justify-center h-full text-muted-foreground">
 								Select a file to edit
