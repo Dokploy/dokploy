@@ -20,9 +20,9 @@ import { authClient } from "@/lib/auth-client";
 const ssoEmailSchema = z.object({
 	email: z
 		.string()
+		.trim()
 		.min(1, "Enter your work email")
-		.email("Enter a valid email address")
-		.transform((v) => v.trim()),
+		.email("Enter a valid email address"),
 });
 
 type SSOEmailForm = z.infer<typeof ssoEmailSchema>;
