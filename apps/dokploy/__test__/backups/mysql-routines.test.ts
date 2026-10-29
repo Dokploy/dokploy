@@ -85,7 +85,10 @@ describe("MySQL stored-object backups", () => {
 	}
 
 	it("propagates a dump failure even when gzip succeeds", () => {
-		const result = run(getMysqlBackupCommand(database, password), 23);
+		const result = run(
+			getMysqlBackupCommand("ordinary-database", password),
+			23,
+		);
 		expect(result.status).toBe(23);
 		expect(spawnSync("gzip", ["-t"], { input: result.stdout }).status).toBe(0);
 	});
