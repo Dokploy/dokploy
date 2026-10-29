@@ -132,6 +132,17 @@ export const ShowBuildServer = (props: Props) => {
 
 		try {
 			if (isCompose) {
+				const deployServerId = composeQuery.data?.serverId ?? null;
+				if (
+					buildServerId &&
+					buildServerId !== deployServerId &&
+					!buildRegistryId
+				) {
+					toast.error(
+						"A build registry is required when the build server is different from the deploy server",
+					);
+					return;
+				}
 				await updateCompose.mutateAsync({
 					composeId: serviceId,
 					buildServerId,
@@ -175,9 +186,11 @@ export const ShowBuildServer = (props: Props) => {
 					<AlertBlock type="info">
 						For compose services, only services with a{" "}
 						<code className="text-xs">build:</code> section are built on the
-						build server and pushed to the registry. Image-only services are
+						build server and pushed to the registry when it differs from the
+						deploy server. If the same server deploys and builds, a registry is
+						optional and compose builds in place. Image-only services are
 						unchanged. Custom deploy commands should not include{" "}
-						<code className="text-xs">--build</code> when using a build server.
+						<code className="text-xs">--build</code> when images are prebuilt.
 					</AlertBlock>
 				) : null}
 

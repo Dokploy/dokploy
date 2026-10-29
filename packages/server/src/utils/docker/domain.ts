@@ -164,6 +164,36 @@ export const applyBuildRegistryImages = (
 	return result;
 };
 
+export const applyPrebuiltImages = (
+	spec: ComposeSpecification,
+	images: Record<string, string>,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	for (const [serviceName, image] of Object.entries(images)) {
+		const service = result.services?.[serviceName];
+		if (!service) continue;
+		service.image = image;
+		delete service.build;
+		if (service.pull_policy === "build") {
+			delete service.pull_policy;
+		}
+	}
+	return result;
+};
+
+export const applyBuildPlatform = (
+	spec: ComposeSpecification,
+	platform: string,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	for (const service of Object.values(result.services ?? {})) {
+		if (service?.build && !service.platform) {
+			service.platform = platform;
+		}
+	}
+	return result;
+};
+
 export const hasBuildableServices = (
 	spec: ComposeSpecification | null,
 ): boolean => {
@@ -177,6 +207,7 @@ export const writeDomainsToCompose = async (
 	options?: {
 		buildRegistry?: Registry;
 		loadServerId?: string | null;
+		transform?: (spec: ComposeSpecification) => ComposeSpecification;
 	},
 ) => {
 	try {
@@ -185,7 +216,7 @@ export const writeDomainsToCompose = async (
 				? { ...compose, serverId: options.loadServerId }
 				: compose;
 		let composeConverted = await addDomainToCompose(loadCompose, domains);
-		const path = getComposePath(compose);
+		const path = getComposePath(loadCompose);
 
 		if (!composeConverted) {
 			return `
@@ -200,6 +231,10 @@ exit 1;
 				options.buildRegistry,
 				compose.appName,
 			);
+		}
+
+		if (options?.transform) {
+			composeConverted = options.transform(composeConverted);
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });

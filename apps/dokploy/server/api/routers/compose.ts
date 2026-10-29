@@ -230,6 +230,28 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			const nextBuildServerId =
+				input.buildServerId !== undefined
+					? input.buildServerId
+					: compose.buildServerId;
+			const nextBuildRegistryId =
+				input.buildRegistryId !== undefined
+					? input.buildRegistryId
+					: compose.buildRegistryId;
+			const nextDeployServerId =
+				input.serverId !== undefined ? input.serverId : compose.serverId;
+			if (
+				nextBuildServerId &&
+				nextBuildServerId !== nextDeployServerId &&
+				!nextBuildRegistryId
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"A build registry is required when the build server is different from the deploy server",
+				});
+			}
+
 			const { composeId, ...rest } = input;
 			const updated = await updateCompose(composeId, rest);
 			await audit(ctx, {

@@ -1,17 +1,21 @@
 import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import {
-	findRegistryByIdWithCredentials,
+	type Registry,
 	safeDockerLoginCommand,
 } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import { quote } from "shell-quote";
+import { getRegistryTag } from "../cluster/upload";
 import {
 	addDomainToCompose,
+	applyBuildPlatform,
+	applyPrebuiltImages,
 	hasBuildableServices,
 	writeDomainsToCompose,
 } from "../docker/domain";
+import type { ComposeSpecification } from "../docker/types";
 import {
 	encodeBase64,
 	getEnvironmentVariablesObject,
@@ -30,47 +34,62 @@ export type ComposeNested = InferResultType<
 	}
 >;
 
+export type PrebuiltImages = {
+	registry: Registry;
+	images: Record<string, string>;
+};
+
 type CreateCommandOptions = {
 	prebuilt?: boolean;
 	projectPath?: string;
 };
 
+const getRegistryLoginCommand = (registry: Registry) =>
+	`${safeDockerLoginCommand(
+		registry.registryUrl,
+		registry.username,
+		registry.password,
+	)} || { echo "❌ Registry login failed"; exit 1; }`;
+
 export const getBuildComposeCommand = async (
 	rawCompose: ComposeNested,
-	options?: { prebuilt?: boolean; targetServerId?: string | null },
+	options?: { targetServerId?: string | null; prebuilt?: PrebuiltImages },
 ) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
-	const targetServerId = options?.targetServerId ?? compose.serverId;
-	const isRemote = !!targetServerId;
-	const { COMPOSE_PATH } = paths(isRemote);
+	const targetServerId =
+		options?.targetServerId !== undefined
+			? options.targetServerId
+			: compose.serverId;
+	const { COMPOSE_PATH } = paths(!!targetServerId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
-	const prebuilt = options?.prebuilt ?? Boolean(compose.buildServerId);
+	const prebuilt = options?.prebuilt;
+	const prebuiltServices = Object.keys(prebuilt?.images ?? {});
+	const projectDirectory = mounts.length > 0 ? projectPath : undefined;
 	const command = createCommand(compose, {
-		prebuilt,
-		projectPath: mounts.length > 0 ? projectPath : undefined,
+		prebuilt: !!prebuilt,
+		projectPath: projectDirectory,
 	});
 	const envCommand = compose.createEnvFile
 		? getCreateEnvFileCommand(compose, targetServerId)
 		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const buildRegistry =
-		prebuilt && compose.buildRegistryId
-			? await findRegistryByIdWithCredentials(compose.buildRegistryId)
-			: undefined;
+	const registryLoginCommand =
+		prebuilt && prebuiltServices.length > 0
+			? getRegistryLoginCommand(prebuilt.registry)
+			: "";
 
-	const registryLoginCommand = buildRegistry
-		? `${safeDockerLoginCommand(
-				buildRegistry.registryUrl,
-				buildRegistry.username,
-				buildRegistry.password,
-			)} || { echo "❌ Registry login failed"; exit 1; }`
-		: "";
+	const pullCommand =
+		prebuiltServices.length > 0 && composeType === "docker-compose"
+			? `env -i PATH="$PATH" HOME="$HOME" docker ${getComposeBaseArgs(compose, projectDirectory)} pull ${quote(prebuiltServices)} 2>&1 || { echo "Error: ❌ Pulling prebuilt images failed"; exit 1; }`
+			: "";
 
 	const newCompose = await writeDomainsToCompose(compose, domains, {
-		buildRegistry,
 		loadServerId: targetServerId,
+		transform: prebuilt
+			? (spec) => applyPrebuiltImages(spec, prebuilt.images)
+			: undefined,
 	});
 
 	const logContent = `
@@ -80,7 +99,7 @@ Detected: ${mounts.length} mounts 📂
 Command: docker ${command}
 Source Type: docker ${sourceType} ✅
 Compose Type: ${composeType} ✅
-Remote Build: ${prebuilt ? "enabled (pre-built images)" : "disabled"}`;
+Remote Build: ${prebuilt ? `enabled (${prebuiltServices.length} prebuilt images)` : "disabled"}`;
 
 	const logBox = boxen(logContent, {
 		padding: {
@@ -105,6 +124,8 @@ Remote Build: ${prebuilt ? "enabled (pre-built images)" : "disabled"}`;
 
 		${registryLoginCommand}
 
+		${pullCommand}
+
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
 		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
@@ -119,51 +140,63 @@ Remote Build: ${prebuilt ? "enabled (pre-built images)" : "disabled"}`;
 	return bashCommand;
 };
 
+const sanitizeImageName = (name: string) =>
+	name.toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+
+export const applyDefaultBuildImageNames = (
+	spec: ComposeSpecification,
+	appName: string,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	for (const [serviceName, service] of Object.entries(result.services ?? {})) {
+		if (service?.build && !service.image) {
+			service.image = `${sanitizeImageName(appName)}-${sanitizeImageName(serviceName)}`;
+		}
+	}
+	return result;
+};
+
 export const getComposeRemoteBuildCommand = async (
 	rawCompose: ComposeNested,
 	buildServerId: string,
+	registry: Registry,
+	options?: { platform?: string },
 ) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
-	if (!compose.buildRegistryId) {
-		throw new Error("Build registry is required for remote compose builds");
-	}
-
-	const buildRegistry = await findRegistryByIdWithCredentials(
-		compose.buildRegistryId,
-	);
 	const { COMPOSE_PATH } = paths(true);
-	const { sourceType, appName, composeType } = compose;
-	const path =
-		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const { appName, composeType, mounts } = compose;
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 
-	const loadCompose = { ...compose, serverId: buildServerId };
-	const composeSpec = await addDomainToCompose(loadCompose, []);
-
+	const composeSpec = await addDomainToCompose(
+		{ ...compose, serverId: buildServerId },
+		[],
+	);
 	if (!composeSpec || !hasBuildableServices(composeSpec)) {
-		return `
-echo "ℹ️ No services with build: defined — skipping remote build phase";
-`;
+		return null;
 	}
 
+	const platform = options?.platform;
 	const composeWrite = await writeDomainsToCompose(compose, [], {
-		buildRegistry,
 		loadServerId: buildServerId,
+		transform: (spec) => {
+			const named = applyDefaultBuildImageNames(spec, appName);
+			return platform ? applyBuildPlatform(named, platform) : named;
+		},
 	});
 	const envCommand = compose.createEnvFile
 		? getCreateEnvFileCommand(compose, buildServerId)
 		: "";
-	const loginCommand = `${safeDockerLoginCommand(
-		buildRegistry.registryUrl,
-		buildRegistry.username,
-		buildRegistry.password,
-	)} || { echo "❌ Registry login failed"; exit 1; }`;
+	const exportEnvCommand = getExportEnvCommand(compose);
+	const baseArgs = getComposeBaseArgs(
+		compose,
+		mounts.length > 0 ? projectPath : undefined,
+	);
 
 	const logContent = `
 App Name: ${appName}
 Remote Build Compose 🐳
-Build Server: ${buildServerId}
-Compose Type: ${composeType} ✅`;
+Compose Type: ${composeType} ✅
+Target Platform: ${platform ?? "native"}`;
 
 	const logBox = boxen(logContent, {
 		padding: { left: 1, right: 1, bottom: 1 },
@@ -182,12 +215,11 @@ Compose Type: ${composeType} ✅`;
 
 		cd "${projectPath}";
 
-		${loginCommand}
+		${getRegistryLoginCommand(registry)}
 
-		env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([appName])} -f ${quote([path])} build 2>&1 || { echo "Error: ❌ Docker compose build failed"; exit 1; }
-		env -i PATH="$PATH" HOME="$HOME" docker compose -p ${quote([appName])} -f ${quote([path])} push 2>&1 || { echo "Error: ❌ Docker compose push failed"; exit 1; }
+		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${baseArgs} build 2>&1 || { echo "Error: ❌ Docker compose build failed"; exit 1; }
 
-		echo "Remote Compose Build & Push: ✅";
+		echo "Remote Compose Build: ✅";
 	} || {
 		echo "Error: ❌ Remote build script execution failed";
 		exit 1
@@ -195,10 +227,80 @@ Compose Type: ${composeType} ✅`;
 	`;
 };
 
-// Shell control characters that must never appear in a user-provided compose
-// command: they would let it break out of the `docker ${command}` invocation
-// into arbitrary host commands. A normal docker compose CLI line never needs them.
-// Removed '&' from the blocklist to allow '&&' chaining
+export const getComposeConfigCommand = (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths(true);
+	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+	const baseArgs = getComposeBaseArgs(
+		compose,
+		compose.mounts.length > 0 ? projectPath : undefined,
+	);
+	return `cd ${quote([projectPath])} && env -i PATH="$PATH" HOME="$HOME" ${getExportEnvCommand(compose)} docker ${baseArgs} config --format json`;
+};
+
+type ComposeConfigOutput = {
+	services?: Record<string, { image?: string; build?: unknown } | null>;
+};
+
+export const resolveBuiltImages = (configJson: string) => {
+	const config = JSON.parse(configJson) as ComposeConfigOutput;
+	return Object.entries(config.services ?? {}).flatMap(
+		([service, definition]) =>
+			definition?.build && definition.image
+				? [{ service, localImage: definition.image }]
+				: [],
+	);
+};
+
+export const getRemoteImageRef = (
+	registry: Registry,
+	appName: string,
+	service: string,
+	tag: string,
+) =>
+	getRegistryTag(
+		registry,
+		`${sanitizeImageName(appName)}-${sanitizeImageName(service)}:${tag}`,
+	);
+
+export const sanitizeImageTag = (tag: string) =>
+	tag
+		.replace(/[^A-Za-z0-9_.-]/g, "-")
+		.replace(/^[.-]+/, "")
+		.slice(0, 128);
+
+export const getPushImagesCommand = (
+	registry: Registry,
+	images: { localImage: string; remoteImage: string }[],
+) => {
+	const pushes = images
+		.map(
+			({ localImage, remoteImage }) => `
+		echo ${quote([`📦 Pushing ${localImage} → ${remoteImage}`])};
+		docker tag ${quote([localImage])} ${quote([remoteImage])} 2>&1;
+		docker push ${quote([remoteImage])} 2>&1 || { echo ${quote([`Error: ❌ Push failed for ${remoteImage}`])}; exit 1; }`,
+		)
+		.join("\n");
+	const untag = images
+		.map(
+			({ remoteImage }) =>
+				`docker rmi ${quote([remoteImage])} >/dev/null 2>&1 || true;`,
+		)
+		.join("\n");
+
+	return `
+	set -e
+	{
+		${getRegistryLoginCommand(registry)}
+		${pushes}
+		${untag}
+		echo "Remote Compose Push: ✅";
+	} || {
+		echo "Error: ❌ Pushing images failed";
+		exit 1
+	}
+	`;
+};
+
 const UNSAFE_COMPOSE_COMMAND = /[;|`$(){}<>\n\\]/;
 
 const sanitizeCommand = (command: string) => {
@@ -211,7 +313,6 @@ const sanitizeCommand = (command: string) => {
 	}
 
 	if (sanitizedCommand.includes("&")) {
-		// Block single '&' (e.g., backgrounding tasks) or malformed chains like '&&&'
 		if (
 			/(?<!&)&(?!&)/.test(sanitizedCommand) ||
 			sanitizedCommand.includes("&&&")
@@ -219,7 +320,6 @@ const sanitizeCommand = (command: string) => {
 			throw new Error("Single '&' is not allowed. Use '&&' for chaining.");
 		}
 
-		// Split by '&&' and check that every chained command (skipping the first one) is safe
 		const chains = sanitizedCommand.split("&&").map((cmd) => cmd.trim());
 		const isSafeChain = chains
 			.slice(1)
@@ -242,15 +342,29 @@ const sanitizeCommand = (command: string) => {
 	return restCommand.join(" ");
 };
 
+export const getComposeBaseArgs = (
+	compose: ComposeNested,
+	projectPath?: string,
+) => {
+	const { appName, sourceType } = compose;
+	const path =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const projectDirectoryFlag = projectPath
+		? `--project-directory ${quote([projectPath])} `
+		: "";
+	const envFileFlag = compose.createEnvFile
+		? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
+		: "";
+	return `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])}`;
+};
+
 export const createCommand = (
 	compose: ComposeNested,
 	options?: CreateCommandOptions | string,
 ) => {
 	const { prebuilt, projectPath } =
-		typeof options === "string"
-			? { projectPath: options }
-			: (options ?? {});
-	const { composeType, appName, sourceType } = compose;
+		typeof options === "string" ? { projectPath: options } : (options ?? {});
+	const { composeType, sourceType } = compose;
 	if (compose.command) {
 		return `${sanitizeCommand(compose.command)}`;
 	}
@@ -260,20 +374,11 @@ export const createCommand = (
 	let command = "";
 
 	if (composeType === "docker-compose") {
-		const projectDirectoryFlag = projectPath
-			? `--project-directory ${quote([projectPath])} `
-			: "";
-		const envFileFlag = compose.createEnvFile
-			? `--env-file ${quote([join(dirname(compose.composePath || "docker-compose.yml"), ".env")])} `
-			: "";
-		if (prebuilt) {
-			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} pull && docker compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --no-build --remove-orphans`;
-		} else {
-			const pullFlag = compose.pullImages ? " --pull always" : "";
-			command = `compose -p ${quote([appName])} ${projectDirectoryFlag}${envFileFlag}-f ${quote([path])} up -d --build --remove-orphans${pullFlag}`;
-		}
+		const pullFlag = compose.pullImages ? " --pull always" : "";
+		const buildFlag = prebuilt ? "--no-build" : "--build";
+		command = `${getComposeBaseArgs(compose, projectPath)} up -d ${buildFlag} --remove-orphans${pullFlag}`;
 	} else if (composeType === "stack") {
-		command = `stack deploy -c ${quote([path])} ${quote([appName])} --prune --with-registry-auth`;
+		command = `stack deploy -c ${quote([path])} ${quote([compose.appName])} --prune --with-registry-auth`;
 	}
 
 	return command;
