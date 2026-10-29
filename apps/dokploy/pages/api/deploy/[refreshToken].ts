@@ -240,10 +240,11 @@ export default async function handler(
 					"",
 			);
 
-			const shouldDeployPaths = shouldDeploy(
-				application.watchPaths,
-				committedPaths,
-			);
+			// If the diffstat could not be read, deploy instead of skipping
+			// the push without any trace.
+			const shouldDeployPaths =
+				committedPaths === null ||
+				shouldDeploy(application.watchPaths, committedPaths);
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
@@ -588,36 +589,57 @@ export const getProviderByHeader = (headers: any) => {
 	return null;
 };
 
+/**
+ * When the push has a previous tip (`change.old`), the whole range
+ * `new..old` is diffed so changes from every commit in the push are seen,
+ * not only the last one. Both `new.path` and `old.path` are collected, so
+ * deleted files (`new: null`) and files renamed out of a folder count.
+ *
+ * Returns `null` when the paths cannot be determined (a diffstat request
+ * failed), so callers can deploy rather than silently skip the push.
+ */
 export const extractCommittedPaths = async (
 	body: any,
 	bitbucket: Bitbucket | null,
 	repository: string,
-) => {
+): Promise<string[] | null> => {
 	const changes = body.push?.changes || [];
 
-	const commitHashes = changes
-		.map((change: any) => change.new?.target?.hash)
-		.filter(Boolean);
+	const specs: string[] = changes
+		.filter((change: any) => change.new?.target?.hash)
+		.map((change: any) =>
+			change.old?.target?.hash
+				? `${change.new.target.hash}..${change.old.target.hash}`
+				: change.new.target.hash,
+		);
 	const committedPaths: string[] = [];
 	const username =
 		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
-	for (const commit of commitHashes) {
-		const url = `https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${commit}`;
+	for (const spec of specs) {
+		let url: string | undefined =
+			`https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${spec}`;
 		try {
-			const response = await fetch(url, {
-				headers: getBitbucketHeaders(bitbucket!),
-			});
-			const data = await response.json();
-			for (const value of data.values) {
-				if (value?.new?.path) committedPaths.push(value.new.path);
+			while (url) {
+				const response: Response = await fetch(url, {
+					headers: getBitbucketHeaders(bitbucket!),
+				});
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status}`);
+				}
+				const data: { values?: any[]; next?: string } = await response.json();
+				for (const value of data.values ?? []) {
+					if (value?.new?.path) committedPaths.push(value.new.path);
+					if (value?.old?.path) committedPaths.push(value.old.path);
+				}
+				url = data.next;
 			}
 		} catch (error) {
 			console.error(
-				`Error fetching Bitbucket diffstat for commit ${commit}:`,
+				`Error fetching Bitbucket diffstat for ${spec}:`,
 				error instanceof Error ? error.message : "Unknown error",
 			);
 
-			return [];
+			return null;
 		}
 	}
 

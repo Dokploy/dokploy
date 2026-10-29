@@ -118,10 +118,11 @@ export default async function handler(
 					"",
 			);
 
-			const shouldDeployPaths = shouldDeploy(
-				composeResult.watchPaths,
-				committedPaths,
-			);
+			// If the diffstat could not be read, deploy instead of skipping
+			// the push without any trace.
+			const shouldDeployPaths =
+				committedPaths === null ||
+				shouldDeploy(composeResult.watchPaths, committedPaths);
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
