@@ -229,6 +229,24 @@ describe("extractCommittedPaths (Bitbucket)", () => {
 		expect(shouldDeploy(WATCH_PATHS, paths)).toBe(true);
 	});
 
+	it("returns null when the diffstat runs past the page budget", async () => {
+		fetchMock.mockImplementation(async (url: string) =>
+			jsonResponse({
+				values: [{ new: { path: "README.md" }, old: { path: "README.md" } }],
+				next: `${url}+`,
+			}),
+		);
+
+		const paths = await extractCommittedPaths(
+			pushBody("bbb", "aaa"),
+			bitbucket,
+			"repo",
+		);
+
+		expect(paths).toBeNull();
+		expect(fetchMock).toHaveBeenCalledTimes(10);
+	});
+
 	it("returns null when the diffstat request fails", async () => {
 		fetchMock.mockResolvedValueOnce(jsonResponse({ error: "boom" }, 500));
 

@@ -596,8 +596,12 @@ export const getProviderByHeader = (headers: any) => {
  * deleted files (`new: null`) and files renamed out of a folder count.
  *
  * Returns `null` when the paths cannot be determined (a diffstat request
- * failed), so callers can deploy rather than silently skip the push.
+ * failed, timed out or ran past the page budget), so callers can deploy
+ * rather than silently skip the push.
  */
+const DIFFSTAT_PAGE_LIMIT = 10;
+const DIFFSTAT_REQUEST_TIMEOUT_MS = 10_000;
+
 export const extractCommittedPaths = async (
 	body: any,
 	bitbucket: Bitbucket | null,
@@ -615,13 +619,18 @@ export const extractCommittedPaths = async (
 	const committedPaths: string[] = [];
 	const username =
 		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
+	let pages = 0;
 	for (const spec of specs) {
 		let url: string | undefined =
 			`https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${spec}`;
 		try {
 			while (url) {
+				if (++pages > DIFFSTAT_PAGE_LIMIT) {
+					throw new Error(`more than ${DIFFSTAT_PAGE_LIMIT} diffstat pages`);
+				}
 				const response: Response = await fetch(url, {
 					headers: getBitbucketHeaders(bitbucket!),
+					signal: AbortSignal.timeout(DIFFSTAT_REQUEST_TIMEOUT_MS),
 				});
 				if (!response.ok) {
 					throw new Error(`HTTP ${response.status}`);
