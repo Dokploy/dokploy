@@ -107,6 +107,7 @@ const environment = (mode: string, port?: string) => {
 	writeFileSync(callsFile, "");
 	rmSync(join(directory, "pulled"), { force: true });
 	return {
+		NODE_ENV: "test" as const,
 		PATH: `${directory}:/usr/local/bin:/usr/bin:/bin`,
 		TEST_MODE: mode,
 		TEST_CALLS: callsFile,
