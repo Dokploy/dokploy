@@ -12,7 +12,7 @@
 	"dependencies": {
 		"inngest": "3.54.0",
 		"@dokploy/server": "workspace:*",
-		"@hono/node-server": "^1.19.15",
+		"@hono/node-server": "^2.1.5",
 		"@hono/zod-validator": "0.7.6",
 		"dotenv": "^16.4.5",
 		"hono": "^4.13.5",
