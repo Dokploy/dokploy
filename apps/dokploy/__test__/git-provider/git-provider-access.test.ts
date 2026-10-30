@@ -1,6 +1,8 @@
 import {
+	assertCanEditExistingDeployGitSource,
 	canEditDeployGitSource,
 	getAccessibleGitProviderIds,
+	getConnectedGitProviderId,
 } from "@dokploy/server/services/git-provider";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -365,5 +367,63 @@ describe("canEditDeployGitSource", () => {
 			);
 			expect(result).toBe(false);
 		});
+	});
+});
+
+describe("getConnectedGitProviderId", () => {
+	it("returns the gitlab gitProviderId for a gitlab source", () => {
+		expect(
+			getConnectedGitProviderId({
+				sourceType: "gitlab",
+				gitlab: { gitProviderId: "gp-gitlab" },
+			}),
+		).toBe("gp-gitlab");
+	});
+
+	it("returns null when there is no connected git provider", () => {
+		expect(getConnectedGitProviderId({ sourceType: "docker" })).toBeNull();
+	});
+});
+
+describe("assertCanEditExistingDeployGitSource", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockHasValidLicense.mockResolvedValue(true);
+	});
+
+	it("allows first-time connects when no git source is attached", async () => {
+		await expect(
+			assertCanEditExistingDeployGitSource(null, session(USER_MEMBER)),
+		).resolves.toBeUndefined();
+	});
+
+	it("rejects existing-source edits that only have accessedGitProviders", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({ role: "member" });
+		mockDb.query.gitProvider.findFirst.mockResolvedValue({
+			userId: USER_OWNER,
+			sharedWithOrganization: false,
+		});
+
+		await expect(
+			assertCanEditExistingDeployGitSource(
+				providerPrivate.gitProviderId,
+				session(USER_MEMBER),
+			),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
+	});
+
+	it("allows existing-source edits when the member owns the provider", async () => {
+		mockDb.query.member.findFirst.mockResolvedValue({ role: "member" });
+		mockDb.query.gitProvider.findFirst.mockResolvedValue({
+			userId: USER_MEMBER,
+			sharedWithOrganization: false,
+		});
+
+		await expect(
+			assertCanEditExistingDeployGitSource(
+				providerOwned.gitProviderId,
+				session(USER_MEMBER),
+			),
+		).resolves.toBeUndefined();
 	});
 });
