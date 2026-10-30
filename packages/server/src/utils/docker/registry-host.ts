@@ -58,8 +58,16 @@ export const isImageFromRegistry = (
 	registryUrl?: string | null,
 ): boolean => {
 	const image = (dockerImage ?? "").trim();
-	const registryHost = getRegistryHost(registryUrl);
-	if (!image || !registryHost) return false;
+	if (!image || registryUrl === undefined || registryUrl === null) return false;
+
+	// Registry rows default `registryUrl` to an empty string, which is a valid
+	// Docker Hub configuration. Only a missing registry (handled above) has
+	// nothing to match against.
+	const configuredUrl = registryUrl.trim();
+	const registryHost = configuredUrl
+		? getRegistryHost(configuredUrl)
+		: "docker.io";
+	if (!registryHost) return false;
 
 	const imageHost = getImageRegistryHost(image);
 	if (imageHost) {

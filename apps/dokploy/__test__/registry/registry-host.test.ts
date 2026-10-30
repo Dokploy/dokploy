@@ -80,8 +80,16 @@ describe("isImageFromRegistry", () => {
 		).toBe(true);
 	});
 
-	it("returns false when either side is missing", () => {
-		expect(isImageFromRegistry("", "registry.example.com")).toBe(false);
+	it("treats an empty configured registry URL as Docker Hub", () => {
+		expect(isImageFromRegistry("nginx:latest", "")).toBe(true);
+		expect(isImageFromRegistry("docker.io/team/private:latest", "")).toBe(true);
+		expect(isImageFromRegistry("library/nginx:latest", "  ")).toBe(true);
 		expect(isImageFromRegistry("registry.example.com/app", "")).toBe(false);
+	});
+
+	it("returns false when the image or the registry is missing", () => {
+		expect(isImageFromRegistry("", "registry.example.com")).toBe(false);
+		expect(isImageFromRegistry("nginx:latest", undefined)).toBe(false);
+		expect(isImageFromRegistry("nginx:latest", null)).toBe(false);
 	});
 });

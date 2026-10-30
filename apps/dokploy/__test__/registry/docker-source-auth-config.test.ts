@@ -82,6 +82,31 @@ describe("getAuthConfig for Docker-source applications", () => {
 		).resolves.toBeUndefined();
 	});
 
+	it("falls back to a Docker Hub registry whose URL is empty", async () => {
+		mocks.findRegistryByIdWithCredentials.mockResolvedValue({
+			...registry,
+			registryUrl: "",
+		});
+		const app = (dockerImage: string) =>
+			dockerApplication({
+				dockerImage,
+				registry: { registryId: registry.registryId, registryUrl: "" },
+			});
+
+		await expect(
+			getAuthConfig(app("docker.io/team/private:latest")),
+		).resolves.toEqual({
+			password: "registry-pass",
+			username: "registry-user",
+			serveraddress: "",
+		});
+		await expect(getAuthConfig(app("team/private:latest"))).resolves.toEqual({
+			password: "registry-pass",
+			username: "registry-user",
+			serveraddress: "",
+		});
+	});
+
 	it("keeps the existing behavior for non-Docker sources", async () => {
 		await expect(
 			getAuthConfig({

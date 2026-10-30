@@ -3,8 +3,8 @@ import { findRegistryByIdWithCredentials } from "@dokploy/server/services/regist
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
+import { getAuthConfig } from "../docker/auth-config";
 import { buildDokployLabels } from "../docker/dokploy-labels";
-import { isImageFromRegistry } from "../docker/registry-host";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -233,57 +233,4 @@ const getImageName = async (application: ApplicationNested) => {
 	return imageName;
 };
 
-export const getAuthConfig = async (application: ApplicationNested) => {
-	const {
-		registry,
-		buildRegistry,
-		username,
-		password,
-		sourceType,
-		registryUrl,
-		dockerImage,
-	} = application;
-
-	if (sourceType === "docker") {
-		if (username && password) {
-			return { password, username, serveraddress: registryUrl || "" };
-		}
-
-		// Docker-source apps can reuse the globally configured registry when
-		// they have no credentials of their own. Only do that when the image
-		// explicitly targets that registry: bare image names resolve to Docker
-		// Hub and must not receive private registry credentials.
-		const fallbackRegistry = registry ?? buildRegistry;
-		if (
-			!username &&
-			!password &&
-			fallbackRegistry &&
-			isImageFromRegistry(dockerImage, fallbackRegistry.registryUrl)
-		) {
-			const r = await findRegistryByIdWithCredentials(
-				fallbackRegistry.registryId,
-			);
-			return {
-				password: r.password,
-				username: r.username,
-				serveraddress: r.registryUrl,
-			};
-		}
-	} else if (registry) {
-		const r = await findRegistryByIdWithCredentials(registry.registryId);
-		return {
-			password: r.password,
-			username: r.username,
-			serveraddress: r.registryUrl,
-		};
-	} else if (buildRegistry) {
-		const r = await findRegistryByIdWithCredentials(buildRegistry.registryId);
-		return {
-			password: r.password,
-			username: r.username,
-			serveraddress: r.registryUrl,
-		};
-	}
-
-	return undefined;
-};
+export { getAuthConfig };
