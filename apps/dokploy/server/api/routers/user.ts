@@ -34,6 +34,7 @@ import {
 	user,
 } from "@dokploy/server/db/schema";
 import {
+	findServiceOrganizationId,
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
@@ -59,6 +60,13 @@ const apiCreateApiKey = z.object({
 	expiresIn: z.number().optional(),
 	metadata: z.object({
 		organizationId: z.string(),
+		scope: z
+			.object({
+				services: z
+					.array(z.string().min(1))
+					.transform((services) => [...new Set(services)]),
+			})
+			.optional(),
 	}),
 	// Rate limiting
 	rateLimitEnabled: z.boolean().optional(),
@@ -753,34 +761,66 @@ export const userRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-
 	createApiKey: protectedProcedure
 		.input(apiCreateApiKey)
 		.mutation(async ({ input, ctx }) => {
-			// Verify user is a member of the organization specified in metadata
-			if (input.metadata?.organizationId) {
-				const userMember = await db.query.member.findFirst({
-					where: and(
-						eq(member.organizationId, input.metadata.organizationId),
-						eq(member.userId, ctx.user.id),
-					),
-				});
+			const organizationId = input.metadata.organizationId;
 
-				if (!userMember) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You are not a member of this organization",
-					});
+			// Verify user membership in the target organization.
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!userMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			const services = input.metadata.scope?.services;
+
+			// Validate selected services only when a scope is provided.
+			// An empty array intentionally grants access to no services.
+			if (services !== undefined) {
+				const isPrivileged =
+					userMember.role === "owner" || userMember.role === "admin";
+
+				for (const serviceId of services) {
+					const serviceOrganizationId =
+						await findServiceOrganizationId(serviceId);
+
+					if (serviceOrganizationId !== organizationId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Service ${serviceId} does not belong to the specified organization`,
+						});
+					}
+
+					if (
+						!isPrivileged &&
+						!userMember.accessedServices.includes(serviceId)
+					) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: `You don't have access to service ${serviceId}`,
+						});
+					}
 				}
 			}
 
 			const apiKey = await createApiKey(ctx.user.id, input);
+
 			await audit(ctx, {
 				action: "create",
 				resourceType: "user",
 				resourceId: apiKey.id,
 				resourceName: input.name,
 			});
+
 			return apiKey;
 		}),
 

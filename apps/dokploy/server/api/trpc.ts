@@ -46,6 +46,7 @@ interface CreateContextOptions {
 	session:
 		| (Session & { activeOrganizationId: string; impersonatedBy?: string })
 		| null;
+	apiKeyScope: { services: string[] } | undefined;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
 }
@@ -67,6 +68,7 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 		req: opts.req,
 		res: opts.res,
 		user: opts.user,
+		apiKeyScope: opts.apiKeyScope,
 	};
 };
 
@@ -80,11 +82,14 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
 
 	// Get from the request
-	const { session, user } = await validateRequest(req);
+	const auth = await validateRequest(req);
+	const { session, user } = auth;
+	const apiKeyScope = "scope" in auth ? auth.scope : undefined;
 
 	return createInnerTRPCContext({
 		req,
 		res,
+		apiKeyScope,
 		// @ts-expect-error
 		session: session
 			? {

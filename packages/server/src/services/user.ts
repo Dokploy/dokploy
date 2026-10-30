@@ -533,6 +533,9 @@ export const createApiKey = async (
 		expiresIn?: number;
 		metadata: {
 			organizationId: string;
+			scope?: {
+				services: string[];
+			};
 		};
 		rateLimitEnabled?: boolean;
 		rateLimitTimeWindow?: number;
