@@ -138,6 +138,13 @@ const assertStaticIpIsUsable = async (docker: Dockerode, address: string) => {
 			`${STATIC_IP_ENV_KEY} "${address}" is not inside the "${TRAEFIK_NETWORK_NAME}" network (${subnets.join(", ")})`,
 		);
 	}
+	// On an overlay network the swarm assigns addresses from the same pool, so
+	// the address can be taken by a task after a reboot without anyone
+	// changing the setting.
+	const overlayHint =
+		network.Driver === "overlay"
+			? " On an overlay network a swarm task can be given the same address after a reboot."
+			: "";
 	const containers: Record<string, NetworkContainer> = network.Containers ?? {};
 	const conflict = Object.values(containers).find(
 		(container) =>
@@ -146,7 +153,12 @@ const assertStaticIpIsUsable = async (docker: Dockerode, address: string) => {
 	);
 	if (conflict) {
 		throw new Error(
-			`${STATIC_IP_ENV_KEY} "${address}" is already used by the container "${conflict.Name}"`,
+			`${STATIC_IP_ENV_KEY} "${address}" is already used by the container "${conflict.Name}".${overlayHint}`,
+		);
+	}
+	if (network.Driver === "overlay") {
+		console.log(
+			`Warning: "${TRAEFIK_NETWORK_NAME}" is an overlay network. A swarm task can be given the address "${address}" after a reboot, and Traefik would then not start. Use an address outside the pool of the network, or a smaller pool.`,
 		);
 	}
 };

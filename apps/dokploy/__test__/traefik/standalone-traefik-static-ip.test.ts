@@ -15,6 +15,7 @@ vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 }));
 
 interface FakeNetwork {
+	driver?: "bridge" | "overlay";
 	subnets: string[];
 	containers: { Name: string; IPv4Address: string }[];
 }
@@ -120,6 +121,7 @@ const fakeDocker = ({
 		getNetwork: (name: string) => ({
 			inspect: async () => ({
 				Name: name,
+				Driver: network.driver ?? "bridge",
 				IPAM: {
 					Driver: "default",
 					Config: network.subnets.map((Subnet) => ({ Subnet })),
@@ -343,6 +345,64 @@ describe("initializeStandaloneTraefik with TRAEFIK_STATIC_IP", () => {
 			'TRAEFIK_STATIC_IP "10.0.1.45" is already used by the container "some-app"',
 		);
 		expect(fake.createdWith()).toBeUndefined();
+	});
+
+	it("explains the overlay caveat when the address is taken", async () => {
+		const fake = fakeDocker({
+			network: {
+				driver: "overlay",
+				subnets: ["10.0.1.0/24"],
+				containers: [{ Name: "some-task.1", IPv4Address: "10.0.1.45/24" }],
+			},
+		});
+
+		const error = await recreate(fake, {
+			env: ["TRAEFIK_STATIC_IP=10.0.1.45"],
+		});
+
+		expect(error?.message).toContain(
+			"On an overlay network a swarm task can be given the same address after a reboot",
+		);
+	});
+
+	it("warns on an overlay network that a task can take the address", async () => {
+		const log = vi.spyOn(console, "log");
+		const fake = fakeDocker({
+			network: {
+				driver: "overlay",
+				subnets: ["10.0.1.0/24"],
+				containers: [],
+			},
+		});
+
+		const error = await recreate(fake, {
+			env: ["TRAEFIK_STATIC_IP=10.0.1.45"],
+		});
+
+		expect(error).toBeNull();
+		expect(log).toHaveBeenCalledWith(
+			expect.stringContaining("is an overlay network"),
+		);
+	});
+
+	it("does not warn on a bridge network", async () => {
+		const log = vi.spyOn(console, "log");
+		const fake = fakeDocker({
+			network: {
+				driver: "bridge",
+				subnets: ["10.0.1.0/24"],
+				containers: [],
+			},
+		});
+
+		const error = await recreate(fake, {
+			env: ["TRAEFIK_STATIC_IP=10.0.1.45"],
+		});
+
+		expect(error).toBeNull();
+		expect(log).not.toHaveBeenCalledWith(
+			expect.stringContaining("is an overlay network"),
+		);
 	});
 });
 
