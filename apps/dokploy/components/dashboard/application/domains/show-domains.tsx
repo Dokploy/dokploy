@@ -10,6 +10,7 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import {
+	AlertTriangle,
 	CheckCircle2,
 	ChevronDown,
 	ExternalLink,
@@ -74,6 +75,7 @@ export type ValidationState = {
 	resolvedIp?: string;
 	message?: string;
 	cdnProvider?: string;
+	ipMismatch?: boolean;
 };
 
 export type ValidationStates = Record<string, ValidationState>;
@@ -202,6 +204,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					error: result.error,
 					resolvedIp: result.resolvedIp,
 					cdnProvider: result.cdnProvider,
+					ipMismatch: result.ipMismatch,
 					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
@@ -638,11 +641,13 @@ export const ShowDomains = ({ id, type }: Props) => {
 																<Badge
 																	variant="outline"
 																	className={
-																		validationState?.isValid
-																			? "bg-green-500/10 text-green-500 cursor-pointer"
-																			: validationState?.error
-																				? "bg-red-500/10 text-red-500 cursor-pointer"
-																				: "bg-yellow-500/10 text-yellow-500 cursor-pointer"
+																		validationState?.ipMismatch
+																			? "bg-yellow-500/10 text-yellow-500 cursor-pointer"
+																			: validationState?.isValid
+																				? "bg-green-500/10 text-green-500 cursor-pointer"
+																				: validationState?.error
+																					? "bg-red-500/10 text-red-500 cursor-pointer"
+																					: "bg-yellow-500/10 text-yellow-500 cursor-pointer"
 																	}
 																	onClick={() =>
 																		handleValidateDomain(item.host)
@@ -652,6 +657,11 @@ export const ShowDomains = ({ id, type }: Props) => {
 																		<>
 																			<Loader2 className="size-3 mr-1 animate-spin" />
 																			Checking DNS...
+																		</>
+																	) : validationState?.ipMismatch ? (
+																		<>
+																			<AlertTriangle className="size-3 mr-1" />
+																			Not pointing to this server
 																		</>
 																	) : validationState?.isValid ? (
 																		<>

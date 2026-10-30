@@ -146,4 +146,43 @@ describe("validateDomain", () => {
 			resolvedIp: "2001:db8::10",
 		});
 	});
+
+	it("warns instead of failing when the domain resolves to another address", async () => {
+		mocks.resolve4.mockImplementation(
+			(
+				_domain: string,
+				callback: (error: Error | null, addresses?: string[]) => void,
+			) => callback(null, ["10.0.0.50"]),
+		);
+		mocks.resolve6.mockImplementation(
+			(_domain: string, callback: (error: Error | null) => void) =>
+				callback(new Error("queryAaaa ENODATA example.com")),
+		);
+
+		const result = await validateDomain("example.com", ["10.0.0.10"]);
+
+		expect(result).toMatchObject({
+			isValid: true,
+			ipMismatch: true,
+			resolvedIp: "10.0.0.50",
+		});
+		expect(result.error).toContain("10.0.0.10");
+	});
+
+	it("does not flag a mismatch when the domain resolves to the server", async () => {
+		mocks.resolve4.mockImplementation(
+			(
+				_domain: string,
+				callback: (error: Error | null, addresses?: string[]) => void,
+			) => callback(null, ["10.0.0.10"]),
+		);
+		mocks.resolve6.mockImplementation(
+			(_domain: string, callback: (error: Error | null) => void) =>
+				callback(new Error("queryAaaa ENODATA example.com")),
+		);
+
+		const result = await validateDomain("example.com", ["10.0.0.10"]);
+
+		expect(result).toEqual({ isValid: true, resolvedIp: "10.0.0.10" });
+	});
 });
