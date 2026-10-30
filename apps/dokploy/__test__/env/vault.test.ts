@@ -867,6 +867,21 @@ describe("phase client", () => {
 		);
 	});
 
+	it.each([
+		"ServiceAccount phase-rest-token",
+		"Bearer ServiceAccount phase-rest-token",
+		"  phase-rest-token\n",
+	])("strips pasted auth prefixes from the token (%j)", async (token) => {
+		mockFetch.mockResolvedValue(jsonResponse([]));
+
+		await phaseClient.listSecretNames({ ...config, token });
+
+		const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect((init.headers as Record<string, string>).Authorization).toBe(
+			"Bearer ServiceAccount phase-rest-token",
+		);
+	});
+
 	it("throws when a requested secret is missing", async () => {
 		mockFetch.mockResolvedValue(
 			jsonResponse([{ key: "DB_URL", value: "postgres://real", path: "/" }]),
