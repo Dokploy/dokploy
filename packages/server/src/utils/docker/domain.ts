@@ -325,7 +325,7 @@ export const addDomainToCompose = async (
 		if (!domain.enabled) {
 			// Disabling only drops routing; the service may still talk to others over dokploy-network.
 			const service = serviceName ? result.services?.[serviceName] : undefined;
-			if (service && !compose.isolatedDeployment) {
+			if (service && !service.network_mode && !compose.isolatedDeployment) {
 				service.networks = addDokployNetworkToService(service.networks);
 			}
 			continue;

@@ -110,6 +110,24 @@ describe("addDomainToCompose enabled filtering", () => {
 		expect(result?.networks).not.toHaveProperty("dokploy-network");
 	});
 
+	it.each(["host", "service:db", "container:db"])(
+		"does not add networks for a disabled domain on a service with network_mode %s",
+		async (networkMode) => {
+			composeYaml = `
+services:
+  frigate:
+    image: frigate
+    network_mode: "${networkMode}"
+`;
+			const result = await addDomainToCompose(baseCompose, [
+				{ ...baseDomain, enabled: false },
+			]);
+
+			expect(result?.services?.frigate?.networks).toBeUndefined();
+			expect(result?.networks).toBeUndefined();
+		},
+	);
+
 	it.each([
 		["missing", ""],
 		["nonexistent", "ghost"],
