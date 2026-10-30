@@ -1,11 +1,16 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+	extractServices,
+	type Services,
+} from "@/components/dashboard/settings/users/add-permissions";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -33,24 +38,27 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { API_KEY_NAME_MAX_LENGTH, apiKeyNameSchema } from "@/lib/api-keys";
-import { api } from "@/utils/api";
+import { api, type RouterOutputs } from "@/utils/api";
 
 const formSchema = z.object({
 	name: apiKeyNameSchema,
 	prefix: z.string().optional(),
 	expiresIn: z.number().nullable(),
 	organizationId: z.string().min(1, "Organization is required"),
-	// Rate limiting fields
 	rateLimitEnabled: z.boolean().optional(),
 	rateLimitTimeWindow: z.number().nullable(),
 	rateLimitMax: z.number().nullable(),
-	// Request limiting fields
 	remaining: z.number().nullable().optional(),
 	refillAmount: z.number().nullable().optional(),
 	refillInterval: z.number().nullable().optional(),
+	serviceScope: z.enum(["all", "selected"]),
+	serviceIds: z.array(z.string()),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+type ProjectForPermissions =
+	RouterOutputs["project"]["servicesForApiKey"][number];
 
 const EXPIRATION_OPTIONS = [
 	{ label: "Never", value: "0" },
@@ -83,8 +91,28 @@ export const AddApiKey = () => {
 	const [open, setOpen] = useState(false);
 	const [showSuccessModal, setShowSuccessModal] = useState(false);
 	const [newApiKey, setNewApiKey] = useState("");
+
 	const { refetch } = api.user.get.useQuery();
 	const { data: organizations } = api.organization.all.useQuery();
+
+	const form = useForm<FormValues>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			name: "",
+			prefix: "",
+			expiresIn: null,
+			organizationId: "",
+			rateLimitEnabled: false,
+			rateLimitTimeWindow: null,
+			rateLimitMax: null,
+			remaining: null,
+			refillAmount: null,
+			refillInterval: null,
+			serviceScope: "all",
+			serviceIds: [],
+		},
+	});
+
 	const createApiKey = api.user.createApiKey.useMutation({
 		onSuccess: (data) => {
 			if (!data) return;
@@ -100,41 +128,96 @@ export const AddApiKey = () => {
 		},
 	});
 
-	const form = useForm<FormValues>({
-		resolver: zodResolver(formSchema),
-		defaultValues: {
-			name: "",
-			prefix: "",
-			expiresIn: null,
-			organizationId: "",
-			rateLimitEnabled: false,
-			rateLimitTimeWindow: null,
-			rateLimitMax: null,
-			remaining: null,
-			refillAmount: null,
-			refillInterval: null,
-		},
-	});
-
+	const organizationId = form.watch("organizationId");
+	const serviceScope = form.watch("serviceScope");
 	const rateLimitEnabled = form.watch("rateLimitEnabled");
+	const selectedServiceIds = form.watch("serviceIds");
 
-	const onSubmit = async (values: FormValues) => {
+	const { data: projects, isLoading: isLoadingProjects } =
+		api.project.servicesForApiKey.useQuery(
+			{ organizationId },
+			{
+				enabled:
+					open && serviceScope === "selected" && organizationId.length > 0,
+			},
+		);
+
+	const selectedProjects: ProjectForPermissions[] = projects ?? [];
+
+	useEffect(() => {
+		form.setValue("serviceIds", []);
+	}, [organizationId, form]);
+
+	const onSubmit = (values: FormValues) => {
 		createApiKey.mutate({
 			name: values.name,
 			expiresIn: values.expiresIn || undefined,
 			prefix: values.prefix || undefined,
 			metadata: {
 				organizationId: values.organizationId,
+				...(values.serviceScope === "selected"
+					? { scope: { services: values.serviceIds } }
+					: {}),
 			},
-			// Rate limiting
 			rateLimitEnabled: values.rateLimitEnabled,
 			rateLimitTimeWindow: values.rateLimitTimeWindow || undefined,
 			rateLimitMax: values.rateLimitMax || undefined,
-			// Request limiting
 			remaining: values.remaining || undefined,
 			refillAmount: values.refillAmount || undefined,
 			refillInterval: values.refillInterval || undefined,
 		});
+	};
+
+	const toggleService = (
+		serviceId: string,
+		checked: boolean | "indeterminate",
+		currentIds: string[],
+		onChange: (ids: string[]) => void,
+	) => {
+		if (checked === true) {
+			if (!currentIds.includes(serviceId)) {
+				onChange([...currentIds, serviceId]);
+			}
+			return;
+		}
+
+		onChange(currentIds.filter((id) => id !== serviceId));
+	};
+
+	const renderService = (
+		service: Services,
+		currentIds: string[],
+		onChange: (ids: string[]) => void,
+	) => {
+		const checkboxId = `service-${service.id}`;
+
+		return (
+			<div key={service.id} className="flex items-start gap-3 py-1">
+				<Checkbox
+					id={checkboxId}
+					checked={currentIds.includes(service.id)}
+					onCheckedChange={(checked) =>
+						toggleService(service.id, checked, currentIds, onChange)
+					}
+				/>
+				<div className="min-w-0 flex-1">
+					<label
+						htmlFor={checkboxId}
+						className="block cursor-pointer truncate text-sm font-normal"
+					>
+						{service.name}
+					</label>
+					{service.description && (
+						<p className="truncate text-xs text-muted-foreground">
+							{service.description}
+						</p>
+					)}
+				</div>
+				<span className="shrink-0 text-xs text-muted-foreground">
+					{service.type}
+				</span>
+			</div>
+		);
 	};
 
 	return (
@@ -143,7 +226,8 @@ export const AddApiKey = () => {
 				<DialogTrigger asChild>
 					<Button>Generate New Key</Button>
 				</DialogTrigger>
-				<DialogContent className="sm:max-w-xl max-h-[90vh]">
+
+				<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
 					<DialogHeader>
 						<DialogTitle>Generate API Key</DialogTitle>
 						<DialogDescription>
@@ -151,6 +235,7 @@ export const AddApiKey = () => {
 							expiration date and a custom prefix for better organization.
 						</DialogDescription>
 					</DialogHeader>
+
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 							<FormField
@@ -173,6 +258,7 @@ export const AddApiKey = () => {
 									</FormItem>
 								)}
 							/>
+
 							<FormField
 								control={form.control}
 								name="prefix"
@@ -186,6 +272,7 @@ export const AddApiKey = () => {
 									</FormItem>
 								)}
 							/>
+
 							<FormField
 								control={form.control}
 								name="expiresIn"
@@ -215,6 +302,7 @@ export const AddApiKey = () => {
 									</FormItem>
 								)}
 							/>
+
 							<FormField
 								control={form.control}
 								name="organizationId"
@@ -240,9 +328,143 @@ export const AddApiKey = () => {
 								)}
 							/>
 
-							{/* Rate Limiting Section */}
+							<div className="space-y-4 rounded-lg border p-4">
+								<h3 className="text-lg font-medium">Service Access</h3>
+
+								<FormField
+									control={form.control}
+									name="serviceScope"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Service access</FormLabel>
+											<Select
+												value={field.value}
+												onValueChange={(value) => {
+													field.onChange(value);
+
+													if (value === "all") {
+														form.setValue("serviceIds", []);
+													}
+												}}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Choose service access" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="all">All services</SelectItem>
+													<SelectItem value="selected">
+														Selected services only
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												{field.value === "all"
+													? "This API key can access all services allowed by the user's existing organization permissions."
+													: "This API key can access only the services you select below. Selecting no services denies access to all services."}
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{serviceScope === "selected" && (
+									<FormField
+										control={form.control}
+										name="serviceIds"
+										render={({ field }) => (
+											<FormItem>
+												<div className="flex items-center justify-between gap-2">
+													<FormLabel>Allowed services</FormLabel>
+													<span className="text-xs text-muted-foreground">
+														{selectedServiceIds.length}{" "}
+														{selectedServiceIds.length === 1
+															? "service"
+															: "services"}{" "}
+														selected
+													</span>
+												</div>
+
+												{!organizationId ? (
+													<p className="text-sm text-muted-foreground">
+														Select an organization first.
+													</p>
+												) : isLoadingProjects ? (
+													<p className="text-sm text-muted-foreground">
+														Loading projects...
+													</p>
+												) : selectedProjects.length > 0 ? (
+													<div className="max-h-72 space-y-3 overflow-y-auto rounded-md border p-3">
+														{selectedProjects.map((project) => (
+															<div
+																key={project.projectId}
+																className="space-y-2"
+															>
+																<h4 className="font-medium">{project.name}</h4>
+
+																{project.environments.map((environment) => {
+																	const services = extractServices(environment);
+
+																	if (services.length === 0) return null;
+
+																	return (
+																		<div
+																			key={environment.environmentId}
+																			className="ml-2 space-y-1 border-l pl-3"
+																		>
+																			<h5 className="text-sm font-medium text-muted-foreground">
+																				{environment.name}
+																			</h5>
+
+																			{services.map((service) =>
+																				renderService(
+																					service,
+																					field.value,
+																					field.onChange,
+																				),
+																			)}
+																		</div>
+																	);
+																})}
+															</div>
+														))}
+													</div>
+												) : (
+													<p className="text-sm text-muted-foreground">
+														No projects or services available in this
+														organization.
+													</p>
+												)}
+
+												{selectedServiceIds.length === 0 ? (
+													<p
+														role="status"
+														className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+													>
+														No services selected. This API key will have no
+														service access.
+													</p>
+												) : (
+													<FormDescription>
+														Only the {selectedServiceIds.length} selected{" "}
+														{selectedServiceIds.length === 1
+															? "service"
+															: "services"}{" "}
+														will be accessible through this API key, subject to
+														existing permissions.
+													</FormDescription>
+												)}
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+							</div>
+
 							<div className="space-y-4 rounded-lg border p-4">
 								<h3 className="text-lg font-medium">Rate Limiting</h3>
+
 								<FormField
 									control={form.control}
 									name="rateLimitEnabled"
@@ -273,7 +495,7 @@ export const AddApiKey = () => {
 												<FormItem>
 													<FormLabel>Time Window</FormLabel>
 													<Select
-														value={field.value?.toString()}
+														value={field.value?.toString() ?? ""}
 														onValueChange={(value) =>
 															field.onChange(Number.parseInt(value, 10))
 														}
@@ -301,6 +523,7 @@ export const AddApiKey = () => {
 												</FormItem>
 											)}
 										/>
+
 										<FormField
 											control={form.control}
 											name="rateLimitMax"
@@ -312,10 +535,10 @@ export const AddApiKey = () => {
 															type="number"
 															placeholder="100"
 															value={field.value?.toString() ?? ""}
-															onChange={(e) =>
+															onChange={(event) =>
 																field.onChange(
-																	e.target.value
-																		? Number.parseInt(e.target.value, 10)
+																	event.target.value
+																		? Number.parseInt(event.target.value, 10)
 																		: null,
 																)
 															}
@@ -333,9 +556,9 @@ export const AddApiKey = () => {
 								)}
 							</div>
 
-							{/* Request Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">
 								<h3 className="text-lg font-medium">Request Limiting</h3>
+
 								<FormField
 									control={form.control}
 									name="remaining"
@@ -347,10 +570,10 @@ export const AddApiKey = () => {
 													type="number"
 													placeholder="Leave empty for unlimited"
 													value={field.value?.toString() ?? ""}
-													onChange={(e) =>
+													onChange={(event) =>
 														field.onChange(
-															e.target.value
-																? Number.parseInt(e.target.value, 10)
+															event.target.value
+																? Number.parseInt(event.target.value, 10)
 																: null,
 														)
 													}
@@ -376,10 +599,10 @@ export const AddApiKey = () => {
 													type="number"
 													placeholder="Amount to refill"
 													value={field.value?.toString() ?? ""}
-													onChange={(e) =>
+													onChange={(event) =>
 														field.onChange(
-															e.target.value
-																? Number.parseInt(e.target.value, 10)
+															event.target.value
+																? Number.parseInt(event.target.value, 10)
 																: null,
 														)
 													}
@@ -400,7 +623,7 @@ export const AddApiKey = () => {
 										<FormItem>
 											<FormLabel>Refill Interval</FormLabel>
 											<Select
-												value={field.value?.toString()}
+												value={field.value?.toString() ?? ""}
 												onValueChange={(value) =>
 													field.onChange(Number.parseInt(value, 10))
 												}
@@ -435,7 +658,9 @@ export const AddApiKey = () => {
 								>
 									Cancel
 								</Button>
-								<Button type="submit">Generate</Button>
+								<Button type="submit" disabled={createApiKey.isPending}>
+									{createApiKey.isPending ? "Generating..." : "Generate"}
+								</Button>
 							</div>
 						</form>
 					</Form>
@@ -450,9 +675,10 @@ export const AddApiKey = () => {
 							Please copy your API key now. You won't be able to see it again!
 						</DialogDescription>
 					</DialogHeader>
+
 					<div className="mt-4 space-y-4">
 						<CodeEditor
-							className="font-mono text-sm break-all"
+							className="break-all font-mono text-sm"
 							language="properties"
 							value={newApiKey}
 							readOnly

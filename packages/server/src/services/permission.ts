@@ -35,6 +35,7 @@ type Permissions = {
 export type PermissionCtx = {
 	user: { id: string };
 	session: { activeOrganizationId: string };
+	apiKeyScope?: { services: string[] };
 };
 
 export type ResolvedPermissions = {
@@ -139,6 +140,27 @@ export const checkPermission = async (
 	});
 };
 
+const checkApiKeyServiceScope = (
+	ctx: {
+		apiKeyScope?: { services: string[] };
+	},
+	serviceId: string,
+) => {
+	const scope = ctx.apiKeyScope;
+
+	// No scope means legacy, unrestricted API-key behavior.
+	if (!scope) {
+		return;
+	}
+
+	if (!scope.services.includes(serviceId)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "API key does not have access to this service",
+		});
+	}
+};
+
 export const hasPermission = async (
 	ctx: PermissionCtx,
 	permissions: Permissions,
@@ -240,7 +262,7 @@ const serviceTables = [
 ] as const;
 
 // Callers pass the id of any service type, so the owning table is unknown.
-const findServiceOrganizationId = async (serviceId: string) => {
+export const findServiceOrganizationId = async (serviceId: string) => {
 	for (const [table, idColumn] of serviceTables) {
 		const [row] = await db
 			.select({ organizationId: projects.organizationId })
@@ -345,6 +367,7 @@ export const checkServicePermissionAndAccess = async (
 	const organizationId = ctx.session.activeOrganizationId;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
 	await assertServiceInOrganization(ctx, serviceId);
+	checkApiKeyServiceScope(ctx, serviceId);
 	await checkPermission(ctx, permissions);
 	if (memberRecord.role !== "owner" && memberRecord.role !== "admin") {
 		if (!memberRecord.accessedServices.includes(serviceId)) {
@@ -370,6 +393,7 @@ export const checkServiceAccess = async (
 		await assertProjectInOrganization(ctx, serviceId);
 	} else {
 		await assertServiceInOrganization(ctx, serviceId);
+		checkApiKeyServiceScope(ctx, serviceId);
 	}
 
 	await checkPermission(ctx, { service: [action] });

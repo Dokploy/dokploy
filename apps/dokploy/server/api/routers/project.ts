@@ -514,6 +514,211 @@ export const projectRouter = createTRPCRouter({
 		},
 	),
 
+	servicesForApiKey: protectedProcedure
+		.input(z.object({ organizationId: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			const memberRecord = await findMemberByUserId(
+				ctx.user.id,
+				input.organizationId,
+			);
+
+			const isPrivileged =
+				memberRecord.role === "owner" || memberRecord.role === "admin";
+
+			const accessedProjects = memberRecord.accessedProjects;
+			const accessedEnvironments = memberRecord.accessedEnvironments;
+			const accessedServices = memberRecord.accessedServices;
+
+			const result = await db.query.projects.findMany({
+				where: eq(projects.organizationId, input.organizationId),
+				orderBy: desc(projects.createdAt),
+				columns: {
+					projectId: true,
+					name: true,
+				},
+				with: {
+					environments: {
+						columns: {
+							environmentId: true,
+							name: true,
+							isDefault: true,
+						},
+						with: {
+							applications: {
+								columns: {
+									applicationId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							mariadb: {
+								columns: {
+									mariadbId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							postgres: {
+								columns: {
+									postgresId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							mysql: {
+								columns: {
+									mysqlId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							mongo: {
+								columns: {
+									mongoId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							redis: {
+								columns: {
+									redisId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							compose: {
+								columns: {
+									composeId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									composeStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+							libsql: {
+								columns: {
+									libsqlId: true,
+									appName: true,
+									name: true,
+									createdAt: true,
+									applicationStatus: true,
+									description: true,
+									serverId: true,
+								},
+							},
+						},
+					},
+				},
+			});
+
+			// First apply the user's existing organization-member access.
+			const accessibleProjects = isPrivileged
+				? result
+				: result
+						.filter((project) => accessedProjects.includes(project.projectId))
+						.map((project) => ({
+							...project,
+							environments: project.environments
+								.filter((environment) =>
+									accessedEnvironments.includes(environment.environmentId),
+								)
+								.map((environment) => ({
+									...environment,
+									applications: environment.applications.filter((service) =>
+										accessedServices.includes(service.applicationId),
+									),
+									mariadb: environment.mariadb.filter((service) =>
+										accessedServices.includes(service.mariadbId),
+									),
+									postgres: environment.postgres.filter((service) =>
+										accessedServices.includes(service.postgresId),
+									),
+									mysql: environment.mysql.filter((service) =>
+										accessedServices.includes(service.mysqlId),
+									),
+									mongo: environment.mongo.filter((service) =>
+										accessedServices.includes(service.mongoId),
+									),
+									redis: environment.redis.filter((service) =>
+										accessedServices.includes(service.redisId),
+									),
+									compose: environment.compose.filter((service) =>
+										accessedServices.includes(service.composeId),
+									),
+									libsql: environment.libsql.filter((service) =>
+										accessedServices.includes(service.libsqlId),
+									),
+								})),
+						}));
+
+			// Then apply the API-key scope, if one exists.
+			// Undefined means unrestricted by API-key scope; [] means no services.
+			const allowedServices = ctx.apiKeyScope?.services;
+
+			if (allowedServices === undefined) {
+				return accessibleProjects;
+			}
+
+			const allowedServiceIds = new Set(allowedServices);
+
+			return accessibleProjects.map((project) => ({
+				...project,
+				environments: project.environments.map((environment) => ({
+					...environment,
+					applications: environment.applications.filter((service) =>
+						allowedServiceIds.has(service.applicationId),
+					),
+					mariadb: environment.mariadb.filter((service) =>
+						allowedServiceIds.has(service.mariadbId),
+					),
+					postgres: environment.postgres.filter((service) =>
+						allowedServiceIds.has(service.postgresId),
+					),
+					mysql: environment.mysql.filter((service) =>
+						allowedServiceIds.has(service.mysqlId),
+					),
+					mongo: environment.mongo.filter((service) =>
+						allowedServiceIds.has(service.mongoId),
+					),
+					redis: environment.redis.filter((service) =>
+						allowedServiceIds.has(service.redisId),
+					),
+					compose: environment.compose.filter((service) =>
+						allowedServiceIds.has(service.composeId),
+					),
+					libsql: environment.libsql.filter((service) =>
+						allowedServiceIds.has(service.libsqlId),
+					),
+				})),
+			}));
+		}),
+
 	homeStats: protectedProcedure.query(async ({ ctx }) => {
 		const isPrivileged = ctx.user.role === "owner" || ctx.user.role === "admin";
 
