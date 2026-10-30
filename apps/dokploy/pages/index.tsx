@@ -46,7 +46,7 @@ import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const LoginSchema = z.object({
-	email: z.string().email(),
+	email: z.string().trim().email(),
 	password: z.string().min(8),
 });
 

@@ -39,6 +39,7 @@ const safeUrlField = z
 
 const safeEmailField = z
 	.string()
+	.trim()
 	.refine((val) => val === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
 		message: "Enter a valid email address",
 	});
