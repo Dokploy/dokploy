@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Form,
@@ -34,6 +35,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
+	const hasCustomCommand = !!data?.command || !!data?.args?.length;
 	const form = useForm<DockerProvider>({
 		defaultValues: {
 			dockerImage: "",
@@ -147,6 +149,13 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						/>
 					</div>
 				</div>
+
+				{hasCustomCommand && (
+					<AlertBlock type="warning">
+						A custom Run Command is set in the Advanced tab. It will be applied
+						to this image and can override its default command.
+					</AlertBlock>
+				)}
 
 				<div className="flex flex-row justify-end">
 					<Button

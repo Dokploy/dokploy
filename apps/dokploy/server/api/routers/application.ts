@@ -649,6 +649,11 @@ export const applicationRouter = createTRPCRouter({
 				password: input.password,
 				sourceType: "docker",
 				registryUrl: input.registryUrl,
+				// A pre-built image has nothing to build. A leftover build server would
+				// pull it on the wrong machine, and the build registry is never used to
+				// run it.
+				buildServerId: null,
+				buildRegistryId: null,
 			});
 			const application = await findApplicationById(input.applicationId);
 			await audit(ctx, {
