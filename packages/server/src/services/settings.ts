@@ -17,6 +17,8 @@ import {
 	TRAEFIK_VERSION,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import { caddySwitch, withCaddyQueue } from "../utils/caddy/sync";
+import { assertTraefikProvider } from "./web-server-settings";
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -460,30 +462,36 @@ export const checkPortInUse = async (
 };
 
 export const writeTraefikSetup = async (input: TraefikOptions) => {
-	await restoreInterruptedTraefik(input.serverId);
-	const resourceType = await getDockerResourceType(
-		"dokploy-traefik",
-		input.serverId,
-	);
-
-	if (resourceType === "service") {
-		await initializeTraefikService({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-		});
-		await reconnectServicesToTraefik(input.serverId);
-	} else if (resourceType === "standalone") {
-		await initializeStandaloneTraefik({
-			env: input.env,
-			additionalPorts: input.additionalPorts,
-			serverId: input.serverId,
-		});
-
-		await reconnectServicesToTraefik(input.serverId);
-	} else {
-		throw new Error("Traefik resource type not found");
+	if (caddySwitch(input.serverId)?.status === "running") {
+		throw new Error("A web server switch is running on this server");
 	}
+	return withCaddyQueue(input.serverId, async () => {
+		await assertTraefikProvider(input.serverId);
+		await restoreInterruptedTraefik(input.serverId);
+		const resourceType = await getDockerResourceType(
+			"dokploy-traefik",
+			input.serverId,
+		);
+
+		if (resourceType === "service") {
+			await initializeTraefikService({
+				env: input.env,
+				additionalPorts: input.additionalPorts,
+				serverId: input.serverId,
+			});
+			await reconnectServicesToTraefik(input.serverId);
+		} else if (resourceType === "standalone") {
+			await initializeStandaloneTraefik({
+				env: input.env,
+				additionalPorts: input.additionalPorts,
+				serverId: input.serverId,
+			});
+
+			await reconnectServicesToTraefik(input.serverId);
+		} else {
+			throw new Error("Traefik resource type not found");
+		}
+	});
 };
 
 const splitImageReference = (image: string) => {

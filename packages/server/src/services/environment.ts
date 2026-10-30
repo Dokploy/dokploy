@@ -4,6 +4,7 @@ import {
 	type apiDuplicateEnvironment,
 	environments,
 } from "@dokploy/server/db/schema";
+import { syncAllCaddyInBackground } from "@dokploy/server/utils/caddy/sync";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -299,6 +300,7 @@ export const deleteEnvironment = async (environmentId: string) => {
 		.where(eq(environments.environmentId, environmentId))
 		.returning()
 		.then((value) => value[0]);
+	syncAllCaddyInBackground();
 
 	return deletedEnvironment;
 };

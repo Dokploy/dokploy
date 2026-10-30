@@ -6,7 +6,21 @@ import {
 } from "@dokploy/server/setup/traefik-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getRemoteDocker: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+	getRemoteDocker: vi.fn(),
+	getWebServerProvider: vi.fn(async () => "traefik"),
+}));
+
+vi.mock("@dokploy/server/services/web-server-settings", () => ({
+	getWebServerProvider: mocks.getWebServerProvider,
+}));
+
+it("never restores a retired Traefik backup on a Caddy server", async () => {
+	mocks.getWebServerProvider.mockResolvedValueOnce("caddy");
+	mocks.getRemoteDocker.mockClear();
+	await restoreInterruptedTraefik("remote-caddy");
+	expect(mocks.getRemoteDocker).not.toHaveBeenCalled();
+});
 
 vi.mock("@dokploy/server/db", () => ({ db: {} }));
 
@@ -73,6 +87,9 @@ const fakeDocker = ({
 	};
 
 	const container = (ref: string) => ({
+		update: async ({ RestartPolicy }: { RestartPolicy: { Name: string } }) => {
+			log.push(`restart ${find(ref).id} ${RestartPolicy.Name}`);
+		},
 		inspect: async () => {
 			const c = find(ref);
 			const startedAt =
@@ -400,6 +417,7 @@ describe("restoreInterruptedTraefik", () => {
 		await restoreInterruptedTraefik();
 
 		expect(fake.log).toEqual([
+			"restart stale always",
 			"rename stale -> dokploy-traefik",
 			"start stale",
 		]);
@@ -433,6 +451,7 @@ describe("restoreInterruptedTraefik", () => {
 
 		expect(error).toBeNull();
 		expect(fake.log).toEqual([
+			"restart stale always",
 			"rename stale -> dokploy-traefik",
 			"start stale",
 			"rename stale -> dokploy-traefik-previous",

@@ -4,6 +4,7 @@ import {
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
+	syncAllCaddyInBackground,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
@@ -287,6 +288,7 @@ export const organizationRouter = createTRPCRouter({
 			}
 
 			const result = await deleteOrganization(input.organizationId);
+			syncAllCaddyInBackground();
 
 			await audit(ctx, {
 				action: "delete",

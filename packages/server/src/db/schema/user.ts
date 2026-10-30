@@ -185,8 +185,12 @@ export const apiReadTraefikConfig = z.object({
 					return false;
 				}
 
-				const { MAIN_TRAEFIK_PATH } = paths();
-				if (path.startsWith("/") && !path.startsWith(MAIN_TRAEFIK_PATH)) {
+				const { MAIN_TRAEFIK_PATH, MAIN_CADDY_PATH } = paths();
+				if (
+					path.startsWith("/") &&
+					!path.startsWith(MAIN_TRAEFIK_PATH) &&
+					!path.startsWith(`${MAIN_CADDY_PATH}/`)
+				) {
 					return false;
 				}
 				// Prevent null bytes and other dangerous characters

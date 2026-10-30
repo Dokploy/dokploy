@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+	caddySwitch: vi.fn(),
+	getWebServerProvider: vi.fn(async () => "traefik"),
+	switchWebServer: vi.fn(),
+	syncCaddy: vi.fn(),
+	assertTraefikProvider: vi.fn(async (_serverId?: string) => undefined),
 	findServerById: vi.fn(),
 	getTraefikOverview: vi.fn(),
 	pullTraefikImage: vi.fn(),
@@ -57,6 +62,9 @@ const overview = (versionStatus: string) => ({
 describe("Traefik update endpoints", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.assertTraefikProvider.mockResolvedValue(undefined);
+		mocks.caddySwitch.mockReturnValue(undefined);
+		mocks.getWebServerProvider.mockResolvedValue("traefik");
 		mocks.findServerById.mockImplementation(async (serverId: string) => ({
 			serverId,
 			organizationId: serverId === "server-b" ? "org-b" : "org-a",
@@ -82,6 +90,65 @@ describe("Traefik update endpoints", () => {
 		await expect(
 			caller.updateTraefik({ serverId: "server-b" }),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		expect(mocks.pullTraefikImage).not.toHaveBeenCalled();
+		expect(mocks.writeTraefikSetup).not.toHaveBeenCalled();
+	});
+
+	it("rejects a Caddy server before inspecting or downloading Traefik", async () => {
+		mocks.assertTraefikProvider.mockRejectedValueOnce(
+			new Error("This server runs Caddy"),
+		);
+		await expect(
+			caller.updateTraefik({ serverId: "server-a" }),
+		).rejects.toThrow("This server runs Caddy");
+		expect(mocks.assertTraefikProvider).toHaveBeenCalledWith("server-a");
+		expect(mocks.getTraefikOverview).not.toHaveBeenCalled();
+		expect(mocks.pullTraefikImage).not.toHaveBeenCalled();
+		expect(mocks.writeTraefikSetup).not.toHaveBeenCalled();
+	});
+
+	it("rejects Traefik-only settings synchronously on Caddy", async () => {
+		mocks.assertTraefikProvider.mockRejectedValue(
+			new Error("This server runs Caddy"),
+		);
+		await expect(
+			caller.toggleDashboard({ serverId: "server-a", enableDashboard: true }),
+		).rejects.toThrow("This server runs Caddy");
+		await expect(
+			caller.writeTraefikEnv({ serverId: "server-a", env: "X=y" }),
+		).rejects.toThrow("This server runs Caddy");
+		await expect(
+			caller.updateTraefikPorts({ serverId: "server-a", additionalPorts: [] }),
+		).rejects.toThrow("This server runs Caddy");
+		expect(mocks.readPorts).not.toHaveBeenCalled();
+		expect(mocks.writeTraefikSetup).not.toHaveBeenCalled();
+	});
+
+	it("does not report a deferred Caddy reload as successful during a switch", async () => {
+		mocks.getWebServerProvider.mockResolvedValue("caddy");
+		mocks.caddySwitch.mockReturnValue({ status: "running" });
+		await expect(
+			caller.reloadTraefik({ serverId: "server-a" }),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+		expect(mocks.syncCaddy).not.toHaveBeenCalled();
+	});
+
+	it("rejects Traefik changes before work begins during switch preflight", async () => {
+		mocks.caddySwitch.mockReturnValue({ status: "running" });
+		await expect(
+			caller.toggleDashboard({ serverId: "server-a", enableDashboard: true }),
+		).rejects.toThrow("switch is running");
+		await expect(
+			caller.writeTraefikEnv({ serverId: "server-a", env: "X=y" }),
+		).rejects.toThrow("switch is running");
+		await expect(
+			caller.updateTraefikPorts({ serverId: "server-a", additionalPorts: [] }),
+		).rejects.toThrow("switch is running");
+		await expect(
+			caller.updateTraefik({ serverId: "server-a" }),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+		expect(mocks.readPorts).not.toHaveBeenCalled();
+		expect(mocks.getTraefikOverview).not.toHaveBeenCalled();
 		expect(mocks.pullTraefikImage).not.toHaveBeenCalled();
 		expect(mocks.writeTraefikSetup).not.toHaveBeenCalled();
 	});
@@ -227,6 +294,14 @@ describe("Traefik update endpoints", () => {
 		await expect(caller.updateTraefik({ serverId: "server-c" })).resolves.toBe(
 			true,
 		);
+		await expect(
+			caller.switchWebServer({
+				serverId: "server-a",
+				provider: "caddy",
+				acknowledged: true,
+			}),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+		expect(mocks.switchWebServer).not.toHaveBeenCalled();
 
 		finishRecreate();
 		await vi.waitFor(async () =>

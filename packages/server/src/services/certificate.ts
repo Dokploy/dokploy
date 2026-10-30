@@ -1,3 +1,4 @@
+import { createPrivateKey, X509Certificate } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
@@ -6,6 +7,12 @@ import {
 	type apiCreateCertificate,
 	certificates,
 } from "@dokploy/server/db/schema";
+import {
+	applyCaddy,
+	syncCaddy,
+	syncCaddyInBackground,
+	withCaddyQueue,
+} from "@dokploy/server/utils/caddy/sync";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -14,8 +21,25 @@ import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsyncRemote } from "../utils/process/execAsync";
+import { getWebServerProvider } from "./web-server-settings";
 
 export type Certificate = typeof certificates.$inferSelect;
+
+const validateCaddyCertificate = async (
+	certificate: Pick<Certificate, "certificateData" | "privateKey" | "serverId">,
+) => {
+	if ((await getWebServerProvider(certificate.serverId)) !== "caddy") return;
+	try {
+		const leaf = new X509Certificate(certificate.certificateData);
+		if (leaf.checkPrivateKey(createPrivateKey(certificate.privateKey))) return;
+	} catch {
+		// Do not include certificate or key material in errors.
+	}
+	throw new TRPCError({
+		code: "BAD_REQUEST",
+		message: "Provide a valid certificate and its matching private key",
+	});
+};
 
 export const findCertificateById = async (certificateId: string) => {
 	const certificate = await db.query.certificates.findFirst({
@@ -36,6 +60,10 @@ export const createCertificate = async (
 	certificateData: z.infer<typeof apiCreateCertificate>,
 	organizationId: string,
 ) => {
+	await validateCaddyCertificate({
+		...certificateData,
+		serverId: certificateData.serverId ?? null,
+	});
 	const certificate = await db
 		.insert(certificates)
 		.values({
@@ -54,6 +82,7 @@ export const createCertificate = async (
 	const cer = certificate[0];
 
 	await createCertificateFiles(cer);
+	syncCaddyInBackground(cer.serverId);
 
 	return cer;
 };
@@ -75,26 +104,40 @@ const resolveCertificateDir = (certificate: Certificate) => {
 export const removeCertificateById = async (certificateId: string) => {
 	const certificate = await findCertificateById(certificateId);
 	const certDir = resolveCertificateDir(certificate);
+	return withCaddyQueue(certificate.serverId, async () => {
+		const isCaddy =
+			(await getWebServerProvider(certificate.serverId)) === "caddy";
+		const removeFiles = async () => {
+			if (certificate.serverId) {
+				await execAsyncRemote(
+					certificate.serverId,
+					`rm -rf ${quote([certDir])}`,
+				);
+			} else {
+				await removeDirectoryIfExistsContent(certDir);
+			}
+		};
+		// Preserve upstream's retryable file-first deletion on Traefik.
+		if (!isCaddy) await removeFiles();
+		const result = await db
+			.delete(certificates)
+			.where(eq(certificates.certificateId, certificateId))
+			.returning();
 
-	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${quote([certDir])}`);
-	} else {
-		await removeDirectoryIfExistsContent(certDir);
-	}
+		if (!result) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Failed to delete the certificate",
+			});
+		}
+		// Autosave must stop referring to the files before a restart can lose them.
+		if (isCaddy) {
+			await applyCaddy(certificate.serverId, true);
+			await removeFiles();
+		}
 
-	const result = await db
-		.delete(certificates)
-		.where(eq(certificates.certificateId, certificateId))
-		.returning();
-
-	if (!result) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Failed to delete the certificate",
-		});
-	}
-
-	return result;
+		return result;
+	});
 };
 
 const createCertificateFiles = async (certificate: Certificate) => {
@@ -148,6 +191,17 @@ export const updateCertificate = async (
 		privateKey?: string;
 	},
 ) => {
+	if (
+		updates.certificateData !== undefined ||
+		updates.privateKey !== undefined
+	) {
+		const current = await findCertificateById(certificateId);
+		await validateCaddyCertificate({
+			...current,
+			certificateData: updates.certificateData ?? current.certificateData,
+			privateKey: updates.privateKey ?? current.privateKey,
+		});
+	}
 	const updated = await db
 		.update(certificates)
 		.set({
@@ -168,6 +222,7 @@ export const updateCertificate = async (
 	// If cert data or private key changed, rewrite files
 	if (updates.certificateData || updates.privateKey) {
 		await createCertificateFiles(cert);
+		await syncCaddy(cert.serverId, true);
 	}
 
 	return cert;

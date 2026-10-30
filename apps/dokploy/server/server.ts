@@ -13,6 +13,7 @@ import {
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
+	syncAllCaddyInBackground,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
@@ -60,6 +61,7 @@ void app.prepare().then(async () => {
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
+			syncAllCaddyInBackground();
 			createDefaultMiddlewares();
 			await initializeNetwork();
 			await restoreInterruptedTraefik().catch((error) => {
