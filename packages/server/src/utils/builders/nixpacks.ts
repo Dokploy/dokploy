@@ -17,7 +17,7 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 		application.environment.env,
 	);
 
-	const args = ["build", buildAppDirectory, "--name", appName];
+	const args = ["build", quote([buildAppDirectory]), "--name", appName];
 
 	if (cleanCache) {
 		args.push("--no-cache");

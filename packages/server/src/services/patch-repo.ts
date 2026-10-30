@@ -3,6 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
+import { cloneAzureDevopsRepository } from "../utils/providers/azure-devops";
 import { cloneBitbucketRepository } from "../utils/providers/bitbucket";
 import { cloneGitRepository } from "../utils/providers/git";
 import { cloneGiteaRepository } from "../utils/providers/gitea";
@@ -50,7 +51,9 @@ export const ensurePatchRepo = async ({
 	};
 
 	let command = "set -e;";
-	if (application.sourceType === "github") {
+	if (application.sourceType === "azureDevops") {
+		command += await cloneAzureDevopsRepository(applicationEntity);
+	} else if (application.sourceType === "github") {
 		command += await cloneGithubRepository(applicationEntity);
 	} else if (application.sourceType === "gitlab") {
 		command += await cloneGitlabRepository(applicationEntity);

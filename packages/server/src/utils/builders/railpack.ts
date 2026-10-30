@@ -29,11 +29,11 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	// Prepare command
 	const prepareArgs = [
 		"prepare",
-		buildAppDirectory,
+		quote([buildAppDirectory]),
 		"--plan-out",
-		`${buildAppDirectory}/railpack-plan.json`,
+		quote([`${buildAppDirectory}/railpack-plan.json`]),
 		"--info-out",
-		`${buildAppDirectory}/railpack-info.json`,
+		quote([`${buildAppDirectory}/railpack-info.json`]),
 	];
 
 	for (const env of envVariables) {
@@ -59,7 +59,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		"--build-arg",
 		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 		"-f",
-		`${buildAppDirectory}/railpack-plan.json`,
+		quote([`${buildAppDirectory}/railpack-plan.json`]),
 		"--output",
 		`type=docker,name=${appName}`,
 	];
@@ -80,7 +80,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		}
 	}
 
-	buildArgs.push(buildAppDirectory);
+	buildArgs.push(quote([buildAppDirectory]));
 
 	const bashCommand = `
 
