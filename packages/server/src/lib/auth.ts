@@ -24,6 +24,7 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
+import { captureEvent, getPostHogSessionId } from "../utils/tracking/posthog";
 import {
 	sendEmail,
 	sendVerificationEmail,
@@ -303,7 +304,7 @@ const createBetterAuth = () =>
 						}
 
 						if (IS_CLOUD || !isAdminPresent) {
-							await db.transaction(async (tx) => {
+							const createdOrganization = await db.transaction(async (tx) => {
 								const organization = await tx
 									.insert(schema.organization)
 									.values({
@@ -321,7 +322,23 @@ const createBetterAuth = () =>
 									createdAt: new Date(),
 									isDefault: true, // Mark first organization as default
 								});
+
+								return organization;
 							});
+
+							if (IS_CLOUD) {
+								void captureEvent({
+									distinctId: user.id,
+									event: "user_signed_up",
+									organizationId: createdOrganization?.id,
+									sessionId: getPostHogSessionId(context?.request?.headers),
+									properties: {
+										method: context?.path,
+										$set: { email: user.email, name: user.name },
+										$set_once: { signed_up_at: new Date().toISOString() },
+									},
+								});
+							}
 						} else if (isSSORequest) {
 							const providerId = context?.params?.providerId;
 							if (!providerId) {

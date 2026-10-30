@@ -1,6 +1,8 @@
 import {
+	captureEvent,
 	findServersByUserId,
 	findUserById,
+	getPostHogSessionId,
 	IS_CLOUD,
 	updateUser,
 } from "@dokploy/server";
@@ -113,6 +115,18 @@ export const stripeRouter = createTRPCRouter({
 				stripeCustomerId,
 				stripeSubscriptionId: subscription.id,
 				serversQuantity: TRIAL_SERVER_LIMITS[input.tier],
+			});
+
+			void captureEvent({
+				distinctId: owner.id,
+				event: "trial_started",
+				organizationId: ctx.session.activeOrganizationId,
+				sessionId: getPostHogSessionId(ctx.req.headers),
+				properties: {
+					tier: input.tier,
+					trial_days: TRIAL_DURATION_DAYS,
+					$set: { billing_status: "trialing", plan_tier: input.tier },
+				},
 			});
 
 			return {

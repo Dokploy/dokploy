@@ -1,5 +1,5 @@
 import { buffer } from "node:stream/consumers";
-import { findUserById, type Server } from "@dokploy/server";
+import { captureEvent, findUserById, type Server } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -108,6 +108,15 @@ export default async function handler(
 			if (admin.isEnterpriseCloud) {
 				break;
 			}
+			await captureEvent({
+				distinctId: admin.id,
+				event: "subscription_activated",
+				properties: {
+					source: "checkout",
+					servers_quantity: serversQuantity,
+					$set: { billing_status: "active" },
+				},
+			});
 			const newServersQuantity = admin.serversQuantity;
 			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
 			break;
@@ -164,6 +173,33 @@ export default async function handler(
 				break;
 			}
 
+			// Paying through checkout cancels the leftover trial subscription;
+			// that is a conversion, not a lost trial.
+			const otherActive = await stripe.subscriptions
+				.list({
+					customer: newSubscription.customer as string,
+					status: "active",
+					limit: 1,
+				})
+				.catch(() => null);
+			if (otherActive?.data.length === 0) {
+				const endedDuringTrial =
+					!!newSubscription.trial_end &&
+					(newSubscription.ended_at ?? event.created) <=
+						newSubscription.trial_end;
+				await captureEvent({
+					distinctId: admin.id,
+					event: endedDuringTrial ? "trial_ended" : "subscription_canceled",
+					properties: {
+						cancellation_reason:
+							newSubscription.cancellation_details?.reason ?? null,
+						cancellation_feedback:
+							newSubscription.cancellation_details?.feedback ?? null,
+						$set: { billing_status: "canceled" },
+					},
+				});
+			}
+
 			await disableServers(admin.id);
 			break;
 		}
@@ -180,6 +216,23 @@ export default async function handler(
 
 			if (admin.isEnterpriseCloud) {
 				break;
+			}
+
+			const previousStatus = (
+				event.data.previous_attributes as Partial<Stripe.Subscription>
+			)?.status;
+			if (
+				previousStatus === "trialing" &&
+				newSubscription.status === "active"
+			) {
+				await captureEvent({
+					distinctId: admin.id,
+					event: "subscription_activated",
+					properties: {
+						source: "trial_converted",
+						$set: { billing_status: "active" },
+					},
+				});
 			}
 
 			if (
