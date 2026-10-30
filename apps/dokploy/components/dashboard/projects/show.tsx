@@ -55,6 +55,7 @@ import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { TransferProject } from "./transfer-project";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -486,6 +487,16 @@ export const ShowProjects = () => {
 																						</AlertDialog>
 																					)}
 																				</div>
+																				{(auth?.role === "owner" ||
+																					auth?.role === "admin") && (
+																					<div
+																						onClick={(e) => e.stopPropagation()}
+																					>
+																						<TransferProject
+																							projectId={project.projectId}
+																						/>
+																					</div>
+																				)}
 																			</DropdownMenuContent>
 																		</DropdownMenu>
 																	</div>
