@@ -443,7 +443,16 @@ export const apiSaveBuildType = createSchema
 		railpackVersion: true,
 	})
 	.required()
-	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
+	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }))
+	.superRefine((data, ctx) => {
+		if (data.buildType === "railpack" && !data.railpackVersion?.trim()) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["railpackVersion"],
+				message: "Railpack version is required",
+			});
+		}
+	});
 
 const branchField = z
 	.string()
