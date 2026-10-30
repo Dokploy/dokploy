@@ -16,6 +16,7 @@ import {
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
+import { EnvHttpProxyAgent, setGlobalDispatcher } from "undici";
 import packageInfo from "../package.json";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
@@ -25,6 +26,15 @@ import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
 
 config({ path: ".env" });
+// Node's fetch only honors HTTP_PROXY, HTTPS_PROXY and NO_PROXY through a dispatcher
+if (
+	process.env.HTTP_PROXY ||
+	process.env.HTTPS_PROXY ||
+	process.env.http_proxy ||
+	process.env.https_proxy
+) {
+	setGlobalDispatcher(new EnvHttpProxyAgent());
+}
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
