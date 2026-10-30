@@ -51,7 +51,12 @@ export const OnboardingLayout = ({ children, leftPanel }: Props) => {
 				<div className="flex w-full flex-1 flex-col justify-center space-y-6 max-w-lg mx-auto py-8">
 					{children}
 				</div>
-				<div className="mx-auto flex w-full max-w-lg items-center justify-center gap-1 pb-6 text-muted-foreground sm:justify-end">
+				<div
+					className={cn(
+						"mx-auto flex w-full max-w-lg items-center justify-center gap-1 pb-6 text-muted-foreground sm:justify-end",
+						whitelabeling?.hideSocialIcons && "invisible",
+					)}
+				>
 					<Button variant="ghost" size="icon">
 						<Link href="https://github.com/dokploy/dokploy">
 							<GithubIcon />

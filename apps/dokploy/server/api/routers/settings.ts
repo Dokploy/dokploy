@@ -525,6 +525,68 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}),
 
+	updateVisibilityControls: enterpriseProcedure
+		.input(
+			z
+				.object({
+					hideSocialIcons: z.boolean(),
+					hideDocsLink: z.boolean(),
+					hideSupportLink: z.boolean(),
+					hideSSOButton: z.boolean(),
+					hidePasskeyButton: z.boolean(),
+				})
+				.partial(),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			const settings = await getWebServerSettings();
+			let conflict: string | undefined;
+			if (input.hideDocsLink && settings?.whitelabelingConfig?.docsUrl) {
+				conflict =
+					"A custom Documentation URL is configured in Whitelabeling. Remove it first to hide this link.";
+			} else if (
+				input.hideSupportLink &&
+				settings?.whitelabelingConfig?.supportUrl
+			) {
+				conflict =
+					"A custom Support URL is configured in Whitelabeling. Remove it first to hide this link.";
+			} else if (input.hideSSOButton && settings?.enforceSSO) {
+				conflict =
+					"Enforce SSO is enabled. Disable it before hiding the SSO button.";
+			} else if (
+				input.hideSSOButton &&
+				(await db.query.ssoProvider.findFirst())
+			) {
+				conflict =
+					"SSO providers are configured. Remove all SSO providers before hiding the SSO button.";
+			} else if (
+				input.hidePasskeyButton &&
+				(await db.query.passkey.findFirst())
+			) {
+				conflict =
+					"Users on this server have passkeys configured. They must remove their passkeys before this can be hidden.";
+			}
+			if (conflict) {
+				throw new TRPCError({ code: "BAD_REQUEST", message: conflict });
+			}
+
+			await updateWebServerSettings(input);
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "visibility-controls",
+				metadata: input,
+			});
+			return true;
+		}),
+
 	readTraefikConfig: adminProcedure.query(() => {
 		if (IS_CLOUD) {
 			return true;
