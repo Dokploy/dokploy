@@ -3,6 +3,9 @@ import {
 	getComposeContainerCommand,
 	getServiceContainerCommand,
 } from "../backups/utils";
+import { stripDatabaseSwitchCommand } from "./strip-database-switch";
+
+export { stripDatabaseSwitchCommand };
 
 // User-controlled values are passed to the container via `docker exec -e` and
 // read as "$VAR" inside a single-quoted inner script, so they never enter the
@@ -79,10 +82,6 @@ const generateRestoreCommand = (
 	}
 };
 
-// Dumps taken with `--databases` carry `USE`/`CREATE DATABASE` statements that
-// would redirect the restore away from the database selected in the dialog.
-export const stripDatabaseSwitchCommand = `grep -viE '^[[:space:]]*(use|create[[:space:]]+database)[[:space:]]'`;
-
 const getMongoSpecificCommand = (
 	rcloneCommand: string,
 	restoreCommand: string,
@@ -131,7 +130,11 @@ export const getRestoreCommand = ({
 
 	if (type === "mysql" || type === "mariadb") {
 		cmd += ` && ${rcloneCommand} | ${stripDatabaseSwitchCommand} | ${restoreCommand}`;
-	} else if (type !== "mongo") {
+		// Double-quoted shell-quote output can leave literal backslashes before
+		// the awk program's exclamation marks in this nested shell command.
+		return `bash -o pipefail -c '${cmd.replaceAll("'", "'\\''")}'`;
+	}
+	if (type !== "mongo") {
 		cmd += ` && ${rcloneCommand} | ${restoreCommand}`;
 	} else {
 		cmd += ` && ${getMongoSpecificCommand(rcloneCommand, restoreCommand, backupFile || "")}`;
