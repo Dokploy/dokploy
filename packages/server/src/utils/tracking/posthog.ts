@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../../constants";
 import { db } from "../../db";
@@ -13,8 +14,17 @@ interface CaptureInput {
 	event: string;
 	organizationId?: string | null;
 	sessionId?: string | null;
+	uuid?: string;
+	timestamp?: Date;
 	properties?: Record<string, unknown>;
 }
+
+// PostHog drops events that repeat the same uuid and timestamp, so a stable seed
+// (e.g. a Stripe event id) keeps webhook retries from being counted twice.
+export const stableEventUuid = (seed: string) => {
+	const hex = createHash("sha1").update(seed).digest("hex");
+	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${((Number.parseInt(hex[16] ?? "0", 16) & 0x3) | 0x8).toString(16)}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+};
 
 // posthog-js sends this header (tracing_headers) so server events can link to the browser's session replay.
 export const getPostHogSessionId = (
@@ -32,20 +42,23 @@ export const captureEvent = async ({
 	event,
 	organizationId,
 	sessionId,
+	uuid,
+	timestamp = new Date(),
 	properties = {},
 }: CaptureInput) => {
 	const apiKey = getPostHogKey();
 	if (!apiKey) return;
 
 	try {
-		await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
+		const response = await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				api_key: apiKey,
 				event,
 				distinct_id: distinctId,
-				timestamp: new Date().toISOString(),
+				timestamp: timestamp.toISOString(),
+				...(uuid ? { uuid } : {}),
 				properties: {
 					...properties,
 					...(sessionId ? { $session_id: sessionId } : {}),
@@ -56,6 +69,11 @@ export const captureEvent = async ({
 			}),
 			signal: AbortSignal.timeout(5000),
 		});
+		if (!response.ok) {
+			console.error(
+				`PostHog rejected event ${event}: ${response.status} ${await response.text().catch(() => "")}`,
+			);
+		}
 	} catch (error) {
 		console.error(`Failed to send PostHog event ${event}`, error);
 	}

@@ -1,5 +1,10 @@
 import { buffer } from "node:stream/consumers";
-import { captureEvent, findUserById, type Server } from "@dokploy/server";
+import {
+	captureEvent,
+	findUserById,
+	type Server,
+	stableEventUuid,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -80,6 +85,11 @@ export default async function handler(
 		return res.status(400).send("Webhook Error: Invalid Event Type");
 	}
 
+	const analyticsEventId = {
+		uuid: stableEventUuid(event.id),
+		timestamp: new Date(event.created * 1000),
+	};
+
 	switch (event.type) {
 		case "checkout.session.completed": {
 			const session = event.data.object as Stripe.Checkout.Session;
@@ -110,6 +120,7 @@ export default async function handler(
 			}
 			await captureEvent({
 				distinctId: admin.id,
+				...analyticsEventId,
 				event: "subscription_activated",
 				properties: {
 					source: "checkout",
@@ -189,6 +200,7 @@ export default async function handler(
 						newSubscription.trial_end;
 				await captureEvent({
 					distinctId: admin.id,
+					...analyticsEventId,
 					event: endedDuringTrial ? "trial_ended" : "subscription_canceled",
 					properties: {
 						cancellation_reason:
@@ -227,6 +239,7 @@ export default async function handler(
 			) {
 				await captureEvent({
 					distinctId: admin.id,
+					...analyticsEventId,
 					event: "subscription_activated",
 					properties: {
 						source: "trial_converted",
