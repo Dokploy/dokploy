@@ -1,5 +1,6 @@
 import { ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/router";
+import { resetPostHog } from "@/components/shared/analytics";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -148,6 +149,7 @@ export const UserNav = () => {
 					className="cursor-pointer"
 					onClick={async () => {
 						await authClient.signOut().then(() => {
+							resetPostHog();
 							router.push("/");
 						});
 						// await mutateAsync().then(() => {

@@ -1,6 +1,7 @@
 import { OpenPanelComponent } from "@openpanel/nextjs";
 import { useRouter } from "next/router";
 import Script from "next/script";
+import posthog from "posthog-js";
 import { useEffect } from "react";
 import { GTM_ID, pushToDataLayer } from "@/lib/analytics";
 import { api } from "@/utils/api";
@@ -42,6 +43,7 @@ export const Analytics = () => {
 
 	return (
 		<>
+			<PostHogTracking />
 			<OpenPanelComponent
 				apiUrl="https://openpanel.dokploy.com/api"
 				clientId="bf5a178b-7f28-4461-bf47-d63feff15922"
@@ -70,6 +72,83 @@ export const Analytics = () => {
 			/>
 		</>
 	);
+};
+
+const PostHogTracking = () => {
+	const router = useRouter();
+	const { data: config } = api.settings.getPostHogConfig.useQuery();
+	const isDashboard = router.pathname.startsWith("/dashboard");
+	const { data: member } = api.user.get.useQuery(undefined, {
+		enabled: !!config && isDashboard,
+	});
+	const { data: billingStatus } = api.stripe.getBillingStatus.useQuery(
+		undefined,
+		{ enabled: !!config && isDashboard },
+	);
+
+	useEffect(() => {
+		if (!config || posthog.__loaded) {
+			return;
+		}
+		posthog.init(config.key, {
+			api_host: config.host,
+			defaults: "2025-05-24",
+			person_profiles: "identified_only",
+			tracing_headers: [window.location.hostname],
+			// Replay only runs for trial / no-plan users, started below once billing status is known.
+			disable_session_recording: true,
+			session_recording: {
+				maskAllInputs: true,
+				// Editors, terminals and log viewers render env vars, compose files and secrets as plain text.
+				maskTextSelector: ".cm-editor, .xterm, pre, code",
+			},
+		});
+	}, [config]);
+
+	const userId = member?.user.id;
+	const email = member?.user.email;
+	const organizationId = member?.organizationId;
+	useEffect(() => {
+		if (!config || !userId || !organizationId) {
+			return;
+		}
+		posthog.identify(userId, { email });
+		posthog.group("organization", organizationId);
+	}, [config, userId, email, organizationId]);
+
+	const utils = api.useUtils();
+	useEffect(() => {
+		// Outside the dashboard (login, register) the next user may be someone else; drop the
+		// cached billing status so their recording decision never uses the previous user's plan.
+		if (!isDashboard) {
+			void utils.stripe.getBillingStatus.reset();
+		}
+	}, [isDashboard, utils]);
+
+	const shouldRecord =
+		isDashboard &&
+		!!billingStatus &&
+		!billingStatus.isEnterpriseCloud &&
+		(billingStatus.isOnTrial || !billingStatus.hasActiveAccess);
+	useEffect(() => {
+		if (!config || !posthog.__loaded) {
+			return;
+		}
+		if (shouldRecord) {
+			posthog.startSessionRecording();
+		} else {
+			posthog.stopSessionRecording();
+		}
+	}, [config, shouldRecord]);
+
+	return null;
+};
+
+export const resetPostHog = () => {
+	if (posthog.__loaded) {
+		posthog.stopSessionRecording();
+		posthog.reset();
+	}
 };
 
 /**

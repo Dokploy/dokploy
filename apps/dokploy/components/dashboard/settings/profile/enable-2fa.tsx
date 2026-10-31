@@ -333,7 +333,8 @@ export const Enable2FA = () => {
 				) : (
 					<Form {...pinForm}>
 						<form onSubmit={handleVerifySubmit} className="space-y-6">
-							<div className="flex flex-col gap-6 justify-center items-center">
+							{/* ph-no-capture keeps the TOTP secret, QR code and backup codes out of session replay. */}
+							<div className="ph-no-capture flex flex-col gap-6 justify-center items-center">
 								{data?.qrCodeUrl ? (
 									<>
 										<div className="flex flex-col items-center gap-4 p-6 border rounded-lg">
