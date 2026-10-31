@@ -52,6 +52,9 @@ export const OnboardingWizard = ({ onClose }: Props) => {
 	const [environmentId, setEnvironmentId] = useState<string | undefined>(
 		persisted.environmentId,
 	);
+	const [applicationId, setApplicationId] = useState<string | undefined>(
+		persisted.applicationId,
+	);
 
 	const { data: isCloud = true } = api.settings.isCloud.useQuery();
 	const visibleStepIds = isCloud
@@ -88,7 +91,12 @@ export const OnboardingWizard = ({ onClose }: Props) => {
 		if (!projectCheckError || !projectId) return;
 		setProjectId(undefined);
 		setEnvironmentId(undefined);
-		setOnboardingState({ projectId: undefined, environmentId: undefined });
+		setApplicationId(undefined);
+		setOnboardingState({
+			projectId: undefined,
+			environmentId: undefined,
+			applicationId: undefined,
+		});
 		stepper.goTo("project");
 	}, [projectCheckError, projectId]);
 
@@ -245,9 +253,11 @@ export const OnboardingWizard = ({ onClose }: Props) => {
 									onNext={(project) => {
 										setProjectId(project.projectId);
 										setEnvironmentId(project.environmentId);
+										setApplicationId(undefined);
 										setOnboardingState({
 											projectId: project.projectId,
 											environmentId: project.environmentId,
+											applicationId: undefined,
 										});
 										goToNextVisible();
 									}}
@@ -258,12 +268,17 @@ export const OnboardingWizard = ({ onClose }: Props) => {
 								<DeployStep
 									environmentId={environmentId}
 									onNext={goToNextVisible}
+									onDeployedApplication={(id) => {
+										setApplicationId(id);
+										setOnboardingState({ applicationId: id });
+									}}
 								/>
 							),
 							complete: () => (
 								<CompleteStep
 									projectId={projectId}
 									environmentId={environmentId}
+									applicationId={applicationId}
 									onFinish={onClose}
 								/>
 							),

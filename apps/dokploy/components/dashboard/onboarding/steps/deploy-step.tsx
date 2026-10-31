@@ -16,6 +16,9 @@ import { displayFont } from "../font";
 interface Props {
 	environmentId?: string;
 	onNext: () => void;
+	/** Reports the quickstart application once deployed, so later steps can
+	 * link straight into it (e.g. the domains tab). */
+	onDeployedApplication?: (applicationId: string) => void;
 	/** Drops the onboarding wizard's display serif for callers (e.g. the
 	 * post-checkout welcome modal) that want the app's regular typography. */
 	plainTitle?: boolean;
@@ -30,7 +33,12 @@ const CURATED_TEMPLATES = [
 
 type Deploying = { kind: "app" | "template"; id: string; url: string };
 
-export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
+export const DeployStep = ({
+	environmentId,
+	onNext,
+	onDeployedApplication,
+	plainTitle,
+}: Props) => {
 	const titleClassName = plainTitle
 		? "text-xl font-semibold tracking-tight"
 		: `${displayFont.className} text-4xl sm:text-5xl leading-[1.05] tracking-tight`;
@@ -100,6 +108,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 		try {
 			const res = await deployNginx({ environmentId, serverId });
 			setDeploying({ kind: "app", id: res.applicationId, url: res.domainUrl });
+			onDeployedApplication?.(res.applicationId);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error deploying the app",
