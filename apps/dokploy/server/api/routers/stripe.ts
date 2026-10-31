@@ -16,10 +16,16 @@ import {
 } from "@/server/utils/billing";
 import {
 	type BillingTier,
+	findCurrentSubscription,
+	findSoleActiveSubscription,
+	getBillingIssueSubscription,
 	getStripeItems,
+	getSubscriptionPreventingCheckout,
 	HOBBY_PRICE_ANNUAL_ID,
 	HOBBY_PRICE_MONTHLY_ID,
 	HOBBY_PRODUCT_ID,
+	isActiveSubscription,
+	isBillingIssueStatus,
 	LEGACY_PRICE_IDS,
 	PRODUCT_ANNUAL_ID,
 	PRODUCT_MONTHLY_ID,
@@ -149,6 +155,7 @@ export const stripeRouter = createTRPCRouter({
 			return {
 				products: filteredProducts,
 				subscriptions: [],
+				billingIssue: null,
 				hobbyProductId: HOBBY_PRODUCT_ID || undefined,
 				startupProductId: STARTUP_PRODUCT_ID || undefined,
 				currentPlan: null as "legacy" | "hobby" | "startup" | null,
@@ -157,32 +164,56 @@ export const stripeRouter = createTRPCRouter({
 			};
 		}
 
+		// "all" so a past-due or unpaid subscription is still visible to the UI;
+		// otherwise the owner cannot reach the portal to fix the payment.
 		const subscriptions = await stripe.subscriptions.list({
 			customer: stripeCustomerId,
-			status: "active",
+			status: "all",
 			expand: ["data.items.data.price"],
+			limit: 100,
 		});
+
+		const trackedSubscriptions = subscriptions.data.filter(
+			(sub) => isActiveSubscription(sub) || isBillingIssueStatus(sub.status),
+		);
+		const currentSubscription = findCurrentSubscription(
+			trackedSubscriptions,
+			user.stripeSubscriptionId,
+		);
+		// A replaced subscription that is still past_due must not hide the
+		// current plan or its controls.
+		const billingIssueSubscription = getBillingIssueSubscription(
+			trackedSubscriptions,
+			user.stripeSubscriptionId,
+		);
+		const activeSubscriptions =
+			trackedSubscriptions.filter(isActiveSubscription);
+		const planSubscriptions = currentSubscription
+			? [currentSubscription]
+			: activeSubscriptions.length > 0
+				? activeSubscriptions
+				: trackedSubscriptions;
 
 		type CurrentPlan = "legacy" | "hobby" | "startup";
 		let currentPlan: CurrentPlan = "legacy";
 		let isAnnualCurrent = false;
 		let currentPriceAmount: number | null = null;
-		if (subscriptions.data.length > 0) {
-			const matchedSub = subscriptions.data.find((sub) =>
+		if (planSubscriptions.length > 0) {
+			const matchedSub = planSubscriptions.find((sub) =>
 				sub.items.data.some(
 					(item) =>
 						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_MONTHLY_ID ||
 						(item.price as Stripe.Price).id === STARTUP_BASE_PRICE_ANNUAL_ID,
 				),
 			);
-			const hobbySub = subscriptions.data.find((sub) =>
+			const hobbySub = planSubscriptions.find((sub) =>
 				sub.items.data.some(
 					(item) =>
 						(item.price as Stripe.Price).id === HOBBY_PRICE_MONTHLY_ID ||
 						(item.price as Stripe.Price).id === HOBBY_PRICE_ANNUAL_ID,
 				),
 			);
-			const legacySub = subscriptions.data.find((sub) =>
+			const legacySub = planSubscriptions.find((sub) =>
 				sub.items.data.some((item) =>
 					LEGACY_PRICE_IDS.includes((item.price as Stripe.Price).id),
 				),
@@ -213,7 +244,13 @@ export const stripeRouter = createTRPCRouter({
 
 		return {
 			products: filteredProducts,
-			subscriptions: subscriptions.data,
+			subscriptions: trackedSubscriptions,
+			billingIssue: billingIssueSubscription
+				? {
+						id: billingIssueSubscription.id,
+						status: billingIssueSubscription.status,
+					}
+				: null,
 			hobbyProductId: HOBBY_PRODUCT_ID || undefined,
 			startupProductId: STARTUP_PRODUCT_ID || undefined,
 			currentPlan: currentPlan as "legacy" | "hobby" | "startup" | null,
@@ -258,6 +295,29 @@ export const stripeRouter = createTRPCRouter({
 						stripeCustomerId: null,
 					});
 					stripeCustomerId = null;
+				}
+			}
+
+			if (stripeCustomerId) {
+				// Checkout always reuses the owner's customer, so a second
+				// subscription would be created alongside the existing one.
+				const existingSubscriptions = await stripe.subscriptions.list({
+					customer: stripeCustomerId,
+					status: "all",
+					limit: 100,
+				});
+				const blockingSubscription = getSubscriptionPreventingCheckout(
+					existingSubscriptions.data,
+					owner.stripeSubscriptionId,
+				);
+
+				if (blockingSubscription) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: isBillingIssueStatus(blockingSubscription.status)
+							? "Your account has a subscription that is past due, unpaid or incomplete. Update your payment method in the billing portal before starting a new subscription."
+							: "Your account already has an active subscription. Use the billing portal to manage it.",
+					});
 				}
 			}
 
@@ -331,17 +391,37 @@ export const stripeRouter = createTRPCRouter({
 			});
 			const owner = await findUserById(ctx.user.ownerId);
 
-			if (!owner.stripeSubscriptionId) {
+			let subscriptionId = owner.stripeSubscriptionId;
+			if (!subscriptionId && owner.stripeCustomerId) {
+				// Recover accounts whose stored id was cleared by a stale event:
+				// the owner may still have exactly one active subscription.
+				const existingSubscriptions = await stripe.subscriptions.list({
+					customer: owner.stripeCustomerId,
+					status: "all",
+					limit: 100,
+				});
+				const activeSubscription = findSoleActiveSubscription(
+					existingSubscriptions.data,
+				);
+
+				if (activeSubscription) {
+					subscriptionId = activeSubscription.id;
+					await updateUser(owner.id, {
+						stripeSubscriptionId: subscriptionId,
+					});
+				}
+			}
+
+			if (!subscriptionId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "No active subscription found",
 				});
 			}
 
-			const subscription = await stripe.subscriptions.retrieve(
-				owner.stripeSubscriptionId,
-				{ expand: ["items.data.price"] },
-			);
+			const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+				expand: ["items.data.price"],
+			});
 
 			if (
 				subscription.status !== "active" &&
@@ -385,7 +465,7 @@ export const stripeRouter = createTRPCRouter({
 				});
 			}
 
-			await stripe.subscriptions.update(owner.stripeSubscriptionId, {
+			await stripe.subscriptions.update(subscriptionId, {
 				items: updateItems,
 				proration_behavior: isTrialing ? "none" : "create_prorations",
 				...(isTrialing && subscription.trial_end
