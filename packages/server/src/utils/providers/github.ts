@@ -188,6 +188,13 @@ interface CloneGithubRepository {
 	enableSubmodules: boolean;
 	serverId: string | null;
 	outputPathOverride?: string;
+	/**
+	 * Preview deployments: the pull request to check out. GitHub serves every
+	 * pull request's head as `refs/pull/<n>/head` on the BASE repository, so the
+	 * checkout works whether the pull request comes from a branch of that
+	 * repository or from a fork, whose branches the installation cannot clone.
+	 */
+	pullRequestNumber?: string | null;
 }
 export const cloneGithubRepository = async ({
 	type = "application",
@@ -204,6 +211,7 @@ export const cloneGithubRepository = async ({
 		enableSubmodules,
 		serverId,
 		outputPathOverride,
+		pullRequestNumber,
 	} = entity;
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
@@ -233,7 +241,21 @@ export const cloneGithubRepository = async ({
 	const cloneUrl = `${cloneBase.protocol}//${repoclone}`;
 
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git ${getGitTokenAuthConfig(cloneUrl, token)} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	const authConfig = getGitTokenAuthConfig(cloneUrl, token);
+	if (pullRequestNumber) {
+		// `git clone --branch` only takes branches and tags, so fetch the pull
+		// request ref into a fresh repository and check out what it points at.
+		const prRef = `pull/${Number.parseInt(pullRequestNumber, 10)}/head`;
+		command += `git init -q ${quote([String(outputPath ?? "")])};`;
+		command += `git -C ${quote([String(outputPath ?? "")])} remote add origin ${quote([String(cloneUrl ?? "")])};`;
+		command += `git ${authConfig} -C ${quote([String(outputPath ?? "")])} fetch --depth 1 origin ${quote([prRef])} --progress;`;
+		command += `git -C ${quote([String(outputPath ?? "")])} checkout -q FETCH_HEAD;`;
+		if (enableSubmodules) {
+			command += `git ${authConfig} -C ${quote([String(outputPath ?? "")])} submodule update --init --recursive --depth 1;`;
+		}
+		return command;
+	}
+	command += `git ${authConfig} clone --branch ${quote([String(branch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 
 	return command;
 };
