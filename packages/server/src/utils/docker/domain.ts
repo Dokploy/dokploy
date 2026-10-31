@@ -4,11 +4,13 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { network, patch } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
+import type { Registry } from "@dokploy/server/services/registry";
 import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
+import { getRegistryTag } from "../cluster/upload";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -77,29 +79,57 @@ export const loadDockerCompose = async (
 	return null;
 };
 
+export const readDockerComposeRemote = async (
+	compose: Compose,
+): Promise<ComposeSpecification> => {
+	const path = getComposePath(compose);
+	if (!compose.serverId) {
+		throw new Error(`Cannot read ${path} remotely: no server is set`);
+	}
+	let stdout: string;
+	try {
+		({ stdout } = await execAsyncRemote(
+			compose.serverId,
+			`cat ${quote([path])}`,
+		));
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Could not read the compose file ${path} on server ${compose.serverId}: ${message}`,
+		);
+	}
+	if (!stdout.trim()) {
+		throw new Error(
+			`The compose file ${path} on server ${compose.serverId} is empty`,
+		);
+	}
+	let parsedConfig: ComposeSpecification | null;
+	try {
+		parsedConfig = parse(stdout, {
+			maxAliasCount: 10000,
+			merge: true,
+		}) as ComposeSpecification | null;
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new Error(
+			`Could not parse the compose file ${path} on server ${compose.serverId}: ${message}`,
+		);
+	}
+	if (!parsedConfig || typeof parsedConfig !== "object") {
+		throw new Error(
+			`The compose file ${path} on server ${compose.serverId} is not a YAML mapping`,
+		);
+	}
+	return parsedConfig;
+};
+
 export const loadDockerComposeRemote = async (
 	compose: Compose,
 ): Promise<ComposeSpecification | null> => {
-	const path = getComposePath(compose);
 	try {
-		if (!compose.serverId) {
-			return null;
-		}
-		const { stdout, stderr } = await execAsyncRemote(
-			compose.serverId,
-			`cat ${path}`,
-		);
-
-		if (stderr) {
-			return null;
-		}
-		if (!stdout) return null;
-		const parsedConfig = parse(stdout, {
-			maxAliasCount: 10000,
-			merge: true,
-		}) as ComposeSpecification;
-		return parsedConfig;
-	} catch {
+		return await readDockerComposeRemote(compose);
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : error);
 		return null;
 	}
 };
@@ -113,19 +143,98 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
+const sanitizeComposeServiceName = (serviceName: string): string =>
+	serviceName.toLowerCase().replace(/[^a-z0-9._-]/g, "-");
+
+export const applyBuildRegistryImages = (
+	spec: ComposeSpecification,
+	registry: Registry,
+	appName: string,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	if (!result.services) return result;
+
+	for (const [serviceName, service] of Object.entries(result.services)) {
+		if (service?.build) {
+			const localImage = `${sanitizeComposeServiceName(appName)}-${sanitizeComposeServiceName(serviceName)}:latest`;
+			service.image = getRegistryTag(registry, localImage);
+		}
+	}
+
+	return result;
+};
+
+export const applyPrebuiltImages = (
+	spec: ComposeSpecification,
+	images: Record<string, string>,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	for (const [serviceName, image] of Object.entries(images)) {
+		const service = result.services?.[serviceName];
+		if (!service) continue;
+		service.image = image;
+		delete service.build;
+		if (service.pull_policy === "build") {
+			delete service.pull_policy;
+		}
+	}
+	return result;
+};
+
+export const applyBuildPlatform = (
+	spec: ComposeSpecification,
+	platform: string,
+): ComposeSpecification => {
+	const result = structuredClone(spec);
+	for (const service of Object.values(result.services ?? {})) {
+		if (service?.build && !service.platform) {
+			service.platform = platform;
+		}
+	}
+	return result;
+};
+
+export const hasBuildableServices = (
+	spec: ComposeSpecification | null,
+): boolean => {
+	if (!spec?.services) return false;
+	return Object.values(spec.services).some((service) => Boolean(service?.build));
+};
+
 export const writeDomainsToCompose = async (
 	compose: ComposeWithMetadata,
 	domains: Domain[],
+	options?: {
+		buildRegistry?: Registry;
+		loadServerId?: string | null;
+		transform?: (spec: ComposeSpecification) => ComposeSpecification;
+	},
 ) => {
 	try {
-		const composeConverted = await addDomainToCompose(compose, domains);
-		const path = getComposePath(compose);
+		const loadCompose =
+			options?.loadServerId !== undefined
+				? { ...compose, serverId: options.loadServerId }
+				: compose;
+		let composeConverted = await addDomainToCompose(loadCompose, domains);
+		const path = getComposePath(loadCompose);
 
 		if (!composeConverted) {
 			return `
 echo "❌ Error: Compose file not found";
 exit 1;
 			`;
+		}
+
+		if (options?.buildRegistry) {
+			composeConverted = applyBuildRegistryImages(
+				composeConverted,
+				options.buildRegistry,
+				compose.appName,
+			);
+		}
+
+		if (options?.transform) {
+			composeConverted = options.transform(composeConverted);
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
@@ -279,7 +388,7 @@ export const addDomainToCompose = async (
 			merge: true,
 		}) as ComposeSpecification;
 	} else if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose);
+		result = await readDockerComposeRemote(compose);
 	} else {
 		result = await loadDockerCompose(compose);
 	}
