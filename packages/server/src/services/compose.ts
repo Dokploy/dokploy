@@ -38,6 +38,7 @@ import type { z } from "zod";
 import { getDokployUrl } from "./admin";
 import {
 	createDeploymentCompose,
+	getDeploymentErrorMessage,
 	updateDeployment,
 	updateDeploymentStatus,
 	writeDeploymentErrorLog,
@@ -332,6 +333,12 @@ export const deployCompose = async ({
 		await updateCompose(composeId, {
 			composeStatus: "error",
 		});
+		const errorMessage = await getDeploymentErrorMessage({
+			logPath: deployment.logPath,
+			serverId: compose.serverId,
+			fallback: "Error building, check the logs for details.",
+		});
+
 		await sendBuildErrorNotifications({
 			projectName: compose.environment.project.name,
 			applicationName: compose.name,
