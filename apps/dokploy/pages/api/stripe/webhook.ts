@@ -5,6 +5,7 @@ import { and, asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { organization, server, user } from "@/server/db/schema";
+import { isCurrentSubscription } from "@/server/utils/stripe";
 import {
 	sendInvoiceEmail,
 	sendPaymentFailedEmail,
@@ -120,6 +121,22 @@ export default async function handler(
 		}
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
+			const admin = await findUserByStripeCustomerId(
+				newSubscription.customer as string,
+			);
+
+			if (!admin || admin.isEnterpriseCloud) {
+				break;
+			}
+
+			// A customer can have several subscriptions; only the current one may
+			// replace the stored id.
+			if (
+				admin.stripeSubscriptionId &&
+				!isCurrentSubscription(admin.stripeSubscriptionId, newSubscription.id)
+			) {
+				break;
+			}
 
 			await db
 				.update(user)
@@ -141,6 +158,24 @@ export default async function handler(
 		case "customer.subscription.deleted": {
 			const newSubscription = event.data.object as Stripe.Subscription;
 
+			const admin = await findUserByStripeCustomerId(
+				newSubscription.customer as string,
+			);
+
+			// The account may already be gone when the deletion flow cancelled
+			// the subscription; nothing left to disable.
+			if (!admin || admin.isEnterpriseCloud) {
+				break;
+			}
+
+			// Deleting an old, replaced subscription must not clear the plan the
+			// owner is currently paying for.
+			if (
+				!isCurrentSubscription(admin.stripeSubscriptionId, newSubscription.id)
+			) {
+				break;
+			}
+
 			await db
 				.update(user)
 				.set({
@@ -153,16 +188,6 @@ export default async function handler(
 						eq(user.isEnterpriseCloud, false),
 					),
 				);
-
-			const admin = await findUserByStripeCustomerId(
-				newSubscription.customer as string,
-			);
-
-			// The account may already be gone when the deletion flow cancelled
-			// the subscription; nothing left to disable.
-			if (!admin || admin.isEnterpriseCloud) {
-				break;
-			}
 
 			await disableServers(admin.id);
 			break;
@@ -182,16 +207,33 @@ export default async function handler(
 				break;
 			}
 
-			if (
+			const isActive =
 				newSubscription.status === "active" ||
-				newSubscription.status === "trialing"
-			) {
+				newSubscription.status === "trialing";
+			const isCurrent = isCurrentSubscription(
+				admin.stripeSubscriptionId,
+				newSubscription.id,
+			);
+			// Recover accounts whose stored id was cleared by an older event while
+			// the subscription is paid.
+			const shouldAdopt = !admin.stripeSubscriptionId && isActive;
+
+			if (!isCurrent && !shouldAdopt) {
+				break;
+			}
+
+			if (isActive) {
 				const serversQuantity = getSubscriptionServersQuantity(
 					newSubscription?.items?.data ?? [],
 				);
 				await db
 					.update(user)
-					.set({ serversQuantity })
+					.set({
+						serversQuantity,
+						...(shouldAdopt
+							? { stripeSubscriptionId: newSubscription.id }
+							: {}),
+					})
 					.where(
 						and(
 							eq(user.stripeCustomerId, newSubscription.customer as string),
@@ -240,12 +282,29 @@ export default async function handler(
 				return res.status(400).send("Webhook Error: Admin not found");
 			}
 
+			if (admin.isEnterpriseCloud) {
+				break;
+			}
+
+			const isCurrent = isCurrentSubscription(
+				admin.stripeSubscriptionId,
+				subscription.id,
+			);
+			const shouldAdopt = !admin.stripeSubscriptionId;
+
+			if (!isCurrent && !shouldAdopt) {
+				break;
+			}
+
 			const serversQuantity = getSubscriptionServersQuantity(
 				subscription?.items?.data ?? [],
 			);
 			await db
 				.update(user)
-				.set({ serversQuantity })
+				.set({
+					serversQuantity,
+					...(shouldAdopt ? { stripeSubscriptionId: subscription.id } : {}),
+				})
 				.where(
 					and(
 						eq(user.stripeCustomerId, subscription.customer as string),
@@ -253,9 +312,6 @@ export default async function handler(
 					),
 				);
 
-			if (admin.isEnterpriseCloud) {
-				break;
-			}
 			await updateServersBasedOnQuantity(admin.id, serversQuantity);
 
 			if (admin.sendInvoiceNotifications) {
@@ -283,6 +339,14 @@ export default async function handler(
 				}
 
 				if (admin.isEnterpriseCloud) {
+					break;
+				}
+
+				// A failed payment on a replaced subscription must not disable the
+				// servers the owner is currently paying for.
+				if (
+					!isCurrentSubscription(admin.stripeSubscriptionId, subscription.id)
+				) {
 					break;
 				}
 

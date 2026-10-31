@@ -25,6 +25,53 @@ export const STARTUP_BASE_PRICE_ANNUAL_ID =
 
 export type BillingTier = "legacy" | "hobby" | "startup";
 
+/** Statuses where Stripe considers the subscription paid and usable. */
+export const ACTIVE_SUBSCRIPTION_STATUSES = ["active", "trialing"] as const;
+
+/** Statuses that need the owner to fix payment details before a new Checkout. */
+export const BILLING_ISSUE_SUBSCRIPTION_STATUSES = [
+	"past_due",
+	"unpaid",
+	"incomplete",
+	"paused",
+] as const;
+
+type SubscriptionLike = { id: string; status: string };
+
+export const isActiveSubscription = (subscription: SubscriptionLike) =>
+	(ACTIVE_SUBSCRIPTION_STATUSES as readonly string[]).includes(
+		subscription.status,
+	);
+
+export const isBillingIssueStatus = (status: string) =>
+	(BILLING_ISSUE_SUBSCRIPTION_STATUSES as readonly string[]).includes(status);
+
+export const getBillingIssueSubscription = <T extends SubscriptionLike>(
+	subscriptions: T[],
+): T | null =>
+	subscriptions.find((subscription) =>
+		isBillingIssueStatus(subscription.status),
+	) ?? null;
+
+/** A subscription can only change the account it currently belongs to. */
+export const isCurrentSubscription = (
+	currentSubscriptionId: string | null,
+	eventSubscriptionId: string,
+) => currentSubscriptionId === eventSubscriptionId;
+
+/**
+ * Checkout would create a second subscription on the same customer, so block
+ * it while one is running or waiting for payment.
+ */
+export const getSubscriptionPreventingCheckout = <T extends SubscriptionLike>(
+	subscriptions: T[],
+): T | null =>
+	subscriptions.find(
+		(subscription) =>
+			isActiveSubscription(subscription) ||
+			isBillingIssueStatus(subscription.status),
+	) ?? null;
+
 export const getStripeItems = (
 	tier: BillingTier,
 	serverQuantity: number,
