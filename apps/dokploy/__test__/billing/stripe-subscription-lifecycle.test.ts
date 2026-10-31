@@ -100,8 +100,11 @@ const mocks = vi.hoisted(() => {
 		serverTable,
 		state,
 		update,
+		select: vi.fn(),
+		transaction: vi.fn(),
 		constructEvent: vi.fn(),
 		retrieveSubscription: vi.fn(),
+		listSubscriptions: vi.fn(),
 		sendInvoiceEmail: vi.fn(),
 		sendPaymentFailedEmail: vi.fn(),
 	};
@@ -120,6 +123,8 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/db", () => ({
 	db: {
 		update: mocks.update,
+		select: mocks.select,
+		transaction: mocks.transaction,
 		query: {
 			user: { findFirst: async () => mocks.state.user },
 			organization: {
@@ -148,7 +153,10 @@ vi.mock("@/server/utils/trial-notifications", () => ({
 vi.mock("stripe", () => ({
 	default: class StripeMock {
 		webhooks = { constructEvent: mocks.constructEvent };
-		subscriptions = { retrieve: mocks.retrieveSubscription };
+		subscriptions = {
+			retrieve: mocks.retrieveSubscription,
+			list: mocks.listSubscriptions,
+		};
 	},
 }));
 
@@ -207,6 +215,7 @@ beforeEach(() => {
 
 	mocks.state.user.stripeSubscriptionId = "sub_A";
 	mocks.state.user.serversQuantity = 1;
+	mocks.state.user.sendInvoiceNotifications = false;
 	mocks.state.servers = [
 		{ serverId: "srv_1", organizationId: "org_1", serverStatus: "active" },
 		{ serverId: "srv_2", organizationId: "org_1", serverStatus: "active" },
@@ -219,6 +228,29 @@ beforeEach(() => {
 		if (!found) throw new Error(`Unknown subscription ${id}`);
 		return found;
 	});
+	mocks.listSubscriptions.mockImplementation(async () => ({
+		data: [...mocks.state.subscriptions.values()],
+	}));
+
+	const tx = {
+		update: mocks.update,
+		select: mocks.select,
+		query: {
+			organization: {
+				findMany: async () => [{ id: "org_1", ownerId: mocks.state.user.id }],
+			},
+			server: { findMany: async () => mocks.state.servers },
+		},
+	};
+
+	mocks.select.mockReturnValue({
+		from: () => ({
+			where: () => ({
+				for: async () => [mocks.state.user],
+			}),
+		}),
+	});
+	mocks.transaction.mockImplementation(async (callback) => callback(tx));
 });
 
 describe("billing lifecycle with a replaced subscription", () => {
@@ -304,5 +336,51 @@ describe("billing lifecycle with a replaced subscription", () => {
 		});
 		expect(mocks.state.user.serversQuantity).toBe(0);
 		expect(allServersInactive()).toBe(true);
+	});
+
+	it("serializes a delayed payment_failed handler with the new checkout", async () => {
+		mocks.state.user.sendInvoiceNotifications = true;
+
+		let releaseEmail: () => void = () => {};
+		const emailGate = new Promise<void>((resolve) => {
+			releaseEmail = resolve;
+		});
+		mocks.sendPaymentFailedEmail.mockReturnValue(emailGate);
+
+		const failing = invoke({
+			type: "invoice.payment_failed",
+			data: {
+				object: { customer: CUSTOMER_ID, subscription: "sub_A" },
+			},
+		});
+
+		// The failing handler has already committed its mutation and is now
+		// suspended while sending the email.
+		await vi.waitFor(() => {
+			expect(mocks.sendPaymentFailedEmail).toHaveBeenCalled();
+		});
+		expect(mocks.state.user.serversQuantity).toBe(0);
+
+		// The owner pays for B while A's handler is still suspended.
+		await invoke({
+			type: "checkout.session.completed",
+			data: {
+				object: {
+					customer: CUSTOMER_ID,
+					subscription: "sub_B",
+					metadata: { adminId: "user_1" },
+				},
+			},
+		});
+		expect(mocks.state.user.stripeSubscriptionId).toBe("sub_B");
+		expect(mocks.state.user.serversQuantity).toBe(2);
+
+		releaseEmail();
+		await failing;
+
+		// The resumed old handler must not touch B.
+		expect(mocks.state.user.stripeSubscriptionId).toBe("sub_B");
+		expect(mocks.state.user.serversQuantity).toBe(2);
+		expect(allServersActive()).toBe(true);
 	});
 });

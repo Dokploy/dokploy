@@ -16,6 +16,8 @@ import {
 } from "@/server/utils/billing";
 import {
 	type BillingTier,
+	findCurrentSubscription,
+	findSoleActiveSubscription,
 	getBillingIssueSubscription,
 	getStripeItems,
 	getSubscriptionPreventingCheckout,
@@ -174,12 +176,21 @@ export const stripeRouter = createTRPCRouter({
 		const trackedSubscriptions = subscriptions.data.filter(
 			(sub) => isActiveSubscription(sub) || isBillingIssueStatus(sub.status),
 		);
-		const billingIssueSubscription =
-			getBillingIssueSubscription(trackedSubscriptions);
+		const currentSubscription = findCurrentSubscription(
+			trackedSubscriptions,
+			user.stripeSubscriptionId,
+		);
+		// A replaced subscription that is still past_due must not hide the
+		// current plan or its controls.
+		const billingIssueSubscription = getBillingIssueSubscription(
+			trackedSubscriptions,
+			user.stripeSubscriptionId,
+		);
 		const activeSubscriptions =
 			trackedSubscriptions.filter(isActiveSubscription);
-		const planSubscriptions =
-			activeSubscriptions.length > 0
+		const planSubscriptions = currentSubscription
+			? [currentSubscription]
+			: activeSubscriptions.length > 0
 				? activeSubscriptions
 				: trackedSubscriptions;
 
@@ -297,6 +308,7 @@ export const stripeRouter = createTRPCRouter({
 				});
 				const blockingSubscription = getSubscriptionPreventingCheckout(
 					existingSubscriptions.data,
+					owner.stripeSubscriptionId,
 				);
 
 				if (blockingSubscription) {
@@ -388,11 +400,12 @@ export const stripeRouter = createTRPCRouter({
 					status: "all",
 					limit: 100,
 				});
-				const activeSubscriptions =
-					existingSubscriptions.data.filter(isActiveSubscription);
+				const activeSubscription = findSoleActiveSubscription(
+					existingSubscriptions.data,
+				);
 
-				if (activeSubscriptions.length === 1) {
-					subscriptionId = activeSubscriptions[0]!.id;
+				if (activeSubscription) {
+					subscriptionId = activeSubscription.id;
 					await updateUser(owner.id, {
 						stripeSubscriptionId: subscriptionId,
 					});

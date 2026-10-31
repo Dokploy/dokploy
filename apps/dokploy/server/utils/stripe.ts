@@ -46,12 +46,35 @@ export const isActiveSubscription = (subscription: SubscriptionLike) =>
 export const isBillingIssueStatus = (status: string) =>
 	(BILLING_ISSUE_SUBSCRIPTION_STATUSES as readonly string[]).includes(status);
 
+/**
+ * Only the subscription that owns the account may ask the owner to fix
+ * billing. A replaced subscription that is still `past_due` must not hide the
+ * controls of the current, paid one.
+ */
 export const getBillingIssueSubscription = <T extends SubscriptionLike>(
 	subscriptions: T[],
-): T | null =>
-	subscriptions.find((subscription) =>
-		isBillingIssueStatus(subscription.status),
-	) ?? null;
+	currentSubscriptionId?: string | null,
+): T | null => {
+	if (currentSubscriptionId) {
+		const current = subscriptions.find(
+			(subscription) => subscription.id === currentSubscriptionId,
+		);
+		return current && isBillingIssueStatus(current.status) ? current : null;
+	}
+
+	// Without a stored id only a single tracked subscription is unambiguous.
+	const soleSubscription = subscriptions.length === 1 ? subscriptions[0] : null;
+	return soleSubscription && isBillingIssueStatus(soleSubscription.status)
+		? soleSubscription
+		: null;
+};
+
+export const findSoleActiveSubscription = <T extends SubscriptionLike>(
+	subscriptions: T[],
+): T | null => {
+	const activeSubscriptions = subscriptions.filter(isActiveSubscription);
+	return activeSubscriptions.length === 1 ? activeSubscriptions[0]! : null;
+};
 
 /** A subscription can only change the account it currently belongs to. */
 export const isCurrentSubscription = (
@@ -61,16 +84,42 @@ export const isCurrentSubscription = (
 
 /**
  * Checkout would create a second subscription on the same customer, so block
- * it while one is running or waiting for payment.
+ * it while one is running or waiting for payment. The current subscription is
+ * preferred so the message points at the subscription that matters.
  */
 export const getSubscriptionPreventingCheckout = <T extends SubscriptionLike>(
 	subscriptions: T[],
-): T | null =>
-	subscriptions.find(
-		(subscription) =>
-			isActiveSubscription(subscription) ||
-			isBillingIssueStatus(subscription.status),
-	) ?? null;
+	currentSubscriptionId?: string | null,
+): T | null => {
+	const blocksCheckout = (subscription: T) =>
+		isActiveSubscription(subscription) ||
+		isBillingIssueStatus(subscription.status);
+
+	if (currentSubscriptionId) {
+		const current = subscriptions.find(
+			(subscription) => subscription.id === currentSubscriptionId,
+		);
+		if (current && blocksCheckout(current)) {
+			return current;
+		}
+	}
+
+	return subscriptions.find(blocksCheckout) ?? null;
+};
+
+export const findCurrentSubscription = <T extends SubscriptionLike>(
+	subscriptions: T[],
+	currentSubscriptionId?: string | null,
+): T | null => {
+	if (currentSubscriptionId) {
+		return (
+			subscriptions.find(
+				(subscription) => subscription.id === currentSubscriptionId,
+			) ?? null
+		);
+	}
+	return subscriptions.length === 1 ? subscriptions[0]! : null;
+};
 
 export const getStripeItems = (
 	tier: BillingTier,

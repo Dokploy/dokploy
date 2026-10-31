@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
 	constructEvent: vi.fn(),
 	retrieveSubscription: vi.fn(),
+	listSubscriptions: vi.fn(),
 	userFindFirst: vi.fn(),
 	organizationFindMany: vi.fn(),
 	serverFindMany: vi.fn(),
@@ -11,6 +12,8 @@ const mocks = vi.hoisted(() => ({
 	set: vi.fn(),
 	where: vi.fn(),
 	returning: vi.fn(),
+	select: vi.fn(),
+	transaction: vi.fn(),
 	sendInvoiceEmail: vi.fn(),
 	sendPaymentFailedEmail: vi.fn(),
 }));
@@ -28,6 +31,7 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/db", () => ({
 	db: {
 		update: mocks.update,
+		transaction: mocks.transaction,
 		query: {
 			user: { findFirst: mocks.userFindFirst },
 			organization: { findMany: mocks.organizationFindMany },
@@ -66,7 +70,10 @@ vi.mock("@/server/utils/trial-notifications", () => ({
 vi.mock("stripe", () => ({
 	default: class StripeMock {
 		webhooks = { constructEvent: mocks.constructEvent };
-		subscriptions = { retrieve: mocks.retrieveSubscription };
+		subscriptions = {
+			retrieve: mocks.retrieveSubscription,
+			list: mocks.listSubscriptions,
+		};
 	},
 }));
 
@@ -75,6 +82,7 @@ vi.mock("node:stream/consumers", () => ({
 }));
 
 import {
+	findSoleActiveSubscription,
 	getBillingIssueSubscription,
 	getSubscriptionPreventingCheckout,
 	isCurrentSubscription,
@@ -87,7 +95,7 @@ const CUSTOMER_ID = "cus_1";
 const currentUser = {
 	id: "user_1",
 	stripeCustomerId: CUSTOMER_ID,
-	stripeSubscriptionId: "sub_current",
+	stripeSubscriptionId: "sub_current" as string | null,
 	isEnterpriseCloud: false,
 	sendInvoiceNotifications: true,
 };
@@ -116,6 +124,16 @@ const invokeWebhook = async (event: unknown) => {
 	return res;
 };
 
+const setUser = (user: Record<string, unknown>) => {
+	mocks.userFindFirst.mockResolvedValue(user);
+};
+
+const setLiveSubscriptions = (
+	subscriptions: { id: string; status: string }[],
+) => {
+	mocks.listSubscriptions.mockResolvedValue({ data: subscriptions });
+};
+
 beforeAll(async () => {
 	process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
 	process.env.STRIPE_SECRET_KEY = "sk_test";
@@ -136,11 +154,33 @@ beforeEach(() => {
 	mocks.update.mockReturnValue(chain);
 	mocks.organizationFindMany.mockResolvedValue([]);
 	mocks.serverFindMany.mockResolvedValue([]);
+	setLiveSubscriptions([]);
+
+	const tx = {
+		update: mocks.update,
+		select: mocks.select,
+		query: {
+			organization: { findMany: mocks.organizationFindMany },
+			server: { findMany: mocks.serverFindMany },
+		},
+	};
+
+	mocks.select.mockReturnValue({
+		from: () => ({
+			where: () => ({
+				// Re-read the account inside the transaction, like SELECT ... FOR UPDATE.
+				for: () =>
+					mocks.userFindFirst().then((user: unknown) => (user ? [user] : [])),
+			}),
+		}),
+	});
+
+	mocks.transaction.mockImplementation(async (callback) => callback(tx));
 });
 
 describe("webhook subscription scoping", () => {
 	it("ignores payment_failed for a replaced subscription", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
 		mocks.retrieveSubscription.mockResolvedValue({
 			id: "sub_old",
 			status: "past_due",
@@ -162,7 +202,7 @@ describe("webhook subscription scoping", () => {
 	});
 
 	it("ignores payment_succeeded for a replaced subscription", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
 		mocks.retrieveSubscription.mockResolvedValue({
 			id: "sub_old",
 			status: "active",
@@ -182,7 +222,7 @@ describe("webhook subscription scoping", () => {
 	});
 
 	it("does not store a subscription created alongside the current one", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
 
 		await invokeWebhook({
 			type: "customer.subscription.created",
@@ -195,9 +235,13 @@ describe("webhook subscription scoping", () => {
 	});
 
 	it("adopts an active subscription when the stored id is missing", async () => {
-		mocks.userFindFirst.mockResolvedValue({
-			...currentUser,
-			stripeSubscriptionId: null,
+		setUser({ ...currentUser, stripeSubscriptionId: null });
+		setLiveSubscriptions([{ id: "sub_recovered", status: "active" }]);
+		mocks.retrieveSubscription.mockResolvedValue({
+			id: "sub_recovered",
+			customer: CUSTOMER_ID,
+			status: "active",
+			items: { data: [{ price: { id: "price_other" }, quantity: 2 }] },
 		});
 
 		await invokeWebhook({
@@ -218,8 +262,56 @@ describe("webhook subscription scoping", () => {
 		});
 	});
 
+	it("does not adopt a canceled subscription while another one is live", async () => {
+		setUser({ ...currentUser, stripeSubscriptionId: null });
+		// Delayed `active` payload for the canceled subscription A.
+		mocks.retrieveSubscription.mockResolvedValue({
+			id: "sub_A",
+			status: "canceled",
+			customer: CUSTOMER_ID,
+			items: { data: [{ price: { id: "price_other" }, quantity: 9 }] },
+		});
+		setLiveSubscriptions([
+			{ id: "sub_A", status: "canceled" },
+			{ id: "sub_B", status: "active" },
+		]);
+
+		await invokeWebhook({
+			type: "customer.subscription.updated",
+			data: {
+				object: {
+					id: "sub_A",
+					customer: CUSTOMER_ID,
+					status: "active",
+					items: { data: [{ price: { id: "price_other" }, quantity: 9 }] },
+				},
+			},
+		});
+
+		expect(mocks.listSubscriptions).toHaveBeenCalled();
+		expect(mocks.update).not.toHaveBeenCalled();
+		expect(mocks.organizationFindMany).not.toHaveBeenCalled();
+	});
+
+	it("does not recover a canceled subscription from a delayed created event", async () => {
+		setUser({ ...currentUser, stripeSubscriptionId: null });
+		setLiveSubscriptions([
+			{ id: "sub_A", status: "canceled" },
+			{ id: "sub_B", status: "active" },
+		]);
+
+		await invokeWebhook({
+			type: "customer.subscription.created",
+			data: {
+				object: { id: "sub_A", customer: CUSTOMER_ID, status: "active" },
+			},
+		});
+
+		expect(mocks.update).not.toHaveBeenCalled();
+	});
+
 	it("ignores deletion of a replaced subscription", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
 
 		await invokeWebhook({
 			type: "customer.subscription.deleted",
@@ -233,7 +325,13 @@ describe("webhook subscription scoping", () => {
 	});
 
 	it("ignores updates of a replaced subscription", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
+		mocks.retrieveSubscription.mockResolvedValue({
+			id: "sub_old",
+			status: "past_due",
+			customer: CUSTOMER_ID,
+			items: { data: [] },
+		});
 
 		await invokeWebhook({
 			type: "customer.subscription.updated",
@@ -252,7 +350,7 @@ describe("webhook subscription scoping", () => {
 	});
 
 	it("still disables servers when the current subscription fails", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
 		mocks.retrieveSubscription.mockResolvedValue({
 			id: "sub_current",
 			status: "past_due",
@@ -273,7 +371,13 @@ describe("webhook subscription scoping", () => {
 	});
 
 	it("re-enables servers when the current subscription is updated to active", async () => {
-		mocks.userFindFirst.mockResolvedValue(currentUser);
+		setUser(currentUser);
+		mocks.retrieveSubscription.mockResolvedValue({
+			id: "sub_current",
+			status: "active",
+			customer: CUSTOMER_ID,
+			items: { data: [{ price: { id: "price_other" }, quantity: 2 }] },
+		});
 
 		await invokeWebhook({
 			type: "customer.subscription.updated",
@@ -290,6 +394,30 @@ describe("webhook subscription scoping", () => {
 		expect(mocks.set).toHaveBeenCalledWith({ serversQuantity: 2 });
 		expect(mocks.organizationFindMany).toHaveBeenCalled();
 	});
+
+	it("runs account and server mutations inside the owner transaction", async () => {
+		setUser(currentUser);
+		mocks.retrieveSubscription.mockResolvedValue({
+			id: "sub_current",
+			status: "past_due",
+			customer: CUSTOMER_ID,
+			items: { data: [] },
+		});
+
+		await invokeWebhook({
+			type: "invoice.payment_failed",
+			data: {
+				object: { customer: CUSTOMER_ID, subscription: "sub_current" },
+			},
+		});
+
+		expect(mocks.transaction).toHaveBeenCalledTimes(1);
+		expect(mocks.select).toHaveBeenCalled();
+		// The email is sent after the transaction commits, never while locked.
+		expect(mocks.transaction.mock.invocationCallOrder[0]).toBeLessThan(
+			mocks.sendPaymentFailedEmail.mock.invocationCallOrder[0]!,
+		);
+	});
 });
 
 describe("subscription helpers", () => {
@@ -299,19 +427,41 @@ describe("subscription helpers", () => {
 		expect(isCurrentSubscription(null, "sub_current")).toBe(false);
 	});
 
-	it("detects billing issue statuses", () => {
+	it("finds the sole active subscription only", () => {
 		expect(
-			getBillingIssueSubscription([
-				{ id: "sub_1", status: "active" },
-				{ id: "sub_2", status: "past_due" },
+			findSoleActiveSubscription([
+				{ id: "sub_1", status: "past_due" },
+				{ id: "sub_2", status: "active" },
 			])?.id,
 		).toBe("sub_2");
 		expect(
-			getBillingIssueSubscription([{ id: "sub_1", status: "active" }]),
+			findSoleActiveSubscription([
+				{ id: "sub_1", status: "active" },
+				{ id: "sub_2", status: "trialing" },
+			]),
 		).toBeNull();
 		expect(
-			getBillingIssueSubscription([{ id: "sub_1", status: "canceled" }]),
+			findSoleActiveSubscription([{ id: "sub_1", status: "canceled" }]),
 		).toBeNull();
+	});
+
+	it("reports a billing issue for the current subscription only", () => {
+		const subscriptions = [
+			{ id: "sub_A", status: "past_due" },
+			{ id: "sub_B", status: "active" },
+		];
+
+		// The replaced subscription A must not hide current B's controls.
+		expect(getBillingIssueSubscription(subscriptions, "sub_B")).toBeNull();
+		expect(getBillingIssueSubscription(subscriptions, "sub_A")?.id).toBe(
+			"sub_A",
+		);
+
+		// Without a stored id, only a single subscription is unambiguous.
+		expect(getBillingIssueSubscription(subscriptions)).toBeNull();
+		expect(
+			getBillingIssueSubscription([{ id: "sub_A", status: "past_due" }])?.id,
+		).toBe("sub_A");
 	});
 
 	it("blocks checkout for active and non-paid subscriptions", () => {
@@ -339,5 +489,20 @@ describe("subscription helpers", () => {
 			getSubscriptionPreventingCheckout([{ id: "sub_6", status: "canceled" }]),
 		).toBeNull();
 		expect(getSubscriptionPreventingCheckout([])).toBeNull();
+	});
+
+	it("prefers the current subscription when blocking checkout", () => {
+		const subscriptions = [
+			{ id: "sub_A", status: "past_due" },
+			{ id: "sub_B", status: "active" },
+		];
+
+		expect(getSubscriptionPreventingCheckout(subscriptions, "sub_B")?.id).toBe(
+			"sub_B",
+		);
+		// Still fall back to another blocking subscription for the same customer.
+		expect(
+			getSubscriptionPreventingCheckout(subscriptions, "sub_canceled")?.id,
+		).toBe("sub_A");
 	});
 });

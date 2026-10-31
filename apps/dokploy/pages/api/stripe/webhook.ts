@@ -1,11 +1,15 @@
 import { buffer } from "node:stream/consumers";
-import { findUserById, type Server } from "@dokploy/server";
+import type { Server } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { organization, server, user } from "@/server/db/schema";
-import { isCurrentSubscription } from "@/server/utils/stripe";
+import {
+	findSoleActiveSubscription,
+	isActiveSubscription,
+	isCurrentSubscription,
+} from "@/server/utils/stripe";
 import {
 	sendInvoiceEmail,
 	sendPaymentFailedEmail,
@@ -20,6 +24,13 @@ const STARTUP_BASE_PRICE_IDS = [
 ].filter(Boolean) as string[];
 
 const STARTUP_SERVERS_INCLUDED = 3;
+
+type BillingTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+type LockedUser = typeof user.$inferSelect;
+
+/** Anything that can run the queries used by the billing helpers. */
+type BillingExecutor = Pick<typeof db, "update" | "select" | "query">;
 
 function getSubscriptionServersQuantity(
 	items: Stripe.SubscriptionItem[],
@@ -84,33 +95,41 @@ export default async function handler(
 	switch (event.type) {
 		case "checkout.session.completed": {
 			const session = event.data.object as Stripe.Checkout.Session;
-			const adminId = session?.metadata?.adminId as string;
+			const adminId = session?.metadata?.adminId as string | undefined;
+			const subscriptionId =
+				typeof session.subscription === "string"
+					? session.subscription
+					: session.subscription?.id;
+			const customerId =
+				typeof session.customer === "string"
+					? session.customer
+					: session.customer?.id;
 
-			const subscription = await stripe.subscriptions.retrieve(
-				session.subscription as string,
-			);
+			if (!adminId || !subscriptionId) {
+				break;
+			}
+
+			const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 			const serversQuantity = getSubscriptionServersQuantity(
 				subscription?.items?.data ?? [],
 			);
-			await db
-				.update(user)
-				.set({
-					stripeCustomerId: session.customer as string,
-					stripeSubscriptionId: session.subscription as string,
-					serversQuantity,
-				})
-				.where(and(eq(user.id, adminId), eq(user.isEnterpriseCloud, false)))
-				.returning();
 
-			const admin = await findUserById(adminId);
-			if (!admin) {
-				return res.status(400).send("Webhook Error: Admin not found");
-			}
-			if (admin.isEnterpriseCloud) {
-				break;
-			}
-			const newServersQuantity = admin.serversQuantity;
-			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
+			await withBillingLock(adminId, async (tx, lockedUser) => {
+				if (lockedUser.isEnterpriseCloud) {
+					return;
+				}
+
+				await tx
+					.update(user)
+					.set({
+						stripeCustomerId: customerId ?? (subscription.customer as string),
+						stripeSubscriptionId: subscription.id,
+						serversQuantity,
+					})
+					.where(eq(user.id, adminId));
+
+				await updateServersBasedOnQuantity(adminId, serversQuantity, tx);
+			});
 			break;
 		}
 		case "customer.subscription.trial_will_end": {
@@ -121,9 +140,8 @@ export default async function handler(
 		}
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
-			const admin = await findUserByStripeCustomerId(
-				newSubscription.customer as string,
-			);
+			const customerId = newSubscription.customer as string;
+			const admin = await findUserByStripeCustomerId(customerId);
 
 			if (!admin || admin.isEnterpriseCloud) {
 				break;
@@ -138,28 +156,47 @@ export default async function handler(
 				break;
 			}
 
-			await db
-				.update(user)
-				.set({
-					stripeSubscriptionId: newSubscription.id,
-					stripeCustomerId: newSubscription.customer as string,
-				})
-				.where(
-					and(
-						eq(user.stripeCustomerId, newSubscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				)
-				.returning();
+			// Recovering a cleared id must not adopt a delayed event of a canceled
+			// subscription. Only the sole live subscription of the customer counts.
+			const canAdopt =
+				!admin.stripeSubscriptionId &&
+				(await isSoleLiveSubscription(stripe, customerId, newSubscription.id));
+
+			if (!admin.stripeSubscriptionId && !canAdopt) {
+				break;
+			}
+
+			await withBillingLock(admin.id, async (tx, lockedUser) => {
+				if (lockedUser.isEnterpriseCloud) {
+					return;
+				}
+				if (
+					lockedUser.stripeSubscriptionId &&
+					lockedUser.stripeSubscriptionId !== newSubscription.id
+				) {
+					return;
+				}
+				if (!lockedUser.stripeSubscriptionId && !canAdopt) {
+					return;
+				}
+
+				await tx
+					.update(user)
+					.set({
+						stripeSubscriptionId: newSubscription.id,
+						stripeCustomerId: customerId,
+					})
+					.where(eq(user.id, admin.id));
+			});
 
 			break;
 		}
 
 		case "customer.subscription.deleted": {
-			const newSubscription = event.data.object as Stripe.Subscription;
+			const deletedSubscription = event.data.object as Stripe.Subscription;
 
 			const admin = await findUserByStripeCustomerId(
-				newSubscription.customer as string,
+				deletedSubscription.customer as string,
 			);
 
 			// The account may already be gone when the deletion flow cancelled
@@ -168,36 +205,39 @@ export default async function handler(
 				break;
 			}
 
-			// Deleting an old, replaced subscription must not clear the plan the
-			// owner is currently paying for.
-			if (
-				!isCurrentSubscription(admin.stripeSubscriptionId, newSubscription.id)
-			) {
-				break;
-			}
+			await withBillingLock(admin.id, async (tx, lockedUser) => {
+				if (lockedUser.isEnterpriseCloud) {
+					return;
+				}
 
-			await db
-				.update(user)
-				.set({
-					stripeSubscriptionId: null,
-					serversQuantity: 0,
-				})
-				.where(
-					and(
-						eq(user.stripeCustomerId, newSubscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
+				// Deleting an old, replaced subscription must not clear the plan the
+				// owner is currently paying for.
+				if (
+					!isCurrentSubscription(
+						lockedUser.stripeSubscriptionId,
+						deletedSubscription.id,
+					)
+				) {
+					return;
+				}
 
-			await disableServers(admin.id);
+				await tx
+					.update(user)
+					.set({
+						stripeSubscriptionId: null,
+						serversQuantity: 0,
+					})
+					.where(eq(user.id, admin.id));
+
+				await disableServers(tx, admin.id);
+			});
 			break;
 		}
 		case "customer.subscription.updated": {
-			const newSubscription = event.data.object as Stripe.Subscription;
+			const eventSubscription = event.data.object as Stripe.Subscription;
+			const customerId = eventSubscription.customer as string;
 
-			const admin = await findUserByStripeCustomerId(
-				newSubscription.customer as string,
-			);
+			const admin = await findUserByStripeCustomerId(customerId);
 
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
@@ -207,53 +247,57 @@ export default async function handler(
 				break;
 			}
 
-			const isActive =
-				newSubscription.status === "active" ||
-				newSubscription.status === "trialing";
-			const isCurrent = isCurrentSubscription(
-				admin.stripeSubscriptionId,
-				newSubscription.id,
+			// The event payload can be older than Stripe's state, so never trust
+			// its status or quantity.
+			const subscription = await stripe.subscriptions.retrieve(
+				eventSubscription.id,
 			);
-			// Recover accounts whose stored id was cleared by an older event while
-			// the subscription is paid.
-			const shouldAdopt = !admin.stripeSubscriptionId && isActive;
 
-			if (!isCurrent && !shouldAdopt) {
-				break;
-			}
+			// Recover accounts whose stored id was cleared by an older event, but
+			// only while the event belongs to the sole live subscription.
+			const canAdopt =
+				!admin.stripeSubscriptionId &&
+				(await isSoleLiveSubscription(stripe, customerId, subscription.id));
 
-			if (isActive) {
-				const serversQuantity = getSubscriptionServersQuantity(
-					newSubscription?.items?.data ?? [],
+			await withBillingLock(admin.id, async (tx, lockedUser) => {
+				if (lockedUser.isEnterpriseCloud) {
+					return;
+				}
+
+				const isCurrent = isCurrentSubscription(
+					lockedUser.stripeSubscriptionId,
+					subscription.id,
 				);
-				await db
-					.update(user)
-					.set({
-						serversQuantity,
-						...(shouldAdopt
-							? { stripeSubscriptionId: newSubscription.id }
-							: {}),
-					})
-					.where(
-						and(
-							eq(user.stripeCustomerId, newSubscription.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
+				const isRecovering = !lockedUser.stripeSubscriptionId && canAdopt;
 
-				await updateServersBasedOnQuantity(admin.id, serversQuantity);
-			} else {
-				await disableServers(admin.id);
-				await db
-					.update(user)
-					.set({ serversQuantity: 0 })
-					.where(
-						and(
-							eq(user.stripeCustomerId, newSubscription.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
+				if (!isCurrent && !isRecovering) {
+					return;
+				}
+
+				if (isActiveSubscription(subscription)) {
+					const serversQuantity = getSubscriptionServersQuantity(
+						subscription.items?.data ?? [],
 					);
-			}
+					await tx
+						.update(user)
+						.set({
+							serversQuantity,
+							...(isRecovering
+								? { stripeSubscriptionId: subscription.id }
+								: {}),
+						})
+						.where(eq(user.id, admin.id));
+
+					await updateServersBasedOnQuantity(admin.id, serversQuantity, tx);
+				} else {
+					await tx
+						.update(user)
+						.set({ serversQuantity: 0 })
+						.where(eq(user.id, admin.id));
+
+					await disableServers(tx, admin.id);
+				}
+			});
 
 			break;
 		}
@@ -274,9 +318,8 @@ export default async function handler(
 				break;
 			}
 
-			const admin = await findUserByStripeCustomerId(
-				subscription.customer as string,
-			);
+			const customerId = subscription.customer as string;
+			const admin = await findUserByStripeCustomerId(customerId);
 
 			if (!admin) {
 				return res.status(400).send("Webhook Error: Admin not found");
@@ -286,35 +329,48 @@ export default async function handler(
 				break;
 			}
 
-			const isCurrent = isCurrentSubscription(
-				admin.stripeSubscriptionId,
-				subscription.id,
+			const canAdopt =
+				!admin.stripeSubscriptionId &&
+				(await isSoleLiveSubscription(stripe, customerId, subscription.id));
+
+			const applied = await withBillingLock(
+				admin.id,
+				async (tx, lockedUser) => {
+					if (lockedUser.isEnterpriseCloud) {
+						return false;
+					}
+
+					const isCurrent = isCurrentSubscription(
+						lockedUser.stripeSubscriptionId,
+						subscription.id,
+					);
+					const isRecovering = !lockedUser.stripeSubscriptionId && canAdopt;
+
+					if (!isCurrent && !isRecovering) {
+						return false;
+					}
+
+					const serversQuantity = getSubscriptionServersQuantity(
+						subscription?.items?.data ?? [],
+					);
+					await tx
+						.update(user)
+						.set({
+							serversQuantity,
+							...(isRecovering
+								? { stripeSubscriptionId: subscription.id }
+								: {}),
+						})
+						.where(eq(user.id, admin.id));
+
+					await updateServersBasedOnQuantity(admin.id, serversQuantity, tx);
+
+					return true;
+				},
 			);
-			const shouldAdopt = !admin.stripeSubscriptionId;
 
-			if (!isCurrent && !shouldAdopt) {
-				break;
-			}
-
-			const serversQuantity = getSubscriptionServersQuantity(
-				subscription?.items?.data ?? [],
-			);
-			await db
-				.update(user)
-				.set({
-					serversQuantity,
-					...(shouldAdopt ? { stripeSubscriptionId: subscription.id } : {}),
-				})
-				.where(
-					and(
-						eq(user.stripeCustomerId, subscription.customer as string),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
-
-			await updateServersBasedOnQuantity(admin.id, serversQuantity);
-
-			if (admin.sendInvoiceNotifications) {
+			// Never send mail while the row lock is held.
+			if (applied && admin.sendInvoiceNotifications) {
 				await sendInvoiceEmail(newInvoice, admin);
 			}
 
@@ -342,31 +398,41 @@ export default async function handler(
 					break;
 				}
 
-				// A failed payment on a replaced subscription must not disable the
-				// servers the owner is currently paying for.
-				if (
-					!isCurrentSubscription(admin.stripeSubscriptionId, subscription.id)
-				) {
-					break;
-				}
+				const applied = await withBillingLock(
+					admin.id,
+					async (tx, lockedUser) => {
+						if (lockedUser.isEnterpriseCloud) {
+							return false;
+						}
 
-				if (admin.sendInvoiceNotifications) {
+						// A failed payment on a replaced subscription must not disable
+						// the servers the owner is currently paying for.
+						if (
+							!isCurrentSubscription(
+								lockedUser.stripeSubscriptionId,
+								subscription.id,
+							)
+						) {
+							return false;
+						}
+
+						await tx
+							.update(user)
+							.set({
+								serversQuantity: 0,
+							})
+							.where(eq(user.id, admin.id));
+
+						await disableServers(tx, admin.id);
+
+						return true;
+					},
+				);
+
+				// Never send mail while the row lock is held.
+				if (applied && admin.sendInvoiceNotifications) {
 					await sendPaymentFailedEmail(newInvoice, admin);
 				}
-
-				await db
-					.update(user)
-					.set({
-						serversQuantity: 0,
-					})
-					.where(
-						and(
-							eq(user.stripeCustomerId, newInvoice.customer as string),
-							eq(user.isEnterpriseCloud, false),
-						),
-					);
-
-				await disableServers(admin.id);
 			}
 
 			break;
@@ -380,20 +446,24 @@ export default async function handler(
 				break;
 			}
 
-			await disableServers(admin.id);
-			await db
-				.update(user)
-				.set({
-					stripeCustomerId: null,
-					stripeSubscriptionId: null,
-					serversQuantity: 0,
-				})
-				.where(
-					and(
-						eq(user.stripeCustomerId, customer.id),
-						eq(user.isEnterpriseCloud, false),
-					),
-				);
+			await withBillingLock(admin.id, async (tx, lockedUser) => {
+				if (lockedUser.isEnterpriseCloud) {
+					return;
+				}
+				if (lockedUser.stripeCustomerId !== customer.id) {
+					return;
+				}
+
+				await disableServers(tx, admin.id);
+				await tx
+					.update(user)
+					.set({
+						stripeCustomerId: null,
+						stripeSubscriptionId: null,
+						serversQuantity: 0,
+					})
+					.where(eq(user.id, admin.id));
+			});
 
 			break;
 		}
@@ -404,13 +474,59 @@ export default async function handler(
 	return res.status(200).json({ received: true });
 }
 
-const disableServers = async (userId: string) => {
-	const organizations = await db.query.organization.findMany({
+/**
+ * Serializes every account mutation caused by a Stripe webhook for one owner.
+ * A delayed event of a replaced subscription can no longer pass the
+ * subscription check and then overwrite a newer subscription's state.
+ */
+const withBillingLock = async <T>(
+	userId: string,
+	run: (tx: BillingTransaction, lockedUser: LockedUser) => Promise<T>,
+): Promise<T | null> =>
+	db.transaction(async (tx) => {
+		const [lockedUser] = await tx
+			.select()
+			.from(user)
+			.where(eq(user.id, userId))
+			.for("update");
+
+		if (!lockedUser) {
+			return null;
+		}
+
+		return run(tx, lockedUser);
+	});
+
+const listSubscriptions = async (stripe: Stripe, customerId: string) => {
+	const subscriptions = await stripe.subscriptions.list({
+		customer: customerId,
+		status: "all",
+		limit: 100,
+	});
+	return subscriptions.data;
+};
+
+/**
+ * A cleared stored id may only be recovered when Stripe currently reports
+ * exactly one live subscription and it is the one the event refers to.
+ */
+const isSoleLiveSubscription = async (
+	stripe: Stripe,
+	customerId: string,
+	subscriptionId: string,
+) => {
+	const subscriptions = await listSubscriptions(stripe, customerId);
+	const soleActiveSubscription = findSoleActiveSubscription(subscriptions);
+	return soleActiveSubscription?.id === subscriptionId;
+};
+
+const disableServers = async (tx: BillingExecutor, userId: string) => {
+	const organizations = await tx.query.organization.findMany({
 		where: eq(organization.ownerId, userId),
 	});
 
 	for (const org of organizations) {
-		await db
+		await tx
 			.update(server)
 			.set({
 				serverStatus: "inactive",
@@ -432,28 +548,31 @@ const getInvoiceSubscriptionId = (invoice: Stripe.Invoice): string | null => {
 	return subscription?.id ?? null;
 };
 
-const activateServer = async (serverId: string) => {
-	await db
+const activateServer = async (serverId: string, tx: BillingExecutor) => {
+	await tx
 		.update(server)
 		.set({ serverStatus: "active" })
 		.where(eq(server.serverId, serverId));
 };
 
-const deactivateServer = async (serverId: string) => {
-	await db
+const deactivateServer = async (serverId: string, tx: BillingExecutor) => {
+	await tx
 		.update(server)
 		.set({ serverStatus: "inactive" })
 		.where(eq(server.serverId, serverId));
 };
 
-export const findServersByUserIdSorted = async (userId: string) => {
-	const organizations = await db.query.organization.findMany({
+export const findServersByUserIdSorted = async (
+	userId: string,
+	tx: BillingExecutor = db,
+) => {
+	const organizations = await tx.query.organization.findMany({
 		where: eq(organization.ownerId, userId),
 	});
 
 	const servers: Server[] = [];
 	for (const org of organizations) {
-		const serversByOrg = await db.query.server.findMany({
+		const serversByOrg = await tx.query.server.findMany({
 			where: eq(server.organizationId, org.id),
 			orderBy: asc(server.createdAt),
 		});
@@ -465,20 +584,21 @@ export const findServersByUserIdSorted = async (userId: string) => {
 export const updateServersBasedOnQuantity = async (
 	userId: string,
 	newServersQuantity: number,
+	tx: BillingExecutor = db,
 ) => {
-	const servers = await findServersByUserIdSorted(userId);
+	const servers = await findServersByUserIdSorted(userId, tx);
 
 	if (servers.length > newServersQuantity) {
 		for (const [index, server] of servers.entries()) {
 			if (index < newServersQuantity) {
-				await activateServer(server.serverId);
+				await activateServer(server.serverId, tx);
 			} else {
-				await deactivateServer(server.serverId);
+				await deactivateServer(server.serverId, tx);
 			}
 		}
 	} else {
 		for (const server of servers) {
-			await activateServer(server.serverId);
+			await activateServer(server.serverId, tx);
 		}
 	}
 };
