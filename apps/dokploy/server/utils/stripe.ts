@@ -55,18 +55,29 @@ export const getBillingIssueSubscription = <T extends SubscriptionLike>(
 	subscriptions: T[],
 	currentSubscriptionId?: string | null,
 ): T | null => {
-	if (currentSubscriptionId) {
-		const current = subscriptions.find(
-			(subscription) => subscription.id === currentSubscriptionId,
-		);
-		return current && isBillingIssueStatus(current.status) ? current : null;
+	const current = currentSubscriptionId
+		? subscriptions.find(
+				(subscription) => subscription.id === currentSubscriptionId,
+			)
+		: null;
+
+	if (current) {
+		return isBillingIssueStatus(current.status) ? current : null;
 	}
 
-	// Without a stored id only a single tracked subscription is unambiguous.
-	const soleSubscription = subscriptions.length === 1 ? subscriptions[0] : null;
-	return soleSubscription && isBillingIssueStatus(soleSubscription.status)
-		? soleSubscription
-		: null;
+	// No identifiable current subscription. If one of them is paying, the
+	// account is fine and stale issues must not hide its controls.
+	if (subscriptions.some(isActiveSubscription)) {
+		return null;
+	}
+
+	// No active plan, but unpaid subscriptions still block Checkout. Keep an
+	// issue so the billing page can offer the payment portal.
+	return (
+		subscriptions.find((subscription) =>
+			isBillingIssueStatus(subscription.status),
+		) ?? null
+	);
 };
 
 export const findSoleActiveSubscription = <T extends SubscriptionLike>(

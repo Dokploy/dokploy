@@ -457,11 +457,33 @@ describe("subscription helpers", () => {
 			"sub_A",
 		);
 
-		// Without a stored id, only a single subscription is unambiguous.
+		// Without a stored id, an active subscription means the account is fine.
 		expect(getBillingIssueSubscription(subscriptions)).toBeNull();
 		expect(
 			getBillingIssueSubscription([{ id: "sub_A", status: "past_due" }])?.id,
 		).toBe("sub_A");
+	});
+
+	it("keeps a portal action when no current subscription can be identified", () => {
+		const unpaidSubscriptions = [
+			{ id: "sub_A", status: "past_due" },
+			{ id: "sub_C", status: "unpaid" },
+		];
+
+		// No stored id and no active plan: those unpaid subscriptions still
+		// block checkout, so the billing page must keep the portal action.
+		expect(getBillingIssueSubscription(unpaidSubscriptions)?.id).toBe("sub_A");
+		expect(
+			getBillingIssueSubscription(unpaidSubscriptions, "sub_canceled")?.id,
+		).toBe("sub_A");
+
+		// An active subscription proves the account is fine.
+		expect(
+			getBillingIssueSubscription([
+				...unpaidSubscriptions,
+				{ id: "sub_B", status: "active" },
+			]),
+		).toBeNull();
 	});
 
 	it("blocks checkout for active and non-paid subscriptions", () => {
