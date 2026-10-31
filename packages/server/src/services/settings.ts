@@ -416,6 +416,39 @@ export const readPorts = async (
 	);
 };
 
+export const DOKPLOY_PANEL_PORT = 3000;
+
+export const PANEL_PORT_RECOVERY_COMMAND = `docker service update --publish-add published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=host dokploy`;
+
+export const isPanelPortPublished = async () => {
+	const ports = await readPorts("dokploy");
+	return ports.some((port) => port.targetPort === DOKPLOY_PANEL_PORT);
+};
+
+export const isRequestFromPanelHost = (
+	requestHost: string | undefined,
+	panelHost: string | null | undefined,
+) => {
+	if (!requestHost || !panelHost) return false;
+	const hostname = requestHost.replace(/:\d+$/, "").toLowerCase();
+	return hostname === panelHost.trim().toLowerCase();
+};
+
+export const togglePanelPort = async (enable: boolean) => {
+	const resourceType = await getDockerResourceType("dokploy");
+	if (resourceType !== "service") {
+		throw new Error(
+			"The Dokploy panel is not running as a Docker Swarm service, the port can't be managed from the UI",
+		);
+	}
+	const publishFlag = enable
+		? `--publish-add published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=host`
+		: // --publish-rm only matches the full port spec (mode included), and manual installs may use ingress
+			`--publish-rm published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=host --publish-rm published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=ingress`;
+	// --detach: the update replaces the container running this command, waiting for convergence would kill it mid-request
+	await execAsync(`docker service update --detach ${publishFlag} dokploy`);
+};
+
 export const checkPortInUse = async (
 	port: number,
 	serverId?: string,

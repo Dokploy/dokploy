@@ -23,6 +23,9 @@ import {
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
+	isPanelPortPublished,
+	isRequestFromPanelHost,
+	PANEL_PORT_RECOVERY_COMMAND,
 	POSTHOG_HOST,
 	parseRawConfig,
 	paths,
@@ -44,6 +47,7 @@ import {
 	spawnAsync,
 	startLogCleanup,
 	stopLogCleanup,
+	togglePanelPort,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -840,6 +844,52 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "traefik-env",
+			});
+			return true;
+		}),
+	getPanelPortStatus: adminProcedure.query(async ({ ctx }) => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		return {
+			enabled: await isPanelPortPublished(),
+			panelHost: settings?.host ?? null,
+			accessedViaPanelHost: isRequestFromPanelHost(
+				ctx.req.headers.host,
+				settings?.host,
+			),
+			recoveryCommand: PANEL_PORT_RECOVERY_COMMAND,
+		};
+	}),
+	togglePanelPort: adminProcedure
+		.input(z.object({ enable: z.boolean() }))
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+			if (!input.enable) {
+				const settings = await getWebServerSettings();
+				if (!settings?.host) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message:
+							"Configure a domain for the Dokploy panel before disabling port 3000",
+					});
+				}
+				// Proves the domain actually routes to the panel, otherwise disabling the port would lock the user out
+				if (!isRequestFromPanelHost(ctx.req.headers.host, settings.host)) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: `Access the panel through ${settings.host} to disable port 3000`,
+					});
+				}
+			}
+			await togglePanelPort(input.enable);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: input.enable ? "enable-panel-port" : "disable-panel-port",
 			});
 			return true;
 		}),
