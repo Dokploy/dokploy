@@ -3,6 +3,7 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { EnforceTwoFactor } from "@/components/dashboard/settings/users/enforce-two-factor";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -20,6 +21,7 @@ const Page = () => {
 		<div className="flex flex-col gap-4 w-full">
 			<ShowUsers />
 			{canCreateMembers && <ShowInvitations />}
+			{isOwnerOrAdmin && <EnforceTwoFactor />}
 			{isOwnerOrAdmin && <ManageCustomRoles />}
 		</div>
 	);

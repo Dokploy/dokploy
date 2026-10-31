@@ -19,6 +19,7 @@ import {
 } from "../services/admin";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
+import { requiresTwoFactorSetup } from "../services/two-factor";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -692,6 +693,16 @@ export const validateRequest = async (request: IncomingMessage) => {
 			session.user.ownerId = member.organization.ownerId;
 		} else {
 			session.user.ownerId = session.user.id;
+		}
+
+		// Returning no session here (instead of per-procedure checks) blocks tRPC, websockets
+		// and SSR pages alike; the setup page talks to better-auth's own 2FA endpoints directly
+		if (await requiresTwoFactorSetup(session.user, member?.organization)) {
+			return {
+				session: null,
+				user: null,
+				twoFactorSetupRequired: true,
+			};
 		}
 	}
 
