@@ -1,12 +1,12 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
-import debounce from "lodash/debounce";
 import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { BackupFilePicker } from "@/components/shared/backup-file-picker";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { formatBytes } from "../../database/backups/restore-backup";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
@@ -72,8 +71,6 @@ export const RestoreVolumeBackups = ({
 	trigger,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [search, setSearch] = useState("");
-	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
@@ -90,25 +87,9 @@ export const RestoreVolumeBackups = ({
 	const volumeName = form.watch("volumeName");
 	const backupFile = form.watch("backupFile");
 
-	const debouncedSetSearch = debounce((value: string) => {
-		setDebouncedSearchTerm(value);
-	}, 350);
-
-	const handleSearchChange = (value: string) => {
-		setSearch(value);
-		debouncedSetSearch(value);
-	};
-
-	const { data: files = [], isPending } = api.backup.listBackupFiles.useQuery(
-		{
-			destinationId: destinationId,
-			search: debouncedSearchTerm,
-			serverId: serverId ?? "",
-		},
-		{
-			enabled: isOpen && !!destinationId,
-		},
-	);
+	useEffect(() => {
+		form.setValue("backupFile", "");
+	}, [destinationId, serverId, id, type, form]);
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -175,7 +156,7 @@ export const RestoreVolumeBackups = ({
 					<form
 						id="hook-form-restore-backup"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
+						className="grid w-full grid-cols-1 gap-4"
 					>
 						<FormField
 							control={form.control}
@@ -248,13 +229,16 @@ export const RestoreVolumeBackups = ({
 							name="backupFile"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel className="flex items-center">
-										Search Backup Files
+									<FormLabel className="flex items-center justify-between gap-2">
+										<span className="shrink-0">Search Backup Files</span>
 										{field.value && (
-											<Badge variant="outline" className="truncate w-52">
-												{field.value}
+											<Badge
+												variant="outline"
+												className="min-w-0 max-w-[70%] shrink"
+											>
+												<span className="min-w-0 truncate">{field.value}</span>
 												<Copy
-													className="ml-2 size-4 cursor-pointer"
+													className="ml-2 size-4 shrink-0 cursor-pointer"
 													onClick={(e) => {
 														e.stopPropagation();
 														e.preventDefault();
@@ -265,98 +249,14 @@ export const RestoreVolumeBackups = ({
 											</Badge>
 										)}
 									</FormLabel>
-									<Popover modal>
-										<PopoverTrigger asChild>
-											<FormControl>
-												<Button
-													variant="outline"
-													className={cn(
-														"w-full justify-between",
-														!field.value && "text-muted-foreground",
-													)}
-												>
-													<span className="truncate text-left flex-1 w-52">
-														{field.value || "Search and select a backup file"}
-													</span>
-													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-												</Button>
-											</FormControl>
-										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
-											<Command>
-												<CommandInput
-													placeholder="Search backup files..."
-													value={search}
-													onValueChange={handleSearchChange}
-													className="h-9"
-												/>
-												{isPending ? (
-													<div className="py-6 text-center text-sm">
-														Loading backup files...
-													</div>
-												) : files.length === 0 && search ? (
-													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files found for "{search}"
-													</div>
-												) : files.length === 0 ? (
-													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files available
-													</div>
-												) : (
-													<ScrollArea className="h-64">
-														<CommandGroup className="w-96">
-															{files?.map((file) => (
-																<CommandItem
-																	value={file.Path}
-																	key={file.Path}
-																	onSelect={() => {
-																		form.setValue("backupFile", file.Path);
-																		if (file.IsDir) {
-																			setSearch(`${file.Path}/`);
-																			setDebouncedSearchTerm(`${file.Path}/`);
-																		} else {
-																			setSearch(file.Path);
-																			setDebouncedSearchTerm(file.Path);
-																		}
-																	}}
-																>
-																	<div className="flex w-full flex-col gap-1">
-																		<div className="flex w-full justify-between">
-																			<span className="font-medium">
-																				{file.Path}
-																			</span>
-
-																			<CheckIcon
-																				className={cn(
-																					"ml-auto h-4 w-4",
-																					file.Path === field.value
-																						? "opacity-100"
-																						: "opacity-0",
-																				)}
-																			/>
-																		</div>
-																		<div className="flex items-center gap-4 text-xs text-muted-foreground">
-																			<span>
-																				Size: {formatBytes(file.Size)}
-																			</span>
-																			{file.IsDir && (
-																				<span className="text-blue-500">
-																					Directory
-																				</span>
-																			)}
-																			{file.Hashes?.MD5 && (
-																				<span>MD5: {file.Hashes.MD5}</span>
-																			)}
-																		</div>
-																	</div>
-																</CommandItem>
-															))}
-														</CommandGroup>
-													</ScrollArea>
-												)}
-											</Command>
-										</PopoverContent>
-									</Popover>
+									<BackupFilePicker
+										key={JSON.stringify([id, destinationId, serverId, type])}
+										destinationId={destinationId}
+										serverId={serverId}
+										enabled={isOpen}
+										value={field.value}
+										onChange={(path) => form.setValue("backupFile", path)}
+									/>
 									<FormMessage />
 								</FormItem>
 							)}
