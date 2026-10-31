@@ -47,7 +47,7 @@ const addServerDomain = z
 			.refine((val) => val === "" || VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		letsEncryptEmail: z.string(),
+		letsEncryptEmail: z.string().trim(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
 	})

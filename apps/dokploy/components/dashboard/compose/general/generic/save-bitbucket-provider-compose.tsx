@@ -158,7 +158,6 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 			composePath: data.composePath,
 			composeId,
 			sourceType: "bitbucket",
-			composeStatus: "idle",
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
 		})

@@ -36,6 +36,7 @@ import { ManagePasskeys } from "./manage-passkeys";
 const profileSchema = z.object({
 	email: z
 		.string()
+		.trim()
 		.email("Please enter a valid email address")
 		.min(1, "Email is required"),
 	password: z.string().nullable(),

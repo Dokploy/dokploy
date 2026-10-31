@@ -1,6 +1,5 @@
 import { IS_CLOUD, isAdminPresent, validateRequest } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { AlertTriangle } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
@@ -29,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -41,6 +41,7 @@ const registerSchema = z
 		}),
 		email: z
 			.string()
+			.trim()
 			.min(1, {
 				message: "Email is required",
 			})
@@ -136,6 +137,11 @@ const Register = ({ isCloud }: Props) => {
 								logoUrl={
 									whitelabeling?.loginLogoUrl ||
 									whitelabeling?.logoUrl ||
+									undefined
+								}
+								logoLightUrl={
+									whitelabeling?.loginLogoLightUrl ||
+									whitelabeling?.logoLightUrl ||
 									undefined
 								}
 							/>

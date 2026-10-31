@@ -92,6 +92,8 @@ export interface BillingStatus {
 	hasUsedTrial: boolean;
 	hasActiveAccess: boolean;
 	hasPaymentMethod: boolean;
+	isAnnual: boolean;
+	isEnterpriseCloud: boolean;
 }
 
 export const getBillingStatus = async (
@@ -106,6 +108,8 @@ export const getBillingStatus = async (
 			hasUsedTrial: false,
 			hasActiveAccess: true,
 			hasPaymentMethod: true,
+			isAnnual: false,
+			isEnterpriseCloud: false,
 		};
 	}
 
@@ -119,6 +123,8 @@ export const getBillingStatus = async (
 			hasUsedTrial: false,
 			hasActiveAccess: false,
 			hasPaymentMethod: false,
+			isAnnual: false,
+			isEnterpriseCloud: owner?.isEnterpriseCloud ?? false,
 		};
 	}
 
@@ -146,6 +152,9 @@ export const getBillingStatus = async (
 	const hasPaymentMethod =
 		!!currentSub?.default_payment_method ||
 		!!customer?.invoice_settings?.default_payment_method;
+	const isAnnual =
+		(currentSub?.items.data[0]?.price as Stripe.Price | undefined)?.recurring
+			?.interval === "year";
 	const trialEndsAt = trialingSub?.trial_end
 		? new Date(trialingSub.trial_end * 1000)
 		: null;
@@ -164,5 +173,40 @@ export const getBillingStatus = async (
 		hasPaymentMethod,
 		hasUsedTrial: subscriptions.data.length > 0,
 		hasActiveAccess: plan !== null || !!trialingSub,
+		isAnnual,
+		isEnterpriseCloud: owner.isEnterpriseCloud,
 	};
+};
+
+const isMissingResource = (error: unknown) =>
+	error instanceof Stripe.errors.StripeError &&
+	error.code === "resource_missing";
+
+export const cancelStripeSubscriptions = async (
+	stripeCustomerId: string,
+	stripe: Stripe = getStripeClient(),
+) => {
+	const subscriptions = await stripe.subscriptions
+		.list({ customer: stripeCustomerId, status: "all", limit: 100 })
+		.catch((error: unknown) => {
+			if (isMissingResource(error)) return null;
+			throw error;
+		});
+
+	const cancelledSubscriptions: string[] = [];
+	for (const subscription of subscriptions?.data ?? []) {
+		if (
+			subscription.status === "canceled" ||
+			subscription.status === "incomplete_expired"
+		) {
+			continue;
+		}
+		await stripe.subscriptions.cancel(subscription.id, {
+			invoice_now: false,
+			prorate: false,
+		});
+		cancelledSubscriptions.push(subscription.id);
+	}
+
+	return { cancelledSubscriptions };
 };

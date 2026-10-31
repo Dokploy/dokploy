@@ -17,6 +17,7 @@ import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
+import { buildDokployLabels } from "./dokploy-labels";
 import type {
 	ComposeSpecification,
 	DefinitionsService,
@@ -69,6 +70,7 @@ export const loadDockerCompose = async (
 		const yamlStr = readFileSync(path, "utf8");
 		const parsedConfig = parse(yamlStr, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsedConfig;
 	}
@@ -94,6 +96,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = parse(stdout, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
@@ -111,7 +114,7 @@ export const readComposeFile = async (compose: Compose) => {
 };
 
 export const writeDomainsToCompose = async (
-	compose: Compose,
+	compose: ComposeWithMetadata,
 	domains: Domain[],
 ) => {
 	try {
@@ -163,6 +166,7 @@ export const applyComposeFilePatch = async (
 	try {
 		const parsed = parse(composeFilePatch.content, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsed ?? null;
 	} catch {
@@ -196,8 +200,73 @@ const removeDomainLabels = (
 	return labels;
 };
 
+type ComposeWithMetadata = Compose & {
+	environment?: {
+		environmentId: string;
+		name: string;
+		projectId: string;
+		project?: { name: string; organizationId: string };
+	};
+};
+
+const applyDokployLabelsToCompose = (
+	result: ComposeSpecification,
+	compose: ComposeWithMetadata,
+) => {
+	const { environment } = compose;
+	if (!environment?.project) return;
+
+	for (const [serviceName, service] of Object.entries(result.services ?? {})) {
+		if (!service) continue;
+		const metadataLabels = buildDokployLabels({
+			organizationId: environment.project.organizationId,
+			projectId: environment.projectId,
+			projectName: environment.project.name,
+			environmentId: environment.environmentId,
+			environmentName: environment.name,
+			applicationId: compose.composeId,
+			applicationName: compose.name,
+			serviceName,
+		});
+		// docker compose interpolates `$` in the file, so user-typed names need `$$` to stay literal.
+		const dokployLabels = Object.fromEntries(
+			Object.entries(metadataLabels).map(([key, value]) => [
+				key,
+				value.replaceAll("$", () => "$$"),
+			]),
+		);
+
+		service.labels = mergeDokployLabels(service.labels, dokployLabels);
+		if (compose.composeType === "docker-compose") {
+			continue;
+		}
+		if (!service.deploy) {
+			service.deploy = {};
+		}
+		service.deploy.labels = mergeDokployLabels(
+			service.deploy.labels,
+			dokployLabels,
+		);
+	}
+};
+
+const mergeDokployLabels = (
+	current: DefinitionsService["labels"],
+	dokployLabels: Record<string, string>,
+): DefinitionsService["labels"] => {
+	if (current && !Array.isArray(current)) {
+		return { ...current, ...dokployLabels };
+	}
+	const entries = Object.entries(dokployLabels);
+	const keys = new Set(entries.map(([key]) => key));
+	const kept = (current ?? []).filter(
+		(label) => !keys.has(label.slice(0, label.indexOf("="))),
+	);
+	return [...kept, ...entries.map(([key, value]) => `${key}=${value}`)];
+};
+
 export const addDomainToCompose = async (
-	compose: Compose,
+	compose: ComposeWithMetadata,
 	domains: Domain[],
 ) => {
 	const { appName } = compose;
@@ -207,6 +276,7 @@ export const addDomainToCompose = async (
 	if (compose.sourceType === "raw") {
 		result = parse(compose.composeFile, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 	} else if (compose.serverId) {
 		result = await loadDockerComposeRemote(compose);
@@ -250,8 +320,16 @@ export const addDomainToCompose = async (
 		}
 	}
 
-	for (const domain of domains.filter((d) => d.enabled)) {
+	for (const domain of domains) {
 		const { serviceName, https } = domain;
+		if (!domain.enabled) {
+			// Disabling only drops routing; the service may still talk to others over dokploy-network.
+			const service = serviceName ? result.services?.[serviceName] : undefined;
+			if (service && !service.network_mode && !compose.isolatedDeployment) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
+			continue;
+		}
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
@@ -325,6 +403,8 @@ export const addDomainToCompose = async (
 			);
 		}
 	}
+
+	applyDokployLabelsToCompose(result, compose);
 
 	const injectedNetworkNames = await applyServiceNetworks(result, compose);
 

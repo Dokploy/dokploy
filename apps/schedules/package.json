@@ -9,18 +9,18 @@
 	},
 	"dependencies": {
 		"@dokploy/server": "workspace:*",
-		"@hono/node-server": "^1.14.3",
+		"@hono/node-server": "^2.1.5",
 		"@hono/zod-validator": "0.7.6",
 		"bullmq": "5.67.3",
 		"dotenv": "^16.4.5",
-		"drizzle-orm": "0.45.1",
-		"hono": "^4.11.7",
+		"drizzle-orm": "0.45.2",
+		"hono": "^4.13.5",
 		"ioredis": "5.4.1",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
-		"zod": "^4.3.6"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"rimraf": "6.1.3",

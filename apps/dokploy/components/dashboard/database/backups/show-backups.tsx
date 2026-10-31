@@ -1,10 +1,4 @@
-import {
-	ClipboardList,
-	Database,
-	DatabaseBackup,
-	Play,
-	Trash2,
-} from "lucide-react";
+import { ClipboardList, DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,6 +30,7 @@ import type { ServiceType } from "../../application/advanced/show-resources";
 import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
 import { HandleBackup } from "./handle-backup";
 import { RestoreBackup } from "./restore-backup";
+import { ShowBackupFiles } from "./show-backup-files";
 
 interface Props {
 	id: string;
@@ -101,12 +96,9 @@ export const ShowBackups = ({
 
 	return (
 		<Card className="bg-background">
-			<CardHeader className="flex flex-row justify-between gap-4  flex-wrap">
-				<div className="flex flex-col gap-0.5">
-					<CardTitle className="text-xl flex flex-row gap-2">
-						<Database className="size-6 text-muted-foreground" />
-						Backups
-					</CardTitle>
+			<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
+				<div className="flex flex-col gap-1">
+					<CardTitle className="text-xl">Backups</CardTitle>
 					<CardDescription>
 						Add backups to your database to save the data to a different
 						provider.
@@ -270,6 +262,17 @@ export const ShowBackups = ({
 																</p>
 															</div>
 
+															{backup.customName && (
+																<div className="min-w-[150px]">
+																	<span className="text-sm font-medium text-muted-foreground">
+																		Custom Name
+																	</span>
+																	<p className="font-medium text-sm mt-0.5">
+																		{backup.customName}
+																	</p>
+																</div>
+															)}
+
 															<div className="min-w-[100px]">
 																<span className="text-sm font-medium text-muted-foreground">
 																	Keep Latest
@@ -334,6 +337,7 @@ export const ShowBackups = ({
 															</Tooltip>
 														</TooltipProvider>
 
+														<ShowBackupFiles backupId={backup.backupId} />
 														<HandleBackup
 															backupType={backup.backupType}
 															backupId={backup.backupId}
