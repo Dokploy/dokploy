@@ -48,6 +48,7 @@ import {
 	updateServerById,
 	updateServerTraefik,
 	updateWebServerSettings,
+	validateTraefikStaticIp,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
@@ -827,6 +828,14 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const envs = prepareEnvironmentVariables(input.env);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
+
+			// Check the pinned address before storing it: the recreate runs in
+			// the background, so a wrong value would only be logged and the
+			// editor would report a successful update.
+			await validateTraefikStaticIp({
+				env: envs,
+				serverId: input.serverId,
+			});
 
 			// Run in background so the request returns immediately; client polls /api/health.
 			void writeTraefikSetup({
