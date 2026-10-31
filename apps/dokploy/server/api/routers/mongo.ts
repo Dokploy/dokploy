@@ -52,6 +52,7 @@ import {
 	projects,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
+import { cancelDatabaseScheduleJobs } from "@/server/utils/database-schedules";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMongo)
@@ -348,6 +349,8 @@ export const mongoRouter = createTRPCRouter({
 				resourceName: mongo.appName,
 			});
 			const backups = await findBackupsByDbId(input.mongoId, "mongo");
+
+			await cancelDatabaseScheduleJobs("mongo", input.mongoId);
 
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),

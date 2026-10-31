@@ -193,6 +193,12 @@ export const initializeJobs = async () => {
 				},
 			},
 			server: true,
+			postgres: { with: { server: true } },
+			mysql: { with: { server: true } },
+			mariadb: { with: { server: true } },
+			mongo: { with: { server: true } },
+			redis: { with: { server: true } },
+			libsql: { with: { server: true } },
 		},
 	});
 
@@ -207,6 +213,25 @@ export const initializeJobs = async () => {
 			if (schedule.compose) {
 				return schedule.compose.server?.serverStatus === "active";
 			}
+			if (schedule.postgres) {
+				return schedule.postgres.server?.serverStatus === "active";
+			}
+			if (schedule.mysql) {
+				return schedule.mysql.server?.serverStatus === "active";
+			}
+			if (schedule.mariadb) {
+				return schedule.mariadb.server?.serverStatus === "active";
+			}
+			if (schedule.mongo) {
+				return schedule.mongo.server?.serverStatus === "active";
+			}
+			if (schedule.redis) {
+				return schedule.redis.server?.serverStatus === "active";
+			}
+			if (schedule.libsql) {
+				return schedule.libsql.server?.serverStatus === "active";
+			}
+			return false;
 		},
 	);
 
@@ -216,6 +241,7 @@ export const initializeJobs = async () => {
 				scheduleId: schedule.scheduleId,
 				type: "schedule",
 				cronSchedule: schedule.cronExpression,
+				timezone: schedule.timezone,
 			});
 		} catch (error) {
 			logger.error(error, `Failed to schedule ${schedule.scheduleId}`);
@@ -253,6 +279,7 @@ export const initializeJobs = async () => {
 			if (volumeBackup.compose) {
 				return volumeBackup.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 
