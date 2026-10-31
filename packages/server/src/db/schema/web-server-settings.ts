@@ -140,6 +140,10 @@ export const webServerSettings = pgTable("webServerSettings", {
 	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
 		.notNull()
 		.default(false),
+	defaultDomainHttps: boolean("defaultDomainHttps").notNull().default(false),
+	defaultDomainCertificateType: certificateType("defaultDomainCertificateType")
+		.notNull()
+		.default("none"),
 	createdAt: timestamp("created_at").defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -219,6 +223,11 @@ export const apiAssignDomain = z
 		letsEncryptEmail: true,
 		https: true,
 	});
+
+export const apiUpdateDomainDefaults = z.object({
+	defaultDomainHttps: z.boolean(),
+	defaultDomainCertificateType: z.enum(["letsencrypt", "none", "custom"]),
+});
 
 export const apiSaveSSHKey = z
 	.object({
