@@ -3,6 +3,13 @@ import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+
+import { type ServiceType, serviceType } from "./shared";
+
+export { type ServiceType, serviceType };
+
+export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
+
 import { applications } from "./application";
 import { compose } from "./compose";
 import { libsql } from "./libsql";
@@ -11,21 +18,6 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
-
-export const serviceType = pgEnum("serviceType", [
-	"application",
-	"postgres",
-	"mysql",
-	"mariadb",
-	"mongo",
-	"redis",
-	"compose",
-	"libsql",
-]);
-
-export type ServiceType = (typeof serviceType.enumValues)[number];
-
-export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
 
 export const mounts = pgTable("mount", {
 	mountId: text("mountId")
@@ -157,7 +149,20 @@ export const apiFindMountByApplicationId = z.object({
 	serviceId: z.string().min(1),
 });
 
-export const apiUpdateMount = createSchema.partial().extend({
-	mountId: z.string().min(1),
-	expectedContent: z.string().nullable().optional(),
-});
+export const apiUpdateMount = createSchema
+	.omit({
+		serviceType: true,
+		applicationId: true,
+		composeId: true,
+		libsqlId: true,
+		mariadbId: true,
+		mongoId: true,
+		mysqlId: true,
+		postgresId: true,
+		redisId: true,
+	})
+	.partial()
+	.extend({
+		mountId: z.string().min(1),
+		expectedContent: z.string().nullable().optional(),
+	});

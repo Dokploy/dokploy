@@ -18,6 +18,19 @@ export const triggerType = pgEnum("triggerType", ["push", "tag"]);
 
 export const sqldNode = pgEnum("sqldNode", ["primary", "replica"]);
 
+export const serviceType = pgEnum("serviceType", [
+	"application",
+	"postgres",
+	"mysql",
+	"mariadb",
+	"mongo",
+	"redis",
+	"compose",
+	"libsql",
+]);
+
+export type ServiceType = (typeof serviceType.enumValues)[number];
+
 export interface HealthCheckSwarm {
 	Test?: string[] | undefined;
 	Interval?: number | undefined;

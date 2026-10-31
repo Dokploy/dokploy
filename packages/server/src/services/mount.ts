@@ -196,11 +196,23 @@ export const updateMount = async (
 			message: `Invalid file path: ${mountData.filePath}`,
 		});
 	}
+	const {
+		serviceType: _serviceType,
+		applicationId: _applicationId,
+		composeId: _composeId,
+		libsqlId: _libsqlId,
+		mariadbId: _mariadbId,
+		mongoId: _mongoId,
+		mysqlId: _mysqlId,
+		postgresId: _postgresId,
+		redisId: _redisId,
+		...safeMountData
+	} = mountData;
 	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
 			.set({
-				...mountData,
+				...safeMountData,
 			})
 			.where(eq(mounts.mountId, mountId))
 			.returning()
@@ -279,7 +291,7 @@ export const deleteMount = async (mountId: string) => {
 
 export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
-	if (!mount || !mount.filePath) return;
+	if (!mount?.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
 
 	try {
@@ -377,7 +389,47 @@ export const getBaseFilesPath = async (mountId: string) => {
 		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.libsql.appName;
+	} else if (mount.compose) {
+		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
+		appName = mount.compose.appName;
+		absoluteBasePath = path.resolve(COMPOSE_PATH);
+	} else if (mount.application) {
+		const { APPLICATIONS_PATH } = paths(!!mount.application.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.application.appName;
+	} else if (mount.postgres) {
+		const { APPLICATIONS_PATH } = paths(!!mount.postgres.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.postgres.appName;
+	} else if (mount.mariadb) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mariadb.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.mariadb.appName;
+	} else if (mount.mongo) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mongo.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.mongo.appName;
+	} else if (mount.mysql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.mysql.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.mysql.appName;
+	} else if (mount.redis) {
+		const { APPLICATIONS_PATH } = paths(!!mount.redis.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.redis.appName;
+	} else if (mount.libsql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.libsql.appName;
 	}
+
+	if (!absoluteBasePath || !appName) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Service directory not found for mount",
+		});
+	}
+
 	directoryPath = path.join(absoluteBasePath, appName, "files");
 
 	return directoryPath;
@@ -407,6 +459,30 @@ export const getServerId = async (mount: MountNested) => {
 		return mount.compose.serverId;
 	}
 	if (mount.serviceType === "libsql" && mount?.libsql?.serverId) {
+		return mount.libsql.serverId;
+	}
+	if (mount?.compose?.serverId) {
+		return mount.compose.serverId;
+	}
+	if (mount?.application?.serverId) {
+		return mount.application.serverId;
+	}
+	if (mount?.postgres?.serverId) {
+		return mount.postgres.serverId;
+	}
+	if (mount?.mariadb?.serverId) {
+		return mount.mariadb.serverId;
+	}
+	if (mount?.mongo?.serverId) {
+		return mount.mongo.serverId;
+	}
+	if (mount?.mysql?.serverId) {
+		return mount.mysql.serverId;
+	}
+	if (mount?.redis?.serverId) {
+		return mount.redis.serverId;
+	}
+	if (mount?.libsql?.serverId) {
 		return mount.libsql.serverId;
 	}
 
