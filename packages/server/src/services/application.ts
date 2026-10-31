@@ -1,15 +1,19 @@
-import { docker } from "@dokploy/server/constants";
+import path from "node:path";
+import { docker, paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
 	applications,
 	buildAppName,
+	deployments,
+	network,
 } from "@dokploy/server/db/schema";
 import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
@@ -26,9 +30,25 @@ import {
 import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
 import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
-import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
+import {
+	createTraefikConfig,
+	readConfig,
+	readRemoteConfig,
+	removeTraefikConfig,
+	writeConfig,
+	writeConfigRemote,
+} from "@dokploy/server/utils/traefik/application";
+import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import { removeForwardAuthMiddleware } from "@dokploy/server/utils/traefik/forward-auth";
+import {
+	deleteAllMiddlewares,
+	removePathMiddlewares,
+} from "@dokploy/server/utils/traefik/middleware";
+import { createRedirectMiddleware } from "@dokploy/server/utils/traefik/redirect";
+import { createSecurityMiddleware } from "@dokploy/server/utils/traefik/security";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getDokployUrl } from "./admin";
 import {
@@ -45,12 +65,14 @@ import {
 	issueCommentExists,
 	updateIssueComment,
 } from "./github";
+import { createFileMount } from "./mount";
 import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { findServerById } from "./server";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -173,6 +195,247 @@ export const updateApplicationStatus = async (
 		.returning();
 
 	return application;
+};
+
+const removeServiceFileMount = async (
+	mount: { filePath?: string | null },
+	appName: string,
+	serverId: string | null,
+) => {
+	if (!mount.filePath) return;
+	try {
+		const { APPLICATIONS_PATH } = paths(!!serverId);
+		const basePath = path.join(
+			path.resolve(APPLICATIONS_PATH),
+			appName,
+			"files",
+		);
+		const fullPath = path.join(basePath, mount.filePath);
+
+		if (serverId) {
+			const command = `rm -rf ${quote([fullPath])}`;
+			await execAsyncRemote(serverId, command);
+		} else {
+			await removeFileOrDirectory(fullPath);
+		}
+	} catch (error) {
+		console.error("Error removing file mount:", error);
+	}
+};
+
+export const canChangeApplicationServer = (application: {
+	applicationStatus: Application["applicationStatus"];
+	deployments?: Array<unknown> | null;
+}) => {
+	return (
+		application.applicationStatus === "idle" &&
+		(!application.deployments || application.deployments.length === 0)
+	);
+};
+
+export const changeApplicationServer = async (
+	applicationId: string,
+	newServerId: string | null,
+) => {
+	const application = await findApplicationById(applicationId);
+	const currentServerId = application.serverId ?? null;
+	const targetServerId = newServerId ?? null;
+
+	if (currentServerId === targetServerId) {
+		return application;
+	}
+
+	if (!canChangeApplicationServer(application)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Cannot change the server after the application has been deployed. Please use the Transfer Service to migrate it.",
+		});
+	}
+
+	if (targetServerId) {
+		const targetServer = await findServerById(targetServerId);
+		if (
+			targetServer.serverStatus !== "active" ||
+			targetServer.serverType !== "deploy"
+		) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"The selected server is not active or not available for deployments",
+			});
+		}
+	}
+
+	const [locked] = await db
+		.update(applications)
+		.set({ applicationStatus: "running" })
+		.where(
+			and(
+				eq(applications.applicationId, applicationId),
+				eq(applications.applicationStatus, "idle"),
+			),
+		)
+		.returning();
+
+	if (!locked) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Application is currently busy or running a deployment. Cannot change server.",
+		});
+	}
+
+	let switched = false;
+	let existingTraefikConfig: string | null = null;
+	const originalNetworkIds = application.networkIds;
+
+	try {
+		const existingDeployments = await db.query.deployments.findMany({
+			where: eq(deployments.applicationId, applicationId),
+			columns: { deploymentId: true },
+			limit: 1,
+		});
+
+		if (existingDeployments.length > 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"Cannot change the server after the application has been deployed. Please use the Transfer Service to migrate it.",
+			});
+		}
+
+		existingTraefikConfig = application.serverId
+			? await readRemoteConfig(application.serverId, application.appName)
+			: readConfig(application.appName);
+
+		let updatedNetworkIds = application.networkIds;
+		if (application.networkIds && application.networkIds.length > 0) {
+			const rows = await db.query.network.findMany({
+				where: inArray(network.networkId, application.networkIds),
+				columns: { networkId: true, serverId: true },
+			});
+			updatedNetworkIds = rows
+				.filter((row) => (row.serverId ?? null) === targetServerId)
+				.map((row) => row.networkId);
+		}
+
+		await updateApplication(applicationId, {
+			serverId: targetServerId,
+			networkIds: updatedNetworkIds,
+		});
+		switched = true;
+
+		if (existingTraefikConfig) {
+			if (targetServerId) {
+				await writeConfigRemote(
+					targetServerId,
+					application.appName,
+					existingTraefikConfig,
+				);
+			} else {
+				writeConfig(application.appName, existingTraefikConfig);
+			}
+		}
+
+		if (application.domains.length > 0) {
+			const movedApp = await findApplicationById(applicationId);
+			for (const domain of movedApp.domains) {
+				await manageDomain(movedApp, domain);
+			}
+			for (const security of movedApp.security) {
+				await createSecurityMiddleware(movedApp, security);
+			}
+			for (const redirect of movedApp.redirects) {
+				await createRedirectMiddleware(movedApp, redirect);
+			}
+		}
+
+		if (application.mounts.length > 0) {
+			for (const mount of application.mounts) {
+				if (mount.type === "file") {
+					await createFileMount(mount.mountId);
+				}
+			}
+		}
+
+		if (application.domains.length > 0) {
+			try {
+				for (const domain of application.domains) {
+					await removePathMiddlewares(application, domain.uniqueConfigKey);
+					await removeForwardAuthMiddleware(
+						application,
+						domain.uniqueConfigKey,
+					);
+				}
+				await deleteAllMiddlewares(application);
+			} catch (error) {
+				console.error("Error removing Traefik middlewares from source:", error);
+			}
+		}
+
+		if (existingTraefikConfig || application.domains.length > 0) {
+			try {
+				await removeTraefikConfig(application.appName, application.serverId);
+			} catch (error) {
+				console.error("Error removing Traefik config from source:", error);
+			}
+		}
+
+		if (application.mounts.length > 0) {
+			for (const mount of application.mounts) {
+				if (mount.type === "file") {
+					await removeServiceFileMount(
+						mount,
+						application.appName,
+						currentServerId,
+					);
+				}
+			}
+		}
+
+		const updated = await findApplicationById(applicationId);
+		return updated;
+	} catch (error) {
+		if (switched) {
+			try {
+				await updateApplication(applicationId, {
+					serverId: currentServerId,
+					networkIds: originalNetworkIds,
+				});
+			} catch (rollbackError) {
+				console.error(
+					"Error rolling back application server update:",
+					rollbackError,
+				);
+			}
+
+			try {
+				if (existingTraefikConfig || application.domains.length > 0) {
+					await removeTraefikConfig(application.appName, targetServerId);
+				}
+				if (application.mounts.length > 0) {
+					for (const mount of application.mounts) {
+						if (mount.type === "file") {
+							await removeServiceFileMount(
+								mount,
+								application.appName,
+								targetServerId,
+							);
+						}
+					}
+				}
+			} catch (cleanupError) {
+				console.error(
+					"Error cleaning up target server after failed server change:",
+					cleanupError,
+				);
+			}
+		}
+		throw error;
+	} finally {
+		await updateApplicationStatus(applicationId, "idle");
+	}
 };
 
 export const deployApplication = async ({
