@@ -14,6 +14,7 @@ const FREE_TIER_RESOURCES = [
 	"service",
 	"environment",
 	"docker",
+	"containerFilesystem",
 	"sshKeys",
 	"gitProviders",
 	"traefikFiles",

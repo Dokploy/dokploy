@@ -16,6 +16,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ShowContainerFileSystem } from "@/components/dashboard/docker/file-system/show-container-file-system";
 import { ShowExternalLibsqlCredentials } from "@/components/dashboard/libsql/general/show-external-libsql-credentials";
 import { ShowGeneralLibsql } from "@/components/dashboard/libsql/general/show-general-libsql";
 import { ShowInternalLibsqlCredentials } from "@/components/dashboard/libsql/general/show-internal-libsql-credentials";
@@ -49,7 +50,13 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
-type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
+type TabState =
+	| "projects"
+	| "monitoring"
+	| "settings"
+	| "backups"
+	| "advanced"
+	| "file-system";
 
 const Libsql = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -62,6 +69,7 @@ const Libsql = (
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.libsql.one.useQuery({ libsqlId });
 	const { data: auth } = api.user.get.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: serverIp } = api.settings.getIp.useQuery();
@@ -202,15 +210,20 @@ const Libsql = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-6"
+													? "md:grid-cols-7"
 													: data?.serverId
-														? "md:grid-cols-5"
-														: "md:grid-cols-6",
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{permissions?.containerFilesystem.read && (
+												<TabsTrigger value="file-system">
+													Files System
+												</TabsTrigger>
+											)}
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -286,6 +299,16 @@ const Libsql = (
 											/>
 										</div>
 									</TabsContent>
+									{permissions?.containerFilesystem.read && (
+										<TabsContent value="file-system">
+											<div className="pt-2.5">
+												<ShowContainerFileSystem
+													serviceType="libsql"
+													serviceId={libsqlId}
+												/>
+											</div>
+										</TabsContent>
+									)}
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowBackups
