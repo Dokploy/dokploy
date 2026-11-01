@@ -176,29 +176,59 @@ export const backupVolume = async (
 		);
 		let stopCommand = "";
 		let startCommand = "";
+		// Finding nothing to stop can also mean a renamed service or a removed
+		// volume. Copying a volume still in use would break the turn off guarantee,
+		// and docker run would create a missing volume, whose empty archive lets
+		// retention rotate out the real backups.
+		const requireIdleVolumeCommand = `
+				docker volume inspect ${volumeName} > /dev/null
+				VOLUME_CONTAINERS=$(docker ps -q --filter "volume=${volumeName}")
+				if [ -n "$VOLUME_CONTAINERS" ]; then
+					echo "Volume ${volumeName} is still used by running containers, check the service name of this backup"
+					exit 1
+				fi`;
 
 		if (compose.composeType === "stack") {
+			const stackServiceName = `${compose.appName}_${volumeBackup.serviceName}`;
+
+			// Stopping a stack removes its services, and the name filter also matches
+			// by prefix, so the exact name has to be looked up in the result.
 			stopCommand = `
-			echo "Stopping compose to 0 replicas"
-			echo "Service name: ${compose.appName}_${volumeBackup.serviceName}"
-            ACTUAL_REPLICAS=$(docker service inspect ${compose.appName}_${volumeBackup.serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
-            echo "Actual replicas: $ACTUAL_REPLICAS"
-            docker service update --replicas=0 ${compose.appName}_${volumeBackup.serviceName}`;
+			ACTUAL_REPLICAS=""
+			SERVICE_NAMES=$(docker service ls --filter "name=${stackServiceName}" --format "{{.Name}}")
+			if echo "$SERVICE_NAMES" | grep -qxF "${stackServiceName}"; then
+				echo "Stopping compose to 0 replicas"
+				echo "Service name: ${stackServiceName}"
+				ACTUAL_REPLICAS=$(docker service inspect ${stackServiceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
+				echo "Actual replicas: $ACTUAL_REPLICAS"
+				docker service update --replicas=0 ${stackServiceName}
+			else
+				echo "Service ${stackServiceName} is not deployed, nothing to stop"
+				${requireIdleVolumeCommand}
+			fi`;
 
 			startCommand = `
-			echo "Starting compose to $ACTUAL_REPLICAS replicas"
-			docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${compose.appName}_${volumeBackup.serviceName}`;
+			if [ -n "$ACTUAL_REPLICAS" ]; then
+				echo "Starting compose to $ACTUAL_REPLICAS replicas"
+				docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${stackServiceName}
+			fi`;
 		} else {
 			stopCommand = `
-			echo "Stopping compose container"
-            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
-            docker stop $ID`;
+			ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
+			if [ -n "$ID" ]; then
+				echo "Stopping compose container"
+				docker stop $ID
+			else
+				echo "No running compose container, nothing to stop"
+				${requireIdleVolumeCommand}
+			fi`;
 
 			startCommand = `
-            echo "Starting compose container"
-            docker start $ID
-			echo "Compose container started"
-			`;
+			if [ -n "$ID" ]; then
+				echo "Starting compose container"
+				docker start $ID
+				echo "Compose container started"
+			fi`;
 		}
 		return lockWrapper(
 			createRestartSafeBackupCommand({
