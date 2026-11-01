@@ -23,6 +23,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { trackDeploymentResult } from "@dokploy/server/utils/tracking/posthog";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
@@ -975,6 +976,12 @@ export const updateDeploymentStatus = async (
 		})
 		.where(eq(deployments.deploymentId, deploymentId))
 		.returning();
+
+	if (deploymentStatus === "done" || deploymentStatus === "error") {
+		trackDeploymentResult(deploymentId, deploymentStatus).catch((error) =>
+			console.error("Failed to track deployment result", error),
+		);
+	}
 
 	return application;
 };

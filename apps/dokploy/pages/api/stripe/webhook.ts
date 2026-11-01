@@ -1,5 +1,5 @@
 import { buffer } from "node:stream/consumers";
-import type { Server } from "@dokploy/server";
+import { captureEvent, type Server, stableEventUuid } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { asc, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -92,6 +92,11 @@ export default async function handler(
 		return res.status(400).send("Webhook Error: Invalid Event Type");
 	}
 
+	const analyticsEventId = {
+		uuid: stableEventUuid(event.id),
+		timestamp: new Date(event.created * 1000),
+	};
+
 	switch (event.type) {
 		case "checkout.session.completed": {
 			const session = event.data.object as Stripe.Checkout.Session;
@@ -114,22 +119,40 @@ export default async function handler(
 				subscription?.items?.data ?? [],
 			);
 
-			await withBillingLock(adminId, async (tx, lockedUser) => {
-				if (lockedUser.isEnterpriseCloud) {
-					return;
-				}
+			const activated = await withBillingLock(
+				adminId,
+				async (tx, lockedUser) => {
+					if (lockedUser.isEnterpriseCloud) {
+						return false;
+					}
 
-				await tx
-					.update(user)
-					.set({
-						stripeCustomerId: customerId ?? (subscription.customer as string),
-						stripeSubscriptionId: subscription.id,
-						serversQuantity,
-					})
-					.where(eq(user.id, adminId));
+					await tx
+						.update(user)
+						.set({
+							stripeCustomerId: customerId ?? (subscription.customer as string),
+							stripeSubscriptionId: subscription.id,
+							serversQuantity,
+						})
+						.where(eq(user.id, adminId));
 
-				await updateServersBasedOnQuantity(adminId, serversQuantity, tx);
-			});
+					await updateServersBasedOnQuantity(adminId, serversQuantity, tx);
+
+					return true;
+				},
+			);
+
+			if (activated) {
+				await captureEvent({
+					distinctId: adminId,
+					...analyticsEventId,
+					event: "subscription_activated",
+					properties: {
+						source: "checkout",
+						servers_quantity: serversQuantity,
+						$set: { billing_status: "active" },
+					},
+				});
+			}
 			break;
 		}
 		case "customer.subscription.trial_will_end": {
@@ -205,32 +228,67 @@ export default async function handler(
 				break;
 			}
 
-			await withBillingLock(admin.id, async (tx, lockedUser) => {
-				if (lockedUser.isEnterpriseCloud) {
-					return;
-				}
+			const cleared = await withBillingLock(
+				admin.id,
+				async (tx, lockedUser) => {
+					if (lockedUser.isEnterpriseCloud) {
+						return false;
+					}
 
-				// Deleting an old, replaced subscription must not clear the plan the
-				// owner is currently paying for.
-				if (
-					!isCurrentSubscription(
-						lockedUser.stripeSubscriptionId,
-						deletedSubscription.id,
-					)
-				) {
-					return;
-				}
+					// Deleting an old, replaced subscription must not clear the plan the
+					// owner is currently paying for.
+					if (
+						!isCurrentSubscription(
+							lockedUser.stripeSubscriptionId,
+							deletedSubscription.id,
+						)
+					) {
+						return false;
+					}
 
-				await tx
-					.update(user)
-					.set({
-						stripeSubscriptionId: null,
-						serversQuantity: 0,
+					await tx
+						.update(user)
+						.set({
+							stripeSubscriptionId: null,
+							serversQuantity: 0,
+						})
+						.where(eq(user.id, admin.id));
+
+					await disableServers(tx, admin.id);
+
+					return true;
+				},
+			);
+
+			if (cleared) {
+				// Paying through checkout cancels the leftover trial subscription;
+				// that is a conversion, not a lost trial.
+				const otherActive = await stripe.subscriptions
+					.list({
+						customer: deletedSubscription.customer as string,
+						status: "active",
+						limit: 1,
 					})
-					.where(eq(user.id, admin.id));
-
-				await disableServers(tx, admin.id);
-			});
+					.catch(() => null);
+				if (otherActive?.data.length === 0) {
+					const endedDuringTrial =
+						!!deletedSubscription.trial_end &&
+						(deletedSubscription.ended_at ?? event.created) <=
+							deletedSubscription.trial_end;
+					await captureEvent({
+						distinctId: admin.id,
+						...analyticsEventId,
+						event: endedDuringTrial ? "trial_ended" : "subscription_canceled",
+						properties: {
+							cancellation_reason:
+								deletedSubscription.cancellation_details?.reason ?? null,
+							cancellation_feedback:
+								deletedSubscription.cancellation_details?.feedback ?? null,
+							$set: { billing_status: "canceled" },
+						},
+					});
+				}
+			}
 			break;
 		}
 		case "customer.subscription.updated": {
@@ -259,45 +317,69 @@ export default async function handler(
 				!admin.stripeSubscriptionId &&
 				(await isSoleLiveSubscription(stripe, customerId, subscription.id));
 
-			await withBillingLock(admin.id, async (tx, lockedUser) => {
-				if (lockedUser.isEnterpriseCloud) {
-					return;
-				}
+			const applied = await withBillingLock(
+				admin.id,
+				async (tx, lockedUser) => {
+					if (lockedUser.isEnterpriseCloud) {
+						return false;
+					}
 
-				const isCurrent = isCurrentSubscription(
-					lockedUser.stripeSubscriptionId,
-					subscription.id,
-				);
-				const isRecovering = !lockedUser.stripeSubscriptionId && canAdopt;
-
-				if (!isCurrent && !isRecovering) {
-					return;
-				}
-
-				if (isActiveSubscription(subscription)) {
-					const serversQuantity = getSubscriptionServersQuantity(
-						subscription.items?.data ?? [],
+					const isCurrent = isCurrentSubscription(
+						lockedUser.stripeSubscriptionId,
+						subscription.id,
 					);
-					await tx
-						.update(user)
-						.set({
-							serversQuantity,
-							...(isRecovering
-								? { stripeSubscriptionId: subscription.id }
-								: {}),
-						})
-						.where(eq(user.id, admin.id));
+					const isRecovering = !lockedUser.stripeSubscriptionId && canAdopt;
 
-					await updateServersBasedOnQuantity(admin.id, serversQuantity, tx);
-				} else {
-					await tx
-						.update(user)
-						.set({ serversQuantity: 0 })
-						.where(eq(user.id, admin.id));
+					if (!isCurrent && !isRecovering) {
+						return false;
+					}
 
-					await disableServers(tx, admin.id);
-				}
-			});
+					if (isActiveSubscription(subscription)) {
+						const serversQuantity = getSubscriptionServersQuantity(
+							subscription.items?.data ?? [],
+						);
+						await tx
+							.update(user)
+							.set({
+								serversQuantity,
+								...(isRecovering
+									? { stripeSubscriptionId: subscription.id }
+									: {}),
+							})
+							.where(eq(user.id, admin.id));
+
+						await updateServersBasedOnQuantity(admin.id, serversQuantity, tx);
+					} else {
+						await tx
+							.update(user)
+							.set({ serversQuantity: 0 })
+							.where(eq(user.id, admin.id));
+
+						await disableServers(tx, admin.id);
+					}
+
+					return true;
+				},
+			);
+
+			const previousStatus = (
+				event.data.previous_attributes as Partial<Stripe.Subscription>
+			)?.status;
+			if (
+				applied &&
+				previousStatus === "trialing" &&
+				subscription.status === "active"
+			) {
+				await captureEvent({
+					distinctId: admin.id,
+					...analyticsEventId,
+					event: "subscription_activated",
+					properties: {
+						source: "trial_converted",
+						$set: { billing_status: "active" },
+					},
+				});
+			}
 
 			break;
 		}

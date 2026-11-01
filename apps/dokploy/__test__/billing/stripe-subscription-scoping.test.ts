@@ -25,6 +25,8 @@ vi.mock("drizzle-orm", () => ({
 }));
 
 vi.mock("@dokploy/server", () => ({
+	captureEvent: vi.fn(),
+	stableEventUuid: vi.fn(() => "event-uuid"),
 	findUserById: vi.fn(),
 }));
 
