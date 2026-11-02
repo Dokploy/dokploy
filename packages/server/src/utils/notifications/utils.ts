@@ -101,6 +101,30 @@ export const sendDiscordNotification = async (
 	}
 };
 
+export const escapeHtml = (s: string) =>
+	s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export const formatTelegramErrorMessage = (errorMessage: string) => {
+	const escaped = escapeHtml(errorMessage);
+	const limit = 3000;
+	if (escaped.length <= limit) return escaped;
+	let end = limit;
+	const ampIdx = escaped.lastIndexOf("&", end);
+	if (ampIdx !== -1 && escaped.indexOf(";", ampIdx) >= end) {
+		end = ampIdx;
+	}
+	if (
+		end > 0 &&
+		end < escaped.length &&
+		isHighSurrogate(escaped.charCodeAt(end - 1))
+	) {
+		end--;
+	}
+	return `${escaped.substring(0, end)}…`;
+};
+
+const isHighSurrogate = (code: number) => code >= 0xd800 && code <= 0xdbff;
+
 export const sendTelegramNotification = async (
 	connection: typeof telegram.$inferInsert,
 	messageText: string,
@@ -111,7 +135,7 @@ export const sendTelegramNotification = async (
 ) => {
 	try {
 		const url = `https://api.telegram.org/bot${connection.botToken}/sendMessage`;
-		await fetch(url, {
+		const response = await fetch(url, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
@@ -125,8 +149,17 @@ export const sendTelegramNotification = async (
 				},
 			}),
 		});
+		if (!response.ok) {
+			const body = await response.text();
+			throw new Error(
+				`Failed to send telegram notification: ${response.status} ${body}`,
+			);
+		}
 	} catch (err) {
 		console.log(err);
+		throw new Error(
+			`Failed to send telegram notification ${err instanceof Error ? err.message : "Unknown error"}`,
+		);
 	}
 };
 

@@ -47,7 +47,7 @@ interface Details {
 	envVariables: EnvVariable[];
 	shortDescription: string;
 	domains: Domain[];
-	configFiles?: Mount[];
+	configFiles?: Mount[] | null;
 }
 
 interface Mount {
@@ -184,7 +184,7 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 							>
 								{stepper.all.map((step, index, array) => (
 									<React.Fragment key={step.id}>
-										<li className="flex items-center gap-4 flex-shrink-0">
+										<li className="flex items-center gap-4 shrink-0">
 											<Button
 												type="button"
 												role="tab"

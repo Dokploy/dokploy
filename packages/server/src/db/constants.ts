@@ -9,7 +9,7 @@ export const {
 	POSTGRES_PORT = "5432",
 } = process.env;
 
-function readSecret(path: string): string {
+export function readSecret(path: string): string {
 	try {
 		return fs.readFileSync(path, "utf8").trim();
 	} catch {

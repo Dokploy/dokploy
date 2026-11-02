@@ -297,7 +297,7 @@ export const AdvancedEnvironmentSelector = ({
 					</DialogHeader>
 
 					<div className="space-y-4">
-						<div className="space-y-1">
+						<div className="space-y-2">
 							<Label htmlFor="name">Name</Label>
 							<Input
 								id="name"
@@ -306,7 +306,7 @@ export const AdvancedEnvironmentSelector = ({
 								placeholder="Environment name"
 							/>
 						</div>
-						<div className="space-y-1">
+						<div className="space-y-2">
 							<Label htmlFor="description">Description (optional)</Label>
 							<Textarea
 								id="description"

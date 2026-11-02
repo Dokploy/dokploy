@@ -1,5 +1,4 @@
-import DOMPurify from "dompurify";
-import { GlobeIcon, Pencil, Search, X } from "lucide-react";
+import { CircuitBoard, GlobeIcon, Pencil, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,9 +13,11 @@ import { Dropzone } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
 import { type BundledIcon, bundledIcons } from "@/lib/bundled-icons";
 import { api } from "@/utils/api";
+import { sanitizeSvg } from "@/utils/sanitize-svg";
 
 interface ShowIconSettingsProps {
-	applicationId: string;
+	serviceId: string;
+	serviceType: "application" | "compose";
 	icon?: string | null;
 }
 
@@ -26,7 +27,8 @@ const svgToDataUrl = (icon: BundledIcon): string => {
 };
 
 export const ShowIconSettings = ({
-	applicationId,
+	serviceId,
+	serviceType,
 	icon,
 }: ShowIconSettingsProps) => {
 	const [open, setOpen] = useState(false);
@@ -48,6 +50,17 @@ export const ShowIconSettings = ({
 	const utils = api.useUtils();
 	const { mutateAsync: updateApplication } =
 		api.application.update.useMutation();
+	const { mutateAsync: updateCompose } = api.compose.update.useMutation();
+
+	const updateIcon = async (newIcon: string | null) => {
+		if (serviceType === "compose") {
+			await updateCompose({ composeId: serviceId, icon: newIcon });
+			await utils.compose.one.invalidate({ composeId: serviceId });
+		} else {
+			await updateApplication({ applicationId: serviceId, icon: newIcon });
+			await utils.application.one.invalidate({ applicationId: serviceId });
+		}
+	};
 
 	useEffect(() => {
 		if (open) {
@@ -59,12 +72,8 @@ export const ShowIconSettings = ({
 	const handleIconSelect = async (selectedIcon: BundledIcon) => {
 		try {
 			const dataUrl = svgToDataUrl(selectedIcon);
-			await updateApplication({
-				applicationId,
-				icon: dataUrl,
-			});
+			await updateIcon(dataUrl);
 			toast.success("Icon saved successfully");
-			await utils.application.one.invalidate({ applicationId });
 			setOpen(false);
 		} catch (_error) {
 			toast.error("Error saving icon");
@@ -73,24 +82,11 @@ export const ShowIconSettings = ({
 
 	const handleRemoveIcon = async () => {
 		try {
-			await updateApplication({
-				applicationId,
-				icon: null,
-			});
+			await updateIcon(null);
 			toast.success("Icon removed");
-			await utils.application.one.invalidate({ applicationId });
 		} catch (_error) {
 			toast.error("Error removing icon");
 		}
-	};
-
-	const sanitizeSvg = (svgContent: string): string | null => {
-		const clean = DOMPurify.sanitize(svgContent, {
-			USE_PROFILES: { svg: true, svgFilters: true },
-			ADD_TAGS: ["use"],
-		});
-		if (!clean) return null;
-		return `data:image/svg+xml;base64,${btoa(clean)}`;
 	};
 
 	const handleFileUpload = async (files: FileList | null) => {
@@ -130,12 +126,8 @@ export const ShowIconSettings = ({
 				return;
 			}
 			try {
-				await updateApplication({
-					applicationId,
-					icon: sanitizedDataUrl,
-				});
+				await updateIcon(sanitizedDataUrl);
 				toast.success("Icon saved!");
-				await utils.application.one.invalidate({ applicationId });
 				setOpen(false);
 			} catch (_error) {
 				toast.error("Error saving icon");
@@ -147,12 +139,8 @@ export const ShowIconSettings = ({
 		reader.onload = async (event) => {
 			const result = event.target?.result as string;
 			try {
-				await updateApplication({
-					applicationId,
-					icon: result,
-				});
+				await updateIcon(result);
 				toast.success("Icon saved!");
-				await utils.application.one.invalidate({ applicationId });
 				setOpen(false);
 			} catch (_error) {
 				toast.error("Error saving icon");
@@ -172,9 +160,11 @@ export const ShowIconSettings = ({
 						// biome-ignore lint/performance/noImgElement: icon is data URL or base64
 						<img
 							src={icon}
-							alt="Application icon"
+							alt="Service icon"
 							className="h-8 w-8 object-contain"
 						/>
+					) : serviceType === "compose" ? (
+						<CircuitBoard className="h-6 w-6 text-muted-foreground" />
 					) : (
 						<GlobeIcon className="h-6 w-6 text-muted-foreground" />
 					)}

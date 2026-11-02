@@ -14,6 +14,7 @@ import Link from "next/link";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -21,9 +22,9 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { RouterOutputs } from "@/utils/api";
-import type { ValidationStates } from "./show-domains";
-import { AddDomain } from "./handle-domain";
 import { DnsHelperModal } from "./dns-helper-modal";
+import { AddDomain } from "./handle-domain";
+import type { ValidationStates } from "./show-domains";
 
 export type Domain =
 	| RouterOutputs["domain"]["byApplicationId"][0]
@@ -35,7 +36,9 @@ interface ColumnsProps {
 	validationStates: ValidationStates;
 	handleValidateDomain: (host: string) => Promise<void>;
 	handleDeleteDomain: (domainId: string) => Promise<void>;
+	handleToggleEnable: (domainId: string) => Promise<void>;
 	isDeleting: boolean;
+	isToggling: boolean;
 	serverIp?: string;
 	canCreateDomain: boolean;
 	canDeleteDomain: boolean;
@@ -47,7 +50,9 @@ export const createColumns = ({
 	validationStates,
 	handleValidateDomain,
 	handleDeleteDomain,
+	handleToggleEnable,
 	isDeleting,
+	isToggling,
 	serverIp,
 	canCreateDomain,
 	canDeleteDomain,
@@ -168,7 +173,7 @@ export const createColumns = ({
 							{domain.certificateType}
 						</Badge>
 					)}
-					{!domain.host.includes("traefik.me") && (
+					{!domain.host.includes("sslip.io") && (
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -209,7 +214,9 @@ export const createColumns = ({
 									</Badge>
 								</TooltipTrigger>
 								<TooltipContent className="max-w-xs">
-									{validationState?.error ? (
+									{validationState?.isValid && validationState?.message ? (
+										<p>{validationState.message}</p>
+									) : validationState?.error ? (
 										<div className="flex flex-col gap-1">
 											<p className="font-medium text-red-500">Error:</p>
 											<p>{validationState.error}</p>
@@ -248,6 +255,42 @@ export const createColumns = ({
 		},
 	},
 	{
+		id: "status",
+		header: "Status",
+		cell: ({ row }) => {
+			const domain = row.original;
+			if (!canCreateDomain) {
+				return (
+					<Badge variant={domain.enabled ? "outline" : "secondary"}>
+						{domain.enabled ? "Enabled" : "Disabled"}
+					</Badge>
+				);
+			}
+			return (
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<div className="flex items-center">
+								<Switch
+									checked={domain.enabled}
+									onCheckedChange={() => handleToggleEnable(domain.domainId)}
+									disabled={isToggling}
+								/>
+							</div>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>
+								{domain.enabled
+									? "Domain is active. Toggle to disable routing without deleting it."
+									: "Domain is disabled and not routed. Toggle to enable it again."}
+							</p>
+						</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
+			);
+		},
+	},
+	{
 		id: "actions",
 		header: "Actions",
 		enableHiding: false,
@@ -256,7 +299,7 @@ export const createColumns = ({
 
 			return (
 				<div className="flex items-center gap-2">
-					{!domain.host.includes("traefik.me") && (
+					{!domain.host.includes("sslip.io") && (
 						<DnsHelperModal
 							domain={{
 								host: domain.host,

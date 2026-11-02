@@ -87,29 +87,29 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 									<AlertTriangle className="h-5 w-5 text-destructive" />
 									Are you absolutely sure?
 								</AlertDialogTitle>
-								<AlertDialogDescription className="space-y-2">
-									<p>This action will:</p>
-									<ul className="list-disc list-inside space-y-1">
-										<li>Stop the current database service</li>
-										<li>Delete all existing data and volumes</li>
-										<li>Reset to the default configuration</li>
-										<li>Restart the service with a clean state</li>
-									</ul>
-									<p className="font-medium text-destructive mt-4">
-										This action cannot be undone.
-									</p>
+								<AlertDialogDescription asChild>
+									<div className="space-y-2">
+										<p>This action will:</p>
+										<ul className="list-disc list-inside space-y-1">
+											<li>Stop the current database service</li>
+											<li>Delete all existing data and volumes</li>
+											<li>Reset to the default configuration</li>
+											<li>Restart the service with a clean state</li>
+										</ul>
+										<p className="font-medium text-destructive mt-4">
+											This action cannot be undone.
+										</p>
+									</div>
 								</AlertDialogDescription>
 							</AlertDialogHeader>
 							<AlertDialogFooter>
 								<AlertDialogCancel>Cancel</AlertDialogCancel>
 								<AlertDialogAction
 									onClick={handleRebuild}
-									className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-									asChild
+									disabled={isPending}
+									variant="destructive"
 								>
-									<Button isLoading={isPending} type="submit">
-										Yes, rebuild database
-									</Button>
+									Yes, rebuild database
 								</AlertDialogAction>
 							</AlertDialogFooter>
 						</AlertDialogContent>

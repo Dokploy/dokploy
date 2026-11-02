@@ -10,6 +10,7 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -61,6 +62,9 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
+			await restoreInterruptedTraefik().catch((error) => {
+				console.error("Failed to restore Traefik:", error);
+			});
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();
@@ -71,8 +75,8 @@ void app.prepare().then(async () => {
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
-			const { deploymentWorker } = await import("./queues/deployments-queue");
-			await deploymentWorker.run();
+			const { startDeploymentWorker } = await import("./queues/queueSetup");
+			await startDeploymentWorker();
 		}
 	} catch (e) {
 		console.error("Main Server Error", e);

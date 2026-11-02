@@ -1,5 +1,5 @@
 {
-  "id": "6411e014-51bb-421d-955d-55eb4458d01b",
+  "id": "887c0c81-4af9-477a-ab29-b3ad16f08451",
   "prevId": "ef484e78-f78d-4c3f-ae4b-aa123dc77e61",
   "version": "7",
   "dialect": "postgresql",
@@ -6714,6 +6714,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "cronExpression": {
           "name": "cronExpression",
           "type": "text",
@@ -8014,13 +8020,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"metaTitle\":null,\"footerText\":null}'::jsonb"
-        },
-        "domainRestrictionConfig": {
-          "name": "domainRestrictionConfig",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{\"enabled\":false,\"allowedWildcards\":[]}'::jsonb"
         },
         "cleanupCacheApplications": {
           "name": "cleanupCacheApplications",

@@ -110,7 +110,7 @@ export function NodeCard({ node, serverId }: Props) {
 						</div>
 					</div>
 
-					<div className="flex justify-end w-full space-x-4">
+					<div className="flex justify-end w-full gap-4">
 						<ShowNodeConfig nodeId={node.ID} serverId={serverId} />
 						<ShowNodeApplications serverId={serverId} />
 					</div>

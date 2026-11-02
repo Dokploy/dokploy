@@ -206,7 +206,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 			);
 		},
 		cell: ({ row }) => {
-			return <div className="w-[10rem]">{row.getValue("Errors")}</div>;
+			return <div className="w-40">{row.getValue("Errors")}</div>;
 		},
 	},
 	{
@@ -217,7 +217,7 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		},
 		cell: ({ row }) => {
 			return (
-				<span className="w-[10rem]">
+				<span className="w-40">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="h-8 w-8 p-0">

@@ -45,6 +45,7 @@ export interface CompleteTemplate {
 	};
 	variables: Record<string, string>;
 	config: {
+		isolated?: boolean;
 		domains: DomainConfig[];
 		env:
 			| Record<string, string | boolean | number>
@@ -135,7 +136,7 @@ export function processValue(
 			if (params.length === 1 && params[0] && params[0].match(/^\d{1,3}$/)) {
 				return generateJwt({ length: Number.parseInt(params[0], 10) });
 			}
-			let [secret, payload] = params;
+			let [secret, payload] = params as [string?, string?];
 			if (typeof payload === "string" && variables[payload]) {
 				payload = variables[payload];
 			}
@@ -162,7 +163,7 @@ export function processValue(
 		}
 
 		if (varName === "username") {
-			return faker.internet.userName().toLowerCase();
+			return faker.internet.username().toLowerCase();
 		}
 
 		if (varName === "email") {
@@ -259,19 +260,23 @@ export function processEnvVars(
 		return [];
 	}
 
+	const processEntries = (env: Record<string, string | boolean | number>) =>
+		Object.entries(env).map(([key, value]) => {
+			if (typeof value === "string") {
+				const processedValue = processValue(value, variables, schema);
+				return `${key}=${processedValue}`;
+			}
+			return `${key}=${value}`;
+		});
+
 	// Handle array of env vars
 	if (Array.isArray(template.config.env)) {
-		return template.config.env.map((env) => {
+		return template.config.env.flatMap((env) => {
 			if (typeof env === "string") {
 				return processValue(env, variables, schema);
 			}
-			// Si es un objeto, asumimos que es un par clave-valor
 			if (typeof env === "object" && env !== null) {
-				const keys = Object.keys(env);
-				if (keys.length > 0) {
-					const key = keys[0];
-					return `${key}=${env[key as keyof typeof env]}`;
-				}
+				return processEntries(env);
 			}
 			// Para valores primitivos (boolean, number)
 			return String(env);
@@ -279,13 +284,7 @@ export function processEnvVars(
 	}
 
 	// Handle object of env vars
-	return Object.entries(template.config.env).map(([key, value]) => {
-		if (typeof value === "string") {
-			const processedValue = processValue(value, variables, schema);
-			return `${key}=${processedValue}`;
-		}
-		return `${key}=${value}`;
-	});
+	return processEntries(template.config.env);
 }
 
 /**

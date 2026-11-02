@@ -1,3 +1,4 @@
+import { formatMb, toMb } from "@dokploy/server/monitoring/units";
 import { format } from "date-fns";
 import { Area, AreaChart, CartesianGrid, YAxis } from "recharts";
 import {
@@ -29,12 +30,12 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 	const transformedData = accumulativeData.map((item, index) => ({
 		time: item.time,
 		name: `Point ${index + 1}`,
-		inMB: item.value.inputMb,
-		outMB: item.value.outputMb,
+		inMB: toMb(item.value.inputMb),
+		outMB: toMb(item.value.outputMb),
 	}));
 
 	return (
-		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+		<ChartContainer config={chartConfig} className="mt-4 h-40 w-full">
 			<AreaChart
 				data={transformedData}
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -73,13 +74,14 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 							}}
 							formatter={(value, name) => {
 								const label = name === "inMB" ? "In" : "Out";
-								return [`${value} MB`, label];
+								return [formatMb(Number(value)), label];
 							}}
 						/>
 					}
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="inMB"
 					stroke="var(--color-inMB)"
 					fill="url(#fillNetIn)"
@@ -87,6 +89,7 @@ export const DockerNetworkChart = ({ accumulativeData }: Props) => {
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="outMB"
 					stroke="var(--color-outMB)"
 					fill="url(#fillNetOut)"

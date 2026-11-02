@@ -4,4 +4,10 @@ packages:
   - "apps/schedules"
   - "packages/server"
 
+# Supply-chain hardening: refuse package versions younger than N days,
+# so newly-published malicious versions get caught/yanked before we install them.
+# Disabled for now — kept breaking builds on unrelated fresh transitive deps
+# (see PR #4679). Re-enable when there's a per-scope threshold or exclude list.
+# minimumReleaseAge: 1440
+
 

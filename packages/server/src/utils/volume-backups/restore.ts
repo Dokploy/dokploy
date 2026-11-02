@@ -1,4 +1,5 @@
 import path from "node:path";
+import { quote } from "shell-quote";
 import {
 	findApplicationById,
 	findComposeById,
@@ -23,7 +24,7 @@ export const restoreVolume = async (
 	const backupPath = `${bucketPath}/${backupFileName}`;
 
 	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([backupPath])} ${quote([`${volumeBackupPath}/${backupFileName}`])}`;
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
@@ -40,7 +41,7 @@ export const restoreVolume = async (
 		-v ${volumeName}:/volume_data \
 		-v ${volumeBackupPath}:/backup \
 		ubuntu \
-		bash -c "cd /volume_data && tar xvf /backup/${backupFileName} ."
+		bash -c "cd /volume_data && tar xvf /backup/${quote([backupFileName])} ."
 	echo "Volume restore completed ✅"
 	`;
 

@@ -11,7 +11,8 @@ import {
 	findProjectById,
 	getAccessibleServerIds,
 	getContainerLogs,
-	getServiceContainerCommand,
+	getServiceContainer,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeMongoById,
@@ -61,7 +62,11 @@ export const mongoRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a mongo",
@@ -426,15 +431,15 @@ export const mongoRouter = createTRPCRouter({
 			const mongo = await findMongoById(mongoId);
 			const { appName, serverId, databaseUser, databasePassword } = mongo;
 
-			const containerCmd = getServiceContainerCommand(appName);
-			const command = `
-				CONTAINER_ID=$(${containerCmd})
-				if [ -z "$CONTAINER_ID" ]; then
-					echo "No running container found for ${appName}" >&2
-					exit 1
-				fi
-				docker exec "$CONTAINER_ID" mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"
-			`;
+			const container = await getServiceContainer(appName, serverId);
+			if (!container) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No running container found for ${appName}`,
+				});
+			}
+
+			const command = `docker exec ${container.Id} mongosh -u '${databaseUser}' -p '${databasePassword}' --authenticationDatabase admin --eval "db.getSiblingDB('admin').changeUserPassword('${databaseUser}', '${password}')"`;
 
 			await db.transaction(async (tx) => {
 				await tx

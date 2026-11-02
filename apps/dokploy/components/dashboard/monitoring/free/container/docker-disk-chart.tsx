@@ -29,7 +29,7 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 	}));
 
 	return (
-		<ChartContainer config={chartConfig} className="mt-4 h-[10rem] w-full">
+		<ChartContainer config={chartConfig} className="mt-4 h-40 w-full">
 			<AreaChart
 				data={transformedData}
 				margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -71,6 +71,7 @@ export const DockerDiskChart = ({ accumulativeData, diskTotal }: Props) => {
 				/>
 				<Area
 					type="monotone"
+					isAnimationActive={false}
 					dataKey="usedGb"
 					stroke="var(--color-usedGb)"
 					fill="url(#fillDiskUsed)"

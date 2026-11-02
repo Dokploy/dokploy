@@ -3,6 +3,7 @@ import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findDestinationByIdForOrganization } from "@dokploy/server/services/destination";
 import { findEnvironmentById } from "@dokploy/server/services/environment";
 import type { Libsql } from "@dokploy/server/services/libsql";
 import { findProjectById } from "@dokploy/server/services/project";
@@ -10,7 +11,7 @@ import { sendDatabaseBackupNotifications } from "../notifications/database-backu
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
-	getBackupTimestamp,
+	getBackupFileName,
 	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
@@ -22,6 +23,10 @@ export const runLibsqlBackup = async (
 	const { name, environmentId, appName } = libsql;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
+	const destination = await findDestinationByIdForOrganization(
+		backup.destinationId,
+		project.organizationId,
+	);
 
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
@@ -29,18 +34,15 @@ export const runLibsqlBackup = async (
 		description: "Initializing Backup",
 	});
 	const { prefix } = backup;
-	const destination = backup.destination;
-	const backupFileName = `${getBackupTimestamp()}.sql.gz`;
+	const backupFileName = getBackupFileName(backup.customName, "sql.gz");
 	const bucketDestination = `${appName}/${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-
 		const backupCommand = getBackupCommand(
 			backup,
-			rcloneCommand,
+			rcloneFlags,
+			rcloneDestination,
 			deployment.logPath,
 		);
 		if (libsql.serverId) {

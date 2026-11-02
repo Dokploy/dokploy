@@ -74,6 +74,7 @@ interface Props {
 	databaseType?: DatabaseType;
 	serverId?: string | null;
 	backupType?: "database" | "compose";
+	trigger?: React.ReactNode;
 }
 
 const RestoreBackupSchema = z
@@ -200,6 +201,7 @@ export const RestoreBackup = ({
 	databaseType,
 	serverId,
 	backupType = "database",
+	trigger,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -288,7 +290,6 @@ export const RestoreBackup = ({
 			toast.error("Please select a database type");
 			return;
 		}
-		console.log({ data });
 		setIsDeploying(true);
 	};
 
@@ -312,12 +313,14 @@ export const RestoreBackup = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline">
-					<RotateCcw className="mr-2 size-4" />
-					Restore Backup
-				</Button>
+				{trigger ?? (
+					<Button variant="outline">
+						<RotateCcw className="mr-2 size-4" />
+						Restore Backup
+					</Button>
+				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
@@ -346,7 +349,7 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
@@ -405,11 +408,11 @@ export const RestoreBackup = ({
 							name="backupFile"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel className="flex items-center justify-between">
-										Search Backup Files
+									<FormLabel className="flex items-center justify-between gap-2">
+										<span className="shrink-0">Search Backup Files</span>
 										{field.value && (
-											<Badge variant="outline" className="truncate">
-												{field.value}
+											<Badge variant="outline" className="min-w-0 max-w-[70%]">
+												<span className="min-w-0 truncate">{field.value}</span>
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
 													onClick={(e) => {
@@ -428,18 +431,21 @@ export const RestoreBackup = ({
 												<Button
 													variant="outline"
 													className={cn(
-														"w-full justify-between !bg-input",
+														"w-full justify-between",
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													<span className="truncate text-left flex-1 w-52">
+													<span className="min-w-0 flex-1 truncate text-left">
 														{field.value || "Search and select a backup file"}
 													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
 										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
+										<PopoverContent
+											className="w-[var(--radix-popover-trigger-width)] p-0"
+											align="start"
+										>
 											<Command>
 												<CommandInput
 													placeholder="Search backup files..."
@@ -461,7 +467,7 @@ export const RestoreBackup = ({
 													</div>
 												) : (
 													<ScrollArea className="h-64">
-														<CommandGroup className="w-96">
+														<CommandGroup className="w-full">
 															{files?.map((file) => (
 																<CommandItem
 																	value={file.Path}
@@ -478,14 +484,14 @@ export const RestoreBackup = ({
 																	}}
 																>
 																	<div className="flex w-full flex-col gap-1">
-																		<div className="flex w-full justify-between">
-																			<span className="font-medium">
+																		<div className="flex w-full items-start justify-between gap-2">
+																			<span className="min-w-0 flex-1 break-all font-medium">
 																				{file.Path}
 																			</span>
 
 																			<CheckIcon
 																				className={cn(
-																					"ml-auto h-4 w-4",
+																					"mt-0.5 h-4 w-4 shrink-0",
 																					file.Path === field.value
 																						? "opacity-100"
 																						: "opacity-0",
@@ -551,7 +557,10 @@ export const RestoreBackup = ({
 												value={field.value}
 												onValueChange={(value: DatabaseType) => {
 													field.onChange(value);
-													form.setValue("metadata", {});
+													form.setValue("metadata", {
+														serviceName:
+															form.getValues("metadata.serviceName") ?? "",
+													});
 												}}
 											>
 												<SelectTrigger>
@@ -578,7 +587,7 @@ export const RestoreBackup = ({
 											<div className="flex gap-2">
 												<Select
 													onValueChange={field.onChange}
-													value={field.value || undefined}
+													value={field.value ?? ""}
 												>
 													<FormControl>
 														<SelectTrigger>
@@ -623,7 +632,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Fetch: Will clone the repository and load the
@@ -653,7 +662,7 @@ export const RestoreBackup = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-40"
 														>
 															<p>
 																Cache: If you previously deployed this compose,

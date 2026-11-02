@@ -86,6 +86,7 @@ export const serverSetup = async (
 						...server.metricsConfig.server,
 						token: token,
 						urlCallback: urlCallback,
+						cronJob: server.metricsConfig.server.cronJob || "0 0 * * *",
 					},
 					containers: server.metricsConfig.containers,
 				},
@@ -105,6 +106,21 @@ export const serverSetup = async (
 		onData?.(`${err} ❌\n`);
 	}
 };
+
+export const reportDockerVersion = () => `
+if command -v docker >/dev/null 2>&1; then
+	INSTALLED_DOCKER_VERSION=$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)
+	if [ -z "$INSTALLED_DOCKER_VERSION" ]; then
+		INSTALLED_DOCKER_VERSION=$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || true)
+	fi
+	if [ -z "$INSTALLED_DOCKER_VERSION" ]; then
+		INSTALLED_DOCKER_VERSION="unknown"
+	fi
+	DOCKER_VERSION_REPORT="$INSTALLED_DOCKER_VERSION (already installed)"
+else
+	DOCKER_VERSION_REPORT="$DOCKER_VERSION (will be installed)"
+fi
+`;
 
 export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
@@ -162,6 +178,17 @@ else
 	OS_VERSION=$(grep -w "VERSION_ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 fi
 
+# Ubuntu 26.04 (resolute) ships a docker-ce repo that has no 28.5.0, so the
+# default pin is absent from apt-cache madison and get.docker.com aborts before
+# installing Docker. Repin to a version present on every architecture Docker
+# ships resolute for: amd64/arm64/armhf start at 29.3.1, but s390x only carries
+# 29.4.0-29.4.2, so 29.4.2 is the newest version common to all of them. This
+# must run after OS_VERSION is resolved and before the banner so the reported
+# Docker version stays accurate.
+if [ "$OS_TYPE" = "ubuntu" ] && [ "$OS_VERSION" = "26.04" ]; then
+	DOCKER_VERSION=29.4.2
+fi
+
 if [ "$OS_TYPE" = 'amzn' ]; then
     $SUDO_CMD dnf install -y findutils >/dev/null
 fi
@@ -174,10 +201,11 @@ arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles |
 	;;
 esac
 
+${reportDockerVersion()}
 echo -e "---------------------------------------------"
 echo "| CPU Architecture  | $SYS_ARCH"
 echo "| Operating System  | $OS_TYPE $OS_VERSION"
-echo "| Docker            | $DOCKER_VERSION"
+echo "| Docker            | $DOCKER_VERSION_REPORT"
 ${isBuildServer ? 'echo "| Server Type       | Build Server"' : ""}
 echo -e "---------------------------------------------\n"
 echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
@@ -213,7 +241,7 @@ ${setupMainDirectory()}
 ${setupDirectories()}
 
 echo -e "8. Setting up Traefik"
-${createTraefikConfig()}
+${createServerTraefikConfig()}
 
 echo -e "9. Setting up Middlewares"
 ${createDefaultMiddlewares()}
@@ -435,10 +463,14 @@ export const setupSwarm = () => `
 		fi
 	`;
 
-const setupNetwork = () => `
+const isSwarmWorker = `[ "$($SUDO_CMD docker info --format '{{.Swarm.LocalNodeState}} {{.Swarm.ControlAvailable}}' 2>/dev/null)" = "active false" ]`;
+
+export const setupNetwork = () => `
 	# Check if the dokploy-network already exists
 	if $SUDO_CMD docker network ls | grep -q 'dokploy-network'; then
 		echo "Network dokploy-network already exists ✅"
+	elif ${isSwarmWorker}; then
+		echo "Swarm worker: dokploy-network is managed by the Swarm manager ✅"
 	else
 		# Create the dokploy-network if it doesn't exist
 		if $SUDO_CMD docker network create --driver overlay --attachable dokploy-network; then
@@ -466,7 +498,7 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		$SUDO_CMD pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
+		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
 		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
@@ -634,21 +666,69 @@ else
 fi
 `;
 
-const createTraefikConfig = () => {
-	const config = getDefaultServerTraefikConfig();
+const removeSwarmProviderAwk = `
+/^providers:[[:space:]]*(#.*)?$/ { inProviders = 1; childIndent = -1; print; next }
+/^providers:/ && /swarm/ { unsupported = 1 }
+inProviders && /^[^[:space:]#]/ { inProviders = 0 }
+skipping {
+	if ($0 ~ /^[[:space:]]*$/) { blanks = blanks $0 "\\n"; next }
+	match($0, /^[[:space:]]*/)
+	if (RLENGTH > swarmIndent) { blanks = ""; next }
+	skipping = 0; printf "%s", blanks; blanks = ""
+}
+inProviders && /^[[:space:]]+[^[:space:]#]/ {
+	match($0, /^[[:space:]]*/)
+	if (childIndent < 0) childIndent = RLENGTH
+	if (RLENGTH == childIndent) {
+		if ($0 ~ /^[[:space:]]*swarm:[[:space:]]*(#.*)?$/) { swarmIndent = RLENGTH; skipping = 1; removed = 1; next }
+		if ($0 ~ /^[[:space:]]*swarm:[[:space:]]*[{][^{}]*[}][[:space:]]*(#.*)?$/) { removed = 1; next }
+		if ($0 ~ /^[[:space:]]*[^[:space:]]?swarm[^[:space:]]?[[:space:]]*:/) unsupported = 1
+	}
+}
+{ print }
+END { printf "%s", blanks; if (unsupported) exit 2; exit !removed }
+`;
 
-	const command = `
-	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
-		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
+export const createServerTraefikConfig = (
+	traefikDir = "/etc/dokploy/traefik",
+) => {
+	const config = getDefaultServerTraefikConfig();
+	const workerConfig = getDefaultServerTraefikConfig(false);
+	const configPath = `${traefikDir}/traefik.yml`;
+
+	return `
+	if [ -f "${traefikDir}/dynamic/acme.json" ]; then
+		chmod 600 "${traefikDir}/dynamic/acme.json"
 	fi
-	if [ -f "/etc/dokploy/traefik/traefik.yml" ]; then
+	if [ -f "${configPath}" ]; then
 		echo "Traefik config already exists ✅"
+		if ${isSwarmWorker}; then
+			(
+				command -v flock > /dev/null && flock 9
+				tmp=$(mktemp)
+				trap 'rm -f "$tmp"' EXIT
+				status=0
+				awk '${removeSwarmProviderAwk}' "${configPath}" > "$tmp" || status=$?
+				if [ "$status" -eq 0 ]; then
+					cp "${configPath}" "${configPath}.bak"
+					# Write in place: the file is bind-mounted, a new inode would not reach the container.
+					cat "$tmp" > "${configPath}"
+					echo "Removed Swarm provider from Traefik config (Swarm worker), backup at ${configPath}.bak ✅"
+					if $SUDO_CMD docker inspect dokploy-traefik > /dev/null 2>&1; then
+						$SUDO_CMD docker restart dokploy-traefik > /dev/null
+						echo "Traefik restarted ✅"
+					fi
+				elif [ "$status" -eq 2 ]; then
+					echo "⚠️ Could not remove providers.swarm from ${configPath} automatically. Swarm workers can't use it, remove it manually and restart dokploy-traefik."
+				fi
+			) 9> /tmp/dokploy-traefik-config.lock
+		fi
+	elif ${isSwarmWorker}; then
+		echo "${workerConfig}" > "${configPath}"
 	else
-		echo "${config}" > /etc/dokploy/traefik/traefik.yml
+		echo "${config}" > "${configPath}"
 	fi
 	`;
-
-	return command;
 };
 
 const createDefaultMiddlewares = () => {

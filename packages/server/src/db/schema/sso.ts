@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { organization } from "./account";
 import { user } from "./user";
@@ -10,11 +10,12 @@ export const ssoProvider = pgTable("sso_provider", {
 	oidcConfig: text("oidc_config"),
 	samlConfig: text("saml_config"),
 	providerId: text("provider_id").notNull().unique(),
-	userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+	userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
 	organizationId: text("organization_id").references(() => organization.id, {
 		onDelete: "cascade",
 	}),
 	domain: text("domain").notNull(),
+	domainVerified: boolean("domain_verified").notNull().default(true),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

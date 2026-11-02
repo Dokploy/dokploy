@@ -35,8 +35,11 @@ import {
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import {
+	APP_NAME_MESSAGE,
+	APP_NAME_REGEX,
 	DATABASE_PASSWORD_MESSAGE,
 	DATABASE_PASSWORD_REGEX,
+	encryptedText,
 	generateAppName,
 } from "./utils";
 
@@ -58,7 +61,7 @@ export const libsql = pgTable("libsql", {
 	enableNamespaces: boolean("enableNamespaces").notNull().default(false),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
-	env: text("env"),
+	env: encryptedText("env"),
 	// RESOURCES
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -82,6 +85,10 @@ export const libsql = pgTable("libsql", {
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "number" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
+	networkIds: text("networkIds").array().default([]),
+	detachDokployNetwork: boolean("detachDokployNetwork")
+		.notNull()
+		.default(false),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -110,7 +117,7 @@ export const libsqlRelations = relations(libsql, ({ one, many }) => ({
 const createSchema = createInsertSchema(libsql, {
 	libsqlId: z.string(),
 	name: z.string().min(1),
-	appName: z.string().min(1),
+	appName: z.string().min(1).max(63).regex(APP_NAME_REGEX, APP_NAME_MESSAGE),
 	createdAt: z.string(),
 	databaseUser: z.string().min(1),
 	databasePassword: z.string().regex(DATABASE_PASSWORD_REGEX, {
@@ -145,6 +152,8 @@ const createSchema = createInsertSchema(libsql, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.number().nullable(),
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
+	networkIds: z.array(z.string()).optional(),
+	detachDokployNetwork: z.boolean().optional(),
 });
 
 export const apiCreateLibsql = createSchema

@@ -1,5 +1,6 @@
 import { ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/router";
+import { resetPostHog } from "@/components/shared/analytics";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -53,7 +54,7 @@ export const UserNav = () => {
 				</SidebarMenuButton>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+				className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
 				side="bottom"
 				align="end"
 				sideOffset={4}
@@ -87,14 +88,16 @@ export const UserNav = () => {
 					</DropdownMenuItem>
 					{!isCloud ? (
 						<>
-							<DropdownMenuItem
-								className="cursor-pointer"
-								onClick={() => {
-									router.push("/dashboard/monitoring");
-								}}
-							>
-								Monitoring
-							</DropdownMenuItem>
+							{permissions?.monitoring.read && permissions?.docker.read && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/monitoring");
+									}}
+								>
+									Monitoring
+								</DropdownMenuItem>
+							)}
 							{permissions?.traefikFiles.read && (
 								<DropdownMenuItem
 									className="cursor-pointer"
@@ -146,6 +149,7 @@ export const UserNav = () => {
 					className="cursor-pointer"
 					onClick={async () => {
 						await authClient.signOut().then(() => {
+							resetPostHog();
 							router.push("/");
 						});
 						// await mutateAsync().then(() => {

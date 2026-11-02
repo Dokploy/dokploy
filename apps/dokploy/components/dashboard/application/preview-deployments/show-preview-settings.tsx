@@ -88,7 +88,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			env: "",
-			wildcardDomain: "*.traefik.me",
+			wildcardDomain: "*.sslip.io",
 			port: 3000,
 			previewLimit: 3,
 			previewLabels: [],
@@ -102,7 +102,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 
 	const previewHttps = form.watch("previewHttps");
 	const wildcardDomain = form.watch("wildcardDomain");
-	const isTraefikMeDomain = wildcardDomain?.includes("traefik.me") || false;
+	const isTraefikMeDomain = wildcardDomain?.includes("sslip.io") || false;
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -114,7 +114,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				env: data.previewEnv || "",
 				buildArgs: data.previewBuildArgs || "",
 				buildSecrets: data.previewBuildSecrets || "",
-				wildcardDomain: data.previewWildcard || "*.traefik.me",
+				wildcardDomain: data.previewWildcard || "*.sslip.io",
 				port: data.previewPort || 3000,
 				previewLabels: data.previewLabels || [],
 				previewLimit: data.previewLimit || 3,
@@ -173,7 +173,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 					<div className="grid gap-4">
 						{isTraefikMeDomain && (
 							<AlertBlock type="info">
-								<strong>Note:</strong> traefik.me is a public HTTP service and
+								<strong>Note:</strong> sslip.io is a public HTTP service and
 								does not support SSL/HTTPS. HTTPS and certificate options will
 								not have any effect.
 							</AlertBlock>
@@ -192,7 +192,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormItem>
 												<FormLabel>Wildcard Domain</FormLabel>
 												<FormControl>
-													<Input placeholder="*.traefik.me" {...field} />
+													<Input placeholder="*.sslip.io" {...field} />
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -325,7 +325,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="previewHttps"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
 												<div className="space-y-0.5">
 													<FormLabel>HTTPS</FormLabel>
 													<FormDescription>
@@ -431,7 +431,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										control={form.control}
 										name="previewRequireCollaboratorPermissions"
 										render={({ field }) => (
-											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm col-span-2">
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs col-span-2">
 												<div className="space-y-0.5">
 													<FormLabel>
 														Require Collaborator Permissions

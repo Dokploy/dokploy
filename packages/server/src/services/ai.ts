@@ -1,13 +1,24 @@
 import { db } from "@dokploy/server/db";
-import { ai } from "@dokploy/server/db/schema";
+import { ai, organization } from "@dokploy/server/db/schema";
+import { aiCustomProviderSchema } from "@dokploy/server/db/schema/ai";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText, Output } from "ai";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { findServerById } from "./server";
 import { getWebServerSettings } from "./web-server-settings";
+
+export const AI_SECRET_MASK = "********";
+
+export const maskAiApiKey = <T extends { apiKey: string }>(settings: T): T => ({
+	...settings,
+	apiKey: AI_SECRET_MASK,
+});
+
+export const mergeAiApiKey = (incoming: string, existing: string): string =>
+	incoming === AI_SECRET_MASK ? existing : incoming;
 
 interface SuggestionItem {
 	id: string;
@@ -24,7 +35,7 @@ interface DockerOutput {
 	dockerCompose: string;
 	envVariables: Array<{ name: string; value: string }>;
 	domains: Array<{ host: string; port: number; serviceName: string }>;
-	configFiles?: Array<{ content: string; filePath: string }>;
+	configFiles?: Array<{ content: string; filePath: string }> | null;
 }
 
 export const getAiSettingsByOrganizationId = async (organizationId: string) => {
@@ -35,9 +46,12 @@ export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	return aiSettings;
 };
 
-export const getAiSettingById = async (aiId: string) => {
+export const getAiSettingById = async (
+	aiId: string,
+	organizationId: string,
+) => {
 	const aiSetting = await db.query.ai.findFirst({
-		where: eq(ai.aiId, aiId),
+		where: and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)),
 	});
 	if (!aiSetting) {
 		throw new TRPCError({
@@ -48,8 +62,105 @@ export const getAiSettingById = async (aiId: string) => {
 	return aiSetting;
 };
 
-export const saveAiSettings = async (organizationId: string, settings: any) => {
+type AiCustomProvider = z.infer<typeof aiCustomProviderSchema>;
+
+const parseOrgMetadata = (metadata: string | null) => {
+	try {
+		const parsed = JSON.parse(metadata || "{}");
+		return typeof parsed === "object" && parsed !== null
+			? (parsed as Record<string, unknown>)
+			: {};
+	} catch {
+		return {};
+	}
+};
+
+export const getCustomAiProviders = async (organizationId: string) => {
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, organizationId),
+	});
+	const metadata = parseOrgMetadata(org?.metadata ?? null);
+	const result = z
+		.array(aiCustomProviderSchema)
+		.safeParse(metadata.aiProviders);
+	return result.success ? result.data : [];
+};
+
+export const saveCustomAiProviders = async (
+	organizationId: string,
+	providers: AiCustomProvider[],
+) => {
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, organizationId),
+	});
+	if (!org) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Organization not found",
+		});
+	}
+	const metadata = parseOrgMetadata(org.metadata);
+	metadata.aiProviders = providers;
+	await db
+		.update(organization)
+		.set({ metadata: JSON.stringify(metadata) })
+		.where(eq(organization.id, organizationId));
+	return providers;
+};
+
+export const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
+
+export const resolveAiApiKey = async (opts: {
+	apiKey: string;
+	apiUrl: string;
+	aiId: string | undefined;
+	organizationId: string;
+	authorize: () => Promise<boolean>;
+}): Promise<string> => {
+	if (opts.apiKey !== AI_SECRET_MASK || !opts.aiId) return opts.apiKey;
+	if (!(await opts.authorize())) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
+	}
+	const stored = await getAiSettingById(opts.aiId, opts.organizationId);
+	if (normalizeApiUrl(stored.apiUrl) !== normalizeApiUrl(opts.apiUrl)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "API URL does not match the stored configuration",
+		});
+	}
+	return stored.apiKey;
+};
+
+export const saveAiSettings = async (
+	organizationId: string,
+	settings: any,
+	checkExistence = true,
+) => {
 	const aiId = settings.aiId;
+
+	if (aiId && checkExistence) {
+		await getAiSettingById(aiId, organizationId);
+	}
+
+	if (settings.apiUrl) {
+		const customProviders = await getCustomAiProviders(organizationId);
+		if (customProviders.length > 0) {
+			const isAllowed = customProviders.some(
+				(provider) =>
+					normalizeApiUrl(provider.apiUrl) === normalizeApiUrl(settings.apiUrl),
+			);
+			if (!isAllowed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"This API URL is not in your organization's allowed AI providers",
+				});
+			}
+		}
+	}
 
 	return db
 		.insert(ai)
@@ -66,8 +177,13 @@ export const saveAiSettings = async (organizationId: string, settings: any) => {
 		});
 };
 
-export const deleteAiSettings = async (aiId: string) => {
-	return db.delete(ai).where(eq(ai.aiId, aiId));
+export const deleteAiSettings = async (
+	aiId: string,
+	organizationId: string,
+) => {
+	return db
+		.delete(ai)
+		.where(and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)));
 };
 
 interface Props {
@@ -78,14 +194,14 @@ interface Props {
 }
 
 export const suggestVariants = async ({
-	organizationId: _organizationId,
+	organizationId,
 	aiId,
 	input,
 	serverId,
 }: Props) => {
 	try {
-		const aiSettings = await getAiSettingById(aiId);
-		if (!aiSettings || !aiSettings.isEnabled) {
+		const aiSettings = await getAiSettingById(aiId, organizationId);
+		if (!aiSettings?.isEnabled) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
 				message: "AI features are not enabled for this configuration",
@@ -136,14 +252,13 @@ export const suggestVariants = async ({
 								filePath: z.string(),
 							}),
 						)
-						.optional(),
+						.nullable(),
 				}),
 			),
 		});
 
 		const result = await generateText({
 			model,
-			// @ts-ignore - Zod + AI SDK Output.object() causes excessively deep instantiation
 			output: Output.object({ schema: fullSchema }),
 			prompt: `
 		    Act as advanced DevOps engineer. Analyze the user's request and generate up to 3 deployment suggestions, each with a complete docker compose configuration.
@@ -198,12 +313,12 @@ export const suggestVariants = async ({
 		    1. ALWAYS use 'image:' field, NEVER use 'build:' field
 		    2. NEVER use 'build: .' or any build directive - we don't have local Dockerfiles
 		    3. Use images from Docker Hub or other public registries (e.g., docker.io, ghcr.io, quay.io)
-		    4. For dependencies (databases, redis, etc.), use official images (e.g., postgres:16, redis:7, etc.)
+		    4. For dependencies (databases, redis, etc.), use official images (e.g., postgres:16, redis:8, etc.)
 		    5. Always specify image tags - avoid using 'latest' tag, use specific versions when possible
 		    6. Examples of correct image usage:
 		       - image: sendingtk/chatwoot:develop
 		       - image: postgres:16-alpine
-		       - image: redis:7-alpine
+		       - image: redis:8-alpine
 		    7. Examples of INCORRECT usage (DO NOT USE):
 		       - build: .
 		       - build: ./app
@@ -229,7 +344,7 @@ export const suggestVariants = async ({
 
 		    Domain Rules - For each service that needs to be exposed to the internet:
 		    1. Define a domain with:
-		       - host: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.traefik.me
+		       - host: {service-name}-{random-3-chars-hex}-${ip ? ip.replaceAll(".", "-") : ""}.sslip.io
 		       - port: the internal port the service runs on
 		       - serviceName: the name of the service in the docker-compose
 		    2. Make sure the service is properly configured to work with the specified port

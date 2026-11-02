@@ -53,9 +53,14 @@ type Tag = z.infer<typeof TagSchema>;
 
 interface HandleTagProps {
 	tagId?: string;
+	/**
+	 * Called with the new tag's id after it is created, so callers embedding
+	 * this dialog (e.g. the tag selector) can select the tag right away.
+	 */
+	onCreated?: (tagId: string) => void;
 }
 
-export const HandleTag = ({ tagId }: HandleTagProps) => {
+export const HandleTag = ({ tagId, onCreated }: HandleTagProps) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const colorInputRef = useRef<HTMLInputElement>(null);
@@ -101,8 +106,11 @@ export const HandleTag = ({ tagId }: HandleTagProps) => {
 			color: data.color,
 			tagId: tagId || "",
 		})
-			.then(async () => {
+			.then(async (result) => {
 				await utils.tag.all.invalidate();
+				if (!tagId && result?.tagId) {
+					onCreated?.(result.tagId);
+				}
 				toast.success(tagId ? "Tag Updated" : "Tag Created");
 				setIsOpen(false);
 				form.reset();
@@ -139,9 +147,18 @@ export const HandleTag = ({ tagId }: HandleTagProps) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
+					{/*
+					 * This dialog can be rendered inside another form (e.g. the tag
+					 * selector in the project dialog). React propagates events through the
+					 * React tree, not the DOM tree, so without stopPropagation submitting
+					 * this form would also submit the outer one.
+					 */}
 					<form
 						id="hook-form-tag"
-						onSubmit={form.handleSubmit(onSubmit)}
+						onSubmit={(e) => {
+							e.stopPropagation();
+							form.handleSubmit(onSubmit)(e);
+						}}
 						className="grid w-full gap-4"
 					>
 						<FormField

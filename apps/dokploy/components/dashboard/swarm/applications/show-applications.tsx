@@ -33,7 +33,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 		return (
 			<Dialog>
 				<DialogTrigger asChild>
-					<Button variant="outline" size="sm" className="w-full">
+					<Button variant="outline" size="sm">
 						<Loader2 className="h-4 w-4 mr-2 animate-spin" />
 					</Button>
 				</DialogTrigger>
@@ -82,7 +82,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="outline" size="sm" className="w-full">
+				<Button variant="outline" size="sm">
 					<Layers className="h-4 w-4 mr-2" />
 					Services
 				</Button>

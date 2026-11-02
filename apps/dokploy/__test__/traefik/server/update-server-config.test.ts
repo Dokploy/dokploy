@@ -25,6 +25,9 @@ const baseSettings: WebServerSettings = {
 	letsEncryptEmail: null,
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
+	telemetryProviderIds: [],
+	vectorAgentOrganizationId: null,
+	buildsConcurrency: 1,
 	logCleanupCron: null,
 	metricsConfig: {
 		containers: {
@@ -59,8 +62,14 @@ const baseSettings: WebServerSettings = {
 		docsUrl: null,
 		errorPageTitle: null,
 		errorPageDescription: null,
-		metaTitle: null,
+		ogImageUrl: null,
 		footerText: null,
+		passwordResetGuide: null,
+		supportEmail: null,
+		logoLightUrl: null,
+		loginLogoLightUrl: null,
+		faviconLightUrl: null,
+		dualModeBranding: false,
 	},
 	domainRestrictionConfig: {
 		enabled: false,
@@ -69,6 +78,8 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
+	remoteServersOnly: false,
+	enforceSSO: false,
 	createdAt: null,
 	updatedAt: new Date(),
 };

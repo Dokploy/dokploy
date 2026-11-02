@@ -6,6 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useTheme } from "next-themes";
+import { fixMacOsAltKeys } from "@/lib/terminal-keyboard";
 import { getLocalServerData } from "./local-server-config";
 
 interface Props {
@@ -40,11 +41,21 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 		});
 
 		const addonFit = new FitAddon();
+		const clipboardAddon = new ClipboardAddon();
+		term.loadAddon(clipboardAddon);
+		fixMacOsAltKeys(term);
+
+		// @ts-expect-error
+		term.open(termRef.current);
+		term.loadAddon(addonFit);
+		addonFit.fit();
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
 		const urlParams = new URLSearchParams();
 		urlParams.set("serverId", serverId);
+		urlParams.set("cols", term.cols.toString());
+		urlParams.set("rows", term.rows.toString());
 
 		if (serverId === "local") {
 			const { port, username } = getLocalServerData();
@@ -56,24 +67,30 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		const ws = new WebSocket(wsUrl);
 		const addonAttach = new AttachAddon(ws);
-		const clipboardAddon = new ClipboardAddon();
-		term.loadAddon(clipboardAddon);
-
-		// @ts-ignore
-		term.open(termRef.current);
-		// @ts-ignore
-		term.loadAddon(addonFit);
 		term.loadAddon(addonAttach);
-		addonFit.fit();
+
+		const sendResize = (cols: number, rows: number) => {
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: "resize", cols, rows }));
+			}
+		};
+		term.onResize(({ cols, rows }) => sendResize(cols, rows));
+
+		const resizeObserver = new ResizeObserver(() => addonFit.fit());
+		if (termRef.current) {
+			resizeObserver.observe(termRef.current);
+		}
+
 		return () => {
+			resizeObserver.disconnect();
 			ws.readyState === WebSocket.OPEN && ws.close();
 		};
 	}, [id, serverId]);
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-4 h-full w-full">
 			<div className="w-full h-full bg-transparent border rounded-lg p-2">
-				<div id={id} ref={termRef} className="rounded-xl" />
+				<div id={id} ref={termRef} className="rounded-xl h-full w-full" />
 			</div>
 		</div>
 	);

@@ -1,3 +1,5 @@
+import { HelpCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -7,8 +9,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { HelpCircle } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
 	serverId?: string;
@@ -70,9 +70,9 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 					<TooltipContent side="top" className="max-w-sm">
 						<p>
 							Runs a full Docker cleanup daily, pruning stopped containers,
-							unused images, volumes, build cache, and system resources. This
-							may remove images built for Compose services that run on-demand
-							(backup runners, cron jobs, one-off tasks).
+							unused images, build cache, and system resources. This may remove
+							images built for Compose services that run on-demand (backup
+							runners, cron jobs, one-off tasks).
 						</p>
 						<p className="mt-1">
 							For custom cleanup strategies, use{" "}

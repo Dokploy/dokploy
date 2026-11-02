@@ -1,11 +1,14 @@
-import fs, { createReadStream, writeFileSync } from "node:fs";
+import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
+import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { encodeBase64 } from "../docker/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+	writeFileRemote,
+} from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
 
 export const createTraefikConfig = (appName: string) => {
@@ -57,7 +60,7 @@ export const removeTraefikConfig = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const command = `rm -f ${configPath}`;
+		const command = `rm -f ${quote([configPath])}`;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
@@ -76,12 +79,32 @@ export const removeTraefikConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		await execAsyncRemote(serverId, `rm -f ${configPath}`);
+		await execAsyncRemote(serverId, `rm -f ${quote([configPath])}`);
 	} catch (error) {
 		console.error(
 			`Error removing remote traefik config for ${appName}:`,
 			error,
 		);
+	}
+};
+
+const configLocks = new Map<string, Promise<unknown>>();
+
+export const withTraefikConfigLock = async <T>(
+	appName: string,
+	serverId: string | null | undefined,
+	fn: () => Promise<T>,
+): Promise<T> => {
+	const key = `${serverId ?? "local"}:${appName}`;
+	const previous = configLocks.get(key) ?? Promise.resolve();
+	const current = previous.catch(() => {}).then(fn);
+	configLocks.set(key, current);
+	try {
+		return await current;
+	} finally {
+		if (configLocks.get(key) === current) {
+			configLocks.delete(key);
+		}
 	}
 };
 
@@ -106,7 +129,10 @@ export const loadOrCreateConfigRemote = async (
 	const fileConfig: FileConfig = { http: { routers: {}, services: {} } };
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	try {
-		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${quote([configPath])}`,
+		);
 
 		if (!stdout) return fileConfig;
 
@@ -133,7 +159,10 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	try {
-		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${quote([configPath])}`,
+		);
 		if (!stdout) return null;
 		return stdout;
 	} catch {
@@ -141,55 +170,82 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	}
 };
 
-export const readMonitoringConfig = async (readAll = false) => {
+export const readMonitoringConfig = async (dateRange?: {
+	start?: string;
+	end?: string;
+}) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
-	if (fs.existsSync(configPath)) {
-		if (!readAll) {
-			// Read first 500 lines using streams
-			let content = "";
-			let validCount = 0;
-
-			const fileStream = createReadStream(configPath, { encoding: "utf8" });
-			const readline = createInterface({
-				input: fileStream,
-				crlfDelay: Number.POSITIVE_INFINITY,
-			});
-
-			for await (const line of readline) {
-				try {
-					const trimmed = line.trim();
-					if (
-						trimmed !== "" &&
-						trimmed.startsWith("{") &&
-						trimmed.endsWith("}")
-					) {
-						const log = JSON.parse(trimmed);
-						// Exclude Dokploy service app and Dashboard requests
-						if (log.ServiceName !== "dokploy-service-app@file") {
-							content += `${line}\n`;
-							validCount++;
-							if (validCount >= 500) {
-								break;
-							}
-						}
-					}
-				} catch {
-					// Ignore invalid JSON
-				}
-			}
-			return content;
-		}
-		return fs.readFileSync(configPath, "utf8");
+	if (!fs.existsSync(configPath)) {
+		return null;
 	}
-	return null;
+
+	const limit =
+		dateRange?.start || dateRange?.end ? Number.POSITIVE_INFINITY : 500;
+	// Entries can be written slightly out of order; stop a minute past the start.
+	const startSecond = dateRange?.start
+		? Math.floor(new Date(dateRange.start).getTime() / 1000) * 1000
+		: Number.NEGATIVE_INFINITY;
+	const stopBefore = startSecond - 60_000;
+
+	const lines: string[] = [];
+	let reachedStart = false;
+	const collect = (line: string) => {
+		const trimmed = line.trim();
+		if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+			return;
+		}
+		try {
+			const log = JSON.parse(trimmed);
+			const time = new Date(log.time).getTime();
+			if (time < stopBefore) {
+				reachedStart = true;
+			} else if (
+				time >= startSecond &&
+				log.ServiceName !== "dokploy-service-app@file"
+			) {
+				lines.push(trimmed);
+			}
+		} catch {}
+	};
+
+	const file = await fs.promises.open(configPath, "r");
+	try {
+		let position = (await file.stat()).size;
+		let carry = Buffer.alloc(0);
+		while (position > 0 && lines.length < limit && !reachedStart) {
+			const size = Math.min(64 * 1024, position);
+			position -= size;
+			const chunk = Buffer.alloc(size);
+			await file.read(chunk, 0, size, position);
+			// Split on bytes so a multi-byte character cut by the chunk edge stays intact.
+			const buffer = Buffer.concat([chunk, carry]);
+			let end = buffer.length;
+			let newline = buffer.lastIndexOf(0x0a, end - 1);
+			while (newline !== -1 && lines.length < limit && !reachedStart) {
+				collect(buffer.toString("utf8", newline + 1, end));
+				end = newline;
+				newline = end > 0 ? buffer.lastIndexOf(0x0a, end - 1) : -1;
+			}
+			carry = buffer.subarray(0, end);
+		}
+		if (lines.length < limit && !reachedStart) {
+			collect(carry.toString("utf8"));
+		}
+	} finally {
+		await file.close();
+	}
+	return lines.reverse().join("\n");
 };
 
 export const readConfigInPath = async (pathFile: string, serverId?: string) => {
 	const configPath = path.join(pathFile);
 
 	if (serverId) {
-		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`cat ${quote([configPath])}`,
+		);
 		if (!stdout) return null;
 		return stdout;
 	}
@@ -218,7 +274,7 @@ export const writeConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		await execAsyncRemote(serverId, `echo '${traefikConfig}' > ${configPath}`);
+		await writeFileRemote(serverId, configPath, traefikConfig);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}
@@ -232,11 +288,7 @@ export const writeTraefikConfigInPath = async (
 	try {
 		const configPath = path.join(pathFile);
 		if (serverId) {
-			const encoded = encodeBase64(traefikConfig);
-			await execAsyncRemote(
-				serverId,
-				`echo "${encoded}" | base64 -d > "${configPath}"`,
-			);
+			await writeFileRemote(serverId, configPath, traefikConfig);
 		} else {
 			fs.writeFileSync(configPath, traefikConfig, "utf8");
 		}
@@ -268,9 +320,29 @@ export const writeTraefikConfigRemote = async (
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		const yamlStr = stringify(traefikConfig);
-		await execAsyncRemote(serverId, `echo '${yamlStr}' > ${configPath}`);
+		await writeFileRemote(serverId, configPath, yamlStr);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
+	}
+};
+
+const isEmptyHttpRoutersAndServices = (traefikConfig: FileConfig) =>
+	Object.keys(traefikConfig.http?.routers || {}).length === 0 &&
+	Object.keys(traefikConfig.http?.services || {}).length === 0;
+
+export const writeAppTraefikConfig = async (
+	traefikConfig: FileConfig,
+	appName: string,
+	serverId?: string | null,
+) => {
+	if (isEmptyHttpRoutersAndServices(traefikConfig)) {
+		await removeTraefikConfig(appName, serverId);
+		return;
+	}
+	if (serverId) {
+		await writeTraefikConfigRemote(traefikConfig, appName, serverId);
+	} else {
+		writeTraefikConfig(traefikConfig, appName);
 	}
 };
 

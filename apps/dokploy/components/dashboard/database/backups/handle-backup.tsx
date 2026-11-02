@@ -78,7 +78,17 @@ const Schema = z
 		destinationId: z.string().min(1, "Destination required"),
 		schedule: z.string().min(1, "Schedule (Cron) required"),
 		prefix: z.string().min(1, "Prefix required"),
+		customName: z
+			.string()
+			.trim()
+			.max(100, "Custom name must be 100 characters or less")
+			.regex(
+				/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/,
+				"Must start with a letter or number; only letters, numbers, dots, hyphens and underscores are allowed",
+			)
+			.optional(),
 		enabled: z.boolean(),
+		includeEncryptionKey: z.boolean(),
 		database: z.string().min(1, "Database required"),
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
@@ -223,7 +233,9 @@ export const HandleBackup = ({
 						: "",
 			destinationId: "",
 			enabled: true,
+			includeEncryptionKey: true,
 			prefix: "/",
+			customName: "",
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
@@ -262,7 +274,9 @@ export const HandleBackup = ({
 						: "",
 			destinationId: backup?.destinationId ?? "",
 			enabled: backup?.enabled ?? true,
+			includeEncryptionKey: backup?.includeEncryptionKey ?? true,
 			prefix: backup?.prefix ?? "/",
+			customName: backup?.customName ?? "",
 			schedule: backup?.schedule ?? "",
 			keepLatestCount: backup?.keepLatestCount ?? undefined,
 			serviceName: backup?.serviceName ?? null,
@@ -307,8 +321,10 @@ export const HandleBackup = ({
 		await createBackup({
 			destinationId: data.destinationId,
 			prefix: data.prefix,
+			customName: data.customName ?? "",
 			schedule: data.schedule,
 			enabled: data.enabled,
+			includeEncryptionKey: data.includeEncryptionKey,
 			database: data.database,
 			keepLatestCount: data.keepLatestCount ?? null,
 			databaseType: data.databaseType || databaseType,
@@ -364,7 +380,7 @@ export const HandleBackup = ({
 					>
 						<div className="grid grid-cols-1 gap-4">
 							{errorServices && (
-								<AlertBlock type="warning" className="[overflow-wrap:anywhere]">
+								<AlertBlock type="warning" className="wrap-anywhere">
 									{errorServices?.message}
 								</AlertBlock>
 							)}
@@ -409,7 +425,7 @@ export const HandleBackup = ({
 													<Button
 														variant="outline"
 														className={cn(
-															"w-full justify-between !bg-input",
+															"w-full justify-between",
 															!field.value && "text-muted-foreground",
 														)}
 													>
@@ -528,7 +544,7 @@ export const HandleBackup = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Fetch: Will clone the repository and load the
@@ -558,7 +574,7 @@ export const HandleBackup = ({
 															<TooltipContent
 																side="left"
 																sideOffset={5}
-																className="max-w-[10rem]"
+																className="max-w-40"
 															>
 																<p>
 																	Cache: If you previously deployed this
@@ -623,6 +639,29 @@ export const HandleBackup = ({
 							/>
 							<FormField
 								control={form.control}
+								name="customName"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Custom File Name</FormLabel>
+											<FormControl>
+												<Input placeholder={"my-backup"} {...field} />
+											</FormControl>
+											<FormDescription>
+												Optional. Prepended to the automatically generated
+												timestamp, e.g.
+												"my-backup-2026-08-03T20-58-22-123Z.sql.gz". Only
+												letters, numbers, dots, hyphens and underscores are
+												allowed. "Keep the latest" counts every backup in the
+												same destination folder, regardless of its custom name.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
 								name="keepLatestCount"
 								render={({ field }) => {
 									return (
@@ -665,6 +704,31 @@ export const HandleBackup = ({
 									</FormItem>
 								)}
 							/>
+							{databaseType === "web-server" && (
+								<FormField
+									control={form.control}
+									name="includeEncryptionKey"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
+											<div className="space-y-0.5">
+												<FormLabel>Include encryption key</FormLabel>
+												<FormDescription>
+													Stores the encryption key inside the backup so
+													environment variables can be restored on a new server.
+													Anyone with access to the backup file can decrypt
+													them.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							)}
 							{backupType === "compose" && (
 								<>
 									{form.watch("databaseType") === "postgres" && (

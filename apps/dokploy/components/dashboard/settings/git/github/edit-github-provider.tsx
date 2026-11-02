@@ -147,6 +147,15 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 									)}
 								/>
 
+								<div className="flex flex-col gap-2">
+									<span className="text-sm font-medium">GitHub URL</span>
+									<Input value={github?.githubUrl ?? ""} readOnly />
+									<span className="text-muted-foreground text-xs">
+										Set when the app was created and not editable, the app
+										credentials belong to this instance.
+									</span>
+								</div>
+
 								<div className="flex w-full justify-between gap-4 mt-4">
 									<Button
 										type="button"

@@ -9,6 +9,7 @@ import {
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
@@ -52,18 +53,31 @@ export const createCertificate = async (
 
 	const cer = certificate[0];
 
-	createCertificateFiles(cer);
+	await createCertificateFiles(cer);
 
 	return cer;
 };
 
+// certificatePath feeds rm -rf and mkdir -p; a tampered row must not escape the certificates dir
+const resolveCertificateDir = (certificate: Certificate) => {
+	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
+	const base = path.resolve(CERTIFICATES_PATH);
+	const certDir = path.resolve(base, certificate.certificatePath);
+	if (!certDir.startsWith(`${base}${path.sep}`)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid certificate path",
+		});
+	}
+	return certDir;
+};
+
 export const removeCertificateById = async (certificateId: string) => {
 	const certificate = await findCertificateById(certificateId);
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
-	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
+	const certDir = resolveCertificateDir(certificate);
 
 	if (certificate.serverId) {
-		await execAsyncRemote(certificate.serverId, `rm -rf ${certDir}`);
+		await execAsyncRemote(certificate.serverId, `rm -rf ${quote([certDir])}`);
 	} else {
 		await removeDirectoryIfExistsContent(certDir);
 	}
@@ -84,8 +98,7 @@ export const removeCertificateById = async (certificateId: string) => {
 };
 
 const createCertificateFiles = async (certificate: Certificate) => {
-	const { CERTIFICATES_PATH } = paths(!!certificate.serverId);
-	const certDir = path.join(CERTIFICATES_PATH, certificate.certificatePath);
+	const certDir = resolveCertificateDir(certificate);
 	const crtPath = path.join(certDir, "chain.crt");
 	const keyPath = path.join(certDir, "privkey.key");
 
@@ -108,10 +121,10 @@ const createCertificateFiles = async (certificate: Certificate) => {
 		const certificateData = encodeBase64(certificate.certificateData);
 		const privateKey = encodeBase64(certificate.privateKey);
 		const command = `
-			mkdir -p ${certDir};
-			echo "${certificateData}" | base64 -d > "${crtPath}";
-			echo "${privateKey}" | base64 -d > "${keyPath}";
-			echo "${yamlConfig}" > "${configFile}";
+			mkdir -p ${quote([certDir])};
+			echo "${certificateData}" | base64 -d > ${quote([crtPath])};
+			echo "${privateKey}" | base64 -d > ${quote([keyPath])};
+			echo "${yamlConfig}" > ${quote([configFile])};
 		`;
 
 		await execAsyncRemote(certificate.serverId, command);

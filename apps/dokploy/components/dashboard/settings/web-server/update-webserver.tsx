@@ -20,6 +20,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 type ServiceStatus = {
@@ -29,7 +30,6 @@ type ServiceStatus = {
 
 type HealthResult = {
 	postgres: ServiceStatus;
-	redis: ServiceStatus;
 	traefik: ServiceStatus;
 };
 
@@ -55,7 +55,11 @@ const ServiceStatusItem = ({
 	</div>
 );
 
-export const UpdateWebServer = () => {
+export const UpdateWebServer = ({
+	buttonClassName,
+}: {
+	buttonClassName?: string;
+}) => {
 	const [modalState, setModalState] = useState<ModalState>("idle");
 	const [open, setOpen] = useState(false);
 	const [healthResult, setHealthResult] = useState<HealthResult | null>(null);
@@ -84,7 +88,6 @@ export const UpdateWebServer = () => {
 	const allHealthy =
 		healthResult &&
 		healthResult.postgres.status === "healthy" &&
-		healthResult.redis.status === "healthy" &&
 		healthResult.traefik.status === "healthy";
 
 	const checkIsUpdateFinished = async () => {
@@ -118,9 +121,11 @@ export const UpdateWebServer = () => {
 		} catch (error) {
 			setModalState("results");
 			console.error("Error updating server:", error);
-			toast.error(
-				"An error occurred while updating the server, please try again.",
-			);
+			const message =
+				error instanceof Error && error.message
+					? error.message
+					: "An error occurred while updating the server, please try again.";
+			toast.error(message);
 		}
 	};
 
@@ -136,7 +141,7 @@ export const UpdateWebServer = () => {
 		<AlertDialog open={open}>
 			<AlertDialogTrigger asChild>
 				<Button
-					className="relative w-full"
+					className={cn("relative w-full", buttonClassName)}
 					variant="secondary"
 					onClick={() => setOpen(true)}
 				>
@@ -174,7 +179,7 @@ export const UpdateWebServer = () => {
 							{modalState === "checking" && (
 								<span className="flex items-center gap-2">
 									<Loader2 className="animate-spin h-4 w-4" />
-									Checking PostgreSQL, Redis and Traefik...
+									Checking PostgreSQL and Traefik...
 								</span>
 							)}
 
@@ -184,10 +189,6 @@ export const UpdateWebServer = () => {
 										<ServiceStatusItem
 											name="PostgreSQL"
 											service={healthResult.postgres}
-										/>
-										<ServiceStatusItem
-											name="Redis"
-											service={healthResult.redis}
 										/>
 										<ServiceStatusItem
 											name="Traefik"

@@ -45,11 +45,13 @@ export const backups = pgTable("backup", {
 	enabled: boolean("enabled"),
 	database: text("database").notNull(),
 	prefix: text("prefix").notNull(),
+	customName: text("customName"),
 	serviceName: text("serviceName"),
 	destinationId: text("destinationId")
 		.notNull()
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),
 	keepLatestCount: integer("keepLatestCount"),
+	includeEncryptionKey: boolean("includeEncryptionKey").notNull().default(true),
 	backupType: backupType("backupType").notNull().default("database"),
 	databaseType: databaseType("databaseType").notNull(),
 	composeId: text("composeId").references(
@@ -138,11 +140,22 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 	deployments: many(deployments),
 }));
 
+const customNameSchema = z
+	.string()
+	.trim()
+	.max(100, "Custom name must be 100 characters or less")
+	.regex(
+		/^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/,
+		"Must start with a letter or number; only letters, numbers, dots, hyphens and underscores are allowed",
+	)
+	.optional();
+
 const createSchema = createInsertSchema(backups, {
 	backupId: z.string(),
 	destinationId: z.string(),
 	enabled: z.boolean().optional(),
 	prefix: z.string().min(1),
+	customName: customNameSchema,
 	database: z.string().min(1),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
@@ -160,6 +173,7 @@ const createSchema = createInsertSchema(backups, {
 	mongoId: z.string().optional(),
 	libsqlId: z.string().optional(),
 	userId: z.string().optional(),
+	includeEncryptionKey: z.boolean().optional(),
 	metadata: z.any().optional(),
 });
 
@@ -167,6 +181,7 @@ export const apiCreateBackup = createSchema.pick({
 	schedule: true,
 	enabled: true,
 	prefix: true,
+	customName: true,
 	destinationId: true,
 	keepLatestCount: true,
 	database: true,
@@ -180,6 +195,7 @@ export const apiCreateBackup = createSchema.pick({
 	backupType: true,
 	composeId: true,
 	serviceName: true,
+	includeEncryptionKey: true,
 	metadata: true,
 });
 
@@ -206,7 +222,11 @@ export const apiUpdateBackup = createSchema
 		metadata: true,
 		databaseType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		includeEncryptionKey: z.boolean().optional(),
+		customName: customNameSchema,
+	});
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),

@@ -1,5 +1,7 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveServiceNetworks } from "../../services/network";
+import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -9,12 +11,14 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
+import { withResolvedVaultRefs } from "../vault";
 
 export type RedisNested = InferResultType<
 	"redis",
 	{ mounts: true; environment: { with: { project: true } } }
 >;
-export const buildRedis = async (redis: RedisNested) => {
+export const buildRedis = async (rawRedis: RedisNested) => {
+	const redis = await withResolvedVaultRefs(rawRedis);
 	const {
 		appName,
 		env,
@@ -34,6 +38,8 @@ export const buildRedis = async (redis: RedisNested) => {
 		env ? `\n${env}` : ""
 	}`;
 
+	const resolvedNetworks = await resolveServiceNetworks(redis);
+
 	const {
 		HealthCheck,
 		RestartPolicy,
@@ -42,7 +48,6 @@ export const buildRedis = async (redis: RedisNested) => {
 		Mode,
 		RollbackConfig,
 		UpdateConfig,
-		Networks,
 		StopGracePeriod,
 		EndpointSpec,
 		Ulimits,
@@ -89,9 +94,20 @@ export const buildRedis = async (redis: RedisNested) => {
 							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
 						}),
 				...(Ulimits && { Ulimits }),
-				Labels,
+				Labels: {
+					...Labels,
+					...buildDokployLabels({
+						organizationId: redis.environment.project.organizationId,
+						projectId: redis.environment.projectId,
+						projectName: redis.environment.project.name,
+						environmentId: redis.environmentId,
+						environmentName: redis.environment.name,
+						applicationId: redis.redisId,
+						applicationName: redis.name,
+					}),
+				},
 			},
-			Networks,
+			Networks: resolvedNetworks,
 			RestartPolicy,
 			Placement,
 			Resources: {
@@ -115,7 +131,11 @@ export const buildRedis = async (redis: RedisNested) => {
 							]
 						: [],
 				},
-		UpdateConfig,
+		UpdateConfig: redis.updateConfigSwarm ?? {
+			Parallelism: 1,
+			Order: "stop-first" as const,
+			FailureAction: "rollback" as const,
+		},
 	};
 
 	try {

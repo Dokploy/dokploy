@@ -3,7 +3,7 @@ import type { ApplicationNested } from "../builders";
 import {
 	loadOrCreateConfig,
 	loadOrCreateConfigRemote,
-	writeTraefikConfig,
+	writeAppTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
 import type { FileConfig } from "./file-types";
@@ -89,11 +89,10 @@ export const createRedirectMiddleware = async (
 
 	if (serverId) {
 		await writeTraefikConfigRemote(config, "middlewares", serverId);
-		await writeTraefikConfigRemote(appConfig, appName, serverId);
 	} else {
 		writeMiddleware(config);
-		writeTraefikConfig(appConfig, appName);
 	}
+	await writeAppTraefikConfig(appConfig, appName, serverId);
 };
 
 export const removeRedirectMiddleware = async (
@@ -124,9 +123,8 @@ export const removeRedirectMiddleware = async (
 
 	if (serverId) {
 		await writeTraefikConfigRemote(config, "middlewares", serverId);
-		await writeTraefikConfigRemote(appConfig, appName, serverId);
 	} else {
-		writeTraefikConfig(appConfig, appName);
 		writeMiddleware(config);
 	}
+	await writeAppTraefikConfig(appConfig, appName, serverId);
 };

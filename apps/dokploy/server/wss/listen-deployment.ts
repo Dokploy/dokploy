@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
 import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -32,6 +33,11 @@ export const setupDeploymentLogsWebSocketServer = (
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
 
+		// Client may have disconnected during the await; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		// Generate unique connection ID for tracking
 		const connectionId = `deployment-logs-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 		if (!logPath) {
@@ -53,9 +59,37 @@ export const setupDeploymentLogsWebSocketServer = (
 		let tailProcess: ReturnType<typeof spawn> | null = null;
 		let sshClient: Client | null = null;
 
+		// `killed` is set once a signal is sent, not when the process exits.
+		const isTailRunning = () =>
+			tailProcess !== null &&
+			tailProcess.exitCode === null &&
+			tailProcess.signalCode === null;
+
+		const stopTailProcess = () => {
+			if (!isTailRunning()) {
+				return;
+			}
+			tailProcess!.kill("SIGTERM");
+			// Force kill after a timeout if it doesn't terminate
+			setTimeout(() => {
+				if (isTailRunning()) {
+					tailProcess!.kill("SIGKILL");
+				}
+			}, 1000);
+		};
+
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
+
+				if (ws.readyState !== ws.OPEN) {
+					return;
+				}
+
+				if (server.organizationId !== session.activeOrganizationId) {
+					ws.close();
+					return;
+				}
 
 				if (!server.sshKeyId) {
 					ws.close();
@@ -65,9 +99,9 @@ export const setupDeploymentLogsWebSocketServer = (
 				sshClient = new Client();
 				sshClient
 					.on("ready", () => {
-						const command = `
-						tail -n +1 -f ${logPath};
-					`;
+						const encodedPath = encodeBase64(logPath);
+						const command = `tail -n +1 -f "$(echo '${encodedPath}' | base64 -d)"`;
+
 						sshClient!.exec(command, (err, stream) => {
 							if (err) {
 								sshClient!.end();
@@ -149,30 +183,11 @@ export const setupDeploymentLogsWebSocketServer = (
 					}
 				});
 
-				ws.on("close", () => {
-					if (tailProcess && !tailProcess.killed) {
-						tailProcess.kill("SIGTERM");
-						// Force kill after a timeout if it doesn't terminate
-						setTimeout(() => {
-							if (tailProcess && !tailProcess.killed) {
-								tailProcess.kill("SIGKILL");
-							} else {
-							}
-						}, 1000);
-					} else {
-					}
-				});
+				ws.on("close", stopTailProcess);
 			}
 		} catch (error) {
 			// Clean up resources on error
-			if (tailProcess && !tailProcess.killed) {
-				tailProcess.kill("SIGTERM");
-				setTimeout(() => {
-					if (tailProcess && !tailProcess.killed) {
-						tailProcess.kill("SIGKILL");
-					}
-				}, 1000);
-			}
+			stopTailProcess();
 			if (sshClient) {
 				sshClient.end();
 			}

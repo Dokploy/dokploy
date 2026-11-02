@@ -1,5 +1,11 @@
-import { createGithub } from "@dokploy/server";
+import {
+	createGithub,
+	deriveGithubApiUrl,
+	parseGithubBaseUrl,
+	validateRequest,
+} from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { hasPermission } from "@dokploy/server/services/permission";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
@@ -10,30 +16,43 @@ type Query = {
 	state: string;
 	installation_id: string;
 	setup_action: string;
+	githubUrl?: string;
 };
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const { code, state, installation_id }: Query = req.query as Query;
+	const { code, state, installation_id, githubUrl }: Query = req.query as Query;
 
 	if (!code) {
 		return res.status(400).json({ error: "Missing code parameter" });
 	}
-	const [action, ...rest] = state?.split(":");
-	// For gh_init: rest[0] = organizationId, rest[1] = userId
-	// For gh_setup: rest[0] = githubProviderId
+
+	const { user, session } = await validateRequest(req);
+	if (!user || !session?.activeOrganizationId) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	const ctx = {
+		user: { id: user.id },
+		session: { activeOrganizationId: session.activeOrganizationId },
+	};
+
+	const [action] = state?.split(":") ?? [];
+	if (!(await hasPermission(ctx, { gitProviders: ["create"] }))) {
+		return res.status(403).json({ error: "Forbidden" });
+	}
 
 	if (action === "gh_init") {
-		const organizationId = rest[0];
-		const userId = rest[1] || (req.query.userId as string);
-
-		if (!userId) {
-			return res.status(400).json({ error: "Missing userId parameter" });
+		// Reject before any outbound request: this runs on a GET the user can be
+		// linked into, so the host is not trusted.
+		const parsed = parseGithubBaseUrl(githubUrl);
+		if ("error" in parsed) {
+			return res.status(400).json({ error: parsed.error });
 		}
 
-		const octokit = new Octokit({});
+		const baseUrl = parsed.url;
+		const octokit = new Octokit({ baseUrl: deriveGithubApiUrl(baseUrl) });
 		const { data } = await octokit.request(
 			"POST /app-manifests/{code}/conversions",
 			{
@@ -50,17 +69,34 @@ export default async function handler(
 				githubClientSecret: data.client_secret,
 				githubWebhookSecret: data.webhook_secret,
 				githubPrivateKey: data.pem,
+				githubUrl: baseUrl,
 			},
-			organizationId as string,
-			userId,
+			session.activeOrganizationId,
+			user.id,
 		);
 	} else if (action === "gh_setup") {
+		const githubId = state?.split(":")[1];
+		if (!githubId) {
+			return res.status(400).json({ error: "Missing github provider id" });
+		}
+
+		const provider = await db.query.github.findFirst({
+			where: eq(github.githubId, githubId),
+			with: { gitProvider: true },
+		});
+		if (
+			!provider ||
+			provider.gitProvider.organizationId !== session.activeOrganizationId
+		) {
+			return res.status(404).json({ error: "Github provider not found" });
+		}
+
 		await db
 			.update(github)
 			.set({
 				githubInstallationId: installation_id,
 			})
-			.where(eq(github.githubId, rest[0] as string))
+			.where(eq(github.githubId, githubId))
 			.returning();
 	}
 

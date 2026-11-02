@@ -6,7 +6,7 @@ const validateUfw = () => `
   if command -v ufw >/dev/null 2>&1; then
     isInstalled=true
     isActive=$(sudo ufw status | grep -q "Status: active" && echo true || echo false)
-    defaultIncoming=$(sudo ufw status verbose | grep "Default:" | grep "incoming" | awk '{print $2}')
+    defaultIncoming=$(sudo ufw status verbose | grep "Default:" | grep "incoming" | awk '{print $2}' | head -n1 | tr -d '\\r')
     echo "{\\"installed\\": $isInstalled, \\"active\\": $isActive, \\"defaultIncoming\\": \\"$defaultIncoming\\"}"
   else
     echo "{\\"installed\\": false, \\"active\\": false, \\"defaultIncoming\\": \\"unknown\\"}"
@@ -27,7 +27,7 @@ const validateSsh = () => `
     
     # Check for key authentication
     # SSH key auth is enabled by default unless explicitly disabled
-    pubkey_line=$(sudo grep -i "^PubkeyAuthentication" "$sshd_config" 2>/dev/null | grep -v "#")
+    pubkey_line=$(sudo grep -i "^PubkeyAuthentication" "$sshd_config" 2>/dev/null | grep -v "#" | head -n1)
     if [ -z "$pubkey_line" ] || echo "$pubkey_line" | grep -q -i "yes"; then
       keyAuth=true
     else
@@ -36,21 +36,21 @@ const validateSsh = () => `
     
     # Get the exact PermitRootLogin value from config
     # This preserves values like "prohibit-password" without normalization
-    permitRootLogin=$(sudo grep -i "^PermitRootLogin" "$sshd_config" 2>/dev/null | grep -v "#" | awk '{print $2}')
+    permitRootLogin=$(sudo grep -i "^PermitRootLogin" "$sshd_config" 2>/dev/null | grep -v "#" | awk '{print $2}' | head -n1 | tr -d '\\r')
     if [ -z "$permitRootLogin" ]; then
       # Default is prohibit-password in newer versions
       permitRootLogin="prohibit-password"
     fi
     
     # Get the exact PasswordAuthentication value from config
-    passwordAuth=$(sudo grep -i "^PasswordAuthentication" "$sshd_config" 2>/dev/null | grep -v "#" | awk '{print $2}')
+    passwordAuth=$(sudo grep -i "^PasswordAuthentication" "$sshd_config" 2>/dev/null | grep -v "#" | awk '{print $2}' | head -n1 | tr -d '\\r')
     if [ -z "$passwordAuth" ]; then
       # Default is yes
       passwordAuth="yes"
     fi
     
     # Get the exact UsePAM value from config
-    usePam=$(sudo grep -i "^UsePAM" "$sshd_config" 2>/dev/null | grep -v "#" | awk '{print $2}')
+    usePam=$(sudo grep -i "^UsePAM" "$sshd_config" 2>/dev/null | grep -v "#" | awk '{print $2}' | head -n1 | tr -d '\\r')
     if [ -z "$usePam" ]; then
       # Default is yes in most distros
       usePam="yes"

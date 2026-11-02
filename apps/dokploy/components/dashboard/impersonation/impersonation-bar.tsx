@@ -46,6 +46,7 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
+import { DeleteAccountByEmail } from "./delete-account-by-email";
 
 type User = typeof authClient.$Infer.Session.user;
 
@@ -78,12 +79,12 @@ export const ImpersonationBar = () => {
 			});
 
 			const filteredUsers = response.data?.users.filter(
-				// @ts-ignore
+				// @ts-expect-error
 				(user) => user.allowImpersonation && data?.user?.email !== user.email,
 			);
 
 			if (!response.error) {
-				// @ts-ignore
+				// @ts-expect-error
 				setUsers(filteredUsers || []);
 			}
 		} catch (error) {
@@ -185,6 +186,7 @@ export const ImpersonationBar = () => {
 						<Logo
 							className="w-10 h-10"
 							logoUrl={whitelabeling?.logoUrl || undefined}
+							logoLightUrl={whitelabeling?.logoLightUrl || undefined}
 						/>
 						{!isImpersonating ? (
 							<div className="flex items-center gap-2 w-full">
@@ -197,7 +199,7 @@ export const ImpersonationBar = () => {
 										>
 											{selectedUser ? (
 												<div className="flex items-center gap-2">
-													<UserIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+													<UserIcon className="mr-2 h-4 w-4 shrink-0" />
 													<span className="truncate flex flex-col items-start">
 														<span className="text-sm font-medium">
 															{`${selectedUser.name} ${selectedUser.lastName}`.trim() ||
@@ -245,7 +247,7 @@ export const ImpersonationBar = () => {
 																	}}
 																>
 																	<span className="flex items-center gap-2 flex-1">
-																		<UserIcon className="h-4 w-4 flex-shrink-0" />
+																		<UserIcon className="h-4 w-4 shrink-0" />
 																		<span className="flex flex-col items-start">
 																			<span className="text-sm font-medium">
 																				{`${user.name} ${user.lastName}`.trim() ||
@@ -282,6 +284,7 @@ export const ImpersonationBar = () => {
 									<Shield className="h-4 w-4" />
 									Impersonate
 								</Button>
+								<DeleteAccountByEmail />
 							</div>
 						) : (
 							<div className="flex items-center gap-4 w-full flex-wrap">

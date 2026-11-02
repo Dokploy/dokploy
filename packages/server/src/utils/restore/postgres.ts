@@ -1,6 +1,7 @@
 import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
@@ -20,10 +21,7 @@ export const restorePostgresBackup = async (
 
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
-
-		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} ${quote([backupPath])} | gunzip`;
 
 		const command = getRestoreCommand({
 			appName,
@@ -36,7 +34,10 @@ export const restorePostgresBackup = async (
 			restoreType: "database",
 		});
 
-		emit(`Executing command: ${command}`);
+		emit("Starting restore...");
+		emit(
+			`Restoring database: ${backupInput.databaseName} from ${backupInput.backupFile}`,
+		);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

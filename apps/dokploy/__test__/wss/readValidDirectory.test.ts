@@ -78,4 +78,48 @@ describe("readValidDirectory (path traversal)", () => {
 	it("returns false for empty string (resolves to cwd)", () => {
 		expect(readValidDirectory("")).toBe(false);
 	});
+
+	it("returns true for Next.js dynamic route paths with square brackets", () => {
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/app/api/[id]/route.ts`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(`${BASE}/applications/myapp/code/pages/[slug].tsx`),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/app/[...catch]/page.tsx`,
+			),
+		).toBe(true);
+	});
+
+	it("returns true for SvelteKit routes with + prefix and @ symbols", () => {
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/src/routes/+page.svelte`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/src/routes/+layout.svelte`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/src/routes/+server.ts`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/src/routes/+error.svelte`,
+			),
+		).toBe(true);
+		expect(
+			readValidDirectory(
+				`${BASE}/applications/myapp/code/node_modules/@types/node/index.d.ts`,
+			),
+		).toBe(true);
+	});
 });

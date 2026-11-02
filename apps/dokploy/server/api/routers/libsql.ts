@@ -6,7 +6,9 @@ import {
 	findEnvironmentById,
 	findLibsqlById,
 	findProjectById,
+	getAccessibleServerIds,
 	getContainerLogs,
+	getWebServerSettings,
 	IS_CLOUD,
 	rebuildDatabase,
 	removeLibsqlById,
@@ -16,7 +18,6 @@ import {
 	stopService,
 	stopServiceRemote,
 	updateLibsqlById,
-	getAccessibleServerIds,
 } from "@dokploy/server";
 import {
 	addNewService,
@@ -51,7 +52,11 @@ export const libsqlRouter = createTRPCRouter({
 
 				await checkServiceAccess(ctx, project.projectId, "create");
 
-				if (IS_CLOUD && !input.serverId) {
+				const webServerSettings = await getWebServerSettings();
+				if (
+					(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+					!input.serverId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You need to use a server to create a Libsql",

@@ -1,7 +1,6 @@
 import {
 	createRegistry,
-	execAsyncRemote,
-	execFileAsync,
+	dockerLogin,
 	findRegistryById,
 	IS_CLOUD,
 	removeRegistry,
@@ -104,14 +103,6 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
-				const args = [
-					"login",
-					input.registryUrl,
-					"--username",
-					input.username,
-					"--password-stdin",
-				];
-
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
@@ -119,16 +110,12 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(
-						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
-					);
-				} else {
-					await execFileAsync("docker", args, {
-						input: Buffer.from(input.password).toString(),
-					});
-				}
+				await dockerLogin(
+					input.registryUrl,
+					input.username,
+					input.password,
+					input.serverId,
+				);
 
 				return true;
 			} catch (error) {
@@ -164,14 +151,6 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				const args = [
-					"login",
-					registryData.registryUrl,
-					"--username",
-					registryData.username,
-					"--password-stdin",
-				];
-
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
@@ -179,16 +158,12 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(
-						input.serverId,
-						`echo ${registryData.password} | docker ${args.join(" ")}`,
-					);
-				} else {
-					await execFileAsync("docker", args, {
-						input: Buffer.from(registryData.password).toString(),
-					});
-				}
+				await dockerLogin(
+					registryData.registryUrl,
+					registryData.username,
+					registryData.password,
+					input.serverId,
+				);
 
 				return true;
 			} catch (error) {

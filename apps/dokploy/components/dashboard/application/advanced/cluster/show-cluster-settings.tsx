@@ -90,18 +90,18 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		resolver: zodResolver(AddRedirectSchema),
 	});
 
+	const savedReplicas = data?.replicas;
+	const savedRegistryId =
+		data && "registryId" in data ? data.registryId : undefined;
+
+	// Not on the whole `data`: the page polls it and a reset would wipe unsaved edits
 	useEffect(() => {
-		if (data?.command) {
-			form.reset({
-				...(type === "application" && data && "registryId" in data
-					? {
-							registryId: data?.registryId || "",
-						}
-					: {}),
-				replicas: data?.replicas || 1,
-			});
-		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
+		if (savedReplicas === undefined) return;
+		form.reset({
+			...(type === "application" ? { registryId: savedRegistryId || "" } : {}),
+			replicas: savedReplicas || 1,
+		});
+	}, [form, id, type, savedReplicas, savedRegistryId]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
@@ -187,7 +187,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 												To use a cluster feature, you need to configure at least
 												a registry first. Please, go to{" "}
 												<Link
-													href="/dashboard/settings/cluster"
+													href="/dashboard/docker?tab=swarm&subtab=nodes"
 													className="text-foreground"
 												>
 													Settings
@@ -206,7 +206,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 													<FormLabel>Select a registry</FormLabel>
 													<Select
 														onValueChange={field.onChange}
-														defaultValue={field.value}
+														value={field.value}
 													>
 														<SelectTrigger>
 															<SelectValue placeholder="Select a registry" />

@@ -1,6 +1,7 @@
 import { promises } from "node:fs";
 import { OSUtils } from "node-os-utils";
 import { paths } from "../constants";
+import { parseIoToMb } from "./units";
 
 export interface Container {
 	BlockIO: string;
@@ -28,13 +29,13 @@ export const recordAdvancedStats = async (
 	});
 
 	await updateStatsFile(appName, "block", {
-		readMb: stats.BlockIO.split(" ")[0],
-		writeMb: stats.BlockIO.split(" ")[2],
+		readMb: parseIoToMb(stats.BlockIO.split(" ")[0]),
+		writeMb: parseIoToMb(stats.BlockIO.split(" ")[2]),
 	});
 
 	await updateStatsFile(appName, "network", {
-		inputMb: stats.NetIO.split(" ")[0],
-		outputMb: stats.NetIO.split(" ")[2],
+		inputMb: parseIoToMb(stats.NetIO.split(" ")[0]),
+		outputMb: parseIoToMb(stats.NetIO.split(" ")[2]),
 	});
 
 	if (appName === "dokploy") {
@@ -57,6 +58,19 @@ export const recordAdvancedStats = async (
 		}
 	}
 };
+
+// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
+const NON_PHYSICAL_DEVICE_PATTERNS = [
+	/^(loop|ram|zram)/,
+	/^(sr|fd)\d+$/,
+	// Partitions and md/dm devices repeat I/O already counted on the underlying disk.
+	/^(sd|hd|vd|xvd)[a-z]+\d+$/,
+	/^(nvme\d+n\d+|mmcblk\d+)p\d+$/,
+	/^(md|dm-)/,
+];
+
+export const isPhysicalDisk = (device: string) =>
+	!NON_PHYSICAL_DEVICE_PATTERNS.some((pattern) => pattern.test(device));
 
 /**
  * Get host system statistics using node-os-utils
@@ -98,14 +112,9 @@ export const getHostSystemStats = async (): Promise<Container> => {
 	let blockWriteBytes = 0;
 	const diskStats = await osutils.disk.stats();
 	if (diskStats.success && diskStats.data.length > 0) {
-		// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
-		const excludePatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
 		for (const stat of diskStats.data) {
-			// Skip virtual devices
-			if (
-				stat.device &&
-				excludePatterns.some((pattern) => pattern.test(stat.device))
-			) {
+			// Skip virtual, partition and stacked devices
+			if (stat.device && !isPhysicalDisk(stat.device)) {
 				continue;
 			}
 			// readBytes and writeBytes are DataSize objects with .toBytes() method

@@ -10,8 +10,11 @@ import semver from "semver";
 import { db } from "../db";
 import { compose } from "../db/schema";
 import {
+	ensureTraefikImage,
 	initializeStandaloneTraefik,
 	initializeTraefikService,
+	restoreInterruptedTraefik,
+	TRAEFIK_VERSION,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
 export interface IUpdateData {
@@ -314,7 +317,12 @@ export const reloadDockerResource = async (
 export const readEnvironmentVariables = async (
 	resourceName: string,
 	serverId?: string,
-) => {
+) => (await readEnvironmentVariableList(resourceName, serverId)).join("\n");
+
+export const readEnvironmentVariableList = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<string[]> => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
 	let command = "";
 	if (resourceType === "service") {
@@ -331,9 +339,9 @@ export const readEnvironmentVariables = async (
 		result = stdout.trim();
 	}
 	if (result === "null") {
-		return "";
+		return [];
 	}
-	return JSON.parse(result)?.join("\n");
+	return JSON.parse(result) ?? [];
 };
 
 export const readPorts = async (
@@ -452,6 +460,7 @@ export const checkPortInUse = async (
 };
 
 export const writeTraefikSetup = async (input: TraefikOptions) => {
+	await restoreInterruptedTraefik(input.serverId);
 	const resourceType = await getDockerResourceType(
 		"dokploy-traefik",
 		input.serverId,
@@ -477,6 +486,130 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 	}
 };
 
+const splitImageReference = (image: string) => {
+	// Swarm service images carry a @sha256 digest.
+	const reference = image.split("@")[0] ?? "";
+	const tagStart = reference.lastIndexOf(":");
+	// A colon followed by a slash is a registry port, not a tag.
+	if (tagStart === -1 || reference.slice(tagStart).includes("/")) {
+		return { repository: reference, tag: null };
+	}
+	return {
+		repository: reference.slice(0, tagStart),
+		tag: reference.slice(tagStart + 1),
+	};
+};
+
+export const parseTraefikImageVersion = (image: string) => {
+	const { tag } = splitImageReference(image);
+	return tag ? (semver.coerce(tag)?.version ?? null) : null;
+};
+
+// The exec helpers have no timeout of their own.
+const rejectAfter = <T>(promise: Promise<T>, ms: number, message: string) => {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const deadline = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => reject(new Error(message)), ms);
+	});
+	return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+};
+
+const OFFICIAL_TRAEFIK_REPOSITORIES = [
+	"traefik",
+	"library/traefik",
+	"docker.io/traefik",
+	"docker.io/library/traefik",
+];
+
+type TraefikVersionStatus =
+	| "not-found"
+	| "custom"
+	| "unknown"
+	| "outdated"
+	| "up-to-date"
+	| "newer";
+
+export const getTraefikOverview = async (serverId?: string) => {
+	const recommendedVersion = TRAEFIK_VERSION;
+
+	// Unlike getDockerResourceType, an unreachable server throws instead of
+	// being reported as a missing Traefik.
+	const command = `
+if ! docker info >/dev/null 2>&1; then
+	echo "docker-unavailable"
+elif docker service inspect dokploy-traefik >/dev/null 2>&1; then
+	task=$(docker service ps dokploy-traefik --filter desired-state=running --no-trunc -q | head -n 1)
+	[ -z "$task" ] && task=$(docker service ps dokploy-traefik --no-trunc -q | head -n 1)
+	if [ -n "$task" ]; then
+		docker inspect "$task" --format '{{.Spec.ContainerSpec.Image}}|{{.Status.State}}|{{.Status.Timestamp}}'
+	else
+		echo "$(docker service inspect dokploy-traefik --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')|stopped|"
+	fi
+elif docker container inspect dokploy-traefik >/dev/null 2>&1; then
+	docker container inspect dokploy-traefik --format '{{.Config.Image}}|{{.State.Status}}|{{.State.StartedAt}}'
+else
+	echo "missing"
+fi`;
+	const { stdout } = await rejectAfter(
+		serverId ? execAsyncRemote(serverId, command) : execAsync(command),
+		30_000,
+		"Timed out reading the Traefik status from this server after 30 seconds.",
+	);
+	const output = stdout.trim();
+
+	if (output === "docker-unavailable") {
+		throw new Error(
+			"Docker is not reachable on this server. Check that it is installed and running.",
+		);
+	}
+	if (output === "missing") {
+		return {
+			state: null,
+			startedAt: null,
+			image: null,
+			currentVersion: null,
+			recommendedVersion,
+			versionStatus: "not-found" as const,
+		};
+	}
+
+	const [image = "", state = "", startedAt = ""] = output.split("|");
+	const currentVersion = parseTraefikImageVersion(image);
+	const target = semver.coerce(recommendedVersion)?.version;
+
+	let versionStatus: TraefikVersionStatus = "up-to-date";
+	if (
+		!OFFICIAL_TRAEFIK_REPOSITORIES.includes(
+			splitImageReference(image).repository,
+		)
+	) {
+		versionStatus = "custom";
+	} else if (!currentVersion || !target) {
+		versionStatus = "unknown";
+	} else if (semver.lt(currentVersion, target)) {
+		versionStatus = "outdated";
+	} else if (semver.gt(currentVersion, target)) {
+		versionStatus = "newer";
+	}
+
+	return {
+		state: state || null,
+		startedAt: state === "running" && startedAt ? startedAt : null,
+		image,
+		currentVersion,
+		recommendedVersion,
+		versionStatus,
+	};
+};
+
+// Stays under proxy timeouts (~100s); the download continues in the background.
+export const pullTraefikImage = (serverId?: string) =>
+	rejectAfter(
+		ensureTraefikImage(serverId),
+		90_000,
+		"the download took longer than 90 seconds. It continues in the background, so try again in a minute.",
+	);
+
 export const reconnectServicesToTraefik = async (serverId?: string) => {
 	const composeResult = await db.query.compose.findMany({
 		where: and(
@@ -485,7 +618,7 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 		),
 	});
 
-	if (!composeResult) {
+	if (composeResult.length === 0) {
 		return;
 	}
 	let commands = "";

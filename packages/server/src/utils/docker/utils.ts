@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import { isEncrypted } from "@dokploy/server/lib/encryption";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
@@ -153,19 +154,29 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
  */
 export const dockerSafeExec = (exec: string) => `
 CHECK_INTERVAL=10
+MAX_WAIT=300
+WAITED=0
 
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "^.*docker [A-Za-z]" | grep -v grep)
+    PROCESSES=$(ps -eo args | awk '$1 ~ /(^|\\/)docker$/')
+    # Swarm pulls don't show up in ps (moby/moby#53321)
+    PULLING=$(docker node ps self --filter desired-state=running --filter desired-state=ready --format '{{.CurrentState}}' 2>/dev/null | grep '^Preparing')
 
-    if [ -z "$PROCESSES" ]; then
+    if [ -z "$PROCESSES" ] && [ -z "$PULLING" ]; then
         echo "Docker is idle. Starting execution..."
         break
-    else
-        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
-        sleep $CHECK_INTERVAL
     fi
+
+    if [ "$WAITED" -ge "$MAX_WAIT" ]; then
+        echo "Docker still busy after \${MAX_WAIT}s, proceeding anyway." >&2
+        break
+    fi
+
+    echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+    sleep $CHECK_INTERVAL
+    WAITED=$((WAITED + CHECK_INTERVAL))
 done
 
 ${exec}
@@ -173,12 +184,21 @@ ${exec}
 echo "Execution completed."
 `;
 
+// A stopped Traefik must stay startable; keeping its container also keeps its image from `image prune --all`.
+const skipIfTraefikStopped = (command: string) => `
+if docker container inspect --format '{{.State.Running}}' dokploy-traefik dokploy-traefik-previous 2>/dev/null | grep -q false; then
+    echo "Skipping '${command}': dokploy-traefik is stopped"
+else
+    ${command}
+fi
+`;
+
 const cleanupCommands = {
-	containers: "docker container prune --force",
+	containers: skipIfTraefikStopped("docker container prune --force"),
 	images: "docker image prune --all --force",
 	volumes: "docker volume prune --all --force",
 	builders: "docker builder prune --all --force",
-	system: "docker system prune --all --force",
+	system: skipIfTraefikStopped("docker system prune --all --force"),
 };
 
 export const cleanupContainers = async (serverId?: string) => {
@@ -283,9 +303,13 @@ const parseSizeToBytes = (size: string): number => {
 	return value * (multipliers[unit] || 0);
 };
 
-export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
+export const getDockerDiskUsage = async (
+	serverId?: string,
+): Promise<DockerDiskUsageItem[]> => {
 	const command = "docker system df --format '{{json .}}'";
-	const { stdout } = await execAsync(command);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
 
 	const lines = stdout.trim().split("\n").filter(Boolean);
 	return lines.map((line) => {
@@ -299,6 +323,49 @@ export const getDockerDiskUsage = async (): Promise<DockerDiskUsageItem[]> => {
 			sizeBytes: parseSizeToBytes(data.Size),
 		};
 	});
+};
+
+export interface DockerBuildCacheItem {
+	id: string;
+	type: string;
+	description: string;
+	size: string;
+	sizeBytes: number;
+	createdSince: string;
+	lastUsedSince: string;
+	usageCount: number;
+	shared: boolean;
+	inUse: boolean;
+}
+
+export const getBuildCache = async (
+	serverId?: string,
+): Promise<DockerBuildCacheItem[]> => {
+	try {
+		const command = "docker system df -v --format '{{json .}}'";
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const diskUsage = JSON.parse(stdout.trim());
+		return ((diskUsage?.BuildCache ?? []) as Record<string, string>[]).map(
+			(entry) => ({
+				id: entry.ID ?? "",
+				type: entry.CacheType ?? "",
+				description: entry.Description ?? "",
+				size: entry.Size ?? "",
+				sizeBytes: parseSizeToBytes(entry.Size ?? ""),
+				createdSince: entry.CreatedSince ?? "",
+				lastUsedSince: entry.LastUsedSince ?? "",
+				usageCount: Number.parseInt(entry.UsageCount ?? "0", 10) || 0,
+				shared: entry.Shared === "true",
+				inUse: entry.InUse === "true",
+			}),
+		);
+	} catch (error) {
+		console.error(error);
+		return [];
+	}
 };
 
 /**
@@ -323,7 +390,12 @@ export const cleanupAll = async (serverId?: string) => {
 			} else {
 				await execAsync(dockerSafeExec(command));
 			}
-		} catch {}
+		} catch (error) {
+			console.error(
+				`Docker cleanup: "${key}" failed${serverId ? ` on server ${serverId}` : ""}`,
+				error,
+			);
+		}
 	}
 };
 
@@ -401,6 +473,19 @@ export const prepareEnvironmentVariables = (
 	projectEnv?: string | null,
 	environmentEnv?: string | null,
 ) => {
+	for (const source of [serviceEnv, projectEnv, environmentEnv]) {
+		if (source?.includes("${{vault.")) {
+			throw new Error(
+				"Unresolved vault reference: call withResolvedVaultRefs() on the entity before preparing environment variables",
+			);
+		}
+		// Undecryptable columns arrive as ciphertext that dotenv drops; compose prepends lines, so check each.
+		if (source?.split("\n").some((line) => isEncrypted(line.trim()))) {
+			throw new Error(
+				"Environment variables could not be decrypted. BETTER_AUTH_SECRET or ENCRYPTION_KEY changed after they were saved; restore the previous secret or re-enter the variables.",
+			);
+		}
+	}
 	const projectVars = parse(projectEnv ?? "");
 	const environmentVars = parse(environmentEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
@@ -463,6 +548,27 @@ export const prepareEnvironmentVariablesForShell = (
 	// Using shell-quote library to properly escape shell arguments
 	// This is the standard way to handle special characters in shell commands
 	return envVars.map((env) => quote([env]));
+};
+
+export const prepareEnvironmentVariablesForFile = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+): string[] => {
+	const envVars = prepareEnvironmentVariables(
+		serviceEnv,
+		projectEnv,
+		environmentEnv,
+	);
+
+	return envVars.map((pair) => {
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
+		const escapedValue = value
+			.replace(/\\/g, "\\\\")
+			.replace(/"/g, '\\"')
+			.replace(/\$(?!\{[A-Za-z_][A-Za-z0-9_]*(?::?[-+?][^{}]*)?\})/g, "\\$");
+		return `${key}="${escapedValue}"`;
+	});
 };
 
 export const parseEnvironmentKeyValuePair = (
@@ -548,7 +654,6 @@ export const generateConfigContainer = (
 		labelsSwarm,
 		replicas,
 		mounts,
-		networkSwarm,
 		stopGracePeriodSwarm,
 		endpointSpecSwarm,
 		ulimitsSwarm,
@@ -611,13 +716,6 @@ export const generateConfigContainer = (
 			stopGracePeriodSwarm !== undefined && {
 				StopGracePeriod: stopGracePeriodSwarm,
 			}),
-		...(networkSwarm
-			? {
-					Networks: networkSwarm,
-				}
-			: {
-					Networks: [{ Target: "dokploy-network" }],
-				}),
 		...(endpointSpecSwarm && {
 			EndpointSpec: {
 				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
@@ -683,13 +781,27 @@ export const generateFileMounts = (
 		});
 };
 
+export const isValidMountFilePath = (filePath: string) => {
+	const relative = path.relative("/base", path.join("/base", filePath));
+	return (
+		!!relative && relative !== ".." && !relative.startsWith(`..${path.sep}`)
+	);
+};
+
+const resolveMountFilePath = (outputPath: string, filePath: string) => {
+	if (!isValidMountFilePath(filePath)) {
+		throw new Error(`Invalid file path: ${filePath}`);
+	}
+	return path.join(outputPath, filePath);
+};
+
 export const createFile = async (
 	outputPath: string,
 	filePath: string,
 	content: string,
 ) => {
 	try {
-		const fullPath = path.join(outputPath, filePath);
+		const fullPath = resolveMountFilePath(outputPath, filePath);
 		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
@@ -697,6 +809,10 @@ export const createFile = async (
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+		// Docker creates missing bind sources as empty directories if the stack was deployed before the mount existed
+		if (fs.statSync(fullPath, { throwIfNoEntry: false })?.isDirectory()) {
+			fs.rmdirSync(fullPath);
+		}
 		fs.writeFileSync(fullPath, content || "");
 	} catch (error) {
 		throw error;
@@ -710,16 +826,17 @@ export const getCreateFileCommand = (
 	filePath: string,
 	content: string,
 ) => {
-	const fullPath = path.join(outputPath, filePath);
+	const fullPath = resolveMountFilePath(outputPath, filePath);
 	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
-		return `mkdir -p ${fullPath};`;
+		return `mkdir -p ${quote([fullPath])};`;
 	}
 
 	const directory = path.dirname(fullPath);
 	const encodedContent = encodeBase64(content);
 	return `
-		mkdir -p ${directory};
-		echo "${encodedContent}" | base64 -d > "${fullPath}";
+		mkdir -p ${quote([directory])};
+		if [ -d ${quote([fullPath])} ]; then rmdir ${quote([fullPath])}; fi;
+		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;
 };
 
@@ -854,6 +971,57 @@ const getSwarmServiceContainerId = async (
 	}
 };
 
+export class ServiceConvergenceError extends Error {}
+
+export const waitForSwarmServiceConvergence = async (
+	appName: string,
+	serverId?: string | null,
+	options?: { timeoutMs?: number; intervalMs?: number },
+): Promise<void> => {
+	const timeoutMs = options?.timeoutMs ?? 45_000;
+	const intervalMs = options?.intervalMs ?? 2_000;
+	const remoteDocker = await getRemoteDocker(serverId);
+	const service = remoteDocker.getService(appName);
+	const deadline = Date.now() + timeoutMs;
+
+	let lastState = "unknown";
+	while (true) {
+		const info = await service.inspect();
+		const desiredTasksCount = info.Spec?.Mode?.Replicated?.Replicas ?? 1;
+
+		const tasks = await remoteDocker.listTasks({
+			filters: JSON.stringify({ service: [appName] }),
+		});
+		const currentTasks = tasks.filter(
+			(task) => task.DesiredState === "running",
+		);
+		const runningTasksCount = currentTasks.filter(
+			(task) => task.Status?.State === "running",
+		).length;
+
+		if (runningTasksCount >= desiredTasksCount) {
+			return;
+		}
+
+		const failedTask = currentTasks.find((task) =>
+			["failed", "rejected"].includes(task.Status?.State ?? ""),
+		);
+		lastState =
+			failedTask?.Status?.Err ??
+			failedTask?.Status?.State ??
+			currentTasks[0]?.Status?.State ??
+			lastState;
+
+		if (Date.now() >= deadline) {
+			throw new ServiceConvergenceError(
+				`Service ${appName} did not converge within ${timeoutMs}ms: ${runningTasksCount}/${desiredTasksCount} tasks running (last state: ${lastState})`,
+			);
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+};
+
 export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
 	const serviceCheck = await checkSwarmServiceRunning("dokploy-postgres");
 	if (serviceCheck.status === "unhealthy") {
@@ -896,50 +1064,6 @@ export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
 			status: "unhealthy",
 			message:
 				error instanceof Error ? error.message : "Failed to check PostgreSQL",
-		};
-	}
-};
-
-export const checkRedisHealth = async (): Promise<ServiceHealthStatus> => {
-	const serviceCheck = await checkSwarmServiceRunning("dokploy-redis");
-	if (serviceCheck.status === "unhealthy") {
-		return serviceCheck;
-	}
-
-	// Verify Redis actually responds to PING
-	const containerId = await getSwarmServiceContainerId("dokploy-redis");
-	if (!containerId) {
-		return { status: "unhealthy", message: "Could not find running container" };
-	}
-
-	try {
-		const exec = await docker.getContainer(containerId).exec({
-			Cmd: ["redis-cli", "ping"],
-			AttachStdout: true,
-			AttachStderr: true,
-		});
-		const stream = await exec.start({});
-
-		const output = await new Promise<string>((resolve) => {
-			let data = "";
-			stream.on("data", (chunk: Buffer) => {
-				data += chunk.toString();
-			});
-			stream.on("end", () => resolve(data));
-		});
-
-		if (!output.includes("PONG")) {
-			return {
-				status: "unhealthy",
-				message: `Redis did not respond with PONG: ${output.trim()}`,
-			};
-		}
-
-		return { status: "healthy" };
-	} catch (error) {
-		return {
-			status: "unhealthy",
-			message: error instanceof Error ? error.message : "Failed to check Redis",
 		};
 	}
 };

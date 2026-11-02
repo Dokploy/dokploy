@@ -8,8 +8,8 @@ import {
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
-	encodeBase64,
 	getCreateFileCommand,
+	isValidMountFilePath,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
 import {
@@ -18,12 +18,27 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 
 export type Mount = typeof mounts.$inferSelect;
 
 export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 	try {
+		// An empty filePath would write the content over the service's whole files/ directory
+		if (input.type === "file" && !input.filePath?.trim()) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "File path is required for file mounts",
+			});
+		}
+		// Checked before insert: deleting a saved row runs rm -rf on its path
+		if (input.type === "file" && !isValidMountFilePath(input.filePath ?? "")) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid file path: ${input.filePath}`,
+			});
+		}
 		const { serviceId, ...rest } = input;
 		const value = await db
 			.insert(mounts)
@@ -106,81 +121,29 @@ export const createFileMount = async (mountId: string) => {
 };
 
 export const findMountById = async (mountId: string) => {
+	const serviceWith = {
+		columns: { serverId: true, appName: true },
+		with: {
+			environment: {
+				columns: {},
+				with: {
+					project: { columns: { organizationId: true } },
+				},
+			},
+		},
+	} as const;
+
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			compose: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			libsql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mariadb: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mongo: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			mysql: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			postgres: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
-			redis: {
-				with: {
-					environment: {
-						with: {
-							project: true,
-						},
-					},
-				},
-			},
+			application: serviceWith,
+			compose: serviceWith,
+			libsql: serviceWith,
+			mariadb: serviceWith,
+			mongo: serviceWith,
+			mysql: serviceWith,
+			postgres: serviceWith,
+			redis: serviceWith,
 		},
 	});
 	if (!mount) {
@@ -227,6 +190,12 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
+	if (mountData.filePath && !isValidMountFilePath(mountData.filePath)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid file path: ${mountData.filePath}`,
+		});
+	}
 	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
@@ -312,32 +281,56 @@ export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
 
 	try {
 		const serverId = await getServerId(mount);
-		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
+		const command = getCreateFileCommand(
+			basePath,
+			mount.filePath,
+			mount.content || "",
+		);
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
-	} catch {
-		console.log("Error updating file mount");
+	} catch (error) {
+		console.log(`Error updating the file mount: ${error}`);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Error updating the mount ${error instanceof Error ? error.message : error}`,
+			cause: error,
+		});
 	}
+};
+
+export const readFileMountContent = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+	if (mount.type !== "file" || !mount.filePath) return null;
+	const basePath = await getBaseFilesPath(mountId);
+	const fullPath = quote([path.join(basePath, mount.filePath)]);
+
+	// Check the opened file's real path so symlinks can't escape the files dir.
+	const command = `base=$(realpath ${quote([basePath])}) && [ -f ${fullPath} ] && { real=$(readlink /proc/self/fd/3 2>/dev/null || realpath ${fullPath}) && case "$real" in "$base"/*) content=$(base64 <&3) && printf 'found:%s' "$content" | tr -d '\\n';; esac; } 3< ${fullPath}; exit 0`;
+	const serverId = await getServerId(mount);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (!stdout.startsWith("found:")) return null;
+	return Buffer.from(stdout.slice("found:".length), "base64").toString("utf8");
 };
 
 export const deleteFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
-	if (!mount.filePath) return;
+	if (!mount.filePath || !isValidMountFilePath(mount.filePath)) return;
 	const basePath = await getBaseFilesPath(mountId);
 
 	const fullPath = path.join(basePath, mount.filePath);
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${fullPath}`;
+			const command = `rm -rf ${quote([fullPath])}`;
 			await execAsyncRemote(serverId, command);
 		} else {
 			await removeFileOrDirectory(fullPath);
