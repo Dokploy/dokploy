@@ -25,9 +25,11 @@ export const hashicorpVaultConfigSchema = z.object({
 
 export const infisicalVaultConfigSchema = z.object({
 	providerType: z.literal("infisical"),
+	authMethod: z.enum(["universal-auth", "service-token"]).optional(),
 	siteUrl: z.string().url().default("https://app.infisical.com"),
-	clientId: z.string().min(1),
-	clientSecret: z.string().min(1),
+	clientId: z.string().optional(),
+	clientSecret: z.string().optional(),
+	serviceToken: z.string().optional(),
 	projectId: z.string().min(1),
 	environmentSlug: z.string().min(1),
 	secretPath: z.string().default("/"),

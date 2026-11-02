@@ -7,6 +7,12 @@ type InfisicalConfig = z.infer<typeof infisicalVaultConfigSchema>;
 const baseUrl = (config: InfisicalConfig) => config.siteUrl.replace(/\/+$/, "");
 
 const login = async (config: InfisicalConfig) => {
+	if (!config.clientId || !config.clientSecret) {
+		throw new Error(
+			"Infisical: Client ID and Client Secret are required for Universal Auth",
+		);
+	}
+
 	const response = await vaultFetch(
 		`${baseUrl(config)}/api/v1/auth/universal-auth/login`,
 		{
@@ -30,6 +36,16 @@ const login = async (config: InfisicalConfig) => {
 		throw new Error("Infisical: no access token returned");
 	}
 	return body.accessToken;
+};
+
+const getAccessToken = async (config: InfisicalConfig) => {
+	if (config.authMethod === "service-token" || config.serviceToken) {
+		if (!config.serviceToken) {
+			throw new Error("Infisical: Service Token is required");
+		}
+		return config.serviceToken;
+	}
+	return await login(config);
 };
 
 // A reference may address a folder: `<path>:<KEY>`, mirroring the HashiCorp
@@ -119,7 +135,7 @@ const readPath = async (
 const fetchSecrets = async (
 	config: InfisicalConfig,
 	secretPath = config.secretPath,
-) => readPath(config, await login(config), secretPath);
+) => readPath(config, await getAccessToken(config), secretPath);
 
 export const infisicalClient: VaultClient<InfisicalConfig> = {
 	async getSecrets(config, refs) {
@@ -130,7 +146,7 @@ export const infisicalClient: VaultClient<InfisicalConfig> = {
 			byPath.set(secretPath, [...(byPath.get(secretPath) ?? []), ref]);
 		}
 
-		const accessToken = await login(config);
+		const accessToken = await getAccessToken(config);
 		const result: Record<string, string> = {};
 		await Promise.all(
 			[...byPath.entries()].map(async ([secretPath, pathRefs]) => {

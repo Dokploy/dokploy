@@ -647,6 +647,70 @@ describe("infisical client", () => {
 			infisicalClient.getSecrets(config, ["external/sentry:"]),
 		).rejects.toThrow("expected format <path>:<KEY>");
 	});
+
+	it("authenticates using a service token directly without calling login", async () => {
+		mockFetch.mockResolvedValueOnce(
+			list({ DB_URL: "postgres://service-token" }),
+		);
+
+		const serviceTokenConfig = {
+			providerType: "infisical" as const,
+			authMethod: "service-token" as const,
+			serviceToken: "st.my-token.secret",
+			siteUrl: "https://app.infisical.com",
+			projectId: "workspace-1",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		const result = await infisicalClient.getSecrets(serviceTokenConfig, [
+			"DB_URL",
+		]);
+
+		expect(result).toEqual({ DB_URL: "postgres://service-token" });
+		expect(mockFetch).toHaveBeenCalledTimes(1);
+		const [listUrl, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(listUrl).toContain("/api/v3/secrets/raw");
+		expect(listUrl).not.toContain("/auth/universal-auth/login");
+		expect(init?.headers).toEqual({
+			Authorization: "Bearer st.my-token.secret",
+		});
+	});
+
+	it("throws when service token is missing in service-token auth mode", async () => {
+		const serviceTokenConfig = {
+			providerType: "infisical" as const,
+			authMethod: "service-token" as const,
+			serviceToken: "",
+			siteUrl: "https://app.infisical.com",
+			projectId: "workspace-1",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		await expect(
+			infisicalClient.getSecrets(serviceTokenConfig, ["DB_URL"]),
+		).rejects.toThrow("Infisical: Service Token is required");
+	});
+
+	it("throws when credentials are missing in universal-auth mode", async () => {
+		const universalAuthConfig = {
+			providerType: "infisical" as const,
+			authMethod: "universal-auth" as const,
+			clientId: "",
+			clientSecret: "",
+			siteUrl: "https://app.infisical.com",
+			projectId: "workspace-1",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		await expect(
+			infisicalClient.getSecrets(universalAuthConfig, ["DB_URL"]),
+		).rejects.toThrow(
+			"Infisical: Client ID and Client Secret are required for Universal Auth",
+		);
+	});
 });
 
 describe("doppler client", () => {
