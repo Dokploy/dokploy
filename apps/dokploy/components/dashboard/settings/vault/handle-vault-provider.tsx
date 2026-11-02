@@ -68,38 +68,38 @@ const VaultProviderSchema = z
 			"scaleway",
 			"phase",
 		]),
-		url: z.string(),
-		token: z.string(),
-		namespace: z.string(),
-		mount: z.string(),
-		siteUrl: z.string(),
+		url: z.string().optional(),
+		token: z.string().optional(),
+		namespace: z.string().optional(),
+		mount: z.string().optional(),
+		siteUrl: z.string().optional(),
 		infisicalAuthMethod: z.enum(["universal-auth", "service-token"]).optional(),
-		clientId: z.string(),
-		clientSecret: z.string(),
-		projectId: z.string(),
-		environmentSlug: z.string(),
-		secretPath: z.string(),
-		region: z.string(),
-		accessKeyId: z.string(),
-		secretAccessKey: z.string(),
-		parameterPath: z.string(),
-		serviceToken: z.string(),
-		awsEndpoint: z.string(),
-		vaultUri: z.string(),
-		tenantId: z.string(),
-		azureClientId: z.string(),
-		azureClientSecret: z.string(),
-		dopplerProject: z.string(),
-		dopplerConfig: z.string(),
-		scalewayRegion: z.string(),
-		scalewayProjectId: z.string(),
-		scalewaySecretKey: z.string(),
-		scalewayApiUrl: z.string(),
-		phaseToken: z.string(),
-		phaseAppId: z.string(),
-		phaseEnv: z.string(),
-		phasePath: z.string(),
-		phaseApiUrl: z.string(),
+		clientId: z.string().optional(),
+		clientSecret: z.string().optional(),
+		projectId: z.string().optional(),
+		environmentSlug: z.string().optional(),
+		secretPath: z.string().optional(),
+		region: z.string().optional(),
+		accessKeyId: z.string().optional(),
+		secretAccessKey: z.string().optional(),
+		parameterPath: z.string().optional(),
+		serviceToken: z.string().optional(),
+		awsEndpoint: z.string().optional(),
+		vaultUri: z.string().optional(),
+		tenantId: z.string().optional(),
+		azureClientId: z.string().optional(),
+		azureClientSecret: z.string().optional(),
+		dopplerProject: z.string().optional(),
+		dopplerConfig: z.string().optional(),
+		scalewayRegion: z.string().optional(),
+		scalewayProjectId: z.string().optional(),
+		scalewaySecretKey: z.string().optional(),
+		scalewayApiUrl: z.string().optional(),
+		phaseToken: z.string().optional(),
+		phaseAppId: z.string().optional(),
+		phaseEnv: z.string().optional(),
+		phasePath: z.string().optional(),
+		phaseApiUrl: z.string().optional(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -583,6 +583,14 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 	const onTestConnection = async () => {
 		const isValid = await form.trigger();
 		if (!isValid) {
+			const errors = form.formState.errors;
+			const message = Object.values(errors)
+				.map((err) => err?.message)
+				.filter(Boolean)
+				.join(", ");
+			toast.error(
+				"Validation error: " + (message || "Please check required fields"),
+			);
 			return;
 		}
 		const data = form.getValues();
@@ -632,7 +640,16 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
-						onSubmit={form.handleSubmit(onSubmit)}
+						onSubmit={form.handleSubmit(onSubmit, (errors) => {
+							const message = Object.values(errors)
+								.map((err) => err?.message)
+								.filter(Boolean)
+								.join(", ");
+							toast.error(
+								"Validation error: " +
+									(message || "Please check required fields"),
+							);
+						})}
 						className="grid w-full gap-4"
 					>
 						<FormField
