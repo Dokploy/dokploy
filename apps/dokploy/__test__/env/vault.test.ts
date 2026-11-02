@@ -711,6 +711,67 @@ describe("infisical client", () => {
 			"Infisical: Client ID and Client Secret are required for Universal Auth",
 		);
 	});
+
+	it("resolves project slug via service-token endpoint on 404", async () => {
+		const serviceTokenConfig = {
+			providerType: "infisical" as const,
+			authMethod: "service-token" as const,
+			serviceToken: "st.my-token.secret",
+			siteUrl: "https://app.infisical.com",
+			projectId: "apps",
+			environmentSlug: "prod",
+			secretPath: "/frontend",
+		};
+
+		// 1. Initial raw secrets call fails with 404 (slug passed as workspaceId)
+		// 2. Slug resolution call to /api/v2/service-token succeeds with workspace UUID
+		// 3. Retried raw secrets call with UUID succeeds
+		mockFetch
+			.mockResolvedValueOnce(jsonResponse({ message: "Not found" }, false, 404))
+			.mockResolvedValueOnce(
+				jsonResponse({ projectId: "12345678-1234-1234-1234-1234567890ab" }),
+			)
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://resolved-slug" }));
+
+		const result = await infisicalClient.getSecrets(serviceTokenConfig, [
+			"DB_URL",
+		]);
+
+		expect(result).toEqual({ DB_URL: "postgres://resolved-slug" });
+		expect(mockFetch).toHaveBeenCalledTimes(3);
+		expect(mockFetch.mock.calls[1]?.[0]).toContain("/api/v2/service-token");
+		expect(mockFetch.mock.calls[2]?.[0]).toContain(
+			"workspaceId=12345678-1234-1234-1234-1234567890ab",
+		);
+	});
+
+	it("resolves project slug via universal-auth projects slug endpoint on 404", async () => {
+		const slugConfig = {
+			...config,
+			projectId: "apps",
+		};
+
+		// 1. Login succeeds
+		// 2. Initial raw secrets call fails with 404 (slug passed as workspaceId)
+		// 3. Slug resolution call to /api/v1/projects/slug/apps succeeds with project id
+		// 4. Retried raw secrets call with UUID succeeds
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(jsonResponse({ message: "Not found" }, false, 404))
+			.mockResolvedValueOnce(
+				jsonResponse({ id: "12345678-1234-1234-1234-1234567890ab" }),
+			)
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://resolved-ua-slug" }));
+
+		const result = await infisicalClient.getSecrets(slugConfig, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://resolved-ua-slug" });
+		expect(mockFetch).toHaveBeenCalledTimes(4);
+		expect(mockFetch.mock.calls[2]?.[0]).toContain("/api/v1/projects/slug/apps");
+		expect(mockFetch.mock.calls[3]?.[0]).toContain(
+			"workspaceId=12345678-1234-1234-1234-1234567890ab",
+		);
+	});
 });
 
 describe("doppler client", () => {
