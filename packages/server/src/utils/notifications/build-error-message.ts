@@ -17,6 +17,10 @@ export const getBuildErrorMessage = async (
 	if (!(error instanceof ExecError)) {
 		return (error instanceof Error && error.message) || FALLBACK_MESSAGE;
 	}
+	// No exit code: the SSH connection failed, so the host can't serve the log.
+	if (error.serverId && error.exitCode === undefined) {
+		return error.message;
+	}
 
 	try {
 		const command = `tail -n ${LOG_TAIL_LINES} ${quote([logPath])}`;

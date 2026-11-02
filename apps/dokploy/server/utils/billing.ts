@@ -93,6 +93,7 @@ export interface BillingStatus {
 	hasActiveAccess: boolean;
 	hasPaymentMethod: boolean;
 	isAnnual: boolean;
+	isEnterpriseCloud: boolean;
 }
 
 export const getBillingStatus = async (
@@ -108,6 +109,7 @@ export const getBillingStatus = async (
 			hasActiveAccess: true,
 			hasPaymentMethod: true,
 			isAnnual: false,
+			isEnterpriseCloud: false,
 		};
 	}
 
@@ -122,6 +124,7 @@ export const getBillingStatus = async (
 			hasActiveAccess: false,
 			hasPaymentMethod: false,
 			isAnnual: false,
+			isEnterpriseCloud: owner?.isEnterpriseCloud ?? false,
 		};
 	}
 
@@ -171,6 +174,7 @@ export const getBillingStatus = async (
 		hasUsedTrial: subscriptions.data.length > 0,
 		hasActiveAccess: plan !== null || !!trialingSub,
 		isAnnual,
+		isEnterpriseCloud: owner.isEnterpriseCloud,
 	};
 };
 

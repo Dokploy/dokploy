@@ -46,30 +46,41 @@ jobs:
           echo "✅ OpenAPI specification generated successfully"
 
       - name: Sync to website repository
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
         run: |
-          # Clona el repositorio de website
-          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/website.git website-repo
-          
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/Dokploy/website.git website-repo
+
           cd website-repo
-          
-          # Copia el openapi.json al website (sobrescribe)
+
           mkdir -p apps/docs/public
           cp -f ../openapi.json apps/docs/public/openapi.json
-          
-          # Configura git
+
+          if git diff --quiet -- apps/docs/public/openapi.json; then
+            echo "OpenAPI specification unchanged, skipping"
+            exit 0
+          fi
+
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
-          
-          # Agrega y commitea siempre
+
+          # main is protected (PR + review + lint-and-typecheck), so sync through a reusable PR branch.
+          # No [skip ci]: the required check has to run on the PR.
+          BRANCH=chore/sync-openapi
+          git checkout -b "$BRANCH"
           git add apps/docs/public/openapi.json
-          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+          git commit -m "chore: sync OpenAPI specification" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
-            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
-            --allow-empty
-          
-          git push
-          
-          echo "✅ OpenAPI synced to website successfully"
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          git push --force origin "$BRANCH"
+
+          if [ -z "$(gh pr list --repo Dokploy/website --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --repo Dokploy/website --base main --head "$BRANCH" \
+              --title "chore: sync OpenAPI specification" \
+              --body "Automated OpenAPI sync from ${{ github.repository }}@${{ github.sha }}."
+          fi
+
+          echo "✅ OpenAPI sync PR updated on website"
 
       - name: Sync to MCP repository
         run: |
