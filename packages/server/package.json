@@ -57,7 +57,7 @@
     "adm-zip": "^0.6.1",
     "ai": "^6.0.86",
     "ai-sdk-ollama": "^3.7.0",
-    "bcrypt": "5.1.1",
+    "bcrypt": "6.0.0",
     "better-auth": "1.6.23",
     "bl": "6.0.11",
     "boxen": "^7.1.1",
@@ -94,7 +94,7 @@
     "zod": "^4.6.6"
   },
   "devDependencies": {
-    "@types/bcrypt": "5.0.2",
+    "@types/bcrypt": "6.0.0",
     "@types/dockerode": "3.3.23",
     "@types/lodash": "4.17.4",
     "@types/micromatch": "4.0.9",
