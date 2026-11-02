@@ -12,6 +12,9 @@ vi.mock("@dokploy/server/db", () => ({
 	},
 }));
 
+import {
+	infisicalVaultConfigSchema,
+} from "@dokploy/server/db/schema";
 import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
 import {
 	resolveVaultReferences,
@@ -771,6 +774,113 @@ describe("infisical client", () => {
 		expect(mockFetch.mock.calls[3]?.[0]).toContain(
 			"workspaceId=12345678-1234-1234-1234-1234567890ab",
 		);
+	});
+
+	it("honors universal-auth even when serviceToken is present", async () => {
+		const mixedConfig = {
+			...config,
+			authMethod: "universal-auth" as const,
+			serviceToken: "st.leftover.token",
+		};
+
+		mockFetch
+			.mockResolvedValueOnce(loginResponse())
+			.mockResolvedValueOnce(list({ DB_URL: "postgres://ua-won" }));
+
+		const result = await infisicalClient.getSecrets(mixedConfig, ["DB_URL"]);
+
+		expect(result).toEqual({ DB_URL: "postgres://ua-won" });
+		expect(mockFetch.mock.calls[0]?.[0]).toContain("/auth/universal-auth/login");
+	});
+
+	it("reuses resolved workspace ID across multiple folder paths without repeating slug lookup", async () => {
+		const slugConfig = {
+			...config,
+			projectId: "apps",
+		};
+
+		mockFetch.mockImplementation(async (url: string) => {
+			if (url.includes("/auth/universal-auth/login")) {
+				return loginResponse();
+			}
+			if (url.includes("/api/v1/projects/slug/apps")) {
+				return jsonResponse({ id: "12345678-1234-1234-1234-1234567890ab" });
+			}
+			if (url.includes("workspaceId=apps")) {
+				return jsonResponse({ message: "Not found" }, false, 404);
+			}
+			if (url.includes("workspaceId=12345678-1234-1234-1234-1234567890ab")) {
+				return list({ FOO: "bar", BAZ: "qux" });
+			}
+			throw new Error(`Unexpected url: ${url}`);
+		});
+
+		const result = await infisicalClient.getSecrets(slugConfig, [
+			"folder-one:FOO",
+			"folder-two:BAZ",
+		]);
+
+		expect(result).toEqual({
+			"folder-one:FOO": "bar",
+			"folder-two:BAZ": "qux",
+		});
+		const slugResolutionCalls = mockFetch.mock.calls.filter((c) =>
+			(c[0] as string).includes("/api/v1/projects/slug/"),
+		);
+		expect(slugResolutionCalls).toHaveLength(1);
+	});
+});
+
+describe("infisical schema validation", () => {
+	it("rejects configuration without credentials", () => {
+		const parsed = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(parsed.success).toBe(false);
+	});
+
+	it("accepts service-token credentials and allows masked values", () => {
+		const valid = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "service-token",
+			serviceToken: "st.xxx",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(valid.success).toBe(true);
+
+		const masked = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "service-token",
+			serviceToken: "********",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(masked.success).toBe(true);
+	});
+
+	it("accepts universal-auth credentials and allows masked clientSecret", () => {
+		const valid = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "universal-auth",
+			clientId: "my-client-id",
+			clientSecret: "my-secret",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(valid.success).toBe(true);
+
+		const masked = infisicalVaultConfigSchema.safeParse({
+			providerType: "infisical",
+			authMethod: "universal-auth",
+			clientId: "my-client-id",
+			clientSecret: "********",
+			projectId: "apps",
+			environmentSlug: "prod",
+		});
+		expect(masked.success).toBe(true);
 	});
 });
 

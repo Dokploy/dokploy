@@ -6,6 +6,11 @@ type InfisicalConfig = z.infer<typeof infisicalVaultConfigSchema>;
 
 const baseUrl = (config: InfisicalConfig) => config.siteUrl.replace(/\/+$/, "");
 
+const isServiceTokenAuth = (config: InfisicalConfig) =>
+	config.authMethod
+		? config.authMethod === "service-token"
+		: Boolean(config.serviceToken);
+
 const login = async (config: InfisicalConfig) => {
 	if (!config.clientId || !config.clientSecret) {
 		throw new Error(
@@ -39,7 +44,7 @@ const login = async (config: InfisicalConfig) => {
 };
 
 const getAccessToken = async (config: InfisicalConfig) => {
-	if (config.authMethod === "service-token" || config.serviceToken) {
+	if (isServiceTokenAuth(config)) {
 		if (!config.serviceToken) {
 			throw new Error("Infisical: Service Token is required");
 		}
@@ -92,7 +97,7 @@ const resolveWorkspaceId = async (
 	}
 
 	try {
-		if (config.authMethod === "service-token" || config.serviceToken) {
+		if (isServiceTokenAuth(config)) {
 			const res = await vaultFetch(`${baseUrl(config)}/api/v2/service-token`, {
 				headers: { Authorization: `Bearer ${accessToken}` },
 			});
@@ -126,13 +131,42 @@ const resolveWorkspaceId = async (
 	return config.projectId;
 };
 
+type WorkspaceContext = {
+	getId: () => string;
+	resolve: () => Promise<string>;
+};
+
+const createWorkspaceContext = (
+	config: InfisicalConfig,
+	accessToken: string,
+): WorkspaceContext => {
+	let currentId = config.projectId;
+	let resolvePromise: Promise<string> | null = null;
+
+	return {
+		getId: () => currentId,
+		resolve: () => {
+			if (currentId !== config.projectId) {
+				return Promise.resolve(currentId);
+			}
+			if (!resolvePromise) {
+				resolvePromise = resolveWorkspaceId(config, accessToken).then((id) => {
+					currentId = id;
+					return id;
+				});
+			}
+			return resolvePromise;
+		},
+	};
+};
+
 const readPath = async (
 	config: InfisicalConfig,
 	accessToken: string,
 	secretPath: string,
-	resolvedWorkspaceId?: string,
+	ctx?: WorkspaceContext,
 ) => {
-	let wsId = resolvedWorkspaceId || config.projectId;
+	let wsId = ctx ? ctx.getId() : config.projectId;
 	const makeParams = (id: string) =>
 		new URLSearchParams({
 			workspaceId: id,
@@ -149,8 +183,15 @@ const readPath = async (
 		},
 	);
 
-	if (!response.ok && response.status === 404 && wsId === config.projectId && !isUUID(config.projectId)) {
-		const resolved = await resolveWorkspaceId(config, accessToken);
+	if (
+		!response.ok &&
+		response.status === 404 &&
+		wsId === config.projectId &&
+		!isUUID(config.projectId)
+	) {
+		const resolved = ctx
+			? await ctx.resolve()
+			: await resolveWorkspaceId(config, accessToken);
 		if (resolved && resolved !== config.projectId) {
 			wsId = resolved;
 			response = await vaultFetch(
@@ -207,16 +248,11 @@ export const infisicalClient: VaultClient<InfisicalConfig> = {
 		}
 
 		const accessToken = await getAccessToken(config);
-		let workspaceId: string | undefined = undefined;
+		const ctx = createWorkspaceContext(config, accessToken);
 		const result: Record<string, string> = {};
 		await Promise.all(
 			[...byPath.entries()].map(async ([secretPath, pathRefs]) => {
-				const secrets = await readPath(
-					config,
-					accessToken,
-					secretPath,
-					workspaceId,
-				);
+				const secrets = await readPath(config, accessToken, secretPath, ctx);
 				for (const ref of pathRefs) {
 					const { path, key } = parseRef(ref);
 					if (secrets[key] === undefined) {

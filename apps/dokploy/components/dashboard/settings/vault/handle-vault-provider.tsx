@@ -68,38 +68,38 @@ const VaultProviderSchema = z
 			"scaleway",
 			"phase",
 		]),
-		url: z.string().optional(),
-		token: z.string().optional(),
-		namespace: z.string().optional(),
-		mount: z.string().optional(),
-		siteUrl: z.string().optional(),
-		infisicalAuthMethod: z.enum(["universal-auth", "service-token"]).optional(),
-		clientId: z.string().optional(),
-		clientSecret: z.string().optional(),
-		projectId: z.string().optional(),
-		environmentSlug: z.string().optional(),
-		secretPath: z.string().optional(),
-		region: z.string().optional(),
-		accessKeyId: z.string().optional(),
-		secretAccessKey: z.string().optional(),
-		parameterPath: z.string().optional(),
-		serviceToken: z.string().optional(),
-		awsEndpoint: z.string().optional(),
-		vaultUri: z.string().optional(),
-		tenantId: z.string().optional(),
-		azureClientId: z.string().optional(),
-		azureClientSecret: z.string().optional(),
-		dopplerProject: z.string().optional(),
-		dopplerConfig: z.string().optional(),
-		scalewayRegion: z.string().optional(),
-		scalewayProjectId: z.string().optional(),
-		scalewaySecretKey: z.string().optional(),
-		scalewayApiUrl: z.string().optional(),
-		phaseToken: z.string().optional(),
-		phaseAppId: z.string().optional(),
-		phaseEnv: z.string().optional(),
-		phasePath: z.string().optional(),
-		phaseApiUrl: z.string().optional(),
+		url: z.string(),
+		token: z.string(),
+		namespace: z.string(),
+		mount: z.string(),
+		siteUrl: z.string(),
+		infisicalAuthMethod: z.enum(["universal-auth", "service-token"]),
+		clientId: z.string(),
+		clientSecret: z.string(),
+		projectId: z.string(),
+		environmentSlug: z.string(),
+		secretPath: z.string(),
+		region: z.string(),
+		accessKeyId: z.string(),
+		secretAccessKey: z.string(),
+		parameterPath: z.string(),
+		serviceToken: z.string(),
+		awsEndpoint: z.string(),
+		vaultUri: z.string(),
+		tenantId: z.string(),
+		azureClientId: z.string(),
+		azureClientSecret: z.string(),
+		dopplerProject: z.string(),
+		dopplerConfig: z.string(),
+		scalewayRegion: z.string(),
+		scalewayProjectId: z.string(),
+		scalewaySecretKey: z.string(),
+		scalewayApiUrl: z.string(),
+		phaseToken: z.string(),
+		phaseAppId: z.string(),
+		phaseEnv: z.string(),
+		phasePath: z.string(),
+		phaseApiUrl: z.string(),
 		assignments: z.array(
 			z.object({
 				projectId: z.string(),
@@ -346,9 +346,7 @@ const buildConfig = (data: VaultProviderForm) => {
 		case "infisical":
 			return {
 				providerType: "infisical" as const,
-				authMethod: (data.infisicalAuthMethod ?? "universal-auth") as
-					| "universal-auth"
-					| "service-token",
+				authMethod: data.infisicalAuthMethod,
 				siteUrl: data.siteUrl || "https://app.infisical.com",
 				clientId:
 					data.infisicalAuthMethod === "service-token"
@@ -573,11 +571,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				utils.vaultProvider.all.invalidate();
 				setIsOpen(false);
 			})
-			.catch((err) => {
-				toast.error("Failed to save vault provider", {
-					description: extractErrorMessage(err),
-				});
-			});
+			.catch(() => {});
 	};
 
 	const onTestConnection = async () => {
