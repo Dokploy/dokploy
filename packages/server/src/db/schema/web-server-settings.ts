@@ -304,10 +304,12 @@ export const apiUpdateWebServerMonitoring = z.object({
 export const domainRestrictionConfigSchema = z.object({
 	enabled: z.boolean(),
 	allowedWildcards: z.array(
-		z.string().min(1).refine(
-			(s) => s.startsWith("*.") || s.startsWith("**."),
-			{ message: "Pattern must start with '*.' or '**.' (e.g. *.example.com)" },
-		),
+		z
+			.string()
+			.min(1)
+			.refine((s) => s.startsWith("*.") || s.startsWith("**."), {
+				message: "Pattern must start with '*.' or '**.' (e.g. *.example.com)",
+			}),
 	),
 });
 
