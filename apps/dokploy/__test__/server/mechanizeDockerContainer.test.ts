@@ -86,7 +86,10 @@ describe("mechanizeDockerContainer", () => {
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
 		listTasksMock.mockReset();
-		listTasksMock.mockResolvedValue([]);
+		listTasksMock.mockResolvedValue([
+			{ Spec: { ForceUpdate: 0 }, Status: { State: "running" } },
+			{ Spec: { ForceUpdate: 3 }, Status: { State: "running" } },
+		]);
 		getRemoteDockerMock.mockResolvedValue({
 			getService: getServiceMock,
 			createService: createServiceMock,
@@ -231,6 +234,39 @@ describe("mechanizeDockerContainer", () => {
 
 			expect(updateMock).toHaveBeenCalledTimes(1);
 			expect(updateMock.mock.calls[0]?.[0].Labels).toEqual({});
+		});
+
+		const oldTask = { Spec: { ForceUpdate: 2 }, Status: { State: "running" } };
+
+		it("waits for the new task and fails when Swarm can't place it", async () => {
+			mockExistingService({});
+			listTasksMock.mockResolvedValueOnce([oldTask]).mockResolvedValue([
+				oldTask,
+				{
+					Spec: { ForceUpdate: 3 },
+					Status: {
+						State: "pending",
+						Err: "no suitable node (insufficient resources on 1 node)",
+					},
+				},
+			]);
+
+			await expect(
+				mechanizeDockerContainer(createApplication()),
+			).rejects.toThrow(/insufficient resources/);
+			expect(listTasksMock).toHaveBeenCalledTimes(2);
+		});
+
+		it("stops checking as soon as the new task is placed on a node", async () => {
+			mockExistingService({});
+			listTasksMock.mockResolvedValue([
+				oldTask,
+				{ Spec: { ForceUpdate: 3 }, Status: { State: "assigned" } },
+			]);
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(listTasksMock).toHaveBeenCalledTimes(1);
 		});
 	});
 });
