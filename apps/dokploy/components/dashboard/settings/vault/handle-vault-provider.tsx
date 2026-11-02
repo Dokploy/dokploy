@@ -573,7 +573,11 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				utils.vaultProvider.all.invalidate();
 				setIsOpen(false);
 			})
-			.catch(() => {});
+			.catch((err) => {
+				toast.error("Failed to save vault provider", {
+					description: extractErrorMessage(err),
+				});
+			});
 	};
 
 	const onTestConnection = async () => {
@@ -850,9 +854,12 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										name="projectId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Project ID</FormLabel>
+												<FormLabel>Project ID or Slug</FormLabel>
 												<FormControl>
-													<Input {...field} />
+													<Input
+														placeholder="e.g. apps or 94551e77-..."
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>

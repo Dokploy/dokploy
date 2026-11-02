@@ -80,13 +80,61 @@ const resolveSecretPath = (config: InfisicalConfig, refPath: string | null) => {
 };
 
 // One login serves every path a batch of refs touches.
+const isUUID = (str: string) =>
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+const resolveWorkspaceId = async (
+	config: InfisicalConfig,
+	accessToken: string,
+): Promise<string> => {
+	if (isUUID(config.projectId)) {
+		return config.projectId;
+	}
+
+	try {
+		if (config.authMethod === "service-token" || config.serviceToken) {
+			const res = await vaultFetch(`${baseUrl(config)}/api/v2/service-token`, {
+				headers: { Authorization: `Bearer ${accessToken}` },
+			});
+			if (res?.ok) {
+				const data = (await res.json()) as {
+					projectId?: string;
+					workspace?: string;
+				};
+				if (data.projectId || data.workspace) {
+					return data.projectId || data.workspace!;
+				}
+			}
+		} else {
+			const res = await vaultFetch(
+				`${baseUrl(config)}/api/v1/projects/slug/${encodeURIComponent(config.projectId)}`,
+				{
+					headers: { Authorization: `Bearer ${accessToken}` },
+				},
+			);
+			if (res?.ok) {
+				const data = (await res.json()) as { id?: string; _id?: string };
+				if (data.id || data._id) {
+					return data.id || data._id!;
+				}
+			}
+		}
+	} catch {
+		// Non-fatal: if slug lookup fails or endpoint not available, proceed with config.projectId
+	}
+
+	return config.projectId;
+};
+
 const readPath = async (
 	config: InfisicalConfig,
 	accessToken: string,
 	secretPath: string,
+	workspaceId?: string,
 ) => {
+	const wsId = workspaceId ?? (await resolveWorkspaceId(config, accessToken));
 	const params = new URLSearchParams({
-		workspaceId: config.projectId,
+		workspaceId: wsId,
 		environment: config.environmentSlug,
 		secretPath,
 		// Infisical's list endpoint leaves secret references (`${env.folder.KEY}`)
@@ -135,7 +183,11 @@ const readPath = async (
 const fetchSecrets = async (
 	config: InfisicalConfig,
 	secretPath = config.secretPath,
-) => readPath(config, await getAccessToken(config), secretPath);
+) => {
+	const accessToken = await getAccessToken(config);
+	const workspaceId = await resolveWorkspaceId(config, accessToken);
+	return readPath(config, accessToken, secretPath, workspaceId);
+};
 
 export const infisicalClient: VaultClient<InfisicalConfig> = {
 	async getSecrets(config, refs) {
@@ -147,10 +199,16 @@ export const infisicalClient: VaultClient<InfisicalConfig> = {
 		}
 
 		const accessToken = await getAccessToken(config);
+		const workspaceId = await resolveWorkspaceId(config, accessToken);
 		const result: Record<string, string> = {};
 		await Promise.all(
 			[...byPath.entries()].map(async ([secretPath, pathRefs]) => {
-				const secrets = await readPath(config, accessToken, secretPath);
+				const secrets = await readPath(
+					config,
+					accessToken,
+					secretPath,
+					workspaceId,
+				);
 				for (const ref of pathRefs) {
 					const { path, key } = parseRef(ref);
 					if (secrets[key] === undefined) {
