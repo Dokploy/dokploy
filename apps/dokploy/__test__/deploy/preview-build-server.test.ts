@@ -218,6 +218,30 @@ describe("preview deployments with a build server", () => {
 		).toMatchObject({ serverId: "deploy-server", buildRegistry });
 	});
 
+	it("clones the preview branch on rebuild only when the source is missing", async () => {
+		setup();
+
+		await rebuildPreviewApplication({
+			applicationId: "app-1",
+			titleLog: "Rebuild",
+			descriptionLog: "",
+			previewDeploymentId: "preview-1",
+		});
+
+		expect(vi.mocked(cloneGithubRepository).mock.calls[0]?.[0]).toMatchObject({
+			serverId: "build-server",
+			appName: "preview-app-abc-xyz",
+			branch: "feature",
+		});
+
+		const command = remoteCalls().find(({ command }) =>
+			command.includes("build;"),
+		)?.command;
+		expect(command).toMatch(
+			/if ! git --git-dir=\S*applications\/preview-app-abc-xyz\/code\/\.git rev-parse --verify --quiet HEAD .*then .*clone; fi;.*build;/,
+		);
+	});
+
 	it("writes the deployment log on the build server and records it", async () => {
 		setup();
 

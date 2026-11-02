@@ -1,4 +1,5 @@
-import { docker } from "@dokploy/server/constants";
+import { join } from "node:path";
+import { docker, paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
@@ -29,6 +30,7 @@ import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getDokployUrl } from "./admin";
 import {
@@ -528,7 +530,24 @@ export const rebuildPreviewApplication = async ({
 
 		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
-		// Only rebuild, don't clone repository
+		// Rebuild doesn't download new code. Clone only when there is no source
+		// to rebuild (e.g. the last clone failed), since previews have no other
+		// way to re-clone than pushing a new commit.
+		if (application.sourceType === "github") {
+			const { APPLICATIONS_PATH } = paths(!!serverId);
+			const codePath = join(
+				APPLICATIONS_PATH,
+				previewDeployment.appName,
+				"code",
+			);
+			const cloneCommand = await cloneGithubRepository({
+				...application,
+				serverId,
+				appName: previewDeployment.appName,
+				branch: previewDeployment.branch,
+			});
+			command += `if ! git --git-dir=${quote([join(codePath, ".git")])} rev-parse --verify --quiet HEAD >/dev/null 2>&1; then echo "Source code not found, cloning the repository before rebuilding"; ${cloneCommand} fi;`;
+		}
 		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
