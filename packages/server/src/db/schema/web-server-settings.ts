@@ -214,15 +214,6 @@ export const apiUpdateWebServerBuildsConcurrency = z.object({
 	buildsConcurrency: z.number().int().min(1).max(100),
 });
 
-export const domainRestrictionConfigSchema = z.object({
-	enabled: z.boolean(),
-	allowedWildcards: z.array(z.string().min(1)),
-});
-
-export const apiUpdateDomainRestriction = z.object({
-	domainRestrictionConfig: domainRestrictionConfigSchema,
-});
-
 export const apiAssignDomain = z
 	.object({
 		host: z.string(),
@@ -318,4 +309,8 @@ export const domainRestrictionConfigSchema = z.object({
 			{ message: "Pattern must start with '*.' or '**.' (e.g. *.example.com)" },
 		),
 	),
+});
+
+export const apiUpdateDomainRestriction = z.object({
+	domainRestrictionConfig: domainRestrictionConfigSchema,
 });
