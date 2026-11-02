@@ -12,6 +12,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { sleep } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 import { getDockerCommand } from "./docker-file";
@@ -209,6 +210,23 @@ export const mechanizeDockerContainer = async (
 		} else {
 			await docker.createService(settings);
 		}
+	}
+
+	// Swarm only reports a task it can't place (e.g. insufficient resources) on the task itself.
+	await sleep(3000);
+	const tasks = await docker.listTasks({
+		filters: JSON.stringify({
+			service: [appName],
+			"desired-state": ["running"],
+		}),
+	});
+	const unscheduled = tasks.find(
+		(task) => task.Status?.State === "pending" && task.Status?.Err,
+	);
+	if (unscheduled) {
+		throw new Error(
+			`Swarm could not start the new version: ${unscheduled.Status.Err}. Lower the memory/CPU reservation or free resources on the server.`,
+		);
 	}
 };
 
