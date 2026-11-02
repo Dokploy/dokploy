@@ -874,7 +874,7 @@ describe("phase client", () => {
 	])("strips pasted auth prefixes from the token (%j)", async (token) => {
 		mockFetch.mockResolvedValue(jsonResponse([]));
 
-		await phaseClient.listSecretNames({ ...config, token });
+		await phaseClient.listSecretNames?.({ ...config, token });
 
 		const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
 		expect((init.headers as Record<string, string>).Authorization).toBe(
