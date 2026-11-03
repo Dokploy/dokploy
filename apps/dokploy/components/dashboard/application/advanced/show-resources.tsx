@@ -155,7 +155,7 @@ export const ShowResources = ({ id, type }: Props) => {
 	const selectedGroupId = form.watch("resourceGroupId");
 	const selectedProfileId = form.watch("resourceProfileId");
 
-	const prevGroupIdRef = useRef<string>("");
+	const prevGroupIdRef = useRef<string | undefined>("");
 	useEffect(() => {
 		if (prevGroupIdRef.current !== selectedGroupId) {
 			if (prevGroupIdRef.current !== "") {

@@ -22,10 +22,10 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { patch } from "./patch";
 import { ports } from "./port";
-import { resourceProfile } from "./resource-profile";
 import { previewDeployments } from "./preview-deployments";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
+import { resourceProfile } from "./resource-profile";
 import { security } from "./security";
 import { server } from "./server";
 import {

@@ -3,10 +3,10 @@ import {
 	type apiAssignComposeServiceProfile,
 	type apiCreateResourceGroup,
 	type apiCreateResourceProfile,
-	applications,
-	composeServiceResourceProfile,
 	type apiUpdateResourceGroup,
 	type apiUpdateResourceProfile,
+	applications,
+	composeServiceResourceProfile,
 	libsql,
 	mariadb,
 	mongo,
@@ -16,8 +16,8 @@ import {
 	resourceGroup,
 	resourceProfile,
 } from "@dokploy/server/db/schema";
-import type { ResourceRequirements } from "dockerode";
 import { TRPCError } from "@trpc/server";
+import type { ResourceRequirements } from "dockerode";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { z } from "zod";
 import type { ComposeSpecification } from "../utils/docker/types";
@@ -180,23 +180,25 @@ export const findResourceProfileById = async (profileId: string) => {
 	return profile;
 };
 
-export const removeResourceProfileById = async (
+export const findResourceProfileInOrganization = async (
 	profileId: string,
 	organizationId: string,
 ) => {
-	const profile = await db.query.resourceProfile.findFirst({
-		where: eq(resourceProfile.profileId, profileId),
-		with: {
-			group: true,
-		},
-	});
-
+	const profile = await findResourceProfileById(profileId);
 	if (!profile || profile.group.organizationId !== organizationId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Resource profile not found",
 		});
 	}
+	return profile;
+};
+
+export const removeResourceProfileById = async (
+	profileId: string,
+	organizationId: string,
+) => {
+	await findResourceProfileInOrganization(profileId, organizationId);
 
 	const usage = await getProfilesUsageCounts([profileId]);
 	if ((usage.get(profileId) || 0) > 0) {
@@ -334,10 +336,7 @@ export const findComposeServiceAssignmentById = async (
 	composeServiceId: string,
 ) => {
 	return db.query.composeServiceResourceProfile.findFirst({
-		where: eq(
-			composeServiceResourceProfile.composeServiceId,
-			composeServiceId,
-		),
+		where: eq(composeServiceResourceProfile.composeServiceId, composeServiceId),
 	});
 };
 

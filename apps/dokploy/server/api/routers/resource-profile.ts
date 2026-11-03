@@ -3,9 +3,8 @@ import {
 	createResourceProfile,
 	findComposeServiceAssignmentById,
 	findComposeServiceAssignments,
-	findComposeById,
 	findResourceGroupsByOrganization,
-	findResourceProfileById,
+	findResourceProfileInOrganization,
 	getProfilesUsageCounts,
 	removeComposeServiceAssignment,
 	removeResourceGroupById,
@@ -14,8 +13,7 @@ import {
 	updateResourceGroupById,
 	updateResourceProfileById,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
-import { TRPCError } from "@trpc/server";
+import { db } from "@dokploy/server/db";
 import {
 	apiAssignComposeServiceProfile,
 	apiCreateResourceGroup,
@@ -29,7 +27,8 @@ import {
 	apiUpdateResourceProfile,
 	resourceGroup,
 } from "@dokploy/server/db/schema";
-import { db } from "@dokploy/server/db";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -44,7 +43,10 @@ const apiSaveComposeServices = z.object({
 	services: z.array(apiAssignComposeServiceProfile.omit({ composeId: true })),
 });
 
-const verifyGroupOwnership = async (groupId: string, organizationId: string) => {
+const verifyGroupOwnership = async (
+	groupId: string,
+	organizationId: string,
+) => {
 	const group = await db.query.resourceGroup.findFirst({
 		where: eq(resourceGroup.groupId, groupId),
 	});
@@ -55,40 +57,6 @@ const verifyGroupOwnership = async (groupId: string, organizationId: string) => 
 		});
 	}
 	return group;
-};
-
-const verifyProfileOwnership = async (
-	profileId: string,
-	organizationId: string,
-) => {
-	const profile = await findResourceProfileById(profileId);
-	if (!profile || profile.group.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Resource profile not found",
-		});
-	}
-	return profile;
-};
-
-const verifyComposeAccess = async (
-	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
-	composeId: string,
-) => {
-	const compose = await findComposeById(composeId);
-	if (
-		compose.environment.project.organizationId !==
-		ctx.session.activeOrganizationId
-	) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not authorized to access this compose",
-		});
-	}
-	await checkServicePermissionAndAccess(ctx, composeId, {
-		service: ["read"],
-	});
-	return compose;
 };
 
 export const resourceProfileRouter = createTRPCRouter({
@@ -125,7 +93,7 @@ export const resourceProfileRouter = createTRPCRouter({
 	oneProfile: withPermission("resourceProfiles", "read")
 		.input(apiFindOneResourceProfile)
 		.query(async ({ input, ctx }) => {
-			return await verifyProfileOwnership(
+			return await findResourceProfileInOrganization(
 				input.profileId,
 				ctx.session.activeOrganizationId,
 			);
@@ -156,11 +124,11 @@ export const resourceProfileRouter = createTRPCRouter({
 	updateGroup: withPermission("resourceProfiles", "update")
 		.input(apiUpdateResourceGroup)
 		.mutation(async ({ input, ctx }) => {
+			await verifyGroupOwnership(
+				input.groupId,
+				ctx.session.activeOrganizationId,
+			);
 			try {
-				await verifyGroupOwnership(
-					input.groupId,
-					ctx.session.activeOrganizationId,
-				);
 				const result = await updateResourceGroupById(input);
 				await audit(ctx, {
 					action: "update",
@@ -193,7 +161,7 @@ export const resourceProfileRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
-				if (error instanceof TRPCError && error.code === "CONFLICT") {
+				if (error instanceof TRPCError) {
 					throw error;
 				}
 				throw new TRPCError({
@@ -206,11 +174,11 @@ export const resourceProfileRouter = createTRPCRouter({
 	createProfile: withPermission("resourceProfiles", "create")
 		.input(apiCreateResourceProfile)
 		.mutation(async ({ input, ctx }) => {
+			await verifyGroupOwnership(
+				input.groupId,
+				ctx.session.activeOrganizationId,
+			);
 			try {
-				await verifyGroupOwnership(
-					input.groupId,
-					ctx.session.activeOrganizationId,
-				);
 				const result = await createResourceProfile(input);
 				await audit(ctx, {
 					action: "create",
@@ -230,11 +198,11 @@ export const resourceProfileRouter = createTRPCRouter({
 	updateProfile: withPermission("resourceProfiles", "update")
 		.input(apiUpdateResourceProfile)
 		.mutation(async ({ input, ctx }) => {
+			await findResourceProfileInOrganization(
+				input.profileId,
+				ctx.session.activeOrganizationId,
+			);
 			try {
-				await verifyProfileOwnership(
-					input.profileId,
-					ctx.session.activeOrganizationId,
-				);
 				const result = await updateResourceProfileById(input);
 				await audit(ctx, {
 					action: "update",
@@ -267,7 +235,7 @@ export const resourceProfileRouter = createTRPCRouter({
 				});
 				return result;
 			} catch (error) {
-				if (error instanceof TRPCError && error.code === "CONFLICT") {
+				if (error instanceof TRPCError) {
 					throw error;
 				}
 				throw new TRPCError({
@@ -280,19 +248,36 @@ export const resourceProfileRouter = createTRPCRouter({
 	composeAssignments: protectedProcedure
 		.input(z.object({ composeId: z.string().min(1) }))
 		.query(async ({ input, ctx }) => {
-			await verifyComposeAccess(ctx, input.composeId);
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["read"],
+			});
 			return await findComposeServiceAssignments(input.composeId);
 		}),
 	saveComposeAssignments: protectedProcedure
 		.input(apiSaveComposeServices)
 		.mutation(async ({ input, ctx }) => {
-			await verifyComposeAccess(ctx, input.composeId);
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["create"],
+			});
+			for (const { profileId } of input.services) {
+				if (profileId) {
+					await findResourceProfileInOrganization(
+						profileId,
+						ctx.session.activeOrganizationId,
+					);
+				}
+			}
 			for (const service of input.services) {
 				await saveComposeServiceAssignment({
 					...service,
 					composeId: input.composeId,
 				});
 			}
+			await audit(ctx, {
+				action: "update",
+				resourceType: "compose",
+				resourceId: input.composeId,
+			});
 			return true;
 		}),
 	removeComposeAssignment: protectedProcedure
@@ -307,7 +292,17 @@ export const resourceProfileRouter = createTRPCRouter({
 					message: "Assignment not found",
 				});
 			}
-			await verifyComposeAccess(ctx, assignment.composeId);
-			return await removeComposeServiceAssignment(input.composeServiceId);
+			await checkServicePermissionAndAccess(ctx, assignment.composeId, {
+				service: ["create"],
+			});
+			const removed = await removeComposeServiceAssignment(
+				input.composeServiceId,
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "compose",
+				resourceId: assignment.composeId,
+			});
+			return removed;
 		}),
 });

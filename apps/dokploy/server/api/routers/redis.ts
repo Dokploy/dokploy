@@ -8,6 +8,7 @@ import {
 	findEnvironmentById,
 	findProjectById,
 	findRedisById,
+	findResourceProfileInOrganization,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainer,
@@ -381,6 +382,13 @@ export const redisRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, redisId, {
 				service: ["create"],
 			});
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
+			}
+
 			const redis = await updateRedisById(redisId, {
 				...rest,
 			});

@@ -1,6 +1,7 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions, PortConfig } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
 	generateBindMounts,
@@ -9,7 +10,6 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { resolveEffectiveResources } from "../../services/resource-profile";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 
