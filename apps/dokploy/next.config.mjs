@@ -23,8 +23,7 @@ const nextConfig = {
 					},
 					{
 						key: "Content-Security-Policy",
-						value:
-							"frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+						value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
 					},
 					{
 						key: "Permissions-Policy",
