@@ -1,0 +1,4 @@
+CREATE TYPE "public"."sslMode" AS ENUM('disabled', 'optional', 'required');--> statement-breakpoint
+ALTER TABLE "webServerSettings" ALTER COLUMN "whitelabelingConfig" SET DEFAULT '{"appName":null,"appDescription":null,"logoUrl":null,"faviconUrl":null,"customCss":null,"loginLogoUrl":null,"supportUrl":null,"docsUrl":null,"errorPageTitle":null,"errorPageDescription":null,"footerText":null,"ogImageUrl":null,"passwordResetGuide":null,"supportEmail":null,"logoLightUrl":null,"loginLogoLightUrl":null,"faviconLightUrl":null,"dualModeBranding":false}'::jsonb;--> statement-breakpoint
+ALTER TABLE "postgres" ADD COLUMN "sslMode" "sslMode" DEFAULT 'disabled' NOT NULL;--> statement-breakpoint
+ALTER TABLE "postgres" ADD COLUMN "sslCACertificate" text;
