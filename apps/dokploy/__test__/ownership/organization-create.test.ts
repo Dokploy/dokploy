@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let isCloud = false;
-const mockIsInstanceOwner = vi.hoisted(() => vi.fn());
+let instanceOwnerId: string | null = "user-1";
+// Tables written through the locked transaction, in order.
+const lockedInserts: string[] = [];
+const mockWithInstanceOwnerLock = vi.hoisted(() => vi.fn());
 
 vi.mock("@dokploy/server/index", () => ({
 	get IS_CLOUD() {
@@ -9,8 +12,8 @@ vi.mock("@dokploy/server/index", () => ({
 	},
 	deleteOrganization: vi.fn(),
 	hasValidLicense: vi.fn(async () => false),
-	isInstanceOwner: mockIsInstanceOwner,
 	sendInvitationEmail: vi.fn(),
+	withInstanceOwnerLock: mockWithInstanceOwnerLock,
 }));
 
 vi.mock("@dokploy/server/lib/auth", () => ({
@@ -26,6 +29,22 @@ vi.mock("@/server/api/utils/plan-limits", () => ({
 	assertOrganizationLimit: vi.fn(),
 }));
 
+const schema = await import("@dokploy/server/db/schema");
+
+const lockedTx = {
+	insert: (table: unknown) => ({
+		values: (values: Record<string, unknown>) => {
+			lockedInserts.push(
+				table === schema.organization ? "organization" : "member",
+			);
+			return Object.assign(Promise.resolve(), {
+				returning: async () => [{ id: "org-new", ...values }],
+			});
+		},
+	}),
+	query: { member: { findMany: async () => [] } },
+};
+
 const { organizationRouter } = await import(
 	"@/server/api/routers/organization"
 );
@@ -38,33 +57,42 @@ const callerFor = (role: "owner" | "admin" | "member") =>
 
 beforeEach(() => {
 	isCloud = false;
-	mockIsInstanceOwner.mockReset();
+	instanceOwnerId = "user-1";
+	lockedInserts.length = 0;
+	mockWithInstanceOwnerLock.mockReset();
+	mockWithInstanceOwnerLock.mockImplementation(async (_strength, fn) =>
+		fn({ tx: lockedTx, instanceOwnerId, settingsId: "settings-1" }),
+	);
 });
 
 describe("organization.create", () => {
-	it("rejects an admin on self-hosted", async () => {
-		mockIsInstanceOwner.mockResolvedValue(false);
+	it("rejects an admin on self-hosted without inserting anything", async () => {
+		instanceOwnerId = "someone-else";
 
 		await expect(
 			callerFor("admin").create({ name: "Side project" }),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
-		expect(mockIsInstanceOwner).toHaveBeenCalledWith("user-1");
+		expect(lockedInserts).toEqual([]);
 	});
 
 	it("rejects an owner of a legacy organization who is not the instance owner", async () => {
-		mockIsInstanceOwner.mockResolvedValue(false);
+		instanceOwnerId = "someone-else";
 
 		await expect(
 			callerFor("owner").create({ name: "Another one" }),
 		).rejects.toMatchObject({ code: "FORBIDDEN" });
+		expect(lockedInserts).toEqual([]);
 	});
 
-	it("allows the instance owner on self-hosted", async () => {
-		mockIsInstanceOwner.mockResolvedValue(true);
-
+	it("creates the organization inside the shared instance owner lock", async () => {
 		await expect(
 			callerFor("owner").create({ name: "Team B" }),
-		).resolves.toBeDefined();
+		).resolves.toMatchObject({ id: "org-new", name: "Team B" });
+		expect(mockWithInstanceOwnerLock).toHaveBeenCalledWith(
+			"share",
+			expect.any(Function),
+		);
+		expect(lockedInserts).toEqual(["organization", "member"]);
 	});
 
 	it("does not apply the instance owner rule on cloud", async () => {
@@ -73,6 +101,6 @@ describe("organization.create", () => {
 		await expect(
 			callerFor("member").create({ name: "My org" }),
 		).resolves.toBeDefined();
-		expect(mockIsInstanceOwner).not.toHaveBeenCalled();
+		expect(mockWithInstanceOwnerLock).not.toHaveBeenCalled();
 	});
 });

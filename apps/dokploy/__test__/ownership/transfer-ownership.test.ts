@@ -27,6 +27,10 @@ const emptyOwnerFields = {
 // Rows returned for the previous owner, then the new owner.
 let ownerRows: unknown[] = [];
 let targetMembership: { id: string } | undefined = { id: "member-9" };
+// Instance owner as seen once the settings row is locked.
+let lockedOwner = "owner";
+// Order of the lock and the organization read inside the transaction.
+const events: string[] = [];
 
 vi.mock("@dokploy/server/db", async () => {
 	const schema = await import("@dokploy/server/db/schema");
@@ -61,8 +65,23 @@ vi.mock("@dokploy/server/db", async () => {
 
 	const tx = {
 		...writer,
+		select: () => ({
+			from: () => ({
+				where: () => ({
+					for: async (strength: string) => {
+						events.push(`lock:${strength}`);
+						return [{ instanceOwnerId: lockedOwner }];
+					},
+				}),
+			}),
+		}),
 		query: {
-			organization: { findMany: async () => ownedOrganizations },
+			organization: {
+				findMany: async () => {
+					events.push("read-organizations");
+					return ownedOrganizations;
+				},
+			},
 			user: { findFirst: async () => ownerRows.shift() },
 		},
 	};
@@ -109,6 +128,8 @@ beforeEach(() => {
 	newOwnerMemberOf = ["org-1"];
 	ownerRows = [previousOwnerFields, emptyOwnerFields];
 	targetMembership = { id: "member-9" };
+	lockedOwner = "owner";
+	events.length = 0;
 });
 
 describe("createOwnershipTransfer", () => {
@@ -121,6 +142,15 @@ describe("createOwnershipTransfer", () => {
 			code: "BAD_REQUEST",
 			message: expect.stringMatching(/not part of any organization/),
 		});
+		expect(writes).toHaveLength(0);
+	});
+
+	it("refuses when the sender stopped owning the instance before the lock was taken", async () => {
+		lockedOwner = "someone-else";
+
+		await expect(
+			createOwnershipTransfer("owner", "new@example.com"),
+		).rejects.toMatchObject({ code: "FORBIDDEN" });
 		expect(writes).toHaveLength(0);
 	});
 
@@ -179,6 +209,24 @@ describe("getTransferAcceptanceError", () => {
 });
 
 describe("transferInstanceOwnership", () => {
+	it("reads the organizations only after taking the exclusive owner lock", async () => {
+		await transferInstanceOwnership("owner", "target");
+
+		expect(events).toEqual(["lock:update", "read-organizations"]);
+	});
+
+	it("refuses when the sender stopped owning the instance before the lock was taken", async () => {
+		lockedOwner = "someone-else";
+
+		await expect(
+			transferInstanceOwnership("owner", "target"),
+		).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			message: expect.stringMatching(/no longer owns/),
+		});
+		expect(writes).toHaveLength(0);
+	});
+
 	it("moves every owned organization to the new owner", async () => {
 		const result = await transferInstanceOwnership("owner", "target");
 
@@ -249,11 +297,59 @@ describe("transferInstanceOwnership", () => {
 		});
 	});
 
+	it("keeps the new owner's valid license over the previous owner's invalid one", async () => {
+		ownerRows = [
+			{
+				...previousOwnerFields,
+				licenseKey: "expired-key",
+				isValidEnterpriseLicense: false,
+			},
+			{
+				enableEnterpriseFeatures: true,
+				licenseKey: "their-license",
+				isValidEnterpriseLicense: true,
+				trustedOrigins: null,
+				enablePaidFeatures: false,
+			},
+		];
+		await transferInstanceOwnership("owner", "target");
+
+		expect(writesTo(schema.user)[0]?.values).toMatchObject({
+			licenseKey: "their-license",
+			isValidEnterpriseLicense: true,
+		});
+	});
+
+	it("keeps the previous owner's key when neither license is valid", async () => {
+		ownerRows = [
+			{
+				...previousOwnerFields,
+				licenseKey: "needs-revalidation",
+				isValidEnterpriseLicense: false,
+			},
+			emptyOwnerFields,
+		];
+		await transferInstanceOwnership("owner", "target");
+
+		expect(writesTo(schema.user)[0]?.values).toMatchObject({
+			licenseKey: "needs-revalidation",
+			isValidEnterpriseLicense: false,
+		});
+	});
+
 	it("hands the previous owner's git providers to the new owner", async () => {
 		await transferInstanceOwnership("owner", "target");
 
 		expect(writesTo(schema.gitProvider)).toEqual([
 			expect.objectContaining({ values: { userId: "target" } }),
+		]);
+	});
+
+	it("hands pending invitations in the transferred organizations to the new owner", async () => {
+		await transferInstanceOwnership("owner", "target");
+
+		expect(writesTo(schema.invitation)).toEqual([
+			expect.objectContaining({ values: { inviterId: "target" } }),
 		]);
 	});
 

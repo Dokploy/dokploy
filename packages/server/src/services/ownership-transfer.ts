@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import {
 	backups,
 	gitProvider,
+	invitation,
 	member,
 	organization,
 	ownershipTransfer,
@@ -22,9 +23,12 @@ import {
 	or,
 	sql,
 } from "drizzle-orm";
-import { getInstanceOwnerId, invalidateTrustedOriginsCache } from "./admin";
+import {
+	getInstanceOwnerId,
+	invalidateTrustedOriginsCache,
+	withInstanceOwnerLock,
+} from "./admin";
 import { createAuditLog } from "./proprietary/audit-log";
-import { getWebServerSettings } from "./web-server-settings";
 
 const OWNERSHIP_TRANSFER_TTL_MS = 48 * 60 * 60 * 1000;
 
@@ -231,7 +235,16 @@ export const createOwnershipTransfer = async (
 ) => {
 	const target = await findTransferRecipient(fromUserId, email);
 
-	return db.transaction(async (tx) => {
+	// Under the lock so an invitation can't be created by an owner whose
+	// ownership is being transferred away at the same moment.
+	return withInstanceOwnerLock("share", async ({ tx, instanceOwnerId }) => {
+		if (instanceOwnerId !== fromUserId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Only the instance owner can transfer ownership",
+			});
+		}
+
 		await tx
 			.update(ownershipTransfer)
 			.set({ status: "canceled" })
@@ -333,173 +346,200 @@ export const transferInstanceOwnership = async (
 	toUserId: string,
 	transferId?: string,
 ) => {
-	const settings = await getWebServerSettings();
-
-	const transferred = await db.transaction(async (tx) => {
-		if (transferId) {
-			// Claiming the row inside the transaction makes a concurrent second
-			// accept fail instead of running the transfer twice.
-			const claimed = await tx
-				.update(ownershipTransfer)
-				.set({ status: "accepted" })
-				.where(
-					and(
-						eq(ownershipTransfer.id, transferId),
-						eq(ownershipTransfer.status, "pending"),
-					),
-				)
-				.returning({ id: ownershipTransfer.id });
-
-			if (claimed.length === 0) {
+	const transferred = await withInstanceOwnerLock(
+		"update",
+		async ({ tx, instanceOwnerId, settingsId }) => {
+			// Checked again under the lock: another transfer may have committed after
+			// the caller last read the owner.
+			if (instanceOwnerId !== fromUserId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "This ownership transfer is no longer pending",
+					message: "The sender no longer owns this instance",
 				});
 			}
-		}
 
-		await tx
-			.update(ownershipTransfer)
-			.set({ status: "canceled" })
-			.where(
-				and(
-					eq(ownershipTransfer.fromUserId, fromUserId),
-					eq(ownershipTransfer.status, "pending"),
-				),
-			);
+			if (transferId) {
+				// Claiming the row inside the transaction makes a concurrent second
+				// accept fail instead of running the transfer twice.
+				const claimed = await tx
+					.update(ownershipTransfer)
+					.set({ status: "accepted" })
+					.where(
+						and(
+							eq(ownershipTransfer.id, transferId),
+							eq(ownershipTransfer.status, "pending"),
+						),
+					)
+					.returning({ id: ownershipTransfer.id });
 
-		const organizations = await tx.query.organization.findMany({
-			where: eq(organization.ownerId, fromUserId),
-			columns: { id: true, name: true },
-		});
-		const organizationIds = organizations.map((org) => org.id);
-
-		if (organizationIds.length > 0) {
-			await tx
-				.update(organization)
-				.set({ ownerId: toUserId })
-				.where(inArray(organization.id, organizationIds));
-
-			const existingMemberships = await tx
-				.update(member)
-				.set({ role: "owner" })
-				.where(
-					and(
-						eq(member.userId, toUserId),
-						inArray(member.organizationId, organizationIds),
-					),
-				)
-				.returning({ organizationId: member.organizationId });
-
-			const memberOf = new Set(
-				existingMemberships.map((membership) => membership.organizationId),
-			);
-			const missingOrganizationIds = organizationIds.filter(
-				(id) => !memberOf.has(id),
-			);
-
-			if (missingOrganizationIds.length > 0) {
-				await tx.insert(member).values(
-					missingOrganizationIds.map((organizationId) => ({
-						organizationId,
-						userId: toUserId,
-						role: "owner",
-						createdAt: new Date(),
-					})),
-				);
+				if (claimed.length === 0) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "This ownership transfer is no longer pending",
+					});
+				}
 			}
 
 			await tx
-				.update(member)
-				.set({ role: "member" })
+				.update(ownershipTransfer)
+				.set({ status: "canceled" })
 				.where(
 					and(
-						eq(member.userId, fromUserId),
-						inArray(member.organizationId, organizationIds),
+						eq(ownershipTransfer.fromUserId, fromUserId),
+						eq(ownershipTransfer.status, "pending"),
 					),
 				);
 
-			// Git providers are deleted along with the user who created them, so
-			// removing the previous owner later would break every deploy using one.
+			// Complete: organization creation waits for this lock before inserting.
+			const organizations = await tx.query.organization.findMany({
+				where: eq(organization.ownerId, fromUserId),
+				columns: { id: true, name: true },
+			});
+			const organizationIds = organizations.map((org) => org.id);
+
+			if (organizationIds.length > 0) {
+				await tx
+					.update(organization)
+					.set({ ownerId: toUserId })
+					.where(inArray(organization.id, organizationIds));
+
+				const existingMemberships = await tx
+					.update(member)
+					.set({ role: "owner" })
+					.where(
+						and(
+							eq(member.userId, toUserId),
+							inArray(member.organizationId, organizationIds),
+						),
+					)
+					.returning({ organizationId: member.organizationId });
+
+				const memberOf = new Set(
+					existingMemberships.map((membership) => membership.organizationId),
+				);
+				const missingOrganizationIds = organizationIds.filter(
+					(id) => !memberOf.has(id),
+				);
+
+				if (missingOrganizationIds.length > 0) {
+					await tx.insert(member).values(
+						missingOrganizationIds.map((organizationId) => ({
+							organizationId,
+							userId: toUserId,
+							role: "owner",
+							createdAt: new Date(),
+						})),
+					);
+				}
+
+				await tx
+					.update(member)
+					.set({ role: "member" })
+					.where(
+						and(
+							eq(member.userId, fromUserId),
+							inArray(member.organizationId, organizationIds),
+						),
+					);
+
+				// Git providers are deleted along with the user who created them, so
+				// removing the previous owner later would break every deploy using one.
+				await tx
+					.update(gitProvider)
+					.set({ userId: toUserId })
+					.where(
+						and(
+							eq(gitProvider.userId, fromUserId),
+							inArray(gitProvider.organizationId, organizationIds),
+						),
+					);
+
+				// Invitations are deleted along with the user who sent them, so
+				// pending ones would vanish if the previous owner is removed later.
+				await tx
+					.update(invitation)
+					.set({ inviterId: toUserId })
+					.where(
+						and(
+							eq(invitation.inviterId, fromUserId),
+							eq(invitation.status, "pending"),
+							inArray(invitation.organizationId, organizationIds),
+						),
+					);
+			}
+
+			// Dokploy's own database backups hang off the owner's user row, and that
+			// foreign key would block deleting the previous owner.
 			await tx
-				.update(gitProvider)
+				.update(backups)
 				.set({ userId: toUserId })
-				.where(
-					and(
-						eq(gitProvider.userId, fromUserId),
-						inArray(gitProvider.organizationId, organizationIds),
-					),
-				);
-		}
+				.where(eq(backups.userId, fromUserId));
 
-		// Dokploy's own database backups hang off the owner's user row, and that
-		// foreign key would block deleting the previous owner.
-		await tx
-			.update(backups)
-			.set({ userId: toUserId })
-			.where(eq(backups.userId, fromUserId));
+			// License, SSO trusted origins and the metrics flag are read from the
+			// organization owner's user row, so they have to follow the ownership.
+			const ownerColumns = {
+				enableEnterpriseFeatures: true,
+				licenseKey: true,
+				isValidEnterpriseLicense: true,
+				trustedOrigins: true,
+				enablePaidFeatures: true,
+			} as const;
+			const previousOwner = await tx.query.user.findFirst({
+				where: eq(user.id, fromUserId),
+				columns: ownerColumns,
+			});
+			const nextOwner = await tx.query.user.findFirst({
+				where: eq(user.id, toUserId),
+				columns: ownerColumns,
+			});
 
-		// License, SSO trusted origins and the metrics flag are read from the
-		// organization owner's user row, so they have to follow the ownership.
-		const ownerColumns = {
-			enableEnterpriseFeatures: true,
-			licenseKey: true,
-			isValidEnterpriseLicense: true,
-			trustedOrigins: true,
-			enablePaidFeatures: true,
-		} as const;
-		const previousOwner = await tx.query.user.findFirst({
-			where: eq(user.id, fromUserId),
-			columns: ownerColumns,
-		});
-		const nextOwner = await tx.query.user.findFirst({
-			where: eq(user.id, toUserId),
-			columns: ownerColumns,
-		});
+			if (previousOwner && nextOwner) {
+				// The new owner may already hold a license for an organization an admin
+				// created before that was restricted; merge instead of overwriting it.
+				// A valid license wins; otherwise keep whichever account has a key so
+				// one that only needs re-validating isn't lost.
+				const license =
+					[previousOwner, nextOwner].find(
+						(owner) => owner.isValidEnterpriseLicense,
+					) ?? (previousOwner.licenseKey ? previousOwner : nextOwner);
+				await tx
+					.update(user)
+					.set({
+						enableEnterpriseFeatures:
+							previousOwner.enableEnterpriseFeatures ||
+							nextOwner.enableEnterpriseFeatures,
+						licenseKey: license.licenseKey,
+						isValidEnterpriseLicense: license.isValidEnterpriseLicense,
+						trustedOrigins: [
+							...new Set([
+								...(nextOwner.trustedOrigins ?? []),
+								...(previousOwner.trustedOrigins ?? []),
+							]),
+						],
+						enablePaidFeatures:
+							previousOwner.enablePaidFeatures || nextOwner.enablePaidFeatures,
+					})
+					.where(eq(user.id, toUserId));
+				await tx
+					.update(user)
+					.set({
+						enableEnterpriseFeatures: false,
+						licenseKey: null,
+						isValidEnterpriseLicense: false,
+						trustedOrigins: null,
+						enablePaidFeatures: false,
+					})
+					.where(eq(user.id, fromUserId));
+			}
 
-		if (previousOwner && nextOwner) {
-			// The new owner may already hold a license for an organization an admin
-			// created before that was restricted; merge instead of overwriting it.
-			const license = previousOwner.licenseKey ? previousOwner : nextOwner;
-			await tx
-				.update(user)
-				.set({
-					enableEnterpriseFeatures:
-						previousOwner.enableEnterpriseFeatures ||
-						nextOwner.enableEnterpriseFeatures,
-					licenseKey: license.licenseKey,
-					isValidEnterpriseLicense: license.isValidEnterpriseLicense,
-					trustedOrigins: [
-						...new Set([
-							...(nextOwner.trustedOrigins ?? []),
-							...(previousOwner.trustedOrigins ?? []),
-						]),
-					],
-					enablePaidFeatures:
-						previousOwner.enablePaidFeatures || nextOwner.enablePaidFeatures,
-				})
-				.where(eq(user.id, toUserId));
-			await tx
-				.update(user)
-				.set({
-					enableEnterpriseFeatures: false,
-					licenseKey: null,
-					isValidEnterpriseLicense: false,
-					trustedOrigins: null,
-					enablePaidFeatures: false,
-				})
-				.where(eq(user.id, fromUserId));
-		}
-
-		if (settings) {
 			await tx
 				.update(webServerSettings)
 				.set({ instanceOwnerId: toUserId })
-				.where(eq(webServerSettings.id, settings.id));
-		}
+				.where(eq(webServerSettings.id, settingsId));
 
-		return organizations;
-	});
+			return organizations;
+		},
+	);
 
 	invalidateTrustedOriginsCache();
 

@@ -4,9 +4,10 @@ import {
 	member,
 	organization,
 	user,
+	webServerSettings,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -47,17 +48,14 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
-export const getInstanceOwnerId = async () => {
-	const settings = await getWebServerSettings();
-	if (settings?.instanceOwnerId) {
-		return settings.instanceOwnerId;
-	}
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-	// Registration closes after the first sign-up, so the earliest user holding
-	// an owner role is the instance owner even if their first organization was
-	// deleted. "createdAt" keeps the real sign-up time; created_at was added
-	// later with the same default for every existing user.
-	const [firstOwner] = await db
+// Registration closes after the first sign-up, so the earliest user holding
+// an owner role is the instance owner even if their first organization was
+// deleted. "createdAt" keeps the real sign-up time; created_at was added
+// later with the same default for every existing user.
+const findFirstOwnerId = async (executor: Pick<typeof db, "select"> = db) => {
+	const [firstOwner] = await executor
 		.select({ userId: member.userId })
 		.from(member)
 		.innerJoin(user, eq(member.userId, user.id))
@@ -67,17 +65,60 @@ export const getInstanceOwnerId = async () => {
 	return firstOwner?.userId ?? null;
 };
 
+export const getInstanceOwnerId = async () => {
+	const settings = await getWebServerSettings();
+	return settings?.instanceOwnerId ?? findFirstOwnerId();
+};
+
+/**
+ * Runs `fn` in a transaction that locks the row recording the instance owner.
+ * Ownership transfers lock it exclusively and anything that depends on who
+ * the owner is locks it shared, so the two can't interleave: a transfer sees
+ * every organization created before it, and later creations see the new owner.
+ */
+export const withInstanceOwnerLock = async <T>(
+	strength: "update" | "share",
+	fn: (lock: {
+		tx: Transaction;
+		instanceOwnerId: string | null;
+		settingsId: string;
+	}) => Promise<T>,
+) => {
+	const settings = await getWebServerSettings();
+	if (!settings) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Web server settings not found",
+		});
+	}
+
+	return db.transaction(async (tx) => {
+		const [locked] = await tx
+			.select({ instanceOwnerId: webServerSettings.instanceOwnerId })
+			.from(webServerSettings)
+			.where(eq(webServerSettings.id, settings.id))
+			.for(strength);
+
+		return fn({
+			tx,
+			settingsId: settings.id,
+			instanceOwnerId: locked?.instanceOwnerId ?? (await findFirstOwnerId(tx)),
+		});
+	});
+};
+
 export const isInstanceOwner = async (userId: string) => {
 	return (await getInstanceOwnerId()) === userId;
 };
 
 export const findOwner = async () => {
 	const instanceOwnerId = await getInstanceOwnerId();
-	// Admins could create their own organizations before that was restricted,
-	// so several members may hold the owner role.
+	// Several members may hold the owner role (admins could create their own
+	// organizations before that was restricted), and the instance owner may own
+	// no organization at all, so match them by any membership.
 	const admin = await db.query.member.findFirst({
 		where: instanceOwnerId
-			? and(eq(member.role, "owner"), eq(member.userId, instanceOwnerId))
+			? eq(member.userId, instanceOwnerId)
 			: eq(member.role, "owner"),
 		with: {
 			user: true,
