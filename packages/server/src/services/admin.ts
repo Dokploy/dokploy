@@ -6,7 +6,7 @@ import {
 	user,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -47,9 +47,38 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
+export const getInstanceOwnerId = async () => {
+	const settings = await getWebServerSettings();
+	if (settings?.instanceOwnerId) {
+		return settings.instanceOwnerId;
+	}
+
+	// Registration closes after the first sign-up, so the earliest user holding
+	// an owner role is the instance owner even if their first organization was
+	// deleted. "createdAt" keeps the real sign-up time; created_at was added
+	// later with the same default for every existing user.
+	const [firstOwner] = await db
+		.select({ userId: member.userId })
+		.from(member)
+		.innerJoin(user, eq(member.userId, user.id))
+		.where(eq(member.role, "owner"))
+		.orderBy(asc(user.createdAt2))
+		.limit(1);
+	return firstOwner?.userId ?? null;
+};
+
+export const isInstanceOwner = async (userId: string) => {
+	return (await getInstanceOwnerId()) === userId;
+};
+
 export const findOwner = async () => {
+	const instanceOwnerId = await getInstanceOwnerId();
+	// Admins could create their own organizations before that was restricted,
+	// so several members may hold the owner role.
 	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
+		where: instanceOwnerId
+			? and(eq(member.role, "owner"), eq(member.userId, instanceOwnerId))
+			: eq(member.role, "owner"),
 		with: {
 			user: true,
 		},

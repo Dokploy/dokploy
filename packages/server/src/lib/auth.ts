@@ -80,7 +80,16 @@ const createBetterAuth = () =>
 			"/scim/list-provider-connections",
 			"/scim/get-provider-connection",
 			"/scim/delete-provider-connection",
-			...(!IS_CLOUD ? ["/verify-email"] : []),
+			...(!IS_CLOUD
+				? [
+						"/verify-email",
+						// These let an organization owner hand out the owner role, which
+						// would give a self-hosted instance a second owner. The app uses
+						// the tRPC equivalents, which refuse it.
+						"/organization/update-member-role",
+						"/organization/invite-member",
+					]
+				: []),
 		],
 		secret: betterAuthSecret,
 		onAPIError: {
@@ -257,6 +266,7 @@ const createBetterAuth = () =>
 						if (!IS_CLOUD && !isAdminPresent) {
 							await updateWebServerSettings({
 								serverIp: await getPublicIpWithFallback(),
+								instanceOwnerId: user.id,
 							});
 						}
 

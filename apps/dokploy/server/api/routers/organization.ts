@@ -3,6 +3,7 @@ import {
 	deleteOrganization,
 	hasValidLicense,
 	IS_CLOUD,
+	isInstanceOwner,
 	sendInvitationEmail,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
@@ -31,10 +32,10 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
+			if (!IS_CLOUD && !(await isInstanceOwner(ctx.user.id))) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
-					message: "Only the organization owner can create an organization",
+					message: "Only the instance owner can create an organization",
 				});
 			}
 

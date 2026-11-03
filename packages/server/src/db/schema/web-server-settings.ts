@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { certificateType } from "./shared";
+import { user } from "./user";
 
 export const webServerSettings = pgTable("webServerSettings", {
 	id: text("id")
@@ -130,6 +131,11 @@ export const webServerSettings = pgTable("webServerSettings", {
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
+	// The single owner of a self-hosted instance. Org owners can differ on
+	// installs where admins created orgs before that was restricted.
+	instanceOwnerId: text("instanceOwnerId").references(() => user.id, {
+		onDelete: "set null",
+	}),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -198,6 +204,7 @@ export const apiUpdateWebServerSettings = createSchema
 	.omit({
 		telemetryProviderIds: true,
 		vectorAgentOrganizationId: true,
+		instanceOwnerId: true,
 	});
 
 export const apiUpdateWebServerBuildsConcurrency = z.object({

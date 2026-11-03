@@ -134,6 +134,16 @@ pnpm --filter=dokploy run reset-password user@example.com
 
 Both commands print the new randomly generated password to the console.
 
+## Ownership Transfer
+
+On self-hosted, the owner normally transfers ownership from Settings → Profile, which asks for their password. If the owner is no longer available, or their account has no password, you can make another existing user the instance owner with the following command
+
+```bash
+pnpm --filter=dokploy run transfer-ownership user@example.com
+```
+
+Every organization owned by the current owner moves to that user, and the previous owner stays in those organizations as a member.
+
 If you want to test the webhooks on development mode using localtunnel, make sure to install [`localtunnel`](https://localtunnel.app/)
 
 ```bash
