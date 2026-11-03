@@ -222,6 +222,8 @@ bantime = ${Math.trunc(config.bantime)}
 findtime = ${Math.trunc(config.findtime)}
 maxretry = ${Math.trunc(config.maxretry)}
 ignoreip = ${ignoreip.join(" ")}
+banaction = __BANACTION__
+banaction_allports = __BANACTION_ALLPORTS__
 
 [sshd]
 enabled = true
@@ -272,8 +274,17 @@ if ! command -v fail2ban-client >/dev/null 2>&1; then
 fi
 SSHD=$(command -v sshd || echo /usr/sbin/sshd)
 SSH_PORT=$($SUDO "$SSHD" -T 2>/dev/null | awk '/^port /{print $2; exit}')
+# Distro defaults can point at a firewall tool that isn't installed (Debian 12 defaults to iptables), which makes bans fail silently
+if command -v nft >/dev/null 2>&1; then
+	BANACTION="nftables"; BANACTION_ALLPORTS="nftables[type=allports]"
+elif command -v iptables >/dev/null 2>&1; then
+	BANACTION="iptables-multiport"; BANACTION_ALLPORTS="iptables-allports"
+else
+	echo "Neither nftables nor iptables is installed, Fail2ban can't block IPs" >&2
+	exit 1
+fi
 $SUDO mkdir -p /etc/fail2ban/jail.d
-echo '${toBase64(jailConfig)}' | base64 -d | sed "s/__SSH_PORT__/\${SSH_PORT:-22}/" | $SUDO tee ${FAIL2BAN_CONFIG_PATH} >/dev/null
+echo '${toBase64(jailConfig)}' | base64 -d | sed -e "s/__SSH_PORT__/\${SSH_PORT:-22}/" -e "s/__BANACTION_ALLPORTS__/$BANACTION_ALLPORTS/" -e "s/__BANACTION__/$BANACTION/" | $SUDO tee ${FAIL2BAN_CONFIG_PATH} >/dev/null
 $SUDO mkdir -p /etc/fail2ban/fail2ban.d
 echo '${toBase64(daemonConfig)}' | base64 -d | $SUDO tee ${FAIL2BAN_DAEMON_CONFIG_PATH} >/dev/null
 # Distros without auth.log/secure (e.g. Debian 12) only log sshd to the journal
