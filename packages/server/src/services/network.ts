@@ -186,7 +186,6 @@ export const importDockerNetworks = async (
 			continue;
 		}
 		try {
-			// dockerode puts the name in the URL path unescaped and Docker allows spaces in network names
 			const info = (await docker
 				.getNetwork(encodeURIComponent(name))
 				.inspect()) as DockerNetworkInfo;

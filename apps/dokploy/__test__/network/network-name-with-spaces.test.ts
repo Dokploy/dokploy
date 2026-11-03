@@ -1,7 +1,6 @@
-import Docker from "dockerode";
+import { docker } from "@dokploy/server/constants";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const docker = new Docker();
 const networkName = `dokploy test ${Date.now()}`;
 
 const row = {
@@ -25,10 +24,6 @@ vi.mock("@dokploy/server/db", () => ({
 		update: () => rowQuery,
 		delete: () => rowQuery,
 	},
-}));
-
-vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
-	getRemoteDocker: async () => docker,
 }));
 
 const { inspectNetwork, removeNetwork, resyncNetwork } = await import(
