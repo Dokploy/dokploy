@@ -186,8 +186,9 @@ export const importDockerNetworks = async (
 			continue;
 		}
 		try {
+			// dockerode puts the name in the URL path unescaped and Docker allows spaces in network names
 			const info = (await docker
-				.getNetwork(name)
+				.getNetwork(encodeURIComponent(name))
 				.inspect()) as DockerNetworkInfo;
 			if (!isImportableDockerNetwork(info)) {
 				errors.push({ name, error: "Network is reserved or not supported" });
@@ -224,7 +225,9 @@ export const resyncNetwork = async (
 	const docker = await getRemoteDocker(row.serverId ?? null);
 	let info: DockerNetworkInfo;
 	try {
-		info = (await docker.getNetwork(row.name).inspect()) as DockerNetworkInfo;
+		info = (await docker
+			.getNetwork(encodeURIComponent(row.name))
+			.inspect()) as DockerNetworkInfo;
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -392,7 +395,7 @@ export const inspectNetwork = async (networkId: string) => {
 
 	const docker = await getRemoteDocker(row.serverId ?? null);
 	try {
-		return await docker.getNetwork(row.name).inspect();
+		return await docker.getNetwork(encodeURIComponent(row.name)).inspect();
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -410,7 +413,7 @@ export const removeNetwork = async (networkId: string) => {
 
 	const docker = await getRemoteDocker(row.serverId ?? null);
 	try {
-		await docker.getNetwork(row.name).remove();
+		await docker.getNetwork(encodeURIComponent(row.name)).remove();
 	} catch (error) {
 		const statusCode = (error as { statusCode?: number })?.statusCode;
 		if (statusCode !== 404) {
