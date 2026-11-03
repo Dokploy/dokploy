@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import Docker from "dockerode";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+const docker = new Docker();
 const networkName = `dokploy test ${Date.now()}`;
 
 const row = {
@@ -28,37 +28,29 @@ vi.mock("@dokploy/server/db", () => ({
 }));
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
-	getRemoteDocker: async () => new Docker(),
+	getRemoteDocker: async () => docker,
 }));
 
 const { inspectNetwork, removeNetwork, resyncNetwork } = await import(
 	"@dokploy/server/services/network"
 );
 
-const hasDocker = () => {
-	try {
-		execFileSync("docker", ["info"], { stdio: "ignore" });
-		return true;
-	} catch {
-		return false;
-	}
-};
+const hasDocker = await docker.ping().then(
+	() => true,
+	() => false,
+);
 
-const networkExists = () =>
-	execFileSync("docker", ["network", "ls", "--format", "{{.Name}}"], {
-		encoding: "utf8",
-	})
-		.split("\n")
-		.includes(networkName);
+const networkExists = async () =>
+	(await docker.listNetworks()).some((info) => info.Name === networkName);
 
-describe.skipIf(!hasDocker())("network named with spaces", () => {
-	beforeAll(() => {
-		execFileSync("docker", ["network", "create", networkName]);
+describe.skipIf(!hasDocker)("network named with spaces", () => {
+	beforeAll(async () => {
+		await docker.createNetwork({ Name: networkName });
 	});
 
-	afterAll(() => {
-		if (networkExists()) {
-			execFileSync("docker", ["network", "rm", networkName]);
+	afterAll(async () => {
+		if (await networkExists()) {
+			await docker.getNetwork(encodeURIComponent(networkName)).remove();
 		}
 	});
 
@@ -77,6 +69,6 @@ describe.skipIf(!hasDocker())("network named with spaces", () => {
 	it("removes the network", async () => {
 		await removeNetwork(row.networkId);
 
-		expect(networkExists()).toBe(false);
+		expect(await networkExists()).toBe(false);
 	});
 });
