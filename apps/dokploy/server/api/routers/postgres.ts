@@ -17,6 +17,7 @@ import {
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
+	removePostgresSslCerts,
 	removeService,
 	startService,
 	startServiceRemote,
@@ -324,6 +325,8 @@ export const postgresRouter = createTRPCRouter({
 
 			const cleanupOperations = [
 				async () => await removeService(postgres?.appName, postgres.serverId),
+				async () =>
+					await removePostgresSslCerts(postgres.appName, postgres.serverId),
 				async () => await cancelJobs(backups),
 				async () => await removePostgresById(input.postgresId),
 			];
