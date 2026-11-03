@@ -64,7 +64,11 @@ export const ShowInternalPostgresCredentials = ({ postgresId }: Props) => {
 								<Label>Internal Connection URL </Label>
 								<ToggleVisibilityInput
 									disabled
-									value={`postgresql://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:5432/${data?.databaseName}`}
+									value={`postgresql://${data?.databaseUser}:${data?.databasePassword}@${data?.appName}:5432/${data?.databaseName}${
+										data && data.sslMode !== "disabled"
+											? "?sslmode=require"
+											: ""
+									}`}
 								/>
 							</div>
 						</div>

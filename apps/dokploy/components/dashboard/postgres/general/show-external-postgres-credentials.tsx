@@ -83,8 +83,10 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 	useEffect(() => {
 		const buildConnectionUrl = () => {
 			const port = form.watch("externalPort") || data?.externalPort;
+			const sslParams =
+				data && data.sslMode !== "disabled" ? "?sslmode=require" : "";
 
-			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}/${data?.databaseName}`;
+			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}/${data?.databaseName}${sslParams}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -92,6 +94,7 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 		data?.appName,
 		data?.externalPort,
 		data?.databasePassword,
+		data?.sslMode,
 		form,
 		data?.databaseName,
 		getIp,
