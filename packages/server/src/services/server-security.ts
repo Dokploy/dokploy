@@ -400,6 +400,14 @@ echo "<<containers"
 $SUDO docker ps --format '{{.Names}}\t{{.Ports}}' 2>/dev/null || true
 echo "<<services"
 $SUDO docker service ls --format '{{.Name}}\t{{.Ports}}' 2>/dev/null || true
+echo "<<ufw"
+if command -v ufw >/dev/null 2>&1; then
+	echo "installed=true"
+	$SUDO ufw status verbose 2>/dev/null | grep -q "^Status: active" && echo "active=true" || echo "active=false"
+	echo "defaultIncoming=$($SUDO ufw status verbose 2>/dev/null | awk '/^Default:/ { print $2; exit }')"
+else
+	echo "installed=false"
+fi
 `,
 	);
 	const sections = splitSections(output);
@@ -451,9 +459,19 @@ $SUDO docker service ls --format '{{.Name}}\t{{.Ports}}' 2>/dev/null || true
 		medium: 2,
 		info: 3,
 	};
-	return [...ports.values()].sort(
-		(a, b) => riskOrder[a.risk] - riskOrder[b.risk] || a.port - b.port,
+	const ufw = Object.fromEntries(
+		(sections.ufw ?? []).map((line) => line.split("=")),
 	);
+	return {
+		ports: [...ports.values()].sort(
+			(a, b) => riskOrder[a.risk] - riskOrder[b.risk] || a.port - b.port,
+		),
+		ufw: {
+			installed: ufw.installed === "true",
+			active: ufw.active === "true",
+			defaultIncoming: ufw.defaultIncoming || null,
+		},
+	};
 };
 
 export const getPendingUpdates = async (serverId: string) => {

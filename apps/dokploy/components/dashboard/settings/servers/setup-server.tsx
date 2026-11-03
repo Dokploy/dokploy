@@ -29,7 +29,6 @@ import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
-import { SecurityAudit } from "./security-audit";
 import { SetupMonitoring } from "./setup-monitoring";
 import { ValidateServer } from "./validate-server";
 
@@ -126,8 +125,8 @@ export const SetupServer = ({ serverId, children }: Props) => {
 									isBuildServer
 										? "grid-cols-3"
 										: isCloud
-											? "grid-cols-6"
-											: "grid-cols-5",
+											? "grid-cols-5"
+											: "grid-cols-4",
 								)}
 							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
@@ -136,7 +135,6 @@ export const SetupServer = ({ serverId, children }: Props) => {
 
 								{!isBuildServer && (
 									<>
-										<TabsTrigger value="audit">Security</TabsTrigger>
 										{isCloud && (
 											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 										)}
@@ -328,14 +326,6 @@ export const SetupServer = ({ serverId, children }: Props) => {
 							</TabsContent>
 							{!isBuildServer && (
 								<>
-									<TabsContent
-										value="audit"
-										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-									>
-										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-											<SecurityAudit serverId={serverId} />
-										</div>
-									</TabsContent>
 									<TabsContent
 										value="monitoring"
 										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"

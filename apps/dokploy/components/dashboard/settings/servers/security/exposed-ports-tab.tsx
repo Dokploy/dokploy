@@ -23,14 +23,8 @@ interface Props {
 }
 
 export const ExposedPortsTab = ({ serverId }: Props) => {
-	const {
-		data: ports = [],
-		isPending,
-		isError,
-		error,
-		refetch,
-		isRefetching,
-	} = api.serverSecurity.exposedPorts.useQuery({ serverId }, { retry: false });
+	const { data, isPending, isError, error, refetch, isRefetching } =
+		api.serverSecurity.exposedPorts.useQuery({ serverId }, { retry: false });
 
 	if (isPending) return <LoadingState label="Scanning listening ports..." />;
 	if (isError)
@@ -42,6 +36,8 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 			/>
 		);
 
+	const ports = data?.ports ?? [];
+	const ufw = data?.ufw;
 	const risky = ports.filter(
 		(port) => port.risk === "critical" || port.risk === "high",
 	);
@@ -55,6 +51,27 @@ export const ExposedPortsTab = ({ serverId }: Props) => {
 				onRefresh={() => refetch()}
 				isRefreshing={isRefetching}
 			/>
+
+			<div className="flex flex-wrap items-center gap-3 rounded-lg border p-4 text-sm">
+				<span className="font-medium">Firewall (UFW)</span>
+				{!ufw?.installed ? (
+					<Badge variant="blank">Not installed</Badge>
+				) : (
+					<>
+						<Badge variant={ufw.active ? "green" : "red"}>
+							{ufw.active ? "Active" : "Inactive"}
+						</Badge>
+						{ufw.active && ufw.defaultIncoming && (
+							<span className="text-muted-foreground">
+								Default incoming:{" "}
+								<span className="font-medium text-foreground">
+									{ufw.defaultIncoming}
+								</span>
+							</span>
+						)}
+					</>
+				)}
+			</div>
 
 			{risky.length > 0 && (
 				<AlertBlock type="error">
