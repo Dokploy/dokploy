@@ -22,6 +22,7 @@ const baseDomain: Domain = {
 	domainId: "domain-1",
 	host: "app.example.com",
 	https: false,
+	backendHttps: false,
 	path: null,
 	port: 3000,
 	customEntrypoint: null,

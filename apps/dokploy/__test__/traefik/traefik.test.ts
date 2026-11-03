@@ -1,5 +1,5 @@
 import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
-import { createRouterConfig } from "@dokploy/server";
+import { createRouterConfig, createServiceConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
@@ -138,6 +138,7 @@ const baseDomain: Domain = {
 	domainId: "",
 	host: "",
 	https: false,
+	backendHttps: false,
 	path: null,
 	port: null,
 	customEntrypoint: null,
@@ -163,6 +164,16 @@ const baseRedirect: Redirect = {
 	createdAt: "",
 	applicationId: "",
 };
+
+test.each([false, true])("Backend HTTPS=%s", (backendHttps) => {
+	const { loadBalancer } = createServiceConfig("test-app", {
+		...baseDomain,
+		backendHttps,
+	});
+	expect(loadBalancer.servers).toEqual([
+		{ url: `${backendHttps ? "https" : "http"}://test-app:80` },
+	]);
+});
 
 /** Middlewares */
 

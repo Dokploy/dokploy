@@ -73,6 +73,7 @@ export const domain = z
 		useCustomEntrypoint: z.boolean(),
 		customEntrypoint: z.string().optional(),
 		https: z.boolean().optional(),
+		backendHttps: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
@@ -224,6 +225,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			useCustomEntrypoint: false,
 			customEntrypoint: undefined,
 			https: false,
+			backendHttps: false,
 			certificateType: undefined,
 			customCertResolver: undefined,
 			serviceName: undefined,
@@ -249,6 +251,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				internalPath: data?.internalPath || undefined,
 				stripPath: data?.stripPath || false,
 				port: data?.port || undefined,
+				backendHttps: data.backendHttps ?? false,
 				useCustomEntrypoint: !!data.customEntrypoint,
 				customEntrypoint: data.customEntrypoint || undefined,
 				certificateType: data?.certificateType || undefined,
@@ -269,6 +272,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				useCustomEntrypoint: false,
 				customEntrypoint: undefined,
 				https: false,
+				backendHttps: false,
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
@@ -666,6 +670,27 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											</FormItem>
 										);
 									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="backendHttps"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs">
+											<div className="space-y-0.5">
+												<FormLabel>HTTPS to Backend</FormLabel>
+												<FormDescription>
+													Connect to the container using HTTPS.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={!!field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
 								/>
 
 								<FormField

@@ -40,6 +40,7 @@ const domainFor = (uniqueConfigKey: number): Domain => ({
 	domainId: `domain-${uniqueConfigKey}`,
 	host: `d${uniqueConfigKey}.example.com`,
 	https: false,
+	backendHttps: false,
 	path: null,
 	port: 3000,
 	customEntrypoint: null,
