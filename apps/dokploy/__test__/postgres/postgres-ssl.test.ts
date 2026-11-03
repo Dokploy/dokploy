@@ -95,7 +95,7 @@ describe("buildPostgresSslHba", () => {
 		const hba = buildPostgresSslHba();
 		expect(hba).toContain("local all all trust");
 		expect(hba).toContain("host all all 127.0.0.1/32 trust");
-		expect(hba).toContain("hostssl all all all scram-sha-256");
+		expect(hba).toContain("hostssl all all all md5");
 		expect(hba).not.toMatch(/^host all all all/m);
 	});
 });
@@ -107,10 +107,16 @@ describe("buildPostgresSslSan", () => {
 		);
 	});
 
-	it("adds the server IP when known", () => {
+	it("adds the server IP as IP when it is an address", () => {
 		expect(buildPostgresSslSan({ appName: "pg-1", serverIp: "1.2.3.4" })).toBe(
 			"DNS:pg-1,DNS:localhost,IP:127.0.0.1,IP:1.2.3.4",
 		);
+	});
+
+	it("adds the server address as DNS when it is a hostname", () => {
+		expect(
+			buildPostgresSslSan({ appName: "pg-1", serverIp: "db.example.com" }),
+		).toBe("DNS:pg-1,DNS:localhost,IP:127.0.0.1,DNS:db.example.com");
 	});
 });
 
@@ -121,12 +127,15 @@ describe("buildPostgresSslCertScript", () => {
 		appName: "pg-1",
 	};
 
-	it("generates a CA and a signed server cert and fixes ownership", () => {
+	it("generates a CA and a signed server cert and drops the CA key", () => {
 		const script = buildPostgresSslCertScript({ ...base, required: false });
 		expect(script).toContain("openssl req -x509");
 		expect(script).toContain("openssl x509 -req");
 		expect(script).toContain("subjectAltName=%s");
-		expect(script).toContain('chown -R 999:999 "$SSL_DIR"');
+		expect(script).toContain(
+			'rm -f "$SSL_DIR/server.csr" "$SSL_DIR/server.ext" "$SSL_DIR/ca.key"',
+		);
+		expect(script).not.toContain("chown");
 		expect(script).toContain('chmod 600 "$SSL_DIR"/*.key');
 		expect(script).toContain('cat "$SSL_DIR/ca.crt"');
 		expect(script).not.toContain("pg_hba.conf <<");
@@ -140,7 +149,7 @@ describe("buildPostgresSslCertScript", () => {
 	it("writes the TLS-only pg_hba.conf in required mode", () => {
 		const script = buildPostgresSslCertScript({ ...base, required: true });
 		expect(script).toContain("DOKPLOY_PG_HBA");
-		expect(script).toContain("hostssl all all all scram-sha-256");
+		expect(script).toContain("hostssl all all all md5");
 	});
 
 	it("quotes paths and subject names with spaces", () => {

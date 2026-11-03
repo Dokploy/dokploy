@@ -33,6 +33,7 @@ interface PostgresSslCertInput {
 	appName: string;
 	serverId: string | null;
 	sslMode: PostgresSslMode;
+	dockerImage: string;
 	server?: { ipAddress: string | null } | null;
 }
 
@@ -56,6 +57,18 @@ export const ensurePostgresSslCerts = async (
 	const { stdout } = postgres.serverId
 		? await execAsyncRemote(postgres.serverId, script, onData)
 		: await execAsync(script);
+
+	// Ownership must match the image's database user (999 on Debian-based
+	// images, 70 on Alpine), so resolve it with the image's own chown.
+	const chownCommand = `docker run --rm -v ${quote([sslDir])}:/dokploy-ssl ${quote(
+		[postgres.dockerImage],
+	)} chown -R postgres:postgres /dokploy-ssl`;
+	if (postgres.serverId) {
+		await execAsyncRemote(postgres.serverId, chownCommand, onData);
+	} else {
+		await execAsync(chownCommand);
+	}
+
 	return stdout.trim();
 };
 
