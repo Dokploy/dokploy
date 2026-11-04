@@ -229,27 +229,35 @@ export const userRouter = createTRPCRouter({
 		return hasRootAccess(ctx);
 	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
-		const memberResult = await db.query.member.findFirst({
-			where: and(
-				eq(member.userId, ctx.user.id),
-				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
-			),
-			with: {
-				user: {
-					with: {
-						backups: {
-							with: {
-								destination: true,
-								deployments: true,
+		try {
+			const memberResult = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, ctx.user.id),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+				with: {
+					user: {
+						with: {
+							backups: {
+								with: {
+									destination: true,
+									deployments: true,
+								},
 							},
+							apiKeys: true,
 						},
-						apiKeys: true,
 					},
 				},
-			},
-		});
+			});
 
-		return memberResult?.user;
+			return memberResult?.user;
+		} catch (error) {
+			console.error("Failed to retrieve backups:", error);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to retrieve backups",
+			});
+		}
 	}),
 	getServerMetrics: withPermission("monitoring", "read").query(
 		async ({ ctx }) => {
