@@ -100,7 +100,6 @@ jobs:
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
 
-          # main is protected (PR + review), so sync through a reusable PR branch.
           BRANCH=chore/sync-openapi
           git checkout -b "$BRANCH"
           git add openapi.json
@@ -115,28 +114,41 @@ jobs:
               --body "Automated OpenAPI sync from ${{ github.repository }}@${{ github.sha }}."
           fi
 
-          echo "✅ OpenAPI sync PR updated on MCP"
+          echo "✅ OpenAPI sync PR updated on mcp"
 
       - name: Sync to CLI repository
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
         run: |
-          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/cli.git cli-repo
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/Dokploy/cli.git cli-repo
 
           cd cli-repo
 
           cp -f ../openapi.json openapi.json
 
+          if git diff --quiet -- openapi.json; then
+            echo "OpenAPI specification unchanged, skipping"
+            exit 0
+          fi
+
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
 
+          BRANCH=chore/sync-openapi
+          git checkout -b "$BRANCH"
           git add openapi.json
-          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+          git commit -m "chore: sync OpenAPI specification" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
-            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
-            --allow-empty
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          git push --force origin "$BRANCH"
 
-          git push
+          if [ -z "$(gh pr list --repo Dokploy/cli --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr create --repo Dokploy/cli --base main --head "$BRANCH" \
+              --title "chore: sync OpenAPI specification" \
+              --body "Automated OpenAPI sync from ${{ github.repository }}@${{ github.sha }}."
+          fi
 
-          echo "✅ OpenAPI synced to CLI repository successfully"
+          echo "✅ OpenAPI sync PR updated on cli"
 
       - name: Sync to SDK repository
         run: |
