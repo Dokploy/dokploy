@@ -66,5 +66,26 @@
 				"noStaticElementInteractions": "off"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"apps/dokploy/components/dashboard/monitoring/free/container/show-free-compose-monitoring.tsx",
+				"apps/dokploy/components/dashboard/monitoring/free/container/show-free-container-monitoring.tsx",
+				"apps/dokploy/pages/dashboard/project/*/environment/*/services/compose/*.tsx",
+				"apps/dokploy/server/api/routers/docker.ts",
+				"apps/dokploy/server/wss/docker-stats.ts",
+				"apps/dokploy/server/wss/swarm-stats.ts",
+				"apps/dokploy/__test__/server/swarm-task.test.ts",
+				"apps/dokploy/__test__/server/swarm-stats.test.ts",
+				"packages/server/src/index.ts",
+				"packages/server/src/services/swarm-task.ts"
+			],
+			"formatter": {
+				"indentStyle": "space",
+				"indentWidth": 2,
+				"lineWidth": 100
+			}
+		}
+	]
 }

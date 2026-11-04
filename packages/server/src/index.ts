@@ -61,6 +61,7 @@ export * from "./services/server";
 export * from "./services/server-health";
 export * from "./services/settings";
 export * from "./services/ssh-key";
+export * from "./services/swarm-task";
 export * from "./services/transfer";
 export * from "./services/user";
 export * from "./services/vault-provider";
@@ -78,11 +79,7 @@ export * from "./setup/traefik-setup";
 export * from "./setup/vector-setup";
 export * from "./templates/processors";
 export * from "./utils/access-log/handler";
-export {
-	getLogCleanupStatus,
-	startLogCleanup,
-	stopLogCleanup,
-} from "./utils/access-log/handler";
+export { getLogCleanupStatus, startLogCleanup, stopLogCleanup } from "./utils/access-log/handler";
 export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
 export * from "./utils/backups/compose";
