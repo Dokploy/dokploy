@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { quote } from "shell-quote";
-import { utils } from "ssh2";
+import ssh2 from "ssh2";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { ExecError } from "../utils/process/ExecError";
@@ -542,7 +542,7 @@ export const getDokployKeyFingerprint = (sshKey: {
 	privateKey: string;
 	publicKey: string;
 }) => {
-	const parsed = utils.parseKey(sshKey.privateKey);
+	const parsed = ssh2.utils.parseKey(sshKey.privateKey);
 	const key = Array.isArray(parsed) ? parsed[0] : parsed;
 	if (key && !(key instanceof Error)) {
 		return toFingerprint(key.getPublicSSH());
