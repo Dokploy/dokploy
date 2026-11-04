@@ -888,7 +888,6 @@ export const settingsRouter = createTRPCRouter({
 							"Configure a domain for the Dokploy panel before disabling port 3000",
 					});
 				}
-				// Proves the domain actually routes to the panel, otherwise disabling the port would lock the user out
 				if (!isRequestFromPanelHost(ctx.req.headers.host, settings.host)) {
 					throw new TRPCError({
 						code: "PRECONDITION_FAILED",

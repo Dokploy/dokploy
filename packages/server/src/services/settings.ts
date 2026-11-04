@@ -448,9 +448,7 @@ export const togglePanelPort = async (enable: boolean) => {
 	}
 	const publishFlag = enable
 		? `--publish-add published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=host`
-		: // --publish-rm only matches the full port spec (mode included), and manual installs may use ingress
-			`--publish-rm published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=host --publish-rm published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=ingress`;
-	// --detach: the update replaces the container running this command, waiting for convergence would kill it mid-request
+		: `--publish-rm published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=host --publish-rm published=${DOKPLOY_PANEL_PORT},target=${DOKPLOY_PANEL_PORT},mode=ingress`;
 	await execAsync(`docker service update --detach ${publishFlag} dokploy`);
 };
 
