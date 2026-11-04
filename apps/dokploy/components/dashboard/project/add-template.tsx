@@ -26,7 +26,6 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -228,6 +227,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 				!showBookmarksOnly || bookmarkIds.includes(template.id);
 			return matchesTags && matchesQuery && matchesBookmarks;
 		}) || [];
+	const [confirmTemplate, setConfirmTemplate] = useState<
+		(typeof templates)[number] | null
+	>(null);
 
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
@@ -595,147 +597,13 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	)}
 																</div>
 															)}
-															<AlertDialog>
-																<AlertDialogTrigger asChild>
-																	<Button
-																		variant="secondary"
-																		size="sm"
-																		className={cn(
-																			"w-auto",
-																			viewMode === "detailed" && "w-auto",
-																		)}
-																	>
-																		Create
-																	</Button>
-																</AlertDialogTrigger>
-																<AlertDialogContent>
-																	<AlertDialogHeader>
-																		<AlertDialogTitle>
-																			Are you absolutely sure?
-																		</AlertDialogTitle>
-																		<AlertDialogDescription>
-																			This will create an application from the{" "}
-																			{template?.name} template and add it to
-																			your project.
-																		</AlertDialogDescription>
-
-																		{shouldShowServerDropdown && (
-																			<div>
-																				<TooltipProvider delayDuration={0}>
-																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																								Select a Server{" "}
-																								{!isCloud ? "(Optional)" : ""}
-																								<HelpCircle className="size-4 text-muted-foreground" />
-																							</Label>
-																						</TooltipTrigger>
-																						<TooltipContent
-																							className="z-999 w-[300px]"
-																							align="start"
-																							side="top"
-																						>
-																							<span>
-																								If no server is selected, the
-																								application will be deployed on
-																								the server where the user is
-																								logged in.
-																							</span>
-																						</TooltipContent>
-																					</Tooltip>
-																				</TooltipProvider>
-
-																				<Select
-																					onValueChange={(e) => {
-																						setServerId(e);
-																					}}
-																					defaultValue={
-																						!isCloud ? "dokploy" : undefined
-																					}
-																				>
-																					<SelectTrigger>
-																						<SelectValue
-																							placeholder={
-																								!isCloud
-																									? "Dokploy"
-																									: "Select a Server"
-																							}
-																						/>
-																					</SelectTrigger>
-																					<SelectContent>
-																						<SelectGroup>
-																							{!isCloud && (
-																								<SelectItem value="dokploy">
-																									<span className="flex items-center gap-2 justify-between w-full">
-																										<span>Dokploy</span>
-																										<span className="text-muted-foreground text-xs self-center">
-																											Default
-																										</span>
-																									</span>
-																								</SelectItem>
-																							)}
-																							{servers?.map((server) => (
-																								<SelectItem
-																									key={server.serverId}
-																									value={server.serverId}
-																								>
-																									<span className="flex items-center gap-2 justify-between w-full">
-																										<span>{server.name}</span>
-																										<span className="text-muted-foreground text-xs self-center">
-																											{server.ipAddress}
-																										</span>
-																									</span>
-																								</SelectItem>
-																							))}
-																							<SelectLabel>
-																								Servers (
-																								{servers?.length +
-																									(!isCloud ? 1 : 0)}
-																								)
-																							</SelectLabel>
-																						</SelectGroup>
-																					</SelectContent>
-																				</Select>
-																			</div>
-																		)}
-																	</AlertDialogHeader>
-																	<AlertDialogFooter>
-																		<AlertDialogCancel>
-																			Cancel
-																		</AlertDialogCancel>
-																		<AlertDialogAction
-																			disabled={isPending}
-																			onClick={async () => {
-																				const promise = mutateAsync({
-																					serverId:
-																						serverId === "dokploy"
-																							? undefined
-																							: serverId,
-																					environmentId,
-																					id: template.id,
-																					baseUrl: customBaseUrl,
-																				});
-																				toast.promise(promise, {
-																					loading: "Setting up...",
-																					success: () => {
-																						// Invalidate the project query to refresh the environment data
-																						utils.environment.one.invalidate({
-																							environmentId,
-																						});
-																						setOpen(false);
-																						return `${template.name} template created successfully`;
-																					},
-																					error: () => {
-																						return `An error occurred deploying ${template.name} template`;
-																					},
-																				});
-																			}}
-																		>
-																			Confirm
-																		</AlertDialogAction>
-																	</AlertDialogFooter>
-																</AlertDialogContent>
-															</AlertDialog>
+															<Button
+																variant="secondary"
+																size="sm"
+																onClick={() => setConfirmTemplate(template)}
+															>
+																Create
+															</Button>
 														</div>
 													</div>
 												))}
@@ -746,6 +614,121 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 						)}
 					</div>
 				</div>
+				{/* Lives outside the virtual rows so re-chunking on resize can't unmount it. */}
+				<AlertDialog
+					open={confirmTemplate !== null}
+					onOpenChange={(isOpen) => !isOpen && setConfirmTemplate(null)}
+				>
+					{confirmTemplate && (
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+								<AlertDialogDescription>
+									This will create an application from the{" "}
+									{confirmTemplate.name} template and add it to your project.
+								</AlertDialogDescription>
+
+								{shouldShowServerDropdown && (
+									<div>
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
+														Select a Server {!isCloud ? "(Optional)" : ""}
+														<HelpCircle className="size-4 text-muted-foreground" />
+													</Label>
+												</TooltipTrigger>
+												<TooltipContent
+													className="z-999 w-[300px]"
+													align="start"
+													side="top"
+												>
+													<span>
+														If no server is selected, the application will be
+														deployed on the server where the user is logged in.
+													</span>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+
+										<Select
+											onValueChange={(e) => {
+												setServerId(e);
+											}}
+											defaultValue={!isCloud ? "dokploy" : undefined}
+										>
+											<SelectTrigger>
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
+															</span>
+														</SelectItem>
+													)}
+													{servers?.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>{server.name}</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	{server.ipAddress}
+																</span>
+															</span>
+														</SelectItem>
+													))}
+													<SelectLabel>
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+													</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+									</div>
+								)}
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction
+									disabled={isPending}
+									onClick={async () => {
+										const promise = mutateAsync({
+											serverId: serverId === "dokploy" ? undefined : serverId,
+											environmentId,
+											id: confirmTemplate.id,
+											baseUrl: customBaseUrl,
+										});
+										toast.promise(promise, {
+											loading: "Setting up...",
+											success: () => {
+												// Invalidate the project query to refresh the environment data
+												utils.environment.one.invalidate({
+													environmentId,
+												});
+												setOpen(false);
+												return `${confirmTemplate.name} template created successfully`;
+											},
+											error: () => {
+												return `An error occurred deploying ${confirmTemplate.name} template`;
+											},
+										});
+									}}
+								>
+									Confirm
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					)}
+				</AlertDialog>
 			</DialogContent>
 		</Dialog>
 	);
