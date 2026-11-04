@@ -1,13 +1,26 @@
 import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import {
 	applyCompressionToMainConfig,
 	COMPRESS_MIDDLEWARE_NAME,
 	COMPRESS_MIDDLEWARE_REF,
 	getCompressionMiddlewareConfig,
 	getDefaultServerTraefikConfig,
+	getTraefikCompressionStatus,
 	isCompressionEnabledInMainConfig,
 	type MainTraefikConfig,
+	updateTraefikCompression,
 } from "@dokploy/server";
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { parse } from "yaml";
 
 const entryPointMiddlewares = (yaml: string, entryPoint: string) =>
@@ -181,5 +194,77 @@ describe("getCompressionMiddlewareConfig", () => {
 		expect(compress?.includedContentTypes).toContain("application/json");
 		expect(compress?.includedContentTypes).not.toContain("video/mp4");
 		expect(compress?.excludedContentTypes).toBeUndefined();
+	});
+});
+
+describe("updateTraefikCompression (local server)", () => {
+	let baseDir: string;
+	let mainConfigPath: string;
+	let dynamicDir: string;
+	let compressConfigPath: string;
+
+	beforeEach(() => {
+		baseDir = mkdtempSync(path.join(tmpdir(), "dokploy-compress-"));
+		vi.spyOn(process, "cwd").mockReturnValue(baseDir);
+		const traefikDir = path.join(baseDir, ".docker", "traefik");
+		dynamicDir = path.join(traefikDir, "dynamic");
+		mkdirSync(dynamicDir, { recursive: true });
+		mainConfigPath = path.join(traefikDir, "traefik.yml");
+		compressConfigPath = path.join(
+			dynamicDir,
+			`${COMPRESS_MIDDLEWARE_NAME}.yml`,
+		);
+		writeFileSync(mainConfigPath, getDefaultServerTraefikConfig());
+	});
+
+	afterEach(() => {
+		chmodSync(dynamicDir, 0o755);
+		vi.restoreAllMocks();
+		rmSync(baseDir, { recursive: true, force: true });
+	});
+
+	test("enabling writes the middleware and references it", async () => {
+		await updateTraefikCompression(true);
+
+		expect(existsSync(compressConfigPath)).toBe(true);
+		expect(await getTraefikCompressionStatus()).toBe(true);
+	});
+
+	test("disabling keeps the middleware definition so running routes don't break before the restart", async () => {
+		await updateTraefikCompression(true);
+		await updateTraefikCompression(false);
+
+		expect(await getTraefikCompressionStatus()).toBe(false);
+		expect(existsSync(compressConfigPath)).toBe(true);
+		expect(parse(readFileSync(mainConfigPath, "utf8"))).toEqual(
+			parse(getDefaultServerTraefikConfig()),
+		);
+	});
+
+	test("does not reference the middleware when writing its definition fails", async () => {
+		chmodSync(dynamicDir, 0o500);
+
+		await expect(updateTraefikCompression(true)).rejects.toThrow();
+		expect(readFileSync(mainConfigPath, "utf8")).toBe(
+			getDefaultServerTraefikConfig(),
+		);
+	});
+
+	test("interleaved enable/disable always leaves a valid config", async () => {
+		await Promise.all([
+			updateTraefikCompression(true),
+			updateTraefikCompression(false),
+			updateTraefikCompression(true),
+		]);
+
+		if (await getTraefikCompressionStatus()) {
+			expect(existsSync(compressConfigPath)).toBe(true);
+		}
+	});
+
+	test("fails when traefik.yml does not exist", async () => {
+		rmSync(mainConfigPath);
+
+		await expect(updateTraefikCompression(true)).rejects.toThrow(/traefik.yml/);
 	});
 });

@@ -1,9 +1,9 @@
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
-import { quote } from "shell-quote";
 import { isMap, isSeq, parse, parseDocument, stringify } from "yaml";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { readConfigInPath, writeTraefikConfigInPath } from "./application";
+import { writeFileRemote } from "../process/execAsync";
+import { readConfigInPath } from "./application";
 import type { FileConfig } from "./file-types";
 import type { MainTraefikConfig } from "./types";
 
@@ -117,13 +117,26 @@ export const getTraefikCompressionStatus = async (serverId?: string) => {
 	return isCompressionEnabledInMainConfig(mainConfig);
 };
 
+// writeTraefikConfigInPath swallows errors; a silent failure here would leave
+// traefik.yml pointing at a middleware that was never written.
+const writeFileOrThrow = async (
+	filePath: string,
+	content: string,
+	serverId?: string,
+) => {
+	if (serverId) {
+		await writeFileRemote(serverId, filePath, content);
+	} else {
+		writeFileSync(filePath, content, "utf8");
+	}
+};
+
 // Entrypoints are static configuration: Traefik must be restarted afterwards.
 export const updateTraefikCompression = async (
 	enabled: boolean,
 	serverId?: string,
 ) => {
 	const mainConfigPath = getMainConfigPath(serverId);
-	const compressConfigPath = getCompressConfigPath(serverId);
 
 	const mainConfig = await readConfigInPath(mainConfigPath, serverId);
 	if (!mainConfig) {
@@ -132,24 +145,16 @@ export const updateTraefikCompression = async (
 
 	const updatedMainConfig = applyCompressionToMainConfig(mainConfig, enabled);
 
-	// The middleware definition must exist before traefik.yml references it,
-	// and must outlive the reference when disabling, otherwise Traefik logs
-	// "middleware does not exist" for every router in between.
+	// The middleware definition is written before traefik.yml references it and
+	// is never deleted: the running Traefik keeps the old entrypoint config until
+	// it restarts, so removing the definition would break every route in the
+	// meantime (or for good, if the restart fails). An unused middleware is harmless.
 	if (enabled) {
-		await writeTraefikConfigInPath(
-			compressConfigPath,
+		await writeFileOrThrow(
+			getCompressConfigPath(serverId),
 			stringify(getCompressionMiddlewareConfig()),
 			serverId,
 		);
-		await writeTraefikConfigInPath(mainConfigPath, updatedMainConfig, serverId);
-		return;
 	}
-
-	await writeTraefikConfigInPath(mainConfigPath, updatedMainConfig, serverId);
-	const removeCommand = `rm -f ${quote([compressConfigPath])}`;
-	if (serverId) {
-		await execAsyncRemote(serverId, removeCommand);
-	} else {
-		await execAsync(removeCommand);
-	}
+	await writeFileOrThrow(mainConfigPath, updatedMainConfig, serverId);
 };
