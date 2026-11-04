@@ -160,8 +160,8 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						});
 					})
 					.on("error", (err) => {
-						console.error("SSH connection error:", err);
 						if (ws.readyState === ws.OPEN) {
+							console.error("SSH connection error:", err);
 							ws.send(`SSH error: ${err.message}`);
 							ws.close();
 						}

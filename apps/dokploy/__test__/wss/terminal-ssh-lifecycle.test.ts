@@ -106,6 +106,22 @@ const fakeStream = () =>
 		end: vi.fn(),
 	});
 
+const openShell = async (
+	t: (typeof terminals)[keyof typeof terminals],
+	error?: Error,
+) => {
+	const ws = await connect(t.path);
+	await vi.waitFor(() => expect(clients[0]?.connect).toHaveBeenCalled());
+	const client = clients[0] as FakeClient;
+	client.emit("ready");
+	const stream = fakeStream();
+	t.openChannel(client).mock.calls[0]?.at(-1)(
+		error,
+		error ? undefined : stream,
+	);
+	return { ws, client, stream };
+};
+
 describe.each(Object.entries(terminals))("%s terminal over SSH", (_, t) => {
 	it("destroys a pending connection when the browser closes mid-handshake", async () => {
 		const ws = await connect(t.path);
@@ -127,15 +143,7 @@ describe.each(Object.entries(terminals))("%s terminal over SSH", (_, t) => {
 	});
 
 	it("destroys the connection when the browser closes an open shell", async () => {
-		const ws = await connect(t.path);
-		await vi.waitFor(() => expect(clients[0]?.connect).toHaveBeenCalled());
-		const client = clients[0] as FakeClient;
-
-		client.emit("ready");
-		const openChannel = t.openChannel(client);
-		expect(openChannel).toHaveBeenCalledOnce();
-		const callback = openChannel.mock.calls[0]?.at(-1);
-		callback(undefined, fakeStream());
+		const { ws, client } = await openShell(t);
 
 		ws.close();
 
@@ -144,5 +152,24 @@ describe.each(Object.entries(terminals))("%s terminal over SSH", (_, t) => {
 				client.destroy.mock.calls.length + client.end.mock.calls.length,
 			).toBeGreaterThan(0),
 		);
+	});
+
+	it("closes the socket and the connection when the remote shell exits", async () => {
+		const { ws, client, stream } = await openShell(t);
+
+		stream.emit("close", 0);
+
+		await vi.waitFor(() => expect(ws.readyState).toBe(WebSocket.CLOSED));
+		expect(client.end).toHaveBeenCalled();
+	});
+
+	it("closes the socket and the connection when the shell cannot be opened", async () => {
+		const { ws, client } = await openShell(
+			t,
+			new Error("channel open failure"),
+		);
+
+		await vi.waitFor(() => expect(ws.readyState).toBe(WebSocket.CLOSED));
+		expect(client.end).toHaveBeenCalled();
 	});
 });
