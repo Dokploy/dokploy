@@ -85,8 +85,14 @@ and exports to compiled output. Inspect these generated changes and do not commi
 them as part of the PoC.
 
 `./build-runtime.sh` overlays the JavaScript build
-outputs on the matching official v0.30.10 Linux runtime and loads the result into
-the nested manager. This preserves the official image's native Linux dependencies.
+outputs, migration files, and `next.config.mjs` on the official canary Linux runtime
+and loads the result into the nested manager. `runtime.Dockerfile` pins digest
+`sha256:4d6524600df2079f3ed851db06360999ff08dc37d34a44e9f59756e9746f5f44`.
+For source baseline `78d235a3` (v0.30.11), that image's application and server
+dependency declarations, all migration assets, and Next configuration matched
+exactly. Its native arm64 runtime uses Node v24.22.1. This preserves the official
+image's native Linux dependencies; reassess compatibility before changing the
+source baseline or pinned image.
 It follows the existing server package symlink instead of hardcoding a pnpm hash.
 
 After starting that image, run `python3 seed.py`. It creates a disposable owner,
@@ -133,7 +139,16 @@ mode; this PoC does not add separate per-worker log or terminal routing.
 
 ## Verified behavior
 
-The local three-node lab demonstrated:
+On canary baseline `78d235a3`, 85 focused tests, the app typecheck, production
+build, and formatting/lint checks passed. The rebuilt local runtime applied its
+migrations and became healthy. Authenticated task listing and metrics worked on
+both workers, and the monitoring page rendered HTTP 200. Restart stopped only
+the selected replica, its replacement ran, and stale restart returned HTTP 409.
+Cross-organization HTTP/metrics checks denied access. Pausing a worker closed
+monitoring with code 4000 after about 11.3 seconds; the worker was then resumed.
+
+The native browser interaction and drain/migration checks below were performed
+before the rebase; those two scenarios were not repeated on this baseline.
 
 - Native CPU and memory charts and authenticated WebSocket samples for both workers.
 - Restart from the native UI stopped the selected worker-b container and produced
