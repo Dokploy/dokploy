@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateSecurity, security } from "@dokploy/server/db/schema";
+import { syncCaddy } from "@dokploy/server/utils/caddy/sync";
 import {
 	createSecurityMiddleware,
 	removeSecurityMiddleware,
@@ -27,7 +28,7 @@ export const createSecurity = async (
 	data: z.infer<typeof apiCreateSecurity>,
 ) => {
 	try {
-		await db.transaction(async (tx) => {
+		const { serverId, securityId } = await db.transaction(async (tx) => {
 			const application = await findApplicationById(data.applicationId);
 
 			const securityResponse = await tx
@@ -45,7 +46,16 @@ export const createSecurity = async (
 				});
 			}
 			await createSecurityMiddleware(application, securityResponse);
-			return true;
+			return {
+				serverId: application.serverId,
+				securityId: securityResponse.securityId,
+			};
+		});
+		// A rule Caddy did not load would be listed while its routes still
+		// answer without a password, so it is not kept.
+		await syncCaddy(serverId).catch(async (error) => {
+			await deleteSecurityById(securityId);
+			throw error;
 		});
 	} catch (error) {
 		throw new TRPCError({
@@ -75,6 +85,7 @@ export const deleteSecurityById = async (securityId: string) => {
 		const application = await findApplicationById(result.applicationId);
 
 		await removeSecurityMiddleware(application, result);
+		await syncCaddy(application.serverId);
 		return result;
 	} catch (error) {
 		const message =
@@ -91,7 +102,7 @@ export const updateSecurityById = async (
 	data: Partial<Security>,
 ) => {
 	try {
-		await db.transaction(async (tx) => {
+		const serverId = await db.transaction(async (tx) => {
 			const securityResponse = await findSecurityById(securityId);
 
 			const application = await findApplicationById(
@@ -118,8 +129,9 @@ export const updateSecurityById = async (
 
 			await createSecurityMiddleware(application, response);
 
-			return response;
+			return application.serverId;
 		});
+		await syncCaddy(serverId);
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Error updating this security";

@@ -7,6 +7,10 @@ import {
 	network,
 	type ServiceType,
 } from "@dokploy/server/db/schema";
+import {
+	assertCaddySupports,
+	syncCaddyInBackground,
+} from "@dokploy/server/utils/caddy/sync";
 import { removeService } from "@dokploy/server/utils/docker/utils";
 import {
 	removeDirectoryCode,
@@ -486,6 +490,11 @@ export const transferService = async (
 			});
 		}
 	}
+	if (isApplication(service) || isCompose(service)) {
+		for (const domain of service.domains) {
+			await assertCaddySupports(targetServerId, domain);
+		}
+	}
 
 	const sourceName = service.server?.name ?? "Dokploy Server";
 	const targetName = targetServer?.name ?? "Dokploy Server";
@@ -579,6 +588,9 @@ export const transferService = async (
 		await startOnSource(service, log);
 		await updateStatus(serviceType, serviceId, "error");
 		throw error;
+	} finally {
+		syncCaddyInBackground(sourceServerId);
+		syncCaddyInBackground(targetServerId);
 	}
 
 	try {

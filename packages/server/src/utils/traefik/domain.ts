@@ -149,7 +149,7 @@ const toPunycode = (host: string): string => {
 };
 
 export const createRouterConfig = async (
-	app: ApplicationNested,
+	app: Pick<ApplicationNested, "appName" | "redirects" | "security">,
 	domain: Domain,
 	entryPoint: string,
 ) => {

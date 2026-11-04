@@ -11,7 +11,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { certificateType } from "./shared";
+import { certificateType, webServerProvider } from "./shared";
 
 export const webServerSettings = pgTable("webServerSettings", {
 	id: text("id")
@@ -19,6 +19,9 @@ export const webServerSettings = pgTable("webServerSettings", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	// Web Server Configuration
+	webServerProvider: webServerProvider("webServerProvider")
+		.notNull()
+		.default("traefik"),
 	serverIp: text("serverIp"),
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	https: boolean("https").notNull().default(false),

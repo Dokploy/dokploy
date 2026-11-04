@@ -14,6 +14,7 @@ import type {
 } from "dockerode";
 import { stringify } from "yaml";
 import { paths } from "../constants";
+import { getWebServerProvider } from "../services/web-server-settings";
 import { sleep } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
@@ -174,6 +175,7 @@ const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 
 // An interrupted recreate (e.g. a Dokploy restart) leaves only the stopped backup.
 export const restoreInterruptedTraefik = async (serverId?: string) => {
+	if ((await getWebServerProvider(serverId)) === "caddy") return;
 	const docker = await getRemoteDocker(serverId);
 	const exists = await docker
 		.getContainer("dokploy-traefik")
@@ -193,6 +195,8 @@ export const restoreInterruptedTraefik = async (serverId?: string) => {
 		return;
 	}
 	const backup = docker.getContainer(backupInfo.Id);
+	// Caddy disables retired containers' restart policies while it serves.
+	await backup.update({ RestartPolicy: { Name: "always" } });
 	await backup.rename({ name: "dokploy-traefik" });
 	if (!backupInfo.State.Running) {
 		await backup.start();

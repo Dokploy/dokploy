@@ -81,6 +81,18 @@ describe("docker cleanup keeps a stopped dokploy-traefik", () => {
 		expect(
 			runWithFakeDocker(script!, { "dokploy-traefik-previous": "false" }),
 		).toEqual([]);
+		expect(runWithFakeDocker(script!, { "dokploy-caddy": "false" })).toEqual(
+			[],
+		);
+		expect(
+			runWithFakeDocker(script!, {
+				"dokploy-traefik": "true",
+				"dokploy-caddy": "false",
+			}),
+		).toEqual([]);
+		expect(runWithFakeDocker(script!, { "dokploy-caddy": "true" })).toEqual([
+			prune,
+		]);
 		expect(runWithFakeDocker(script!, { "dokploy-traefik": "true" })).toEqual([
 			prune,
 		]);
@@ -91,6 +103,17 @@ describe("docker cleanup keeps a stopped dokploy-traefik", () => {
 		const scripts = await commandOf(() => cleanupAll());
 		const calls = scripts.flatMap((script) =>
 			runWithFakeDocker(script, { "dokploy-traefik": "false" }),
+		);
+		expect(calls).toEqual([
+			"image prune --all --force",
+			"builder prune --all --force",
+		]);
+	});
+
+	it("cleanupAll keeps a stopped Caddy while retaining image/build-cache cleanup", async () => {
+		const scripts = await commandOf(() => cleanupAll());
+		const calls = scripts.flatMap((script) =>
+			runWithFakeDocker(script, { "dokploy-caddy": "false" }),
 		);
 		expect(calls).toEqual([
 			"image prune --all --force",

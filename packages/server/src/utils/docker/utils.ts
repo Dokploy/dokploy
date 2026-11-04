@@ -4,6 +4,7 @@ import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
 import { isEncrypted } from "@dokploy/server/lib/encryption";
 import type { Compose } from "@dokploy/server/services/compose";
+import { getWebServerProvider } from "@dokploy/server/services/web-server-settings";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import { quote } from "shell-quote";
@@ -184,21 +185,21 @@ ${exec}
 echo "Execution completed."
 `;
 
-// A stopped Traefik must stay startable; keeping its container also keeps its image from `image prune --all`.
-const skipIfTraefikStopped = (command: string) => `
-if docker container inspect --format '{{.State.Running}}' dokploy-traefik dokploy-traefik-previous 2>/dev/null | grep -q false; then
-    echo "Skipping '${command}': dokploy-traefik is stopped"
+// Keeping a stopped proxy startable also protects its image from `image prune --all`.
+const skipIfWebServerStopped = (command: string) => `
+if docker container inspect --format '{{.State.Running}}' dokploy-traefik dokploy-traefik-previous dokploy-caddy 2>/dev/null | grep -q false; then
+    echo "Skipping '${command}': a Dokploy web server is stopped"
 else
     ${command}
 fi
 `;
 
 const cleanupCommands = {
-	containers: skipIfTraefikStopped("docker container prune --force"),
+	containers: skipIfWebServerStopped("docker container prune --force"),
 	images: "docker image prune --all --force",
 	volumes: "docker volume prune --all --force",
 	builders: "docker builder prune --all --force",
-	system: skipIfTraefikStopped("docker system prune --all --force"),
+	system: skipIfWebServerStopped("docker system prune --all --force"),
 };
 
 export const cleanupContainers = async (serverId?: string) => {
@@ -1069,9 +1070,12 @@ export const checkPostgresHealth = async (): Promise<ServiceHealthStatus> => {
 };
 
 export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
-	// Traefik can run as a standalone container or a swarm service
+	const name =
+		(await getWebServerProvider()) === "caddy"
+			? "dokploy-caddy"
+			: "dokploy-traefik";
 	try {
-		const container = docker.getContainer("dokploy-traefik");
+		const container = docker.getContainer(name);
 		const info = await container.inspect();
 		if (!info.State.Running) {
 			return {
@@ -1082,6 +1086,6 @@ export const checkTraefikHealth = async (): Promise<ServiceHealthStatus> => {
 		return { status: "healthy" };
 	} catch {
 		// Not a standalone container, check as swarm service
-		return checkSwarmServiceRunning("dokploy-traefik");
+		return checkSwarmServiceRunning(name);
 	}
 };
