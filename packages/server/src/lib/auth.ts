@@ -6,7 +6,11 @@ import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -136,6 +140,21 @@ const createBetterAuth = () =>
 					throw new APIError("FORBIDDEN", {
 						message: "Use the account deletion flow to remove users",
 					});
+				}
+
+				if (ctx.path === "/two-factor/enable") {
+					const session = await getSessionFromCtx(ctx);
+					if (session && !session.user.twoFactorEnabled) {
+						await db
+							.update(schema.twoFactor)
+							.set({ verified: false })
+							.where(
+								and(
+									eq(schema.twoFactor.userId, session.user.id),
+									eq(schema.twoFactor.verified, true),
+								),
+							);
+					}
 				}
 
 				const isBlockedAuthPath =
