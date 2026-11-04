@@ -19,6 +19,7 @@ import {
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getPostHogKey,
+	getTraefikCompressionStatus,
 	getTraefikOverview,
 	getUpdateData,
 	getWebServerSettings,
@@ -47,6 +48,7 @@ import {
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
+	updateTraefikCompression,
 	updateWebServerSettings,
 	writeConfig,
 	writeMainConfig,
@@ -848,6 +850,52 @@ export const settingsRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports.some((port) => port.targetPort === 8080);
+		}),
+	haveTraefikCompressionEnabled: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input, ctx }) => {
+			await assertTraefikAccess(
+				input?.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			return getTraefikCompressionStatus(input?.serverId);
+		}),
+	toggleTraefikCompression: adminProcedure
+		.input(
+			z.object({
+				enableCompression: z.boolean(),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			await assertTraefikAccess(
+				input.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			try {
+				await updateTraefikCompression(input.enableCompression, input.serverId);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error updating Traefik compression",
+					cause: error,
+				});
+			}
+			// Run in background so the request returns immediately; client polls /api/health.
+			void reloadDockerResource("dokploy-traefik", input.serverId).catch(
+				(err) => {
+					console.error("toggleTraefikCompression background reload:", err);
+				},
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "traefik-compression",
+			});
+			return true;
 		}),
 
 	readStatsLogs: protectedProcedure

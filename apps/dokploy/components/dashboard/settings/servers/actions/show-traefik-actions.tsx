@@ -34,6 +34,16 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 		});
 
 	const {
+		mutateAsync: toggleCompression,
+		isPending: toggleCompressionIsLoading,
+	} = api.settings.toggleTraefikCompression.useMutation();
+
+	const { data: haveTraefikCompressionEnabled, refetch: refetchCompression } =
+		api.settings.haveTraefikCompressionEnabled.useQuery({
+			serverId,
+		});
+
+	const {
 		execute: executeWithHealthCheck,
 		isExecuting: isHealthCheckExecuting,
 	} = useHealthCheckAfterMutation({
@@ -42,6 +52,18 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 		successMessage: "Traefik dashboard updated successfully",
 		onSuccess: () => {
 			refetchDashboard();
+		},
+	});
+
+	const {
+		execute: executeCompressionWithHealthCheck,
+		isExecuting: isCompressionHealthCheckExecuting,
+	} = useHealthCheckAfterMutation({
+		initialDelay: 5000,
+		pollInterval: 4000,
+		successMessage: "Traefik compression updated successfully",
+		onSuccess: () => {
+			refetchCompression();
 		},
 	});
 
@@ -62,7 +84,9 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 					reloadTraefikIsLoading ||
 					toggleDashboardIsLoading ||
 					isHealthCheckExecuting ||
-					isReloadHealthCheckExecuting
+					isReloadHealthCheckExecuting ||
+					toggleCompressionIsLoading ||
+					isCompressionHealthCheckExecuting
 				}
 			>
 				<Button
@@ -70,7 +94,9 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 						reloadTraefikIsLoading ||
 						toggleDashboardIsLoading ||
 						isHealthCheckExecuting ||
-						isReloadHealthCheckExecuting
+						isReloadHealthCheckExecuting ||
+						toggleCompressionIsLoading ||
+						isCompressionHealthCheckExecuting
 					}
 					variant="outline"
 				>
@@ -165,6 +191,55 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							<span>
 								{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"}{" "}
 								Dashboard
+							</span>
+						</DropdownMenuItem>
+					</DialogAction>
+					<DialogAction
+						title={
+							haveTraefikCompressionEnabled
+								? "Disable Response Compression"
+								: "Enable Response Compression"
+						}
+						description={
+							<div className="space-y-4">
+								<AlertBlock type="warning">
+									Traefik will be restarted to apply this change, which may
+									cause a brief downtime in your applications.
+								</AlertBlock>
+								<p>
+									{haveTraefikCompressionEnabled
+										? "Responses will be served uncompressed again, unless your applications compress them."
+										: "Text-based responses (HTML, CSS, JavaScript, JSON, XML, SVG) of every application served by this Traefik will be compressed with zstd, Brotli or gzip, depending on what the client supports."}
+								</p>
+							</div>
+						}
+						onClick={async () => {
+							try {
+								await executeCompressionWithHealthCheck(() =>
+									toggleCompression({
+										enableCompression: !haveTraefikCompressionEnabled,
+										serverId: serverId,
+									}),
+								);
+							} catch (error) {
+								const errorMessage =
+									(error as Error)?.message ||
+									"Failed to update Traefik compression. Please try again.";
+								toast.error(errorMessage);
+							}
+						}}
+						disabled={
+							toggleCompressionIsLoading || isCompressionHealthCheckExecuting
+						}
+						type="default"
+					>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="w-full cursor-pointer space-x-3"
+						>
+							<span>
+								{haveTraefikCompressionEnabled ? "Disable" : "Enable"}{" "}
+								Compression
 							</span>
 						</DropdownMenuItem>
 					</DialogAction>
