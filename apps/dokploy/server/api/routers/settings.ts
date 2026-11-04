@@ -340,6 +340,17 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
+			const currentSettings = await getWebServerSettings();
+			const hostChanged =
+				input.host.trim().toLowerCase() !==
+				(currentSettings?.host ?? "").trim().toLowerCase();
+			if (hostChanged && !(await isPanelPortPublished())) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"Port 3000 is disabled, enable it before changing or removing the panel domain",
+				});
+			}
 			const settings = await updateWebServerSettings({
 				host: input.host,
 				letsEncryptEmail: input.letsEncryptEmail,

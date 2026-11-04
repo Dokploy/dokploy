@@ -430,8 +430,13 @@ export const isRequestFromPanelHost = (
 	panelHost: string | null | undefined,
 ) => {
 	if (!requestHost || !panelHost) return false;
-	const hostname = requestHost.replace(/:\d+$/, "").toLowerCase();
-	return hostname === panelHost.trim().toLowerCase();
+	try {
+		const { hostname, port } = new URL(`http://${requestHost}`);
+		if (Number(port) === DOKPLOY_PANEL_PORT) return false;
+		return hostname === panelHost.trim().toLowerCase();
+	} catch {
+		return false;
+	}
 };
 
 export const togglePanelPort = async (enable: boolean) => {
