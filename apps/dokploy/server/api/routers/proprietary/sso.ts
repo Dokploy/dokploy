@@ -27,8 +27,6 @@ export const ssoRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		// The license follows ownership transfers, so check the instance owner
-		// rather than whichever member first held the owner role.
 		const ownerId = await getInstanceOwnerId();
 		if (!ownerId) {
 			return false;

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let isCloud = false;
 let instanceOwnerId: string | null = "user-1";
-// Tables written through the locked transaction, in order.
 const lockedInserts: string[] = [];
 const mockWithInstanceOwnerLock = vi.hoisted(() => vi.fn());
 

@@ -1,6 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import copy from "copy-to-clipboard";
-import { Crown } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, Crown } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -25,6 +25,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
+import {
 	Form,
 	FormControl,
 	FormDescription,
@@ -35,19 +43,24 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { api, type RouterOutputs } from "@/utils/api";
 import { OrganizationsDialog } from "./organizations-dialog";
-import { RecipientEmailInput } from "./recipient-email-input";
 
 const transferOwnershipSchema = z.object({
-	email: z
-		.string()
-		.trim()
-		.min(1, "Email is required")
-		.email({ message: "Invalid email" }),
+	email: z.string().min(1, "Select the new owner"),
 });
 
 type TransferOwnership = z.infer<typeof transferOwnershipSchema>;
+type Recipient = RouterOutputs["ownershipTransfer"]["recipients"][number];
+
+const nameOf = (recipient: Recipient) =>
+	[recipient.firstName, recipient.lastName].filter(Boolean).join(" ");
 
 export const TransferOwnership = () => {
 	const utils = api.useUtils();
@@ -57,11 +70,13 @@ export const TransferOwnership = () => {
 		api.ownershipTransfer.create.useMutation();
 	const { mutateAsync: cancelTransfer, isPending: isCanceling } =
 		api.ownershipTransfer.cancel.useMutation();
-	const [isChecking, setIsChecking] = useState(false);
+	const { data: recipients, isLoading: isLoadingRecipients } =
+		api.ownershipTransfer.recipients.useQuery(undefined, {
+			enabled: !!status?.isInstanceOwner && !status.pending,
+		});
+	const [pickerOpen, setPickerOpen] = useState(false);
 	const [confirmOpen, setConfirmOpen] = useState(false);
-	const [recipient, setRecipient] = useState<
-		RouterOutputs["ownershipTransfer"]["checkRecipient"] | null
-	>(null);
+	const [recipient, setRecipient] = useState<Recipient | null>(null);
 	const [password, setPassword] = useState("");
 	const [confirmError, setConfirmError] = useState<string | null>(null);
 
@@ -76,49 +91,36 @@ export const TransferOwnership = () => {
 
 	const pending = status.pending;
 	const organizationCount = status.ownedOrganizations.length;
-	const transferLink = (transferId: string) =>
-		`${window.location.origin}/ownership-transfer?token=${transferId}`;
+	const transferLink = `${window.location.origin}/ownership-transfer`;
 
-	const recipientName = [recipient?.firstName, recipient?.lastName]
-		.filter(Boolean)
-		.join(" ");
+	const recipientName = recipient ? nameOf(recipient) : "";
 
-	// The recipient is kept after closing so the text doesn't blank out while
-	// the dialog animates away; the next check replaces it.
 	const closeConfirm = () => {
 		setConfirmOpen(false);
 		setPassword("");
 		setConfirmError(null);
 	};
 
-	const onCheckRecipient = async (values: TransferOwnership) => {
-		setIsChecking(true);
-		await utils.client.ownershipTransfer.checkRecipient
-			.query({ email: values.email })
-			.then((found) => {
-				setRecipient(found);
-				setConfirmOpen(true);
-			})
-			.catch((error) => {
-				form.setError("email", {
-					message: error?.message || "Error checking this user",
-				});
-			})
-			.finally(() => setIsChecking(false));
+	const onSubmit = (values: TransferOwnership) => {
+		const selected = recipients?.find((user) => user.email === values.email);
+		if (!selected) {
+			form.setError("email", { message: "Select the new owner" });
+			return;
+		}
+		setRecipient(selected);
+		setConfirmOpen(true);
 	};
 
 	const onConfirm = async () => {
 		if (!recipient) return;
 		setConfirmError(null);
 		await createTransfer({ email: recipient.email, password })
-			.then(async (created) => {
+			.then(async () => {
 				closeConfirm();
 				form.reset();
 				toast.success("Ownership transfer invitation created");
-				if (created) {
-					copy(transferLink(created.id));
-					toast.success("Invitation link copied to clipboard");
-				}
+				copy(transferLink);
+				toast.success("Invitation link copied to clipboard");
 				await utils.ownershipTransfer.status.invalidate();
 			})
 			.catch((error) => {
@@ -167,7 +169,7 @@ export const TransferOwnership = () => {
 										className="w-full sm:w-auto"
 										variant="secondary"
 										onClick={() => {
-											copy(transferLink(pending.id));
+											copy(transferLink);
 											toast.success("Invitation link copied to clipboard");
 										}}
 									>
@@ -178,7 +180,7 @@ export const TransferOwnership = () => {
 										description={`The invitation for ${pending.toUser.email} will stop working.`}
 										type="destructive"
 										onClick={async () => {
-											await cancelTransfer({ transferId: pending.id })
+											await cancelTransfer()
 												.then(async () => {
 													toast.success("Ownership transfer canceled");
 													await utils.ownershipTransfer.status.invalidate();
@@ -211,34 +213,104 @@ export const TransferOwnership = () => {
 						) : (
 							<Form {...form}>
 								<form
-									onSubmit={form.handleSubmit(onCheckRecipient)}
+									onSubmit={form.handleSubmit(onSubmit)}
 									className="flex flex-col gap-4"
 								>
 									<FormField
 										control={form.control}
 										name="email"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>New owner email</FormLabel>
-												<FormControl>
-													<RecipientEmailInput
-														placeholder="Search by name or email"
-														{...field}
-													/>
-												</FormControl>
-												<FormDescription>
-													The user will get a pending invitation and you can
-													share the link with them.
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
+										render={({ field }) => {
+											const selected = recipients?.find(
+												(user) => user.email === field.value,
+											);
+											return (
+												<FormItem className="flex flex-col">
+													<FormLabel>New owner</FormLabel>
+													<Popover
+														open={pickerOpen}
+														onOpenChange={setPickerOpen}
+													>
+														<PopoverTrigger asChild>
+															<FormControl>
+																<Button
+																	variant="outline"
+																	className={cn(
+																		"w-full justify-between",
+																		!selected && "text-muted-foreground",
+																	)}
+																>
+																	<span className="truncate">
+																		{isLoadingRecipients
+																			? "Loading..."
+																			: selected
+																				? nameOf(selected)
+																					? `${nameOf(selected)} (${selected.email})`
+																					: selected.email
+																				: "Select a user"}
+																	</span>
+																	<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+																</Button>
+															</FormControl>
+														</PopoverTrigger>
+														<PopoverContent
+															className="w-[var(--radix-popover-trigger-width)] p-0"
+															align="start"
+														>
+															<Command>
+																<CommandInput
+																	placeholder="Search by name or email..."
+																	className="h-9"
+																/>
+																<CommandList className="max-h-42">
+																	<CommandEmpty>No users found.</CommandEmpty>
+																	<CommandGroup>
+																		{recipients?.map((user) => (
+																			<CommandItem
+																				key={user.id}
+																				value={`${nameOf(user)} ${user.email}`}
+																				onSelect={() => {
+																					field.onChange(user.email);
+																					setPickerOpen(false);
+																				}}
+																			>
+																				<span className="flex min-w-0 items-center gap-2">
+																					<span className="truncate">
+																						{nameOf(user) || user.email}
+																					</span>
+																					{nameOf(user) && (
+																						<span className="truncate text-xs text-muted-foreground">
+																							{user.email}
+																						</span>
+																					)}
+																				</span>
+																				<CheckIcon
+																					className={cn(
+																						"ml-auto h-4 w-4",
+																						user.email === field.value
+																							? "opacity-100"
+																							: "opacity-0",
+																					)}
+																				/>
+																			</CommandItem>
+																		))}
+																	</CommandGroup>
+																</CommandList>
+															</Command>
+														</PopoverContent>
+													</Popover>
+													<FormDescription>
+														The user will get a pending invitation and you can
+														share the link with them.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											);
+										}}
 									/>
 									<div className="flex justify-end">
 										<Button
 											type="submit"
 											className="w-full sm:w-auto"
-											isLoading={isChecking}
 											disabled={!form.watch("email")}
 										>
 											Transfer Ownership

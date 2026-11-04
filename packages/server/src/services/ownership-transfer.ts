@@ -5,7 +5,6 @@ import {
 	invitation,
 	member,
 	organization,
-	ownershipTransfer,
 	user,
 	webServerSettings,
 } from "@dokploy/server/db/schema";
@@ -15,9 +14,8 @@ import {
 	asc,
 	eq,
 	exists,
-	gt,
-	ilike,
 	inArray,
+	isNotNull,
 	isNull,
 	ne,
 	or,
@@ -25,52 +23,41 @@ import {
 } from "drizzle-orm";
 import {
 	getInstanceOwnerId,
+	type InstanceOwnerLock,
 	invalidateTrustedOriginsCache,
 	withInstanceOwnerLock,
 } from "./admin";
 import { createAuditLog } from "./proprietary/audit-log";
+import { getWebServerSettings } from "./web-server-settings";
 
 const OWNERSHIP_TRANSFER_TTL_MS = 48 * 60 * 60 * 1000;
 
-const transferUserColumns = {
+const userColumns = {
 	id: true,
 	email: true,
 	firstName: true,
 	lastName: true,
 } as const;
 
-type OwnershipTransferCheck = {
-	status: string;
-	expiresAt: Date;
-	fromUserId: string;
-	toUserId: string;
+const noPendingTransfer = {
+	pendingOwnerId: null,
+	pendingOwnerExpiresAt: null,
 };
 
 export const getTransferAcceptanceError = (
-	transfer: OwnershipTransferCheck,
-	{
-		userId,
-		instanceOwnerId,
-		now = new Date(),
-	}: { userId: string; instanceOwnerId: string | null; now?: Date },
+	pending: Pick<InstanceOwnerLock, "pendingOwnerId" | "pendingOwnerExpiresAt">,
+	userId: string,
+	now = new Date(),
 ) => {
-	if (transfer.toUserId !== userId) {
-		return "This ownership transfer is not addressed to you";
+	if (pending.pendingOwnerId !== userId) {
+		return "There is no pending ownership transfer for you";
 	}
-	if (transfer.status !== "pending") {
-		return "This ownership transfer is no longer pending";
-	}
-	if (transfer.expiresAt <= now) {
+	if (!pending.pendingOwnerExpiresAt || pending.pendingOwnerExpiresAt <= now) {
 		return "This ownership transfer has expired";
-	}
-	if (transfer.fromUserId !== instanceOwnerId) {
-		return "The sender no longer owns this instance";
 	}
 	return null;
 };
 
-// Emails created through SCIM or imports can keep their original casing, and
-// the recipient search matches case-insensitively, so lookups must too.
 export const userEmailEquals = (email: string) =>
 	eq(sql`lower(${user.email})`, email.trim().toLowerCase());
 
@@ -81,66 +68,58 @@ export const findOwnedOrganizations = async (userId: string) => {
 	});
 };
 
-export const findPendingOutgoingTransfer = async (fromUserId: string) => {
-	return db.query.ownershipTransfer.findFirst({
-		where: and(
-			eq(ownershipTransfer.fromUserId, fromUserId),
-			eq(ownershipTransfer.status, "pending"),
-			gt(ownershipTransfer.expiresAt, new Date()),
-		),
-		with: { toUser: { columns: transferUserColumns } },
-	});
-};
-
-export const findIncomingTransfers = async (toUserId: string) => {
-	return db.query.ownershipTransfer.findMany({
-		where: and(
-			eq(ownershipTransfer.toUserId, toUserId),
-			eq(ownershipTransfer.status, "pending"),
-			gt(ownershipTransfer.expiresAt, new Date()),
-		),
-		with: { fromUser: { columns: transferUserColumns } },
-	});
-};
-
-export const findOwnershipTransferById = async (transferId: string) => {
-	const transfer = await db.query.ownershipTransfer.findFirst({
-		where: eq(ownershipTransfer.id, transferId),
-		with: {
-			fromUser: { columns: transferUserColumns },
-			toUser: { columns: transferUserColumns },
-		},
-	});
-
-	if (!transfer) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Ownership transfer not found",
-		});
+const findActivePendingTransfer = async () => {
+	const settings = await getWebServerSettings();
+	if (
+		!settings?.pendingOwnerId ||
+		!settings.pendingOwnerExpiresAt ||
+		getTransferAcceptanceError(settings, settings.pendingOwnerId)
+	) {
+		return null;
 	}
-	return transfer;
+	return {
+		toUserId: settings.pendingOwnerId,
+		expiresAt: settings.pendingOwnerExpiresAt,
+	};
 };
 
-const RECIPIENT_SEARCH_LIMIT = 20;
-
-/**
- * Users the instance owner could hand ownership to, matched by email or name.
- * Prefix matches come first so typing "a" lists users starting with "a".
- */
-export const searchTransferRecipients = async (
-	fromUserId: string,
-	query: string,
-) => {
-	const term = query.trim().replace(/[\\%_]/g, (char) => `\\${char}`);
-	if (!term) {
-		return { users: [], hasMore: false };
+export const findPendingOutgoingTransfer = async () => {
+	const pending = await findActivePendingTransfer();
+	if (!pending) {
+		return null;
 	}
 
-	const contains = `%${term}%`;
-	const prefix = `${term}%`;
-	const fullName = sql`${user.firstName} || ' ' || ${user.lastName}`;
+	const toUser = await db.query.user.findFirst({
+		where: eq(user.id, pending.toUserId),
+		columns: userColumns,
+	});
+	return toUser ? { toUser, expiresAt: pending.expiresAt } : null;
+};
 
-	const rows = await db
+export const findIncomingTransfer = async (userId: string) => {
+	const pending = await findActivePendingTransfer();
+	const fromUserId = await getInstanceOwnerId();
+	if (pending?.toUserId !== userId || !fromUserId) {
+		return null;
+	}
+
+	const fromUser = await db.query.user.findFirst({
+		where: eq(user.id, fromUserId),
+		columns: userColumns,
+	});
+	if (!fromUser) {
+		return null;
+	}
+
+	return {
+		fromUser,
+		expiresAt: pending.expiresAt,
+		organizations: await findOwnedOrganizations(fromUser.id),
+	};
+};
+
+export const listTransferRecipients = async (fromUserId: string) => {
+	return db
 		.select({
 			id: user.id,
 			email: user.email,
@@ -158,23 +137,9 @@ export const searchTransferRecipients = async (
 						.from(member)
 						.where(eq(member.userId, user.id)),
 				),
-				or(ilike(user.email, contains), ilike(fullName, contains)),
 			),
 		)
-		.orderBy(
-			sql`case
-				when ${user.email} ilike ${prefix} then 0
-				when ${fullName} ilike ${prefix} or ${user.lastName} ilike ${prefix} then 1
-				else 2
-			end`,
-			asc(user.email),
-		)
-		.limit(RECIPIENT_SEARCH_LIMIT + 1);
-
-	return {
-		users: rows.slice(0, RECIPIENT_SEARCH_LIMIT),
-		hasMore: rows.length > RECIPIENT_SEARCH_LIMIT,
-	};
+		.orderBy(asc(user.email));
 };
 
 export const findTransferRecipient = async (
@@ -183,13 +148,7 @@ export const findTransferRecipient = async (
 ) => {
 	const target = await db.query.user.findFirst({
 		where: userEmailEquals(email),
-		columns: {
-			id: true,
-			email: true,
-			firstName: true,
-			lastName: true,
-			banned: true,
-		},
+		columns: { ...userColumns, banned: true },
 	});
 
 	if (!target) {
@@ -212,7 +171,6 @@ export const findTransferRecipient = async (
 		});
 	}
 
-	// Without a membership the recipient has no dashboard to accept from.
 	const membership = await db.query.member.findFirst({
 		where: eq(member.userId, target.id),
 		columns: { id: true },
@@ -233,314 +191,204 @@ export const createOwnershipTransfer = async (
 	fromUserId: string,
 	email: string,
 ) => {
-	const target = await findTransferRecipient(fromUserId, email);
+	const recipient = await findTransferRecipient(fromUserId, email);
 
-	// Under the lock so an invitation can't be created by an owner whose
-	// ownership is being transferred away at the same moment.
-	return withInstanceOwnerLock("share", async ({ tx, instanceOwnerId }) => {
-		if (instanceOwnerId !== fromUserId) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "Only the instance owner can transfer ownership",
-			});
-		}
-
-		await tx
-			.update(ownershipTransfer)
-			.set({ status: "canceled" })
-			.where(
-				and(
-					eq(ownershipTransfer.fromUserId, fromUserId),
-					eq(ownershipTransfer.status, "pending"),
-				),
-			);
-
-		const [created] = await tx
-			.insert(ownershipTransfer)
-			.values({
-				fromUserId,
-				toUserId: target.id,
-				expiresAt: new Date(Date.now() + OWNERSHIP_TRANSFER_TTL_MS),
-			})
-			.returning();
-		return created;
-	});
-};
-
-export const cancelOwnershipTransfer = async (
-	transferId: string,
-	fromUserId: string,
-) => {
-	const updated = await db
-		.update(ownershipTransfer)
-		.set({ status: "canceled" })
-		.where(
-			and(
-				eq(ownershipTransfer.id, transferId),
-				eq(ownershipTransfer.fromUserId, fromUserId),
-				eq(ownershipTransfer.status, "pending"),
-			),
-		)
-		.returning({ id: ownershipTransfer.id });
-
-	if (updated.length === 0) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "No pending ownership transfer found",
-		});
-	}
-};
-
-export const declineOwnershipTransfer = async (
-	transferId: string,
-	toUserId: string,
-) => {
-	const updated = await db
-		.update(ownershipTransfer)
-		.set({ status: "declined" })
-		.where(
-			and(
-				eq(ownershipTransfer.id, transferId),
-				eq(ownershipTransfer.toUserId, toUserId),
-				eq(ownershipTransfer.status, "pending"),
-			),
-		)
-		.returning({ id: ownershipTransfer.id });
-
-	if (updated.length === 0) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "No pending ownership transfer found",
-		});
-	}
-};
-
-export const acceptOwnershipTransfer = async (
-	transferId: string,
-	userId: string,
-) => {
-	const transfer = await findOwnershipTransferById(transferId);
-	const error = getTransferAcceptanceError(transfer, {
-		userId,
-		instanceOwnerId: await getInstanceOwnerId(),
-	});
-
-	if (error) {
-		throw new TRPCError({ code: "BAD_REQUEST", message: error });
-	}
-
-	return transferInstanceOwnership(
-		transfer.fromUserId,
-		transfer.toUserId,
-		transferId,
-	);
-};
-
-/**
- * Hands every organization owned by `fromUserId` to `toUserId` and makes
- * `toUserId` the instance owner. The previous owner stays in those
- * organizations as a plain member.
- */
-export const transferInstanceOwnership = async (
-	fromUserId: string,
-	toUserId: string,
-	transferId?: string,
-) => {
-	const transferred = await withInstanceOwnerLock(
+	return withInstanceOwnerLock(
 		"update",
 		async ({ tx, instanceOwnerId, settingsId }) => {
-			// Checked again under the lock: another transfer may have committed after
-			// the caller last read the owner.
 			if (instanceOwnerId !== fromUserId) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "The sender no longer owns this instance",
+					code: "FORBIDDEN",
+					message: "Only the instance owner can transfer ownership",
 				});
 			}
 
-			if (transferId) {
-				// Claiming the row inside the transaction makes a concurrent second
-				// accept fail instead of running the transfer twice.
-				const claimed = await tx
-					.update(ownershipTransfer)
-					.set({ status: "accepted" })
-					.where(
-						and(
-							eq(ownershipTransfer.id, transferId),
-							eq(ownershipTransfer.status, "pending"),
-						),
-					)
-					.returning({ id: ownershipTransfer.id });
-
-				if (claimed.length === 0) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "This ownership transfer is no longer pending",
-					});
-				}
-			}
-
-			await tx
-				.update(ownershipTransfer)
-				.set({ status: "canceled" })
-				.where(
-					and(
-						eq(ownershipTransfer.fromUserId, fromUserId),
-						eq(ownershipTransfer.status, "pending"),
-					),
-				);
-
-			// Complete: organization creation waits for this lock before inserting.
-			const organizations = await tx.query.organization.findMany({
-				where: eq(organization.ownerId, fromUserId),
-				columns: { id: true, name: true },
-			});
-			const organizationIds = organizations.map((org) => org.id);
-
-			if (organizationIds.length > 0) {
-				await tx
-					.update(organization)
-					.set({ ownerId: toUserId })
-					.where(inArray(organization.id, organizationIds));
-
-				const existingMemberships = await tx
-					.update(member)
-					.set({ role: "owner" })
-					.where(
-						and(
-							eq(member.userId, toUserId),
-							inArray(member.organizationId, organizationIds),
-						),
-					)
-					.returning({ organizationId: member.organizationId });
-
-				const memberOf = new Set(
-					existingMemberships.map((membership) => membership.organizationId),
-				);
-				const missingOrganizationIds = organizationIds.filter(
-					(id) => !memberOf.has(id),
-				);
-
-				if (missingOrganizationIds.length > 0) {
-					await tx.insert(member).values(
-						missingOrganizationIds.map((organizationId) => ({
-							organizationId,
-							userId: toUserId,
-							role: "owner",
-							createdAt: new Date(),
-						})),
-					);
-				}
-
-				await tx
-					.update(member)
-					.set({ role: "member" })
-					.where(
-						and(
-							eq(member.userId, fromUserId),
-							inArray(member.organizationId, organizationIds),
-						),
-					);
-
-				// Git providers are deleted along with the user who created them, so
-				// removing the previous owner later would break every deploy using one.
-				await tx
-					.update(gitProvider)
-					.set({ userId: toUserId })
-					.where(
-						and(
-							eq(gitProvider.userId, fromUserId),
-							inArray(gitProvider.organizationId, organizationIds),
-						),
-					);
-
-				// Invitations are deleted along with the user who sent them, so
-				// pending ones would vanish if the previous owner is removed later.
-				await tx
-					.update(invitation)
-					.set({ inviterId: toUserId })
-					.where(
-						and(
-							eq(invitation.inviterId, fromUserId),
-							eq(invitation.status, "pending"),
-							inArray(invitation.organizationId, organizationIds),
-						),
-					);
-			}
-
-			// Dokploy's own database backups hang off the owner's user row, and that
-			// foreign key would block deleting the previous owner.
-			await tx
-				.update(backups)
-				.set({ userId: toUserId })
-				.where(eq(backups.userId, fromUserId));
-
-			// License, SSO trusted origins and the metrics flag are read from the
-			// organization owner's user row, so they have to follow the ownership.
-			const ownerColumns = {
-				enableEnterpriseFeatures: true,
-				licenseKey: true,
-				isValidEnterpriseLicense: true,
-				trustedOrigins: true,
-				enablePaidFeatures: true,
-			} as const;
-			const previousOwner = await tx.query.user.findFirst({
-				where: eq(user.id, fromUserId),
-				columns: ownerColumns,
-			});
-			const nextOwner = await tx.query.user.findFirst({
-				where: eq(user.id, toUserId),
-				columns: ownerColumns,
-			});
-
-			if (previousOwner && nextOwner) {
-				// The new owner may already hold a license for an organization an admin
-				// created before that was restricted; merge instead of overwriting it.
-				// A valid license wins; otherwise keep whichever account has a key so
-				// one that only needs re-validating isn't lost.
-				const license =
-					[previousOwner, nextOwner].find(
-						(owner) => owner.isValidEnterpriseLicense,
-					) ?? (previousOwner.licenseKey ? previousOwner : nextOwner);
-				await tx
-					.update(user)
-					.set({
-						enableEnterpriseFeatures:
-							previousOwner.enableEnterpriseFeatures ||
-							nextOwner.enableEnterpriseFeatures,
-						licenseKey: license.licenseKey,
-						isValidEnterpriseLicense: license.isValidEnterpriseLicense,
-						trustedOrigins: [
-							...new Set([
-								...(nextOwner.trustedOrigins ?? []),
-								...(previousOwner.trustedOrigins ?? []),
-							]),
-						],
-						enablePaidFeatures:
-							previousOwner.enablePaidFeatures || nextOwner.enablePaidFeatures,
-					})
-					.where(eq(user.id, toUserId));
-				await tx
-					.update(user)
-					.set({
-						enableEnterpriseFeatures: false,
-						licenseKey: null,
-						isValidEnterpriseLicense: false,
-						trustedOrigins: null,
-						enablePaidFeatures: false,
-					})
-					.where(eq(user.id, fromUserId));
-			}
-
+			const expiresAt = new Date(Date.now() + OWNERSHIP_TRANSFER_TTL_MS);
 			await tx
 				.update(webServerSettings)
-				.set({ instanceOwnerId: toUserId })
+				.set({ pendingOwnerId: recipient.id, pendingOwnerExpiresAt: expiresAt })
 				.where(eq(webServerSettings.id, settingsId));
 
-			return organizations;
+			return { toUser: recipient, expiresAt };
 		},
 	);
+};
 
+const clearPendingTransfer = async (pendingOwnerId?: string) => {
+	const settings = await getWebServerSettings();
+	const cleared = await db
+		.update(webServerSettings)
+		.set(noPendingTransfer)
+		.where(
+			and(
+				eq(webServerSettings.id, settings?.id ?? ""),
+				pendingOwnerId
+					? eq(webServerSettings.pendingOwnerId, pendingOwnerId)
+					: isNotNull(webServerSettings.pendingOwnerId),
+			),
+		)
+		.returning({ id: webServerSettings.id });
+
+	if (cleared.length === 0) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "No pending ownership transfer found",
+		});
+	}
+};
+
+export const cancelOwnershipTransfer = async () => clearPendingTransfer();
+
+export const declineOwnershipTransfer = async (userId: string) =>
+	clearPendingTransfer(userId);
+
+const moveOwnership = async (
+	{ tx, settingsId }: InstanceOwnerLock,
+	fromUserId: string,
+	toUserId: string,
+) => {
+	const organizations = await tx.query.organization.findMany({
+		where: eq(organization.ownerId, fromUserId),
+		columns: { id: true, name: true },
+	});
+	const organizationIds = organizations.map((org) => org.id);
+
+	if (organizationIds.length > 0) {
+		await tx
+			.update(organization)
+			.set({ ownerId: toUserId })
+			.where(inArray(organization.id, organizationIds));
+
+		const existingMemberships = await tx
+			.update(member)
+			.set({ role: "owner" })
+			.where(
+				and(
+					eq(member.userId, toUserId),
+					inArray(member.organizationId, organizationIds),
+				),
+			)
+			.returning({ organizationId: member.organizationId });
+
+		const memberOf = new Set(
+			existingMemberships.map((membership) => membership.organizationId),
+		);
+		const missingOrganizationIds = organizationIds.filter(
+			(id) => !memberOf.has(id),
+		);
+
+		if (missingOrganizationIds.length > 0) {
+			await tx.insert(member).values(
+				missingOrganizationIds.map((organizationId) => ({
+					organizationId,
+					userId: toUserId,
+					role: "owner",
+					createdAt: new Date(),
+				})),
+			);
+		}
+
+		await tx
+			.update(member)
+			.set({ role: "member" })
+			.where(
+				and(
+					eq(member.userId, fromUserId),
+					inArray(member.organizationId, organizationIds),
+				),
+			);
+
+		await tx
+			.update(gitProvider)
+			.set({ userId: toUserId })
+			.where(
+				and(
+					eq(gitProvider.userId, fromUserId),
+					inArray(gitProvider.organizationId, organizationIds),
+				),
+			);
+
+		await tx
+			.update(invitation)
+			.set({ inviterId: toUserId })
+			.where(
+				and(
+					eq(invitation.inviterId, fromUserId),
+					eq(invitation.status, "pending"),
+					inArray(invitation.organizationId, organizationIds),
+				),
+			);
+	}
+
+	await tx
+		.update(backups)
+		.set({ userId: toUserId })
+		.where(eq(backups.userId, fromUserId));
+
+	const ownerColumns = {
+		enableEnterpriseFeatures: true,
+		licenseKey: true,
+		isValidEnterpriseLicense: true,
+		trustedOrigins: true,
+		enablePaidFeatures: true,
+	} as const;
+	const previousOwner = await tx.query.user.findFirst({
+		where: eq(user.id, fromUserId),
+		columns: ownerColumns,
+	});
+	const nextOwner = await tx.query.user.findFirst({
+		where: eq(user.id, toUserId),
+		columns: ownerColumns,
+	});
+
+	if (previousOwner && nextOwner) {
+		const license =
+			[previousOwner, nextOwner].find(
+				(owner) => owner.isValidEnterpriseLicense,
+			) ?? (previousOwner.licenseKey ? previousOwner : nextOwner);
+		await tx
+			.update(user)
+			.set({
+				enableEnterpriseFeatures:
+					previousOwner.enableEnterpriseFeatures ||
+					nextOwner.enableEnterpriseFeatures,
+				licenseKey: license.licenseKey,
+				isValidEnterpriseLicense: license.isValidEnterpriseLicense,
+				trustedOrigins: [
+					...new Set([
+						...(nextOwner.trustedOrigins ?? []),
+						...(previousOwner.trustedOrigins ?? []),
+					]),
+				],
+				enablePaidFeatures:
+					previousOwner.enablePaidFeatures || nextOwner.enablePaidFeatures,
+			})
+			.where(eq(user.id, toUserId));
+		await tx
+			.update(user)
+			.set({
+				enableEnterpriseFeatures: false,
+				licenseKey: null,
+				isValidEnterpriseLicense: false,
+				trustedOrigins: null,
+				enablePaidFeatures: false,
+			})
+			.where(eq(user.id, fromUserId));
+	}
+
+	await tx
+		.update(webServerSettings)
+		.set({ instanceOwnerId: toUserId, ...noPendingTransfer })
+		.where(eq(webServerSettings.id, settingsId));
+
+	return organizations;
+};
+
+const recordTransfer = async (
+	fromUserId: string,
+	toUserId: string,
+	organizations: { id: string; name: string }[],
+) => {
 	invalidateTrustedOriginsCache();
 
 	const newOwner = await db.query.user.findFirst({
@@ -548,9 +396,8 @@ export const transferInstanceOwnership = async (
 		columns: { email: true },
 	});
 
-	// createAuditLog never throws, so one failed entry can't hide the others.
 	await Promise.all(
-		transferred.map((org) =>
+		organizations.map((org) =>
 			createAuditLog({
 				organizationId: org.id,
 				userId: toUserId,
@@ -565,5 +412,43 @@ export const transferInstanceOwnership = async (
 		),
 	);
 
-	return { organizationsTransferred: transferred.length };
+	return { organizationsTransferred: organizations.length };
+};
+
+export const acceptOwnershipTransfer = async (userId: string) => {
+	const { fromUserId, organizations } = await withInstanceOwnerLock(
+		"update",
+		async (lock) => {
+			const error = getTransferAcceptanceError(lock, userId);
+			if (error || !lock.instanceOwnerId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: error ?? "This instance has no owner",
+				});
+			}
+			return {
+				fromUserId: lock.instanceOwnerId,
+				organizations: await moveOwnership(lock, lock.instanceOwnerId, userId),
+			};
+		},
+	);
+
+	return recordTransfer(fromUserId, userId, organizations);
+};
+
+export const transferInstanceOwnership = async (
+	fromUserId: string,
+	toUserId: string,
+) => {
+	const organizations = await withInstanceOwnerLock("update", async (lock) => {
+		if (lock.instanceOwnerId !== fromUserId) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "The sender no longer owns this instance",
+			});
+		}
+		return moveOwnership(lock, fromUserId, toUserId);
+	});
+
+	return recordTransfer(fromUserId, toUserId, organizations);
 };

@@ -71,9 +71,7 @@ export const organizationRouter = createTRPCRouter({
 				return created;
 			};
 
-			// On self-hosted the owner check and the insert share a transaction that
-			// holds the instance owner lock, so an ownership transfer can't run in
-			// between and leave this organization with the previous owner.
+			// Shares the instance owner lock so a transfer can't miss this organization.
 			const result = IS_CLOUD
 				? await insertOrganization(db)
 				: await withInstanceOwnerLock(

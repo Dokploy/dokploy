@@ -29,8 +29,6 @@ vi.mock("@dokploy/server", () => ({
 	updateUser: noop,
 }));
 
-// The admin owns an organization they created, and the instance owner joined
-// it as a plain member.
 vi.mock("@dokploy/server/db", () => ({
 	db: {
 		query: {

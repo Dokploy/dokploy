@@ -131,11 +131,13 @@ export const webServerSettings = pgTable("webServerSettings", {
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
-	// The single owner of a self-hosted instance. Org owners can differ on
-	// installs where admins created orgs before that was restricted.
 	instanceOwnerId: text("instanceOwnerId").references(() => user.id, {
 		onDelete: "set null",
 	}),
+	pendingOwnerId: text("pendingOwnerId").references(() => user.id, {
+		onDelete: "set null",
+	}),
+	pendingOwnerExpiresAt: timestamp("pendingOwnerExpiresAt"),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -205,6 +207,8 @@ export const apiUpdateWebServerSettings = createSchema
 		telemetryProviderIds: true,
 		vectorAgentOrganizationId: true,
 		instanceOwnerId: true,
+		pendingOwnerId: true,
+		pendingOwnerExpiresAt: true,
 	});
 
 export const apiUpdateWebServerBuildsConcurrency = z.object({

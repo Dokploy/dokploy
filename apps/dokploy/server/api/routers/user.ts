@@ -478,8 +478,6 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			// Deleting a user cascades to the organizations they own, and the
-			// instance owner can be a plain member of an admin-created organization.
 			if (await isInstanceOwner(input.userId)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",

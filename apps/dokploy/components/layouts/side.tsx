@@ -607,12 +607,11 @@ function SidebarLogo() {
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
-	const { data: ownershipTransfers } = api.ownershipTransfer.incoming.useQuery(
+	const { data: ownershipTransfer } = api.ownershipTransfer.incoming.useQuery(
 		undefined,
 		{ enabled: isCloud === false },
 	);
-	const pendingCount =
-		(invitations?.length ?? 0) + (ownershipTransfers?.length ?? 0);
+	const pendingCount = (invitations?.length ?? 0) + (ownershipTransfer ? 1 : 0);
 
 	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
@@ -875,26 +874,27 @@ function SidebarLogo() {
 							>
 								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
 								<div className="flex flex-col gap-2">
-									{ownershipTransfers?.map((transfer) => (
+									{ownershipTransfer && (
 										<DropdownMenuItem
-											key={transfer.id}
 											asChild
 											className="flex flex-col items-start gap-1 p-3"
 										>
-											<Link href={`/ownership-transfer?token=${transfer.id}`}>
+											<Link href="/ownership-transfer">
 												<div className="font-medium">
 													Instance ownership transfer
 												</div>
 												<div className="text-xs text-muted-foreground break-words">
-													From: {transfer.fromUser.email}
+													From: {ownershipTransfer.fromUser.email}
 												</div>
 												<div className="text-xs text-muted-foreground">
 													Expires:{" "}
-													{new Date(transfer.expiresAt).toLocaleString()}
+													{new Date(
+														ownershipTransfer.expiresAt,
+													).toLocaleString()}
 												</div>
 											</Link>
 										</DropdownMenuItem>
-									))}
+									)}
 									{invitations && invitations.length > 0 ? (
 										invitations.map((invitation) => (
 											<div key={invitation.id} className="flex flex-col gap-2">

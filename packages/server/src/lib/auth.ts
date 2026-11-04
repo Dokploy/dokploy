@@ -83,9 +83,6 @@ const createBetterAuth = () =>
 			...(!IS_CLOUD
 				? [
 						"/verify-email",
-						// These let an organization owner hand out the owner role, which
-						// would give a self-hosted instance a second owner. The app uses
-						// the tRPC equivalents, which refuse it.
 						"/organization/update-member-role",
 						"/organization/invite-member",
 					]

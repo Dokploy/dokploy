@@ -50,10 +50,14 @@ export const isAdminPresent = async () => {
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-// Registration closes after the first sign-up, so the earliest user holding
-// an owner role is the instance owner even if their first organization was
-// deleted. "createdAt" keeps the real sign-up time; created_at was added
-// later with the same default for every existing user.
+export type InstanceOwnerLock = {
+	tx: Transaction;
+	settingsId: string;
+	instanceOwnerId: string | null;
+	pendingOwnerId: string | null;
+	pendingOwnerExpiresAt: Date | null;
+};
+
 const findFirstOwnerId = async (executor: Pick<typeof db, "select"> = db) => {
 	const [firstOwner] = await executor
 		.select({ userId: member.userId })
@@ -70,19 +74,10 @@ export const getInstanceOwnerId = async () => {
 	return settings?.instanceOwnerId ?? findFirstOwnerId();
 };
 
-/**
- * Runs `fn` in a transaction that locks the row recording the instance owner.
- * Ownership transfers lock it exclusively and anything that depends on who
- * the owner is locks it shared, so the two can't interleave: a transfer sees
- * every organization created before it, and later creations see the new owner.
- */
+// Transfers lock exclusively and writes that depend on the owner lock shared.
 export const withInstanceOwnerLock = async <T>(
 	strength: "update" | "share",
-	fn: (lock: {
-		tx: Transaction;
-		instanceOwnerId: string | null;
-		settingsId: string;
-	}) => Promise<T>,
+	fn: (lock: InstanceOwnerLock) => Promise<T>,
 ) => {
 	const settings = await getWebServerSettings();
 	if (!settings) {
@@ -94,7 +89,11 @@ export const withInstanceOwnerLock = async <T>(
 
 	return db.transaction(async (tx) => {
 		const [locked] = await tx
-			.select({ instanceOwnerId: webServerSettings.instanceOwnerId })
+			.select({
+				instanceOwnerId: webServerSettings.instanceOwnerId,
+				pendingOwnerId: webServerSettings.pendingOwnerId,
+				pendingOwnerExpiresAt: webServerSettings.pendingOwnerExpiresAt,
+			})
 			.from(webServerSettings)
 			.where(eq(webServerSettings.id, settings.id))
 			.for(strength);
@@ -103,6 +102,8 @@ export const withInstanceOwnerLock = async <T>(
 			tx,
 			settingsId: settings.id,
 			instanceOwnerId: locked?.instanceOwnerId ?? (await findFirstOwnerId(tx)),
+			pendingOwnerId: locked?.pendingOwnerId ?? null,
+			pendingOwnerExpiresAt: locked?.pendingOwnerExpiresAt ?? null,
 		});
 	});
 };
@@ -113,9 +114,6 @@ export const isInstanceOwner = async (userId: string) => {
 
 export const findOwner = async () => {
 	const instanceOwnerId = await getInstanceOwnerId();
-	// Several members may hold the owner role (admins could create their own
-	// organizations before that was restricted), and the instance owner may own
-	// no organization at all, so match them by any membership.
 	const admin = await db.query.member.findFirst({
 		where: instanceOwnerId
 			? eq(member.userId, instanceOwnerId)

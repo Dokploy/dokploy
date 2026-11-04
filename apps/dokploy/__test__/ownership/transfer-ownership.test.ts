@@ -7,7 +7,6 @@ let ownedOrganizations = [
 	{ id: "org-1", name: "One" },
 	{ id: "org-2", name: "Two" },
 ];
-// Organizations where the new owner already has a member row.
 let newOwnerMemberOf = ["org-1"];
 
 const previousOwnerFields = {
@@ -24,12 +23,15 @@ const emptyOwnerFields = {
 	trustedOrigins: null,
 	enablePaidFeatures: false,
 };
-// Rows returned for the previous owner, then the new owner.
+const inTwoDays = () => new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 let ownerRows: unknown[] = [];
 let targetMembership: { id: string } | undefined = { id: "member-9" };
-// Instance owner as seen once the settings row is locked.
 let lockedOwner = "owner";
-// Order of the lock and the organization read inside the transaction.
+let pendingTransfer: {
+	pendingOwnerId: string | null;
+	pendingOwnerExpiresAt: Date | null;
+} = { pendingOwnerId: null, pendingOwnerExpiresAt: null };
+let clearedSettingsRows = [{ id: "settings-1" }];
 const events: string[] = [];
 
 vi.mock("@dokploy/server/db", async () => {
@@ -40,7 +42,7 @@ vi.mock("@dokploy/server/db", async () => {
 			set: (values: Record<string, unknown>) => {
 				writes.push({ op: "update", table, values });
 				const returning = async () => {
-					if (table === schema.ownershipTransfer) return [{ id: "transfer-1" }];
+					if (table === schema.webServerSettings) return clearedSettingsRows;
 					if (table === schema.member && values.role === "owner") {
 						return newOwnerMemberOf.map((organizationId) => ({
 							organizationId,
@@ -70,7 +72,7 @@ vi.mock("@dokploy/server/db", async () => {
 				where: () => ({
 					for: async (strength: string) => {
 						events.push(`lock:${strength}`);
-						return [{ instanceOwnerId: lockedOwner }];
+						return [{ instanceOwnerId: lockedOwner, ...pendingTransfer }];
 					},
 				}),
 			}),
@@ -91,7 +93,9 @@ vi.mock("@dokploy/server/db", async () => {
 			...writer,
 			transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
 			query: {
-				webServerSettings: { findFirst: async () => ({ id: "settings-1" }) },
+				webServerSettings: {
+					findFirst: async () => ({ id: "settings-1", ...pendingTransfer }),
+				},
 				user: {
 					findFirst: async () => ({
 						id: "target",
@@ -112,12 +116,15 @@ vi.mock("@dokploy/server/services/proprietary/license-key", () => ({
 
 const schema = await import("@dokploy/server/db/schema");
 const {
+	acceptOwnershipTransfer,
 	createOwnershipTransfer,
+	declineOwnershipTransfer,
 	getTransferAcceptanceError,
 	transferInstanceOwnership,
 } = await import("@dokploy/server/services/ownership-transfer");
 
 const writesTo = (table: unknown) => writes.filter((w) => w.table === table);
+const noPendingTransfer = { pendingOwnerId: null, pendingOwnerExpiresAt: null };
 
 beforeEach(() => {
 	writes.length = 0;
@@ -129,6 +136,8 @@ beforeEach(() => {
 	ownerRows = [previousOwnerFields, emptyOwnerFields];
 	targetMembership = { id: "member-9" };
 	lockedOwner = "owner";
+	pendingTransfer = { pendingOwnerId: null, pendingOwnerExpiresAt: null };
+	clearedSettingsRows = [{ id: "settings-1" }];
 	events.length = 0;
 });
 
@@ -154,57 +163,111 @@ describe("createOwnershipTransfer", () => {
 		expect(writes).toHaveLength(0);
 	});
 
-	it("creates a pending transfer for a member of an organization", async () => {
-		const created = await createOwnershipTransfer("owner", "new@example.com");
+	it("stores the recipient as the pending owner for 48 hours", async () => {
+		const before = Date.now();
+		await createOwnershipTransfer("owner", "new@example.com");
 
-		expect(created).toEqual(
-			expect.objectContaining({ fromUserId: "owner", toUserId: "target" }),
+		const [write] = writesTo(schema.webServerSettings);
+		const values = write?.values as typeof pendingTransfer;
+		expect(values.pendingOwnerId).toBe("target");
+		expect(values.pendingOwnerExpiresAt?.getTime()).toBeGreaterThanOrEqual(
+			before + 48 * 60 * 60 * 1000,
 		);
 	});
 });
 
 describe("getTransferAcceptanceError", () => {
 	const now = new Date("2026-01-01T00:00:00Z");
-	const transfer = {
-		status: "pending",
-		expiresAt: new Date("2026-01-02T00:00:00Z"),
-		fromUserId: "owner",
-		toUserId: "target",
+	const pending = {
+		pendingOwnerId: "target",
+		pendingOwnerExpiresAt: new Date("2026-01-02T00:00:00Z"),
 	};
-	const valid = { userId: "target", instanceOwnerId: "owner", now };
 
-	it("accepts a pending, unexpired transfer for its recipient", () => {
-		expect(getTransferAcceptanceError(transfer, valid)).toBeNull();
+	it("accepts an unexpired transfer for its recipient", () => {
+		expect(getTransferAcceptanceError(pending, "target", now)).toBeNull();
 	});
 
 	it("rejects a transfer addressed to someone else", () => {
-		expect(
-			getTransferAcceptanceError(transfer, { ...valid, userId: "intruder" }),
-		).toMatch(/not addressed to you/);
+		expect(getTransferAcceptanceError(pending, "intruder", now)).toMatch(
+			/no pending ownership transfer for you/,
+		);
 	});
 
-	it("rejects a transfer that was already used", () => {
+	it("rejects when nothing is pending", () => {
 		expect(
-			getTransferAcceptanceError({ ...transfer, status: "accepted" }, valid),
-		).toMatch(/no longer pending/);
+			getTransferAcceptanceError(noPendingTransfer, "target", now),
+		).toMatch(/no pending ownership transfer for you/);
 	});
 
 	it("rejects an expired transfer", () => {
 		expect(
 			getTransferAcceptanceError(
-				{ ...transfer, expiresAt: new Date("2025-12-31T00:00:00Z") },
-				valid,
+				{ ...pending, pendingOwnerExpiresAt: new Date("2025-12-31T00:00:00Z") },
+				"target",
+				now,
 			),
 		).toMatch(/expired/);
 	});
+});
 
-	it("rejects when the sender is no longer the instance owner", () => {
-		expect(
-			getTransferAcceptanceError(transfer, {
-				...valid,
-				instanceOwnerId: "someone-else",
+describe("acceptOwnershipTransfer", () => {
+	it("moves ownership to the recipient and clears the pending transfer", async () => {
+		pendingTransfer = {
+			pendingOwnerId: "target",
+			pendingOwnerExpiresAt: inTwoDays(),
+		};
+
+		await expect(acceptOwnershipTransfer("target")).resolves.toEqual({
+			organizationsTransferred: 2,
+		});
+		expect(writesTo(schema.webServerSettings)).toEqual([
+			expect.objectContaining({
+				values: { instanceOwnerId: "target", ...noPendingTransfer },
 			}),
-		).toMatch(/no longer owns/);
+		]);
+	});
+
+	it("refuses a user the transfer isn't addressed to", async () => {
+		pendingTransfer = {
+			pendingOwnerId: "target",
+			pendingOwnerExpiresAt: inTwoDays(),
+		};
+
+		await expect(acceptOwnershipTransfer("intruder")).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+		});
+		expect(writes).toHaveLength(0);
+	});
+
+	it("refuses an expired transfer", async () => {
+		pendingTransfer = {
+			pendingOwnerId: "target",
+			pendingOwnerExpiresAt: new Date(Date.now() - 1000),
+		};
+
+		await expect(acceptOwnershipTransfer("target")).rejects.toMatchObject({
+			code: "BAD_REQUEST",
+			message: expect.stringMatching(/expired/),
+		});
+		expect(writes).toHaveLength(0);
+	});
+});
+
+describe("declineOwnershipTransfer", () => {
+	it("clears the pending transfer", async () => {
+		await declineOwnershipTransfer("target");
+
+		expect(writesTo(schema.webServerSettings)).toEqual([
+			expect.objectContaining({ values: noPendingTransfer }),
+		]);
+	});
+
+	it("fails when there is nothing to decline", async () => {
+		clearedSettingsRows = [];
+
+		await expect(declineOwnershipTransfer("target")).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
 	});
 });
 
@@ -361,20 +424,14 @@ describe("transferInstanceOwnership", () => {
 		]);
 	});
 
-	it("records the new instance owner", async () => {
+	it("records the new instance owner and clears any pending transfer", async () => {
 		await transferInstanceOwnership("owner", "target");
 
 		expect(writesTo(schema.webServerSettings)).toEqual([
-			expect.objectContaining({ values: { instanceOwnerId: "target" } }),
+			expect.objectContaining({
+				values: { instanceOwnerId: "target", ...noPendingTransfer },
+			}),
 		]);
-	});
-
-	it("claims the invitation when accepting one", async () => {
-		await transferInstanceOwnership("owner", "target", "transfer-1");
-
-		expect(writesTo(schema.ownershipTransfer)[0]).toEqual(
-			expect.objectContaining({ values: { status: "accepted" } }),
-		);
 	});
 
 	it("still records the new owner when the old owner has no organizations", async () => {

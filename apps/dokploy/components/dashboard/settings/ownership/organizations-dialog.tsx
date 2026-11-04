@@ -11,8 +11,6 @@ import { Input } from "@/components/ui/input";
 
 const SEARCHABLE_FROM = 10;
 const VISIBLE_ROWS = 7;
-// Matches the h-9 rows below; the extra pixels cover the 1px borders between
-// rows and around the list.
 const LIST_MAX_HEIGHT = `calc(${VISIBLE_ROWS} * 2.25rem + ${VISIBLE_ROWS + 1}px)`;
 
 interface Props {

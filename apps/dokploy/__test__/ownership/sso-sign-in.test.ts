@@ -15,14 +15,11 @@ const unlicensed: License = {
 };
 
 let instanceOwnerId: string | null = "new-owner";
-// After a transfer: an admin's legacy organization holds the earliest owner
-// membership, while the license moved to the new instance owner.
 const licenses: Record<string, License> = {
 	"new-owner": licensed,
 	"legacy-admin": unlicensed,
 };
 
-// Pulls the bound id out of a drizzle eq() expression.
 const idFromWhere = (where: unknown) => {
 	const chunks = (where as { queryChunks?: unknown[] })?.queryChunks ?? [];
 	const param = chunks.find(

@@ -1,12 +1,10 @@
-import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFindCredentialAccount = vi.hoisted(() => vi.fn());
 const mockCreateOwnershipTransfer = vi.hoisted(() => vi.fn());
 const mockIsInstanceOwner = vi.hoisted(() => vi.fn());
-const mockFindTransferRecipient = vi.hoisted(() => vi.fn());
-const mockSearchTransferRecipients = vi.hoisted(() => vi.fn());
+const mockListTransferRecipients = vi.hoisted(() => vi.fn());
 const noop = vi.fn();
 
 vi.mock("@dokploy/server", () => ({
@@ -15,15 +13,13 @@ vi.mock("@dokploy/server", () => ({
 	createOwnershipTransfer: mockCreateOwnershipTransfer,
 	declineOwnershipTransfer: noop,
 	findCredentialAccount: mockFindCredentialAccount,
-	findIncomingTransfers: noop,
+	findIncomingTransfer: noop,
 	findOwnedOrganizations: noop,
-	findOwnershipTransferById: noop,
 	findPendingOutgoingTransfer: noop,
-	findTransferRecipient: mockFindTransferRecipient,
-	searchTransferRecipients: mockSearchTransferRecipients,
 	hasValidLicense: vi.fn(async () => false),
 	IS_CLOUD: false,
 	isInstanceOwner: mockIsInstanceOwner,
+	listTransferRecipients: mockListTransferRecipients,
 }));
 
 vi.mock("@dokploy/server/lib/auth", () => ({
@@ -55,8 +51,7 @@ beforeEach(() => {
 		password: passwordHash,
 	});
 	mockCreateOwnershipTransfer.mockResolvedValue({ id: "transfer-1" });
-	mockFindTransferRecipient.mockReset();
-	mockSearchTransferRecipients.mockReset();
+	mockListTransferRecipients.mockReset();
 });
 
 describe("ownershipTransfer.create password confirmation", () => {
@@ -110,93 +105,28 @@ describe("ownershipTransfer.create password confirmation", () => {
 	});
 });
 
-describe("ownershipTransfer.checkRecipient", () => {
-	it("returns the recipient so the password prompt can name them", async () => {
-		const recipient = {
-			id: "user-2",
-			email: "new@example.com",
-			firstName: "New",
-			lastName: "Owner",
-		};
-		mockFindTransferRecipient.mockResolvedValue(recipient);
+describe("ownershipTransfer.recipients", () => {
+	it("returns every user the instance owner can transfer to", async () => {
+		const recipients = [
+			{
+				id: "user-2",
+				email: "alice@example.com",
+				firstName: "Alice",
+				lastName: "",
+			},
+		];
+		mockListTransferRecipients.mockResolvedValue(recipients);
 
-		await expect(
-			caller.checkRecipient({ email: "new@example.com" }),
-		).resolves.toEqual(recipient);
-		expect(mockFindTransferRecipient).toHaveBeenCalledWith(
-			"owner-1",
-			"new@example.com",
-		);
+		await expect(caller.recipients()).resolves.toEqual(recipients);
+		expect(mockListTransferRecipients).toHaveBeenCalledWith("owner-1");
 	});
 
-	it("passes through why a user can't receive ownership", async () => {
-		mockFindTransferRecipient.mockRejectedValue(
-			new TRPCError({
-				code: "NOT_FOUND",
-				message:
-					"No user found with that email. Invite them to an organization first.",
-			}),
-		);
+	it("is only available to the instance owner", async () => {
+		mockIsInstanceOwner.mockResolvedValue(false);
 
-		await expect(
-			caller.checkRecipient({ email: "nobody@example.com" }),
-		).rejects.toMatchObject({
-			code: "NOT_FOUND",
-			message: expect.stringMatching(/No user found/),
+		await expect(caller.recipients()).rejects.toMatchObject({
+			code: "FORBIDDEN",
 		});
-	});
-
-	it("rejects an invalid email without looking it up", async () => {
-		await expect(
-			caller.checkRecipient({ email: "not-an-email" }),
-		).rejects.toMatchObject({ code: "BAD_REQUEST" });
-		expect(mockFindTransferRecipient).not.toHaveBeenCalled();
-	});
-
-	it("is only available to the instance owner", async () => {
-		mockIsInstanceOwner.mockResolvedValue(false);
-
-		await expect(
-			caller.checkRecipient({ email: "new@example.com" }),
-		).rejects.toMatchObject({ code: "FORBIDDEN" });
-		expect(mockFindTransferRecipient).not.toHaveBeenCalled();
-	});
-});
-
-describe("ownershipTransfer.searchRecipients", () => {
-	it("returns matching users for the instance owner", async () => {
-		const result = {
-			users: [
-				{
-					id: "user-2",
-					email: "alice@example.com",
-					firstName: "Alice",
-					lastName: "",
-				},
-			],
-			hasMore: false,
-		};
-		mockSearchTransferRecipients.mockResolvedValue(result);
-
-		await expect(caller.searchRecipients({ query: "a" })).resolves.toEqual(
-			result,
-		);
-		expect(mockSearchTransferRecipients).toHaveBeenCalledWith("owner-1", "a");
-	});
-
-	it("is only available to the instance owner", async () => {
-		mockIsInstanceOwner.mockResolvedValue(false);
-
-		await expect(caller.searchRecipients({ query: "a" })).rejects.toMatchObject(
-			{ code: "FORBIDDEN" },
-		);
-		expect(mockSearchTransferRecipients).not.toHaveBeenCalled();
-	});
-
-	it("rejects an overly long query", async () => {
-		await expect(
-			caller.searchRecipients({ query: "a".repeat(101) }),
-		).rejects.toMatchObject({ code: "BAD_REQUEST" });
-		expect(mockSearchTransferRecipients).not.toHaveBeenCalled();
+		expect(mockListTransferRecipients).not.toHaveBeenCalled();
 	});
 });

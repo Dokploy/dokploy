@@ -4,47 +4,21 @@ import {
 	createOwnershipTransfer,
 	declineOwnershipTransfer,
 	findCredentialAccount,
-	findIncomingTransfers,
+	findIncomingTransfer,
 	findOwnedOrganizations,
-	findOwnershipTransferById,
 	findPendingOutgoingTransfer,
-	findTransferRecipient,
-	IS_CLOUD,
 	isInstanceOwner,
-	searchTransferRecipients,
+	listTransferRecipients,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { audit } from "@/server/api/utils/audit";
+import { apiCreateOwnershipTransfer } from "@/server/db/schema";
 import {
-	apiCheckTransferRecipient,
-	apiCreateOwnershipTransfer,
-	apiFindOwnershipTransfer,
-	apiSearchTransferRecipients,
-} from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
-
-const selfHostedProcedure = protectedProcedure.use(({ next }) => {
-	if (IS_CLOUD) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Ownership transfer is only available on self-hosted",
-		});
-	}
-	return next();
-});
-
-const instanceOwnerProcedure = selfHostedProcedure.use(
-	async ({ ctx, next }) => {
-		if (!(await isInstanceOwner(ctx.user.id))) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "Only the instance owner can transfer ownership",
-			});
-		}
-		return next();
-	},
-);
+	createTRPCRouter,
+	instanceOwnerProcedure,
+	selfHostedProcedure,
+} from "../trpc";
 
 export const ownershipTransferRouter = createTRPCRouter({
 	status: selfHostedProcedure.query(async ({ ctx }) => {
@@ -58,25 +32,14 @@ export const ownershipTransferRouter = createTRPCRouter({
 
 		const [ownedOrganizations, pending] = await Promise.all([
 			findOwnedOrganizations(ctx.user.id),
-			findPendingOutgoingTransfer(ctx.user.id),
+			findPendingOutgoingTransfer(),
 		]);
 
-		return {
-			isInstanceOwner: true,
-			ownedOrganizations,
-			pending: pending ?? null,
-		};
+		return { isInstanceOwner: true, ownedOrganizations, pending };
 	}),
-	searchRecipients: instanceOwnerProcedure
-		.input(apiSearchTransferRecipients)
-		.query(async ({ ctx, input }) => {
-			return searchTransferRecipients(ctx.user.id, input.query);
-		}),
-	checkRecipient: instanceOwnerProcedure
-		.input(apiCheckTransferRecipient)
-		.query(async ({ ctx, input }) => {
-			return findTransferRecipient(ctx.user.id, input.email);
-		}),
+	recipients: instanceOwnerProcedure.query(async ({ ctx }) => {
+		return listTransferRecipients(ctx.user.id);
+	}),
 	create: instanceOwnerProcedure
 		.input(apiCreateOwnershipTransfer)
 		.mutation(async ({ ctx, input }) => {
@@ -100,58 +63,29 @@ export const ownershipTransferRouter = createTRPCRouter({
 			await audit(ctx, {
 				action: "create",
 				resourceType: "organization",
-				resourceId: created?.id,
 				resourceName: input.email,
 				metadata: { type: "ownershipTransferInvite" },
 			});
 			return created;
 		}),
-	cancel: instanceOwnerProcedure
-		.input(apiFindOwnershipTransfer)
-		.mutation(async ({ ctx, input }) => {
-			await cancelOwnershipTransfer(input.transferId, ctx.user.id);
+	cancel: instanceOwnerProcedure.mutation(async ({ ctx }) => {
+		await cancelOwnershipTransfer();
 
-			await audit(ctx, {
-				action: "cancel",
-				resourceType: "organization",
-				resourceId: input.transferId,
-				metadata: { type: "ownershipTransferInvite" },
-			});
-			return true;
-		}),
-	incoming: selfHostedProcedure.query(async ({ ctx }) => {
-		return findIncomingTransfers(ctx.user.id);
+		await audit(ctx, {
+			action: "cancel",
+			resourceType: "organization",
+			metadata: { type: "ownershipTransferInvite" },
+		});
+		return true;
 	}),
-	one: selfHostedProcedure
-		.input(apiFindOwnershipTransfer)
-		.query(async ({ ctx, input }) => {
-			const transfer = await findOwnershipTransferById(input.transferId);
-
-			if (
-				transfer.toUserId !== ctx.user.id &&
-				transfer.fromUserId !== ctx.user.id
-			) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "This ownership transfer is not addressed to you",
-				});
-			}
-
-			return {
-				...transfer,
-				isRecipient: transfer.toUserId === ctx.user.id,
-				organizations: await findOwnedOrganizations(transfer.fromUserId),
-			};
-		}),
-	accept: selfHostedProcedure
-		.input(apiFindOwnershipTransfer)
-		.mutation(async ({ ctx, input }) => {
-			return acceptOwnershipTransfer(input.transferId, ctx.user.id);
-		}),
-	decline: selfHostedProcedure
-		.input(apiFindOwnershipTransfer)
-		.mutation(async ({ ctx, input }) => {
-			await declineOwnershipTransfer(input.transferId, ctx.user.id);
-			return true;
-		}),
+	incoming: selfHostedProcedure.query(async ({ ctx }) => {
+		return findIncomingTransfer(ctx.user.id);
+	}),
+	accept: selfHostedProcedure.mutation(async ({ ctx }) => {
+		return acceptOwnershipTransfer(ctx.user.id);
+	}),
+	decline: selfHostedProcedure.mutation(async ({ ctx }) => {
+		await declineOwnershipTransfer(ctx.user.id);
+		return true;
+	}),
 });
