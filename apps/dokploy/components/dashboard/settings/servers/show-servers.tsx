@@ -286,7 +286,7 @@ export const ShowServers = () => {
 																					)}
 
 																				{server.sshKeyId &&
-																					permissions?.server.create && (
+																					permissions?.server.read && (
 																						<Tooltip>
 																							<ShowServerSecurity
 																								serverId={server.serverId}

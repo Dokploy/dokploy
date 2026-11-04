@@ -29,9 +29,10 @@ type PermitRootLogin = "yes" | "prohibit-password" | "no";
 
 interface Props {
 	serverId: string;
+	canEdit: boolean;
 }
 
-export const SshTab = ({ serverId }: Props) => {
+export const SshTab = ({ serverId, canEdit }: Props) => {
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.sshSecurity.useQuery({ serverId }, { retry: false });
 	const updateSettings = api.serverSecurity.updateSshSettings.useMutation();
@@ -83,7 +84,10 @@ export const SshTab = ({ serverId }: Props) => {
 				</AlertBlock>
 			)}
 
-			<div className="grid gap-5 rounded-lg border p-4">
+			<fieldset
+				disabled={!canEdit}
+				className="grid gap-5 rounded-lg border p-4"
+			>
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-1">
 						<Label htmlFor="ssh-password-auth">Password authentication</Label>
@@ -171,7 +175,7 @@ export const SshTab = ({ serverId }: Props) => {
 						</Button>
 					</DialogAction>
 				</div>
-			</div>
+			</fieldset>
 
 			<div className="space-y-2">
 				<h4 className="text-sm font-semibold">
@@ -241,7 +245,9 @@ export const SshTab = ({ serverId }: Props) => {
 													variant="ghost"
 													size="sm"
 													className="text-destructive"
-													disabled={key.usedByDokploy || removeKey.isPending}
+													disabled={
+														!canEdit || key.usedByDokploy || removeKey.isPending
+													}
 												>
 													Remove
 												</Button>

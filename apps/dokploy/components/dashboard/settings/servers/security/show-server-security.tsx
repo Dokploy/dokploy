@@ -9,6 +9,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api } from "@/utils/api";
 import { ActivityTab } from "./activity-tab";
 import { ExposedPortsTab } from "./exposed-ports-tab";
 import { Fail2banTab } from "./fail2ban-tab";
@@ -22,6 +23,8 @@ interface Props {
 
 export const ShowServerSecurity = ({ serverId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const { data: permissions } = api.user.getPermissions.useQuery();
+	const canEdit = !!permissions?.server.create;
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -49,19 +52,19 @@ export const ShowServerSecurity = ({ serverId, children }: Props) => {
 							<TabsTrigger value="activity">Activity</TabsTrigger>
 						</TabsList>
 						<TabsContent value="fail2ban">
-							<Fail2banTab serverId={serverId} />
+							<Fail2banTab serverId={serverId} canEdit={canEdit} />
 						</TabsContent>
 						<TabsContent value="ports">
 							<ExposedPortsTab serverId={serverId} />
 						</TabsContent>
 						<TabsContent value="ssh">
-							<SshTab serverId={serverId} />
+							<SshTab serverId={serverId} canEdit={canEdit} />
 						</TabsContent>
 						<TabsContent value="updates">
 							<UpdatesTab serverId={serverId} />
 						</TabsContent>
 						<TabsContent value="activity">
-							<ActivityTab serverId={serverId} />
+							<ActivityTab serverId={serverId} canEdit={canEdit} />
 						</TabsContent>
 					</Tabs>
 				)}

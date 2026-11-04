@@ -12,6 +12,7 @@ interface Props {
 	user: string;
 	from: string | null;
 	isPanelSession: boolean;
+	canEdit: boolean;
 	onDisconnected: () => Promise<unknown>;
 }
 
@@ -21,6 +22,7 @@ export const SessionActions = ({
 	user,
 	from,
 	isPanelSession,
+	canEdit,
 	onDisconnected,
 }: Props) => {
 	const disconnect = api.serverSecurity.disconnectSession.useMutation();
@@ -54,7 +56,11 @@ export const SessionActions = ({
 				type="default"
 				onClick={() => run()}
 			>
-				<Button variant="outline" size="sm" disabled={disconnect.isPending}>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={!canEdit || disconnect.isPending}
+				>
 					Disconnect
 				</Button>
 			</DialogAction>
@@ -66,7 +72,7 @@ export const SessionActions = ({
 				<Button
 					variant="destructive"
 					size="sm"
-					disabled={!canBan || disconnect.isPending}
+					disabled={!canEdit || !canBan || disconnect.isPending}
 				>
 					Disconnect & ban
 				</Button>

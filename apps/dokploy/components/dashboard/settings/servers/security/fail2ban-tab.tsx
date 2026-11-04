@@ -58,9 +58,10 @@ type Fail2banForm = z.infer<typeof Fail2banSchema>;
 
 interface Props {
 	serverId: string;
+	canEdit: boolean;
 }
 
-export const Fail2banTab = ({ serverId }: Props) => {
+export const Fail2banTab = ({ serverId, canEdit }: Props) => {
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.fail2banStatus.useQuery({ serverId }, { retry: false });
 	const configure = api.serverSecurity.configureFail2ban.useMutation();
@@ -152,7 +153,7 @@ export const Fail2banTab = ({ serverId }: Props) => {
 						<Switch
 							id="fail2ban-enabled"
 							checked={data.active}
-							disabled={setEnabled.isPending}
+							disabled={!canEdit || setEnabled.isPending}
 							onCheckedChange={async (enabled) => {
 								try {
 									await setEnabled.mutateAsync({ serverId, enabled });
@@ -173,136 +174,138 @@ export const Fail2banTab = ({ serverId }: Props) => {
 					onSubmit={form.handleSubmit(onSubmit)}
 					className="grid gap-4 rounded-lg border p-4"
 				>
-					<div className="grid gap-4 md:grid-cols-3">
-						<FormField
-							control={form.control}
-							name="maxretry"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Max retries</FormLabel>
-									<FormControl>
-										<Input
-											type="number"
-											min={1}
-											{...field}
-											onChange={(e) => field.onChange(e.target.valueAsNumber)}
-										/>
-									</FormControl>
-									<FormDescription>Failures before a ban</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="findtimeMinutes"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Find time (minutes)</FormLabel>
-									<FormControl>
-										<Input
-											type="number"
-											min={1}
-											{...field}
-											onChange={(e) => field.onChange(e.target.valueAsNumber)}
-										/>
-									</FormControl>
-									<FormDescription>Window to count failures</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<div className="space-y-2">
+					<fieldset disabled={!canEdit} className="contents">
+						<div className="grid gap-4 md:grid-cols-3">
 							<FormField
 								control={form.control}
-								name="permanentBan"
+								name="maxretry"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Ban duration</FormLabel>
-										<Select
-											value={field.value ? "permanent" : "temporary"}
-											onValueChange={(value) =>
-												field.onChange(value === "permanent")
-											}
-										>
-											<FormControl>
-												<SelectTrigger className="w-full">
-													<SelectValue />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												<SelectItem value="temporary">Temporary</SelectItem>
-												<SelectItem value="permanent">Permanent</SelectItem>
-											</SelectContent>
-										</Select>
+										<FormLabel>Max retries</FormLabel>
+										<FormControl>
+											<Input
+												type="number"
+												min={1}
+												{...field}
+												onChange={(e) => field.onChange(e.target.valueAsNumber)}
+											/>
+										</FormControl>
+										<FormDescription>Failures before a ban</FormDescription>
+										<FormMessage />
 									</FormItem>
 								)}
 							/>
-							{permanentBan ? (
-								<p className="text-sm text-muted-foreground">
-									Banned IPs stay blocked until you unban them.
-								</p>
-							) : (
+							<FormField
+								control={form.control}
+								name="findtimeMinutes"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Find time (minutes)</FormLabel>
+										<FormControl>
+											<Input
+												type="number"
+												min={1}
+												{...field}
+												onChange={(e) => field.onChange(e.target.valueAsNumber)}
+											/>
+										</FormControl>
+										<FormDescription>Window to count failures</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<div className="space-y-2">
 								<FormField
 									control={form.control}
-									name="bantimeMinutes"
+									name="permanentBan"
 									render={({ field }) => (
 										<FormItem>
-											<FormControl>
-												<div className="flex items-center gap-2">
-													<Input
-														type="number"
-														min={1}
-														{...field}
-														onChange={(e) =>
-															field.onChange(e.target.valueAsNumber)
-														}
-													/>
-													<span className="text-sm text-muted-foreground">
-														minutes
-													</span>
-												</div>
-											</FormControl>
-											<FormMessage />
+											<FormLabel>Ban duration</FormLabel>
+											<Select
+												value={field.value ? "permanent" : "temporary"}
+												onValueChange={(value) =>
+													field.onChange(value === "permanent")
+												}
+											>
+												<FormControl>
+													<SelectTrigger className="w-full">
+														<SelectValue />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="temporary">Temporary</SelectItem>
+													<SelectItem value="permanent">Permanent</SelectItem>
+												</SelectContent>
+											</Select>
 										</FormItem>
 									)}
 								/>
-							)}
-						</div>
-					</div>
-					<FormField
-						control={form.control}
-						name="ignoreip"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Whitelisted IPs</FormLabel>
-								<FormControl>
-									<Textarea
-										placeholder="e.g. 203.0.113.10 or 198.51.100.0/24"
-										className="font-mono text-sm"
-										rows={3}
-										{...field}
+								{permanentBan ? (
+									<p className="text-sm text-muted-foreground">
+										Banned IPs stay blocked until you unban them.
+									</p>
+								) : (
+									<FormField
+										control={form.control}
+										name="bantimeMinutes"
+										render={({ field }) => (
+											<FormItem>
+												<FormControl>
+													<div className="flex items-center gap-2">
+														<Input
+															type="number"
+															min={1}
+															{...field}
+															onChange={(e) =>
+																field.onChange(e.target.valueAsNumber)
+															}
+														/>
+														<span className="text-sm text-muted-foreground">
+															minutes
+														</span>
+													</div>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
 									/>
-								</FormControl>
-								<FormDescription>
-									One IP or CIDR range per line. These are never banned.
-									{(data.panelIps ?? []).length > 0 && (
-										<>
-											{" "}
-											The Dokploy panel ({(data.panelIps ?? []).join(", ")}) is
-											always whitelisted.
-										</>
-									)}
-								</FormDescription>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<div className="flex justify-end">
-						<Button type="submit" isLoading={configure.isPending}>
-							{data.installed ? "Save configuration" : "Install & enable"}
-						</Button>
-					</div>
+								)}
+							</div>
+						</div>
+						<FormField
+							control={form.control}
+							name="ignoreip"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Whitelisted IPs</FormLabel>
+									<FormControl>
+										<Textarea
+											placeholder="e.g. 203.0.113.10 or 198.51.100.0/24"
+											className="font-mono text-sm"
+											rows={3}
+											{...field}
+										/>
+									</FormControl>
+									<FormDescription>
+										One IP or CIDR range per line. These are never banned.
+										{(data.panelIps ?? []).length > 0 && (
+											<>
+												{" "}
+												The Dokploy panel ({(data.panelIps ?? []).join(", ")})
+												is always whitelisted.
+											</>
+										)}
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<div className="flex justify-end">
+							<Button type="submit" isLoading={configure.isPending}>
+								{data.installed ? "Save configuration" : "Install & enable"}
+							</Button>
+						</div>
+					</fieldset>
 				</form>
 			</Form>
 			{data.active && (
@@ -314,6 +317,7 @@ export const Fail2banTab = ({ serverId }: Props) => {
 						canBanManually={(data.jails ?? []).some(
 							(jail) => jail.name === "dokploy-manual",
 						)}
+						canEdit={canEdit}
 						onChange={refetch}
 					/>
 					<div className="rounded-lg border">

@@ -1,7 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
 import { quote } from "shell-quote";
+import { utils } from "ssh2";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
+import { ExecError } from "../utils/process/ExecError";
 import { execAsyncRemote } from "../utils/process/execAsync";
 import { findServerById } from "./server";
 import { getWebServerSettings } from "./web-server-settings";
@@ -15,13 +17,23 @@ const SSHD_DROPIN_PATH = "/etc/ssh/sshd_config.d/00-dokploy.conf";
 const SSHD_DROPIN_BACKUP_PATH = "/etc/ssh/sshd_config.d/.00-dokploy.conf.prev";
 const SSHD_MAIN_BACKUP_PATH = "/etc/ssh/sshd_config.dokploy.bak";
 const SSH_REVERT_DELAY_SECONDS = 60;
+const SSH_PENDING_MARKER_PATH = "/run/dokploy-ssh-pending";
+const SSH_CONFIRM_ATTEMPTS = 5;
 
 const runRemote = async (serverId: string, script: string) => {
-	const { stdout } = await execAsyncRemote(
-		serverId,
-		`${SUDO_PREAMBLE}\n${script}`,
-	);
-	return stdout;
+	try {
+		const { stdout } = await execAsyncRemote(
+			serverId,
+			`${SUDO_PREAMBLE}\n${script}`,
+		);
+		return stdout;
+	} catch (error) {
+		const reason =
+			error instanceof ExecError
+				? error.stderr?.trim().split("\n").filter(Boolean).at(-1)
+				: undefined;
+		throw reason ? new Error(reason) : error;
+	}
 };
 
 const toBase64 = (content: string) => Buffer.from(content).toString("base64");
@@ -473,11 +485,18 @@ export const getPendingUpdates = async (serverId: string) => {
 	const output = await runRemote(
 		serverId,
 		`
+APT_OK=true
+APT_OUT=""
+if command -v apt-get >/dev/null 2>&1; then
+	APT_OUT=$(apt list --upgradable 2>/dev/null) || APT_OK=false
+fi
 echo "<<status"
 command -v apt-get >/dev/null 2>&1 && echo "supported=true" || echo "supported=false"
 [ -f /var/run/reboot-required ] && echo "rebootRequired=true" || echo "rebootRequired=false"
+echo "checkSucceeded=$APT_OK"
+echo "listsUpdatedAt=$(find /var/lib/apt/lists -maxdepth 1 -type f -name '*Packages*' -printf '%T@\\n' 2>/dev/null | sort -n | tail -n 1 | cut -d. -f1)"
 echo "<<pending"
-apt list --upgradable 2>/dev/null | grep -- "-security" | cut -d/ -f1 || true
+printf '%s\\n' "$APT_OUT" | grep -- "-security" | cut -d/ -f1 || true
 echo "<<reboot"
 cat /var/run/reboot-required.pkgs 2>/dev/null | sort -u || true
 `,
@@ -489,6 +508,10 @@ cat /var/run/reboot-required.pkgs 2>/dev/null | sort -u || true
 	return {
 		supported: status.supported === "true",
 		rebootRequired: status.rebootRequired === "true",
+		checkSucceeded: status.checkSucceeded === "true",
+		listsUpdatedAt: status.listsUpdatedAt
+			? Number(status.listsUpdatedAt) * 1000
+			: null,
 		pendingSecurityUpdates: sections.pending ?? [],
 		rebootRequiredBy: sections.reboot ?? [],
 	};
@@ -511,14 +534,21 @@ export interface AuthorizedKey {
 	usedByDokploy: boolean;
 }
 
-export const getPublicKeyFingerprint = (publicKey: string) => {
-	const blob = publicKey.trim().split(/\s+/)[1];
-	if (!blob) return null;
-	const digest = createHash("sha256")
-		.update(Buffer.from(blob, "base64"))
-		.digest("base64")
-		.replace(/=+$/, "");
-	return `SHA256:${digest}`;
+const toFingerprint = (blob: Buffer) =>
+	`SHA256:${createHash("sha256").update(blob).digest("base64").replace(/=+$/, "")}`;
+
+// The stored public key isn't validated against the private key, and SSH authenticates with the private one
+export const getDokployKeyFingerprint = (sshKey: {
+	privateKey: string;
+	publicKey: string;
+}) => {
+	const parsed = utils.parseKey(sshKey.privateKey);
+	const key = Array.isArray(parsed) ? parsed[0] : parsed;
+	if (key && !(key instanceof Error)) {
+		return toFingerprint(key.getPublicSSH());
+	}
+	const blob = sshKey.publicKey.trim().split(/\s+/)[1];
+	return blob ? toFingerprint(Buffer.from(blob, "base64")) : null;
 };
 
 const PERMIT_ROOT_LOGIN_VALUES: Record<string, PermitRootLogin> = {
@@ -559,7 +589,7 @@ fi
 		}),
 	);
 	const dokployFingerprint = server.sshKey
-		? getPublicKeyFingerprint(server.sshKey.publicKey)
+		? getDokployKeyFingerprint(server.sshKey)
 		: null;
 
 	const authorizedKeys: AuthorizedKey[] = (sections.keys ?? []).flatMap(
@@ -622,47 +652,73 @@ if [ -f ${SSHD_DROPIN_BACKUP_PATH} ]; then mv ${SSHD_DROPIN_BACKUP_PATH} ${SSHD_
 if [ -f ${SSHD_MAIN_BACKUP_PATH} ]; then mv ${SSHD_MAIN_BACKUP_PATH} /etc/ssh/sshd_config; fi`;
 	const revertScript = `sleep ${SSH_REVERT_DELAY_SECONDS}
 if [ -f ${confirmFile} ]; then rm -f ${confirmFile} ${revertScriptPath}; exit 0; fi
+if [ "$(cat ${SSH_PENDING_MARKER_PATH} 2>/dev/null)" = "${token}" ]; then
 ${restore}
 systemctl reload ssh 2>/dev/null || systemctl reload sshd
+rm -f ${SSH_PENDING_MARKER_PATH}
+fi
 rm -f ${revertScriptPath}
 `;
+	const expectedPermitRootLogin =
+		settings.permitRootLogin === "prohibit-password"
+			? "prohibit-password|without-password"
+			: settings.permitRootLogin;
 
 	await runRemote(
 		serverId,
 		`
 set -e
 SSHD=$(command -v sshd || echo /usr/sbin/sshd)
+# A change still waiting for confirmation shares the backup files, so a second one would break its rollback
+if [ -n "$($SUDO find ${SSH_PENDING_MARKER_PATH} -mmin -3 2>/dev/null)" ]; then
+	echo "Another SSH change is still waiting for confirmation, try again in a minute" >&2
+	exit 1
+fi
+echo ${token} | $SUDO tee ${SSH_PENDING_MARKER_PATH} >/dev/null
+fail() {
+	$SUDO sh -c '${restore.trim().replace(/\n/g, "; ")}'
+	$SUDO rm -f ${SSH_PENDING_MARKER_PATH}
+	echo "$1" >&2
+	exit 1
+}
 $SUDO mkdir -p /etc/ssh/sshd_config.d
 $SUDO rm -f ${SSHD_MAIN_BACKUP_PATH}
 # sshd keeps the first value it reads, so the drop-in must be included before any other directive
-if ! $SUDO grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\\.d/\\*\\.conf' /etc/ssh/sshd_config; then
+FIRST_DIRECTIVE=$($SUDO grep -vE '^[[:space:]]*(#|$)' /etc/ssh/sshd_config | head -n 1)
+if ! printf '%s\\n' "$FIRST_DIRECTIVE" | grep -qE '^[[:space:]]*Include[[:space:]]+/etc/ssh/sshd_config\\.d/\\*\\.conf'; then
 	$SUDO cp /etc/ssh/sshd_config ${SSHD_MAIN_BACKUP_PATH}
 	$SUDO sed -i '1i Include /etc/ssh/sshd_config.d/*.conf' /etc/ssh/sshd_config
 fi
 if [ -f ${SSHD_DROPIN_PATH} ]; then $SUDO cp ${SSHD_DROPIN_PATH} ${SSHD_DROPIN_BACKUP_PATH}; else $SUDO rm -f ${SSHD_DROPIN_BACKUP_PATH}; fi
 echo '${toBase64(dropin)}' | base64 -d | $SUDO tee ${SSHD_DROPIN_PATH} >/dev/null
-if ! $SUDO "$SSHD" -t; then
-	$SUDO sh -c '${restore.trim().replace(/\n/g, "; ")}'
-	echo "Invalid SSH configuration, changes were reverted" >&2
-	exit 1
-fi
-$SUDO systemctl reload ssh 2>/dev/null || $SUDO systemctl reload sshd
+$SUDO "$SSHD" -t || fail "Invalid SSH configuration, changes were reverted"
+EFFECTIVE=$($SUDO "$SSHD" -T 2>/dev/null)
+printf '%s\\n' "$EFFECTIVE" | grep -qx "passwordauthentication ${settings.passwordAuthentication ? "yes" : "no"}" \\
+	&& printf '%s\\n' "$EFFECTIVE" | grep -qxE "permitrootlogin (${expectedPermitRootLogin})" \\
+	&& printf '%s\\n' "$EFFECTIVE" | grep -qx "maxauthtries ${Math.trunc(settings.maxAuthTries)}" \\
+	|| fail "Another SSH configuration file overrides these settings, changes were reverted"
 echo '${toBase64(revertScript)}' | base64 -d | $SUDO tee ${revertScriptPath} >/dev/null
 $SUDO nohup sh ${revertScriptPath} </dev/null >/dev/null 2>&1 &
+kill -0 $! 2>/dev/null || fail "Could not schedule the automatic rollback, changes were reverted"
+$SUDO systemctl reload ssh 2>/dev/null || $SUDO systemctl reload sshd
 `,
 	);
 
-	// A fresh connection proves the new config still lets Dokploy in; without it the server reverts on its own
-	try {
-		await runRemote(
-			serverId,
-			`$SUDO touch ${confirmFile} && $SUDO rm -f ${SSHD_MAIN_BACKUP_PATH} ${SSHD_DROPIN_BACKUP_PATH}`,
-		);
-	} catch {
-		throw new Error(
-			`Dokploy could not reconnect after applying the SSH settings. They will be reverted automatically within ${SSH_REVERT_DELAY_SECONDS} seconds`,
-		);
+	// A fresh connection proves the new config still lets Dokploy in; without it the server reverts on its own.
+	// Retried because sshd can refuse connections for a moment while it reloads.
+	for (let attempt = 1; attempt <= SSH_CONFIRM_ATTEMPTS; attempt++) {
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+		try {
+			await runRemote(
+				serverId,
+				`$SUDO touch ${confirmFile} && $SUDO rm -f ${SSHD_MAIN_BACKUP_PATH} ${SSHD_DROPIN_BACKUP_PATH} ${SSH_PENDING_MARKER_PATH}`,
+			);
+			return;
+		} catch {}
 	}
+	throw new Error(
+		`Dokploy could not reconnect after applying the SSH settings. They will be reverted automatically within ${SSH_REVERT_DELAY_SECONDS} seconds`,
+	);
 };
 
 export const removeAuthorizedKey = async (
@@ -675,7 +731,7 @@ export const removeAuthorizedKey = async (
 	const server = await findServerById(serverId);
 	if (
 		server.sshKey &&
-		getPublicKeyFingerprint(server.sshKey.publicKey) === fingerprint
+		getDokployKeyFingerprint(server.sshKey) === fingerprint
 	) {
 		throw new Error(
 			"This is the key Dokploy uses to connect to the server and can't be removed",
@@ -688,6 +744,11 @@ export const removeAuthorizedKey = async (
 set -e
 f="$HOME/.ssh/authorized_keys"
 target=${quote([fingerprint])}
+# Without the lock, two removals at once both rewrite the original file and one of the keys comes back
+if command -v flock >/dev/null 2>&1; then
+	exec 9>"$f.dokploy.lock"
+	flock -w 30 9 || { echo "Another key removal is in progress, try again" >&2; exit 1; }
+fi
 tmp=$(mktemp)
 removed=0
 while IFS= read -r line || [ -n "$line" ]; do
@@ -720,17 +781,24 @@ echo "<<logins"
 last -i -w -n 20 2>/dev/null | grep -vE '^(reboot|wtmp|$)' || true
 echo "<<failed"
 LOGS=""
-if command -v journalctl >/dev/null 2>&1; then
+SOURCE=none
+if command -v journalctl >/dev/null 2>&1 && [ -n "$($SUDO journalctl _COMM=sshd _COMM=sshd-session -n 1 -q --no-pager 2>/dev/null)" ]; then
+	SOURCE=journal
 	LOGS=$($SUDO journalctl _COMM=sshd _COMM=sshd-session --since "24 hours ago" --no-pager -o cat 2>/dev/null || true)
-fi
-if [ -z "$LOGS" ]; then
-	if [ -f /var/log/auth.log ]; then LOGS=$($SUDO tail -n 50000 /var/log/auth.log); elif [ -f /var/log/secure ]; then LOGS=$($SUDO tail -n 50000 /var/log/secure); fi
+elif [ -f /var/log/auth.log ]; then
+	SOURCE=file
+	LOGS=$($SUDO tail -n 50000 /var/log/auth.log)
+elif [ -f /var/log/secure ]; then
+	SOURCE=file
+	LOGS=$($SUDO tail -n 50000 /var/log/secure)
 fi
 COUNTS=$(printf '%s\\n' "$LOGS" | grep -E "Failed password|Invalid user|Connection closed by invalid user|authentication failure" \\
 	| grep -oE "from [0-9a-fA-F:.]+" | awk '{print $2}' | sort | uniq -c | sort -rn || true)
 printf '%s\\n' "$COUNTS" | head -5000
 echo "<<failedSummary"
 printf '%s\\n' "$COUNTS" | awk 'NF { total += $1; ips++ } END { print total + 0, ips + 0 }'
+echo "<<failedSource"
+echo "$SOURCE"
 `,
 	);
 	const sections = splitSections(output);
@@ -776,6 +844,11 @@ printf '%s\\n' "$COUNTS" | awk 'NF { total += $1; ips++ } END { print total + 0,
 		failedLogins,
 		failedLoginsTotal: Number(summaryTotal) || 0,
 		failedLoginsUniqueIps: Number(summaryIps) || 0,
+		// Log files have no reliable date filter, so they cover the last 50,000 lines instead of 24h
+		failedLoginsWindow:
+			sections.failedSource?.[0] === "file"
+				? ("logFile" as const)
+				: ("24h" as const),
 		panelIps: await getPanelIps(),
 	};
 };

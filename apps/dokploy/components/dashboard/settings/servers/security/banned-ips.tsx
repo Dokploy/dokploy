@@ -32,6 +32,7 @@ interface Props {
 	bans: Ban[];
 	panelIps: string[];
 	canBanManually: boolean;
+	canEdit: boolean;
 	onChange: () => Promise<unknown>;
 }
 
@@ -40,6 +41,7 @@ export const BannedIps = ({
 	bans,
 	panelIps,
 	canBanManually,
+	canEdit,
 	onChange,
 }: Props) => {
 	const [search, setSearch] = useState("");
@@ -95,7 +97,7 @@ export const BannedIps = ({
 							placeholder="IP to ban, e.g. 203.0.113.10"
 							className="w-64 font-mono text-sm"
 							value={ipToBan}
-							disabled={!canBanManually}
+							disabled={!canEdit || !canBanManually}
 							onChange={(e) => setIpToBan(e.target.value)}
 						/>
 						<DialogAction
@@ -105,7 +107,9 @@ export const BannedIps = ({
 						>
 							<Button
 								variant="destructive"
-								disabled={!trimmedIp || !!ipError || !canBanManually}
+								disabled={
+									!canEdit || !trimmedIp || !!ipError || !canBanManually
+								}
 								isLoading={banIp.isPending}
 							>
 								<Ban className="size-4" />
@@ -198,7 +202,7 @@ export const BannedIps = ({
 											<Button
 												variant="ghost"
 												size="sm"
-												disabled={unbanIp.isPending}
+												disabled={!canEdit || unbanIp.isPending}
 											>
 												Unban
 											</Button>

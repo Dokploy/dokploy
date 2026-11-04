@@ -3,6 +3,7 @@ import {
 	configureFail2ban,
 	disconnectSshSession,
 	findServerById,
+	getAccessibleServerIds,
 	getExposedPorts,
 	getFail2banStatus,
 	getPendingUpdates,
@@ -24,9 +25,16 @@ const ipSchema = z.union([z.ipv4(), z.ipv6()]);
 
 const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
 
-const assertServerAccess = async (serverId: string, organizationId: string) => {
+const assertServerAccess = async (
+	serverId: string,
+	session: { userId: string; activeOrganizationId: string },
+) => {
 	const server = await findServerById(serverId);
-	if (server.organizationId !== organizationId) {
+	const accessibleIds = await getAccessibleServerIds(session);
+	if (
+		server.organizationId !== session.activeOrganizationId ||
+		!accessibleIds.has(serverId)
+	) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "You are not authorized to access this server",
@@ -54,10 +62,7 @@ export const serverSecurityRouter = createTRPCRouter({
 	fail2banStatus: withPermission("server", "read")
 		.input(serverInput)
 		.query(async ({ input, ctx }) => {
-			await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			await assertServerAccess(input.serverId, ctx.session);
 			return getFail2banStatus(input.serverId).catch(toTRPCError);
 		}),
 	configureFail2ban: withPermission("server", "create")
@@ -74,10 +79,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			const { serverId, ...config } = input;
 			await configureFail2ban(serverId, config).catch(toTRPCError);
 			await audit(ctx, {
@@ -92,10 +94,7 @@ export const serverSecurityRouter = createTRPCRouter({
 	setFail2banEnabled: withPermission("server", "create")
 		.input(serverInput.extend({ enabled: z.boolean() }))
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			await setFail2banEnabled(input.serverId, input.enabled).catch(
 				toTRPCError,
 			);
@@ -111,10 +110,7 @@ export const serverSecurityRouter = createTRPCRouter({
 	banIp: withPermission("server", "create")
 		.input(serverInput.extend({ ip: ipSchema }))
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			await banFail2banIp(input.serverId, input.ip).catch(toTRPCError);
 			await audit(ctx, {
 				action: "update",
@@ -133,10 +129,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			await unbanFail2banIp(input.serverId, input.jail, input.ip).catch(
 				toTRPCError,
 			);
@@ -152,19 +145,13 @@ export const serverSecurityRouter = createTRPCRouter({
 	exposedPorts: withPermission("server", "read")
 		.input(serverInput)
 		.query(async ({ input, ctx }) => {
-			await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			await assertServerAccess(input.serverId, ctx.session);
 			return getExposedPorts(input.serverId).catch(toTRPCError);
 		}),
 	sshSecurity: withPermission("server", "read")
 		.input(serverInput)
 		.query(async ({ input, ctx }) => {
-			await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			await assertServerAccess(input.serverId, ctx.session);
 			return getSshSecurity(input.serverId).catch(toTRPCError);
 		}),
 	updateSshSettings: withPermission("server", "create")
@@ -176,10 +163,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			const { serverId, ...settings } = input;
 			await updateSshSettings(serverId, settings).catch(toTRPCError);
 			await audit(ctx, {
@@ -198,10 +182,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			await removeAuthorizedKey(input.serverId, input.fingerprint).catch(
 				toTRPCError,
 			);
@@ -220,10 +201,7 @@ export const serverSecurityRouter = createTRPCRouter({
 	pendingUpdates: withPermission("server", "read")
 		.input(serverInput)
 		.query(async ({ input, ctx }) => {
-			await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			await assertServerAccess(input.serverId, ctx.session);
 			return getPendingUpdates(input.serverId).catch(toTRPCError);
 		}),
 	disconnectSession: withPermission("server", "create")
@@ -234,10 +212,7 @@ export const serverSecurityRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const server = await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			const server = await assertServerAccess(input.serverId, ctx.session);
 			await disconnectSshSession(
 				input.serverId,
 				input.terminal,
@@ -259,10 +234,7 @@ export const serverSecurityRouter = createTRPCRouter({
 	activity: withPermission("server", "read")
 		.input(serverInput)
 		.query(async ({ input, ctx }) => {
-			await assertServerAccess(
-				input.serverId,
-				ctx.session.activeOrganizationId,
-			);
+			await assertServerAccess(input.serverId, ctx.session);
 			return getServerActivity(input.serverId).catch(toTRPCError);
 		}),
 });

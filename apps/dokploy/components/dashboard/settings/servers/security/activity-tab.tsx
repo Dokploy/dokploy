@@ -17,6 +17,7 @@ import { SessionActions } from "./session-actions";
 
 interface Props {
 	serverId: string;
+	canEdit: boolean;
 }
 
 const Stat = ({ label, value }: { label: string; value: number }) => (
@@ -36,7 +37,7 @@ const EmptyRow = ({ colSpan, label }: { colSpan: number; label: string }) => (
 	</TableRow>
 );
 
-export const ActivityTab = ({ serverId }: Props) => {
+export const ActivityTab = ({ serverId, canEdit }: Props) => {
 	const { data, isPending, isError, error, refetch, isRefetching } =
 		api.serverSecurity.activity.useQuery({ serverId }, { retry: false });
 	const [failedSearch, setFailedSearch] = useState("");
@@ -53,6 +54,8 @@ export const ActivityTab = ({ serverId }: Props) => {
 		);
 
 	const failedLogins = data.failedLogins ?? [];
+	const failedWindow =
+		data.failedLoginsWindow === "logFile" ? "recent log" : "24h";
 	const filteredFailedLogins = failedSearch.trim()
 		? failedLogins.filter((source) => source.ip.includes(failedSearch.trim()))
 		: failedLogins;
@@ -80,9 +83,12 @@ export const ActivityTab = ({ serverId }: Props) => {
 					label="Active sessions"
 					value={(data.activeSessions ?? []).length}
 				/>
-				<Stat label="Failed logins (24h)" value={data.failedLoginsTotal ?? 0} />
 				<Stat
-					label="Attacking IPs (24h)"
+					label={`Failed logins (${failedWindow})`}
+					value={data.failedLoginsTotal ?? 0}
+				/>
+				<Stat
+					label={`Attacking IPs (${failedWindow})`}
 					value={data.failedLoginsUniqueIps ?? 0}
 				/>
 			</div>
@@ -128,6 +134,7 @@ export const ActivityTab = ({ serverId }: Props) => {
 													user={session.user}
 													from={session.from}
 													isPanelSession={isPanelSession}
+													canEdit={canEdit}
 													onDisconnected={refetch}
 												/>
 											</TableCell>
@@ -174,7 +181,7 @@ export const ActivityTab = ({ serverId }: Props) => {
 				<div className="space-y-2">
 					<div className="flex items-center justify-between gap-2">
 						<h4 className="text-sm font-semibold">
-							Top failed login sources (24h)
+							Top failed login sources ({failedWindow})
 						</h4>
 						{failedLogins.length > 0 && (
 							<div className="relative w-48">
