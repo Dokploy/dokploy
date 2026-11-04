@@ -45,13 +45,13 @@ beforeEach(() => {
 	mockFindCredentialAccount.mockReset();
 	mockCreateOwnershipTransfer.mockReset();
 	mockIsInstanceOwner.mockReset();
+	mockListTransferRecipients.mockReset();
 	mockIsInstanceOwner.mockResolvedValue(true);
 	mockFindCredentialAccount.mockResolvedValue({
 		id: "account-1",
 		password: passwordHash,
 	});
 	mockCreateOwnershipTransfer.mockResolvedValue({ id: "transfer-1" });
-	mockListTransferRecipients.mockReset();
 });
 
 describe("ownershipTransfer.create password confirmation", () => {
@@ -106,14 +106,9 @@ describe("ownershipTransfer.create password confirmation", () => {
 });
 
 describe("ownershipTransfer.recipients", () => {
-	it("returns every user the instance owner can transfer to", async () => {
+	it("lists the members of the organizations the owner owns", async () => {
 		const recipients = [
-			{
-				id: "user-2",
-				email: "alice@example.com",
-				firstName: "Alice",
-				lastName: "",
-			},
+			{ id: "user-2", email: "x@example.com", firstName: "X", lastName: "" },
 		];
 		mockListTransferRecipients.mockResolvedValue(recipients);
 

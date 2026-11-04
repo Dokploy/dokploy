@@ -13,7 +13,6 @@ import {
 	and,
 	asc,
 	eq,
-	exists,
 	inArray,
 	isNotNull,
 	isNull,
@@ -118,25 +117,26 @@ export const findIncomingTransfer = async (userId: string) => {
 	};
 };
 
-export const listTransferRecipients = async (fromUserId: string) => {
+export const listTransferRecipients = async (ownerId: string) => {
+	const ownedOrganizations = db
+		.select({ id: organization.id })
+		.from(organization)
+		.where(eq(organization.ownerId, ownerId));
+
 	return db
-		.select({
+		.selectDistinct({
 			id: user.id,
 			email: user.email,
 			firstName: user.firstName,
 			lastName: user.lastName,
 		})
-		.from(user)
+		.from(member)
+		.innerJoin(user, eq(member.userId, user.id))
 		.where(
 			and(
-				ne(user.id, fromUserId),
+				inArray(member.organizationId, ownedOrganizations),
+				ne(user.id, ownerId),
 				or(isNull(user.banned), eq(user.banned, false)),
-				exists(
-					db
-						.select({ id: member.id })
-						.from(member)
-						.where(eq(member.userId, user.id)),
-				),
 			),
 		)
 		.orderBy(asc(user.email));
