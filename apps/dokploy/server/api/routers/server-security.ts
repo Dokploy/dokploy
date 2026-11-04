@@ -8,8 +8,6 @@ import {
 	getPendingUpdates,
 	getServerActivity,
 	getSshSecurity,
-	ipOrCidrSchema,
-	ipSchema,
 	removeAuthorizedKey,
 	setFail2banEnabled,
 	unbanFail2banIp,
@@ -21,6 +19,10 @@ import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, withPermission } from "../trpc";
 
 const serverInput = z.object({ serverId: z.string().min(1) });
+
+const ipSchema = z.union([z.ipv4(), z.ipv6()]);
+
+const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
 
 const assertServerAccess = async (serverId: string, organizationId: string) => {
 	const server = await findServerById(serverId);

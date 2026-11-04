@@ -41,14 +41,9 @@ const splitSections = (output: string) => {
 	return sections;
 };
 
-export const ipSchema = z.union([z.ipv4(), z.ipv6()]);
+const ipSchema = z.union([z.ipv4(), z.ipv6()]);
 
-export const ipOrCidrSchema = z.union([
-	z.ipv4(),
-	z.ipv6(),
-	z.cidrv4(),
-	z.cidrv6(),
-]);
+const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
 
 const isIp = (value: string) => ipSchema.safeParse(value).success;
 const isIpOrCidr = (value: string) => ipOrCidrSchema.safeParse(value).success;
