@@ -23,6 +23,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -137,7 +138,7 @@ export const ShowSslPostgres = ({ postgresId }: Props) => {
 					{data?.sslMode !== "disabled" && (
 						<div className="flex flex-col gap-2">
 							<div className="flex flex-row items-center justify-between">
-								<FormLabel>CA Certificate</FormLabel>
+								<Label>CA Certificate</Label>
 								<Button
 									type="button"
 									variant="outline"
