@@ -145,8 +145,6 @@ const createBetterAuth = () =>
 				if (ctx.path === "/two-factor/enable") {
 					const session = await getSessionFromCtx(ctx);
 					if (session && !session.user.twoFactorEnabled) {
-						// Setup rows left unfinished before better-auth 1.6 were backfilled as
-						// verified, which makes better-auth skip turning 2FA on (#5274).
 						await db
 							.update(schema.twoFactor)
 							.set({ verified: false })
