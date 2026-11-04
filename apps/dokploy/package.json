@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.30.11",
+	"version": "v0.31.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -91,7 +91,7 @@
 		"adm-zip": "^0.6.1",
 		"ai": "^6.0.86",
 		"ai-sdk-ollama": "^3.7.0",
-		"bcrypt": "5.1.1",
+		"bcrypt": "6.0.0",
 		"better-auth": "1.6.23",
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
@@ -158,7 +158,7 @@
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.1",
-		"@types/bcrypt": "5.0.2",
+		"@types/bcrypt": "6.0.0",
 		"@types/dompurify": "^3.2.0",
 		"@types/js-cookie": "^3.0.6",
 		"@types/lodash": "4.17.4",

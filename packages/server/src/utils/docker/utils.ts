@@ -161,8 +161,10 @@ echo "Preparing for execution..."
 
 while true; do
     PROCESSES=$(ps -eo args | awk '$1 ~ /(^|\\/)docker$/')
+    # Swarm pulls don't show up in ps (moby/moby#53321)
+    PULLING=$(docker node ps self --filter desired-state=running --filter desired-state=ready --format '{{.CurrentState}}' 2>/dev/null | grep '^Preparing')
 
-    if [ -z "$PROCESSES" ]; then
+    if [ -z "$PROCESSES" ] && [ -z "$PULLING" ]; then
         echo "Docker is idle. Starting execution..."
         break
     fi
