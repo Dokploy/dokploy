@@ -91,6 +91,7 @@ vi.mock("@dokploy/server/db", async () => {
 	return {
 		db: {
 			...writer,
+			select: () => ({ from: () => ({ where: () => ({}) }) }),
 			transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
 			query: {
 				webServerSettings: {
@@ -142,14 +143,16 @@ beforeEach(() => {
 });
 
 describe("createOwnershipTransfer", () => {
-	it("rejects a user who is not part of any organization", async () => {
+	it("rejects a user who isn't a member of an organization the owner owns", async () => {
 		targetMembership = undefined;
 
 		await expect(
 			createOwnershipTransfer("owner", "new@example.com"),
 		).rejects.toMatchObject({
 			code: "BAD_REQUEST",
-			message: expect.stringMatching(/not part of any organization/),
+			message: expect.stringMatching(
+				/isn't a member of any organization you own/,
+			),
 		});
 		expect(writes).toHaveLength(0);
 	});

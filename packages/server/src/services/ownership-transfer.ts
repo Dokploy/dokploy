@@ -117,12 +117,13 @@ export const findIncomingTransfer = async (userId: string) => {
 	};
 };
 
-export const listTransferRecipients = async (ownerId: string) => {
-	const ownedOrganizations = db
+const ownedOrganizationIds = (ownerId: string) =>
+	db
 		.select({ id: organization.id })
 		.from(organization)
 		.where(eq(organization.ownerId, ownerId));
 
+export const listTransferRecipients = async (ownerId: string) => {
 	return db
 		.selectDistinct({
 			id: user.id,
@@ -134,7 +135,7 @@ export const listTransferRecipients = async (ownerId: string) => {
 		.innerJoin(user, eq(member.userId, user.id))
 		.where(
 			and(
-				inArray(member.organizationId, ownedOrganizations),
+				inArray(member.organizationId, ownedOrganizationIds(ownerId)),
 				ne(user.id, ownerId),
 				or(isNull(user.banned), eq(user.banned, false)),
 			),
@@ -172,14 +173,16 @@ export const findTransferRecipient = async (
 	}
 
 	const membership = await db.query.member.findFirst({
-		where: eq(member.userId, target.id),
+		where: and(
+			eq(member.userId, target.id),
+			inArray(member.organizationId, ownedOrganizationIds(fromUserId)),
+		),
 		columns: { id: true },
 	});
 	if (!membership) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message:
-				"This user is not part of any organization. Invite them to one first.",
+			message: "This user isn't a member of any organization you own.",
 		});
 	}
 
