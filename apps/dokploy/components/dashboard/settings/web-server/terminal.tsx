@@ -83,7 +83,7 @@ export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 
 		return () => {
 			resizeObserver.disconnect();
-			ws.readyState === WebSocket.OPEN && ws.close();
+			ws.close();
 		};
 	}, [id, serverId]);
 
