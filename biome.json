@@ -76,10 +76,14 @@
 				"apps/dokploy/server/api/routers/docker.ts",
 				"apps/dokploy/server/wss/docker-stats.ts",
 				"apps/dokploy/server/wss/swarm-stats.ts",
+				"apps/dokploy/server/wss/container-stats.ts",
 				"apps/dokploy/__test__/server/swarm-task.test.ts",
 				"apps/dokploy/__test__/server/swarm-stats.test.ts",
+				"apps/dokploy/__test__/server/container-stats.test.ts",
+				"apps/dokploy/__test__/server/remote-stream.test.ts",
 				"packages/server/src/index.ts",
-				"packages/server/src/services/swarm-task.ts"
+				"packages/server/src/services/swarm-task.ts",
+				"packages/server/src/utils/process/remoteStream.ts"
 			],
 			"formatter": {
 				"indentStyle": "space",

@@ -118,7 +118,12 @@ local files; do not paste their contents into logs. Seed reruns reuse recorded I
 This PoC extends the native Compose **stack** monitoring view with live charts and
 a picker for individual running replicas. The manager lists tasks; each selected
 task's node is resolved to a registered SSH server before reading that worker's
-Docker API. `DOKPLOY_SWARM_NODE_SERVERS` is a JSON object mapping Swarm node IDs to
+Docker daemon. Metric collection runs the same `docker stats` command and uses
+the same recording and formatting helpers as local container monitoring; only
+the connection target changes. CPU, memory, network I/O, and block I/O retain
+the existing units and chart shapes. No custom metric formulas or additional
+monitoring service are introduced. `DOKPLOY_SWARM_NODE_SERVERS` is a JSON object
+mapping Swarm node IDs to
 Dokploy server IDs, for example `{"<node-id>":"<server-id>"}`. The server must
 belong to the same organization and have a usable SSH key. This explicit mapping
 keeps SSH credentials in Dokploy and avoids guessing a worker endpoint from a
@@ -128,10 +133,15 @@ Register existing workers without clicking **Setup Server**: they already belong
 to the shared Swarm, and standalone server setup is not appropriate here.
 
 The selected-task Restart action stops that exact task container
-and lets Swarm create its replacement. It does not force-update the entire service.
+and lets Swarm create its replacement. Restart requires an ordinary replicated
+or global service with unlimited `any` restarts; unsupported policies are rejected
+before stopping anything. The stop uses the task's configured shutdown grace
+period. It does not force-update the entire service.
 The replacement has a new task identity, so refresh the replica list and select
-the replacement to reconnect. The live charts do not persist history; refresh or
-reconnect starts a new live series.
+the replacement to reconnect. Samples reuse the existing bounded recording files,
+isolated by Compose, node, and container identity. The task view does not load historical samples on open;
+reload or reconnect starts a new displayed live series. Reload the page or select
+a different task to reconnect after an error.
 
 Application-resource monitoring, the global Docker page, terminal behavior, and
 native log handling are unchanged. For service logs, use the existing Swarm log
@@ -139,13 +149,24 @@ mode; this PoC does not add separate per-worker log or terminal routing.
 
 ## Verified behavior
 
-On canary baseline `78d235a3`, 85 focused tests, the app typecheck, production
-build, and formatting/lint checks passed. The rebuilt local runtime applied its
-migrations and became healthy. Authenticated task listing and metrics worked on
-both workers, and the monitoring page rendered HTTP 200. Restart stopped only
-the selected replica, its replacement ran, and stale restart returned HTTP 409.
-Cross-organization HTTP/metrics checks denied access. Pausing a worker closed
-monitoring with code 4000 after about 11.3 seconds; the worker was then resumed.
+On canary baseline `78d235a3`, 133 focused tests, the app typecheck, production
+build, and formatting/lint checks passed. Existing unrelated Biome warnings remain.
+The rebuilt runtime returned authenticated CPU, memory, network, and block I/O
+samples from the manager and both workers, including non-zero network traffic
+and block writes. Existing units and chart shapes matched the local path.
+
+A task with a 20-second grace period completed its 12-second shutdown normally
+(exit 0), was replaced by Swarm, and left the other worker's replica unchanged.
+A service with restart condition `none` returned HTTP 412 and remained running.
+Cross-organization listing and restart returned HTTP 403; monitoring closed with
+code 4000 without data. Pausing a worker closed monitoring after about 11.3 seconds;
+the worker was resumed and fresh samples succeeded afterward. A Docker-pruned
+task returned HTTP 409, and the authenticated Compose page rendered HTTP 200.
+
+Regression tests cover unsafe restart policies, configured shutdown grace, and
+cancellation of actual stalled HTTP and SSH transports, including an SSH server
+that authenticates but never opens a command channel. Local and worker collection
+tests compare every container metric using the existing recorder.
 
 The native browser interaction and drain/migration checks below were performed
 before the rebase; those two scenarios were not repeated on this baseline.
@@ -162,7 +183,9 @@ before the rebase; those two scenarios were not repeated on this baseline.
   to worker-a. The replacement returned authenticated monitoring samples and
   rendered native CPU 4.06% and memory 720896 B / 67108864 B in the UI.
 - A session scoped to another organization received HTTP 403 for task listing and Restart;
-  its monitoring WebSocket closed with code 4000 without data.
+  its monitoring WebSocket closed with code 4000 without data. Pausing a worker closed monitoring after about 11.3 seconds;
+the worker was resumed and fresh samples succeeded afterward. A Docker-pruned
+task returned HTTP 409, and the authenticated Compose page rendered HTTP 200.
 
 After verification, both workers were restored to Active, with one running replica
 per worker; `verify.sh` and fresh authenticated samples from both workers passed.

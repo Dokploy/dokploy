@@ -1,4 +1,12 @@
+import { generateKeyPairSync } from "node:crypto";
+import { createServer } from "node:http";
+import { createRequire } from "node:module";
+import type { AddressInfo } from "node:net";
+import { PassThrough } from "node:stream";
+import { clearTimeout as realClearTimeout, setTimeout as realSetTimeout } from "node:timers";
 import { listComposeTasks, resolveComposeTask } from "@dokploy/server/services/swarm-task";
+import type { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
+import { type Connection, Server as SshServer } from "ssh2";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const boundary = vi.hoisted(() => ({
@@ -7,6 +15,19 @@ const boundary = vi.hoisted(() => ({
   checkPermission: vi.fn(),
   findServerById: vi.fn(),
   getRemoteDocker: vi.fn(),
+  audit: vi.fn(),
+  openProcessStream: vi.fn(),
+  dockerTransport: vi.fn(),
+}));
+
+vi.mock("dockerode", () => ({
+  default: function DockerTransport(options: DockerConnectionOptions) {
+    return boundary.dockerTransport(options);
+  },
+}));
+vi.mock("@dokploy/server/utils/process/remoteStream", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@dokploy/server/utils/process/remoteStream")>()),
+  openProcessStream: boundary.openProcessStream,
 }));
 
 vi.mock("@dokploy/server/services/compose", () => ({
@@ -23,12 +44,49 @@ vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
   getRemoteDocker: boundary.getRemoteDocker,
 }));
 
+vi.mock("@dokploy/server", async () => ({
+  ...(await import("@dokploy/server/services/swarm-task")),
+}));
+vi.mock("@dokploy/server/lib/auth", () => ({ validateRequest: vi.fn() }));
+vi.mock("@/server/api/utils/audit", () => ({ audit: boundary.audit }));
+
+const { openProcessStream: realOpenProcessStream } = await vi.importActual<
+  typeof import("@dokploy/server/utils/process/remoteStream")
+>("@dokploy/server/utils/process/remoteStream");
+
+const { dockerRouter } = await import("@/server/api/routers/docker");
+
+type DockerConnectionOptions = {
+  host: string;
+  port: number;
+  protocol: "http" | "ssh";
+  username?: string;
+  sshOptions?: { privateKey: string };
+};
+const Dockerode = createRequire(import.meta.url)("dockerode") as new (
+  options: DockerConnectionOptions,
+) => Awaited<ReturnType<typeof getRemoteDocker>>;
+
 const ctx = {
   user: { id: "user-1" },
   session: { activeOrganizationId: "org-1" },
 };
 const composeId = "compose-1";
 const namespace = "worker-poc";
+const caller = dockerRouter.createCaller(ctx as Parameters<typeof dockerRouter.createCaller>[0]);
+const stop = vi.fn();
+
+function serviceFixture() {
+  return {
+    ID: "service-1",
+    Spec: {
+      Name: `${namespace}_api`,
+      Labels: { "com.docker.stack.namespace": namespace },
+      Mode: { Replicated: { Replicas: 2 } },
+      TaskTemplate: { RestartPolicy: { Condition: "any", MaxAttempts: 0 } },
+    },
+  };
+}
 
 function taskFixture(index: number) {
   return {
@@ -36,6 +94,10 @@ function taskFixture(index: number) {
     ServiceID: "service-1",
     NodeID: `node-${index}`,
     Slot: index,
+    Spec: {
+      ContainerSpec: { StopGracePeriod: 60_000_000_000 },
+      RestartPolicy: { Condition: "any", MaxAttempts: 0 },
+    },
     DesiredState: "running",
     Status: {
       State: "running",
@@ -46,6 +108,7 @@ function taskFixture(index: number) {
 
 function workerFixture(index: number) {
   return {
+    modem: { protocol: "ssh", sshOptions: {} },
     info: vi.fn().mockResolvedValue({
       Swarm: {
         NodeID: `node-${index}`,
@@ -74,6 +137,21 @@ const inspectService = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
+  stop.mockResolvedValue(undefined);
+  boundary.openProcessStream.mockImplementation(async (serverId: string) => {
+    boundary.dockerTransport.mockReturnValue(serverId === "ssh-1" ? workerOne : workerTwo);
+    const channel = new PassThrough();
+
+    return {
+      stdin: channel,
+      stdout: channel,
+      stderr: new PassThrough(),
+      exit: Promise.resolve(0),
+      close: vi.fn(),
+    };
+  });
+  workerOne.getContainer.mockReturnValue({ stop });
+  workerTwo.getContainer.mockReturnValue({ stop });
   vi.stubEnv(
     "DOKPLOY_SWARM_NODE_SERVERS",
     JSON.stringify({ "node-1": "ssh-1", "node-2": "ssh-2" }),
@@ -127,15 +205,9 @@ beforeEach(() => {
     taskFixture(taskId === "a".repeat(25) ? 1 : 2),
   );
   manager.getTask.mockImplementation((taskId: string) => ({
-    inspect: () => inspectTask(taskId),
+    inspect: (options: ReadOptions) => inspectTask(taskId, options),
   }));
-  inspectService.mockResolvedValue({
-    ID: "service-1",
-    Spec: {
-      Name: `${namespace}_api`,
-      Labels: { "com.docker.stack.namespace": namespace },
-    },
-  });
+  inspectService.mockResolvedValue(serviceFixture());
   manager.getService.mockReturnValue({ inspect: inspectService });
   manager.getNode.mockImplementation((nodeId: string) => ({
     inspect: async () => ({
@@ -153,7 +225,12 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
+
+type ReadOptions = { abortSignal: AbortSignal };
 
 describe("compose task routing", () => {
   it("lists both replicas and resolves each full container ID on its own worker", async () => {
@@ -248,6 +325,34 @@ describe("compose task freshness", () => {
       expect(workerOne.info).not.toHaveBeenCalled();
     },
   );
+
+  it.each(["task", "service"])(
+    "returns a conflict without stopping anything when Docker has pruned the %s",
+    async (resource) => {
+      const missing = Object.assign(new Error(`No such ${resource}`), { statusCode: 404 });
+      const inspect = resource === "task" ? inspectTask : inspectService;
+
+      inspect.mockRejectedValueOnce(missing);
+
+      await expect(
+        caller.restartComposeTask({ composeId, taskId: "a".repeat(25) }),
+      ).rejects.toMatchObject({ code: "CONFLICT", cause: missing });
+      expect(stop).not.toHaveBeenCalled();
+      expect(boundary.audit).not.toHaveBeenCalled();
+    },
+  );
+
+  it("preserves other Docker failures instead of reporting a stale task", async () => {
+    const unavailable = Object.assign(new Error("Docker unavailable"), { statusCode: 503 });
+
+    inspectTask.mockRejectedValueOnce(unavailable);
+
+    await expect(
+      caller.restartComposeTask({ composeId, taskId: "a".repeat(25) }),
+    ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR", cause: unavailable });
+    expect(stop).not.toHaveBeenCalled();
+    expect(boundary.audit).not.toHaveBeenCalled();
+  });
 
   it("rejects a running task already marked for replacement", async () => {
     inspectTask.mockResolvedValue({
@@ -369,5 +474,229 @@ describe("compose task ID input", () => {
     });
     expect(boundary.getRemoteDocker).not.toHaveBeenCalled();
     expect(manager.getTask).not.toHaveBeenCalled();
+  });
+});
+
+describe("compose task restart endpoint", () => {
+  it.each([
+    { Condition: "none" },
+    { Condition: "on-failure" },
+    { Condition: "any", MaxAttempts: 3 },
+  ])("rejects unsafe restart policies before stopping a replica: %j", async (policy) => {
+    for (const source of ["task", "service"]) {
+      const task = taskFixture(1);
+      const service = serviceFixture();
+
+      inspectTask.mockResolvedValue(
+        source === "task" ? { ...task, Spec: { ...task.Spec, RestartPolicy: policy } } : task,
+      );
+      inspectService.mockResolvedValue(
+        source === "service"
+          ? { ...service, Spec: { ...service.Spec, TaskTemplate: { RestartPolicy: policy } } }
+          : service,
+      );
+
+      await expect(caller.restartComposeTask({ composeId, taskId: task.ID })).rejects.toMatchObject(
+        { code: "PRECONDITION_FAILED" },
+      );
+      expect(stop).not.toHaveBeenCalled();
+      expect(boundary.audit).not.toHaveBeenCalled();
+    }
+  });
+
+  it("stops only the selected replica with its configured grace period", async () => {
+    const service = serviceFixture();
+
+    inspectService.mockResolvedValue({
+      ...service,
+      Spec: {
+        ...service.Spec,
+        TaskTemplate: { ...service.Spec.TaskTemplate, ContainerSpec: { StopGracePeriod: 1e9 } },
+      },
+    });
+
+    await caller.restartComposeTask({ composeId, taskId: "a".repeat(25) });
+
+    expect(stop).toHaveBeenCalledExactlyOnceWith({ t: 60, abortSignal: expect.any(AbortSignal) });
+    expect(workerOne.getContainer).toHaveBeenCalledExactlyOnceWith("1".repeat(64));
+    expect(workerTwo.getContainer).not.toHaveBeenCalled();
+    expect(manager.getContainer).not.toHaveBeenCalled();
+    expect(boundary.audit).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ resourceId: "1".repeat(64) }),
+    );
+  });
+
+  it("rounds fractional shutdown allowances up instead of cutting them short", async () => {
+    const task = taskFixture(1);
+
+    inspectTask.mockResolvedValue({
+      ...task,
+      Spec: { ...task.Spec, ContainerSpec: { StopGracePeriod: 10_500_000_000 } },
+    });
+
+    await caller.restartComposeTask({ composeId, taskId: task.ID });
+
+    expect(stop).toHaveBeenCalledExactlyOnceWith({ t: 11, abortSignal: expect.any(AbortSignal) });
+  });
+
+  it("uses the Swarm default when the task omits its grace period and restart policy", async () => {
+    const task = taskFixture(1);
+    const service = serviceFixture();
+
+    inspectTask.mockResolvedValue({ ...task, Spec: { ContainerSpec: {} } });
+    inspectService.mockResolvedValue({ ...service, Spec: { ...service.Spec, TaskTemplate: {} } });
+
+    await caller.restartComposeTask({ composeId, taskId: task.ID });
+
+    expect(stop).toHaveBeenCalledExactlyOnceWith({ t: 10, abortSignal: expect.any(AbortSignal) });
+  });
+});
+
+describe("compose Docker read cancellation", () => {
+  it("destroys a stalled Docker HTTP request when resolution reaches its deadline", async () => {
+    let requestArrived = () => {};
+
+    let connectionClosed = () => {};
+
+    const arrived = new Promise<void>((resolve) => {
+      requestArrived = resolve;
+    });
+    const closed = new Promise<void>((resolve) => {
+      connectionClosed = resolve;
+    });
+    const server = createServer((request) => {
+      request.socket.once("close", connectionClosed);
+      requestArrived();
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address() as AddressInfo;
+    const docker = new Dockerode({ host: "127.0.0.1", port: address.port, protocol: "http" });
+
+    manager.info.mockImplementation(docker.info.bind(docker));
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+
+    try {
+      const result = expect(
+        resolveComposeTask(ctx, composeId, "a".repeat(25)),
+      ).rejects.toMatchObject({
+        code: "TIMEOUT",
+      });
+
+      await arrived;
+      await vi.advanceTimersByTimeAsync(10_000);
+      await result;
+      await closed;
+
+      expect(workerOne.info).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("supplies abortable transport options to discovery and task inspection reads", async () => {
+    await listComposeTasks(ctx, composeId);
+    await resolveComposeTask(ctx, composeId, "a".repeat(25));
+
+    for (const read of [
+      manager.info,
+      workerOne.info,
+      manager.listServices,
+      manager.listTasks,
+      manager.listNodes,
+      inspectService,
+    ]) {
+      expect(read).toHaveBeenCalledWith(
+        expect.objectContaining({ abortSignal: expect.any(AbortSignal) }),
+      );
+    }
+
+    expect(inspectTask).toHaveBeenCalledWith("a".repeat(25), {
+      abortSignal: expect.any(AbortSignal),
+    });
+  });
+});
+
+describe("compose SSH read cancellation", () => {
+  it("closes authenticated SSH when the server never answers channel-open", async () => {
+    const { privateKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: "pkcs1", format: "pem" },
+      publicKeyEncoding: { type: "pkcs1", format: "pem" },
+    });
+    let channelRequested = () => {};
+
+    const requested = new Promise<void>((resolve) => {
+      channelRequested = resolve;
+    });
+    const connections = new Set<Connection>();
+    const server = new SshServer({ hostKeys: [privateKey] }, (connection) => {
+      connections.add(connection);
+      connection.on("error", () => {});
+      connection.once("close", () => connections.delete(connection));
+      connection.on("authentication", (context) => context.accept());
+      // Authenticate, then deliberately neither accept nor reject the requested SSH channel.
+      connection.on("session", () => channelRequested());
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address() as AddressInfo;
+
+    boundary.openProcessStream.mockImplementation(realOpenProcessStream);
+    boundary.dockerTransport.mockImplementation(
+      (options: DockerConnectionOptions) => new Dockerode(options),
+    );
+    const docker = new Dockerode({
+      host: "127.0.0.1",
+      port: address.port,
+      protocol: "ssh",
+      username: "test",
+      sshOptions: { privateKey },
+    });
+
+    boundary.findServerById.mockResolvedValue({
+      organizationId: "org-1",
+      sshKeyId: "generated-test-key",
+      sshKey: { privateKey },
+      ipAddress: "127.0.0.1",
+      port: address.port,
+      username: "test",
+    });
+    boundary.getRemoteDocker.mockImplementation(async (serverId: string | null) =>
+      serverId === "ssh-1" ? docker : manager,
+    );
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    let watchdog: ReturnType<typeof realSetTimeout> | undefined;
+
+    try {
+      const resolution = resolveComposeTask(ctx, composeId, "a".repeat(25));
+      const result = resolution.then(
+        () => ({ code: "unexpected-success" }),
+        (error: Error) => error,
+      );
+
+      await requested;
+      expect(connections.size).toBe(1);
+      await vi.advanceTimersByTimeAsync(10_000);
+      const deadlineResult = await Promise.race([
+        result,
+        new Promise((resolve) => {
+          watchdog = realSetTimeout(() => resolve({ code: "still-pending" }), 200);
+        }),
+      ]);
+
+      expect(deadlineResult).toMatchObject({ code: "TIMEOUT" });
+      vi.useRealTimers();
+      await vi.waitFor(() => expect(connections.size).toBe(0));
+    } finally {
+      realClearTimeout(watchdog);
+      vi.useRealTimers();
+
+      for (const connection of connections) connection.end();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });

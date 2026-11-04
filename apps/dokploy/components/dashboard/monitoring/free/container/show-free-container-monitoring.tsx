@@ -226,8 +226,7 @@ export const ContainerFreeMonitoring = ({
 
       if (scopedTask)
         setUnavailable(
-          e.reason ||
-            "Task monitoring is unavailable. Refresh the task list or select another task.",
+          e.reason || "Task monitoring is unavailable. Reload the page or select another task.",
         );
 
       if (e.reason) {

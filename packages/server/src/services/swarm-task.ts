@@ -1,6 +1,9 @@
+import { Agent } from "node:http";
+import { Duplex } from "node:stream";
 import { TRPCError } from "@trpc/server";
-import type Dockerode from "dockerode";
+import Dockerode from "dockerode";
 import { z } from "zod";
+import { openProcessStream, type ProcessStream } from "../utils/process/remoteStream";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import { findComposeById } from "./compose";
 import { checkPermission, checkServiceAccess, type PermissionCtx } from "./permission";
@@ -8,7 +11,18 @@ import { findServerById } from "./server";
 
 const namespaceLabel = "com.docker.stack.namespace";
 const runningState = "running";
+const restartPolicySchema = z.object({
+  Condition: z.string().optional(),
+  MaxAttempts: z.number().int().nonnegative().optional(),
+});
+
+const taskSpecSchema = z.object({
+  ContainerSpec: z.object({ StopGracePeriod: z.number().nonnegative().optional() }).optional(),
+  RestartPolicy: restartPolicySchema.optional(),
+});
+
 const taskSchema = z.object({
+  Spec: taskSpecSchema.optional(),
   ID: z.string().min(1),
   ServiceID: z.string().min(1),
   NodeID: z.string().min(1),
@@ -49,8 +63,14 @@ function verifyNodeIdentity(manager: SwarmInfo, target: SwarmInfo, nodeId: strin
 }
 
 type RunningTask = z.infer<typeof taskSchema>;
+type InspectedTask = { task: RunningTask; service: Dockerode.Service };
+type ReadOptions = { abortSignal: AbortSignal };
+type DockerOperation<T> = (docker: Dockerode, options: ReadOptions) => Promise<T>;
+type DockerTarget = { docker: Dockerode; serverId: string | null };
+type ReadInfo = (options: ReadOptions) => Promise<object>;
+type RestartPolicy = z.infer<typeof restartPolicySchema>;
 type Compose = Awaited<ReturnType<typeof findComposeById>>;
-type ManagerContext = { compose: Compose; manager: Dockerode };
+type ManagerContext = { compose: Compose; manager: DockerTarget };
 export type ComposeTask = {
   taskId: string;
   containerId: string;
@@ -70,27 +90,112 @@ export type ResolvedComposeTask = {
   serviceName: string;
   serverId: string | null;
   statsKey: string;
+  stopTimeoutSeconds?: number;
 };
 
-async function boundedRead<T>(operation: Promise<T>): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+async function withDockerConnection<T>(
+  target: DockerTarget,
+  operation: DockerOperation<T>,
+  timeoutMs = 10_000,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let process: ProcessStream | undefined;
+  let agent: Agent | undefined;
 
   try {
-    return await Promise.race([
-      operation,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () => reject(new TRPCError({ code: "TIMEOUT", message: "Swarm node did not respond" })),
-          10_000,
-        );
-      }),
-    ]);
+    let docker = target.docker;
+
+    if (target.serverId) {
+      process = await openProcessStream(
+        target.serverId,
+        "exec docker system dial-stdio",
+        controller.signal,
+      );
+      const channel = process.stdout;
+
+      if (!(channel instanceof Duplex) || process.stdin !== channel) {
+        throw new Error("Docker SSH transport requires a duplex channel");
+      }
+
+      agent = new Agent({ keepAlive: false, maxSockets: 1 });
+      agent.createConnection = () => channel;
+      const options = { host: "localhost", port: 80, protocol: "http" as const, agent };
+
+      docker = new Dockerode(options);
+    }
+
+    return await operation(docker, { abortSignal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new TRPCError({ code: "TIMEOUT", message: "Swarm node did not respond", cause: error });
+    }
+
+    throw error;
   } finally {
     clearTimeout(timer);
+    agent?.destroy();
+    process?.close();
   }
 }
 
-async function authorizedDocker(ctx: PermissionCtx, serverId: string | null): Promise<Dockerode> {
+async function readSwarmInfo(target: DockerTarget): Promise<SwarmInfo> {
+  const raw = await withDockerConnection(target, (docker, options) => {
+    // Dockerode accepts options at runtime, but its info declaration omits them.
+    const info = docker.info.bind(docker) as ReadInfo;
+
+    return info(options);
+  });
+
+  return swarmInfoSchema.parse(raw).Swarm;
+}
+
+function hasUnlimitedRestarts(policy: RestartPolicy | undefined): boolean {
+  return (policy?.Condition ?? "any") === "any" && (policy?.MaxAttempts ?? 0) === 0;
+}
+
+function isServiceTask(task: RunningTask, mode: Dockerode.ServiceMode | undefined): boolean {
+  if (!mode || Object.keys(mode).length !== 1) return false;
+
+  if (mode.Global) return true;
+
+  const replicas = mode.Replicated?.Replicas;
+
+  return (
+    task.Slot !== undefined &&
+    Number.isInteger(task.Slot) &&
+    task.Slot > 0 &&
+    replicas !== undefined &&
+    task.Slot <= replicas
+  );
+}
+
+function restartStopTimeout(task: RunningTask, service: Dockerode.Service): number {
+  const taskSpec = task.Spec;
+  const serviceSpec = taskSpecSchema.safeParse(service.Spec?.TaskTemplate);
+
+  if (
+    !taskSpec?.ContainerSpec ||
+    !serviceSpec.success ||
+    !isServiceTask(task, service.Spec?.Mode) ||
+    !hasUnlimitedRestarts(taskSpec.RestartPolicy) ||
+    !hasUnlimitedRestarts(serviceSpec.data.RestartPolicy)
+  ) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message:
+        "Task restart requires a replicated or global service with unlimited restart condition 'any'",
+    });
+  }
+
+  // Swarm applies task grace during shutdown; it is not the container's default stop timeout.
+  return Math.ceil((taskSpec.ContainerSpec.StopGracePeriod ?? 10_000_000_000) / 1_000_000_000);
+}
+
+async function authorizedDocker(
+  ctx: PermissionCtx,
+  serverId: string | null,
+): Promise<DockerTarget> {
   if (serverId) {
     const server = await findServerById(serverId);
 
@@ -107,7 +212,7 @@ async function authorizedDocker(ctx: PermissionCtx, serverId: string | null): Pr
     }
   }
 
-  return getRemoteDocker(serverId);
+  return { docker: await getRemoteDocker(serverId), serverId };
 }
 
 async function composeManager(
@@ -135,29 +240,52 @@ async function composeManager(
 }
 
 async function inspectRunningTask(
-  manager: Dockerode,
+  manager: DockerTarget,
   taskId: string,
   appName: string,
-): Promise<RunningTask> {
-  const result = taskSchema.safeParse(await boundedRead(manager.getTask(taskId).inspect()));
+): Promise<InspectedTask> {
+  try {
+    const result = taskSchema.safeParse(
+      await withDockerConnection(manager, (docker, options) =>
+        docker.getTask(taskId).inspect(options),
+      ),
+    );
 
-  if (!result.success || result.data.ID !== taskId) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: "Task is no longer running; refresh the task list",
-    });
+    if (!result.success || result.data.ID !== taskId) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Task is no longer running; refresh the task list",
+      });
+    }
+
+    const service: Dockerode.Service = await withDockerConnection(manager, (docker, options) =>
+      docker.getService(result.data.ServiceID).inspect(options),
+    );
+
+    if (service.Spec?.Labels?.[namespaceLabel] !== appName || !service.Spec.Name) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Task does not belong to this Compose stack",
+      });
+    }
+
+    return { task: result.data, service };
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "statusCode" in error &&
+      error.statusCode === 404
+    ) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Task no longer exists; refresh task list",
+        cause: error,
+      });
+    }
+
+    throw error;
   }
-
-  const service = await boundedRead(manager.getService(result.data.ServiceID).inspect());
-
-  if (service.Spec.Labels?.[namespaceLabel] !== appName) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Task does not belong to this Compose stack",
-    });
-  }
-
-  return result.data;
 }
 
 function mappedServerId(nodeId: string): string {
@@ -197,9 +325,8 @@ export async function resolveComposeTask(
   }
 
   const { compose, manager } = await composeManager(ctx, composeId, action);
-  const task = await inspectRunningTask(manager, taskId, compose.appName);
-  const managerInfo = swarmInfoSchema.parse(await boundedRead(manager.info()));
-  const managerSwarm = managerInfo.Swarm;
+  const { task } = await inspectRunningTask(manager, taskId, compose.appName);
+  const managerSwarm = await readSwarmInfo(manager);
 
   if (!managerSwarm.Cluster || !managerSwarm.ControlAvailable) {
     throw new TRPCError({
@@ -210,16 +337,16 @@ export async function resolveComposeTask(
 
   const serverId =
     task.NodeID === managerSwarm.NodeID ? compose.serverId : mappedServerId(task.NodeID);
-  const docker =
+  const target =
     task.NodeID === managerSwarm.NodeID ? manager : await authorizedDocker(ctx, serverId);
-  const targetInfo =
-    docker === manager ? managerInfo : swarmInfoSchema.parse(await boundedRead(docker.info()));
+  const targetSwarm = target === manager ? managerSwarm : await readSwarmInfo(target);
 
-  verifyNodeIdentity(managerSwarm, targetInfo.Swarm, task.NodeID);
+  verifyNodeIdentity(managerSwarm, targetSwarm, task.NodeID);
 
-  const node = await boundedRead(manager.getNode(task.NodeID).inspect());
-  const service = await boundedRead(manager.getService(task.ServiceID).inspect());
-  const current = await inspectRunningTask(manager, taskId, compose.appName);
+  const node = await withDockerConnection(manager, (docker, options) =>
+    docker.getNode(task.NodeID).inspect(options),
+  );
+  const { task: current, service } = await inspectRunningTask(manager, taskId, compose.appName);
 
   if (
     current.NodeID !== task.NodeID ||
@@ -230,13 +357,14 @@ export async function resolveComposeTask(
   }
 
   return {
-    docker,
+    docker: target.docker,
     containerId: task.Status.ContainerStatus.ContainerID,
     taskId: task.ID,
     nodeId: task.NodeID,
     nodeName: node.Description.Hostname,
-    serviceName: service.Spec.Name,
+    serviceName: service.Spec!.Name!,
     serverId,
+    ...(action === "restart" && { stopTimeoutSeconds: restartStopTimeout(current, service) }),
     statsKey: `${composeId}:${task.NodeID}:${task.Status.ContainerStatus.ContainerID}`,
   };
 }
@@ -246,8 +374,11 @@ export async function listComposeTasks(
   composeId: string,
 ): Promise<ComposeTask[]> {
   const { compose, manager } = await composeManager(ctx, composeId, "read");
-  const services = await boundedRead(
-    manager.listServices({ filters: { label: [`${namespaceLabel}=${compose.appName}`] } }),
+  const services = await withDockerConnection(manager, (docker, options) =>
+    docker.listServices({
+      ...options,
+      filters: { label: [`${namespaceLabel}=${compose.appName}`] },
+    }),
   );
 
   const ownedServices = services.filter(
@@ -258,15 +389,16 @@ export async function listComposeTasks(
     return [];
   }
 
-  const tasks = await boundedRead(
-    manager.listTasks({
+  const tasks = await withDockerConnection(manager, (docker, options) =>
+    docker.listTasks({
+      ...options,
       filters: {
         service: ownedServices.map((service) => service.ID),
         "desired-state": [runningState],
       },
     }),
   );
-  const nodes = await boundedRead(manager.listNodes());
+  const nodes = await withDockerConnection(manager, (docker, options) => docker.listNodes(options));
   const result: ComposeTask[] = [];
 
   for (const candidate of tasks) {
@@ -297,4 +429,20 @@ export async function listComposeTasks(
   }
 
   return result;
+}
+
+export async function stopResolvedComposeTask(target: ResolvedComposeTask): Promise<void> {
+  if (target.stopTimeoutSeconds === undefined) {
+    throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Task restart was not validated" });
+  }
+
+  const seconds = target.stopTimeoutSeconds;
+  const deadlineMs = Math.min((seconds + 10) * 1000, 2_147_483_647);
+
+  // Restarting a task container can revive it after Swarm has scheduled its replacement.
+  await withDockerConnection(
+    target,
+    (docker, options) => docker.getContainer(target.containerId).stop({ ...options, t: seconds }),
+    deadlineMs,
+  );
 }

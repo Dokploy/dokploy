@@ -6,9 +6,13 @@ import { type ClientOptions, WebSocket } from "ws";
 const boundary = vi.hoisted(() => ({
   validateRequest: vi.fn(),
   resolveComposeTask: vi.fn(),
+  collectContainerStats: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", () => boundary);
+vi.mock("@/server/wss/container-stats", () => ({
+  collectContainerStats: boundary.collectContainerStats,
+}));
 
 type ServerSocketConstructor = new (
   address: null,
@@ -35,28 +39,18 @@ class Viewer extends ServerSocket {
 }
 
 const request = new IncomingMessage(new Socket());
-const stats = vi.fn();
-const getContainer = vi.fn(() => ({ stats }));
+const stats = boundary.collectContainerStats;
 const session = {
   user: { id: "user-1" },
   session: { activeOrganizationId: "org-1" },
 };
+const time = "2026-11-04T12:00:00.000Z";
 const sample = {
-  read: "2026-11-04T12:00:00.000Z",
-  cpu_stats: {
-    cpu_usage: { total_usage: 200 },
-    system_cpu_usage: 2000,
-    online_cpus: 2,
-  },
-  precpu_stats: { cpu_usage: { total_usage: 100 }, system_cpu_usage: 1000 },
-  memory_stats: { usage: 1024, limit: 4096, stats: { inactive_file: 0 } },
-  blkio_stats: {
-    io_service_bytes_recursive: [
-      { op: "Read", value: 1048576 },
-      { op: "Write", value: 2097152 },
-    ],
-  },
-  networks: { eth0: { rx_bytes: 3145728, tx_bytes: 4194304 } },
+  cpu: { time, value: "20.00%" },
+  memory: { time, value: { used: "1KiB", total: "4KiB" } },
+  disk: null,
+  block: { time, value: { readMb: 1.048576, writeMb: 2.097152 } },
+  network: { time, value: { inputMb: 3.145728, outputMb: 4.194304 } },
 };
 let subscribe: typeof import("@/server/wss/swarm-stats").subscribeComposeTaskStats;
 
@@ -66,14 +60,12 @@ beforeEach(async () => {
   vi.useFakeTimers();
   boundary.validateRequest.mockResolvedValue(session);
   boundary.resolveComposeTask.mockResolvedValue({
-    docker: { getContainer },
     containerId: "a".repeat(64),
     taskId: "task-1",
     nodeId: "node-1",
     serverId: "ssh-1",
     statsKey: "compose-1:node-1:container-1",
   });
-  getContainer.mockReturnValue({ stats });
   stats.mockResolvedValue(sample);
   subscribe = (await import("@/server/wss/swarm-stats")).subscribeComposeTaskStats;
 });
@@ -109,23 +101,15 @@ describe("compose task live metrics", () => {
     release(sample);
     await Promise.all([firstConnection, secondConnection]);
 
-    expect(stats).toHaveBeenCalledWith({ stream: false, abortSignal: expect.any(AbortSignal) });
-    expect(getContainer).toHaveBeenCalledWith("a".repeat(64));
+    expect(stats).toHaveBeenCalledWith({
+      containerId: "a".repeat(64),
+      statsKey: "compose-1:node-1:container-1",
+      serverId: "ssh-1",
+      signal: expect.any(AbortSignal),
+    });
     expect(first.send).toHaveBeenCalledOnce();
     expect(second.send).toHaveBeenCalledWith(first.send.mock.calls[0]?.[0]);
-    expect(first.send).toHaveBeenCalledWith(
-      JSON.stringify({
-        data: {
-          cpu: { time: sample.read, value: "20.00%" },
-          memory: {
-            time: sample.read,
-            value: { used: "1024B", total: "4096B" },
-          },
-          block: { time: sample.read, value: { readMb: 1.048576, writeMb: 2.097152 } },
-          network: { time: sample.read, value: { inputMb: 3.145728, outputMb: 4.194304 } },
-        },
-      }),
-    );
+    expect(first.send).toHaveBeenCalledWith(JSON.stringify({ data: sample }));
     first.close();
     second.close();
   });
@@ -249,18 +233,57 @@ describe("compose task metrics lifecycle", () => {
   });
 });
 
+describe("shared sampling cancellation", () => {
+  it("keeps sampling for another viewer and cancels when the last viewer disconnects", async () => {
+    let samplingSignal: AbortSignal | undefined;
+
+    type StatsOptions = { signal: AbortSignal };
+
+    stats.mockImplementationOnce(({ signal }: StatsOptions) => {
+      samplingSignal = signal;
+
+      return new Promise((_, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+      });
+    });
+    const first = new Viewer();
+    const second = new Viewer();
+    const firstConnection = connect(first);
+    const secondConnection = connect(second);
+
+    await vi.advanceTimersByTimeAsync(0);
+    first.close();
+    await firstConnection;
+
+    expect(samplingSignal?.aborted).toBe(false);
+    second.close();
+    await secondConnection;
+
+    expect(samplingSignal?.aborted).toBe(true);
+    expect(stats).toHaveBeenCalledOnce();
+    expect(first.send).not.toHaveBeenCalled();
+    expect(second.send).not.toHaveBeenCalled();
+  });
+});
+
 describe("compose metrics reconnect", () => {
   it("aborts a hung worker sample and allows a fresh sample after cache expiry", async () => {
-    const controller = new AbortController();
-    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(controller.signal);
+    const deadline = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(deadline.signal);
+    let aborted = false;
 
-    type StatsOptions = { stream: false; abortSignal: AbortSignal };
+    type StatsOptions = { signal: AbortSignal };
     stats.mockImplementationOnce(
-      (options: StatsOptions) =>
+      ({ signal }: StatsOptions) =>
         new Promise((_, reject) => {
-          options.abortSignal.addEventListener("abort", () => reject(options.abortSignal.reason), {
-            once: true,
-          });
+          signal.addEventListener(
+            "abort",
+            () => {
+              aborted = true;
+              reject(signal.reason);
+            },
+            { once: true },
+          );
         }),
     );
     const failedViewer = new Viewer();
@@ -269,9 +292,10 @@ describe("compose metrics reconnect", () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(timeout).toHaveBeenCalledWith(10_000);
-    controller.abort(new Error("Worker timeout"));
+    deadline.abort(new Error("Sample deadline"));
     await failedConnection;
 
+    expect(aborted).toBe(true);
     expect(failedViewer.close).toHaveBeenCalledWith(4000, expect.any(String));
     expect(failedViewer.send).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1300);

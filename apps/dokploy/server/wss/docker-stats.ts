@@ -12,6 +12,7 @@ import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss, isServiceContainerName } from "./authorize";
 import { findServiceAppName } from "./container-ownership";
+import { collectContainerStats } from "./container-stats";
 import { subscribeComposeTaskStats } from "./swarm-stats";
 
 type AppType = "application" | "stack" | "docker-compose";
@@ -213,20 +214,10 @@ export const setupDockerStatsMonitoringSocketServer = (
           return;
         }
 
-        const { stdout, stderr } = await execAsync(
-          `docker stats ${container.Id} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
-        );
-
-        if (stderr) {
-          console.error("Docker stats error:", stderr);
-
-          return;
-        }
-
-        const stat = JSON.parse(stdout);
-
-        await recordAdvancedStats(stat, appName);
-        const data = await getLastAdvancedStatsFile(appName);
+        const data = await collectContainerStats({
+          containerId: container.Id,
+          statsKey: appName,
+        });
 
         ws.send(
           JSON.stringify({

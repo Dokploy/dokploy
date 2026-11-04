@@ -18,6 +18,7 @@ import {
   listContainerFiles,
   readContainerFile,
   resolveComposeTask,
+  stopResolvedComposeTask,
   uploadFileToContainer,
   writeContainerFile,
 } from "@dokploy/server";
@@ -46,8 +47,7 @@ export const dockerRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const target = await resolveComposeTask(ctx, input.composeId, input.taskId, "restart");
 
-      // Restarting a task container can revive it after Swarm has scheduled its replacement.
-      await target.docker.getContainer(target.containerId).stop({ t: 10 });
+      await stopResolvedComposeTask(target);
       await audit(ctx, {
         action: "stop",
         resourceType: "docker",
