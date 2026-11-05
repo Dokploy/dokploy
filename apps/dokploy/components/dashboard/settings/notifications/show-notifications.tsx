@@ -21,8 +21,81 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/utils/api";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { api, type RouterOutputs } from "@/utils/api";
 import { HandleNotifications } from "./handle-notifications";
+
+const MAX_PROJECT_BADGES = 3;
+
+type NotificationItem = RouterOutputs["notification"]["all"][number];
+
+const NotificationProjectBadges = ({
+	notification,
+}: {
+	notification: NotificationItem;
+}) => {
+	if (!notification.scopedToProjects) {
+		return (
+			<span className="flex flex-row gap-1 flex-wrap">
+				<Badge variant="secondary" className="text-xs font-normal">
+					<Globe className="size-3 mr-1" />
+					All Projects
+				</Badge>
+			</span>
+		);
+	}
+
+	const projectNames = notification.notificationToProjects
+		.map((link) => link.project.name)
+		.sort((a, b) => a.localeCompare(b));
+
+	if (projectNames.length === 0) {
+		return (
+			<span className="flex flex-row gap-1 flex-wrap">
+				<Badge variant="destructive" className="text-xs font-normal">
+					No projects linked
+				</Badge>
+			</span>
+		);
+	}
+
+	const visible = projectNames.slice(0, MAX_PROJECT_BADGES);
+	const rest = projectNames.slice(MAX_PROJECT_BADGES);
+
+	return (
+		<span className="flex flex-row gap-1 flex-wrap">
+			{visible.map((name, index) => (
+				<Badge
+					key={`${name}-${index}`}
+					variant="outline"
+					className="text-xs font-normal"
+				>
+					{name}
+				</Badge>
+			))}
+			{rest.length > 0 && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge
+							variant="outline"
+							tabIndex={0}
+							className="text-xs font-normal cursor-default"
+						>
+							+{rest.length} more
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent className="max-w-xs">
+						{rest.join(", ")}
+					</TooltipContent>
+				</Tooltip>
+			)}
+		</span>
+	);
+};
 
 export const ShowNotifications = () => {
 	const { data, isPending, refetch } = api.notification.all.useQuery();
@@ -132,37 +205,9 @@ export const ShowNotifications = () => {
 
 															<span className="flex flex-col gap-1">
 																<span>{notification.name}</span>
-																<span className="flex flex-row gap-1 flex-wrap">
-																	{!notification.scopedToProjects ? (
-																		<Badge
-																			variant="secondary"
-																			className="text-xs font-normal"
-																		>
-																			<Globe className="size-3 mr-1" />
-																			All Projects
-																		</Badge>
-																	) : notification.notificationToProjects
-																			.length === 0 ? (
-																		<Badge
-																			variant="destructive"
-																			className="text-xs font-normal"
-																		>
-																			No projects linked
-																		</Badge>
-																	) : (
-																		notification.notificationToProjects.map(
-																			(ntp) => (
-																				<Badge
-																					key={ntp.projectId}
-																					variant="outline"
-																					className="text-xs font-normal"
-																				>
-																					{ntp.project.name}
-																				</Badge>
-																			),
-																		)
-																	)}
-																</span>
+																<NotificationProjectBadges
+																	notification={notification}
+																/>
 															</span>
 														</span>
 														<div className="flex flex-row gap-1">
