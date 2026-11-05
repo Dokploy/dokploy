@@ -31,6 +31,11 @@ import { api } from "@/utils/api";
 
 // Railpack versions from https://github.com/railwayapp/railpack/releases
 export const RAILPACK_VERSIONS = [
+	"0.43.0",
+	"0.42.0",
+	"0.41.0",
+	"0.40.1",
+	"0.40.0",
 	"0.39.0",
 	"0.38.0",
 	"0.37.1",
@@ -574,7 +579,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 															{RAILPACK_VERSIONS.map((version) => (
 																<SelectItem key={version} value={version}>
 																	v{version}
-																	{version === "0.15.4" && (
+																	{version === RAILPACK_VERSIONS[0] && (
 																		<Badge
 																			variant="secondary"
 																			className="ml-2 px-1 text-xs"
