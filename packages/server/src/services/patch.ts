@@ -1,9 +1,10 @@
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreatePatch, patch } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { findApplicationById } from "./application";
@@ -153,18 +154,27 @@ export const generateApplyPatchesCommand = async ({
 		return "";
 	}
 
+	const resolvedBase = resolve(codePath);
+
 	let command = `echo "Applying ${patches.length} patch(es)...";`;
 
 	for (const p of patches) {
-		const filePath = join(codePath, p.filePath);
+		const filePath = resolve(join(codePath, p.filePath));
+		if (filePath !== resolvedBase && !filePath.startsWith(resolvedBase + sep)) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Patch file path escapes the code directory: ${p.filePath}`,
+			});
+		}
+		const quotedPath = quote([filePath]);
 
 		if (p.type === "delete") {
 			command += `
-			rm -f "${filePath}";
+			rm -f ${quotedPath};
 			`;
 		} else {
 			command += `
-file="${filePath}"
+file=${quotedPath}
 dir="$(dirname "$file")"
 mkdir -p "$dir"
 echo "${encodeBase64(p.content)}" | base64 -d > "$file"

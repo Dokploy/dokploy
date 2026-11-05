@@ -84,6 +84,72 @@ describe("addDomainToCompose enabled filtering", () => {
 		);
 	});
 
+	it.each(["docker-compose", "stack"] as const)(
+		"keeps dokploy-network on the service of a disabled domain in %s",
+		async (composeType) => {
+			const result = await addDomainToCompose({ ...baseCompose, composeType }, [
+				{ ...baseDomain, enabled: false },
+			]);
+
+			expect(result?.services?.frigate?.networks).toContain("dokploy-network");
+			expect(result?.networks).toMatchObject({
+				"dokploy-network": { external: true },
+			});
+		},
+	);
+
+	it("does not add dokploy-network for a disabled domain in an isolated deployment", async () => {
+		const result = await addDomainToCompose(
+			{ ...baseCompose, isolatedDeployment: true },
+			[{ ...baseDomain, enabled: false }],
+		);
+
+		expect(result?.services?.frigate?.networks).not.toContain(
+			"dokploy-network",
+		);
+		expect(result?.networks).not.toHaveProperty("dokploy-network");
+	});
+
+	it.each(["host", "service:db", "container:db"])(
+		"does not add networks for a disabled domain on a service with network_mode %s",
+		async (networkMode) => {
+			composeYaml = `
+services:
+  frigate:
+    image: frigate
+    network_mode: "${networkMode}"
+`;
+			const result = await addDomainToCompose(baseCompose, [
+				{ ...baseDomain, enabled: false },
+			]);
+
+			expect(result?.services?.frigate?.networks).toBeUndefined();
+			expect(result?.networks).toBeUndefined();
+		},
+	);
+
+	it.each([
+		["missing", ""],
+		["nonexistent", "ghost"],
+	])(
+		"ignores a disabled domain with a %s service name",
+		async (_, serviceName) => {
+			const result = await addDomainToCompose(baseCompose, [
+				{ ...baseDomain, serviceName, enabled: false },
+			]);
+
+			expect(result?.services?.frigate?.networks).toBeUndefined();
+			expect(result?.networks).toBeUndefined();
+		},
+	);
+
+	it("does not add dokploy-network when the service has no domains", async () => {
+		const result = await addDomainToCompose(baseCompose, []);
+
+		expect(result?.services?.frigate?.networks).toBeUndefined();
+		expect(result?.networks).toBeUndefined();
+	});
+
 	it.each([
 		[
 			"docker-compose",

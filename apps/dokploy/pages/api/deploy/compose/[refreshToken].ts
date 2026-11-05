@@ -118,10 +118,9 @@ export default async function handler(
 					"",
 			);
 
-			const shouldDeployPaths = shouldDeploy(
-				composeResult.watchPaths,
-				committedPaths,
-			);
+			const shouldDeployPaths =
+				committedPaths === null ||
+				shouldDeploy(composeResult.watchPaths, committedPaths);
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
@@ -198,10 +197,10 @@ export default async function handler(
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
 				server: !!composeResult.serverId,
+				serverId: composeResult.serverId ?? undefined,
 			};
 
 			if (IS_CLOUD && composeResult.serverId) {
-				jobData.serverId = composeResult.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});

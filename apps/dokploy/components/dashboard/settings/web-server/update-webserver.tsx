@@ -121,9 +121,11 @@ export const UpdateWebServer = ({
 		} catch (error) {
 			setModalState("results");
 			console.error("Error updating server:", error);
-			toast.error(
-				"An error occurred while updating the server, please try again.",
-			);
+			const message =
+				error instanceof Error && error.message
+					? error.message
+					: "An error occurred while updating the server, please try again.";
+			toast.error(message);
 		}
 	};
 
