@@ -1207,7 +1207,7 @@ export const projectRouter = createTRPCRouter({
 								}
 
 								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
+									const { backupId, appName: _appName, ...rest } = backup;
 									await createBackup({
 										...rest,
 										postgresId: newPostgres.postgresId,
