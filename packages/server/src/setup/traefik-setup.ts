@@ -134,8 +134,17 @@ const recreateStandaloneTraefik = async ({
 			.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
 			.remove({ force: true })
 			.catch(() => {});
-		await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
+		// Stopped first: Docker can't rename a running container attached to a
+		// swarm overlay network such as dokploy-network.
 		await current.stop().catch(() => {});
+		try {
+			await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
+		} catch (error) {
+			if (currentInfo?.State.Running) {
+				await current.start().catch(() => {});
+			}
+			throw error;
+		}
 		await sleep(5000);
 	}
 
