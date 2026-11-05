@@ -7,7 +7,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { domainToASCII } from "node:url";
+import { domainToASCII, domainToUnicode } from "node:url";
 import { db } from "@dokploy/server/db";
 import { domains } from "@dokploy/server/db/schema";
 import { quote } from "shell-quote";
@@ -31,7 +31,14 @@ export interface AcmeStoredCertificate extends AcmeCertificateRef {
 export interface TraefikUsedNames {
 	hosts: Set<string>;
 	patterns: RegExp[];
+	incomplete: boolean;
 }
+
+const emptyUsedNames = (): TraefikUsedNames => ({
+	hosts: new Set(),
+	patterns: [],
+	incomplete: false,
+});
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
@@ -153,15 +160,44 @@ const fromV2Template = (template: string) =>
 		})
 		.join("")}$`;
 
-const toPattern = (source: string) => {
-	const expression = V2_TEMPLATE.test(source)
-		? fromV2Template(source)
-		: source.replaceAll("(?P<", "(?<");
+const POSIX_CLASSES: Record<string, string> = {
+	alnum: "a-zA-Z0-9",
+	alpha: "a-zA-Z",
+	digit: "0-9",
+	lower: "a-z",
+	upper: "A-Z",
+	word: "\\w",
+	space: "\\s",
+};
+
+const fromGoRegExp = (source: string) =>
+	source
+		.replace(/\\Q(.*?)(?:\\E|$)/g, (_, literal: string) =>
+			escapeRegExp(literal),
+		)
+		.replaceAll("(?P<", "(?<")
+		.replace(/\(\?[imsU-]+\)/g, "")
+		.replace(/\(\?[imsU-]+:/g, "(?:")
+		.replace(/\\A/g, "^")
+		.replace(/\\z/g, "$")
+		.replace(
+			/\[:(\w+):\]/g,
+			(match, name: string) => POSIX_CLASSES[name] ?? match,
+		);
+
+const compile = (expression: string, flags: string) => {
 	try {
-		return new RegExp(expression, "i");
+		return new RegExp(expression, flags);
 	} catch {
 		return null;
 	}
+};
+
+const toPattern = (source: string) => {
+	const expression = V2_TEMPLATE.test(source)
+		? fromV2Template(source)
+		: fromGoRegExp(source);
+	return compile(expression, "i") ?? compile(expression, "iu");
 };
 
 export const addTraefikRouteNames = (
@@ -183,20 +219,44 @@ export const addTraefikRouteNames = (
 		}
 		const rule = typeof router.rule === "string" ? router.rule : "";
 		for (const [, args = ""] of rule.matchAll(
-			/\b(?:HostSNI|Host)\(([^)]*)\)/g,
+			/\b(?:HostSNI|HostHeader|Host)\(([^)]*)\)/g,
 		)) {
 			for (const host of quotedValues(args)) {
 				if (host.trim() && host !== "*") used.hosts.add(normalize(host));
 			}
 		}
-		for (const [, raw, quoted] of rule.matchAll(
-			/\b(?:HostSNIRegexp|HostRegexp)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g,
-		)) {
+		const patternRules = rule.match(/\b(?:HostSNIRegexp|HostRegexp)\(/g) ?? [];
+		const patternArgs = [
+			...rule.matchAll(
+				/\b(?:HostSNIRegexp|HostRegexp)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g,
+			),
+		];
+		if (patternArgs.length < patternRules.length) {
+			used.incomplete = true;
+		}
+		for (const [, raw, quoted] of patternArgs) {
 			const pattern = toPattern(unquote(raw, quoted));
-			if (pattern) used.patterns.push(pattern);
+			if (pattern) {
+				used.patterns.push(pattern);
+			} else {
+				used.incomplete = true;
+			}
 		}
 	}
 	return used;
+};
+
+const literalText = (pattern: RegExp) =>
+	pattern.source.toLowerCase().replace(/\[\.\]|\\\./g, ".");
+
+const patternCouldMatchUnder = (pattern: RegExp, suffix: string) => {
+	const parent = suffix.slice(1);
+	const text = literalText(pattern);
+	return (
+		pattern.test(`wildcard${suffix}`) ||
+		text.includes(parent) ||
+		text.includes(domainToUnicode(parent))
+	);
 };
 
 const nameIsUsed = (name: string, used: TraefikUsedNames) => {
@@ -204,16 +264,15 @@ const nameIsUsed = (name: string, used: TraefikUsedNames) => {
 	if (used.hosts.has(certName)) {
 		return true;
 	}
-	const sample = certName.startsWith("*.")
-		? `wildcard${certName.slice(1)}`
-		: certName;
-	if (used.patterns.some((pattern) => pattern.test(sample))) {
-		return true;
-	}
 	if (!certName.startsWith("*.")) {
-		return false;
+		return used.patterns.some((pattern) => pattern.test(certName));
 	}
 	const suffix = certName.slice(1);
+	if (
+		used.patterns.some((pattern) => patternCouldMatchUnder(pattern, suffix))
+	) {
+		return true;
+	}
 	return [...used.hosts].some(
 		(host) =>
 			host.endsWith(suffix) &&
@@ -320,8 +379,8 @@ const readTraefikRoutes = async (serverId?: string) => {
 	}
 };
 
-const knownDomainNames = async (): Promise<TraefikUsedNames> => {
-	const used: TraefikUsedNames = { hosts: new Set(), patterns: [] };
+const knownDomainNames = async () => {
+	const used = emptyUsedNames();
 	const rows = await db.select({ host: domains.host }).from(domains);
 	for (const { host } of rows) {
 		if (host?.trim()) used.hosts.add(normalize(host));
@@ -333,18 +392,25 @@ const knownDomainNames = async (): Promise<TraefikUsedNames> => {
 	return used;
 };
 
-export const getUnusedTraefikCertificates = async (serverId?: string) => {
-	const [storage, used, routes] = await Promise.all([
-		readAcmeStorage(serverId),
+const readUsedNames = async (serverId?: string) => {
+	const [used, routes] = await Promise.all([
 		knownDomainNames(),
 		readTraefikRoutes(serverId),
 	]);
 	if (routes) {
 		addTraefikRouteNames(used, routes);
 	}
+	return { used, routesComplete: routes !== null && !used.incomplete };
+};
+
+export const getUnusedTraefikCertificates = async (serverId?: string) => {
+	const [storage, { used, routesComplete }] = await Promise.all([
+		readAcmeStorage(serverId),
+		readUsedNames(serverId),
+	]);
 	return {
 		certificates: findUnusedAcmeCertificates(storage, used),
-		routesAvailable: routes !== null,
+		routesComplete,
 	};
 };
 
@@ -352,29 +418,47 @@ export const findRemovableTraefikCertificates = async (
 	serverId: string | undefined,
 	selected: AcmeCertificateRef[],
 ) => {
-	const { certificates } = await getUnusedTraefikCertificates(serverId);
+	const { certificates, routesComplete } =
+		await getUnusedTraefikCertificates(serverId);
 	const unused = new Set(certificates.map(refKey));
-	return selected.filter((certificate) => unused.has(refKey(certificate)));
+	return {
+		targets: selected.filter((certificate) => unused.has(refKey(certificate))),
+		routesComplete,
+	};
 };
 
 // Traefik overwrites acme.json from memory, so it is edited only while stopped.
 export const removeTraefikCertificates = async (
 	serverId: string | undefined,
 	targets: AcmeCertificateRef[],
+	{ requireRoutes }: { requireRoutes: boolean },
 ) => {
-	const routes = await readTraefikRoutes(serverId);
-	await whileTraefikStopped(serverId, async () => {
-		const storage = await readAcmeStorage(serverId);
-		const used = await knownDomainNames();
-		if (routes) {
-			addTraefikRouteNames(used, routes);
-		}
-		const unused = new Set(
-			findUnusedAcmeCertificates(storage, used).map(refKey),
-		);
-		const removable = targets.filter((target) => unused.has(refKey(target)));
-		if (withoutAcmeCertificates(storage, removable) > 0) {
-			await writeAcmeStorage(serverId, storage);
-		}
-	});
+	let used = emptyUsedNames();
+	let removed = 0;
+	await whileTraefikStopped(
+		serverId,
+		async () => {
+			const storage = await readAcmeStorage(serverId);
+			const unused = new Set(
+				findUnusedAcmeCertificates(storage, used).map(refKey),
+			);
+			removed = withoutAcmeCertificates(
+				storage,
+				targets.filter((target) => unused.has(refKey(target))),
+			);
+			if (removed > 0) {
+				await writeAcmeStorage(serverId, storage);
+			}
+		},
+		async () => {
+			const current = await readUsedNames(serverId);
+			if (requireRoutes && !current.routesComplete) {
+				throw new Error(
+					"Couldn't read Traefik's routes to double-check the selection, so nothing was removed. Try again.",
+				);
+			}
+			used = current.used;
+		},
+	);
+	return removed;
 };

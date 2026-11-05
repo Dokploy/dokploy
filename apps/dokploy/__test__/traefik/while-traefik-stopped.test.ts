@@ -1,4 +1,5 @@
 import {
+	queueTraefikTask,
 	restoreInterruptedTraefik,
 	whileTraefikStopped,
 } from "@dokploy/server/setup/traefik-setup";
@@ -179,6 +180,94 @@ describe("whileTraefikStopped", () => {
 		expect(fake.containers.map((c) => c.name)).toEqual([
 			"dokploy-traefik",
 			"dokploy-traefik-restarting",
+		]);
+	});
+
+	it("runs the pre-stop check inside the queue, before stopping Traefik", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		const result = whileTraefikStopped(
+			undefined,
+			async () => {
+				fake.log.push("task");
+			},
+			async () => {
+				fake.log.push("check");
+			},
+		);
+		await vi.runAllTimersAsync();
+		await result;
+
+		expect(fake.log).toEqual([
+			"check",
+			"create dokploy-traefik-restarting",
+			"stop traefik",
+			"task",
+			"start traefik",
+			"remove marker",
+		]);
+	});
+
+	it("leaves Traefik running when the pre-stop check fails", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		const result = whileTraefikStopped(
+			undefined,
+			async () => {},
+			async () => {
+				throw new Error("routes unreadable");
+			},
+		).then(
+			() => null,
+			(error: Error) => error,
+		);
+		await vi.runAllTimersAsync();
+
+		expect((await result)?.message).toBe("routes unreadable");
+		expect(fake.log).toEqual([]);
+		expect(fake.containers).toEqual([
+			{ id: "traefik", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("makes recovery and Reload wait until Traefik is back", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		let finish = () => {};
+		const gate = new Promise<void>((resolve) => {
+			finish = resolve;
+		});
+
+		const cleanup = whileTraefikStopped(undefined, async () => {
+			fake.log.push("task");
+			await gate;
+		});
+		await vi.advanceTimersByTimeAsync(10);
+		const restore = restoreInterruptedTraefik();
+		const reload = queueTraefikTask(undefined, async () => {
+			fake.log.push("reload");
+		});
+		await vi.advanceTimersByTimeAsync(10);
+
+		expect(fake.log).toEqual([
+			"create dokploy-traefik-restarting",
+			"stop traefik",
+			"task",
+		]);
+
+		finish();
+		await vi.runAllTimersAsync();
+		await Promise.all([cleanup, restore, reload]);
+
+		expect(fake.log).toEqual([
+			"create dokploy-traefik-restarting",
+			"stop traefik",
+			"task",
+			"start traefik",
+			"remove marker",
+			"reload",
 		]);
 	});
 

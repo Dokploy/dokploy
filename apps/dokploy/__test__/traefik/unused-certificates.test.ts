@@ -7,7 +7,14 @@ const mocks = vi.hoisted(() => ({
 	execAsyncRemote: vi.fn(),
 	hosts: [] as { host: string }[],
 	whileTraefikStopped: vi.fn(
-		async (_serverId: string | undefined, task: () => Promise<void>) => task(),
+		async (
+			_serverId: string | undefined,
+			task: () => Promise<void>,
+			beforeStop?: () => Promise<void>,
+		) => {
+			await beforeStop?.();
+			await task();
+		},
 	),
 }));
 
@@ -101,7 +108,11 @@ const LOCAL_ACME = path.join(
 	"acme.json",
 );
 
-const used = () => ({ hosts: new Set<string>(), patterns: [] as RegExp[] });
+const used = () => ({
+	hosts: new Set<string>(),
+	patterns: [] as RegExp[],
+	incomplete: false,
+});
 
 describe("addTraefikRouteNames", () => {
 	it("collects hosts, SNI names, TLS domains and host patterns from Traefik's routers", () => {
@@ -130,6 +141,7 @@ describe("addTraefikRouteNames", () => {
 			"tcp.example.com",
 		]);
 		expect(names.patterns).toHaveLength(1);
+		expect(names.incomplete).toBe(true);
 		expect(names.patterns[0]?.test("foo.re.example.com")).toBe(true);
 	});
 });
@@ -262,6 +274,80 @@ describe("findUnusedAcmeCertificates", () => {
 	});
 });
 
+describe("route patterns", () => {
+	const certificate = (main: string) => ({ domain: { main } });
+
+	it("keeps a wildcard certificate that a pattern route could use", () => {
+		const names = addTraefikRouteNames(used(), {
+			routers: {
+				shop: { rule: "HostRegexp(`^shop[0-9]+\\.wild\\.example\\.com$`)" },
+			},
+		});
+
+		const unused = findUnusedAcmeCertificates(
+			{
+				letsencrypt: {
+					Certificates: [
+						certificate("*.wild.example.com"),
+						certificate("*.other.example.com"),
+					],
+				},
+			},
+			names,
+		);
+
+		expect(unused.map((c) => c.main)).toEqual(["*.other.example.com"]);
+	});
+
+	it("reads Go inline flags, anchors, quoting and POSIX classes", () => {
+		const names = addTraefikRouteNames(used(), {
+			routers: {
+				flag: { rule: "HostRegexp(`(?i)^SHOP\\.example\\.com$`)" },
+				group: { rule: "HostRegexp(`^(?i:api)\\.example\\.com$`)" },
+				anchors: { rule: "HostRegexp(`\\Aexact\\.example\\.com\\z`)" },
+				quoted: { rule: "HostRegexp(`^\\Qliteral.example.com\\E$`)" },
+				posix: { rule: "HostRegexp(`^[[:alpha:]]+\\.posix\\.example\\.com$`)" },
+				legacy: { rule: "HostHeader(`legacy.example.com`)" },
+			},
+		});
+
+		const unused = findUnusedAcmeCertificates(
+			{
+				letsencrypt: {
+					Certificates: [
+						certificate("shop.example.com"),
+						certificate("api.example.com"),
+						certificate("exact.example.com"),
+						certificate("literal.example.com"),
+						certificate("abc.posix.example.com"),
+						certificate("legacy.example.com"),
+						certificate("literalxexample.com"),
+						certificate("other.example.com"),
+					],
+				},
+			},
+			names,
+		);
+
+		expect(names.incomplete).toBe(false);
+		expect(unused.map((c) => c.main)).toEqual([
+			"literalxexample.com",
+			"other.example.com",
+		]);
+	});
+
+	it("marks the routes as incomplete when a pattern can't be read", () => {
+		const names = addTraefikRouteNames(used(), {
+			routers: {
+				broken: { rule: "HostRegexp(`(`)" },
+				unquoted: { rule: "HostRegexp(app)" },
+			},
+		});
+
+		expect(names.incomplete).toBe(true);
+	});
+});
+
 describe("withoutAcmeCertificates", () => {
 	it("removes only the given certificates and keeps the account and other resolvers", () => {
 		const data = storage();
@@ -299,7 +385,7 @@ describe("unused Traefik certificates", () => {
 		const result = await getUnusedTraefikCertificates();
 
 		expect(result).toEqual({
-			routesAvailable: true,
+			routesComplete: true,
 			certificates: [
 				{
 					resolver: "letsencrypt",
@@ -326,7 +412,7 @@ describe("unused Traefik certificates", () => {
 
 		const result = await getUnusedTraefikCertificates();
 
-		expect(result.routesAvailable).toBe(false);
+		expect(result.routesComplete).toBe(false);
 		expect(result.certificates.map((c) => c.main)).toEqual([
 			"old.example.com",
 			"*.wild.example.com",
@@ -353,20 +439,25 @@ describe("unused Traefik certificates", () => {
 			{ resolver: "letsencrypt", main: "gone.example.com" },
 		]);
 
-		expect(removable).toEqual([
-			{ resolver: "letsencrypt", main: "old.example.com" },
-		]);
+		expect(removable).toEqual({
+			targets: [{ resolver: "letsencrypt", main: "old.example.com" }],
+			routesComplete: true,
+		});
 	});
 
 	it("rewrites the local acme.json while Traefik is stopped, readable only by its owner", async () => {
 		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
 
-		await removeTraefikCertificates(undefined, [
-			{ resolver: "letsencrypt", main: "old.example.com" },
-		]);
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[{ resolver: "letsencrypt", main: "old.example.com" }],
+			{ requireRoutes: false },
+		);
 
+		expect(removed).toBe(1);
 		expect(mocks.whileTraefikStopped).toHaveBeenCalledWith(
 			undefined,
+			expect.any(Function),
 			expect.any(Function),
 		);
 		const saved = JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string);
@@ -386,9 +477,11 @@ describe("unused Traefik certificates", () => {
 			}),
 		);
 
-		await removeTraefikCertificates("server-1", [
-			{ resolver: "letsencrypt", main: "old.example.com" },
-		]);
+		await removeTraefikCertificates(
+			"server-1",
+			[{ resolver: "letsencrypt", main: "old.example.com" }],
+			{ requireRoutes: false },
+		);
 
 		const write = mocks.execAsyncRemote.mock.calls.find(([, command]) =>
 			String(command).startsWith("umask 077"),
@@ -408,15 +501,18 @@ describe("unused Traefik certificates", () => {
 			stderr: "",
 		});
 		mocks.whileTraefikStopped.mockImplementationOnce(
-			async (_serverId, task) => {
+			async (_serverId, task, beforeStop) => {
 				mocks.hosts.push({ host: "old.example.com" });
+				await beforeStop?.();
 				await task();
 			},
 		);
 
-		await removeTraefikCertificates(undefined, [
-			{ resolver: "letsencrypt", main: "old.example.com" },
-		]);
+		await removeTraefikCertificates(
+			undefined,
+			[{ resolver: "letsencrypt", main: "old.example.com" }],
+			{ requireRoutes: false },
+		);
 
 		const saved = JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string);
 		expect(saved).toEqual(storage());
@@ -463,11 +559,72 @@ describe("unused Traefik certificates", () => {
 		);
 
 		await expect(
-			removeTraefikCertificates("server-1", [
-				{ resolver: "letsencrypt", main: "old.example.com" },
-			]),
+			removeTraefikCertificates(
+				"server-1",
+				[{ resolver: "letsencrypt", main: "old.example.com" }],
+				{ requireRoutes: false },
+			),
 		).rejects.toThrow(
 			"Couldn't write /etc/dokploy/traefik/dynamic/acme.json: No space left on device",
+		);
+	});
+
+	it("warns when a route pattern can't be read", async () => {
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
+		mocks.execAsync.mockResolvedValue({
+			stdout: JSON.stringify({
+				routers: { broken: { rule: "HostRegexp(`(`)" } },
+			}),
+			stderr: "",
+		});
+
+		expect((await getUnusedTraefikCertificates()).routesComplete).toBe(false);
+	});
+
+	it("reads routes again right before Traefik stops, keeping one added meanwhile", async () => {
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
+		mocks.execAsync.mockResolvedValue({
+			stdout: JSON.stringify(routes),
+			stderr: "",
+		});
+		mocks.whileTraefikStopped.mockImplementationOnce(
+			async (_serverId, task, beforeStop) => {
+				mocks.execAsync.mockResolvedValue({
+					stdout: JSON.stringify({
+						routers: { manual: { rule: "Host(`old.example.com`)" } },
+					}),
+					stderr: "",
+				});
+				await beforeStop?.();
+				await task();
+			},
+		);
+
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[{ resolver: "letsencrypt", main: "old.example.com" }],
+			{ requireRoutes: true },
+		);
+
+		expect(removed).toBe(0);
+		expect(JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string)).toEqual(
+			storage(),
+		);
+	});
+
+	it("removes nothing when the routes were readable at selection but not right before stopping", async () => {
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
+		mocks.execAsync.mockRejectedValue(new Error("No such container"));
+
+		await expect(
+			removeTraefikCertificates(
+				undefined,
+				[{ resolver: "letsencrypt", main: "old.example.com" }],
+				{ requireRoutes: true },
+			),
+		).rejects.toThrow("Couldn't read Traefik's routes to double-check");
+		expect(JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string)).toEqual(
+			storage(),
 		);
 	});
 
@@ -477,9 +634,11 @@ describe("unused Traefik certificates", () => {
 			stderr: "",
 		});
 
-		await removeTraefikCertificates("server-1", [
-			{ resolver: "letsencrypt", main: "gone.example.com" },
-		]);
+		await removeTraefikCertificates(
+			"server-1",
+			[{ resolver: "letsencrypt", main: "gone.example.com" }],
+			{ requireRoutes: false },
+		);
 
 		expect(
 			mocks.execAsyncRemote.mock.calls.some(([, command]) =>

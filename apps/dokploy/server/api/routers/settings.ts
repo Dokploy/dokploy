@@ -34,6 +34,7 @@ import {
 	prepareEnvironmentVariables,
 	processLogs,
 	pullTraefikImage,
+	queueTraefikTask,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
@@ -126,6 +127,7 @@ const traefikUpdateLocks = new Map<string, symbol>();
 const traefikUpdateErrors = new Map<string, string>();
 const certificateRemovals = new Map<string, symbol>();
 const certificateRemovalErrors = new Map<string, string>();
+const certificateRemovalCounts = new Map<string, number>();
 
 const assertTraefikAccess = async (
 	serverId: string | undefined,
@@ -177,11 +179,11 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
 			// Run in background so the request returns immediately; avoids proxy timeouts.
-			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
-				(err) => {
-					console.error("reloadTraefik background:", err);
-				},
-			);
+			void queueTraefikTask(input?.serverId, async () => {
+				await reloadDockerResource("dokploy-traefik", input?.serverId);
+			}).catch((err) => {
+				console.error("reloadTraefik background:", err);
+			});
 			await audit(ctx, {
 				action: "reload",
 				resourceType: "settings",
@@ -1326,6 +1328,7 @@ export const settingsRouter = createTRPCRouter({
 				...result,
 				isRemoving: certificateRemovals.has(key),
 				lastRemoveError: certificateRemovalErrors.get(key) ?? null,
+				lastRemovedCount: certificateRemovalCounts.get(key) ?? null,
 			};
 		}),
 	removeUnusedTraefikCertificates: adminProcedure
@@ -1353,50 +1356,68 @@ export const settingsRouter = createTRPCRouter({
 					message: "Certificates are already being removed on this server",
 				});
 			}
-			const resourceType = await getDockerResourceType(
-				"dokploy-traefik",
-				serverId,
-			);
-			if (resourceType === "service") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Certificates can only be removed when Traefik runs as the dokploy-traefik container, not as a Swarm service.",
-				});
-			}
-			if (resourceType !== "standalone") {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Traefik was not found on this server.",
-				});
-			}
-			const targets = await findRemovableTraefikCertificates(
-				serverId,
-				input.certificates,
-			);
-			if (targets.length === 0) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"The selected certificates are in use again or were already removed.",
-				});
-			}
 			const run = Symbol(key);
 			certificateRemovals.set(key, run);
-			certificateRemovalErrors.delete(key);
+			const owns = () =>
+				!certificateRemovals.has(key) || certificateRemovals.get(key) === run;
 			const release = () => {
 				if (certificateRemovals.get(key) === run) {
 					certificateRemovals.delete(key);
 				}
 			};
+
+			let selection: Awaited<
+				ReturnType<typeof findRemovableTraefikCertificates>
+			>;
+			try {
+				const resourceType = await getDockerResourceType(
+					"dokploy-traefik",
+					serverId,
+				);
+				if (resourceType === "service") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Certificates can only be removed when Traefik runs as the dokploy-traefik container, not as a Swarm service.",
+					});
+				}
+				if (resourceType !== "standalone") {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Traefik was not found on this server.",
+					});
+				}
+				selection = await findRemovableTraefikCertificates(
+					serverId,
+					input.certificates,
+				);
+				if (selection.targets.length === 0) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"The selected certificates are in use again or were already removed.",
+					});
+				}
+			} catch (error) {
+				release();
+				throw error;
+			}
+
+			const { targets, routesComplete } = selection;
+			certificateRemovalErrors.delete(key);
+			certificateRemovalCounts.delete(key);
 			// Expires in case a Docker call hangs.
 			const timer = setTimeout(release, 5 * 60_000);
-			void removeTraefikCertificates(serverId, targets)
+			void removeTraefikCertificates(serverId, targets, {
+				requireRoutes: routesComplete,
+			})
+				.then((removed) => {
+					if (owns()) {
+						certificateRemovalCounts.set(key, removed);
+					}
+				})
 				.catch((err) => {
-					if (
-						!certificateRemovals.has(key) ||
-						certificateRemovals.get(key) === run
-					) {
+					if (owns()) {
 						certificateRemovalErrors.set(
 							key,
 							err instanceof Error ? err.message : String(err),

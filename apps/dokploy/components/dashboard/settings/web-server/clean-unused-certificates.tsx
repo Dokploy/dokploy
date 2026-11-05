@@ -34,6 +34,9 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const keyOf = ({ resolver, main }: { resolver: string; main: string }) =>
 	`${resolver}\n${main}`;
 
+const plural = (count: number) =>
+	`${count} certificate${count === 1 ? "" : "s"}`;
+
 const expiryLabel = (expiresAt: string | null) => {
 	if (!expiresAt) {
 		return "Unknown expiry";
@@ -119,7 +122,19 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 					`Couldn't remove the certificates: ${result.lastRemoveError}`,
 				);
 			} else {
-				toast.success(`Removed ${count} certificate${count === 1 ? "" : "s"}`);
+				const removed = result.lastRemovedCount ?? 0;
+				const kept = count - removed;
+				if (removed === 0) {
+					toast.info(
+						"Nothing was removed: the selected domains are in use again.",
+					);
+				} else if (kept > 0) {
+					toast.success(
+						`Removed ${plural(removed)}. Kept ${plural(kept)} whose domains are in use again.`,
+					);
+				} else {
+					toast.success(`Removed ${plural(removed)}`);
+				}
 			}
 		} catch (error) {
 			toast.error(
@@ -167,14 +182,14 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 				) : (
 					data && (
 						<div className="space-y-4">
-							{!data.routesAvailable && (
+							{!data.routesComplete && (
 								<AlertBlock
 									type="warning"
 									icon={<AlertCircle className="size-4" />}
 								>
-									Couldn't read Traefik's active routes, so certificates for
-									domains set up by hand (in Traefik files or compose labels)
-									may be listed too. Uncheck any you still use.
+									Couldn't read all of Traefik's active routes, so certificates
+									for domains set up by hand (in Traefik files or compose
+									labels) may be listed too. Uncheck any you still use.
 								</AlertBlock>
 							)}
 							{data.isRemoving && !isWaiting && !isRemoving && (

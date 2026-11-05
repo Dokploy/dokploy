@@ -121,7 +121,7 @@ const recreateStandaloneTraefik = async ({
 	};
 
 	const docker = await getRemoteDocker(serverId);
-	await restoreInterruptedTraefik(serverId);
+	await restoreBackupTraefik(serverId);
 	await ensureTraefikImage(serverId);
 
 	// Kept until the new container stays up, so it can be restored on failure.
@@ -174,8 +174,16 @@ const recreateStandaloneTraefik = async ({
 const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 const RESTART_MARKER_CONTAINER = "dokploy-traefik-restarting";
 
+export const restoreInterruptedTraefik = (serverId?: string) =>
+	runQueued(serverId, () => restoreBackupTraefik(serverId));
+
+export const queueTraefikTask = (
+	serverId: string | undefined,
+	task: () => Promise<void>,
+) => runQueued(serverId, task);
+
 // Finishes a recreate or restart that a Dokploy restart interrupted.
-export const restoreInterruptedTraefik = async (serverId?: string) => {
+const restoreBackupTraefik = async (serverId?: string) => {
 	const docker = await getRemoteDocker(serverId);
 	const traefikInfo = await docker
 		.getContainer("dokploy-traefik")
@@ -221,10 +229,11 @@ const unlessNotModified = (error: unknown) => {
 export const whileTraefikStopped = (
 	serverId: string | undefined,
 	task: () => Promise<void>,
+	beforeStop?: () => Promise<void>,
 ) =>
 	runQueued(serverId, async () => {
 		const docker = await getRemoteDocker(serverId);
-		await restoreInterruptedTraefik(serverId);
+		await restoreBackupTraefik(serverId);
 		const info = await docker
 			.getContainer("dokploy-traefik")
 			.inspect()
@@ -235,6 +244,7 @@ export const whileTraefikStopped = (
 						)
 					: error;
 			});
+		await beforeStop?.();
 		if (!info.State.Running) {
 			await task();
 			return;
