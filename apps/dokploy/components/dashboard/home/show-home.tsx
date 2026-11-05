@@ -15,6 +15,33 @@ const statusDotClass: Record<string, string> = {
 	idle: "bg-muted-foreground/40",
 };
 
+const MAX_COMMIT_MESSAGE_LENGTH = 50;
+
+function getDeploymentCommitMeta(d: {
+	title?: string | null;
+	description?: string | null;
+}) {
+	const commitMessage = d.title
+		?.split("\n")
+		.map((line) => line.trim())
+		.find(Boolean);
+	const commitHash = d.description?.match(/^Commit:\s*(\S+)/i)?.[1];
+
+	if (!commitMessage || !commitHash) {
+		return null;
+	}
+
+	const shortMessage =
+		commitMessage.length > MAX_COMMIT_MESSAGE_LENGTH
+			? `${commitMessage.slice(0, MAX_COMMIT_MESSAGE_LENGTH).trimEnd()}…`
+			: commitMessage;
+
+	return {
+		full: `${commitMessage} (${commitHash.slice(0, 7)})`,
+		short: `${shortMessage} (${commitHash.slice(0, 7)})`,
+	};
+}
+
 function getServiceInfo(d: any) {
 	const app = d.application;
 	const comp = d.compose;
@@ -263,6 +290,7 @@ export const ShowHome = () => {
 									const info = getServiceInfo(d);
 									if (!info) return null;
 									const status = (d.status ?? "idle") as DeploymentStatus;
+									const commitMeta = getDeploymentCommitMeta(d);
 									return (
 										<li key={d.deploymentId}>
 											<Link
@@ -275,8 +303,17 @@ export const ShowHome = () => {
 												/>
 												<div className="flex flex-col min-w-0 flex-1">
 													<span className="text-sm truncate">{info.name}</span>
-													<span className="text-xs text-muted-foreground truncate">
-														{info.projectName} · {info.environment}
+													<span
+														className="text-xs text-muted-foreground truncate"
+														title={commitMeta?.full}
+													>
+														{[
+															info.projectName,
+															info.environment,
+															commitMeta?.short,
+														]
+															.filter(Boolean)
+															.join(" · ")}
 													</span>
 												</div>
 												<span className="text-xs text-muted-foreground w-36 hidden lg:flex items-center justify-end gap-1.5 truncate">
