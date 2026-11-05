@@ -1,0 +1,285 @@
+import { formatDistanceToNow } from "date-fns";
+import {
+	AlertCircle,
+	AlertTriangle,
+	CheckCircle2,
+	Info,
+	Loader2,
+	RefreshCcw,
+} from "lucide-react";
+import { useId, useState } from "react";
+import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
+
+interface Props {
+	children?: React.ReactNode;
+	serverId?: string;
+}
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const keyOf = ({ resolver, main }: { resolver: string; main: string }) =>
+	`${resolver}\n${main}`;
+
+const expiryLabel = (expiresAt: string | null) => {
+	if (!expiresAt) {
+		return "Unknown expiry";
+	}
+	const date = new Date(expiresAt);
+	const distance = formatDistanceToNow(date, { addSuffix: true });
+	return date.getTime() < Date.now()
+		? `Expired ${distance}`
+		: `Expires ${distance}`;
+};
+
+export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const [isWaiting, setIsWaiting] = useState(false);
+	const [unchecked, setUnchecked] = useState<Set<string>>(new Set());
+	const idPrefix = useId();
+	const utils = api.useUtils();
+
+	const { data, isPending, isFetching, refetch, error, isError } =
+		api.settings.getUnusedTraefikCertificates.useQuery(
+			{ serverId },
+			{
+				enabled: isOpen,
+				retry: false,
+				refetchInterval: (query) =>
+					query.state.data?.isRemoving ? 3000 : false,
+			},
+		);
+
+	const { mutateAsync: removeCertificates, isPending: isRemoving } =
+		api.settings.removeUnusedTraefikCertificates.useMutation();
+
+	const certificates = data?.certificates ?? [];
+	const chosen = certificates.filter((item) => !unchecked.has(keyOf(item)));
+	const isInProgress = isRemoving || isWaiting || !!data?.isRemoving;
+
+	const toggle = (key: string, checked: boolean) => {
+		setUnchecked((current) => {
+			const next = new Set(current);
+			if (checked) {
+				next.delete(key);
+			} else {
+				next.add(key);
+			}
+			return next;
+		});
+	};
+
+	const waitForRemoval = async () => {
+		const deadline = Date.now() + 120_000;
+		await wait(5000);
+		while (Date.now() < deadline) {
+			try {
+				const result =
+					await utils.client.settings.getUnusedTraefikCertificates.query({
+						serverId,
+					});
+				if (!result.isRemoving) {
+					return result;
+				}
+			} catch {
+				// Traefik is restarting.
+			}
+			await wait(3000);
+		}
+		return null;
+	};
+
+	const handleRemove = async () => {
+		try {
+			const { count } = await removeCertificates({
+				serverId,
+				certificates: chosen.map(({ resolver, main }) => ({ resolver, main })),
+			});
+			setIsWaiting(true);
+			const result = await waitForRemoval();
+			if (!result) {
+				toast.error(
+					"Traefik is taking longer than expected to restart. Check View Logs.",
+				);
+			} else if (result.lastRemoveError) {
+				toast.error(
+					`Couldn't remove the certificates: ${result.lastRemoveError}`,
+				);
+			} else {
+				toast.success(`Removed ${count} certificate${count === 1 ? "" : "s"}`);
+			}
+		} catch (error) {
+			toast.error(
+				(error as Error)?.message || "Failed to remove the certificates.",
+			);
+		} finally {
+			setIsWaiting(false);
+			setUnchecked(new Set());
+			refetch();
+		}
+	};
+
+	return (
+		<Dialog
+			open={isOpen}
+			onOpenChange={(open) => {
+				setIsOpen(open);
+				if (!open) {
+					setUnchecked(new Set());
+				}
+			}}
+		>
+			<DialogTrigger asChild>{children}</DialogTrigger>
+			<DialogContent className="sm:max-w-lg">
+				<DialogHeader>
+					<DialogTitle>Unused SSL Certificates</DialogTitle>
+					<DialogDescription>
+						Let's Encrypt certificates Traefik still keeps for domains that
+						aren't used on this server anymore. Traefik keeps trying to renew
+						them, which fails and fills its logs.
+					</DialogDescription>
+				</DialogHeader>
+
+				{isError && (
+					<AlertBlock type="error" icon={<AlertTriangle className="size-4" />}>
+						{error?.message}
+					</AlertBlock>
+				)}
+
+				{isPending && !isError ? (
+					<div className="flex items-center justify-center text-muted-foreground py-4">
+						<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+						<span>Reading certificates</span>
+					</div>
+				) : (
+					data && (
+						<div className="space-y-4">
+							{!data.routesAvailable && (
+								<AlertBlock
+									type="warning"
+									icon={<AlertCircle className="size-4" />}
+								>
+									Couldn't read Traefik's active routes, so certificates for
+									domains set up by hand (in Traefik files or compose labels)
+									may be listed too. Uncheck any you still use.
+								</AlertBlock>
+							)}
+							{data.isRemoving && !isWaiting && !isRemoving && (
+								<AlertBlock
+									type="info"
+									icon={<Loader2 className="size-4 animate-spin" />}
+								>
+									Certificates are being removed. Traefik restarts in a moment.
+								</AlertBlock>
+							)}
+							{data.lastRemoveError && !isInProgress && (
+								<AlertBlock
+									type="error"
+									icon={<AlertTriangle className="size-4" />}
+								>
+									Last removal failed: {data.lastRemoveError}
+								</AlertBlock>
+							)}
+							{certificates.length === 0 ? (
+								<AlertBlock
+									type="success"
+									icon={<CheckCircle2 className="size-4" />}
+								>
+									No unused certificates on this server.
+								</AlertBlock>
+							) : (
+								<>
+									<div className="max-h-72 overflow-y-auto rounded-lg border">
+										{certificates.map((item, index) => {
+											const key = keyOf(item);
+											const checkboxId = `${idPrefix}-${index}`;
+											const expired =
+												!!item.expiresAt &&
+												new Date(item.expiresAt).getTime() < Date.now();
+											return (
+												<div
+													key={key}
+													className="flex items-center gap-3 border-b p-3 last:border-b-0"
+												>
+													<Checkbox
+														id={checkboxId}
+														checked={!unchecked.has(key)}
+														onCheckedChange={(checked) =>
+															toggle(key, checked === true)
+														}
+														disabled={isInProgress}
+													/>
+													<label
+														htmlFor={checkboxId}
+														className="min-w-0 flex-1 cursor-pointer"
+													>
+														<p className="text-sm font-medium break-all">
+															{item.main}
+														</p>
+														{item.sans.length > 0 && (
+															<p className="text-xs text-muted-foreground break-all">
+																+ {item.sans.join(", ")}
+															</p>
+														)}
+													</label>
+													<span
+														className={cn(
+															"text-xs whitespace-nowrap",
+															expired
+																? "text-red-500"
+																: "text-muted-foreground",
+														)}
+													>
+														{expiryLabel(item.expiresAt)}
+													</span>
+												</div>
+											);
+										})}
+									</div>
+									<AlertBlock type="info" icon={<Info className="size-4" />}>
+										Removing certificates restarts Traefik, so your applications
+										may be unreachable for a few seconds. Certificates you keep
+										are reused if you add the domain again.
+									</AlertBlock>
+								</>
+							)}
+						</div>
+					)
+				)}
+
+				<DialogFooter>
+					<Button
+						variant="outline"
+						onClick={() => refetch()}
+						isLoading={isFetching && !isPending && !isInProgress}
+						disabled={isInProgress}
+					>
+						<RefreshCcw className="h-4 w-4" />
+						Check again
+					</Button>
+					<Button
+						variant="destructive"
+						onClick={handleRemove}
+						isLoading={isInProgress}
+						disabled={chosen.length === 0 || isFetching || isInProgress}
+					>
+						Remove {chosen.length} & restart Traefik
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+};

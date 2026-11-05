@@ -40,11 +40,12 @@ export interface TraefikOptions {
 // Overlapping recreates of one server would remove each other's containers.
 const recreateQueue = new Map<string, Promise<void>>();
 
-export const initializeStandaloneTraefik = (options: TraefikOptions = {}) => {
-	const key = options.serverId ?? "local";
-	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(() =>
-		recreateStandaloneTraefik(options),
-	);
+export const initializeStandaloneTraefik = (options: TraefikOptions = {}) =>
+	runQueued(options.serverId, () => recreateStandaloneTraefik(options));
+
+const runQueued = (serverId: string | undefined, task: () => Promise<void>) => {
+	const key = serverId ?? "local";
+	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(task);
 	// So a hung Docker call can't block later recreates.
 	const settled = Promise.race([run.catch(() => {}), sleep(5 * 60_000)]).then(
 		() => {},
@@ -171,18 +172,26 @@ const recreateStandaloneTraefik = async ({
 };
 
 const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
+const RESTART_MARKER_CONTAINER = "dokploy-traefik-restarting";
 
-// An interrupted recreate (e.g. a Dokploy restart) leaves only the stopped backup.
+// Finishes a recreate or restart that a Dokploy restart interrupted.
 export const restoreInterruptedTraefik = async (serverId?: string) => {
 	const docker = await getRemoteDocker(serverId);
-	const exists = await docker
+	const traefikInfo = await docker
 		.getContainer("dokploy-traefik")
 		.inspect()
-		.then(
-			() => true,
-			() => false,
-		);
-	if (exists) {
+		.catch(() => null);
+	const markerInfo = await docker
+		.getContainer(RESTART_MARKER_CONTAINER)
+		.inspect()
+		.catch(() => null);
+	if (markerInfo) {
+		if (traefikInfo && !traefikInfo.State.Running) {
+			await docker.getContainer(traefikInfo.Id).start();
+		}
+		await docker.getContainer(markerInfo.Id).remove({ force: true });
+	}
+	if (traefikInfo) {
 		return;
 	}
 	const backupInfo = await docker
@@ -199,6 +208,59 @@ export const restoreInterruptedTraefik = async (serverId?: string) => {
 	}
 	console.log("Restored Traefik left behind by an interrupted recreate");
 };
+
+const statusCodeOf = (error: unknown) =>
+	(error as { statusCode?: number } | null)?.statusCode;
+
+const unlessNotModified = (error: unknown) => {
+	if (statusCodeOf(error) !== 304) {
+		throw error;
+	}
+};
+
+export const whileTraefikStopped = (
+	serverId: string | undefined,
+	task: () => Promise<void>,
+) =>
+	runQueued(serverId, async () => {
+		const docker = await getRemoteDocker(serverId);
+		await restoreInterruptedTraefik(serverId);
+		const info = await docker
+			.getContainer("dokploy-traefik")
+			.inspect()
+			.catch((error) => {
+				throw statusCodeOf(error) === 404
+					? new Error(
+							"The dokploy-traefik container was not found on this server.",
+						)
+					: error;
+			});
+		if (!info.State.Running) {
+			await task();
+			return;
+		}
+		const traefik = docker.getContainer(info.Id);
+		// Lets recovery start Traefik if Dokploy dies mid-way.
+		const marker = await docker.createContainer({
+			name: RESTART_MARKER_CONTAINER,
+			Image: info.Image,
+		});
+		try {
+			await traefik.stop().catch(unlessNotModified);
+		} catch (error) {
+			await marker.remove({ force: true }).catch(() => {});
+			throw error;
+		}
+		const failure = await task().then(
+			() => null,
+			(error: unknown) => ({ error }),
+		);
+		await traefik.start().catch(unlessNotModified);
+		await marker.remove({ force: true }).catch(() => {});
+		if (failure) {
+			throw failure.error;
+		}
+	});
 
 // docker.pull resolves before the download ends and reports errors in the stream.
 export const ensureTraefikImage = async (serverId?: string) => {

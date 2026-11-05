@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import { api } from "@/utils/api";
+import { CleanUnusedCertificates } from "../../web-server/clean-unused-certificates";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
@@ -184,6 +185,14 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							<span>Check Version</span>
 						</DropdownMenuItem>
 					</UpdateTraefikVersion>
+					<CleanUnusedCertificates serverId={serverId}>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							<span>Clean Up Certificates</span>
+						</DropdownMenuItem>
+					</CleanUnusedCertificates>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

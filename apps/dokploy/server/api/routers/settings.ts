@@ -13,6 +13,7 @@ import {
 	cleanupSystem,
 	cleanupVolumes,
 	DEFAULT_UPDATE_DATA,
+	findRemovableTraefikCertificates,
 	findServerById,
 	getDockerDiskUsage,
 	getDockerResourceType,
@@ -20,6 +21,7 @@ import {
 	getLogCleanupStatus,
 	getPostHogKey,
 	getTraefikOverview,
+	getUnusedTraefikCertificates,
 	getUpdateData,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -42,6 +44,7 @@ import {
 	readPorts,
 	recreateDirectory,
 	reloadDockerResource,
+	removeTraefikCertificates,
 	sendDockerCleanupNotifications,
 	setupGPUSupport,
 	spawnAsync,
@@ -121,6 +124,8 @@ const resolveTraefikFilePath = (
 
 const traefikUpdateLocks = new Map<string, symbol>();
 const traefikUpdateErrors = new Map<string, string>();
+const certificateRemovals = new Map<string, symbol>();
+const certificateRemovalErrors = new Map<string, string>();
 
 const assertTraefikAccess = async (
 	serverId: string | undefined,
@@ -1307,6 +1312,108 @@ export const settingsRouter = createTRPCRouter({
 				resourceName: "traefik-version",
 			});
 			return true;
+		}),
+	getUnusedTraefikCertificates: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input, ctx }) => {
+			await assertTraefikAccess(
+				input?.serverId,
+				ctx.session.activeOrganizationId,
+			);
+			const key = input?.serverId ?? "local";
+			const result = await getUnusedTraefikCertificates(input?.serverId);
+			return {
+				...result,
+				isRemoving: certificateRemovals.has(key),
+				lastRemoveError: certificateRemovalErrors.get(key) ?? null,
+			};
+		}),
+	removeUnusedTraefikCertificates: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				certificates: z
+					.array(
+						z.object({
+							resolver: z.string().min(1).max(255),
+							main: z.string().min(1).max(255),
+						}),
+					)
+					.min(1)
+					.max(1000),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const { serverId } = input;
+			await assertTraefikAccess(serverId, ctx.session.activeOrganizationId);
+			const key = serverId ?? "local";
+			if (certificateRemovals.has(key)) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "Certificates are already being removed on this server",
+				});
+			}
+			const resourceType = await getDockerResourceType(
+				"dokploy-traefik",
+				serverId,
+			);
+			if (resourceType === "service") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Certificates can only be removed when Traefik runs as the dokploy-traefik container, not as a Swarm service.",
+				});
+			}
+			if (resourceType !== "standalone") {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Traefik was not found on this server.",
+				});
+			}
+			const targets = await findRemovableTraefikCertificates(
+				serverId,
+				input.certificates,
+			);
+			if (targets.length === 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"The selected certificates are in use again or were already removed.",
+				});
+			}
+			const run = Symbol(key);
+			certificateRemovals.set(key, run);
+			certificateRemovalErrors.delete(key);
+			const release = () => {
+				if (certificateRemovals.get(key) === run) {
+					certificateRemovals.delete(key);
+				}
+			};
+			// Expires in case a Docker call hangs.
+			const timer = setTimeout(release, 5 * 60_000);
+			void removeTraefikCertificates(serverId, targets)
+				.catch((err) => {
+					if (
+						!certificateRemovals.has(key) ||
+						certificateRemovals.get(key) === run
+					) {
+						certificateRemovalErrors.set(
+							key,
+							err instanceof Error ? err.message : String(err),
+						);
+					}
+					console.error("removeUnusedTraefikCertificates background:", err);
+				})
+				.finally(() => {
+					clearTimeout(timer);
+					release();
+				});
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "certificate",
+				resourceName: targets.map((target) => target.main).join(", "),
+			});
+			return { count: targets.length };
 		}),
 	updateLogCleanup: protectedProcedure
 		.input(

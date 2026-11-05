@@ -497,7 +497,25 @@ export const ShowDomains = ({ id, type }: Props) => {
 														{canDeleteDomain && (
 															<DialogAction
 																title="Delete Domain"
-																description="Are you sure you want to delete this domain?"
+																description={
+																	item.certificateType === "letsencrypt" ? (
+																		<div className="space-y-2">
+																			<p>
+																				Are you sure you want to delete this
+																				domain?
+																			</p>
+																			<p className="text-muted-foreground text-sm">
+																				Its SSL certificate is kept, so adding
+																				the domain again later works right away.
+																				To remove certificates you no longer
+																				need, use Traefik → Clean Up
+																				Certificates in the server's settings.
+																			</p>
+																		</div>
+																	) : (
+																		"Are you sure you want to delete this domain?"
+																	)
+																}
 																type="destructive"
 																onClick={async () => {
 																	await handleDeleteDomain(item.domainId);
