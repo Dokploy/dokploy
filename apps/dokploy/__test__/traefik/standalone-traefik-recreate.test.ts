@@ -107,12 +107,19 @@ const fakeDocker = ({
 		},
 		rename: async ({ name }: { name: string }) => {
 			const c = find(ref);
+			if (containers.some((other) => other !== c && other.name === name)) {
+				throw new Error(`Conflict: ${name} is already in use`);
+			}
 			if (c.running) {
 				throw new Error(
 					`could not add service state for endpoint ${name} to cluster on UpdateDNSNames: cannot create entry in table endpoint_table, already exists`,
 				);
 			}
-			if (restoreError && name === "dokploy-traefik") {
+			if (
+				restoreError &&
+				name === "dokploy-traefik" &&
+				!c.id.startsWith("new")
+			) {
 				throw restoreError;
 			}
 			if (backupRenameError && name === "dokploy-traefik-previous") {
@@ -238,9 +245,10 @@ describe("initializeStandaloneTraefik", () => {
 
 		expect(error).toBeNull();
 		expect(fake.log).toEqual([
+			"create new",
 			"stop old",
 			"rename old -> dokploy-traefik-previous",
-			"create new",
+			"rename new -> dokploy-traefik",
 			"start new",
 			"remove old",
 		]);
@@ -248,7 +256,7 @@ describe("initializeStandaloneTraefik", () => {
 			{ id: "new", name: "dokploy-traefik", running: true },
 		]);
 		expect(fake.createdWith()).toMatchObject({
-			name: "dokploy-traefik",
+			name: "dokploy-traefik-next",
 			Image: `traefik:v${TRAEFIK_VERSION}`,
 			HostConfig: { PortBindings: { "8080/tcp": [{ HostPort: "8080" }] } },
 		});
@@ -290,9 +298,10 @@ describe("initializeStandaloneTraefik", () => {
 			"port is already allocated. The previous Traefik was restored.",
 		);
 		expect(fake.log).toEqual([
+			"create new",
 			"stop old",
 			"rename old -> dokploy-traefik-previous",
-			"create new",
+			"rename new -> dokploy-traefik",
 			"start new",
 			"remove new",
 			"rename old -> dokploy-traefik",
@@ -337,7 +346,8 @@ describe("initializeStandaloneTraefik", () => {
 		const error = await recreate(fake);
 
 		expect(error).toBeNull();
-		expect(fake.log.slice(0, 3)).toEqual([
+		expect(fake.log.slice(0, 4)).toEqual([
+			"create new",
 			"remove stale",
 			"stop old",
 			"rename old -> dokploy-traefik-previous",
@@ -357,11 +367,12 @@ describe("initializeStandaloneTraefik", () => {
 
 		expect(error).toBeNull();
 		expect(fake.log).toEqual([
-			"stop old",
-			"rename old -> dokploy-traefik-previous",
 			"create new",
 			"connect new -> my-compose-id",
 			"connect new -> manual-net-id",
+			"stop old",
+			"rename old -> dokploy-traefik-previous",
+			"rename new -> dokploy-traefik",
 			"start new",
 			"remove old",
 		]);
@@ -371,7 +382,7 @@ describe("initializeStandaloneTraefik", () => {
 		});
 	});
 
-	it("puts the old container back when the new one cannot join a network", async () => {
+	it("keeps the old container running when the new one cannot join a network", async () => {
 		const fake = fakeDocker({
 			oldNetworks: { "manual-net": { NetworkID: "manual-net-id" } },
 			connectError: new Error("network manual-net-id not found"),
@@ -379,10 +390,8 @@ describe("initializeStandaloneTraefik", () => {
 
 		const error = await recreate(fake);
 
-		expect(error?.message).toBe(
-			"network manual-net-id not found. The previous Traefik was restored.",
-		);
-		expect(fake.log).not.toContain("start new");
+		expect(error?.message).toBe("network manual-net-id not found");
+		expect(fake.log).toEqual(["create new", "remove new"]);
 		expect(fake.containers).toEqual([
 			{ id: "old", name: "dokploy-traefik", running: true },
 		]);
@@ -409,7 +418,12 @@ describe("initializeStandaloneTraefik", () => {
 		const error = await recreate(fake);
 
 		expect(error?.message).toBe("name already in use");
-		expect(fake.log).toEqual(["stop old", "start old"]);
+		expect(fake.log).toEqual([
+			"create new",
+			"stop old",
+			"start old",
+			"remove new",
+		]);
 		expect(fake.containers).toEqual([
 			{ id: "old", name: "dokploy-traefik", running: true },
 		]);
@@ -430,14 +444,16 @@ describe("initializeStandaloneTraefik", () => {
 		await expect(first).resolves.toBeUndefined();
 		await expect(second).resolves.toBeUndefined();
 		expect(fake.log).toEqual([
+			"create new",
 			"stop old",
 			"rename old -> dokploy-traefik-previous",
-			"create new",
+			"rename new -> dokploy-traefik",
 			"start new",
 			"remove old",
+			"create new2",
 			"stop new",
 			"rename new -> dokploy-traefik-previous",
-			"create new2",
+			"rename new2 -> dokploy-traefik",
 			"start new2",
 			"remove new",
 		]);
@@ -477,7 +493,11 @@ describe("initializeStandaloneTraefik", () => {
 		const error = await recreate(fake);
 
 		expect(error).toBeNull();
-		expect(fake.log).toEqual(["create new", "start new"]);
+		expect(fake.log).toEqual([
+			"create new",
+			"rename new -> dokploy-traefik",
+			"start new",
+		]);
 	});
 
 	it("keeps the old behaviour on a fresh setup that fails: logs instead of throwing", async () => {
@@ -489,7 +509,12 @@ describe("initializeStandaloneTraefik", () => {
 		const error = await recreate(fake);
 
 		expect(error).toBeNull();
-		expect(fake.log).toEqual(["create new", "start new"]);
+		expect(fake.log).toEqual([
+			"create new",
+			"rename new -> dokploy-traefik",
+			"start new",
+			"remove new",
+		]);
 	});
 });
 
@@ -576,6 +601,59 @@ describe("restoreInterruptedTraefik", () => {
 		]);
 	});
 
+	it("starts Traefik again when Dokploy restarted right after an update stopped it", async () => {
+		const fake = fakeDocker({ oldRunning: false });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		await fake.docker.createContainer({ name: "dokploy-traefik-next" });
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual(["create new", "start old", "remove new"]);
+		expect(fake.containers).toEqual([
+			{ id: "old", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("only clears the new container when Dokploy restarted before the update stopped Traefik", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		await fake.docker.createContainer({ name: "dokploy-traefik-next" });
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual(["create new", "remove new"]);
+		expect(fake.containers).toEqual([
+			{ id: "old", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("brings back the backup when Dokploy restarted mid-swap", async () => {
+		const fake = fakeDocker({ oldRunning: null, staleBackup: true });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		await fake.docker.createContainer({ name: "dokploy-traefik-next" });
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([
+			"create new",
+			"rename stale -> dokploy-traefik",
+			"start stale",
+			"remove new",
+		]);
+		expect(fake.containers).toEqual([
+			{ id: "stale", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("leaves a stopped Traefik alone when no update was interrupted", async () => {
+		const fake = fakeDocker({ oldRunning: false });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([]);
+	});
+
 	it("leaves a stopped Traefik alone even when a backup exists", async () => {
 		const fake = fakeDocker({ oldRunning: false, staleBackup: true });
 		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
@@ -596,6 +674,7 @@ describe("restoreInterruptedTraefik", () => {
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(fake.containers.map((c) => c.name)).toEqual([
 			"dokploy-traefik-previous",
+			"dokploy-traefik-next",
 		]);
 		const restore = restoreInterruptedTraefik();
 		await vi.runAllTimersAsync();
@@ -634,9 +713,10 @@ describe("restoreInterruptedTraefik", () => {
 		expect(fake.log).toEqual([
 			"rename stale -> dokploy-traefik",
 			"start stale",
+			"create new",
 			"stop stale",
 			"rename stale -> dokploy-traefik-previous",
-			"create new",
+			"rename new -> dokploy-traefik",
 			"start new",
 			"remove stale",
 		]);
