@@ -20,6 +20,7 @@ import {
 import slug from "slugify";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
+import { installActScript } from "../utils/workflows/act";
 import { setupMonitoring } from "./monitoring-setup";
 
 const generateToken = () => {
@@ -64,12 +65,12 @@ export const serverSetup = async (
 	});
 
 	try {
-		const isBuildServer = server.serverType === "build";
-		onData?.(
-			isBuildServer
-				? "\nInstalling Build Server Dependencies: ✅\n"
-				: "\nInstalling Server Dependencies: ✅\n",
-		);
+		const setupMessages = {
+			deploy: "\nInstalling Server Dependencies: ✅\n",
+			build: "\nInstalling Build Server Dependencies: ✅\n",
+			workflow: "\nInstalling Workflow Server Dependencies: ✅\n",
+		};
+		onData?.(setupMessages[server.serverType]);
 		await installRequirements(serverId, onData);
 
 		if (IS_CLOUD) {
@@ -122,7 +123,101 @@ else
 fi
 `;
 
-export const defaultCommand = (isBuildServer = false) => {
+const serverTypeBanner = {
+	deploy: "",
+	build: 'echo "| Server Type       | Build Server"',
+	workflow: 'echo "| Server Type       | Workflow Server"',
+};
+
+const deployServerSteps = () => `
+echo -e "2. Validating ports. "
+${validatePorts()}
+
+
+
+echo -e "3. Installing RClone. "
+${installRClone()}
+
+echo -e "4. Installing Docker. "
+${installDocker()}
+
+echo -e "5. Setting up Docker Swarm"
+${setupSwarm()}
+
+echo -e "6. Setting up Network"
+${setupNetwork()}
+
+echo -e "7. Setting up Directories"
+${setupMainDirectory()}
+${setupDirectories()}
+
+echo -e "8. Setting up Traefik"
+${createServerTraefikConfig()}
+
+echo -e "9. Setting up Middlewares"
+${createDefaultMiddlewares()}
+
+echo -e "10. Setting up Traefik Instance"
+${createTraefikInstance()}
+
+echo -e "11. Installing Nixpacks"
+${installNixpacks()}
+
+echo -e "12. Installing Buildpacks"
+${installBuildpacks()}
+
+echo -e "13. Installing Railpack"
+${installRailpack()}
+
+echo -e "14. Configuring permissions"
+${setupPermissions()}
+`;
+
+const buildServerSteps = () => `
+echo -e "2. Installing Docker. "
+${installDocker()}
+
+echo -e "3. Setting up Directories"
+${setupMainDirectory()}
+${setupDirectories()}
+
+echo -e "4. Installing Nixpacks"
+${installNixpacks()}
+
+echo -e "5. Installing Buildpacks"
+${installBuildpacks()}
+
+echo -e "6. Installing Railpack"
+${installRailpack()}
+
+echo -e "7. Configuring permissions"
+${setupPermissions()}
+`;
+
+const workflowServerSteps = () => `
+echo -e "2. Installing Docker. "
+${installDocker()}
+
+echo -e "3. Setting up Directories"
+${setupMainDirectory()}
+${setupDirectories()}
+
+echo -e "4. Installing act"
+${installActScript()}
+
+echo -e "5. Configuring permissions"
+${setupPermissions()}
+`;
+
+const serverTypeSteps = {
+	deploy: deployServerSteps,
+	build: buildServerSteps,
+	workflow: workflowServerSteps,
+};
+
+export const defaultCommand = (
+	serverType: "deploy" | "build" | "workflow" = "deploy",
+) => {
 	const bashCommand = `
 set -e;
 DOCKER_VERSION=28.5.0
@@ -206,7 +301,7 @@ echo -e "---------------------------------------------"
 echo "| CPU Architecture  | $SYS_ARCH"
 echo "| Operating System  | $OS_TYPE $OS_VERSION"
 echo "| Docker            | $DOCKER_VERSION_REPORT"
-${isBuildServer ? 'echo "| Server Type       | Build Server"' : ""}
+${serverTypeBanner[serverType]}
 echo -e "---------------------------------------------\n"
 echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
 
@@ -216,72 +311,7 @@ command_exists() {
 
 ${installUtilities()}
 
-${
-	!isBuildServer
-		? `
-echo -e "2. Validating ports. "
-${validatePorts()}
-
-
-
-echo -e "3. Installing RClone. "
-${installRClone()}
-
-echo -e "4. Installing Docker. "
-${installDocker()}
-
-echo -e "5. Setting up Docker Swarm"
-${setupSwarm()}
-
-echo -e "6. Setting up Network"
-${setupNetwork()}
-
-echo -e "7. Setting up Directories"
-${setupMainDirectory()}
-${setupDirectories()}
-
-echo -e "8. Setting up Traefik"
-${createServerTraefikConfig()}
-
-echo -e "9. Setting up Middlewares"
-${createDefaultMiddlewares()}
-
-echo -e "10. Setting up Traefik Instance"
-${createTraefikInstance()}
-
-echo -e "11. Installing Nixpacks"
-${installNixpacks()}
-
-echo -e "12. Installing Buildpacks"
-${installBuildpacks()}
-
-echo -e "13. Installing Railpack"
-${installRailpack()}
-
-echo -e "14. Configuring permissions"
-${setupPermissions()}
-`
-		: `
-echo -e "2. Installing Docker. "
-${installDocker()}
-
-echo -e "3. Setting up Directories"
-${setupMainDirectory()}
-${setupDirectories()}
-
-echo -e "4. Installing Nixpacks"
-${installNixpacks()}
-
-echo -e "5. Installing Buildpacks"
-${installBuildpacks()}
-
-echo -e "6. Installing Railpack"
-${installRailpack()}
-
-echo -e "7. Configuring permissions"
-${setupPermissions()}
-`
-}
+${serverTypeSteps[serverType]()}
 				`;
 
 	return bashCommand;
@@ -298,12 +328,10 @@ const installRequirements = async (
 		throw new Error("No SSH Key found");
 	}
 
-	const isBuildServer = server.serverType === "build";
-
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
-				const command = server.command || defaultCommand(isBuildServer);
+				const command = server.command || defaultCommand(server.serverType);
 				client.exec(command, (err, stream) => {
 					if (err) {
 						onData?.(err.message);
@@ -417,48 +445,48 @@ export const setupSwarm = () => `
 
 				# Try IPv4 with multiple services
 				# First attempt: ifconfig.io
-				ip=\$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
+				ip=$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
 
 				# Second attempt: icanhazip.com
-				if [ -z "\$ip" ]; then
-					ip=\$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+				if [ -z "$ip" ]; then
+					ip=$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 				fi
 
 				# Third attempt: ipecho.net
-				if [ -z "\$ip" ]; then
-					ip=\$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
+				if [ -z "$ip" ]; then
+					ip=$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
 				fi
 
 				# If no IPv4, try IPv6 with multiple services
-				if [ -z "\$ip" ]; then
+				if [ -z "$ip" ]; then
 					# Try IPv6 with ifconfig.io
-					ip=\$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
+					ip=$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
 
 					# Try IPv6 with icanhazip.com
-					if [ -z "\$ip" ]; then
-						ip=\$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
+					if [ -z "$ip" ]; then
+						ip=$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 					fi
 
 					# Try IPv6 with ipecho.net
-					if [ -z "\$ip" ]; then
-						ip=\$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
+					if [ -z "$ip" ]; then
+						ip=$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
 					fi
 				fi
 
-				if [ -z "\$ip" ]; then
+				if [ -z "$ip" ]; then
 					echo "Error: Could not determine server IP address automatically (neither IPv4 nor IPv6)." >&2
 					echo "Please set the ADVERTISE_ADDR environment variable manually." >&2
 					echo "Example: export ADVERTISE_ADDR=<your-server-ip>" >&2
 					exit 1
 				fi
 
-				echo "\$ip"
+				echo "$ip"
 			}
-			advertise_addr=\$(get_ip)
-			echo "Advertise address: \$advertise_addr"
+			advertise_addr=$(get_ip)
+			echo "Advertise address: $advertise_addr"
 
 			# Initialize Docker Swarm
-			$SUDO_CMD docker swarm init --advertise-addr \$advertise_addr
+			$SUDO_CMD docker swarm init --advertise-addr $advertise_addr
 			echo "Swarm initialized ✅"
 		fi
 	`;
@@ -501,7 +529,7 @@ const installUtilities = () => `
 		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
-		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
+		$SUDO_CMD sed -i '/^#.*/community/s/^#//' /etc/apk/repositories
 		$SUDO_CMD apk update >/dev/null
 		$SUDO_CMD apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
 		;;

@@ -82,10 +82,10 @@ describe("reportDockerVersion", () => {
 });
 
 describe("defaultCommand", () => {
-	it.each([false, true])(
-		"prints the detected Docker version in the setup banner (isBuildServer=%s)",
-		(isBuildServer) => {
-			const script = defaultCommand(isBuildServer);
+	it.each(["deploy", "build", "workflow"] as const)(
+		"prints the detected Docker version in the setup banner (serverType=%s)",
+		(serverType) => {
+			const script = defaultCommand(serverType);
 			expect(script).toContain(reportDockerVersion());
 			expect(script).toContain(
 				'echo "| Docker            | $DOCKER_VERSION_REPORT"',
@@ -95,4 +95,14 @@ describe("defaultCommand", () => {
 			);
 		},
 	);
+});
+
+describe("defaultCommand for workflow servers", () => {
+	it("installs act without Swarm or Traefik", () => {
+		const script = defaultCommand("workflow");
+		expect(script).toContain("Installing act");
+		expect(script).toContain("nektos/act/releases/download");
+		expect(script).not.toContain("Setting up Docker Swarm");
+		expect(script).not.toContain("Setting up Traefik");
+	});
 });

@@ -26,7 +26,7 @@ import { schedules } from "./schedule";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
-export const serverType = pgEnum("serverType", ["deploy", "build"]);
+export const serverType = pgEnum("serverType", ["deploy", "build", "workflow"]);
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -142,7 +142,7 @@ const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
-	serverType: z.enum(["deploy", "build"]).optional(),
+	serverType: z.enum(["deploy", "build", "workflow"]).optional(),
 });
 
 export const apiCreateServer = createSchema

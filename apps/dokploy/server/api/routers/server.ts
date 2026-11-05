@@ -150,8 +150,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiFindOneServer)
 		.query(async ({ input }) => {
 			const server = await findServerById(input.serverId);
-			const isBuildServer = server.serverType === "build";
-			return defaultCommand(isBuildServer);
+			return defaultCommand(server.serverType);
 		}),
 	getServices: withPermission("server", "read")
 		.input(apiFindOneServer)
@@ -291,6 +290,23 @@ export const serverRouter = createTRPCRouter({
 			result.filter((s) => accessibleIds.has(s.serverId)),
 		);
 	}),
+	workflowServers: protectedProcedure.query(async ({ ctx }) => {
+		const accessibleIds = await getAccessibleServerIds(ctx.session);
+
+		const result = await db.query.server.findMany({
+			orderBy: desc(server.createdAt),
+			where: and(
+				isNotNull(server.sshKeyId),
+				eq(server.organizationId, ctx.session.activeOrganizationId),
+				eq(server.serverType, "workflow"),
+				...(IS_CLOUD ? [eq(server.serverStatus, "active")] : []),
+			),
+		});
+		return toServerOptions(
+			ctx,
+			result.filter((s) => accessibleIds.has(s.serverId)),
+		);
+	}),
 	setup: withPermission("server", "create")
 		.input(apiFindOneServer)
 		.mutation(async ({ input, ctx }) => {
@@ -372,6 +388,10 @@ export const serverRouter = createTRPCRouter({
 						version: string;
 					};
 					railpack: {
+						enabled: boolean;
+						version: string;
+					};
+					act: {
 						enabled: boolean;
 						version: string;
 					};

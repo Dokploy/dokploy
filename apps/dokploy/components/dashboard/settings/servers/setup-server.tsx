@@ -50,7 +50,7 @@ export const SetupServer = ({ serverId, children }: Props) => {
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const isBuildServer = server?.serverType === "build";
+	const isBuildServer = server?.serverType !== "deploy";
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);

@@ -103,6 +103,8 @@ const RESOURCE_LABELS: Record<string, string> = {
 	session: "Session",
 	network: "Network",
 	telemetryProvider: "Logs & Metrics",
+	workflow: "Workflow",
+	workflowRepository: "Workflow Repository",
 };
 
 function MetadataCell({ metadata }: { metadata: string | null }) {

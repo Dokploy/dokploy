@@ -53,7 +53,7 @@ const Schema = z.object({
 	sshKeyId: z.string().min(1, {
 		message: "SSH Key is required",
 	}),
-	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	serverType: z.enum(["deploy", "build", "workflow"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
 });
 
@@ -301,6 +301,9 @@ export const HandleServers = ({ serverId, children }: Props) => {
 												<SelectGroup>
 													<SelectItem value="deploy">Deploy Server</SelectItem>
 													<SelectItem value="build">Build Server</SelectItem>
+													<SelectItem value="workflow">
+														Workflow Server
+													</SelectItem>
 													<SelectLabel>Server Type</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
@@ -320,6 +323,14 @@ export const HandleServers = ({ serverId, children }: Props) => {
 												process, offloading this work from your deployment
 												servers. Build servers won't appear in deployment
 												options.
+											</AlertBlock>
+										)}
+										{serverTypeValue === "workflow" && (
+											<AlertBlock type="info" className="mt-2">
+												Workflow servers run the CI/CD workflows of your
+												repositories with act. Jobs get access to the server's
+												Docker, so use a dedicated machine: workflow servers
+												won't appear in deployment or build options.
 											</AlertBlock>
 										)}
 									</FormItem>

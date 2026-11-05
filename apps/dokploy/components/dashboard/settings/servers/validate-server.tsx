@@ -31,7 +31,8 @@ export const ValidateServer = ({ serverId }: Props) => {
 			enabled: !!serverId,
 		},
 	);
-	const isBuildServer = server?.serverType === "build";
+	const isWorkflowServer = server?.serverType === "workflow";
+	const isBuildServer = server?.serverType !== "deploy";
 	const _utils = api.useUtils();
 	return (
 		<CardContent className="p-0">
@@ -80,9 +81,11 @@ export const ValidateServer = ({ serverId }: Props) => {
 								<div className="border rounded-lg p-4">
 									<h3 className="text-lg font-semibold mb-1">Status</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										{isBuildServer
-											? "Shows the build server configuration status"
-											: "Shows the server configuration status"}
+										{isWorkflowServer
+											? "Shows the workflow server configuration status"
+											: isBuildServer
+												? "Shows the build server configuration status"
+												: "Shows the server configuration status"}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
@@ -105,33 +108,47 @@ export const ValidateServer = ({ serverId }: Props) => {
 												}
 											/>
 										)}
-										<StatusRow
-											label="Nixpacks Installed"
-											isEnabled={data?.nixpacks?.enabled}
-											description={
-												data?.nixpacks?.enabled
-													? `Installed: ${data?.nixpacks?.version}`
-													: undefined
-											}
-										/>
-										<StatusRow
-											label="Buildpacks Installed"
-											isEnabled={data?.buildpacks?.enabled}
-											description={
-												data?.buildpacks?.enabled
-													? `Installed: ${data?.buildpacks?.version}`
-													: undefined
-											}
-										/>
-										<StatusRow
-											label="Railpack Installed"
-											isEnabled={data?.railpack?.enabled}
-											description={
-												data?.railpack?.enabled
-													? `Installed: ${data?.railpack?.version}`
-													: undefined
-											}
-										/>
+										{isWorkflowServer ? (
+											<StatusRow
+												label="act Installed"
+												isEnabled={data?.act?.enabled}
+												description={
+													data?.act?.enabled
+														? `Installed: ${data?.act?.version}`
+														: undefined
+												}
+											/>
+										) : (
+											<>
+												<StatusRow
+													label="Nixpacks Installed"
+													isEnabled={data?.nixpacks?.enabled}
+													description={
+														data?.nixpacks?.enabled
+															? `Installed: ${data?.nixpacks?.version}`
+															: undefined
+													}
+												/>
+												<StatusRow
+													label="Buildpacks Installed"
+													isEnabled={data?.buildpacks?.enabled}
+													description={
+														data?.buildpacks?.enabled
+															? `Installed: ${data?.buildpacks?.version}`
+															: undefined
+													}
+												/>
+												<StatusRow
+													label="Railpack Installed"
+													isEnabled={data?.railpack?.enabled}
+													description={
+														data?.railpack?.enabled
+															? `Installed: ${data?.railpack?.version}`
+															: undefined
+													}
+												/>
+											</>
+										)}
 										{!isBuildServer && (
 											<>
 												<StatusRow

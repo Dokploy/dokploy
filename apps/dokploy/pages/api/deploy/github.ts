@@ -5,6 +5,7 @@ import {
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
+	handleGithubWorkflowEvent,
 	IS_CLOUD,
 	removePreviewDeployment,
 	shouldDeploy,
@@ -81,6 +82,15 @@ export default async function handler(
 	if (req.headers["x-github-event"] === "ping") {
 		res.status(200).json({ message: "Ping received, webhook is active" });
 		return;
+	}
+
+	const githubEvent = req.headers["x-github-event"];
+	if (githubEvent === "push" || githubEvent === "pull_request") {
+		// GitHub gives up on webhooks after 10 seconds, and reading the workflow
+		// files takes several API calls, so runs are created in the background.
+		void handleGithubWorkflowEvent(githubResult, githubEvent, githubBody).catch(
+			(error) => logWebhookError("Error triggering workflows:", error),
+		);
 	}
 
 	if (

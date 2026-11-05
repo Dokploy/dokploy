@@ -39,6 +39,7 @@ import {
 	User,
 	Users,
 	Vault,
+	Workflow,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -204,6 +205,13 @@ const MENU: Menu = {
 			url: "/dashboard/schedules",
 			icon: Clock,
 			isEnabled: ({ permissions }) => !!permissions?.organization.update,
+		},
+		{
+			isSingle: true,
+			title: "Workflows",
+			url: "/dashboard/workflows",
+			icon: Workflow,
+			isEnabled: ({ permissions }) => !!permissions?.workflow.read,
 		},
 		{
 			isSingle: true,

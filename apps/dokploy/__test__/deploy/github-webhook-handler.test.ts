@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 	queueAdd: vi.fn(),
 	verify: vi.fn(),
 	shouldDeploy: vi.fn(),
+	handleGithubWorkflowEvent: vi.fn(() => Promise.resolve(0)),
 	createPreviewDeployment: vi.fn(),
 	findPreviewDeploymentByApplicationId: vi.fn(),
 }));
@@ -73,6 +74,7 @@ vi.mock("@dokploy/server", () => ({
 		mocks.findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId: vi.fn(),
 	getBitbucketHeaders: vi.fn(() => ({})),
+	handleGithubWorkflowEvent: mocks.handleGithubWorkflowEvent,
 	removePreviewDeployment: vi.fn(),
 }));
 
@@ -513,5 +515,38 @@ describe("GitHub app webhook preview deployments", () => {
 			}),
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
+	});
+});
+
+describe("GitHub app webhook workflows", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.githubFindFirst.mockResolvedValue({
+			githubId: "github-provider-id",
+			githubInstallationId: 12345,
+			githubWebhookSecret: "webhook-secret",
+		});
+		mocks.verify.mockResolvedValue(true);
+		mocks.shouldDeploy.mockReturnValue(true);
+		mocks.applicationsFindMany.mockResolvedValue([]);
+		mocks.composeFindMany.mockResolvedValue([]);
+	});
+
+	it("hands push events to the workflow runner", async () => {
+		const req = createPushRequest("main");
+		await handler(req, createResponse());
+
+		expect(mocks.handleGithubWorkflowEvent).toHaveBeenCalledWith(
+			expect.objectContaining({ githubId: "github-provider-id" }),
+			"push",
+			req.body,
+		);
+	});
+
+	it("does not hand unverified events to the workflow runner", async () => {
+		mocks.verify.mockResolvedValue(false);
+		await handler(createPushRequest("main"), createResponse());
+
+		expect(mocks.handleGithubWorkflowEvent).not.toHaveBeenCalled();
 	});
 });

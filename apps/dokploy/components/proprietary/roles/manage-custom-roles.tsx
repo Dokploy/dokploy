@@ -185,6 +185,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage the providers (Grafana Loki, Prometheus, Datadog, New Relic, etc.) that container logs and metrics are shipped to",
 	},
+	workflow: {
+		label: "Workflows",
+		description:
+			"Import repositories, manage their secrets and run CI/CD workflows on workflow servers",
+	},
 	ai: {
 		label: "AI Settings",
 		description:
@@ -498,6 +503,29 @@ const ACTION_META: Record<
 		delete: {
 			label: "Delete",
 			description: "Remove logs and metrics providers",
+		},
+	},
+	workflow: {
+		read: {
+			label: "Read",
+			description: "View imported repositories, workflows, runs and logs",
+		},
+		create: {
+			label: "Create",
+			description: "Import repositories from a GitHub provider",
+		},
+		update: {
+			label: "Update",
+			description:
+				"Change repository settings, enable workflows and manage secrets and variables",
+		},
+		delete: {
+			label: "Delete",
+			description: "Remove imported repositories and their run history",
+		},
+		run: {
+			label: "Run",
+			description: "Trigger, re-run and cancel workflow runs",
 		},
 	},
 	ai: {

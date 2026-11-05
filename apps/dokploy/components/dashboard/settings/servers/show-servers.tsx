@@ -114,7 +114,8 @@ export const ShowServers = () => {
 												<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 													{data?.map((server) => {
 														const isActive = server.serverStatus === "active";
-														const isBuildServer = server.serverType === "build";
+														const isBuildServer =
+															server.serverType !== "deploy";
 														return (
 															<Card
 																key={server.serverId}
