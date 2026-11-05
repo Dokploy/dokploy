@@ -263,7 +263,7 @@ export const apiRedeployCompose = z.object({
 
 export const apiDeleteCompose = z.object({
 	composeId: z.string().min(1),
-	deleteVolumes: z.boolean(),
+	deleteVolumes: z.boolean().default(false),
 });
 
 export const apiFetchServices = z.object({

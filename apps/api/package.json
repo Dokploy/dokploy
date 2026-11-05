@@ -12,7 +12,7 @@
 	"dependencies": {
 		"inngest": "3.54.0",
 		"@dokploy/server": "workspace:*",
-		"@hono/node-server": "^1.19.15",
+		"@hono/node-server": "^2.1.5",
 		"@hono/zod-validator": "0.7.6",
 		"dotenv": "^16.4.5",
 		"hono": "^4.13.5",
@@ -21,7 +21,7 @@
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
 		"redis": "4.7.0",
-		"zod": "^4.3.6"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"@types/node": "^24.4.0",

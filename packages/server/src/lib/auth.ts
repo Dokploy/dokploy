@@ -6,7 +6,11 @@ import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+	APIError,
+	createAuthMiddleware,
+	getSessionFromCtx,
+} from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -24,6 +28,7 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
+import { captureEvent, getPostHogSessionId } from "../utils/tracking/posthog";
 import {
 	sendEmail,
 	sendVerificationEmail,
@@ -135,6 +140,21 @@ const createBetterAuth = () =>
 					throw new APIError("FORBIDDEN", {
 						message: "Use the account deletion flow to remove users",
 					});
+				}
+
+				if (ctx.path === "/two-factor/enable") {
+					const session = await getSessionFromCtx(ctx);
+					if (session && !session.user.twoFactorEnabled) {
+						await db
+							.update(schema.twoFactor)
+							.set({ verified: false })
+							.where(
+								and(
+									eq(schema.twoFactor.userId, session.user.id),
+									eq(schema.twoFactor.verified, true),
+								),
+							);
+					}
 				}
 
 				const isBlockedAuthPath =
@@ -303,7 +323,7 @@ const createBetterAuth = () =>
 						}
 
 						if (IS_CLOUD || !isAdminPresent) {
-							await db.transaction(async (tx) => {
+							const createdOrganization = await db.transaction(async (tx) => {
 								const organization = await tx
 									.insert(schema.organization)
 									.values({
@@ -321,7 +341,23 @@ const createBetterAuth = () =>
 									createdAt: new Date(),
 									isDefault: true, // Mark first organization as default
 								});
+
+								return organization;
 							});
+
+							if (IS_CLOUD) {
+								void captureEvent({
+									distinctId: user.id,
+									event: "user_signed_up",
+									organizationId: createdOrganization?.id,
+									sessionId: getPostHogSessionId(context?.request?.headers),
+									properties: {
+										method: context?.path,
+										$set: { email: user.email, name: user.name },
+										$set_once: { signed_up_at: new Date().toISOString() },
+									},
+								});
+							}
 						} else if (isSSORequest) {
 							const providerId = context?.params?.providerId;
 							if (!providerId) {

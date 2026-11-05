@@ -320,8 +320,16 @@ export const addDomainToCompose = async (
 		}
 	}
 
-	for (const domain of domains.filter((d) => d.enabled)) {
+	for (const domain of domains) {
 		const { serviceName, https } = domain;
+		if (!domain.enabled) {
+			// Disabling only drops routing; the service may still talk to others over dokploy-network.
+			const service = serviceName ? result.services?.[serviceName] : undefined;
+			if (service && !service.network_mode && !compose.isolatedDeployment) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
+			continue;
+		}
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}
