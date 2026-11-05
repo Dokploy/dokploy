@@ -1,6 +1,5 @@
 import { IS_CLOUD } from "@dokploy/server";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -24,11 +23,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { appRouter } from "@/server/api/root";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const loginSchema = z.object({
 	email: z
 		.string()
+		.trim()
 		.min(1, {
 			message: "Email is required",
 		})
@@ -91,6 +92,11 @@ export default function Home() {
 					<Logo
 						logoUrl={
 							whitelabeling?.loginLogoUrl || whitelabeling?.logoUrl || undefined
+						}
+						logoLightUrl={
+							whitelabeling?.loginLogoLightUrl ||
+							whitelabeling?.logoLightUrl ||
+							undefined
 						}
 					/>
 					<span className="font-medium text-sm">

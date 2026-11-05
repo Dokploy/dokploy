@@ -25,6 +25,11 @@ export class ExecError extends Error {
 		this.originalError = details.originalError;
 		this.serverId = details.serverId;
 
+		// Keep the command (may embed secrets) out of console/inspect output.
+		for (const key of ["command", "originalError"] as const) {
+			Object.defineProperty(this, key, { enumerable: false });
+		}
+
 		// Maintains proper stack trace for where our error was thrown (only available on V8)
 		if (Error.captureStackTrace) {
 			Error.captureStackTrace(this, ExecError);

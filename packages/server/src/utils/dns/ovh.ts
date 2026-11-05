@@ -252,13 +252,25 @@ const listZoneNames = async (config: OvhConfig) => {
 	}
 };
 
+const assertZoneAllowed = (config: OvhConfig, zoneId: string) => {
+	if (config.zone && zoneId !== config.zone) {
+		throw new Error(
+			`OVH: this provider is restricted to the zone "${config.zone}", not "${zoneId}"`,
+		);
+	}
+};
+
 export const ovhClient: DnsClient<OvhConfig> = {
 	async listZones(config) {
+		if (config.zone) {
+			return [{ id: config.zone, name: config.zone }];
+		}
 		const zones = await listZoneNames(config);
 		return zones.map((zone) => ({ id: zone, name: zone }));
 	},
 
 	async listRecords(config, zoneId) {
+		assertZoneAllowed(config, zoneId);
 		const zone = encodeURIComponent(zoneId);
 		// The listing endpoint only returns ids, so each record is fetched on its own.
 		const ids = await ovhFetch<number[]>(config, `/domain/zone/${zone}/record`);
@@ -276,6 +288,7 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	},
 
 	async upsertRecord(config, record) {
+		assertZoneAllowed(config, record.zoneId);
 		const zone = encodeURIComponent(record.zoneId);
 		const subDomain = toSubDomain(record.name, record.zoneId);
 		const existing = await ovhFetch<number[]>(
@@ -319,6 +332,7 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	},
 
 	async updateRecord(config, zoneId, recordId, record) {
+		assertZoneAllowed(config, zoneId);
 		const zone = encodeURIComponent(zoneId);
 		const existing = await ovhFetch<OvhRecord>(
 			config,
@@ -363,6 +377,7 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	},
 
 	async deleteRecord(config, zoneId, recordId) {
+		assertZoneAllowed(config, zoneId);
 		await ovhFetch(
 			config,
 			`/domain/zone/${encodeURIComponent(zoneId)}/record/${recordId}`,
@@ -372,6 +387,10 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	},
 
 	async testConnection(config) {
+		if (config.zone) {
+			await ovhFetch(config, `/domain/zone/${encodeURIComponent(config.zone)}`);
+			return;
+		}
 		await listZoneNames(config);
 	},
 };

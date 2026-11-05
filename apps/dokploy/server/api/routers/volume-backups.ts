@@ -17,7 +17,10 @@ import {
 	VOLUME_NAME_REGEX,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
-import { findDestinationById } from "@dokploy/server/services/destination";
+import {
+	findDestinationById,
+	findDestinationByIdForOrganization,
+} from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { findServerById } from "@dokploy/server/services/server";
 import {
@@ -100,6 +103,10 @@ export const volumeBackupsRouter = createTRPCRouter({
 					volumeBackup: ["create"],
 				});
 			}
+			await findDestinationByIdForOrganization(
+				input.destinationId,
+				ctx.session.activeOrganizationId,
+			);
 			if (IS_CLOUD && serviceType && serviceId) {
 				const existingVolumeBackups = await db.query.volumeBackups.findMany({
 					where: eq(volumeBackups[`${serviceType}Id`], serviceId),
@@ -201,6 +208,10 @@ export const volumeBackupsRouter = createTRPCRouter({
 					volumeBackup: ["update"],
 				});
 			}
+			await findDestinationByIdForOrganization(
+				input.destinationId,
+				ctx.session.activeOrganizationId,
+			);
 			const updatedVolumeBackup = await updateVolumeBackup(
 				input.volumeBackupId,
 				input,

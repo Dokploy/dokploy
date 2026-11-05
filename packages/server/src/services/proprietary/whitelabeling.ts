@@ -14,6 +14,12 @@ export interface PublicWhitelabelingConfig {
 	errorPageTitle: string | null;
 	errorPageDescription: string | null;
 	footerText: string | null;
+	passwordResetGuide: string | null;
+	supportEmail: string | null;
+	logoLightUrl: string | null;
+	loginLogoLightUrl: string | null;
+	faviconLightUrl: string | null;
+	dualModeBranding: boolean;
 }
 
 // Self-hosted is single-tenant; gate on the oldest organization's license,
@@ -54,5 +60,17 @@ export const getPublicWhitelabelingConfig =
 			errorPageTitle: config.errorPageTitle,
 			errorPageDescription: config.errorPageDescription,
 			footerText: config.footerText,
+			passwordResetGuide: config.passwordResetGuide ?? null,
+			supportEmail: config.supportEmail ?? null,
+			dualModeBranding: config.dualModeBranding ?? false,
+			logoLightUrl: config.dualModeBranding
+				? (config.logoLightUrl ?? null)
+				: null,
+			loginLogoLightUrl: config.dualModeBranding
+				? (config.loginLogoLightUrl ?? null)
+				: null,
+			faviconLightUrl: config.dualModeBranding
+				? (config.faviconLightUrl ?? null)
+				: null,
 		};
 	};
