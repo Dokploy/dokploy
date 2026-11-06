@@ -4,9 +4,10 @@ import {
 	member,
 	organization,
 	user,
+	webServerSettings,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -47,9 +48,76 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export type InstanceOwnerLock = {
+	tx: Transaction;
+	settingsId: string;
+	instanceOwnerId: string | null;
+	pendingOwnerId: string | null;
+	pendingOwnerExpiresAt: Date | null;
+};
+
+const findFirstOwnerId = async (executor: Pick<typeof db, "select"> = db) => {
+	const [firstOwner] = await executor
+		.select({ userId: member.userId })
+		.from(member)
+		.innerJoin(user, eq(member.userId, user.id))
+		.where(eq(member.role, "owner"))
+		.orderBy(asc(user.createdAt2))
+		.limit(1);
+	return firstOwner?.userId ?? null;
+};
+
+export const getInstanceOwnerId = async () => {
+	const settings = await getWebServerSettings();
+	return settings?.instanceOwnerId ?? findFirstOwnerId();
+};
+
+// Transfers lock exclusively and writes that depend on the owner lock shared.
+export const withInstanceOwnerLock = async <T>(
+	strength: "update" | "share",
+	fn: (lock: InstanceOwnerLock) => Promise<T>,
+) => {
+	const settings = await getWebServerSettings();
+	if (!settings) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Web server settings not found",
+		});
+	}
+
+	return db.transaction(async (tx) => {
+		const [locked] = await tx
+			.select({
+				instanceOwnerId: webServerSettings.instanceOwnerId,
+				pendingOwnerId: webServerSettings.pendingOwnerId,
+				pendingOwnerExpiresAt: webServerSettings.pendingOwnerExpiresAt,
+			})
+			.from(webServerSettings)
+			.where(eq(webServerSettings.id, settings.id))
+			.for(strength);
+
+		return fn({
+			tx,
+			settingsId: settings.id,
+			instanceOwnerId: locked?.instanceOwnerId ?? (await findFirstOwnerId(tx)),
+			pendingOwnerId: locked?.pendingOwnerId ?? null,
+			pendingOwnerExpiresAt: locked?.pendingOwnerExpiresAt ?? null,
+		});
+	});
+};
+
+export const isInstanceOwner = async (userId: string) => {
+	return (await getInstanceOwnerId()) === userId;
+};
+
 export const findOwner = async () => {
+	const instanceOwnerId = await getInstanceOwnerId();
 	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
+		where: instanceOwnerId
+			? eq(member.userId, instanceOwnerId)
+			: eq(member.role, "owner"),
 		with: {
 			user: true,
 		},

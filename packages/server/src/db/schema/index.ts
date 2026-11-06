@@ -23,6 +23,7 @@ export * from "./mount";
 export * from "./mysql";
 export * from "./network";
 export * from "./notification";
+export * from "./ownership-transfer";
 export * from "./patch";
 export * from "./port";
 export * from "./postgres";

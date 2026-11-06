@@ -4,6 +4,7 @@ import {
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
+	withInstanceOwnerLock,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
@@ -31,46 +32,61 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Only the organization owner can create an organization",
-				});
-			}
-
 			if (IS_CLOUD) {
 				await assertOrganizationLimit(ctx.user.id);
 			}
 
-			const result = await db
-				.insert(organization)
-				.values({
-					...input,
-					slug: nanoid(),
-					createdAt: new Date(),
-					ownerId: ctx.user.id,
-				})
-				.returning()
-				.then((res) => res[0]);
+			const insertOrganization = async (
+				executor: Pick<typeof db, "insert" | "query">,
+			) => {
+				const created = await executor
+					.insert(organization)
+					.values({
+						...input,
+						slug: nanoid(),
+						createdAt: new Date(),
+						ownerId: ctx.user.id,
+					})
+					.returning()
+					.then((res) => res[0]);
 
-			if (!result) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create organization",
+				if (!created) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create organization",
+					});
+				}
+
+				// Check if this is the user's first organization
+				const existingMemberships = await executor.query.member.findMany({
+					where: eq(member.userId, ctx.user.id),
 				});
-			}
 
-			// Check if this is the user's first organization
-			const existingMemberships = await db.query.member.findMany({
-				where: eq(member.userId, ctx.user.id),
-			});
+				await executor.insert(member).values({
+					organizationId: created.id,
+					role: "owner",
+					createdAt: new Date(),
+					userId: ctx.user.id,
+				});
+				return created;
+			};
 
-			await db.insert(member).values({
-				organizationId: result.id,
-				role: "owner",
-				createdAt: new Date(),
-				userId: ctx.user.id,
-			});
+			// Shares the instance owner lock so a transfer can't miss this organization.
+			const result = IS_CLOUD
+				? await insertOrganization(db)
+				: await withInstanceOwnerLock(
+						"share",
+						async ({ tx, instanceOwnerId }) => {
+							if (instanceOwnerId !== ctx.user.id) {
+								throw new TRPCError({
+									code: "FORBIDDEN",
+									message: "Only the instance owner can create an organization",
+								});
+							}
+							return insertOrganization(tx);
+						},
+					);
+
 			await audit(ctx, {
 				action: "create",
 				resourceType: "organization",
