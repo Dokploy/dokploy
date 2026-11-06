@@ -1,7 +1,7 @@
 import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
-import { Client } from "ssh2";
+import { Client, type SFTPWrapper } from "ssh2";
 import { ExecError } from "./ExecError";
 
 // ~2 min without replies before a silent host is treated as dead.
@@ -289,11 +289,10 @@ export const execAsyncRemote = async (
 	});
 };
 
-export const writeFileRemote = async (
+const withSftp = async <T>(
 	serverId: string,
-	remotePath: string,
-	content: string,
-): Promise<void> => {
+	run: (sftp: SFTPWrapper) => Promise<T>,
+): Promise<T> => {
 	const server = await findServerById(serverId);
 	if (!server.sshKeyId) throw new Error("No SSH key available for this server");
 
@@ -304,39 +303,17 @@ export const writeFileRemote = async (
 				conn.sftp((err, sftp) => {
 					if (err) {
 						conn.end();
-						reject(
-							new WriteFileRemoteError(`SFTP session failed: ${err.message}`, {
-								remotePath,
-								serverId,
-								originalError: err,
-							}),
-						);
+						reject(new Error(`SFTP session failed: ${err.message}`));
 						return;
 					}
-					sftp.writeFile(remotePath, content, (writeErr) => {
-						conn.end();
-						if (writeErr) {
-							reject(
-								new WriteFileRemoteError(
-									`Failed to write remote file ${remotePath}: ${writeErr.message}`,
-									{ remotePath, serverId, originalError: writeErr },
-								),
-							);
-							return;
-						}
-						resolve();
-					});
+					run(sftp)
+						.then(resolve, reject)
+						.finally(() => conn.end());
 				});
 			})
 			.on("error", (err) => {
 				conn.end();
-				reject(
-					new WriteFileRemoteError(`SSH connection error: ${err.message}`, {
-						remotePath,
-						serverId,
-						originalError: err,
-					}),
-				);
+				reject(new Error(`SSH connection error: ${err.message}`));
 			})
 			.connect({
 				host: server.ipAddress,
@@ -347,6 +324,76 @@ export const writeFileRemote = async (
 				...sshKeepalive,
 			});
 	});
+};
+
+const SFTP_NO_SUCH_FILE = 2;
+
+export const readFileRemote = (serverId: string, remotePath: string) =>
+	withSftp(
+		serverId,
+		(sftp) =>
+			new Promise<Buffer | null>((resolve, reject) => {
+				sftp.readFile(remotePath, (err, content) => {
+					if (!err) return resolve(content);
+					if ((err as Error & { code?: number }).code === SFTP_NO_SUCH_FILE) {
+						return resolve(null);
+					}
+					reject(
+						new Error(
+							`Failed to read remote file ${remotePath}: ${err.message}`,
+						),
+					);
+				});
+			}),
+	);
+
+export const appendFileRemote = (
+	serverId: string,
+	remotePath: string,
+	content: string | Buffer,
+) =>
+	withSftp(
+		serverId,
+		(sftp) =>
+			new Promise<void>((resolve, reject) => {
+				sftp.appendFile(remotePath, content, (err) => {
+					if (!err) return resolve();
+					reject(
+						new Error(
+							`Failed to append to remote file ${remotePath}: ${err.message}`,
+						),
+					);
+				});
+			}),
+	);
+
+export const writeFileRemote = async (
+	serverId: string,
+	remotePath: string,
+	content: string,
+): Promise<void> => {
+	try {
+		await withSftp(serverId, (sftp) =>
+			new Promise<void>((resolve, reject) => {
+				sftp.writeFile(remotePath, content, (writeErr) => {
+					if (writeErr) {
+						reject(writeErr);
+						return;
+					}
+					resolve();
+				});
+			}),
+		);
+	} catch (error) {
+		const originalError =
+			error instanceof Error ? error : new Error(String(error));
+		throw new WriteFileRemoteError(
+			originalError.message.startsWith("Failed to write")
+				? originalError.message
+				: `Failed to write remote file ${remotePath}: ${originalError.message}`,
+			{ remotePath, serverId, originalError },
+		);
+	}
 };
 
 export const sleep = (ms: number) => {
