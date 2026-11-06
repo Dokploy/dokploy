@@ -3,7 +3,6 @@ import {
 	AlertCircle,
 	AlertTriangle,
 	CheckCircle2,
-	Info,
 	Loader2,
 	RefreshCcw,
 } from "lucide-react";
@@ -261,13 +260,22 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 											);
 										})}
 									</div>
-									<AlertBlock type="info" icon={<Info className="size-4" />}>
-										Removing certificates restarts Traefik, so your applications
-										may be unreachable for a few seconds. acme.json is backed up
-										first, and if Traefik doesn't come back, the change is
-										undone. Certificates you keep are reused if you add the
-										domain again.
-									</AlertBlock>
+									<div className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+										<ul className="list-disc space-y-1 pl-4">
+											<li>
+												Traefik restarts, so your apps may be offline for a few
+												seconds.
+											</li>
+											<li>
+												A backup is saved first. If anything goes wrong, it is
+												restored automatically.
+											</li>
+											<li>
+												Untick any domain you may add back later, so its
+												certificate can be reused.
+											</li>
+										</ul>
+									</div>
 								</>
 							)}
 						</div>
@@ -286,6 +294,7 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 					</Button>
 					<Button
 						variant="destructive"
+						className="border-destructive/40"
 						onClick={handleRemove}
 						isLoading={isInProgress}
 						disabled={chosen.length === 0 || isFetching || isInProgress}
