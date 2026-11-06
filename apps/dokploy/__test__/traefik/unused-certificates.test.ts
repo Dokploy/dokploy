@@ -1,13 +1,9 @@
 import path from "node:path";
 import { fs, vol } from "memfs";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
-	const state = {
-		hosts: [] as { host: string }[],
-		restartUpdates: [] as (Date | null)[],
-		pendingServers: [] as { serverId: string }[],
-	};
+	const state = { hosts: [] as { host: string }[] };
 	const domainQuery = () => {
 		const chain = {
 			innerJoin: () => chain,
@@ -20,16 +16,10 @@ const mocks = vi.hoisted(() => {
 		domainQuery,
 		execAsync: vi.fn(),
 		execAsyncRemote: vi.fn(),
-		restoreInterruptedTraefikOnServers: vi.fn(),
-		whileTraefikStopped: vi.fn(
-			async (
-				_serverId: string | undefined,
-				task: () => Promise<unknown>,
-				beforeStop?: () => Promise<unknown>,
-			) => {
-				if ((await beforeStop?.()) === false) return;
-				await task();
-			},
+		restartTraefik: vi.fn(),
+		queueTraefikTask: vi.fn(
+			async (_serverId: string | undefined, task: () => Promise<unknown>) =>
+				task(),
 		),
 	};
 });
@@ -37,19 +27,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("node:fs", () => ({ ...fs, default: fs }));
 
 vi.mock("@dokploy/server/db", () => ({
-	db: {
-		select: () => ({ from: () => mocks.domainQuery() }),
-		update: () => ({
-			set: (values: { traefikRestartStartedAt: Date | null }) => ({
-				where: async () => {
-					mocks.state.restartUpdates.push(values.traefikRestartStartedAt);
-				},
-			}),
-		}),
-		query: {
-			server: { findMany: async () => mocks.state.pendingServers },
-		},
-	},
+	db: { select: () => ({ from: () => mocks.domainQuery() }) },
 }));
 
 vi.mock("@dokploy/server/services/web-server-settings", () => ({
@@ -62,8 +40,8 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 }));
 
 vi.mock("@dokploy/server/setup/traefik-setup", () => ({
-	whileTraefikStopped: mocks.whileTraefikStopped,
-	restoreInterruptedTraefikOnServers: mocks.restoreInterruptedTraefikOnServers,
+	queueTraefikTask: mocks.queueTraefikTask,
+	restartTraefik: mocks.restartTraefik,
 }));
 
 import {
@@ -76,7 +54,6 @@ import {
 	getUnusedTraefikCertificates,
 	listAcmeCertificates,
 	parseAcmeStorage,
-	recoverInterruptedTraefikRestarts,
 	removeTraefikCertificates,
 	withoutAcmeCertificates,
 } from "@dokploy/server/services/traefik-certificates";
@@ -534,7 +511,8 @@ describe("unused Traefik certificates", () => {
 	beforeEach(() => {
 		vol.reset();
 		vi.clearAllMocks();
-		mocks.state.restartUpdates = [];
+		mocks.restartTraefik.mockReset();
+		mocks.restartTraefik.mockResolvedValue(true);
 		mocks.state.hosts = [{ host: "App.Example.com" }];
 	});
 
@@ -610,8 +588,13 @@ describe("unused Traefik certificates", () => {
 		]);
 	});
 
-	it("rewrites the local acme.json while Traefik is stopped, readable only by its owner", async () => {
+	it("rewrites the local acme.json, readable only by its owner, then restarts Traefik once", async () => {
 		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
+		mocks.restartTraefik.mockImplementationOnce(async () => {
+			const onDisk = fs.readFileSync(LOCAL_ACME, "utf8") as string;
+			expect(onDisk).not.toContain('"old.example.com"');
+			return true;
+		});
 
 		const removed = await removeTraefikCertificates(
 			undefined,
@@ -620,11 +603,8 @@ describe("unused Traefik certificates", () => {
 		);
 
 		expect(removed).toBe(1);
-		expect(mocks.whileTraefikStopped).toHaveBeenCalledWith(
-			undefined,
-			expect.any(Function),
-			expect.any(Function),
-		);
+		expect(mocks.restartTraefik).toHaveBeenCalledOnce();
+		expect(mocks.restartTraefik).toHaveBeenCalledWith(undefined);
 		const saved = JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string);
 		expect(
 			saved.letsencrypt.Certificates.map(
@@ -635,16 +615,34 @@ describe("unused Traefik certificates", () => {
 	});
 
 	it("reads and rewrites a remote server's acme.json over SSH", async () => {
+		let remoteFile = JSON.stringify(storage());
 		mocks.execAsyncRemote.mockImplementation(
-			async (_serverId: string, command: string) => ({
-				stdout: command.startsWith("if [ -f") ? JSON.stringify(storage()) : "",
-				stderr: "",
-			}),
+			async (
+				_serverId: string,
+				command: string,
+				_onData: unknown,
+				input?: string,
+			) => {
+				if (
+					command.startsWith("umask 077 && cat > /etc/dokploy/traefik/dynamic")
+				) {
+					remoteFile = input ?? "";
+				}
+				return {
+					stdout: command.startsWith("if [ -f") ? remoteFile : "",
+					stderr: "",
+				};
+			},
 		);
 
-		await removeTraefikCertificates("server-1", [idOf("old.example.com")], {
-			requireRoutes: false,
-		});
+		const removed = await removeTraefikCertificates(
+			"server-1",
+			[idOf("old.example.com")],
+			{ requireRoutes: false },
+		);
+
+		expect(removed).toBe(1);
+		expect(mocks.restartTraefik).toHaveBeenCalledWith("server-1");
 
 		const write = mocks.execAsyncRemote.mock.calls.find(([, command]) =>
 			String(command).startsWith(
@@ -672,20 +670,22 @@ describe("unused Traefik certificates", () => {
 			stdout: JSON.stringify(routes),
 			stderr: "",
 		});
-		mocks.whileTraefikStopped.mockImplementationOnce(
-			async (_serverId, task, beforeStop) => {
-				mocks.state.hosts.push({ host: "old.example.com" });
-				await beforeStop?.();
-				await task();
-			},
-		);
-
-		await removeTraefikCertificates(undefined, [idOf("old.example.com")], {
-			requireRoutes: false,
+		mocks.queueTraefikTask.mockImplementationOnce(async (_serverId, task) => {
+			mocks.state.hosts.push({ host: "old.example.com" });
+			return task();
 		});
 
-		const saved = JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string);
-		expect(saved).toEqual(storage());
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[idOf("old.example.com")],
+			{ requireRoutes: true },
+		);
+
+		expect(removed).toBe(0);
+		expect(mocks.restartTraefik).not.toHaveBeenCalled();
+		expect(JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string)).toEqual(
+			storage(),
+		);
 	});
 
 	it("explains why a remote acme.json couldn't be read", async () => {
@@ -751,24 +751,21 @@ describe("unused Traefik certificates", () => {
 		expect((await getUnusedTraefikCertificates()).routesComplete).toBe(false);
 	});
 
-	it("reads routes again right before Traefik stops, keeping one added meanwhile", async () => {
+	it("reads routes again when the removal runs, keeping one added meanwhile", async () => {
 		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
 		mocks.execAsync.mockResolvedValue({
 			stdout: JSON.stringify(routes),
 			stderr: "",
 		});
-		mocks.whileTraefikStopped.mockImplementationOnce(
-			async (_serverId, task, beforeStop) => {
-				mocks.execAsync.mockResolvedValue({
-					stdout: JSON.stringify({
-						routers: { manual: { rule: "Host(`old.example.com`)" } },
-					}),
-					stderr: "",
-				});
-				await beforeStop?.();
-				await task();
-			},
-		);
+		mocks.queueTraefikTask.mockImplementationOnce(async (_serverId, task) => {
+			mocks.execAsync.mockResolvedValue({
+				stdout: JSON.stringify({
+					routers: { manual: { rule: "Host(`old.example.com`)" } },
+				}),
+				stderr: "",
+			});
+			return task();
+		});
 
 		const removed = await removeTraefikCertificates(
 			undefined,
@@ -777,12 +774,10 @@ describe("unused Traefik certificates", () => {
 		);
 
 		expect(removed).toBe(0);
-		expect(JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string)).toEqual(
-			storage(),
-		);
+		expect(mocks.restartTraefik).not.toHaveBeenCalled();
 	});
 
-	it("removes nothing when the routes were readable at selection but not right before stopping", async () => {
+	it("removes nothing when the routes were readable at selection but not when the removal runs", async () => {
 		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
 		mocks.execAsync.mockRejectedValue(new Error("No such container"));
 
@@ -872,23 +867,118 @@ describe("unused Traefik certificates", () => {
 		);
 	});
 
-	it("hands back an undo that restores acme.json exactly as it was", async () => {
+	it("puts the original back and starts Traefik again when the restart fails", async () => {
 		const original = `${JSON.stringify(storage())}\n`;
 		vol.fromJSON({ [LOCAL_ACME]: original });
-		mocks.whileTraefikStopped.mockImplementationOnce(
-			async (_serverId, task, beforeStop) => {
-				await beforeStop?.();
-				const undo = await task();
-				expect(fs.readFileSync(LOCAL_ACME, "utf8")).not.toBe(original);
-				await (undo as () => Promise<void>)();
+		mocks.restartTraefik
+			.mockRejectedValueOnce(new Error("Traefik stopped right after starting"))
+			.mockResolvedValueOnce(true);
+
+		await expect(
+			removeTraefikCertificates(undefined, [idOf("old.example.com")], {
+				requireRoutes: false,
+			}),
+		).rejects.toThrow(
+			"Traefik stopped right after starting. The change was undone. Traefik is running again.",
+		);
+		expect(fs.readFileSync(LOCAL_ACME, "utf8")).toBe(original);
+		expect(mocks.restartTraefik).toHaveBeenLastCalledWith(undefined, {
+			startIfStopped: true,
+		});
+	});
+
+	it("still starts Traefik when putting the original back fails, and reports both", async () => {
+		let writes = 0;
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => {
+				if (
+					command.startsWith("umask 077 && cat > /etc/dokploy/traefik/dynamic")
+				) {
+					writes += 1;
+					if (writes === 2) {
+						throw Object.assign(new Error("exit code 1"), {
+							stderr: "No space left on device",
+						});
+					}
+				}
+				return {
+					stdout: command.startsWith("if [ -f")
+						? JSON.stringify(storage())
+						: "",
+					stderr: "",
+				};
 			},
 		);
+		mocks.restartTraefik
+			.mockRejectedValueOnce(new Error("Traefik stopped right after starting"))
+			.mockResolvedValueOnce(true);
 
-		await removeTraefikCertificates(undefined, [idOf("old.example.com")], {
-			requireRoutes: false,
+		await expect(
+			removeTraefikCertificates("server-1", [idOf("old.example.com")], {
+				requireRoutes: false,
+			}),
+		).rejects.toThrow(
+			"Traefik stopped right after starting. Undoing the change failed: Couldn't write /etc/dokploy/traefik/dynamic/acme.json: No space left on device. Traefik is running again.",
+		);
+		expect(mocks.restartTraefik).toHaveBeenCalledTimes(2);
+	});
+
+	it("edits acme.json without starting Traefik when it was stopped", async () => {
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
+		mocks.restartTraefik.mockResolvedValueOnce(false);
+
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[idOf("old.example.com")],
+			{ requireRoutes: false },
+		);
+
+		expect(removed).toBe(1);
+		expect(mocks.restartTraefik).toHaveBeenCalledOnce();
+		expect(fs.readFileSync(LOCAL_ACME, "utf8")).not.toContain(
+			'"old.example.com"',
+		);
+	});
+
+	it("tries once more when Traefik saves the certificates back during the restart", async () => {
+		const original = JSON.stringify(storage());
+		vol.fromJSON({ [LOCAL_ACME]: original });
+		mocks.restartTraefik
+			.mockImplementationOnce(async () => {
+				fs.writeFileSync(LOCAL_ACME, original);
+				return true;
+			})
+			.mockResolvedValueOnce(true);
+
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[idOf("old.example.com")],
+			{ requireRoutes: false },
+		);
+
+		expect(removed).toBe(1);
+		expect(mocks.restartTraefik).toHaveBeenCalledTimes(2);
+		expect(fs.readFileSync(LOCAL_ACME, "utf8")).not.toContain(
+			'"old.example.com"',
+		);
+	});
+
+	it("says so when Traefik saves them back again on the second try", async () => {
+		const original = JSON.stringify(storage());
+		vol.fromJSON({ [LOCAL_ACME]: original });
+		mocks.restartTraefik.mockImplementation(async () => {
+			fs.writeFileSync(LOCAL_ACME, original);
+			return true;
 		});
 
-		expect(fs.readFileSync(LOCAL_ACME, "utf8")).toBe(original);
+		await expect(
+			removeTraefikCertificates(undefined, [idOf("old.example.com")], {
+				requireRoutes: false,
+			}),
+		).rejects.toThrow(
+			"Traefik saved 1 of the certificates again while restarting, so they weren't removed. Try again.",
+		);
+		expect(mocks.restartTraefik).toHaveBeenCalledTimes(2);
 	});
 
 	it("counts the panel domain as in use only on the main server", async () => {
@@ -937,13 +1027,6 @@ describe("unused Traefik certificates", () => {
 	it("doesn't restart Traefik when nothing selected can be removed anymore", async () => {
 		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
 		mocks.state.hosts.push({ host: "old.example.com" });
-		let goAhead: unknown;
-		mocks.whileTraefikStopped.mockImplementationOnce(
-			async (_serverId, task, beforeStop) => {
-				goAhead = await beforeStop?.();
-				if (goAhead !== false) await task();
-			},
-		);
 
 		const removed = await removeTraefikCertificates(
 			undefined,
@@ -951,8 +1034,8 @@ describe("unused Traefik certificates", () => {
 			{ requireRoutes: false },
 		);
 
-		expect(goAhead).toBe(false);
 		expect(removed).toBe(0);
+		expect(mocks.restartTraefik).not.toHaveBeenCalled();
 		expect(fs.existsSync(acmeBackupDirectory())).toBe(false);
 	});
 
@@ -978,38 +1061,20 @@ describe("unused Traefik certificates", () => {
 		).not.toContain("old.example.com");
 	});
 
-	it("tells the user when it starts and records the restart for remote servers", async () => {
-		mocks.execAsyncRemote.mockImplementation(
-			async (_serverId: string, command: string) => ({
-				stdout: command.startsWith("if [ -f") ? JSON.stringify(storage()) : "",
-				stderr: "",
-			}),
-		);
+	it("tells the user when the queued removal starts", async () => {
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
 		const onStarted = vi.fn();
 
-		await removeTraefikCertificates("server-1", [idOf("old.example.com")], {
+		await removeTraefikCertificates(undefined, [idOf("old.example.com")], {
 			requireRoutes: false,
 			onStarted,
 		});
 
 		expect(onStarted).toHaveBeenCalledOnce();
-		expect(mocks.state.restartUpdates).toEqual([expect.any(Date), null]);
-	});
-
-	it("leaves the restart recorded when it fails, so recovery checks the server", async () => {
-		mocks.execAsyncRemote.mockImplementation(
-			async (_serverId: string, command: string) => {
-				if (command.startsWith("if [ -f")) throw new Error("ssh down");
-				return { stdout: "", stderr: "" };
-			},
+		expect(mocks.queueTraefikTask).toHaveBeenCalledWith(
+			undefined,
+			expect.any(Function),
 		);
-
-		await expect(
-			removeTraefikCertificates("server-1", [idOf("old.example.com")], {
-				requireRoutes: false,
-			}),
-		).rejects.toThrow("ssh down");
-		expect(mocks.state.restartUpdates).toEqual([expect.any(Date)]);
 	});
 
 	it("leaves acme.json alone when none of the certificates are left", async () => {
@@ -1027,48 +1092,5 @@ describe("unused Traefik certificates", () => {
 				String(command).startsWith("umask 077"),
 			),
 		).toBe(false);
-	});
-});
-
-describe("recoverInterruptedTraefikRestarts", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		vi.useFakeTimers();
-		mocks.state.restartUpdates = [];
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
-	it("checks only servers with a recorded restart, clears finished ones and retries busy ones later", async () => {
-		mocks.state.pendingServers = [{ serverId: "a" }, { serverId: "b" }];
-		mocks.restoreInterruptedTraefikOnServers
-			.mockResolvedValueOnce({ done: ["a"], busy: ["b"] })
-			.mockResolvedValueOnce({ done: ["b"], busy: [] });
-
-		await recoverInterruptedTraefikRestarts();
-
-		expect(mocks.restoreInterruptedTraefikOnServers).toHaveBeenCalledWith([
-			"a",
-			"b",
-		]);
-		expect(mocks.state.restartUpdates).toEqual([null]);
-
-		mocks.state.pendingServers = [{ serverId: "b" }];
-		await vi.advanceTimersByTimeAsync(5 * 60_000);
-
-		expect(mocks.restoreInterruptedTraefikOnServers).toHaveBeenLastCalledWith([
-			"b",
-		]);
-		expect(mocks.state.restartUpdates).toEqual([null, null]);
-	});
-
-	it("does nothing when no restart is recorded", async () => {
-		mocks.state.pendingServers = [];
-
-		await recoverInterruptedTraefikRestarts();
-
-		expect(mocks.restoreInterruptedTraefikOnServers).not.toHaveBeenCalled();
 	});
 });

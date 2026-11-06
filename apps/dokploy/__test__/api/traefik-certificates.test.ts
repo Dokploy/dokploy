@@ -5,9 +5,7 @@ const mocks = vi.hoisted(() => ({
 	findRemovableTraefikCertificates: vi.fn(),
 	getUnusedTraefikCertificates: vi.fn(),
 	removeTraefikCertificates: vi.fn(),
-	queueTraefikTask: vi.fn(),
 	reloadDockerResource: vi.fn(),
-	isTraefikRestartInProgress: vi.fn(),
 }));
 
 const noop = vi.fn();
@@ -21,14 +19,12 @@ vi.mock("@dokploy/server", () => ({
 	getDockerResourceType: mocks.getDockerResourceType,
 	getDokployImageTag: () => "canary",
 	getUnusedTraefikCertificates: mocks.getUnusedTraefikCertificates,
-	isTraefikRestartInProgress: mocks.isTraefikRestartInProgress,
 	paths: () => ({
 		MAIN_TRAEFIK_PATH: "/tmp",
 		LOGS_PATH: "/tmp",
 		MONITORING_PATH: "/tmp",
 		DYNAMIC_TRAEFIK_PATH: "/tmp",
 	}),
-	queueTraefikTask: mocks.queueTraefikTask,
 	reloadDockerResource: mocks.reloadDockerResource,
 	removeTraefikCertificates: mocks.removeTraefikCertificates,
 	setupGPUSupport: noop,
@@ -89,7 +85,6 @@ describe("settings Traefik certificate cleanup", () => {
 			routesComplete: true,
 		});
 		mocks.removeTraefikCertificates.mockResolvedValue(1);
-		mocks.isTraefikRestartInProgress.mockResolvedValue(false);
 	});
 
 	it("rejects a second removal while the first is still being checked", async () => {
@@ -254,47 +249,6 @@ describe("settings Traefik certificate cleanup", () => {
 		});
 	});
 
-	it("blocks Traefik changes that read its ports while certificates are being removed", async () => {
-		let finish = () => {};
-		mocks.findRemovableTraefikCertificates.mockResolvedValueOnce({
-			targets: [certificate("a.example.com")],
-			routesComplete: true,
-		});
-		mocks.removeTraefikCertificates.mockImplementationOnce(
-			() =>
-				new Promise<number>((resolve) => {
-					finish = () => resolve(1);
-				}),
-		);
-		await caller.removeUnusedTraefikCertificates({
-			serverId: "server-h",
-			certificateIds: ["id-a.example.com"],
-		});
-
-		for (const call of [
-			() => caller.writeTraefikEnv({ env: "A=1", serverId: "server-h" }),
-			() =>
-				caller.toggleDashboard({ enableDashboard: true, serverId: "server-h" }),
-			() => caller.reloadTraefik({ serverId: "server-h" }),
-		]) {
-			await expect(call()).rejects.toMatchObject({
-				code: "CONFLICT",
-				message: expect.stringContaining("Traefik is restarting"),
-			});
-		}
-
-		finish();
-		await lastResult("server-h");
-	});
-
-	it("blocks those changes while another Dokploy instance restarts Traefik", async () => {
-		mocks.isTraefikRestartInProgress.mockResolvedValueOnce(true);
-
-		await expect(
-			caller.writeTraefikEnv({ env: "A=1", serverId: "server-i" }),
-		).rejects.toMatchObject({ code: "CONFLICT" });
-	});
-
 	it("accepts a large selection", async () => {
 		const ids = Array.from({ length: 1500 }, (_, n) => `id-${n}`);
 		mocks.findRemovableTraefikCertificates.mockResolvedValueOnce({
@@ -312,25 +266,5 @@ describe("settings Traefik certificate cleanup", () => {
 			ids,
 		);
 		await lastResult("server-j");
-	});
-
-	it("reloads Traefik through the same queue as certificate cleanup", async () => {
-		mocks.queueTraefikTask.mockImplementation(
-			async (_serverId: string | undefined, task: () => Promise<void>) =>
-				task(),
-		);
-
-		await caller.reloadTraefik({ serverId: "server-e" });
-
-		await vi.waitFor(() =>
-			expect(mocks.reloadDockerResource).toHaveBeenCalledWith(
-				"dokploy-traefik",
-				"server-e",
-			),
-		);
-		expect(mocks.queueTraefikTask).toHaveBeenCalledWith(
-			"server-e",
-			expect.any(Function),
-		);
 	});
 });

@@ -10,7 +10,6 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
-	recoverInterruptedTraefikRestarts,
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
@@ -71,11 +70,6 @@ void app.prepare().then(async () => {
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
-		}
-		if (process.env.NODE_ENV === "production") {
-			void recoverInterruptedTraefikRestarts().catch((error) => {
-				console.error("Failed to restore Traefik on remote servers:", error);
-			});
 		}
 		await initEnterpriseBackupCronJobs();
 

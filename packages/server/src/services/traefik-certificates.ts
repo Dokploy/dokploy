@@ -16,15 +16,11 @@ import {
 	compose,
 	domains,
 	previewDeployments,
-	server,
 } from "@dokploy/server/db/schema";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { paths } from "../constants";
-import {
-	restoreInterruptedTraefikOnServers,
-	whileTraefikStopped,
-} from "../setup/traefik-setup";
+import { queueTraefikTask, restartTraefik } from "../setup/traefik-setup";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -622,88 +618,101 @@ export const findRemovableTraefikCertificates = async (
 	};
 };
 
-// Traefik overwrites acme.json from memory, so it is edited only while stopped.
-const setRestartStarted = async (serverId: string, startedAt: Date | null) => {
-	await db
-		.update(server)
-		.set({ traefikRestartStartedAt: startedAt })
-		.where(eq(server.serverId, serverId));
+const messageOf = (error: unknown) =>
+	error instanceof Error ? error.message : String(error);
+
+const restartWithUndo = async (
+	serverId: string | undefined,
+	undo: () => Promise<void>,
+) => {
+	const restartError = await restartTraefik(serverId).then(
+		() => null,
+		(error: unknown) => error,
+	);
+	if (!restartError) {
+		return;
+	}
+	const undoError = await undo().then(
+		() => null,
+		(error: unknown) => error,
+	);
+	const retryError = await restartTraefik(serverId, {
+		startIfStopped: true,
+	}).then(
+		() => null,
+		(error: unknown) => error,
+	);
+	const steps = [
+		messageOf(restartError),
+		undoError
+			? `Undoing the change failed: ${messageOf(undoError)}`
+			: "The change was undone",
+		retryError
+			? `Traefik still did not start: ${messageOf(retryError)}`
+			: "Traefik is running again",
+	];
+	throw new Error(`${steps.join(". ")}.`);
 };
 
-export const removeTraefikCertificates = async (
+const removeOnce = async (
+	serverId: string | undefined,
+	ids: string[],
+	used: TraefikUsedNames,
+) => {
+	const original = await readAcmeContent(serverId);
+	const storage = parseAcmeStorage(original);
+	const unused = new Set(
+		findUnusedAcmeCertificates(storage, used).map(({ id }) => id),
+	);
+	const targets = ids.filter((id) => unused.has(id));
+	if (withoutAcmeCertificates(storage, targets) === 0) {
+		return [];
+	}
+	await backupAcmeContent(serverId, original);
+	await writeAcmeContent(serverId, `${JSON.stringify(storage, null, 2)}\n`);
+	await restartWithUndo(serverId, () => writeAcmeContent(serverId, original));
+	return targets;
+};
+
+// Traefik reads acme.json only on start, so edit the file, then restart once.
+export const removeTraefikCertificates = (
 	serverId: string | undefined,
 	ids: string[],
 	{
 		requireRoutes,
 		onStarted,
 	}: { requireRoutes: boolean; onStarted?: () => void },
-) => {
-	let used = emptyUsedNames();
-	let removed = 0;
-	const removableIds = (storage: AcmeStorage) => {
-		const unused = new Set(
-			findUnusedAcmeCertificates(storage, used).map(({ id }) => id),
-		);
-		return [...new Set(ids)].filter((id) => unused.has(id));
-	};
-	if (serverId) {
-		await setRestartStarted(serverId, new Date());
-	}
-	await whileTraefikStopped(
-		serverId,
-		async () => {
-			const original = await readAcmeContent(serverId);
-			const storage = parseAcmeStorage(original);
-			const targets = removableIds(storage);
-			if (withoutAcmeCertificates(storage, targets) === 0) {
-				return undefined;
+) =>
+	queueTraefikTask(serverId, async () => {
+		onStarted?.();
+		const { used, routesComplete } = await readUsedNames(serverId);
+		if (requireRoutes && !routesComplete) {
+			throw new Error(
+				"Couldn't read Traefik's routes to double-check the selection, so nothing was removed. Try again.",
+			);
+		}
+		let pending = [...new Set(ids)];
+		let removed = 0;
+		for (let attempt = 1; ; attempt++) {
+			const targets = await removeOnce(serverId, pending, used);
+			if (targets.length === 0) {
+				return removed;
 			}
-			await backupAcmeContent(serverId, original);
-			await writeAcmeContent(serverId, `${JSON.stringify(storage, null, 2)}\n`);
-			removed = targets.length;
-			return () => writeAcmeContent(serverId, original);
-		},
-		async () => {
-			onStarted?.();
-			const current = await readUsedNames(serverId);
-			if (requireRoutes && !current.routesComplete) {
+			const left = new Set(
+				listAcmeCertificates(await readAcmeStorage(serverId)).map(
+					({ id }) => id,
+				),
+			);
+			const savedBack = targets.filter((id) => left.has(id));
+			removed += targets.length - savedBack.length;
+			if (savedBack.length === 0) {
+				return removed;
+			}
+			if (attempt === 2) {
 				throw new Error(
-					"Couldn't read Traefik's routes to double-check the selection, so nothing was removed. Try again.",
+					`Traefik saved ${savedBack.length} of the certificates again while restarting, so they weren't removed. Try again.`,
 				);
 			}
-			used = current.used;
-			return removableIds(await readAcmeStorage(serverId)).length > 0;
-		},
-	);
-	if (serverId) {
-		await setRestartStarted(serverId, null);
-	}
-	return removed;
-};
-
-export const recoverInterruptedTraefikRestarts = async () => {
-	const pending = await db.query.server.findMany({
-		where: and(
-			isNotNull(server.traefikRestartStartedAt),
-			eq(server.serverStatus, "active"),
-			isNotNull(server.sshKeyId),
-		),
-		columns: { serverId: true },
+			pending = savedBack;
+		}
 	});
-	if (pending.length === 0) {
-		return;
-	}
-	const { done, busy } = await restoreInterruptedTraefikOnServers(
-		pending.map(({ serverId }) => serverId),
-	);
-	for (const serverId of done) {
-		await setRestartStarted(serverId, null);
-	}
-	if (busy.length > 0) {
-		setTimeout(() => {
-			void recoverInterruptedTraefikRestarts().catch((error) => {
-				console.error("Failed to restore Traefik on remote servers:", error);
-			});
-		}, 5 * 60_000).unref();
-	}
-};

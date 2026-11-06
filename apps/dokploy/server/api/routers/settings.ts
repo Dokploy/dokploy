@@ -27,7 +27,6 @@ import {
 	IS_CLOUD,
 	isPanelPortPublished,
 	isRequestFromPanelHost,
-	isTraefikRestartInProgress,
 	PANEL_PORT_RECOVERY_COMMAND,
 	POSTHOG_HOST,
 	parseRawConfig,
@@ -35,7 +34,6 @@ import {
 	prepareEnvironmentVariables,
 	processLogs,
 	pullTraefikImage,
-	queueTraefikTask,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
@@ -131,19 +129,6 @@ const certificateRemovalsStarted = new Set<symbol>();
 const certificateRemovalErrors = new Map<string, string>();
 const certificateRemovalCounts = new Map<string, number>();
 
-const assertNoCertificateRemoval = async (serverId?: string) => {
-	if (
-		certificateRemovals.has(serverId ?? "local") ||
-		(await isTraefikRestartInProgress(serverId))
-	) {
-		throw new TRPCError({
-			code: "CONFLICT",
-			message:
-				"Traefik is restarting to remove certificates. Try again in a moment.",
-		});
-	}
-};
-
 const assertTraefikAccess = async (
 	serverId: string | undefined,
 	organizationId: string,
@@ -193,13 +178,12 @@ export const settingsRouter = createTRPCRouter({
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
-			await assertNoCertificateRemoval(input?.serverId);
 			// Run in background so the request returns immediately; avoids proxy timeouts.
-			void queueTraefikTask(input?.serverId, async () => {
-				await reloadDockerResource("dokploy-traefik", input?.serverId);
-			}).catch((err) => {
-				console.error("reloadTraefik background:", err);
-			});
+			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
+				(err) => {
+					console.error("reloadTraefik background:", err);
+				},
+			);
 			await audit(ctx, {
 				action: "reload",
 				resourceType: "settings",
@@ -210,7 +194,6 @@ export const settingsRouter = createTRPCRouter({
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input, ctx }) => {
-			await assertNoCertificateRemoval(input.serverId);
 			const ports = await readPorts("dokploy-traefik", input.serverId);
 			const env = await readEnvironmentVariables(
 				"dokploy-traefik",
@@ -864,7 +847,6 @@ export const settingsRouter = createTRPCRouter({
 	writeTraefikEnv: adminProcedure
 		.input(z.object({ env: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
-			await assertNoCertificateRemoval(input.serverId);
 			const envs = prepareEnvironmentVariables(input.env);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 
@@ -1164,7 +1146,6 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			await assertNoCertificateRemoval(input.serverId);
 			try {
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -1245,7 +1226,6 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const serverId = input?.serverId;
 			await assertTraefikAccess(serverId, ctx.session.activeOrganizationId);
-			await assertNoCertificateRemoval(serverId);
 
 			const lockKey = serverId ?? "local";
 			if (traefikUpdateLocks.has(lockKey)) {

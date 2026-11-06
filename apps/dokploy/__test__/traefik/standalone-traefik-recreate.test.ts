@@ -127,11 +127,6 @@ const fakeDocker = ({
 			},
 		},
 		getContainer: (ref: string) => container(ref),
-		getService: () => ({
-			inspect: async () => {
-				throw new Error("This node is not a swarm manager");
-			},
-		}),
 		createContainer: async (settings: Record<string, unknown>) => {
 			const name = settings.name as string;
 			if (containers.some((c) => c.name === name)) {
