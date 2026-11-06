@@ -158,9 +158,8 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 				<DialogHeader>
 					<DialogTitle>Unused SSL Certificates</DialogTitle>
 					<DialogDescription>
-						Let's Encrypt certificates Traefik still keeps for domains that
-						aren't used on this server anymore. Traefik keeps trying to renew
-						them, which fails and fills its logs.
+						Remove Let's Encrypt certificates for domains you no longer use on
+						this server.
 					</DialogDescription>
 				</DialogHeader>
 
