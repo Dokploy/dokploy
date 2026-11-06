@@ -78,6 +78,29 @@ const taskBelongsToApp = async (
 	);
 };
 
+const isTaskOfSwarmService = async (
+	containerId: string,
+	appName: string,
+	ownServerId: string | null,
+	targetServerId: string | null,
+) => {
+	const swarmServiceId = await inspect(
+		["--type", "service", "--format", "{{.ID}}", appName],
+		ownServerId,
+	);
+	const containerServiceId = await inspect(
+		[
+			"--type",
+			"container",
+			"--format",
+			'{{index .Config.Labels "com.docker.swarm.service.id"}}',
+			containerId,
+		],
+		targetServerId,
+	);
+	return !!swarmServiceId && swarmServiceId === containerServiceId;
+};
+
 // Service access alone must not allow reaching other tenants' containers.
 export const containerBelongsToService = async (
 	serviceId: string,
@@ -89,7 +112,19 @@ export const containerBelongsToService = async (
 		const service = await findService(serviceId);
 		if (!service) return false;
 		const targetServerId = serverId || null;
-		if ((service.serverId || null) !== targetServerId) return false;
+		const ownServerId = service.serverId || null;
+		if (ownServerId !== targetServerId) {
+			// A swarm task may run on another node, reached through that node's
+			// remote server. Only allow it when the container is a task of this
+			// exact swarm service (same service ID as seen from the app's server).
+			if (runType === "swarm") return false;
+			return await isTaskOfSwarmService(
+				containerId,
+				service.appName,
+				ownServerId,
+				targetServerId,
+			);
+		}
 		if (runType === "swarm") {
 			return await taskBelongsToApp(
 				containerId,
