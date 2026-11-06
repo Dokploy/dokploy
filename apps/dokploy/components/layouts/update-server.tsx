@@ -85,16 +85,17 @@ export const UpdateServerButton = () => {
 						<TooltipTrigger asChild>
 							<Button
 								variant={updateData ? "outline" : "secondary"}
-								className="w-full"
+								// Left-aligned so the icon keeps its position while the sidebar width animates.
+								className="w-full justify-start px-2"
 								onClick={() => setIsOpen(true)}
 							>
 								<Download className="h-4 w-4 shrink-0" />
 								{updateData ? (
-									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
+									<span className="font-medium overflow-hidden transition-opacity duration-200 ease-linear group-data-[collapsible=icon]:opacity-0">
 										Update Available
 									</span>
 								) : (
-									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
+									<span className="font-medium overflow-hidden transition-opacity duration-200 ease-linear group-data-[collapsible=icon]:opacity-0">
 										Check for updates
 									</span>
 								)}
