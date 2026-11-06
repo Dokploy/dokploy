@@ -1,27 +1,55 @@
 import path from "node:path";
 import { fs, vol } from "memfs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-	execAsync: vi.fn(),
-	execAsyncRemote: vi.fn(),
-	hosts: [] as { host: string }[],
-	whileTraefikStopped: vi.fn(
-		async (
-			_serverId: string | undefined,
-			task: () => Promise<unknown>,
-			beforeStop?: () => Promise<void>,
-		) => {
-			await beforeStop?.();
-			await task();
-		},
-	),
-}));
+const mocks = vi.hoisted(() => {
+	const state = {
+		hosts: [] as { host: string }[],
+		restartUpdates: [] as (Date | null)[],
+		pendingServers: [] as { serverId: string }[],
+	};
+	const domainQuery = () => {
+		const chain = {
+			innerJoin: () => chain,
+			where: async () => state.hosts,
+		};
+		return chain;
+	};
+	return {
+		state,
+		domainQuery,
+		execAsync: vi.fn(),
+		execAsyncRemote: vi.fn(),
+		restoreInterruptedTraefikOnServers: vi.fn(),
+		whileTraefikStopped: vi.fn(
+			async (
+				_serverId: string | undefined,
+				task: () => Promise<unknown>,
+				beforeStop?: () => Promise<unknown>,
+			) => {
+				if ((await beforeStop?.()) === false) return;
+				await task();
+			},
+		),
+	};
+});
 
 vi.mock("node:fs", () => ({ ...fs, default: fs }));
 
 vi.mock("@dokploy/server/db", () => ({
-	db: { select: () => ({ from: async () => mocks.hosts }) },
+	db: {
+		select: () => ({ from: () => mocks.domainQuery() }),
+		update: () => ({
+			set: (values: { traefikRestartStartedAt: Date | null }) => ({
+				where: async () => {
+					mocks.state.restartUpdates.push(values.traefikRestartStartedAt);
+				},
+			}),
+		}),
+		query: {
+			server: { findMany: async () => mocks.state.pendingServers },
+		},
+	},
 }));
 
 vi.mock("@dokploy/server/services/web-server-settings", () => ({
@@ -35,6 +63,7 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 
 vi.mock("@dokploy/server/setup/traefik-setup", () => ({
 	whileTraefikStopped: mocks.whileTraefikStopped,
+	restoreInterruptedTraefikOnServers: mocks.restoreInterruptedTraefikOnServers,
 }));
 
 import {
@@ -47,6 +76,7 @@ import {
 	getUnusedTraefikCertificates,
 	listAcmeCertificates,
 	parseAcmeStorage,
+	recoverInterruptedTraefikRestarts,
 	removeTraefikCertificates,
 	withoutAcmeCertificates,
 } from "@dokploy/server/services/traefik-certificates";
@@ -504,7 +534,8 @@ describe("unused Traefik certificates", () => {
 	beforeEach(() => {
 		vol.reset();
 		vi.clearAllMocks();
-		mocks.hosts = [{ host: "App.Example.com" }];
+		mocks.state.restartUpdates = [];
+		mocks.state.hosts = [{ host: "App.Example.com" }];
 	});
 
 	it("lists certificates no domain, route or panel uses, soonest expiry first", async () => {
@@ -643,7 +674,7 @@ describe("unused Traefik certificates", () => {
 		});
 		mocks.whileTraefikStopped.mockImplementationOnce(
 			async (_serverId, task, beforeStop) => {
-				mocks.hosts.push({ host: "old.example.com" });
+				mocks.state.hosts.push({ host: "old.example.com" });
 				await beforeStop?.();
 				await task();
 			},
@@ -860,6 +891,127 @@ describe("unused Traefik certificates", () => {
 		expect(fs.readFileSync(LOCAL_ACME, "utf8")).toBe(original);
 	});
 
+	it("counts the panel domain as in use only on the main server", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => ({
+				stdout: command.startsWith("if [ -f") ? JSON.stringify(storage()) : "",
+				stderr: "",
+			}),
+		);
+
+		const remote = await getUnusedTraefikCertificates("server-1");
+
+		expect(remote.certificates.map((c) => c.main)).toContain(
+			"panel.example.com",
+		);
+	});
+
+	it("reports a remote config file that exists but can't be read", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => {
+				if (command.startsWith("for file in")) {
+					throw new Error("cat: manual.yml: Permission denied");
+				}
+				return {
+					stdout: command.startsWith("if [ -f")
+						? JSON.stringify(storage())
+						: command.includes("api/rawdata")
+							? JSON.stringify(routes)
+							: "",
+					stderr: "",
+				};
+			},
+		);
+
+		const result = await getUnusedTraefikCertificates("server-1");
+
+		expect(result.routesComplete).toBe(false);
+		const configRead = mocks.execAsyncRemote.mock.calls.find(([, command]) =>
+			String(command).startsWith("for file in"),
+		);
+		expect(configRead?.[1]).toBe(
+			'for file in /etc/dokploy/traefik/dynamic/*.yml /etc/dokploy/traefik/dynamic/*.yaml /etc/dokploy/traefik/dynamic/*.toml; do [ -e "$file" ] || continue; cat -- "$file" || exit 1; done',
+		);
+	});
+
+	it("doesn't restart Traefik when nothing selected can be removed anymore", async () => {
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(storage()) });
+		mocks.state.hosts.push({ host: "old.example.com" });
+		let goAhead: unknown;
+		mocks.whileTraefikStopped.mockImplementationOnce(
+			async (_serverId, task, beforeStop) => {
+				goAhead = await beforeStop?.();
+				if (goAhead !== false) await task();
+			},
+		);
+
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[idOf("old.example.com")],
+			{ requireRoutes: false },
+		);
+
+		expect(goAhead).toBe(false);
+		expect(removed).toBe(0);
+		expect(fs.existsSync(acmeBackupDirectory())).toBe(false);
+	});
+
+	it("counts each removed certificate once, even when acme.json lists it twice", async () => {
+		const data = storage();
+		data.letsencrypt.Certificates.push({
+			...data.letsencrypt.Certificates[0]!,
+		});
+		vol.fromJSON({ [LOCAL_ACME]: JSON.stringify(data) });
+
+		const removed = await removeTraefikCertificates(
+			undefined,
+			[idOf("old.example.com"), idOf("old.example.com")],
+			{ requireRoutes: false },
+		);
+
+		expect(removed).toBe(1);
+		const saved = JSON.parse(fs.readFileSync(LOCAL_ACME, "utf8") as string);
+		expect(
+			saved.letsencrypt.Certificates.map(
+				(c: { domain: { main: string } }) => c.domain.main,
+			),
+		).not.toContain("old.example.com");
+	});
+
+	it("tells the user when it starts and records the restart for remote servers", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => ({
+				stdout: command.startsWith("if [ -f") ? JSON.stringify(storage()) : "",
+				stderr: "",
+			}),
+		);
+		const onStarted = vi.fn();
+
+		await removeTraefikCertificates("server-1", [idOf("old.example.com")], {
+			requireRoutes: false,
+			onStarted,
+		});
+
+		expect(onStarted).toHaveBeenCalledOnce();
+		expect(mocks.state.restartUpdates).toEqual([expect.any(Date), null]);
+	});
+
+	it("leaves the restart recorded when it fails, so recovery checks the server", async () => {
+		mocks.execAsyncRemote.mockImplementation(
+			async (_serverId: string, command: string) => {
+				if (command.startsWith("if [ -f")) throw new Error("ssh down");
+				return { stdout: "", stderr: "" };
+			},
+		);
+
+		await expect(
+			removeTraefikCertificates("server-1", [idOf("old.example.com")], {
+				requireRoutes: false,
+			}),
+		).rejects.toThrow("ssh down");
+		expect(mocks.state.restartUpdates).toEqual([expect.any(Date)]);
+	});
+
 	it("leaves acme.json alone when none of the certificates are left", async () => {
 		mocks.execAsyncRemote.mockResolvedValue({
 			stdout: JSON.stringify(storage()),
@@ -875,5 +1027,48 @@ describe("unused Traefik certificates", () => {
 				String(command).startsWith("umask 077"),
 			),
 		).toBe(false);
+	});
+});
+
+describe("recoverInterruptedTraefikRestarts", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.useFakeTimers();
+		mocks.state.restartUpdates = [];
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("checks only servers with a recorded restart, clears finished ones and retries busy ones later", async () => {
+		mocks.state.pendingServers = [{ serverId: "a" }, { serverId: "b" }];
+		mocks.restoreInterruptedTraefikOnServers
+			.mockResolvedValueOnce({ done: ["a"], busy: ["b"] })
+			.mockResolvedValueOnce({ done: ["b"], busy: [] });
+
+		await recoverInterruptedTraefikRestarts();
+
+		expect(mocks.restoreInterruptedTraefikOnServers).toHaveBeenCalledWith([
+			"a",
+			"b",
+		]);
+		expect(mocks.state.restartUpdates).toEqual([null]);
+
+		mocks.state.pendingServers = [{ serverId: "b" }];
+		await vi.advanceTimersByTimeAsync(5 * 60_000);
+
+		expect(mocks.restoreInterruptedTraefikOnServers).toHaveBeenLastCalledWith([
+			"b",
+		]);
+		expect(mocks.state.restartUpdates).toEqual([null, null]);
+	});
+
+	it("does nothing when no restart is recorded", async () => {
+		mocks.state.pendingServers = [];
+
+		await recoverInterruptedTraefikRestarts();
+
+		expect(mocks.restoreInterruptedTraefikOnServers).not.toHaveBeenCalled();
 	});
 });

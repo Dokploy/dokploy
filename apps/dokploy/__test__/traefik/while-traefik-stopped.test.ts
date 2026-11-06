@@ -1,10 +1,12 @@
 import {
+	isTraefikRestartInProgress,
 	queueTraefikTask,
 	restoreInterruptedTraefik,
 	restoreInterruptedTraefikOnServers,
 	whileTraefikStopped,
 } from "@dokploy/server/setup/traefik-setup";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeDocker } from "./fake-traefik-docker";
 
 const mocks = vi.hoisted(() => ({ getRemoteDocker: vi.fn() }));
 
@@ -13,106 +15,6 @@ vi.mock("@dokploy/server/db", () => ({ db: {} }));
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: mocks.getRemoteDocker,
 }));
-
-interface FakeOptions {
-	traefik?: "running" | "stopped" | null;
-	marker?: boolean;
-	notModified?: boolean;
-	startError?: Error;
-	inspectError?: Error;
-	crashingStarts?: number;
-	markerGone?: boolean;
-	markerTaken?: boolean;
-}
-
-const statusError = (message: string, statusCode: number) =>
-	Object.assign(new Error(message), { statusCode });
-
-const fakeDocker = ({
-	traefik = "running",
-	marker = false,
-	notModified = false,
-	startError,
-	inspectError,
-	crashingStarts = 0,
-	markerGone = false,
-	markerTaken = false,
-}: FakeOptions = {}) => {
-	const log: string[] = [];
-	const containers: { id: string; name: string; running: boolean }[] = [];
-	if (traefik) {
-		containers.push({
-			id: "traefik",
-			name: "dokploy-traefik",
-			running: traefik === "running",
-		});
-	}
-	if (marker) {
-		containers.push({
-			id: "marker",
-			name: "dokploy-traefik-restarting",
-			running: false,
-		});
-	}
-	let createdWith: unknown;
-	let starts = 0;
-
-	const find = (ref: string) => {
-		const found = containers.find((c) => c.id === ref || c.name === ref);
-		if (!found) throw statusError(`No such container: ${ref}`, 404);
-		return found;
-	};
-
-	const container = (ref: string) => ({
-		inspect: async () => {
-			if (inspectError && ref === "dokploy-traefik") throw inspectError;
-			const c = find(ref);
-			return {
-				Id: c.id,
-				Image: `sha256:${c.id}-image`,
-				State: { Running: c.running, StartedAt: `start-${starts}` },
-			};
-		},
-		stop: async () => {
-			const c = find(ref);
-			log.push(`stop ${c.id}`);
-			c.running = false;
-			if (notModified) throw statusError("container already stopped", 304);
-		},
-		start: async () => {
-			const c = find(ref);
-			log.push(`start ${c.id}`);
-			if (startError) throw startError;
-			starts += 1;
-			c.running = starts > crashingStarts;
-			if (notModified) throw statusError("container already started", 304);
-		},
-		remove: async () => {
-			const c = find(ref);
-			log.push(`remove ${c.id}`);
-			containers.splice(containers.indexOf(c), 1);
-			if (markerGone && c.id === "marker") {
-				throw statusError("No such container: marker", 404);
-			}
-		},
-		logs: async () => Buffer.alloc(0),
-	});
-
-	const docker = {
-		getContainer: (ref: string) => container(ref),
-		createContainer: async (settings: { name: string; Image: string }) => {
-			if (markerTaken) {
-				throw statusError(`Conflict: ${settings.name} is already in use`, 409);
-			}
-			createdWith = settings;
-			containers.push({ id: "marker", name: settings.name, running: false });
-			log.push(`create ${settings.name}`);
-			return container("marker");
-		},
-	};
-
-	return { docker, log, containers, createdWith: () => createdWith };
-};
 
 describe("whileTraefikStopped", () => {
 	beforeEach(() => {
@@ -160,6 +62,7 @@ describe("whileTraefikStopped", () => {
 		expect(fake.createdWith()).toEqual({
 			name: "dokploy-traefik-restarting",
 			Image: "sha256:traefik-image",
+			Labels: { "dokploy.restart.owner": expect.any(String) },
 		});
 		expect(fake.containers).toEqual([
 			{ id: "traefik", name: "dokploy-traefik", running: true },
@@ -298,7 +201,7 @@ describe("whileTraefikStopped", () => {
 		});
 
 		expect(error?.message).toBe(
-			"Traefik stopped right after starting. The change was undone and Traefik is running again.",
+			"Traefik stopped right after starting. The change was undone. Traefik is running again.",
 		);
 		expect(fake.log).toEqual([
 			"create dokploy-traefik-restarting",
@@ -323,12 +226,41 @@ describe("whileTraefikStopped", () => {
 		});
 
 		expect(error?.message).toBe(
-			"Traefik stopped right after starting. The change was undone, but Traefik still did not start: Traefik stopped right after starting",
+			"Traefik stopped right after starting. The change was undone. Traefik still did not start: Traefik stopped right after starting.",
 		);
 		expect(fake.log).toContain("undo");
 		expect(fake.containers.map((c) => c.name)).toContain(
 			"dokploy-traefik-restarting",
 		);
+	});
+
+	it("still starts Traefik when undoing the change fails, and reports both", async () => {
+		const fake = fakeDocker({ crashingStarts: 1 });
+
+		const error = await run(fake, async () => async () => {
+			throw new Error("disk full");
+		});
+
+		expect(error?.message).toBe(
+			"Traefik stopped right after starting. Undoing the change failed: disk full. Traefik is running again.",
+		);
+		expect(fake.log.filter((line) => line === "start traefik")).toHaveLength(2);
+		expect(fake.containers).toEqual([
+			{ id: "traefik", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("leaves Traefik untouched when the pre-stop check says there is nothing to do", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		const task = vi.fn();
+
+		const result = whileTraefikStopped(undefined, task, async () => false);
+		await vi.runAllTimersAsync();
+		await result;
+
+		expect(task).not.toHaveBeenCalled();
+		expect(fake.log).toEqual([]);
 	});
 
 	it("reports both problems when the task fails and Traefik doesn't come back", async () => {
@@ -447,6 +379,60 @@ describe("restoreInterruptedTraefik with a restart marker", () => {
 	});
 });
 
+describe("restoreInterruptedTraefik on a self-hosted install", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.spyOn(console, "log").mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("recovers a marker left by an earlier Dokploy process straight away", async () => {
+		const fake = fakeDocker({
+			traefik: "stopped",
+			marker: true,
+			markerCreated: new Date().toISOString(),
+		});
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await expect(restoreInterruptedTraefik()).resolves.toBe("done");
+		expect(fake.log).toEqual(["start traefik", "remove marker"]);
+	});
+
+	it("never renames a backup over Traefik running as a Swarm service", async () => {
+		const fake = fakeDocker({ traefik: null, backup: true, serviceMode: true });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([]);
+	});
+
+	it("brings the backup back when Traefik is missing and not a Swarm service", async () => {
+		const fake = fakeDocker({ traefik: null, backup: true });
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await restoreInterruptedTraefik();
+
+		expect(fake.log).toEqual([
+			"rename backup -> dokploy-traefik",
+			"start backup",
+		]);
+	});
+
+	it("never reports another process's restart as in progress", async () => {
+		const fake = fakeDocker({
+			marker: true,
+			markerCreated: new Date().toISOString(),
+		});
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+
+		await expect(isTraefikRestartInProgress()).resolves.toBe(false);
+	});
+});
+
 describe("restoreInterruptedTraefik edge cases", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -465,7 +451,7 @@ describe("restoreInterruptedTraefik edge cases", () => {
 		});
 		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
 
-		await expect(restoreInterruptedTraefik()).resolves.toBeUndefined();
+		await expect(restoreInterruptedTraefik()).resolves.toBe("done");
 		expect(fake.log).toEqual(["start traefik", "remove marker"]);
 	});
 
@@ -473,7 +459,7 @@ describe("restoreInterruptedTraefik edge cases", () => {
 		const fake = fakeDocker({ marker: true, markerGone: true });
 		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
 
-		await expect(restoreInterruptedTraefik()).resolves.toBeUndefined();
+		await expect(restoreInterruptedTraefik()).resolves.toBe("done");
 	});
 });
 
@@ -503,15 +489,17 @@ describe("restoreInterruptedTraefikOnServers", () => {
 		});
 		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
-		const done = restoreInterruptedTraefikOnServers([
+		const results = restoreInterruptedTraefikOnServers([
 			"offline",
 			"hanging",
 			"interrupted",
 			"healthy",
 		]);
 		await vi.advanceTimersByTimeAsync(61_000);
-		await done;
 
+		const { done, busy } = await results;
+		expect([...done].sort()).toEqual(["healthy", "interrupted"]);
+		expect(busy).toEqual([]);
 		expect(interrupted.containers).toEqual([
 			{ id: "traefik", name: "dokploy-traefik", running: true },
 		]);

@@ -499,19 +499,16 @@ export const ShowDomains = ({ id, type }: Props) => {
 																title="Delete Domain"
 																description={
 																	item.certificateType === "letsencrypt" ? (
-																		<div className="space-y-2">
-																			<p>
-																				Are you sure you want to delete this
-																				domain?
-																			</p>
-																			<p className="text-muted-foreground text-sm">
+																		<>
+																			Are you sure you want to delete this
+																			domain?
+																			<span className="mt-2 block text-sm text-muted-foreground">
 																				Its SSL certificate is kept, so adding
 																				the domain again later works right away.
-																				To remove certificates you no longer
-																				need, use Traefik → Clean Up
-																				Certificates in the server's settings.
-																			</p>
-																		</div>
+																				To remove it, use Clean Up Certificates
+																				in the Traefik menu.
+																			</span>
+																		</>
 																	) : (
 																		"Are you sure you want to delete this domain?"
 																	)

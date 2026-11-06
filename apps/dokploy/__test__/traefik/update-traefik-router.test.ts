@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@dokploy/server", () => ({
 	IS_CLOUD: false,
+	isTraefikRestartInProgress: async () => false,
 	...mocks,
 }));
 

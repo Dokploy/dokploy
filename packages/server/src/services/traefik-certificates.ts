@@ -11,10 +11,20 @@ import {
 import path from "node:path";
 import { domainToASCII, domainToUnicode } from "node:url";
 import { db } from "@dokploy/server/db";
-import { domains } from "@dokploy/server/db/schema";
+import {
+	applications,
+	compose,
+	domains,
+	previewDeployments,
+	server,
+} from "@dokploy/server/db/schema";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { paths } from "../constants";
-import { whileTraefikStopped } from "../setup/traefik-setup";
+import {
+	restoreInterruptedTraefikOnServers,
+	whileTraefikStopped,
+} from "../setup/traefik-setup";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -511,7 +521,7 @@ const readConfigText = async (serverId?: string) => {
 			const quoted = quote([directory]);
 			return await runOnServer(
 				serverId,
-				`cat ${quoted}/*.yml ${quoted}/*.yaml ${quoted}/*.toml 2>/dev/null; true`,
+				`for file in ${quoted}/*.yml ${quoted}/*.yaml ${quoted}/*.toml; do [ -e "$file" ] || continue; cat -- "$file" || exit 1; done`,
 			);
 		}
 		if (!existsSync(directory)) {
@@ -526,22 +536,51 @@ const readConfigText = async (serverId?: string) => {
 	}
 };
 
-const knownDomainNames = async () => {
+const knownDomainNames = async (serverId?: string) => {
 	const used = emptyUsedNames();
-	const rows = await db.select({ host: domains.host }).from(domains);
-	for (const { host } of rows) {
+	const onServer = (
+		column: typeof applications.serverId | typeof compose.serverId,
+	) => (serverId ? eq(column, serverId) : isNull(column));
+	const groups = await Promise.all([
+		db
+			.select({ host: domains.host })
+			.from(domains)
+			.innerJoin(
+				applications,
+				eq(domains.applicationId, applications.applicationId),
+			)
+			.where(onServer(applications.serverId)),
+		db
+			.select({ host: domains.host })
+			.from(domains)
+			.innerJoin(compose, eq(domains.composeId, compose.composeId))
+			.where(onServer(compose.serverId)),
+		db
+			.select({ host: domains.host })
+			.from(domains)
+			.innerJoin(
+				previewDeployments,
+				eq(domains.previewDeploymentId, previewDeployments.previewDeploymentId),
+			)
+			.innerJoin(
+				applications,
+				eq(previewDeployments.applicationId, applications.applicationId),
+			)
+			.where(onServer(applications.serverId)),
+	]);
+	for (const { host } of groups.flat()) {
 		if (host?.trim()) used.hosts.add(normalize(host));
 	}
-	const panelHost = (await getWebServerSettings())?.host;
-	if (panelHost?.trim()) {
-		used.hosts.add(normalize(panelHost));
+	if (!serverId) {
+		const panelHost = (await getWebServerSettings())?.host;
+		if (panelHost?.trim()) used.hosts.add(normalize(panelHost));
 	}
 	return used;
 };
 
 const readUsedNames = async (serverId?: string) => {
 	const [used, routes, labels, configText] = await Promise.all([
-		knownDomainNames(),
+		knownDomainNames(serverId),
 		readTraefikRoutes(serverId),
 		readTraefikLabels(serverId),
 		readConfigText(serverId),
@@ -584,33 +623,48 @@ export const findRemovableTraefikCertificates = async (
 };
 
 // Traefik overwrites acme.json from memory, so it is edited only while stopped.
+const setRestartStarted = async (serverId: string, startedAt: Date | null) => {
+	await db
+		.update(server)
+		.set({ traefikRestartStartedAt: startedAt })
+		.where(eq(server.serverId, serverId));
+};
+
 export const removeTraefikCertificates = async (
 	serverId: string | undefined,
 	ids: string[],
-	{ requireRoutes }: { requireRoutes: boolean },
+	{
+		requireRoutes,
+		onStarted,
+	}: { requireRoutes: boolean; onStarted?: () => void },
 ) => {
 	let used = emptyUsedNames();
 	let removed = 0;
+	const removableIds = (storage: AcmeStorage) => {
+		const unused = new Set(
+			findUnusedAcmeCertificates(storage, used).map(({ id }) => id),
+		);
+		return [...new Set(ids)].filter((id) => unused.has(id));
+	};
+	if (serverId) {
+		await setRestartStarted(serverId, new Date());
+	}
 	await whileTraefikStopped(
 		serverId,
 		async () => {
 			const original = await readAcmeContent(serverId);
 			const storage = parseAcmeStorage(original);
-			const unused = new Set(
-				findUnusedAcmeCertificates(storage, used).map(({ id }) => id),
-			);
-			removed = withoutAcmeCertificates(
-				storage,
-				ids.filter((id) => unused.has(id)),
-			);
-			if (removed === 0) {
+			const targets = removableIds(storage);
+			if (withoutAcmeCertificates(storage, targets) === 0) {
 				return undefined;
 			}
 			await backupAcmeContent(serverId, original);
 			await writeAcmeContent(serverId, `${JSON.stringify(storage, null, 2)}\n`);
+			removed = targets.length;
 			return () => writeAcmeContent(serverId, original);
 		},
 		async () => {
+			onStarted?.();
 			const current = await readUsedNames(serverId);
 			if (requireRoutes && !current.routesComplete) {
 				throw new Error(
@@ -618,7 +672,38 @@ export const removeTraefikCertificates = async (
 				);
 			}
 			used = current.used;
+			return removableIds(await readAcmeStorage(serverId)).length > 0;
 		},
 	);
+	if (serverId) {
+		await setRestartStarted(serverId, null);
+	}
 	return removed;
+};
+
+export const recoverInterruptedTraefikRestarts = async () => {
+	const pending = await db.query.server.findMany({
+		where: and(
+			isNotNull(server.traefikRestartStartedAt),
+			eq(server.serverStatus, "active"),
+			isNotNull(server.sshKeyId),
+		),
+		columns: { serverId: true },
+	});
+	if (pending.length === 0) {
+		return;
+	}
+	const { done, busy } = await restoreInterruptedTraefikOnServers(
+		pending.map(({ serverId }) => serverId),
+	);
+	for (const serverId of done) {
+		await setRestartStarted(serverId, null);
+	}
+	if (busy.length > 0) {
+		setTimeout(() => {
+			void recoverInterruptedTraefikRestarts().catch((error) => {
+				console.error("Failed to restore Traefik on remote servers:", error);
+			});
+		}, 5 * 60_000).unref();
+	}
 };

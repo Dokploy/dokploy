@@ -27,6 +27,7 @@ import {
 	IS_CLOUD,
 	isPanelPortPublished,
 	isRequestFromPanelHost,
+	isTraefikRestartInProgress,
 	PANEL_PORT_RECOVERY_COMMAND,
 	POSTHOG_HOST,
 	parseRawConfig,
@@ -126,8 +127,22 @@ const resolveTraefikFilePath = (
 const traefikUpdateLocks = new Map<string, symbol>();
 const traefikUpdateErrors = new Map<string, string>();
 const certificateRemovals = new Map<string, symbol>();
+const certificateRemovalsStarted = new Set<symbol>();
 const certificateRemovalErrors = new Map<string, string>();
 const certificateRemovalCounts = new Map<string, number>();
+
+const assertNoCertificateRemoval = async (serverId?: string) => {
+	if (
+		certificateRemovals.has(serverId ?? "local") ||
+		(await isTraefikRestartInProgress(serverId))
+	) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message:
+				"Traefik is restarting to remove certificates. Try again in a moment.",
+		});
+	}
+};
 
 const assertTraefikAccess = async (
 	serverId: string | undefined,
@@ -178,6 +193,7 @@ export const settingsRouter = createTRPCRouter({
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertNoCertificateRemoval(input?.serverId);
 			// Run in background so the request returns immediately; avoids proxy timeouts.
 			void queueTraefikTask(input?.serverId, async () => {
 				await reloadDockerResource("dokploy-traefik", input?.serverId);
@@ -194,6 +210,7 @@ export const settingsRouter = createTRPCRouter({
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input, ctx }) => {
+			await assertNoCertificateRemoval(input.serverId);
 			const ports = await readPorts("dokploy-traefik", input.serverId);
 			const env = await readEnvironmentVariables(
 				"dokploy-traefik",
@@ -847,6 +864,7 @@ export const settingsRouter = createTRPCRouter({
 	writeTraefikEnv: adminProcedure
 		.input(z.object({ env: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			await assertNoCertificateRemoval(input.serverId);
 			const envs = prepareEnvironmentVariables(input.env);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 
@@ -1146,6 +1164,7 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertNoCertificateRemoval(input.serverId);
 			try {
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -1226,6 +1245,7 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const serverId = input?.serverId;
 			await assertTraefikAccess(serverId, ctx.session.activeOrganizationId);
+			await assertNoCertificateRemoval(serverId);
 
 			const lockKey = serverId ?? "local";
 			if (traefikUpdateLocks.has(lockKey)) {
@@ -1322,11 +1342,20 @@ export const settingsRouter = createTRPCRouter({
 				input?.serverId,
 				ctx.session.activeOrganizationId,
 			);
+			return getUnusedTraefikCertificates(input?.serverId);
+		}),
+	getTraefikCertificateRemovalStatus: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input, ctx }) => {
+			await assertTraefikAccess(
+				input?.serverId,
+				ctx.session.activeOrganizationId,
+			);
 			const key = input?.serverId ?? "local";
-			const result = await getUnusedTraefikCertificates(input?.serverId);
+			const run = certificateRemovals.get(key);
 			return {
-				...result,
-				isRemoving: certificateRemovals.has(key),
+				isRemoving: !!run,
+				isQueued: !!run && !certificateRemovalsStarted.has(run),
 				lastRemoveError: certificateRemovalErrors.get(key) ?? null,
 				lastRemovedCount: certificateRemovalCounts.get(key) ?? null,
 			};
@@ -1335,7 +1364,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				serverId: z.string().optional(),
-				certificateIds: z.array(z.string().min(1).max(64)).min(1).max(1000),
+				certificateIds: z.array(z.string().min(1).max(64)).min(1).max(10_000),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -1353,6 +1382,7 @@ export const settingsRouter = createTRPCRouter({
 			const owns = () =>
 				!certificateRemovals.has(key) || certificateRemovals.get(key) === run;
 			const release = () => {
+				certificateRemovalsStarted.delete(run);
 				if (certificateRemovals.get(key) === run) {
 					certificateRemovals.delete(key);
 				}
@@ -1403,7 +1433,10 @@ export const settingsRouter = createTRPCRouter({
 			void removeTraefikCertificates(
 				serverId,
 				targets.map((target) => target.id),
-				{ requireRoutes: routesComplete },
+				{
+					requireRoutes: routesComplete,
+					onStarted: () => certificateRemovalsStarted.add(run),
+				},
 			)
 				.then((removed) => {
 					if (owns()) {

@@ -6,6 +6,7 @@ import {
 	pgEnum,
 	pgTable,
 	text,
+	timestamp,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
@@ -57,6 +58,7 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+	traefikRestartStartedAt: timestamp("traefikRestartStartedAt"),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {

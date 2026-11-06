@@ -54,6 +54,12 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 	const { data, isPending, isFetching, refetch, error, isError } =
 		api.settings.getUnusedTraefikCertificates.useQuery(
 			{ serverId },
+			{ enabled: isOpen, retry: false },
+		);
+
+	const { data: status } =
+		api.settings.getTraefikCertificateRemovalStatus.useQuery(
+			{ serverId },
 			{
 				enabled: isOpen,
 				retry: false,
@@ -67,7 +73,7 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 
 	const certificates = data?.certificates ?? [];
 	const chosen = certificates.filter((item) => !unchecked.has(item.id));
-	const isInProgress = isRemoving || isWaiting || !!data?.isRemoving;
+	const isInProgress = isRemoving || isWaiting || !!status?.isRemoving;
 
 	const toggle = (key: string, checked: boolean) => {
 		setUnchecked((current) => {
@@ -82,12 +88,12 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 	};
 
 	const waitForRemoval = async () => {
-		const deadline = Date.now() + 120_000;
-		await wait(5000);
+		const deadline = Date.now() + 6 * 60_000;
+		await wait(3000);
 		while (Date.now() < deadline) {
 			try {
 				const result =
-					await utils.client.settings.getUnusedTraefikCertificates.query({
+					await utils.client.settings.getTraefikCertificateRemovalStatus.query({
 						serverId,
 					});
 				if (!result.isRemoving) {
@@ -140,6 +146,9 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 			setIsWaiting(false);
 			setUnchecked(new Set());
 			refetch();
+			utils.settings.getTraefikCertificateRemovalStatus.invalidate({
+				serverId,
+			});
 		}
 	};
 
@@ -187,20 +196,22 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 									labels) may be listed too. Uncheck any you still use.
 								</AlertBlock>
 							)}
-							{data.isRemoving && !isWaiting && !isRemoving && (
+							{status?.isRemoving && (
 								<AlertBlock
 									type="info"
 									icon={<Loader2 className="size-4 animate-spin" />}
 								>
-									Certificates are being removed. Traefik restarts in a moment.
+									{status.isQueued
+										? "Waiting for another Traefik action on this server to finish."
+										: "Removing certificates. Traefik restarts in a moment."}
 								</AlertBlock>
 							)}
-							{data.lastRemoveError && !isInProgress && (
+							{status?.lastRemoveError && !isInProgress && (
 								<AlertBlock
 									type="error"
 									icon={<AlertTriangle className="size-4" />}
 								>
-									Last removal failed: {data.lastRemoveError}
+									Last removal failed: {status.lastRemoveError}
 								</AlertBlock>
 							)}
 							{certificates.length === 0 ? (

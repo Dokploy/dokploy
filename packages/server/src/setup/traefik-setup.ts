@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
 	chmodSync,
 	existsSync,
@@ -13,7 +14,7 @@ import type {
 	CreateServiceOptions,
 } from "dockerode";
 import { stringify } from "yaml";
-import { paths } from "../constants";
+import { IS_CLOUD, paths } from "../constants";
 import { sleep } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
@@ -43,7 +44,7 @@ const recreateQueue = new Map<string, Promise<void>>();
 export const initializeStandaloneTraefik = (options: TraefikOptions = {}) =>
 	runQueued(options.serverId, () => recreateStandaloneTraefik(options));
 
-const runQueued = (serverId: string | undefined, task: () => Promise<void>) => {
+const runQueued = <T>(serverId: string | undefined, task: () => Promise<T>) => {
 	const key = serverId ?? "local";
 	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(task);
 	// So a hung Docker call can't block later recreates.
@@ -173,6 +174,31 @@ const recreateStandaloneTraefik = async ({
 
 const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 const RESTART_MARKER_CONTAINER = "dokploy-traefik-restarting";
+const RESTART_OWNER_LABEL = "dokploy.restart.owner";
+const RESTART_MARKER_MAX_AGE_MS = 5 * 60_000;
+const PROCESS_ID = randomUUID();
+
+type RemoteDocker = Awaited<ReturnType<typeof getRemoteDocker>>;
+
+// In cloud another Dokploy instance may still be working on this server.
+const isActiveElsewhere = (
+	markerInfo: {
+		Created: string;
+		Config?: { Labels?: Record<string, string> };
+	} | null,
+) =>
+	!!markerInfo &&
+	markerInfo.Config?.Labels?.[RESTART_OWNER_LABEL] !== PROCESS_ID &&
+	Date.now() - Date.parse(markerInfo.Created) < RESTART_MARKER_MAX_AGE_MS;
+
+const runsAsService = (docker: RemoteDocker) =>
+	docker
+		.getService("dokploy-traefik")
+		.inspect()
+		.then(
+			() => true,
+			() => false,
+		);
 
 export const restoreInterruptedTraefik = (serverId?: string) =>
 	runQueued(serverId, () => restoreBackupTraefik(serverId));
@@ -183,7 +209,9 @@ export const queueTraefikTask = (
 ) => runQueued(serverId, task);
 
 // Finishes a recreate or restart that a Dokploy restart interrupted.
-const restoreBackupTraefik = async (serverId?: string) => {
+const restoreBackupTraefik = async (
+	serverId?: string,
+): Promise<"done" | "busy"> => {
 	const docker = await getRemoteDocker(serverId);
 	const traefikInfo = await docker
 		.getContainer("dokploy-traefik")
@@ -194,6 +222,9 @@ const restoreBackupTraefik = async (serverId?: string) => {
 		.inspect()
 		.catch(() => null);
 	if (markerInfo) {
+		if (IS_CLOUD && isActiveElsewhere(markerInfo)) {
+			return "busy";
+		}
 		if (traefikInfo && !traefikInfo.State.Running) {
 			await docker
 				.getContainer(traefikInfo.Id)
@@ -205,15 +236,15 @@ const restoreBackupTraefik = async (serverId?: string) => {
 			.remove({ force: true })
 			.catch(unlessNotFound);
 	}
-	if (traefikInfo) {
-		return;
+	if (traefikInfo || (await runsAsService(docker))) {
+		return "done";
 	}
 	const backupInfo = await docker
 		.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
 		.inspect()
 		.catch(() => null);
 	if (!backupInfo) {
-		return;
+		return "done";
 	}
 	const backup = docker.getContainer(backupInfo.Id);
 	await backup.rename({ name: "dokploy-traefik" });
@@ -221,6 +252,7 @@ const restoreBackupTraefik = async (serverId?: string) => {
 		await backup.start();
 	}
 	console.log("Restored Traefik left behind by an interrupted recreate");
+	return "done";
 };
 
 const statusCodeOf = (error: unknown) =>
@@ -242,12 +274,15 @@ export const restoreInterruptedTraefikOnServers = async (
 	serverIds: string[],
 ) => {
 	const pending = [...serverIds];
+	const done: string[] = [];
+	const busy: string[] = [];
 	const restoreNext = async () => {
 		for (let serverId = pending.shift(); serverId; serverId = pending.shift()) {
 			const timeout = sleep(60_000).then(() => {
 				throw new Error("Timed out after 60 seconds");
 			});
-			await Promise.race([restoreInterruptedTraefik(serverId), timeout]).catch(
+			await Promise.race([restoreInterruptedTraefik(serverId), timeout]).then(
+				(status) => (status === "busy" ? busy : done).push(serverId),
 				(error) => {
 					console.error(
 						`Failed to restore Traefik on server ${serverId}:`,
@@ -260,7 +295,23 @@ export const restoreInterruptedTraefikOnServers = async (
 	await Promise.all(
 		Array.from({ length: Math.min(4, pending.length) }, restoreNext),
 	);
+	return { done, busy };
 };
+
+export const isTraefikRestartInProgress = async (serverId?: string) => {
+	if (!IS_CLOUD) {
+		return false;
+	}
+	const docker = await getRemoteDocker(serverId);
+	const markerInfo = await docker
+		.getContainer(RESTART_MARKER_CONTAINER)
+		.inspect()
+		.catch(() => null);
+	return isActiveElsewhere(markerInfo);
+};
+
+const ALREADY_RESTARTING =
+	"Traefik is already being restarted on this server. Try again in a moment.";
 
 const messageOf = (error: unknown) =>
 	error instanceof Error ? error.message : String(error);
@@ -273,11 +324,13 @@ const startAndCheck = async (traefik: Container) => {
 export const whileTraefikStopped = (
 	serverId: string | undefined,
 	task: () => Promise<unknown>,
-	beforeStop?: () => Promise<void>,
+	beforeStop?: () => Promise<unknown>,
 ) =>
 	runQueued(serverId, async () => {
 		const docker = await getRemoteDocker(serverId);
-		await restoreBackupTraefik(serverId);
+		if ((await restoreBackupTraefik(serverId)) === "busy") {
+			throw new Error(ALREADY_RESTARTING);
+		}
 		const info = await docker
 			.getContainer("dokploy-traefik")
 			.inspect()
@@ -288,7 +341,9 @@ export const whileTraefikStopped = (
 						)
 					: error;
 			});
-		await beforeStop?.();
+		if ((await beforeStop?.()) === false) {
+			return;
+		}
 		if (!info.State.Running) {
 			await task();
 			return;
@@ -296,12 +351,14 @@ export const whileTraefikStopped = (
 		const traefik = docker.getContainer(info.Id);
 		// Lets recovery start Traefik if Dokploy dies mid-way.
 		const marker = await docker
-			.createContainer({ name: RESTART_MARKER_CONTAINER, Image: info.Image })
+			.createContainer({
+				name: RESTART_MARKER_CONTAINER,
+				Image: info.Image,
+				Labels: { [RESTART_OWNER_LABEL]: PROCESS_ID },
+			})
 			.catch((error) => {
 				throw statusCodeOf(error) === 409
-					? new Error(
-							"Traefik is already being restarted on this server. Try again in a moment.",
-						)
+					? new Error(ALREADY_RESTARTING)
 					: error;
 			});
 		try {
@@ -333,17 +390,28 @@ export const whileTraefikStopped = (
 						)
 					: startError;
 			}
-			await traefik.stop().catch(unlessNotModified);
-			await outcome.undo();
-			await startAndCheck(traefik).catch((retryError) => {
-				throw new Error(
-					`${messageOf(startError)}. The change was undone, but Traefik still did not start: ${messageOf(retryError)}`,
-				);
-			});
-			await marker.remove({ force: true }).catch(() => {});
-			throw new Error(
-				`${messageOf(startError)}. The change was undone and Traefik is running again.`,
+			await traefik.stop().catch(() => {});
+			const undoError = await outcome.undo().then(
+				() => null,
+				(error: unknown) => error,
 			);
+			const retryError = await startAndCheck(traefik).then(
+				() => null,
+				(error: unknown) => error,
+			);
+			if (!retryError) {
+				await marker.remove({ force: true }).catch(() => {});
+			}
+			const steps = [
+				messageOf(startError),
+				undoError
+					? `Undoing the change failed: ${messageOf(undoError)}`
+					: "The change was undone",
+				retryError
+					? `Traefik still did not start: ${messageOf(retryError)}`
+					: "Traefik is running again",
+			];
+			throw new Error(`${steps.join(". ")}.`);
 		}
 		await marker.remove({ force: true }).catch(() => {});
 		if (outcome.failed) {

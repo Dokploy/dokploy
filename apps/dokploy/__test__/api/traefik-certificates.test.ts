@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 	removeTraefikCertificates: vi.fn(),
 	queueTraefikTask: vi.fn(),
 	reloadDockerResource: vi.fn(),
+	isTraefikRestartInProgress: vi.fn(),
 }));
 
 const noop = vi.fn();
@@ -20,6 +21,7 @@ vi.mock("@dokploy/server", () => ({
 	getDockerResourceType: mocks.getDockerResourceType,
 	getDokployImageTag: () => "canary",
 	getUnusedTraefikCertificates: mocks.getUnusedTraefikCertificates,
+	isTraefikRestartInProgress: mocks.isTraefikRestartInProgress,
 	paths: () => ({
 		MAIN_TRAEFIK_PATH: "/tmp",
 		LOGS_PATH: "/tmp",
@@ -71,10 +73,11 @@ const certificate = (main: string) => ({
 const lastResult = async (serverId: string) => {
 	await vi.waitFor(async () => {
 		expect(
-			(await caller.getUnusedTraefikCertificates({ serverId })).isRemoving,
+			(await caller.getTraefikCertificateRemovalStatus({ serverId }))
+				.isRemoving,
 		).toBe(false);
 	});
-	return caller.getUnusedTraefikCertificates({ serverId });
+	return caller.getTraefikCertificateRemovalStatus({ serverId });
 };
 
 describe("settings Traefik certificate cleanup", () => {
@@ -86,6 +89,7 @@ describe("settings Traefik certificate cleanup", () => {
 			routesComplete: true,
 		});
 		mocks.removeTraefikCertificates.mockResolvedValue(1);
+		mocks.isTraefikRestartInProgress.mockResolvedValue(false);
 	});
 
 	it("rejects a second removal while the first is still being checked", async () => {
@@ -166,7 +170,7 @@ describe("settings Traefik certificate cleanup", () => {
 		expect(mocks.removeTraefikCertificates).toHaveBeenCalledWith(
 			"server-c",
 			["id-a.example.com", "id-b.example.com"],
-			{ requireRoutes: false },
+			{ requireRoutes: false, onStarted: expect.any(Function) },
 		);
 	});
 
@@ -213,6 +217,101 @@ describe("settings Traefik certificate cleanup", () => {
 		const result = await lastResult("server-d");
 		expect(result.lastRemoveError).toBe("Couldn't write acme.json: disk full");
 		expect(result.lastRemovedCount).toBeNull();
+	});
+
+	it("says when the removal is still waiting for another Traefik action", async () => {
+		let start = () => {};
+		let finish = () => {};
+		mocks.findRemovableTraefikCertificates.mockResolvedValueOnce({
+			targets: [certificate("a.example.com")],
+			routesComplete: true,
+		});
+		mocks.removeTraefikCertificates.mockImplementationOnce(
+			(_serverId: string, _ids: string[], options: { onStarted: () => void }) =>
+				new Promise<number>((resolve) => {
+					start = options.onStarted;
+					finish = () => resolve(1);
+				}),
+		);
+
+		await caller.removeUnusedTraefikCertificates({
+			serverId: "server-g",
+			certificateIds: ["id-a.example.com"],
+		});
+
+		expect(
+			await caller.getTraefikCertificateRemovalStatus({ serverId: "server-g" }),
+		).toMatchObject({ isRemoving: true, isQueued: true });
+		start();
+		expect(
+			await caller.getTraefikCertificateRemovalStatus({ serverId: "server-g" }),
+		).toMatchObject({ isRemoving: true, isQueued: false });
+		finish();
+		expect(await lastResult("server-g")).toMatchObject({
+			isRemoving: false,
+			isQueued: false,
+			lastRemovedCount: 1,
+		});
+	});
+
+	it("blocks Traefik changes that read its ports while certificates are being removed", async () => {
+		let finish = () => {};
+		mocks.findRemovableTraefikCertificates.mockResolvedValueOnce({
+			targets: [certificate("a.example.com")],
+			routesComplete: true,
+		});
+		mocks.removeTraefikCertificates.mockImplementationOnce(
+			() =>
+				new Promise<number>((resolve) => {
+					finish = () => resolve(1);
+				}),
+		);
+		await caller.removeUnusedTraefikCertificates({
+			serverId: "server-h",
+			certificateIds: ["id-a.example.com"],
+		});
+
+		for (const call of [
+			() => caller.writeTraefikEnv({ env: "A=1", serverId: "server-h" }),
+			() =>
+				caller.toggleDashboard({ enableDashboard: true, serverId: "server-h" }),
+			() => caller.reloadTraefik({ serverId: "server-h" }),
+		]) {
+			await expect(call()).rejects.toMatchObject({
+				code: "CONFLICT",
+				message: expect.stringContaining("Traefik is restarting"),
+			});
+		}
+
+		finish();
+		await lastResult("server-h");
+	});
+
+	it("blocks those changes while another Dokploy instance restarts Traefik", async () => {
+		mocks.isTraefikRestartInProgress.mockResolvedValueOnce(true);
+
+		await expect(
+			caller.writeTraefikEnv({ env: "A=1", serverId: "server-i" }),
+		).rejects.toMatchObject({ code: "CONFLICT" });
+	});
+
+	it("accepts a large selection", async () => {
+		const ids = Array.from({ length: 1500 }, (_, n) => `id-${n}`);
+		mocks.findRemovableTraefikCertificates.mockResolvedValueOnce({
+			targets: [certificate("a.example.com")],
+			routesComplete: true,
+		});
+
+		await caller.removeUnusedTraefikCertificates({
+			serverId: "server-j",
+			certificateIds: ids,
+		});
+
+		expect(mocks.findRemovableTraefikCertificates).toHaveBeenCalledWith(
+			"server-j",
+			ids,
+		);
+		await lastResult("server-j");
 	});
 
 	it("reloads Traefik through the same queue as certificate cleanup", async () => {

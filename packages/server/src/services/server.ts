@@ -274,18 +274,6 @@ export const getAllServers = async () => {
 	return servers;
 };
 
-export const findActiveDeployServerIds = async () => {
-	const servers = await db.query.server.findMany({
-		where: and(
-			eq(server.serverType, "deploy"),
-			eq(server.serverStatus, "active"),
-			isNotNull(server.sshKeyId),
-		),
-		columns: { serverId: true },
-	});
-	return servers.map(({ serverId }) => serverId);
-};
-
 export const getAccessibleServerIds = async (session: {
 	userId: string;
 	activeOrganizationId: string;
