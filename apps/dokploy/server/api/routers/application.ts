@@ -1,4 +1,5 @@
 import {
+	changeApplicationServer,
 	clearOldDeployments,
 	createApplication,
 	createDomain,
@@ -767,7 +768,38 @@ export const applicationRouter = createTRPCRouter({
 				}
 			}
 
-			const { applicationId, ...rest } = input;
+			const { applicationId, serverId, ...rest } = input;
+
+			if (serverId !== undefined) {
+				const currentApp = await findApplicationById(applicationId);
+				const currentServerId = currentApp.serverId ?? null;
+				const targetServerId = serverId ?? null;
+
+				if (currentServerId !== targetServerId) {
+					if (targetServerId) {
+						const accessibleIds = await getAccessibleServerIds(ctx.session);
+						if (!accessibleIds.has(targetServerId)) {
+							throw new TRPCError({
+								code: "UNAUTHORIZED",
+								message:
+									"You are not authorized to deploy to the selected server",
+							});
+						}
+					} else {
+						const webServerSettings = await getWebServerSettings();
+						if (IS_CLOUD || webServerSettings?.remoteServersOnly) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message:
+									"The Dokploy server is not available as a deployment target",
+							});
+						}
+					}
+
+					await changeApplicationServer(applicationId, targetServerId);
+				}
+			}
+
 			const updateApp = await updateApplication(applicationId, {
 				...rest,
 			});
@@ -811,6 +843,12 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["create"],
 			});
 			const application = await findApplicationById(input.applicationId);
+			if (application.applicationStatus === "running") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Application is currently busy or running a deployment",
+				});
+			}
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: input.title || "Manual deployment",
