@@ -1,11 +1,16 @@
 import { format } from "date-fns";
 import {
+	Activity,
+	BarChartHorizontalBigIcon,
 	Clock,
 	Key,
 	KeyIcon,
 	Loader2,
 	Network,
+	Pencil,
 	ServerIcon,
+	Settings,
+	ShieldCheck,
 	Terminal,
 	Trash2,
 	User,
@@ -32,6 +37,7 @@ import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { DeleteServerModal } from "./delete-server-modal";
 import { HandleServers } from "./handle-servers";
+import { ShowServerSecurity } from "./security/show-server-security";
 import { SetupServer } from "./setup-server";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { WelcomeSubscription } from "./welcome-stripe/welcome-subscription";
@@ -49,7 +55,7 @@ export const ShowServers = () => {
 	return (
 		<div className="w-full">
 			{query?.success && isCloud && <WelcomeSubscription />}
-			<Card className="h-full  p-2.5 rounded-xl w-full">
+			<Card className="h-full  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -224,11 +230,19 @@ export const ShowServers = () => {
 																		<div className="flex items-center  gap-2 pt-3 border-t mt-auto flex-wrap">
 																			<div className="flex items-center gap-2 w-full">
 																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<SetupServer
-																							serverId={server.serverId}
-																						/>
-																					</TooltipTrigger>
+																					<SetupServer
+																						serverId={server.serverId}
+																					>
+																						<TooltipTrigger asChild>
+																							<Button
+																								className="w-full cursor-pointer "
+																								size="sm"
+																							>
+																								Setup Server{" "}
+																								<Settings className="size-4" />
+																							</Button>
+																						</TooltipTrigger>
+																					</SetupServer>
 																					<TooltipContent
 																						className="max-w-xs"
 																						side="bottom"
@@ -251,37 +265,62 @@ export const ShowServers = () => {
 																				{server.sshKeyId &&
 																					permissions?.server.terminal && (
 																						<Tooltip>
-																							<TooltipTrigger asChild>
-																								<div>
-																									<TerminalModal
-																										serverId={server.serverId}
-																										asButton={true}
+																							<TerminalModal
+																								serverId={server.serverId}
+																								asButton={true}
+																							>
+																								<TooltipTrigger asChild>
+																									<Button
+																										variant="outline"
+																										size="icon"
+																										className="h-9 w-9"
 																									>
-																										<Button
-																											variant="outline"
-																											size="icon"
-																											className="h-9 w-9"
-																										>
-																											<Terminal className="h-4 w-4" />
-																										</Button>
-																									</TerminalModal>
-																								</div>
-																							</TooltipTrigger>
+																										<Terminal className="h-4 w-4" />
+																									</Button>
+																								</TooltipTrigger>
+																							</TerminalModal>
 																							<TooltipContent>
 																								<p>Terminal</p>
 																							</TooltipContent>
 																						</Tooltip>
 																					)}
 
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<div>
-																							<HandleServers
+																				{server.sshKeyId &&
+																					permissions?.server.read && (
+																						<Tooltip>
+																							<ShowServerSecurity
 																								serverId={server.serverId}
-																								asButton={true}
-																							/>
-																						</div>
-																					</TooltipTrigger>
+																							>
+																								<TooltipTrigger asChild>
+																									<Button
+																										variant="outline"
+																										size="icon"
+																										className="h-9 w-9"
+																									>
+																										<ShieldCheck className="h-4 w-4" />
+																									</Button>
+																								</TooltipTrigger>
+																							</ShowServerSecurity>
+																							<TooltipContent>
+																								<p>Security</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
+
+																				<Tooltip>
+																					<HandleServers
+																						serverId={server.serverId}
+																					>
+																						<TooltipTrigger asChild>
+																							<Button
+																								variant="outline"
+																								size="icon"
+																								className="h-9 w-9"
+																							>
+																								<Pencil className="h-4 w-4" />
+																							</Button>
+																						</TooltipTrigger>
+																					</HandleServers>
 																					<TooltipContent>
 																						<p>Edit Server</p>
 																					</TooltipContent>
@@ -289,14 +328,19 @@ export const ShowServers = () => {
 
 																				{server.sshKeyId && !isBuildServer && (
 																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<div>
-																								<ShowServerActions
-																									serverId={server.serverId}
-																									asButton={true}
-																								/>
-																							</div>
-																						</TooltipTrigger>
+																						<ShowServerActions
+																							serverId={server.serverId}
+																						>
+																							<TooltipTrigger asChild>
+																								<Button
+																									variant="outline"
+																									size="icon"
+																									className="h-9 w-9"
+																								>
+																									<Activity className="h-4 w-4" />
+																								</Button>
+																							</TooltipTrigger>
+																						</ShowServerActions>
 																						<TooltipContent>
 																							<p>Web Server Actions</p>
 																						</TooltipContent>
@@ -307,17 +351,23 @@ export const ShowServers = () => {
 																					server.sshKeyId &&
 																					!isBuildServer && (
 																						<Tooltip>
-																							<TooltipTrigger asChild>
-																								<div>
-																									<ShowMonitoringModal
-																										url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																										token={
-																											server?.metricsConfig
-																												?.server?.token
-																										}
-																									/>
-																								</div>
-																							</TooltipTrigger>
+																							<ShowMonitoringModal
+																								url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
+																								token={
+																									server?.metricsConfig?.server
+																										?.token
+																								}
+																							>
+																								<TooltipTrigger asChild>
+																									<Button
+																										variant="outline"
+																										size="icon"
+																										className="h-9 w-9"
+																									>
+																										<BarChartHorizontalBigIcon className="h-4 w-4" />
+																									</Button>
+																								</TooltipTrigger>
+																							</ShowMonitoringModal>
 																							<TooltipContent>
 																								<p>Monitoring</p>
 																							</TooltipContent>
@@ -328,22 +378,20 @@ export const ShowServers = () => {
 
 																				{permissions?.server.delete && (
 																					<Tooltip>
-																						<TooltipTrigger asChild>
-																							<div>
-																								<DeleteServerModal
-																									serverId={server.serverId}
-																									serverName={server.name}
+																						<DeleteServerModal
+																							serverId={server.serverId}
+																							serverName={server.name}
+																						>
+																							<TooltipTrigger asChild>
+																								<Button
+																									variant="ghost"
+																									size="icon"
+																									className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
 																								>
-																									<Button
-																										variant="ghost"
-																										size="icon"
-																										className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
-																									>
-																										<Trash2 className="h-4 w-4" />
-																									</Button>
-																								</DeleteServerModal>
-																							</div>
-																						</TooltipTrigger>
+																									<Trash2 className="h-4 w-4" />
+																								</Button>
+																							</TooltipTrigger>
+																						</DeleteServerModal>
 																						<TooltipContent>
 																							<p>Delete Server</p>
 																						</TooltipContent>

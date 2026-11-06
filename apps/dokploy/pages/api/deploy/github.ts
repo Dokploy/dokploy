@@ -27,6 +27,14 @@ import {
 const getGithubRepositoryOwner = (githubBody: any) =>
 	githubBody?.repository?.owner?.name ?? githubBody?.repository?.owner?.login;
 
+export const config = {
+	api: {
+		bodyParser: {
+			sizeLimit: "25mb",
+		},
+	},
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -146,10 +154,10 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 				};
 
 				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -188,10 +196,10 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: deploymentDescription,
 					server: !!composeApp.serverId,
+					serverId: composeApp.serverId ?? undefined,
 				};
 
 				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -262,6 +270,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -274,7 +283,6 @@ export default async function handler(
 				}
 
 				if (IS_CLOUD && app.serverId) {
-					jobData.serverId = app.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -310,6 +318,7 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					serverId: composeApp.serverId ?? undefined,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -321,7 +330,6 @@ export default async function handler(
 					continue;
 				}
 				if (IS_CLOUD && composeApp.serverId) {
-					jobData.serverId = composeApp.serverId;
 					deploy(jobData).catch((error) => {
 						console.error("Background deployment failed:", error);
 					});
@@ -531,12 +539,12 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application-preview",
 					server: !!app.serverId,
+					serverId: app.serverId ?? undefined,
 					previewDeploymentId,
 				};
 
 				if (previewDeploymentId) {
 					if (IS_CLOUD && app.serverId) {
-						jobData.serverId = app.serverId;
 						deploy(jobData).catch((error) => {
 							console.error("Background deployment failed:", error);
 						});

@@ -19,6 +19,10 @@ export const OnboardingLayout = ({ children, leftPanel }: Props) => {
 		"\u201CThe Open Source alternative to Netlify, Vercel, Heroku.\u201D";
 	const logoUrl =
 		whitelabeling?.loginLogoUrl || whitelabeling?.logoUrl || undefined;
+	const logoLightUrl =
+		whitelabeling?.loginLogoLightUrl ||
+		whitelabeling?.logoLightUrl ||
+		undefined;
 
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
@@ -28,7 +32,11 @@ export const OnboardingLayout = ({ children, leftPanel }: Props) => {
 					href="/"
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
-					<Logo className="size-10" logoUrl={logoUrl} />
+					<Logo
+						className="size-10"
+						logoUrl={logoUrl}
+						logoLightUrl={logoLightUrl}
+					/>
 					{appName}
 				</Link>
 				<div className="relative z-20 mt-auto">

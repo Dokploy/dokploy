@@ -12,12 +12,10 @@ function SchedulesPage() {
 			{(serverId) => (
 				<div className="w-full">
 					<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full min-h-[45vh]">
-						<div className="rounded-xl bg-background shadow-md h-full">
-							<ShowSchedules
-								scheduleType={serverId ? "server" : "dokploy-server"}
-								id={serverId ?? "dokploy-server"}
-							/>
-						</div>
+						<ShowSchedules
+							scheduleType={serverId ? "server" : "dokploy-server"}
+							id={serverId ?? "dokploy-server"}
+						/>
 					</Card>
 				</div>
 			)}

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 import { ImpersonationBar } from "../dashboard/impersonation/impersonation-bar";
-import { HubSpotWidget } from "../shared/HubSpotWidget";
+import { useHubSpotChat } from "../shared/analytics";
 import Page from "./side";
 
 interface Props {
@@ -26,6 +26,7 @@ export const DashboardLayout = ({ children, metaName }: Props) => {
 	});
 
 	const isChatEnabled = isCloud === true && currentPlan === "startup";
+	useHubSpotChat(isChatEnabled);
 
 	const { data: onboardingStatus } = api.project.onboardingStatus.useQuery();
 	const shouldRedirectToOnboarding =
@@ -52,12 +53,6 @@ export const DashboardLayout = ({ children, metaName }: Props) => {
 				</Head>
 			)}
 			<Page>{children}</Page>
-			{isChatEnabled && (
-				<>
-					<HubSpotWidget />
-				</>
-			)}
-
 			{haveRootAccess === true && <ImpersonationBar />}
 		</>
 	);
