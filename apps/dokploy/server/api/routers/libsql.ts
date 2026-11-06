@@ -42,6 +42,7 @@ import {
 	apiUpdateLibsql,
 	libsql as libsqlTable,
 } from "@/server/db/schema";
+import { cancelDatabaseScheduleJobs } from "@/server/utils/database-schedules";
 export const libsqlRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateLibsql)
@@ -326,6 +327,8 @@ export const libsqlRouter = createTRPCRouter({
 				resourceId: libsql.libsqlId,
 				resourceName: libsql.appName,
 			});
+			await cancelDatabaseScheduleJobs("libsql", input.libsqlId);
+
 			const cleanupOperations = [
 				async () => await removeService(libsql?.appName, libsql.serverId),
 				async () => await removeLibsqlById(input.libsqlId),

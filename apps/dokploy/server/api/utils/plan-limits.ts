@@ -118,7 +118,16 @@ export const assertDatabaseBackupLimit = async (
 
 export const assertScheduledJobLimit = async (
 	organizationId: string,
-	scheduleType: "application" | "compose" | "server",
+	scheduleType:
+		| "application"
+		| "compose"
+		| "server"
+		| "postgres"
+		| "mysql"
+		| "mariadb"
+		| "mongo"
+		| "redis"
+		| "libsql",
 	serviceId: string,
 ) => {
 	const plan = await getCurrentPlan(organizationId);

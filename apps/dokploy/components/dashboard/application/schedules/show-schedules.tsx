@@ -26,11 +26,11 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
-import { HandleSchedules } from "./handle-schedules";
+import { HandleSchedules, type ScheduleTargetType } from "./handle-schedules";
 
 interface Props {
 	id: string;
-	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
+	scheduleType?: ScheduleTargetType;
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
@@ -103,7 +103,14 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 							const serverId =
 								schedule.serverId ||
 								schedule.application?.serverId ||
-								schedule.compose?.serverId;
+								schedule.compose?.serverId ||
+								schedule.postgres?.serverId ||
+								schedule.mysql?.serverId ||
+								schedule.mariadb?.serverId ||
+								schedule.mongo?.serverId ||
+								schedule.redis?.serverId ||
+								schedule.libsql?.serverId ||
+								null;
 							return (
 								<div
 									key={schedule.scheduleId}

@@ -1394,6 +1394,13 @@
       "when": 1792806870958,
       "tag": "0198_nostalgic_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 199,
+      "version": "7",
+      "when": 1793104920000,
+      "tag": "0199_database_scheduled_jobs",
+      "breakpoints": true
     }
   ]
 }

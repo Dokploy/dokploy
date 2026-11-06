@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-environment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
@@ -49,7 +50,12 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
-type TabState = "projects" | "monitoring" | "settings" | "advanced";
+type TabState =
+	| "projects"
+	| "monitoring"
+	| "settings"
+	| "advanced"
+	| "schedules";
 
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -215,10 +221,16 @@ const Redis = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-5"
+													? permissions?.schedule.read
+														? "md:grid-cols-6"
+														: "md:grid-cols-5"
 													: data?.serverId
-														? "md:grid-cols-4"
-														: "md:grid-cols-5",
+														? permissions?.schedule.read
+															? "md:grid-cols-5"
+															: "md:grid-cols-4"
+														: permissions?.schedule.read
+															? "md:grid-cols-6"
+															: "md:grid-cols-5",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -238,6 +250,9 @@ const Redis = (
 												)}
 											{permissions?.service.create && (
 												<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											)}
+											{permissions?.schedule.read && (
+												<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											)}
 										</TabsList>
 									</div>
@@ -322,6 +337,13 @@ const Redis = (
 													id={redisId}
 													type="redis"
 												/>
+											</div>
+										</TabsContent>
+									)}
+									{permissions?.schedule.read && (
+										<TabsContent value="schedules">
+											<div className="pt-2.5">
+												<ShowSchedules id={redisId} scheduleType="redis" />
 											</div>
 										</TabsContent>
 									)}

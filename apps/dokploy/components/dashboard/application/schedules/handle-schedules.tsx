@@ -66,6 +66,25 @@ import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
 import { getTimezoneLabel, TIMEZONES } from "./timezones";
 
+export const databaseScheduleTypes = [
+	"postgres",
+	"mysql",
+	"mariadb",
+	"mongo",
+	"redis",
+	"libsql",
+] as const;
+
+export type ScheduleTargetType =
+	| "application"
+	| "compose"
+	| "server"
+	| "dokploy-server"
+	| (typeof databaseScheduleTypes)[number];
+
+export const isDatabaseSchedule = (type: ScheduleTargetType) =>
+	databaseScheduleTypes.some((databaseType) => databaseType === type);
+
 export const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
 	{ label: "Every hour", value: "0 * * * *" },
@@ -91,6 +110,12 @@ const formSchema = z
 			"compose",
 			"server",
 			"dokploy-server",
+			"postgres",
+			"mysql",
+			"mariadb",
+			"mongo",
+			"redis",
+			"libsql",
 		]),
 		script: z.string(),
 		timezone: z.string().optional(),
@@ -118,7 +143,8 @@ const formSchema = z
 
 		if (
 			(data.scheduleType === "application" ||
-				data.scheduleType === "compose") &&
+				data.scheduleType === "compose" ||
+				isDatabaseSchedule(data.scheduleType)) &&
 			!data.command
 		) {
 			ctx.addIssue({
@@ -132,7 +158,7 @@ const formSchema = z
 interface Props {
 	id?: string;
 	scheduleId?: string;
-	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
+	scheduleType?: ScheduleTargetType;
 }
 
 export const ScheduleFormField = ({
@@ -227,7 +253,8 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			name: "",
 			description: "",
 			cronExpression: "",
-			shellType: "bash",
+			shellType:
+				scheduleType && isDatabaseSchedule(scheduleType) ? "sh" : "bash",
 			command: "",
 			enabled: true,
 			serviceName: "",
@@ -294,6 +321,13 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			...(scheduleType === "compose" && {
 				composeId: id || "",
 			}),
+			...(scheduleType === "postgres" && { postgresId: id || "" }),
+			...(scheduleType === "mysql" && { mysqlId: id || "" }),
+			...(scheduleType === "mariadb" && { mariadbId: id || "" }),
+			...(scheduleType === "mongo" && { mongoId: id || "" }),
+			...(scheduleType === "redis" && { redisId: id || "" }),
+			...(scheduleType === "libsql" && { libsqlId: id || "" }),
+
 			...(scheduleType === "server" && {
 				serverId: id || "",
 			}),
@@ -588,7 +622,8 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 						/>
 
 						{(scheduleTypeForm === "application" ||
-							scheduleTypeForm === "compose") && (
+							scheduleTypeForm === "compose" ||
+							isDatabaseSchedule(scheduleTypeForm)) && (
 							<>
 								<FormField
 									control={form.control}
@@ -628,7 +663,16 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 												Command
 											</FormLabel>
 											<FormControl>
-												<Input placeholder="npm run backup" {...field} />
+												<Input
+													placeholder={
+														scheduleTypeForm === "postgres"
+															? `psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c 'REFRESH MATERIALIZED VIEW my_view'`
+															: isDatabaseSchedule(scheduleTypeForm)
+																? "Enter a command to run inside the database container"
+																: "npm run backup"
+													}
+													{...field}
+												/>
 											</FormControl>
 											<FormDescription>
 												The command to execute in your container
