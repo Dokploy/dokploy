@@ -34,6 +34,7 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	getDeploymentErrorMessage,
 	updateDeployment,
 	updateDeploymentStatus,
 	writeDeploymentErrorLog,
@@ -253,6 +254,12 @@ export const deployApplication = async ({
 		await writeDeploymentErrorLog(deployment, serverId, error);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
+		const errorMessage = await getDeploymentErrorMessage({
+			logPath: deployment.logPath,
+			serverId,
+			fallback: "Error building, check the logs for details.",
+		});
 
 		await sendBuildErrorNotifications({
 			projectName: application.environment.project.name,
