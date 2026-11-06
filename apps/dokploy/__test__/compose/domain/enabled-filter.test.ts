@@ -2,6 +2,7 @@ import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { addDomainToCompose } from "@dokploy/server/utils/docker/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { stringify } from "yaml";
 
 // With sourceType "raw", addDomainToCompose parses compose.composeFile
 // directly instead of reading from disk, so baseCompose exposes it as a
@@ -32,6 +33,7 @@ const baseDomain: Domain = {
 	port: 8971,
 	customEntrypoint: null,
 	https: false,
+	backendHttps: false,
 	uniqueConfigKey: 1,
 	customCertResolver: null,
 	certificateType: "none",
@@ -59,6 +61,35 @@ describe("addDomainToCompose enabled filtering", () => {
 		vi.clearAllMocks();
 		composeYaml = baseComposeYaml;
 	});
+
+	it.each(["docker-compose", "stack"] as const)(
+		"preserves backend HTTPS on %s redeploy and removes it when disabled",
+		async (composeType) => {
+			for (const backendHttps of [true, true, false]) {
+				const result = await addDomainToCompose(
+					{ ...baseCompose, composeType },
+					[
+						{
+							...baseDomain,
+							https: true,
+							backendHttps,
+						},
+					],
+				);
+				const service = result?.services?.frigate;
+				const labels = (
+					composeType === "stack" ? service?.deploy?.labels : service?.labels
+				) as string[];
+				for (const entrypoint of ["web", "websecure"]) {
+					const prefix = `traefik.http.services.test-app-1-${entrypoint}.loadbalancer`;
+					expect(labels.includes(`${prefix}.server.scheme=https`)).toBe(
+						backendHttps,
+					);
+				}
+				composeYaml = stringify(result);
+			}
+		},
+	);
 
 	it("generates traefik labels for an enabled domain", async () => {
 		const result = await addDomainToCompose(baseCompose, [
