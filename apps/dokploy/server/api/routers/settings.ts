@@ -76,6 +76,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateDomainDefaults,
 	apiUpdateWebServerBuildsConcurrency,
 	projects,
 	server,
@@ -516,6 +517,37 @@ export const settingsRouter = createTRPCRouter({
 				action: "update",
 				resourceType: "settings",
 				resourceName: "builds-concurrency",
+			});
+			return true;
+		}),
+
+	getDomainDefaults: protectedProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		return {
+			https: settings?.defaultDomainHttps ?? false,
+			certificateType: settings?.defaultDomainCertificateType ?? "none",
+		};
+	}),
+
+	updateDomainDefaults: adminProcedure
+		.input(apiUpdateDomainDefaults)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This feature is only available for self-hosted instances",
+				});
+			}
+
+			await updateWebServerSettings(input);
+
+			await audit(ctx, {
+				action: "update",
+				resourceType: "settings",
+				resourceName: "domain-defaults",
 			});
 			return true;
 		}),

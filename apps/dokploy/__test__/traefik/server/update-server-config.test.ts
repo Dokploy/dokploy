@@ -74,6 +74,8 @@ const baseSettings: WebServerSettings = {
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
+	defaultDomainHttps: false,
+	defaultDomainCertificateType: "none",
 	remoteServersOnly: false,
 	enforceSSO: false,
 	createdAt: null,
