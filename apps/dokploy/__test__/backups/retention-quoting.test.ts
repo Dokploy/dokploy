@@ -1,8 +1,14 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ execAsync: vi.fn() }));
 
@@ -28,6 +34,7 @@ const { keepLatestNBackups } = await import("@dokploy/server/utils/backups");
 describe("keepLatestNBackups", () => {
 	it("passes a prefix containing spaces to rclone as a single path", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "rclone-shim-"));
+		onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
 		const log = join(dir, "calls.log");
 		// Stand-in rclone: logs each call's argument count and path, lists two backups
 		writeFileSync(
