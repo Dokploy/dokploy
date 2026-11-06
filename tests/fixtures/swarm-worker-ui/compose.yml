@@ -1,0 +1,39 @@
+name: dokploy-worker-ui-poc
+x-daemon: &daemon
+  build: .
+  privileged: true
+  environment:
+    DOCKER_TLS_CERTDIR: ""
+  networks: [lab]
+  healthcheck:
+    test: [CMD, docker, info]
+    interval: 2s
+    timeout: 5s
+    retries: 45
+services:
+  manager:
+    <<: *daemon
+    hostname: manager
+    ports:
+      - "127.0.0.1:17777:3000"
+    volumes:
+      - manager-data:/var/lib/docker
+      - ./.state/id_ed25519.pub:/lab-key/id_ed25519.pub:ro
+  worker-a:
+    <<: *daemon
+    hostname: worker-a
+    volumes:
+      - worker-a-data:/var/lib/docker
+      - ./.state/id_ed25519.pub:/lab-key/id_ed25519.pub:ro
+  worker-b:
+    <<: *daemon
+    hostname: worker-b
+    volumes:
+      - worker-b-data:/var/lib/docker
+      - ./.state/id_ed25519.pub:/lab-key/id_ed25519.pub:ro
+networks:
+  lab:
+volumes:
+  manager-data:
+  worker-a-data:
+  worker-b-data:
