@@ -255,6 +255,74 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
+export const previewDeploymentExists = async (previewDeploymentId: string) =>
+	(await db.$count(
+		previewDeployments,
+		eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+	)) > 0;
+
+const previewCreationLocks = new Map<string, Promise<void>>();
+
+/**
+ * Runs `fn` after every earlier caller for the same application has finished.
+ * GitHub delivers one `pull_request` event per label a pull request is opened
+ * with, all within a few seconds, and each webhook handler would otherwise
+ * find no preview yet and create its own; the preview limit is also only
+ * exact when nothing else creates a preview between the count and the insert.
+ */
+const withPreviewCreationLock = async <T>(
+	applicationId: string,
+	fn: () => Promise<T>,
+): Promise<T> => {
+	const previous = previewCreationLocks.get(applicationId) ?? Promise.resolve();
+	let release = () => {};
+	const current = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const chained = previous.then(() => current);
+	previewCreationLocks.set(applicationId, chained);
+	await previous;
+	try {
+		return await fn();
+	} finally {
+		release();
+		if (previewCreationLocks.get(applicationId) === chained) {
+			previewCreationLocks.delete(applicationId);
+		}
+	}
+};
+
+/**
+ * The preview deployment for a pull request, created when it does not exist
+ * yet. Returns `null` when a new preview would exceed `previewLimit`; an
+ * existing preview is returned whatever the limit, so an updated pull request
+ * can still be redeployed.
+ */
+export const findOrCreatePreviewDeployment = async (
+	schema: z.infer<typeof apiCreatePreviewDeployment>,
+	previewLimit: number,
+): Promise<{ previewDeployment: PreviewDeployment | null; created: boolean }> =>
+	withPreviewCreationLock(schema.applicationId, async () => {
+		const existing = await findPreviewDeploymentByApplicationId(
+			schema.applicationId,
+			schema.pullRequestId,
+		);
+		if (existing) {
+			return { previewDeployment: existing, created: false };
+		}
+
+		const total = await db.$count(
+			previewDeployments,
+			eq(previewDeployments.applicationId, schema.applicationId),
+		);
+		if (total >= previewLimit) {
+			return { previewDeployment: null, created: false };
+		}
+
+		const previewDeployment = await createPreviewDeployment(schema);
+		return { previewDeployment, created: true };
+	});
+
 const generateWildcardDomain = async (
 	baseDomain: string,
 	appName: string,
