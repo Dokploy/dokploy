@@ -8,12 +8,13 @@ import {
 } from "@dokploy/server/db/schema";
 import { getVaultClient } from "@dokploy/server/utils/vault";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 
 export type VaultProvider = typeof vaultProvider.$inferSelect;
 
 export const VAULT_SECRET_MASK = "********";
+const VAULT_ASSIGNMENT_LOCK_SEED = 1_447_122_252;
 
 const SENSITIVE_FIELDS: Record<VaultProviderConfig["providerType"], string[]> =
 	{
@@ -63,11 +64,121 @@ const isUniqueNameViolation = (error: unknown) =>
 	error instanceof Error &&
 	error.message.includes("vault_provider_org_name_idx");
 
+type VaultAssignmentTransaction = Parameters<
+	Parameters<typeof db.transaction>[0]
+>[0];
+
+type ProjectAssignmentScope = {
+	projectId: string;
+	environments: { environmentId: string }[];
+};
+
+export const lockVaultAssignmentScope = async (
+	tx: VaultAssignmentTransaction,
+	organizationId: string,
+) => {
+	await tx.execute(
+		sql`SELECT pg_advisory_xact_lock(hashtextextended(${organizationId}, ${VAULT_ASSIGNMENT_LOCK_SEED}))`,
+	);
+};
+
+export const sanitizeVaultAssignments = (
+	assignments: VaultProviderAssignment[],
+	projects: ProjectAssignmentScope[],
+) => {
+	const projectsById = new Map(
+		projects.map((project) => [project.projectId, project]),
+	);
+
+	return assignments.flatMap((assignment) => {
+		const project = projectsById.get(assignment.projectId);
+		if (!project) return [];
+
+		const environmentIds = new Set(
+			project.environments.map((environment) => environment.environmentId),
+		);
+		return [
+			{
+				...assignment,
+				environmentIds: assignment.environmentIds.filter((environmentId) =>
+					environmentIds.has(environmentId),
+				),
+			},
+		];
+	});
+};
+
+const lockVaultAssignments = async (
+	tx: VaultAssignmentTransaction,
+	organizationId: string,
+) =>
+	await tx
+		.select({
+			vaultProviderId: vaultProvider.vaultProviderId,
+			assignments: vaultProvider.assignments,
+		})
+		.from(vaultProvider)
+		.where(eq(vaultProvider.organizationId, organizationId))
+		.for("update");
+
+const saveVaultAssignments = async (
+	tx: VaultAssignmentTransaction,
+	vaultProviderId: string,
+	assignments: VaultProviderAssignment[],
+) => {
+	await tx
+		.update(vaultProvider)
+		.set({ assignments })
+		.where(eq(vaultProvider.vaultProviderId, vaultProviderId))
+		.returning({ vaultProviderId: vaultProvider.vaultProviderId });
+};
+
+export const removeProjectFromVaultAssignments = async (
+	tx: VaultAssignmentTransaction,
+	organizationId: string,
+	projectId: string,
+) => {
+	const providers = await lockVaultAssignments(tx, organizationId);
+	for (const provider of providers) {
+		const assignments = provider.assignments.filter(
+			(assignment) => assignment.projectId !== projectId,
+		);
+		if (assignments.length !== provider.assignments.length) {
+			await saveVaultAssignments(tx, provider.vaultProviderId, assignments);
+		}
+	}
+};
+
+export const removeEnvironmentFromVaultAssignments = async (
+	tx: VaultAssignmentTransaction,
+	organizationId: string,
+	environmentId: string,
+) => {
+	const providers = await lockVaultAssignments(tx, organizationId);
+	for (const provider of providers) {
+		let changed = false;
+		const assignments = provider.assignments.map((assignment) => {
+			if (!assignment.environmentIds.includes(environmentId)) return assignment;
+			changed = true;
+			return {
+				...assignment,
+				environmentIds: assignment.environmentIds.filter(
+					(id) => id !== environmentId,
+				),
+			};
+		});
+		if (changed) {
+			await saveVaultAssignments(tx, provider.vaultProviderId, assignments);
+		}
+	}
+};
+
 const validateAssignments = async (
+	tx: VaultAssignmentTransaction,
 	assignments: VaultProviderAssignment[],
 	organizationId: string,
 ) => {
-	const orgProjects = await db.query.projects.findMany({
+	const orgProjects = await tx.query.projects.findMany({
 		where: eq(projects.organizationId, organizationId),
 		with: { environments: true },
 	});
@@ -100,27 +211,30 @@ export const createVaultProvider = async (
 	input: z.infer<typeof apiCreateVaultProvider>,
 	organizationId: string,
 ) => {
-	await validateAssignments(input.assignments, organizationId);
 	try {
-		const newProvider = await db
-			.insert(vaultProvider)
-			.values({
-				name: input.name,
-				providerType: input.config.providerType,
-				config: input.config,
-				assignments: input.assignments,
-				organizationId,
-			})
-			.returning()
-			.then((value) => value[0]);
+		return await db.transaction(async (tx) => {
+			await lockVaultAssignmentScope(tx, organizationId);
+			await validateAssignments(tx, input.assignments, organizationId);
+			const newProvider = await tx
+				.insert(vaultProvider)
+				.values({
+					name: input.name,
+					providerType: input.config.providerType,
+					config: input.config,
+					assignments: input.assignments,
+					organizationId,
+				})
+				.returning()
+				.then((value) => value[0]);
 
-		if (!newProvider) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Error creating the vault provider",
-			});
-		}
-		return newProvider;
+			if (!newProvider) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the vault provider",
+				});
+			}
+			return newProvider;
+		});
 	} catch (error) {
 		if (isUniqueNameViolation(error)) {
 			throw new TRPCError({
@@ -156,16 +270,36 @@ export const findVaultProviderInOrganization = async (
 			message: "You are not allowed to access this vault provider",
 		});
 	}
-	return provider;
+	const orgProjects = await db.query.projects.findMany({
+		where: eq(projects.organizationId, organizationId),
+		columns: { projectId: true },
+		with: { environments: { columns: { environmentId: true } } },
+	});
+	return {
+		...provider,
+		assignments: sanitizeVaultAssignments(provider.assignments, orgProjects),
+	};
 };
 
 export const findVaultProvidersByOrganizationId = async (
 	organizationId: string,
 ) => {
-	return await db.query.vaultProvider.findMany({
-		where: eq(vaultProvider.organizationId, organizationId),
-		orderBy: (providers, { asc }) => [asc(providers.name)],
-	});
+	const [providers, orgProjects] = await Promise.all([
+		db.query.vaultProvider.findMany({
+			where: eq(vaultProvider.organizationId, organizationId),
+			orderBy: (providers, { asc }) => [asc(providers.name)],
+		}),
+		db.query.projects.findMany({
+			where: eq(projects.organizationId, organizationId),
+			columns: { projectId: true },
+			with: { environments: { columns: { environmentId: true } } },
+		}),
+	]);
+
+	return providers.map((provider) => ({
+		...provider,
+		assignments: sanitizeVaultAssignments(provider.assignments, orgProjects),
+	}));
 };
 
 export const updateVaultProvider = async (
@@ -174,30 +308,42 @@ export const updateVaultProvider = async (
 	config: VaultProviderConfig,
 	assignments: VaultProviderAssignment[],
 ) => {
-	const existing = await findVaultProviderById(vaultProviderId);
-	const mergedConfig = mergeVaultProviderConfig(config, existing.config);
-	await validateAssignments(assignments, existing.organizationId);
+	const provider = await findVaultProviderById(vaultProviderId);
 
 	try {
-		const updated = await db
-			.update(vaultProvider)
-			.set({
-				name,
-				providerType: mergedConfig.providerType,
-				config: mergedConfig,
-				assignments,
-			})
-			.where(eq(vaultProvider.vaultProviderId, vaultProviderId))
-			.returning()
-			.then((res) => res[0]);
-
-		if (!updated) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Error updating the vault provider",
+		return await db.transaction(async (tx) => {
+			await lockVaultAssignmentScope(tx, provider.organizationId);
+			const existing = await tx.query.vaultProvider.findFirst({
+				where: eq(vaultProvider.vaultProviderId, vaultProviderId),
 			});
-		}
-		return updated;
+			if (!existing) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Vault provider not found",
+				});
+			}
+			const mergedConfig = mergeVaultProviderConfig(config, existing.config);
+			await validateAssignments(tx, assignments, existing.organizationId);
+			const updated = await tx
+				.update(vaultProvider)
+				.set({
+					name,
+					providerType: mergedConfig.providerType,
+					config: mergedConfig,
+					assignments,
+				})
+				.where(eq(vaultProvider.vaultProviderId, vaultProviderId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updated) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error updating the vault provider",
+				});
+			}
+			return updated;
+		});
 	} catch (error) {
 		if (isUniqueNameViolation(error)) {
 			throw new TRPCError({
