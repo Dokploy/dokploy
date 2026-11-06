@@ -13,6 +13,7 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
+import { resourceProfile } from "./resource-profile";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -67,6 +68,10 @@ export const libsql = pgTable("libsql", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	resourceProfileId: text("resourceProfileId").references(
+		() => resourceProfile.profileId,
+		{ onDelete: "set null" },
+	),
 	//
 	externalPort: integer("externalPort"),
 	externalGRPCPort: integer("externalGRPCPort"),
@@ -106,6 +111,10 @@ export const libsqlRelations = relations(libsql, ({ one, many }) => ({
 		fields: [libsql.environmentId],
 		references: [environments.environmentId],
 	}),
+	resourceProfile: one(resourceProfile, {
+		fields: [libsql.resourceProfileId],
+		references: [resourceProfile.profileId],
+	}),
 	backups: many(backups),
 	mounts: many(mounts),
 	server: one(server, {
@@ -135,6 +144,7 @@ const createSchema = createInsertSchema(libsql, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	resourceProfileId: z.string().nullish(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),

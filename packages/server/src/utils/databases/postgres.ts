@@ -1,9 +1,9 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
@@ -24,10 +24,6 @@ export const buildPostgres = async (rawPostgres: PostgresNested) => {
 		env,
 		externalPort,
 		dockerImage,
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
 		databaseName,
 		databaseUser,
 		databasePassword,
@@ -54,12 +50,7 @@ export const buildPostgres = async (rawPostgres: PostgresNested) => {
 		EndpointSpec,
 		Ulimits,
 	} = generateConfigContainer(postgres);
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(postgres);
 	const envVariables = prepareEnvironmentVariables(
 		defaultPostgresEnv,
 		postgres.environment.project.env,

@@ -1,9 +1,9 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
@@ -25,14 +25,10 @@ export const buildMysql = async (rawMysql: MysqlNested) => {
 		env,
 		externalPort,
 		dockerImage,
-		memoryLimit,
-		memoryReservation,
 		databaseName,
 		databaseUser,
 		databasePassword,
 		databaseRootPassword,
-		cpuLimit,
-		cpuReservation,
 		command,
 		args,
 		mounts,
@@ -61,12 +57,7 @@ export const buildMysql = async (rawMysql: MysqlNested) => {
 		EndpointSpec,
 		Ulimits,
 	} = generateConfigContainer(mysql);
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(mysql);
 	const envVariables = prepareEnvironmentVariables(
 		defaultMysqlEnv,
 		mysql.environment.project.env,

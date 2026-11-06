@@ -7,6 +7,7 @@ import {
 	findEnvironmentById,
 	findPreviewDeploymentsByApplicationId,
 	findProjectById,
+	findResourceProfileInOrganization,
 	generateTraefikMeDomain,
 	getAccessibleServerIds,
 	getApplicationStats,
@@ -765,6 +766,13 @@ export const applicationRouter = createTRPCRouter({
 						message: "You are not authorized to access this build server",
 					});
 				}
+			}
+
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
 			}
 
 			const { applicationId, ...rest } = input;

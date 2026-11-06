@@ -23,6 +23,7 @@ import {
 	House,
 	Key,
 	KeyRound,
+	Layers,
 	LayoutGrid,
 	Loader2,
 	LogIn,
@@ -410,6 +411,13 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: HardDrive,
 			isEnabled: ({ permissions }) => !!permissions?.destination.read,
+		},
+		{
+			isSingle: true,
+			title: "Resource Profiles",
+			url: "/dashboard/settings/resource-profiles",
+			icon: Layers,
+			isEnabled: ({ permissions }) => !!permissions?.resourceProfiles.read,
 		},
 
 		{

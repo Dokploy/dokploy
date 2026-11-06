@@ -8,6 +8,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
+import { applyResourceProfilesToSpecification } from "../../services/resource-profile";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -301,6 +302,11 @@ export const addDomainToCompose = async (
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
+
+	result = await applyResourceProfilesToSpecification(
+		compose.composeId,
+		result,
+	);
 
 	for (const domain of domains) {
 		for (const service of Object.values(result.services ?? {})) {
