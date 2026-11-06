@@ -182,8 +182,8 @@ const readSecret = async (config: OciConfig, key: KeyObject, name: string) => {
 		);
 	}
 	try {
-		// Keep the default ignoreBOM: false. It strips the leading BOM that editors
-		// like Notepad add to saved files, which JSON.parse would otherwise reject.
+		// Keep the default ignoreBOM: false. A leading BOM marks the encoding rather
+		// than being part of the value, and JSON.parse would reject it.
 		return new TextDecoder("utf-8", { fatal: true }).decode(
 			Buffer.from(content.content, "base64"),
 		);
