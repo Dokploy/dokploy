@@ -446,7 +446,7 @@ export const getDefaultTraefikConfig = () => {
 			},
 		},
 		api: {
-			insecure: true,
+			insecure: false,
 		},
 		...(process.env.NODE_ENV === "production" && {
 			certificatesResolvers: {
@@ -504,7 +504,7 @@ export const getDefaultServerTraefikConfig = (withSwarmProvider = true) => {
 			},
 		},
 		api: {
-			insecure: true,
+			insecure: false,
 		},
 		certificatesResolvers: {
 			letsencrypt: {

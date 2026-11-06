@@ -148,6 +148,7 @@ export * from "./utils/startup/cancel-deployments";
 export * from "./utils/tracking/hubspot";
 export * from "./utils/tracking/posthog";
 export * from "./utils/traefik/application";
+export * from "./utils/traefik/dashboard";
 export * from "./utils/traefik/domain";
 export * from "./utils/traefik/file-types";
 export * from "./utils/traefik/forward-auth";
