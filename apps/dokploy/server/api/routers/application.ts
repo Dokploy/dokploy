@@ -79,6 +79,7 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { getRailpackVersions } from "@/server/utils/railpack-versions";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -1216,6 +1217,17 @@ export const applicationRouter = createTRPCRouter({
 				total: countResult[0]?.count ?? 0,
 			};
 		}),
+
+	getRailpackVersions: protectedProcedure.query(async () => {
+		try {
+			return await getRailpackVersions();
+		} catch {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to fetch Railpack versions from GitHub",
+			});
+		}
+	}),
 
 	readLogs: protectedProcedure
 		.input(
