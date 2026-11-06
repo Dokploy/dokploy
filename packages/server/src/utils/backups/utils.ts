@@ -9,6 +9,7 @@ import { runLibsqlBackup } from "./libsql";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
+import { getGuardedMysqlBackupCommand } from "./mysql-client";
 import { runPostgresBackup } from "./postgres";
 import { redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
@@ -122,7 +123,7 @@ export const getMysqlBackupCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -e DB_NAME=${quote([database])} -e DB_PASS=${quote([databasePassword])} -i $CONTAINER_ID bash -c 'set -o pipefail; mysqldump --default-character-set=utf8mb4 -u root --password="$DB_PASS" --single-transaction --no-tablespaces --quick "$DB_NAME" | gzip'`;
+	return getGuardedMysqlBackupCommand(database, databasePassword);
 };
 
 export const getMongoBackupCommand = (
