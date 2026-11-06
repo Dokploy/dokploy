@@ -296,7 +296,13 @@ export const volumeBackupsRouter = createTRPCRouter({
 		})
 		.input(
 			z.object({
-				backupFileName: z.string().min(1),
+				backupFileName: z
+					.string()
+					.min(1)
+					.regex(
+						/^[A-Za-z0-9._/-]+$/,
+						"Invalid backup file name: only letters, numbers, '.', '_', '-' and '/' are allowed",
+					),
 				destinationId: z.string().min(1),
 				volumeName: z
 					.string()
@@ -308,6 +314,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 			}),
 		)
 		.subscription(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				volumeBackup: ["restore"],
+			});
 			const destination = await findDestinationById(input.destinationId);
 			if (destination.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({

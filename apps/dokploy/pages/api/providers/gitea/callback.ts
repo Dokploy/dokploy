@@ -1,4 +1,4 @@
-import { updateGitea } from "@dokploy/server";
+import { updateGitea, validateRequest } from "@dokploy/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { findGitea, type Gitea, redirectWithError } from "./helper";
 
@@ -51,11 +51,20 @@ export default async function handler(
 		);
 	}
 
+	const { user, session } = await validateRequest(req);
+	if (!user || !session?.activeOrganizationId) {
+		return redirectWithError(res, "Unauthorized");
+	}
+
 	const giteaId = parseState(state as string);
 	if (!giteaId) return redirectWithError(res, "Invalid state format");
 
 	const gitea = await findGitea(giteaId);
 	if (!gitea) return redirectWithError(res, "Failed to find Gitea provider");
+
+	if (gitea.gitProvider.organizationId !== session.activeOrganizationId) {
+		return redirectWithError(res, "Failed to find Gitea provider");
+	}
 
 	// Fetch the access token from Gitea
 	const result = await fetchAccessToken(gitea, code as string);

@@ -30,7 +30,7 @@ export const restoreVolume = async (
 	const baseRestoreCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
-	echo "Backup file name: ${backupFileName}"
+	echo ${quote([`Backup file name: ${backupFileName}`])}
 	echo "Volume backup path: ${volumeBackupPath}"
 	echo "Downloading backup from S3..."
 	mkdir -p ${volumeBackupPath}

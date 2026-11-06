@@ -1106,3 +1106,15 @@ export const clearOldDeployments = async (
 		await execAsync(command);
 	}
 };
+
+export const findDeploymentByLogPath = async (logPath: string) => {
+	return db.query.deployments.findFirst({
+		where: (fields, { eq }) => eq(fields.logPath, logPath),
+		columns: { applicationId: true, composeId: true },
+		with: {
+			server: { columns: { organizationId: true } },
+			schedule: { columns: { organizationId: true } },
+			previewDeployment: { columns: { applicationId: true } },
+		},
+	});
+};

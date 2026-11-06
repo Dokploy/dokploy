@@ -106,6 +106,8 @@ export const githubRouter = createTRPCRouter({
 	update: withPermission("gitProviders", "create")
 		.input(apiUpdateGithub)
 		.mutation(async ({ input, ctx }) => {
+			const existing = await findGithubById(input.githubId);
+			await assertGitProviderAccess(ctx.session, existing.gitProvider);
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
 				organizationId: ctx.session.activeOrganizationId,

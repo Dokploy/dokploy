@@ -93,6 +93,17 @@ export const backupRouter = createTRPCRouter({
 						input.destinationId,
 						ctx.session.activeOrganizationId,
 					);
+				} else {
+					if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Only owners and admins can manage web-server backups",
+						});
+					}
+					await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					);
 				}
 
 				if (IS_CLOUD) {
@@ -184,6 +195,11 @@ export const backupRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					backup: ["read"],
 				});
+			} else if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Only owners and admins can read web-server backups",
+				});
 			}
 
 			return backup;
@@ -204,6 +220,17 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["update"],
 					});
+					await findDestinationByIdForOrganization(
+						input.destinationId,
+						ctx.session.activeOrganizationId,
+					);
+				} else {
+					if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Only owners and admins can manage web-server backups",
+						});
+					}
 					await findDestinationByIdForOrganization(
 						input.destinationId,
 						ctx.session.activeOrganizationId,
@@ -264,6 +291,11 @@ export const backupRouter = createTRPCRouter({
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["delete"],
+					});
+				} else if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Only owners and admins can manage web-server backups",
 					});
 				}
 
@@ -461,6 +493,12 @@ export const backupRouter = createTRPCRouter({
 	manualBackupWebServer: withPermission("backup", "create")
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Only owners and admins can run a web-server backup",
+				});
+			}
 			const backup = await findBackupById(input.backupId);
 			await runWebServerBackup(backup);
 			await keepLatestNBackups(backup);
@@ -597,42 +635,70 @@ export const backupRouter = createTRPCRouter({
 		})
 		.input(apiRestoreBackup)
 		.subscription(async function* ({ input, ctx, signal }) {
-			if (input.databaseId) {
+			if (input.databaseType === "web-server") {
+				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Only owners and admins can restore a web-server backup",
+					});
+				}
+			} else {
+				if (!input.databaseId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "A target service is required",
+					});
+				}
 				await checkServicePermissionAndAccess(ctx, input.databaseId, {
 					backup: ["restore"],
 				});
 			}
-			const destination = input.databaseId
-				? await findDestinationByIdForOrganization(
-						input.destinationId,
-						ctx.session.activeOrganizationId,
-					)
-				: await findDestinationById(input.destinationId);
+			const destination = await findDestinationByIdForOrganization(
+				input.destinationId,
+				ctx.session.activeOrganizationId,
+			);
 			const queue: string[] = [];
 			let done = false;
 			const onLog = (log: string) => queue.push(log);
+			const assertBackupFileInService = (appName: string) => {
+				if (
+					input.backupFile !== appName &&
+					!input.backupFile.startsWith(`${appName}/`)
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Backup file does not belong to this service",
+					});
+				}
+			};
 			const runRestore = async () => {
 				if (input.backupType === "database") {
 					if (input.databaseType === "postgres") {
 						const postgres = await findPostgresById(input.databaseId);
+						assertBackupFileInService(postgres.appName);
 						await restorePostgresBackup(postgres, destination, input, onLog);
 					} else if (input.databaseType === "mysql") {
 						const mysql = await findMySqlById(input.databaseId);
+						assertBackupFileInService(mysql.appName);
 						await restoreMySqlBackup(mysql, destination, input, onLog);
 					} else if (input.databaseType === "mariadb") {
 						const mariadb = await findMariadbById(input.databaseId);
+						assertBackupFileInService(mariadb.appName);
 						await restoreMariadbBackup(mariadb, destination, input, onLog);
 					} else if (input.databaseType === "mongo") {
 						const mongo = await findMongoById(input.databaseId);
+						assertBackupFileInService(mongo.appName);
 						await restoreMongoBackup(mongo, destination, input, onLog);
 					} else if (input.databaseType === "libsql") {
 						const libsql = await findLibsqlById(input.databaseId);
+						assertBackupFileInService(libsql.appName);
 						await restoreLibsqlBackup(libsql, destination, input, onLog);
 					} else if (input.databaseType === "web-server") {
 						await restoreWebServerBackup(destination, input.backupFile, onLog);
 					}
 				} else if (input.backupType === "compose") {
 					const compose = await findComposeById(input.databaseId);
+					assertBackupFileInService(compose.appName);
 					await restoreComposeBackup(compose, destination, input, onLog);
 				}
 			};

@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	createNetwork,
 	findNetworkById,
 	findNetworksToSync,
@@ -52,6 +53,7 @@ export const networkRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateNetwork)
 		.mutation(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			const created = await createNetwork(
 				input,
 				ctx.session.activeOrganizationId,
@@ -67,6 +69,7 @@ export const networkRouter = createTRPCRouter({
 	networksToSync: protectedProcedure
 		.input(z.object({ serverId: z.string().optional() }))
 		.query(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			return findNetworksToSync(
 				ctx.session.activeOrganizationId,
 				input.serverId ?? null,
@@ -81,6 +84,7 @@ export const networkRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			const result = await importDockerNetworks(
 				ctx.session.activeOrganizationId,
 				input.serverId ?? null,

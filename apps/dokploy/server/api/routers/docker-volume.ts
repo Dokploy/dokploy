@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	deleteVolumeFile,
 	findServerById,
 	getVolumeConfig,
@@ -33,6 +34,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -49,6 +51,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -70,6 +73,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -95,6 +99,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -117,6 +122,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -152,6 +158,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -178,6 +185,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -198,6 +206,7 @@ export const dockerVolumeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
