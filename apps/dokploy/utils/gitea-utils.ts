@@ -37,6 +37,10 @@ export interface Repository {
 	owner: {
 		username: string;
 	};
+	visibility: "public" | "private" | "internal";
+	archived: boolean;
+	fork: boolean;
+	lastActivityAt: string | null;
 }
 
 export interface Branch {

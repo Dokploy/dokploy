@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { BitbucketIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { RepositoryCommandGroups } from "@/components/shared/repository-command-groups";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { toBitbucketRepositoryOption } from "@/utils/repository-options";
 
 const BitbucketProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -285,38 +287,22 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
-													<CommandGroup>
-														{repositories?.map((repo) => (
-															<CommandItem
-																value={`${repo.owner.username}/${repo.name}`}
-																key={repo.url}
-																onSelect={() => {
-																	form.setValue("repository", {
-																		owner: repo.owner.username as string,
-																		repo: repo.name,
-																		slug: repo.slug,
-																	});
-																	form.setValue("branch", "");
-																}}
-															>
-																<span className="flex min-w-0 items-center gap-2">
-																	<span className="truncate">{repo.name}</span>
-																	<span className="text-muted-foreground text-xs">
-																		{repo.owner.username}
-																	</span>
-																</span>
-																<CheckIcon
-																	className={cn(
-																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo &&
-																			repo.owner.username === field.value.owner
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-															</CommandItem>
-														))}
-													</CommandGroup>
+													<RepositoryCommandGroups
+														repositories={repositories}
+														toOption={toBitbucketRepositoryOption}
+														isSelected={(repo) =>
+															repo.name === field.value.repo &&
+															repo.owner.username === field.value.owner
+														}
+														onSelect={(repo) => {
+															form.setValue("repository", {
+																owner: repo.owner.username as string,
+																repo: repo.name,
+																slug: repo.slug,
+															});
+															form.setValue("branch", "");
+														}}
+													/>
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
