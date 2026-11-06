@@ -1,6 +1,8 @@
-import { X509Certificate } from "node:crypto";
+import { createHash, X509Certificate } from "node:crypto";
 import {
 	existsSync,
+	mkdirSync,
+	readdirSync,
 	readFileSync,
 	renameSync,
 	rmSync,
@@ -18,12 +20,10 @@ import { getWebServerSettings } from "./web-server-settings";
 
 type AcmeStorage = Record<string, unknown>;
 
-export interface AcmeCertificateRef {
+export interface AcmeStoredCertificate {
+	id: string;
 	resolver: string;
 	main: string;
-}
-
-export interface AcmeStoredCertificate extends AcmeCertificateRef {
 	sans: string[];
 	expiresAt: string | null;
 }
@@ -60,8 +60,17 @@ const normalize = (name: string) => {
 	return wildcard ? `*.${ascii}` : ascii;
 };
 
-const refKey = ({ resolver, main }: AcmeCertificateRef) =>
-	`${resolver}\n${normalize(main)}`;
+const certificateId = (resolver: string, main: string, sans: string[]) =>
+	createHash("sha256")
+		.update(
+			JSON.stringify([
+				resolver,
+				normalize(main),
+				[...new Set(sans.map(normalize))].sort(),
+			]),
+		)
+		.digest("hex")
+		.slice(0, 32);
 
 const describeError = (error: unknown) => {
 	const stderr = isRecord(error) ? strings([error.stderr])[0]?.trim() : "";
@@ -115,10 +124,11 @@ export const listAcmeCertificates = (storage: AcmeStorage) => {
 	for (const [resolver, data] of Object.entries(storage)) {
 		for (const certificate of certificatesOf(data)) {
 			const { main, sans } = domainOf(certificate);
-			const key = refKey({ resolver, main });
-			if (!main.trim() || seen.has(key)) continue;
-			seen.add(key);
+			const id = certificateId(resolver, main, sans);
+			if (!main.trim() || seen.has(id)) continue;
+			seen.add(id);
 			certificates.push({
+				id,
 				resolver,
 				main,
 				sans,
@@ -200,6 +210,38 @@ const toPattern = (source: string) => {
 	return compile(expression, "i") ?? compile(expression, "iu");
 };
 
+const addHostNames = (used: TraefikUsedNames, names: string[]) => {
+	for (const name of names) {
+		if (name.trim() && name.trim() !== "*") used.hosts.add(normalize(name));
+	}
+};
+
+export const addTraefikRuleNames = (used: TraefikUsedNames, rule: string) => {
+	for (const [, args = ""] of rule.matchAll(
+		/\b(?:HostSNI|HostHeader|Host)\(([^)]*)\)/g,
+	)) {
+		addHostNames(used, quotedValues(args));
+	}
+	const patternRules = rule.match(/\b(?:HostSNIRegexp|HostRegexp)\(/g) ?? [];
+	const patternArgs = [
+		...rule.matchAll(
+			/\b(?:HostSNIRegexp|HostRegexp)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g,
+		),
+	];
+	if (patternArgs.length < patternRules.length) {
+		used.incomplete = true;
+	}
+	for (const [, raw, quoted] of patternArgs) {
+		const pattern = toPattern(unquote(raw, quoted));
+		if (pattern) {
+			used.patterns.push(pattern);
+		} else {
+			used.incomplete = true;
+		}
+	}
+	return used;
+};
+
 export const addTraefikRouteNames = (
 	used: TraefikUsedNames,
 	rawdata: unknown,
@@ -212,37 +254,52 @@ export const addTraefikRouteNames = (
 	for (const router of routers) {
 		const tls = isRecord(router.tls) ? router.tls : {};
 		for (const domain of Array.isArray(tls.domains) ? tls.domains : []) {
-			if (!isRecord(domain)) continue;
-			for (const name of strings([domain.main, ...strings(domain.sans)])) {
-				used.hosts.add(normalize(name));
+			if (isRecord(domain)) {
+				addHostNames(used, strings([domain.main, ...strings(domain.sans)]));
 			}
 		}
-		const rule = typeof router.rule === "string" ? router.rule : "";
-		for (const [, args = ""] of rule.matchAll(
-			/\b(?:HostSNI|HostHeader|Host)\(([^)]*)\)/g,
-		)) {
-			for (const host of quotedValues(args)) {
-				if (host.trim() && host !== "*") used.hosts.add(normalize(host));
-			}
+		if (typeof router.rule === "string") {
+			addTraefikRuleNames(used, router.rule);
 		}
-		const patternRules = rule.match(/\b(?:HostSNIRegexp|HostRegexp)\(/g) ?? [];
-		const patternArgs = [
-			...rule.matchAll(
-				/\b(?:HostSNIRegexp|HostRegexp)\(\s*(?:`([^`]*)`|"((?:[^"\\]|\\.)*)")/g,
-			),
-		];
-		if (patternArgs.length < patternRules.length) {
+	}
+	return used;
+};
+
+export const addTraefikLabelNames = (
+	used: TraefikUsedNames,
+	output: string,
+) => {
+	for (const line of output.split("\n")) {
+		if (!line.trim() || line.trim() === "null") continue;
+		let labels: unknown;
+		try {
+			labels = JSON.parse(line);
+		} catch {
 			used.incomplete = true;
+			continue;
 		}
-		for (const [, raw, quoted] of patternArgs) {
-			const pattern = toPattern(unquote(raw, quoted));
-			if (pattern) {
-				used.patterns.push(pattern);
-			} else {
-				used.incomplete = true;
+		if (!isRecord(labels)) continue;
+		for (const [key, value] of Object.entries(labels)) {
+			if (typeof value !== "string") continue;
+			if (/^traefik\.(?:http|tcp)\.routers\..+\.rule$/.test(key)) {
+				addTraefikRuleNames(used, value);
+			} else if (
+				/^traefik\.(?:http|tcp)\.routers\..+\.tls\.domains\[\d+\]\.(?:main|sans)$/.test(
+					key,
+				)
+			) {
+				addHostNames(used, value.split(","));
 			}
 		}
 	}
+	return used;
+};
+
+const HOSTNAME =
+	/(?<![a-z0-9-])(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?![a-z0-9-])/g;
+
+export const addConfigTextNames = (used: TraefikUsedNames, text: string) => {
+	addHostNames(used, text.toLowerCase().match(HOSTNAME) ?? []);
 	return used;
 };
 
@@ -300,25 +357,30 @@ export const findUnusedAcmeCertificates = (
 
 export const withoutAcmeCertificates = (
 	storage: AcmeStorage,
-	targets: AcmeCertificateRef[],
+	ids: string[],
 ) => {
-	const keys = new Set(targets.map(refKey));
+	const targets = new Set(ids);
 	let removed = 0;
 	for (const [resolver, data] of Object.entries(storage)) {
 		if (!isRecord(data) || !Array.isArray(data.Certificates)) continue;
-		const kept = data.Certificates.filter(
-			(certificate) =>
-				!isRecord(certificate) ||
-				!keys.has(refKey({ resolver, main: domainOf(certificate).main })),
-		);
+		const kept = data.Certificates.filter((certificate) => {
+			if (!isRecord(certificate)) return true;
+			const { main, sans } = domainOf(certificate);
+			return !targets.has(certificateId(resolver, main, sans));
+		});
 		removed += data.Certificates.length - kept.length;
 		data.Certificates = kept;
 	}
 	return removed;
 };
 
+const BACKUPS_KEPT = 5;
+
 const acmeStoragePath = (serverId?: string) =>
 	path.join(paths(!!serverId).DYNAMIC_TRAEFIK_PATH, "acme.json");
+
+export const acmeBackupDirectory = (serverId?: string) =>
+	path.join(paths(!!serverId).MAIN_TRAEFIK_PATH, "acme-backups");
 
 const readAcmeFile = async (serverId: string | undefined, file: string) => {
 	if (serverId) {
@@ -331,21 +393,22 @@ const readAcmeFile = async (serverId: string | undefined, file: string) => {
 	return existsSync(file) ? readFileSync(file, "utf8") : "";
 };
 
-const readAcmeStorage = async (serverId?: string) => {
+const readAcmeContent = async (serverId?: string) => {
 	const file = acmeStoragePath(serverId);
-	const content = await readAcmeFile(serverId, file).catch((error) => {
+	return readAcmeFile(serverId, file).catch((error) => {
 		throw new Error(`Couldn't read ${file}: ${describeError(error)}`);
 	});
-	return parseAcmeStorage(content);
 };
 
-const writeAcmeStorage = async (
+const readAcmeStorage = async (serverId?: string) =>
+	parseAcmeStorage(await readAcmeContent(serverId));
+
+const writeAcmeContent = async (
 	serverId: string | undefined,
-	storage: AcmeStorage,
+	content: string,
 ) => {
 	const file = acmeStoragePath(serverId);
 	const temp = `${file}.tmp`;
-	const content = `${JSON.stringify(storage, null, 2)}\n`;
 	try {
 		if (serverId) {
 			await execAsyncRemote(
@@ -365,15 +428,99 @@ const writeAcmeStorage = async (
 	}
 };
 
-const readTraefikRoutes = async (serverId?: string) => {
-	const command =
-		"docker exec dokploy-traefik wget -q -T 10 -O- http://127.0.0.1:8080/api/rawdata";
+const pruneLocalBackups = (directory: string) => {
 	try {
-		const { stdout } = serverId
-			? await execAsyncRemote(serverId, command)
-			: await execAsync(command, { maxBuffer: 64 * 1024 * 1024 });
-		const routes: unknown = JSON.parse(stdout);
+		const backups = readdirSync(directory)
+			.filter((name) => /^acme-.+\.json$/.test(name))
+			.sort()
+			.reverse();
+		for (const name of backups.slice(BACKUPS_KEPT)) {
+			rmSync(path.join(directory, name), { force: true });
+		}
+	} catch {
+		return;
+	}
+};
+
+const backupAcmeContent = async (
+	serverId: string | undefined,
+	content: string,
+) => {
+	const directory = acmeBackupDirectory(serverId);
+	const file = path.join(
+		directory,
+		`acme-${new Date().toISOString().replace(/[:.]/g, "-")}.json`,
+	);
+	try {
+		if (serverId) {
+			await execAsyncRemote(
+				serverId,
+				`umask 077 && mkdir -p ${quote([directory])} && cat > ${quote([file])} && { ls -1 ${quote([directory])}/acme-*.json | sort -r | tail -n +${BACKUPS_KEPT + 1} | while read -r old; do rm -f -- "$old"; done; true; }`,
+				undefined,
+				content,
+			);
+			return file;
+		}
+		mkdirSync(directory, { recursive: true, mode: 0o700 });
+		writeFileSync(file, content, { mode: 0o600 });
+	} catch (error) {
+		throw new Error(
+			`Couldn't back up acme.json to ${directory}, so nothing was removed: ${describeError(error)}`,
+		);
+	}
+	pruneLocalBackups(directory);
+	return file;
+};
+
+const runOnServer = async (serverId: string | undefined, command: string) => {
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command, { maxBuffer: 64 * 1024 * 1024 });
+	return stdout;
+};
+
+const readTraefikRoutes = async (serverId?: string) => {
+	try {
+		const routes: unknown = JSON.parse(
+			await runOnServer(
+				serverId,
+				"docker exec dokploy-traefik wget -q -T 10 -O- http://127.0.0.1:8080/api/rawdata",
+			),
+		);
 		return isRecord(routes) ? routes : null;
+	} catch {
+		return null;
+	}
+};
+
+const LABELS_COMMAND = [
+	"set -e",
+	"containers=$(docker ps -aq --filter label=traefik.enable=true)",
+	'if [ -n "$containers" ]; then docker inspect --format "{{json .Config.Labels}}" $containers; fi',
+	"services=$(docker service ls -q 2>/dev/null || true)",
+	'if [ -n "$services" ]; then docker service inspect --format "{{json .Spec.Labels}}" $services; fi',
+].join("; ");
+
+const readTraefikLabels = (serverId?: string) =>
+	runOnServer(serverId, LABELS_COMMAND).catch(() => null);
+
+const readConfigText = async (serverId?: string) => {
+	const directory = paths(!!serverId).DYNAMIC_TRAEFIK_PATH;
+	try {
+		if (serverId) {
+			const quoted = quote([directory]);
+			return await runOnServer(
+				serverId,
+				`cat ${quoted}/*.yml ${quoted}/*.yaml ${quoted}/*.toml 2>/dev/null; true`,
+			);
+		}
+		if (!existsSync(directory)) {
+			return "";
+		}
+		return readdirSync(directory)
+			.filter((name) => /\.(?:ya?ml|toml)$/.test(name))
+			.map((name) => readFileSync(path.join(directory, name), "utf8"))
+			.join("\n");
 	} catch {
 		return null;
 	}
@@ -393,14 +540,23 @@ const knownDomainNames = async () => {
 };
 
 const readUsedNames = async (serverId?: string) => {
-	const [used, routes] = await Promise.all([
+	const [used, routes, labels, configText] = await Promise.all([
 		knownDomainNames(),
 		readTraefikRoutes(serverId),
+		readTraefikLabels(serverId),
+		readConfigText(serverId),
 	]);
-	if (routes) {
-		addTraefikRouteNames(used, routes);
-	}
-	return { used, routesComplete: routes !== null && !used.incomplete };
+	if (routes) addTraefikRouteNames(used, routes);
+	if (labels !== null) addTraefikLabelNames(used, labels);
+	if (configText !== null) addConfigTextNames(used, configText);
+	return {
+		used,
+		routesComplete:
+			routes !== null &&
+			labels !== null &&
+			configText !== null &&
+			!used.incomplete,
+	};
 };
 
 export const getUnusedTraefikCertificates = async (serverId?: string) => {
@@ -416,13 +572,13 @@ export const getUnusedTraefikCertificates = async (serverId?: string) => {
 
 export const findRemovableTraefikCertificates = async (
 	serverId: string | undefined,
-	selected: AcmeCertificateRef[],
+	ids: string[],
 ) => {
 	const { certificates, routesComplete } =
 		await getUnusedTraefikCertificates(serverId);
-	const unused = new Set(certificates.map(refKey));
+	const selected = new Set(ids);
 	return {
-		targets: selected.filter((certificate) => unused.has(refKey(certificate))),
+		targets: certificates.filter((certificate) => selected.has(certificate.id)),
 		routesComplete,
 	};
 };
@@ -430,7 +586,7 @@ export const findRemovableTraefikCertificates = async (
 // Traefik overwrites acme.json from memory, so it is edited only while stopped.
 export const removeTraefikCertificates = async (
 	serverId: string | undefined,
-	targets: AcmeCertificateRef[],
+	ids: string[],
 	{ requireRoutes }: { requireRoutes: boolean },
 ) => {
 	let used = emptyUsedNames();
@@ -438,17 +594,21 @@ export const removeTraefikCertificates = async (
 	await whileTraefikStopped(
 		serverId,
 		async () => {
-			const storage = await readAcmeStorage(serverId);
+			const original = await readAcmeContent(serverId);
+			const storage = parseAcmeStorage(original);
 			const unused = new Set(
-				findUnusedAcmeCertificates(storage, used).map(refKey),
+				findUnusedAcmeCertificates(storage, used).map(({ id }) => id),
 			);
 			removed = withoutAcmeCertificates(
 				storage,
-				targets.filter((target) => unused.has(refKey(target))),
+				ids.filter((id) => unused.has(id)),
 			);
-			if (removed > 0) {
-				await writeAcmeStorage(serverId, storage);
+			if (removed === 0) {
+				return undefined;
 			}
+			await backupAcmeContent(serverId, original);
+			await writeAcmeContent(serverId, `${JSON.stringify(storage, null, 2)}\n`);
+			return () => writeAcmeContent(serverId, original);
 		},
 		async () => {
 			const current = await readUsedNames(serverId);

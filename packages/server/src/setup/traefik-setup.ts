@@ -195,9 +195,15 @@ const restoreBackupTraefik = async (serverId?: string) => {
 		.catch(() => null);
 	if (markerInfo) {
 		if (traefikInfo && !traefikInfo.State.Running) {
-			await docker.getContainer(traefikInfo.Id).start();
+			await docker
+				.getContainer(traefikInfo.Id)
+				.start()
+				.catch(unlessNotModified);
 		}
-		await docker.getContainer(markerInfo.Id).remove({ force: true });
+		await docker
+			.getContainer(markerInfo.Id)
+			.remove({ force: true })
+			.catch(unlessNotFound);
 	}
 	if (traefikInfo) {
 		return;
@@ -226,9 +232,47 @@ const unlessNotModified = (error: unknown) => {
 	}
 };
 
+const unlessNotFound = (error: unknown) => {
+	if (statusCodeOf(error) !== 404) {
+		throw error;
+	}
+};
+
+export const restoreInterruptedTraefikOnServers = async (
+	serverIds: string[],
+) => {
+	const pending = [...serverIds];
+	const restoreNext = async () => {
+		for (let serverId = pending.shift(); serverId; serverId = pending.shift()) {
+			const timeout = sleep(60_000).then(() => {
+				throw new Error("Timed out after 60 seconds");
+			});
+			await Promise.race([restoreInterruptedTraefik(serverId), timeout]).catch(
+				(error) => {
+					console.error(
+						`Failed to restore Traefik on server ${serverId}:`,
+						error,
+					);
+				},
+			);
+		}
+	};
+	await Promise.all(
+		Array.from({ length: Math.min(4, pending.length) }, restoreNext),
+	);
+};
+
+const messageOf = (error: unknown) =>
+	error instanceof Error ? error.message : String(error);
+
+const startAndCheck = async (traefik: Container) => {
+	await traefik.start().catch(unlessNotModified);
+	await waitUntilStable(traefik, "Traefik");
+};
+
 export const whileTraefikStopped = (
 	serverId: string | undefined,
-	task: () => Promise<void>,
+	task: () => Promise<unknown>,
 	beforeStop?: () => Promise<void>,
 ) =>
 	runQueued(serverId, async () => {
@@ -251,24 +295,59 @@ export const whileTraefikStopped = (
 		}
 		const traefik = docker.getContainer(info.Id);
 		// Lets recovery start Traefik if Dokploy dies mid-way.
-		const marker = await docker.createContainer({
-			name: RESTART_MARKER_CONTAINER,
-			Image: info.Image,
-		});
+		const marker = await docker
+			.createContainer({ name: RESTART_MARKER_CONTAINER, Image: info.Image })
+			.catch((error) => {
+				throw statusCodeOf(error) === 409
+					? new Error(
+							"Traefik is already being restarted on this server. Try again in a moment.",
+						)
+					: error;
+			});
 		try {
 			await traefik.stop().catch(unlessNotModified);
 		} catch (error) {
 			await marker.remove({ force: true }).catch(() => {});
 			throw error;
 		}
-		const failure = await task().then(
-			() => null,
-			(error: unknown) => ({ error }),
+		const outcome = await task().then(
+			(result) => ({
+				undo:
+					typeof result === "function"
+						? (result as () => Promise<void>)
+						: undefined,
+				failed: false,
+				error: undefined as unknown,
+			}),
+			(error: unknown) => ({ undo: undefined, failed: true, error }),
 		);
-		await traefik.start().catch(unlessNotModified);
+		const startError = await startAndCheck(traefik).then(
+			() => null,
+			(error: unknown) => error,
+		);
+		if (startError) {
+			if (!outcome.undo) {
+				throw outcome.failed
+					? new Error(
+							`${messageOf(outcome.error)}. Traefik also did not start again: ${messageOf(startError)}`,
+						)
+					: startError;
+			}
+			await traefik.stop().catch(unlessNotModified);
+			await outcome.undo();
+			await startAndCheck(traefik).catch((retryError) => {
+				throw new Error(
+					`${messageOf(startError)}. The change was undone, but Traefik still did not start: ${messageOf(retryError)}`,
+				);
+			});
+			await marker.remove({ force: true }).catch(() => {});
+			throw new Error(
+				`${messageOf(startError)}. The change was undone and Traefik is running again.`,
+			);
+		}
 		await marker.remove({ force: true }).catch(() => {});
-		if (failure) {
-			throw failure.error;
+		if (outcome.failed) {
+			throw outcome.error;
 		}
 	});
 
@@ -303,7 +382,10 @@ export const ensureTraefikImage = async (serverId?: string) => {
 };
 
 // restart: always hides a container that exits on start.
-const waitUntilStable = async (container: Container) => {
+const waitUntilStable = async (
+	container: Container,
+	name = "The new Traefik container",
+) => {
 	await sleep(3000);
 	const first = await container.inspect();
 	await sleep(2000);
@@ -319,7 +401,7 @@ const waitUntilStable = async (container: Container) => {
 		.catch(() => null);
 	const lastLine = logs ? lastLogLine(logs) : "";
 	throw new Error(
-		`The new Traefik container stopped right after starting${lastLine ? `: ${lastLine}` : ""}`,
+		`${name} stopped right after starting${lastLine ? `: ${lastLine}` : ""}`,
 	);
 };
 

@@ -1335,15 +1335,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				serverId: z.string().optional(),
-				certificates: z
-					.array(
-						z.object({
-							resolver: z.string().min(1).max(255),
-							main: z.string().min(1).max(255),
-						}),
-					)
-					.min(1)
-					.max(1000),
+				certificateIds: z.array(z.string().min(1).max(64)).min(1).max(1000),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -1389,7 +1381,7 @@ export const settingsRouter = createTRPCRouter({
 				}
 				selection = await findRemovableTraefikCertificates(
 					serverId,
-					input.certificates,
+					input.certificateIds,
 				);
 				if (selection.targets.length === 0) {
 					throw new TRPCError({
@@ -1408,9 +1400,11 @@ export const settingsRouter = createTRPCRouter({
 			certificateRemovalCounts.delete(key);
 			// Expires in case a Docker call hangs.
 			const timer = setTimeout(release, 5 * 60_000);
-			void removeTraefikCertificates(serverId, targets, {
-				requireRoutes: routesComplete,
-			})
+			void removeTraefikCertificates(
+				serverId,
+				targets.map((target) => target.id),
+				{ requireRoutes: routesComplete },
+			)
 				.then((removed) => {
 					if (owns()) {
 						certificateRemovalCounts.set(key, removed);
@@ -1432,7 +1426,13 @@ export const settingsRouter = createTRPCRouter({
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "certificate",
-				resourceName: targets.map((target) => target.main).join(", "),
+				resourceName:
+					targets.length > 5
+						? `${targets
+								.slice(0, 5)
+								.map((target) => target.main)
+								.join(", ")} and ${targets.length - 5} more`
+						: targets.map((target) => target.main).join(", "),
 			});
 			return { count: targets.length };
 		}),

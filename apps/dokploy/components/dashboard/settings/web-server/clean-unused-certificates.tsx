@@ -31,9 +31,6 @@ interface Props {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const keyOf = ({ resolver, main }: { resolver: string; main: string }) =>
-	`${resolver}\n${main}`;
-
 const plural = (count: number) =>
 	`${count} certificate${count === 1 ? "" : "s"}`;
 
@@ -70,7 +67,7 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 		api.settings.removeUnusedTraefikCertificates.useMutation();
 
 	const certificates = data?.certificates ?? [];
-	const chosen = certificates.filter((item) => !unchecked.has(keyOf(item)));
+	const chosen = certificates.filter((item) => !unchecked.has(item.id));
 	const isInProgress = isRemoving || isWaiting || !!data?.isRemoving;
 
 	const toggle = (key: string, checked: boolean) => {
@@ -109,7 +106,7 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 		try {
 			const { count } = await removeCertificates({
 				serverId,
-				certificates: chosen.map(({ resolver, main }) => ({ resolver, main })),
+				certificateIds: chosen.map((item) => item.id),
 			});
 			setIsWaiting(true);
 			const result = await waitForRemoval();
@@ -219,7 +216,7 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 								<>
 									<div className="max-h-72 overflow-y-auto rounded-lg border">
 										{certificates.map((item, index) => {
-											const key = keyOf(item);
+											const key = item.id;
 											const checkboxId = `${idPrefix}-${index}`;
 											const expired =
 												!!item.expiresAt &&
@@ -266,8 +263,10 @@ export const CleanUnusedCertificates = ({ children, serverId }: Props) => {
 									</div>
 									<AlertBlock type="info" icon={<Info className="size-4" />}>
 										Removing certificates restarts Traefik, so your applications
-										may be unreachable for a few seconds. Certificates you keep
-										are reused if you add the domain again.
+										may be unreachable for a few seconds. acme.json is backed up
+										first, and if Traefik doesn't come back, the change is
+										undone. Certificates you keep are reused if you add the
+										domain again.
 									</AlertBlock>
 								</>
 							)}

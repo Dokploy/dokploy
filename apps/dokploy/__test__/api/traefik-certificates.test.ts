@@ -60,7 +60,13 @@ const caller = settingsRouter.createCaller({
 	user: { id: "user-1", email: "user@example.com", role: "owner" },
 } as Parameters<typeof settingsRouter.createCaller>[0]);
 
-const certificate = (main: string) => ({ resolver: "letsencrypt", main });
+const certificate = (main: string) => ({
+	id: `id-${main}`,
+	resolver: "letsencrypt",
+	main,
+	sans: [],
+	expiresAt: null,
+});
 
 const lastResult = async (serverId: string) => {
 	await vi.waitFor(async () => {
@@ -97,14 +103,14 @@ describe("settings Traefik certificate cleanup", () => {
 
 		const first = caller.removeUnusedTraefikCertificates({
 			serverId: "server-a",
-			certificates: [certificate("old.example.com")],
+			certificateIds: ["id-old.example.com"],
 		});
 		await vi.waitFor(() =>
 			expect(mocks.findRemovableTraefikCertificates).toHaveBeenCalled(),
 		);
 		const second = caller.removeUnusedTraefikCertificates({
 			serverId: "server-a",
-			certificates: [certificate("old.example.com")],
+			certificateIds: ["id-old.example.com"],
 		});
 
 		await expect(second).rejects.toMatchObject({ code: "CONFLICT" });
@@ -120,7 +126,7 @@ describe("settings Traefik certificate cleanup", () => {
 		await expect(
 			caller.removeUnusedTraefikCertificates({
 				serverId: "server-b",
-				certificates: [certificate("old.example.com")],
+				certificateIds: ["id-old.example.com"],
 			}),
 		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
@@ -131,7 +137,7 @@ describe("settings Traefik certificate cleanup", () => {
 		await expect(
 			caller.removeUnusedTraefikCertificates({
 				serverId: "server-b",
-				certificates: [certificate("old.example.com")],
+				certificateIds: ["id-old.example.com"],
 			}),
 		).rejects.toMatchObject({
 			code: "BAD_REQUEST",
@@ -150,10 +156,7 @@ describe("settings Traefik certificate cleanup", () => {
 		await expect(
 			caller.removeUnusedTraefikCertificates({
 				serverId: "server-c",
-				certificates: [
-					certificate("a.example.com"),
-					certificate("b.example.com"),
-				],
+				certificateIds: ["id-a.example.com", "id-b.example.com"],
 			}),
 		).resolves.toEqual({ count: 2 });
 
@@ -162,8 +165,33 @@ describe("settings Traefik certificate cleanup", () => {
 		expect(result.lastRemoveError).toBeNull();
 		expect(mocks.removeTraefikCertificates).toHaveBeenCalledWith(
 			"server-c",
-			[certificate("a.example.com"), certificate("b.example.com")],
+			["id-a.example.com", "id-b.example.com"],
 			{ requireRoutes: false },
+		);
+	});
+
+	it("keeps the audit entry short for a large cleanup", async () => {
+		const mains = [1, 2, 3, 4, 5, 6, 7].map((n) => `old${n}.example.com`);
+		mocks.findRemovableTraefikCertificates.mockResolvedValueOnce({
+			targets: mains.map(certificate),
+			routesComplete: true,
+		});
+		const { audit } = await import("@/server/api/utils/audit");
+
+		await caller.removeUnusedTraefikCertificates({
+			serverId: "server-f",
+			certificateIds: mains.map((main) => `id-${main}`),
+		});
+		await lastResult("server-f");
+
+		expect(audit).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				action: "delete",
+				resourceType: "certificate",
+				resourceName:
+					"old1.example.com, old2.example.com, old3.example.com, old4.example.com, old5.example.com and 2 more",
+			}),
 		);
 	});
 
@@ -179,7 +207,7 @@ describe("settings Traefik certificate cleanup", () => {
 
 		await caller.removeUnusedTraefikCertificates({
 			serverId: "server-d",
-			certificates: [certificate("a.example.com")],
+			certificateIds: ["id-a.example.com"],
 		});
 
 		const result = await lastResult("server-d");

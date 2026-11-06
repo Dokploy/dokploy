@@ -3,6 +3,7 @@ import {
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	findActiveDeployServerIds,
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
@@ -11,6 +12,7 @@ import {
 	initSchedules,
 	initVolumeBackupsCronJobs,
 	restoreInterruptedTraefik,
+	restoreInterruptedTraefikOnServers,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -70,6 +72,13 @@ void app.prepare().then(async () => {
 			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
+		}
+		if (process.env.NODE_ENV === "production") {
+			void findActiveDeployServerIds()
+				.then(restoreInterruptedTraefikOnServers)
+				.catch((error) => {
+					console.error("Failed to restore Traefik on remote servers:", error);
+				});
 		}
 		await initEnterpriseBackupCronJobs();
 
