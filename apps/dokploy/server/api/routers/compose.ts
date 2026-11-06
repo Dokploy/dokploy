@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
+	assertGitlabProviderAccess,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -19,11 +20,13 @@ import {
 	getAccessibleServerIds,
 	getComposeContainer,
 	getContainerLogs,
+	getDokployUrl,
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
+	registerGitlabDeployWebhook,
 	removeCompose,
 	removeComposeDirectory,
 	removeDeploymentsByComposeId,
@@ -35,7 +38,11 @@ import {
 } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
+import {
+	assertCanEditExistingDeployGitSource,
+	canEditDeployGitSource,
+	getConnectedGitProviderId,
+} from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
 	checkServiceAccess,
@@ -197,7 +204,31 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			if (input.gitlabId) {
+				const compose = await findComposeById(input.composeId);
+				await assertCanEditExistingDeployGitSource(
+					getConnectedGitProviderId(compose),
+					ctx.session,
+				);
+				await assertGitlabProviderAccess(input.gitlabId, ctx.session);
+			}
 			const updated = await updateCompose(input.composeId, input);
+			if (
+				input.sourceType === "gitlab" &&
+				input.gitlabId &&
+				input.gitlabProjectId &&
+				input.gitlabBranch &&
+				updated?.refreshToken &&
+				updated?.autoDeploy
+			) {
+				const dokployUrl = await getDokployUrl();
+				await registerGitlabDeployWebhook({
+					gitlabId: input.gitlabId,
+					gitlabProjectId: input.gitlabProjectId,
+					branch: input.gitlabBranch,
+					deployWebhookUrl: `${dokployUrl}/api/deploy/compose/${updated.refreshToken}`,
+				});
+			}
 			await audit(ctx, {
 				action: "update",
 				resourceType: "compose",
