@@ -71,6 +71,10 @@ const baseSettings: WebServerSettings = {
 		faviconLightUrl: null,
 		dualModeBranding: false,
 	},
+	domainRestrictionConfig: {
+		enabled: false,
+		allowedWildcards: [],
+	},
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
