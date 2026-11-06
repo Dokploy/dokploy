@@ -82,7 +82,12 @@ Generated on: ${DATE_PLACEHOLDER}
 ${BACKUP_CODES_PLACEHOLDER}
 `;
 
-export const Enable2FA = () => {
+interface Props {
+	onSuccess?: () => void;
+	trigger?: React.ReactNode;
+}
+
+export const Enable2FA = ({ onSuccess, trigger }: Props) => {
 	const utils = api.useUtils();
 	const [data, setData] = useState<TwoFactorSetupData | null>(null);
 	const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -90,7 +95,8 @@ export const Enable2FA = () => {
 	const [step, setStep] = useState<"password" | "verify">("password");
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 	const [otpValue, setOtpValue] = useState("");
-	const { data: currentUser } = api.user.get.useQuery();
+	// Session from better-auth instead of tRPC: this also runs on the forced 2FA setup page, where tRPC rejects the user
+	const { data: currentSession } = authClient.useSession();
 
 	const handleVerifySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -115,6 +121,7 @@ export const Enable2FA = () => {
 			toast.success("2FA configured successfully");
 			utils.user.get.invalidate();
 			setIsDialogOpen(false);
+			onSuccess?.();
 		} catch (error) {
 			if (error instanceof Error) {
 				const errorMessage =
@@ -224,7 +231,7 @@ export const Enable2FA = () => {
 		const filename = `dokploy-2fa-backup-codes-${year}${month}${day}.txt`;
 
 		const backupCodesText = backupCodeTemplate
-			.replace(USERNAME_PLACEHOLDER, currentUser?.user?.email || "unknown")
+			.replace(USERNAME_PLACEHOLDER, currentSession?.user?.email || "unknown")
 			.replace(DATE_PLACEHOLDER, date.toLocaleString())
 			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
 
@@ -247,7 +254,7 @@ export const Enable2FA = () => {
 			.join("\n");
 
 		const backupCodesText = backupCodeTemplate
-			.replace(USERNAME_PLACEHOLDER, currentUser?.user?.email || "unknown")
+			.replace(USERNAME_PLACEHOLDER, currentSession?.user?.email || "unknown")
 			.replace(DATE_PLACEHOLDER, date.toLocaleString())
 			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
 
@@ -258,10 +265,12 @@ export const Enable2FA = () => {
 	return (
 		<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost">
-					<Fingerprint className="size-4 text-muted-foreground" />
-					Enable 2FA
-				</Button>
+				{trigger ?? (
+					<Button variant="ghost">
+						<Fingerprint className="size-4 text-muted-foreground" />
+						Enable 2FA
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>

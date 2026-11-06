@@ -3,7 +3,9 @@ import {
 	deleteOrganization,
 	hasValidLicense,
 	IS_CLOUD,
+	requiresTwoFactorSetup,
 	sendInvitationEmail,
+	updateOrganizationEnforceTwoFactor,
 } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
@@ -21,7 +23,12 @@ import {
 	organizationRole,
 	user,
 } from "@/server/db/schema";
-import { createTRPCRouter, protectedProcedure, withPermission } from "../trpc";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+	withPermission,
+} from "../trpc";
 export const organizationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(
@@ -587,6 +594,40 @@ export const organizationRouter = createTRPCRouter({
 				metadata: { type: "setDefault" },
 			});
 			return { success: true };
+		}),
+	updateEnforceTwoFactor: adminProcedure
+		.input(z.object({ enforceTwoFactor: z.boolean() }))
+		.mutation(async ({ ctx, input }) => {
+			if (input.enforceTwoFactor) {
+				const currentUser = await db.query.user.findFirst({
+					where: eq(user.id, ctx.user.id),
+					columns: { id: true, twoFactorEnabled: true },
+				});
+				if (
+					!currentUser ||
+					(await requiresTwoFactorSetup(currentUser, {
+						enforceTwoFactor: true,
+					}))
+				) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message:
+							"Enable two-factor authentication on your own account before requiring it for the organization",
+					});
+				}
+			}
+
+			await updateOrganizationEnforceTwoFactor(
+				ctx.session.activeOrganizationId,
+				input.enforceTwoFactor,
+			);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "organization",
+				resourceId: ctx.session.activeOrganizationId,
+				metadata: { enforceTwoFactor: input.enforceTwoFactor },
+			});
+			return true;
 		}),
 	active: protectedProcedure.query(async ({ ctx }) => {
 		if (!ctx.session.activeOrganizationId) {
