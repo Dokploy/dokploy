@@ -18,7 +18,9 @@ vi.mock("@dokploy/server", () => ({
 vi.mock("@dokploy/server/services/permission", () => ({
 	checkPermission: vi.fn(async () => undefined),
 }));
-vi.mock("@/server/api/utils/audit", () => ({ audit: vi.fn(async () => undefined) }));
+vi.mock("@/server/api/utils/audit", () => ({
+	audit: vi.fn(async () => undefined),
+}));
 
 const { githubRouter } = await import("@/server/api/routers/github");
 

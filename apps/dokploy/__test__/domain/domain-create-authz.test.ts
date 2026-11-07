@@ -14,7 +14,9 @@ vi.mock("@dokploy/server/services/permission", () => ({
 	checkServicePermissionAndAccess: mocks.checkServiceAccess,
 	checkPermission: vi.fn(async () => undefined),
 }));
-vi.mock("@/server/api/utils/audit", () => ({ audit: vi.fn(async () => undefined) }));
+vi.mock("@/server/api/utils/audit", () => ({
+	audit: vi.fn(async () => undefined),
+}));
 
 const { domainRouter } = await import("@/server/api/routers/domain");
 
@@ -26,7 +28,10 @@ const callerAs = (role: string) =>
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	mocks.createDomain.mockResolvedValue({ domainId: "d1", host: "x.example.com" });
+	mocks.createDomain.mockResolvedValue({
+		domainId: "d1",
+		host: "x.example.com",
+	});
 	mocks.findPreviewDeploymentById.mockResolvedValue({ applicationId: "app-1" });
 });
 

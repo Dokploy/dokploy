@@ -31,12 +31,16 @@ vi.mock("@dokploy/server/services/permission", () => ({
 	checkPermission: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/server/api/utils/audit", () => ({ audit: vi.fn(async () => undefined) }));
+vi.mock("@/server/api/utils/audit", () => ({
+	audit: vi.fn(async () => undefined),
+}));
 vi.mock("@/server/api/utils/plan-limits", () => ({
 	assertMemberLimit: vi.fn(async () => undefined),
 }));
 
-const { organizationRouter } = await import("@/server/api/routers/organization");
+const { organizationRouter } = await import(
+	"@/server/api/routers/organization"
+);
 
 const callerAs = (role: string, userId = "caller-1") =>
 	organizationRouter.createCaller({
@@ -63,7 +67,10 @@ describe("updateMemberRole — privileged roles keep working", () => {
 	it("owner can promote a member to admin", async () => {
 		mocks.memberFindFirst.mockResolvedValue(targetMember("member"));
 		await expect(
-			callerAs("owner").updateMemberRole({ memberId: "member-2", role: "admin" }),
+			callerAs("owner").updateMemberRole({
+				memberId: "member-2",
+				role: "admin",
+			}),
 		).resolves.toBe(true);
 		expect(mocks.updateSet).toHaveBeenCalledWith({ role: "admin" });
 	});
@@ -71,7 +78,10 @@ describe("updateMemberRole — privileged roles keep working", () => {
 	it("admin can promote a member to admin", async () => {
 		mocks.memberFindFirst.mockResolvedValue(targetMember("member"));
 		await expect(
-			callerAs("admin").updateMemberRole({ memberId: "member-2", role: "admin" }),
+			callerAs("admin").updateMemberRole({
+				memberId: "member-2",
+				role: "admin",
+			}),
 		).resolves.toBe(true);
 	});
 

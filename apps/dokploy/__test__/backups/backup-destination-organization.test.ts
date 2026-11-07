@@ -229,7 +229,8 @@ describe("restore access by role", () => {
 	for (const role of ["owner", "admin"]) {
 		it(`${role} can run a web-server restore`, async () => {
 			mocks.findDestinationRow.mockResolvedValue(ownDestination);
-			const stream = await callerAs(role).restoreBackupWithLogs(webServerRestore);
+			const stream =
+				await callerAs(role).restoreBackupWithLogs(webServerRestore);
 			await drain(stream);
 			expect(mocks.restoreWebServerBackup).toHaveBeenCalledTimes(1);
 		});
@@ -237,7 +238,8 @@ describe("restore access by role", () => {
 
 	it("a member cannot run a web-server restore (panel wipe)", async () => {
 		mocks.findDestinationRow.mockResolvedValue(ownDestination);
-		const stream = await callerAs("member").restoreBackupWithLogs(webServerRestore);
+		const stream =
+			await callerAs("member").restoreBackupWithLogs(webServerRestore);
 		await expect(drain(stream)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 		expect(mocks.restoreWebServerBackup).not.toHaveBeenCalled();
 	});
