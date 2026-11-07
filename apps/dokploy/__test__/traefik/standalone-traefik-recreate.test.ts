@@ -34,6 +34,9 @@ interface FakeOptions {
 	startError?: Error;
 	crashLoop?: boolean;
 	restoreError?: Error;
+	cantRenameRunning?: boolean;
+	renameError?: Error;
+	oldStartError?: Error;
 }
 
 const fakeDocker = ({
@@ -44,6 +47,9 @@ const fakeDocker = ({
 	startError,
 	crashLoop = false,
 	restoreError,
+	cantRenameRunning = false,
+	renameError,
+	oldStartError,
 }: FakeOptions = {}) => {
 	const log: string[] = [];
 	const containers: { id: string; name: string; running: boolean }[] = [];
@@ -81,8 +87,16 @@ const fakeDocker = ({
 		},
 		rename: async ({ name }: { name: string }) => {
 			const c = find(ref);
+			if (cantRenameRunning && c.running) {
+				throw new Error(
+					`could not add service state for endpoint ${name} to cluster on UpdateDNSNames: cannot create entry in table endpoint_table, already exists`,
+				);
+			}
 			if (restoreError && c.id === "old" && name === "dokploy-traefik") {
 				throw restoreError;
+			}
+			if (renameError && name === "dokploy-traefik-previous") {
+				throw renameError;
 			}
 			log.push(`rename ${c.id} -> ${name}`);
 			c.name = name;
@@ -96,6 +110,7 @@ const fakeDocker = ({
 			const c = find(ref);
 			log.push(`start ${c.id}`);
 			if (startError && c.id === "new") throw startError;
+			if (oldStartError && c.id === "old") throw oldStartError;
 			c.running = true;
 		},
 		remove: async () => {
@@ -288,6 +303,51 @@ describe("initializeStandaloneTraefik", () => {
 			"remove stale",
 			"rename old -> dokploy-traefik-previous",
 		]);
+	});
+
+	it("stops the old container before renaming it when Docker can't rename it running", async () => {
+		const fake = fakeDocker({ cantRenameRunning: true });
+
+		const error = await recreate(fake);
+
+		expect(error).toBeNull();
+		expect(fake.log).toEqual([
+			"stop old",
+			"rename old -> dokploy-traefik-previous",
+			"create new",
+			"start new",
+			"remove old",
+		]);
+		expect(fake.containers).toEqual([
+			{ id: "new", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("starts the old container again when it can't be renamed", async () => {
+		const fake = fakeDocker({ renameError: new Error("name already in use") });
+
+		const error = await recreate(fake);
+
+		expect(error?.message).toBe(
+			"name already in use. The previous Traefik was restored.",
+		);
+		expect(fake.log).toEqual(["stop old", "start old"]);
+		expect(fake.containers).toEqual([
+			{ id: "old", name: "dokploy-traefik", running: true },
+		]);
+	});
+
+	it("says so when the old container can't be renamed nor started again", async () => {
+		const fake = fakeDocker({
+			renameError: new Error("name already in use"),
+			oldStartError: new Error("port is already allocated"),
+		});
+
+		const error = await recreate(fake);
+
+		expect(error?.message).toBe(
+			"name already in use. Restoring the previous Traefik also failed: port is already allocated",
+		);
 	});
 
 	it("says so when putting the old container back also fails", async () => {
