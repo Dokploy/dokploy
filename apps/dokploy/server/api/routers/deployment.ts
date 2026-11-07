@@ -197,7 +197,7 @@ export const deploymentRouter = createTRPCRouter({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
 				with: {
-					rollback: true,
+					rollback: { columns: { fullContext: false } },
 				},
 			});
 			return deploymentsList;
