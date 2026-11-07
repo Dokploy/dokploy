@@ -69,7 +69,9 @@ import {
 	apiSaveGitProvider,
 	apiUpdateApplication,
 	applications,
+	BUILD_PATH_MESSAGE,
 	environments,
+	isSafeBuildPath,
 	projects,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
@@ -911,7 +913,10 @@ export const applicationRouter = createTRPCRouter({
 			zfd.formData({
 				applicationId: z.string(),
 				zip: zfd.file(),
-				dropBuildPath: z.string().optional(),
+				dropBuildPath: z
+					.string()
+					.refine(isSafeBuildPath, BUILD_PATH_MESSAGE)
+					.optional(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
