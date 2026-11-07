@@ -27,6 +27,7 @@ import { trackDeploymentResult } from "@dokploy/server/utils/tracking/posthog";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
 	type Application,
@@ -480,8 +481,8 @@ export const createDeploymentSchedule = async (
 			const server = await findServerById(serverId);
 
 			const command = `
-				mkdir -p ${SCHEDULES_PATH}/${schedule.appName};
-            	echo "Initializing schedule" >> ${logFilePath};
+				mkdir -p ${quote([path.join(SCHEDULES_PATH, schedule.appName)])};
+            	echo "Initializing schedule" >> ${quote([logFilePath])};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
