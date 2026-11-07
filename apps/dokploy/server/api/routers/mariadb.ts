@@ -26,6 +26,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
@@ -456,6 +457,7 @@ export const mariadbRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.mariadbId, {
 				service: ["create"],
 			});

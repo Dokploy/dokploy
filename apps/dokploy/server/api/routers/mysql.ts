@@ -26,6 +26,7 @@ import {
 import { db } from "@dokploy/server/db";
 import {
 	addNewService,
+	checkEnvironmentAccess,
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
@@ -474,6 +475,7 @@ export const mysqlRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await checkEnvironmentAccess(ctx, input.targetEnvironmentId, "read");
 			await checkServicePermissionAndAccess(ctx, input.mysqlId, {
 				service: ["create"],
 			});
