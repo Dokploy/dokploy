@@ -79,10 +79,14 @@ export const sshRouter = createTRPCRouter({
 					message: "You are not allowed to access this SSH key",
 				});
 			}
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				return { ...sshKey, privateKey: "" };
+			}
 			return sshKey;
 		}),
 	all: withPermission("sshKeys", "read").query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
+			columns: { privateKey: false },
 			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(sshKeys.createdAt),
 		});
