@@ -19,6 +19,7 @@ import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
+	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -74,6 +75,24 @@ async function getServiceOrganizationId(
 	}
 }
 
+const assertCanUseBindMount = async (
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+	type: string | null | undefined,
+	hostPath: string | null | undefined,
+) => {
+	if (type !== "bind" && !hostPath) return;
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role !== "owner" && member.role !== "admin") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only owners and admins can manage bind mounts",
+		});
+	}
+};
+
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMount)
@@ -81,6 +100,7 @@ export const mountRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.serviceId, {
 				volume: ["create"],
 			});
+			await assertCanUseBindMount(ctx, input.type, input.hostPath);
 			const mount = await createMount(input);
 			await audit(ctx, {
 				action: "create",
@@ -174,6 +194,11 @@ export const mountRouter = createTRPCRouter({
 					volume: ["create"],
 				});
 			}
+			await assertCanUseBindMount(
+				ctx,
+				input.type ?? mount.type,
+				input.hostPath ?? mount.hostPath,
+			);
 			const { expectedContent, ...mountData } = input;
 			if (mount.type === "file" && expectedContent !== undefined) {
 				const currentContent = await readFileMountContent(input.mountId);
