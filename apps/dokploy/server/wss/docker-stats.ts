@@ -1,5 +1,4 @@
 import type http from "node:http";
-import { totalmem } from "node:os";
 import {
 	combineContainerStats,
 	docker,
@@ -133,6 +132,10 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
+		// Docker may run on another machine (DOKPLOY_DOCKER_HOST), so ask the
+		// daemon for its memory instead of reading it from this process' host.
+		let dockerHostMemoryBytes: number | undefined;
+
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
@@ -199,13 +202,17 @@ export const setupDockerStatsMonitoringSocketServer = (
 					console.error("Docker stats error:", stderr);
 					return;
 				}
+				const rows = stdout
+					.trim()
+					.split("\n")
+					.filter(Boolean)
+					.map((line) => JSON.parse(line));
+				if (rows.length > 1 && dockerHostMemoryBytes === undefined) {
+					dockerHostMemoryBytes = (await docker.info()).MemTotal;
+				}
 				const stat = combineContainerStats(
-					stdout
-						.trim()
-						.split("\n")
-						.filter(Boolean)
-						.map((line) => JSON.parse(line)),
-					totalmem(),
+					rows,
+					dockerHostMemoryBytes ?? Number.POSITIVE_INFINITY,
 				);
 				if (!stat) {
 					return;

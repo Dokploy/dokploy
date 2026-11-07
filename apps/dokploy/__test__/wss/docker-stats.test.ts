@@ -9,12 +9,15 @@ const mockListContainers = vi.hoisted(() =>
 	vi.fn(async (): Promise<{ Id: string; State: string }[]> => []),
 );
 const mockExecAsync = vi.hoisted(() => vi.fn());
+const mockDockerInfo = vi.hoisted(() =>
+	vi.fn(async () => ({ MemTotal: 8 * 1024 ** 3 })),
+);
 vi.mock("@dokploy/server", async () => ({
 	IS_CLOUD: false,
 	combineContainerStats: (
 		await import("@dokploy/server/monitoring/combine-stats")
 	).combineContainerStats,
-	docker: { listContainers: mockListContainers },
+	docker: { listContainers: mockListContainers, info: mockDockerInfo },
 	execAsync: mockExecAsync,
 	getHostSystemStats: vi.fn(async () => ({})),
 	getLastAdvancedStatsFile: vi.fn(async () => ({})),
@@ -148,6 +151,29 @@ describe("docker stats websocket with replicas (#5863)", () => {
 				CPUPerc: "15.00%",
 				MemUsage: "150.00MiB / 512.00MiB",
 			}),
+			"my-app",
+		);
+
+		await closeClient(ws);
+	});
+
+	it("caps the memory limit at the memory of the Docker host", async () => {
+		mockValidateRequest.mockResolvedValue(AUTH);
+		mockDockerInfo.mockResolvedValue({ MemTotal: 1024 ** 3 });
+		mockListContainers.mockResolvedValue([
+			{ Id: "a", State: "running" },
+			{ Id: "b", State: "running" },
+		]);
+		mockExecAsync.mockResolvedValue({
+			stdout: `${statsLine("a", "1.00%", "100MiB / 1GiB")}\n${statsLine("b", "1.00%", "100MiB / 1GiB")}\n`,
+			stderr: "",
+		});
+		const ws = new WebSocket(url.replace("appName=dokploy", "appName=my-app"));
+		await new Promise((r) => ws.once("open", r));
+		await sleep(1500);
+
+		expect(mockRecordAdvancedStats).toHaveBeenCalledWith(
+			expect.objectContaining({ MemUsage: "200.00MiB / 1024.00MiB" }),
 			"my-app",
 		);
 
