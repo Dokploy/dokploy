@@ -1,5 +1,6 @@
 import type { DnsProviderConfig } from "@dokploy/server/db/schema";
 import { cloudflareClient } from "./cloudflare";
+import { hetznerClient } from "./hetzner";
 import { infomaniakClient } from "./infomaniak";
 import { ovhClient } from "./ovh";
 import { porkbunClient } from "./porkbun";
@@ -12,6 +13,7 @@ const clients: Record<DnsProviderConfig["providerType"], DnsClient> = {
 	porkbun: porkbunClient as DnsClient,
 	infomaniak: infomaniakClient as DnsClient,
 	ovh: ovhClient as DnsClient,
+	hetzner: hetznerClient as DnsClient,
 };
 
 export const getDnsClient = (providerType: DnsProviderConfig["providerType"]) =>

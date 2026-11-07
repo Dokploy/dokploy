@@ -46,6 +46,7 @@ const providerLabels = {
 	porkbun: "Porkbun",
 	infomaniak: "Infomaniak",
 	ovh: "OVHcloud",
+	hetzner: "Hetzner",
 } as const;
 
 const ovhEndpointLabels = {
@@ -73,6 +74,7 @@ const DnsProviderSchema = z.object({
 		"porkbun",
 		"infomaniak",
 		"ovh",
+		"hetzner",
 	]),
 	apiToken: z.string(),
 	accessKeyId: z.string(),
@@ -140,6 +142,11 @@ const buildConfig = (data: DnsProviderForm) => {
 				applicationSecret: data.applicationSecret,
 				consumerKey: data.consumerKey,
 				zone: data.zone.trim() || undefined,
+			};
+		case "hetzner":
+			return {
+				providerType: "hetzner" as const,
+				apiToken: data.apiToken,
 			};
 	}
 };
@@ -211,6 +218,9 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 					applicationSecret: provider.config.applicationSecret,
 					consumerKey: provider.config.consumerKey,
 					zone: provider.config.zone ?? "",
+				}),
+				...(provider.config.providerType === "hetzner" && {
+					apiToken: provider.config.apiToken,
 				}),
 			});
 		} else if (!dnsProviderId) {
@@ -454,6 +464,27 @@ export const HandleDnsProvider = ({ dnsProviderId }: Props) => {
 											Create a token at manager.infomaniak.com with the{" "}
 											<code>domain:read</code>, <code>dns:read</code> and{" "}
 											<code>dns:write</code> scopes.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+
+						{providerType === "hetzner" && (
+							<FormField
+								control={form.control}
+								name="apiToken"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Token</FormLabel>
+										<FormControl>
+											<Input type="password" {...field} />
+										</FormControl>
+										<FormDescription>
+											Create a token with <code>Read &amp; Write</code>{" "}
+											permissions in your Hetzner Console project under Security
+											&gt; API tokens. Only zones in primary mode are listed.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
