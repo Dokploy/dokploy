@@ -1,5 +1,7 @@
 import type http from "node:http";
+import { totalmem } from "node:os";
 import {
+	combineContainerStats,
 	docker,
 	execAsync,
 	getHostSystemStats,
@@ -173,8 +175,14 @@ export const setupDockerStatsMonitoringSocketServer = (
 					filters: JSON.stringify(filter),
 				});
 
-				const container = containers[0];
-				if (!container || container?.State !== "running") {
+				const running = containers.filter(
+					(container) => container.State === "running",
+				);
+				// Only the swarm service label matches exactly; the compose `name`
+				// filter is a substring match and can include unrelated containers.
+				const targets =
+					appType === "application" ? running : running.slice(0, 1);
+				if (targets.length === 0) {
 					const remoteNode = await findRemoteSwarmNode(appName, appType);
 					ws.close(
 						4000,
@@ -185,13 +193,23 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 				const { stdout, stderr } = await execAsync(
-					`docker stats ${container.Id} --no-stream --format \'{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}\'`,
+					`docker stats ${targets.map((container) => container.Id).join(" ")} --no-stream --format '{"BlockIO":"{{.BlockIO}}","CPUPerc":"{{.CPUPerc}}","Container":"{{.Container}}","ID":"{{.ID}}","MemPerc":"{{.MemPerc}}","MemUsage":"{{.MemUsage}}","Name":"{{.Name}}","NetIO":"{{.NetIO}}"}'`,
 				);
 				if (stderr) {
 					console.error("Docker stats error:", stderr);
 					return;
 				}
-				const stat = JSON.parse(stdout);
+				const stat = combineContainerStats(
+					stdout
+						.trim()
+						.split("\n")
+						.filter(Boolean)
+						.map((line) => JSON.parse(line)),
+					totalmem(),
+				);
+				if (!stat) {
+					return;
+				}
 
 				await recordAdvancedStats(stat, appName);
 				const data = await getLastAdvancedStatsFile(appName);
@@ -202,7 +220,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 					}),
 				);
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error
 				ws.close(4000, `Error: ${error.message}`);
 			}
 		}, 1300);
