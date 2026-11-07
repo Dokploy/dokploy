@@ -13,9 +13,9 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 
 const { removeImage } = await import("@dokploy/server/services/docker-image");
 
-const ID = "a704ba7c71ab";
+const ID = "417cb052bed8";
 const DIGEST =
-	"sha256:a704ba7c71abacd1d6f849f48bb2f1a004f7591bee3b54e0fd4dd5efa01bc7de";
+	"sha256:417cb052bed87c95ab43276888329da261f360c043bb81cd4afd7a2df66c4be7";
 
 const fakeDocker = (repoTags: string[]) => async (command: string) => {
 	if (command.startsWith("docker image inspect")) {
@@ -39,11 +39,11 @@ beforeEach(() => {
 
 describe("removeImage", () => {
 	it("removes a Swarm-pulled image by the digest-pinned name it is stored under", async () => {
-		const stored = `gentslava/dokploy:v0.30.10@${DIGEST}`;
+		const stored = `dokploy/dokploy:v0.30.10@${DIGEST}`;
 		mocks.execAsync.mockImplementation(fakeDocker([stored]));
 
 		await removeImage({
-			repository: "gentslava/dokploy",
+			repository: "dokploy/dokploy",
 			tag: "v0.30.10",
 			id: ID,
 		});
@@ -88,13 +88,13 @@ describe("removeImage", () => {
 	});
 
 	it("resolves and removes the image on the remote server", async () => {
-		const stored = `gentslava/dokploy:v0.30.10@${DIGEST}`;
+		const stored = `dokploy/dokploy:v0.30.10@${DIGEST}`;
 		mocks.execAsyncRemote.mockImplementation(
 			(_serverId: string, command: string) => fakeDocker([stored])(command),
 		);
 
 		await removeImage(
-			{ repository: "gentslava/dokploy", tag: "v0.30.10", id: ID, force: true },
+			{ repository: "dokploy/dokploy", tag: "v0.30.10", id: ID, force: true },
 			"server-1",
 		);
 
