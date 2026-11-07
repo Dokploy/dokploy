@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
 	addDomainToCompose,
+	assertServiceCredentialAccess,
 	clearOldDeployments,
 	cloneCompose,
 	createCommand,
@@ -197,6 +198,7 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {
 				action: "update",
