@@ -9,29 +9,47 @@ import {
 	normalizeS3Path,
 } from "../backups/utils";
 
+const HELPER_IMAGE = "ubuntu";
+
 interface RestartSafeBackupCommandOptions {
+	preflightCommand: string;
 	stopCommand: string;
 	backupCommand: string;
 	startCommand: string;
 	uploadCommand: string;
 }
 
+// Installs EXIT and signal traps, so callers that share the shell must run it in a subshell.
 export const createRestartSafeBackupCommand = ({
+	preflightCommand,
 	stopCommand,
 	backupCommand,
 	startCommand,
 	uploadCommand,
 }: RestartSafeBackupCommandOptions) => `
+	set -e
+	${preflightCommand}
+	DOKPLOY_VOLUME_NEEDS_RESTART=1
+	dokploy_volume_restart() {
+		if [ "$DOKPLOY_VOLUME_NEEDS_RESTART" -eq 1 ]; then
+			DOKPLOY_VOLUME_NEEDS_RESTART=0
+			(
+				set -e
+				${startCommand}
+			)
+		fi
+	}
+	trap 'dokploy_volume_restart' EXIT
+	trap 'exit 129' HUP
+	trap 'exit 130' INT
+	trap 'exit 143' TERM
 	${stopCommand}
 	set +e
 	(
 		${backupCommand}
 	)
 	DOKPLOY_VOLUME_BACKUP_STATUS=$?
-	(
-		set -e
-		${startCommand}
-	)
+	dokploy_volume_restart
 	DOKPLOY_VOLUME_RESTART_STATUS=$?
 	set -e
 	if [ "$DOKPLOY_VOLUME_BACKUP_STATUS" -ne 0 ]; then
@@ -98,6 +116,12 @@ export const backupVolume = async (
   echo "Volume backup done ✅"
   `;
 
+	// Pull the helper before the service is stopped, so a registry failure causes no downtime.
+	const preflightCommand = `
+	echo "Checking helper image: ${HELPER_IMAGE}"
+	docker image inspect ${HELPER_IMAGE} >/dev/null 2>&1 || docker pull ${HELPER_IMAGE}
+	`;
+
 	const uploadCommand = `
   echo "Starting upload to S3..."
   ${rcloneCommand}
@@ -142,7 +166,9 @@ export const backupVolume = async (
 
 		echo "Volume backup lock acquired"
 
-		${body}
+		(
+			${body}
+		)
 
 		echo "Volume backup lock released"
 	`;
@@ -157,6 +183,7 @@ export const backupVolume = async (
 	if (serviceType === "application") {
 		return lockWrapper(
 			createRestartSafeBackupCommand({
+				preflightCommand,
 				stopCommand: `
 				echo "Stopping application to 0 replicas"
 				ACTUAL_REPLICAS=$(docker service inspect ${volumeBackup.application?.appName} --format "{{.Spec.Mode.Replicated.Replicas}}")
@@ -202,6 +229,7 @@ export const backupVolume = async (
 		}
 		return lockWrapper(
 			createRestartSafeBackupCommand({
+				preflightCommand,
 				stopCommand,
 				backupCommand,
 				startCommand,
