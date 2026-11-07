@@ -54,6 +54,19 @@ export const DATABASE_PASSWORD_REGEX =
 export const DATABASE_PASSWORD_MESSAGE =
 	"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility";
 
+export const BUILD_PATH_REGEX = /^([a-zA-Z0-9._@+/][a-zA-Z0-9._@+/-]*)?$/;
+
+export const BUILD_PATH_MESSAGE =
+	"Path can only contain letters, numbers and . _ - @ + / (no spaces, no leading '-', no '..')";
+
+export const isSafeBuildPath = (value: string) =>
+	BUILD_PATH_REGEX.test(value) && !value.split("/").includes("..");
+
+export const BUILD_TOKEN_REGEX = /^([a-zA-Z0-9][a-zA-Z0-9._-]*)?$/;
+
+export const BUILD_TOKEN_MESSAGE =
+	"Can only contain letters, numbers, dots, underscores and hyphens";
+
 export const generateAppName = (type: string) => {
 	const verb = faker.hacker.verb().replace(/ /g, "-");
 	const adjective = faker.hacker.adjective().replace(/ /g, "-");
