@@ -195,8 +195,7 @@ export const ShowResources = ({ id, type }: Props) => {
 			<CardHeader>
 				<CardTitle className="text-xl">Resources</CardTitle>
 				<CardDescription>
-					If you want to decrease or increase the resources to a specific.
-					application or database
+					Increase or decrease the resources for a specific application or database.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
