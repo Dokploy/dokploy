@@ -1,5 +1,7 @@
 import {
+	azureDevopsClient,
 	type Bitbucket,
+	evaluateAzureDevopsPush,
 	getBitbucketHeaders,
 	IS_CLOUD,
 	shouldDeploy,
@@ -73,12 +75,26 @@ export default async function handler(
 			return;
 		}
 
-		const deploymentTitle = extractCommitMessage(req.headers, req.body);
+		let deploymentTitle = extractCommitMessage(req.headers, req.body);
 
-		const deploymentHash = extractHash(req.headers, req.body);
+		let deploymentHash = extractHash(req.headers, req.body);
 		const sourceType = application.sourceType;
 
-		if (sourceType === "docker") {
+		if (sourceType === "azureDevops") {
+			const result = await evaluateAzureDevopsPush(
+				req.method,
+				req.body,
+				application,
+				() => azureDevopsClient(application.azureDevopsId!),
+			);
+			if (!result.deploy) {
+				res.status(result.status).json({ message: result.reason });
+				return;
+			}
+			deploymentTitle = result.title;
+			deploymentHash = result.hash;
+			if (result.fallbackReason) console.info(result.fallbackReason);
+		} else if (sourceType === "docker") {
 			const applicationImageName = extractImageName(application.dockerImage);
 			const applicationDockerTag = extractImageTag(application.dockerImage);
 

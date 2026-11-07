@@ -3,6 +3,7 @@ import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
+import { azureDevops } from "./azure-devops";
 import { bitbucket } from "./bitbucket";
 import { gitea } from "./gitea";
 import { github } from "./github";
@@ -14,6 +15,7 @@ export const gitProviderType = pgEnum("gitProviderType", [
 	"gitlab",
 	"bitbucket",
 	"gitea",
+	"azureDevops",
 ]);
 
 export const gitProvider = pgTable("git_provider", {
@@ -38,6 +40,10 @@ export const gitProvider = pgTable("git_provider", {
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
+	azureDevops: one(azureDevops, {
+		fields: [gitProvider.gitProviderId],
+		references: [azureDevops.gitProviderId],
+	}),
 	github: one(github, {
 		fields: [gitProvider.gitProviderId],
 		references: [github.gitProviderId],

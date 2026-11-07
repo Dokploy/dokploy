@@ -12,6 +12,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { azureDevops } from "./azure-devops";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
@@ -64,6 +65,7 @@ export const sourceType = pgEnum("sourceType", [
 	"gitlab",
 	"bitbucket",
 	"gitea",
+	"azureDevops",
 	"drop",
 ]);
 
@@ -140,6 +142,16 @@ export const applications = pgTable("application", {
 	gitlabBuildPath: text("gitlabBuildPath").default("/"),
 	gitlabPathNamespace: text("gitlabPathNamespace"),
 	// Gitea
+	azureDevopsId: text("azureDevopsId").references(
+		() => azureDevops.azureDevopsId,
+		{ onDelete: "set null" },
+	),
+	azureDevopsProjectId: text("azureDevopsProjectId"),
+	azureDevopsRepositoryId: text("azureDevopsRepositoryId"),
+	azureDevopsProjectName: text("azureDevopsProjectName"),
+	azureDevopsRepositoryName: text("azureDevopsRepositoryName"),
+	azureDevopsBranch: text("azureDevopsBranch"),
+	azureDevopsBuildPath: text("azureDevopsBuildPath").default("/"),
 	giteaRepository: text("giteaRepository"),
 	giteaOwner: text("giteaOwner"),
 	giteaBranch: text("giteaBranch"),
@@ -269,6 +281,10 @@ export const applicationsRelations = relations(
 			fields: [applications.gitlabId],
 			references: [gitlab.gitlabId],
 		}),
+		azureDevops: one(azureDevops, {
+			fields: [applications.azureDevopsId],
+			references: [azureDevops.azureDevopsId],
+		}),
 		gitea: one(gitea, {
 			fields: [applications.giteaId],
 			references: [gitea.giteaId],
@@ -340,7 +356,16 @@ const createSchema = createInsertSchema(applications, {
 	buildPath: z.string().optional(),
 	environmentId: z.string(),
 	sourceType: z
-		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
+		.enum([
+			"github",
+			"docker",
+			"git",
+			"gitlab",
+			"bitbucket",
+			"azureDevops",
+			"gitea",
+			"drop",
+		])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),

@@ -1,3 +1,4 @@
+import { quote } from "shell-quote";
 import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
@@ -16,7 +17,7 @@ export const getPaketoCommand = (application: ApplicationNested) => {
 		"build",
 		appName,
 		"--path",
-		buildAppDirectory,
+		quote([buildAppDirectory]),
 		"--builder",
 		"paketobuildpacks/builder-jammy-full",
 	];

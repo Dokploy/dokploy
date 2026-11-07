@@ -37,8 +37,8 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			"-t",
 			image,
 			"-f",
-			dockerFilePath,
-			dockerContextPath,
+			quote([dockerFilePath]),
+			quote([dockerContextPath]),
 		];
 
 		if (dockerBuildStage) {

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { AzureDevopsIcon } from "@/components/icons/azure-devops-icon";
 import {
 	BitbucketIcon,
 	GiteaIcon,
@@ -35,6 +36,10 @@ import {
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
 import { useUrl } from "@/utils/hooks/use-url";
+import {
+	AzureDevopsCleanupNotice,
+	AzureDevopsProviderDialog,
+} from "./azure-devops-provider";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { AddGiteaProvider } from "./gitea/add-gitea-provider";
@@ -45,9 +50,18 @@ import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 
 export const ShowGitProviders = () => {
+	const utils = api.useUtils();
 	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isPending: isRemoving } =
-		api.gitProvider.remove.useMutation();
+		api.gitProvider.remove.useMutation({
+			onSuccess: async (result) => {
+				await utils.azureDevops.cleanupPending.invalidate();
+				if (result?.azureDevopsCleanup.length)
+					toast.warning(
+						"Provider deleted; Azure DevOps subscription cleanup is pending. Review the retained subscription details below.",
+					);
+			},
+		});
 	const { mutateAsync: toggleShare, isPending: isToggling } =
 		api.gitProvider.toggleShare.useMutation();
 	const { data: currentMember } = api.user.get.useQuery();
@@ -81,6 +95,7 @@ export const ShowGitProviders = () => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
+						{permissions?.gitProviders.delete && <AzureDevopsCleanupNotice />}
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
 								<span>Loading...</span>
@@ -102,6 +117,7 @@ export const ShowGitProviders = () => {
 														<AddGitlabProvider />
 														<AddBitbucketProvider />
 														<AddGiteaProvider />
+														<AzureDevopsProviderDialog />
 													</div>
 												</div>
 											</div>
@@ -120,6 +136,7 @@ export const ShowGitProviders = () => {
 														<AddGitlabProvider />
 														<AddBitbucketProvider />
 														<AddGiteaProvider />
+														<AzureDevopsProviderDialog />
 													</div>
 												</div>
 											)}
@@ -158,6 +175,10 @@ export const ShowGitProviders = () => {
 																		<BitbucketIcon className="size-5" />
 																	)}
 																	{isGitea && <GiteaIcon className="size-5" />}
+																	{gitProvider.providerType ===
+																		"azureDevops" && (
+																		<AzureDevopsIcon className="size-5 dark:text-[#5ea0ef]" />
+																	)}
 																	<div className="flex flex-col gap-1">
 																		<span className="text-sm font-medium">
 																			{gitProvider.name}
@@ -296,6 +317,28 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 
+																{gitProvider.azureDevops && (
+																	<>
+																		<Badge
+																			variant="outline"
+																			className="border-[#0078d4]/30 bg-[#0078d4]/10 text-[#0078d4] dark:text-[#5ea0ef]"
+																		>
+																			Azure DevOps
+																		</Badge>
+																		<span className="text-xs text-muted-foreground">
+																			{gitProvider.azureDevops.baseUrl}
+																		</span>
+																	</>
+																)}
+																{canManage &&
+																	permissions?.gitProviders.create &&
+																	gitProvider.azureDevops && (
+																		<AzureDevopsProviderDialog
+																			azureDevopsId={
+																				gitProvider.azureDevops.azureDevopsId
+																			}
+																		/>
+																	)}
 																{canManage && (
 																	<>
 																		{isGithub &&

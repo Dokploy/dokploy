@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UnauthorizedGitProvider } from "@/components/dashboard/application/general/generic/unauthorized-git-provider";
+import { AzureDevopsIcon } from "@/components/icons/azure-devops-icon";
 import {
 	BitbucketIcon,
 	GiteaIcon,
@@ -15,18 +16,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import { ComposeFileEditor } from "../compose-file-editor";
 import { ShowConvertedCompose } from "../show-converted-compose";
+import { SaveAzureDevopsProviderCompose } from "./save-azure-devops-provider-compose";
 import { SaveBitbucketProviderCompose } from "./save-bitbucket-provider-compose";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
 import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 import { SaveGitlabProviderCompose } from "./save-gitlab-provider-compose";
 
-type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket" | "gitea";
+type TabState =
+	| "github"
+	| "git"
+	| "raw"
+	| "gitlab"
+	| "bitbucket"
+	| "gitea"
+	| "azureDevops";
 interface Props {
 	composeId: string;
 }
 
 export const ShowProviderFormCompose = ({ composeId }: Props) => {
+	const utils = api.useUtils();
 	const { data: githubProviders, isPending: isLoadingGithub } =
 		api.github.githubProviders.useQuery();
 	const { data: gitlabProviders, isPending: isLoadingGitlab } =
@@ -48,6 +58,16 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	const handleDisconnect = async () => {
 		try {
 			await disconnectGitProvider({ composeId });
+			if (compose?.sourceType === "azureDevops") {
+				const hooks = await utils.azureDevops.hookStatus.fetch({
+					serviceId: composeId,
+					serviceType: "compose",
+				});
+				if (hooks.some((hook) => hook.status === "cleanupPending"))
+					toast.warning(
+						"Repository disconnected; Azure DevOps subscription cleanup is pending. Review Settings → Git Providers for subscription details.",
+					);
+			}
 			toast.success("Repository disconnected successfully");
 			await refetch();
 		} catch (error) {
@@ -182,6 +202,13 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 								Git
 							</TabsTrigger>
 							<TabsTrigger
+								value="azureDevops"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-[#0078d4] data-[state=active]:text-[#0078d4] after:bg-[#0078d4] dark:data-[state=active]:text-[#5ea0ef]"
+							>
+								<AzureDevopsIcon className="dark:text-[#5ea0ef]" />
+								Azure DevOps
+							</TabsTrigger>
+							<TabsTrigger
 								value="raw"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
@@ -277,6 +304,9 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 
 					<TabsContent value="raw" className="w-full p-2 flex flex-col gap-4">
 						<ComposeFileEditor composeId={composeId} />
+					</TabsContent>
+					<TabsContent value="azureDevops" className="w-full p-2">
+						<SaveAzureDevopsProviderCompose composeId={composeId} />
 					</TabsContent>
 				</Tabs>
 			</CardContent>

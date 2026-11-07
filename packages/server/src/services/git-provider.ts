@@ -7,12 +7,21 @@ import { and, eq } from "drizzle-orm";
 export type GitProvider = typeof gitProvider.$inferSelect;
 
 export const removeGitProvider = async (gitProviderId: string) => {
+	const azure = await db.query.azureDevops.findFirst({
+		where: (provider, { eq }) => eq(provider.gitProviderId, gitProviderId),
+		columns: { azureDevopsId: true },
+	});
+	let cleanup: unknown[] = [];
+	if (azure) {
+		const { cleanupAzureDevopsProvider } = await import("./azure-devops-hooks");
+		cleanup = await cleanupAzureDevopsProvider(azure.azureDevopsId);
+	}
 	const result = await db
 		.delete(gitProvider)
 		.where(eq(gitProvider.gitProviderId, gitProviderId))
 		.returning();
 
-	return result[0];
+	return result[0] ? { ...result[0], azureDevopsCleanup: cleanup } : undefined;
 };
 
 export const findGitProviderById = async (gitProviderId: string) => {
