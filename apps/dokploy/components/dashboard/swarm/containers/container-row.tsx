@@ -47,7 +47,10 @@ export const ContainerRow = ({ container, stat }: ContainerRowProps) => {
 									<AlertCircle className="h-3.5 w-3.5 text-destructive" />
 								</span>
 							</TooltipTrigger>
-							<TooltipContent side="top" className="max-w-xs">
+							<TooltipContent
+								side="top"
+								className="max-w-xs flex-col items-start"
+							>
 								<p className="text-xs font-medium">Error:</p>
 								<p className="text-xs">{container.Error}</p>
 							</TooltipContent>

@@ -67,14 +67,14 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 							<HelpCircle className="size-4 text-muted-foreground" />
 						</Label>
 					</TooltipTrigger>
-					<TooltipContent side="top" className="max-w-sm">
+					<TooltipContent side="top" className="max-w-sm flex-col items-start">
 						<p>
 							Runs a full Docker cleanup daily, pruning stopped containers,
 							unused images, build cache, and system resources. This may remove
 							images built for Compose services that run on-demand (backup
 							runners, cron jobs, one-off tasks).
 						</p>
-						<p className="mt-1">
+						<p>
 							For custom cleanup strategies, use{" "}
 							<a
 								href="https://docs.dokploy.com/docs/core/schedule-jobs#example-1-automatic-docker-cleanup"
