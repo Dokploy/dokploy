@@ -33,6 +33,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
@@ -445,7 +446,15 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
-			const command = `docker exec ${container.Id} psql -U ${databaseUser} -d postgres -c "ALTER USER \\"${databaseUser}\\" WITH PASSWORD '${password}';"`;
+			const command = `docker exec ${container.Id} ${quote([
+				"psql",
+				"-U",
+				databaseUser,
+				"-d",
+				"postgres",
+				"-c",
+				`ALTER USER "${databaseUser}" WITH PASSWORD '${password}';`,
+			])}`;
 
 			await db.transaction(async (tx) => {
 				await tx
