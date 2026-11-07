@@ -6,7 +6,10 @@ import {
 	postgres,
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
-import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
+import {
+	buildPostgres,
+	ensurePostgresSslCerts,
+} from "@dokploy/server/utils/databases/postgres";
 import {
 	pullImage,
 	waitForSwarmServiceConvergence,
@@ -164,6 +167,14 @@ export const deployPostgres = async (
 			);
 		} else {
 			await pullImage(postgres.dockerImage, onData);
+		}
+
+		if (postgres.sslMode !== "disabled") {
+			onData?.("Generating SSL certificates...");
+			const sslCACertificate = await ensurePostgresSslCerts(postgres, onData);
+			if (sslCACertificate !== postgres.sslCACertificate) {
+				await updatePostgresById(postgresId, { sslCACertificate });
+			}
 		}
 
 		await buildPostgres(postgres);

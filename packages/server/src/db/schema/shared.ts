@@ -8,6 +8,8 @@ export const applicationStatus = pgEnum("applicationStatus", [
 	"error",
 ]);
 
+export const sslMode = pgEnum("sslMode", ["disabled", "optional", "required"]);
+
 export const certificateType = pgEnum("certificateType", [
 	"letsencrypt",
 	"none",

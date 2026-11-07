@@ -30,6 +30,7 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	sslMode,
 	type UlimitsSwarm,
 	UlimitsSwarmSchema,
 	type UpdateConfigSwarm,
@@ -61,6 +62,8 @@ export const postgres = pgTable("postgres", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
+	sslMode: sslMode("sslMode").notNull().default("disabled"),
+	sslCACertificate: text("sslCACertificate"),
 	env: encryptedText("env"),
 	memoryReservation: text("memoryReservation"),
 	externalPort: integer("externalPort"),
@@ -129,6 +132,8 @@ const createSchema = createInsertSchema(postgres, {
 	dockerImage: z.string().default("postgres:18"),
 	command: z.string().optional(),
 	args: z.array(z.string()).optional(),
+	sslMode: z.enum(["disabled", "optional", "required"]).optional(),
+	sslCACertificate: z.string().optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
 	memoryLimit: z.string().optional(),
@@ -165,6 +170,7 @@ export const apiCreatePostgres = createSchema.pick({
 	environmentId: true,
 	description: true,
 	serverId: true,
+	sslMode: true,
 });
 
 export const apiFindOnePostgres = z.object({
@@ -211,7 +217,7 @@ export const apiUpdatePostgres = createSchema
 		postgresId: z.string().min(1),
 		dockerImage: z.string().optional(),
 	})
-	.omit({ serverId: true });
+	.omit({ serverId: true, sslCACertificate: true });
 
 export const apiRebuildPostgres = createSchema
 	.pick({

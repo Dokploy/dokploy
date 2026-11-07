@@ -21,6 +21,7 @@ import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
+import { ShowSslPostgres } from "@/components/dashboard/postgres/general/show-ssl-postgres";
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { TransferService } from "@/components/dashboard/shared/transfer-service";
@@ -254,6 +255,7 @@ const Postgresql = (
 											<ShowExternalPostgresCredentials
 												postgresId={postgresId}
 											/>
+											<ShowSslPostgres postgresId={postgresId} />
 										</div>
 									</TabsContent>
 									{permissions?.envVars.read && (
