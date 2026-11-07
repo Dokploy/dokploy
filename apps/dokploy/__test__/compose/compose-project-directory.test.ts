@@ -1,4 +1,7 @@
-import { createCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	createCommand,
+	createStartCommand,
+} from "@dokploy/server/utils/builders/compose";
 import { describe, expect, it } from "vitest";
 
 const base = {
@@ -119,5 +122,59 @@ describe("compose createCommand --env-file", () => {
 		);
 
 		expect(cmd).not.toContain("--env-file");
+	});
+});
+
+describe("compose createStartCommand", () => {
+	const projectPath = "/etc/dokploy/compose/compose-app/code";
+
+	it("pins the same --project-directory as deploy so relative mounts resolve identically", () => {
+		const compose = {
+			...base,
+			composePath: "./backend/docker-compose.yml",
+		} as any;
+
+		const start = createStartCommand(compose, projectPath);
+
+		expect(start).toBe(
+			`docker compose -p compose-app --project-directory ${projectPath} -f ./backend/docker-compose.yml up -d`,
+		);
+		expect(createCommand(compose, projectPath)).toContain(
+			`--project-directory ${projectPath} -f ./backend/docker-compose.yml up -d`,
+		);
+	});
+
+	it("omits --project-directory when no projectPath is passed", () => {
+		const start = createStartCommand({
+			...base,
+			composePath: "./backend/docker-compose.yml",
+		} as any);
+
+		expect(start).toBe(
+			"docker compose -p compose-app -f ./backend/docker-compose.yml up -d",
+		);
+	});
+
+	it("points --env-file at the generated .env when pinned", () => {
+		const start = createStartCommand(
+			{
+				...base,
+				composePath: "./deploy/docker-compose.yml",
+				createEnvFile: true,
+			} as any,
+			projectPath,
+		);
+
+		expect(start).toContain("--env-file deploy/.env");
+	});
+
+	it("uses docker-compose.yml for raw sources", () => {
+		const start = createStartCommand({
+			...base,
+			sourceType: "raw",
+			composePath: "./deploy/docker-compose.yml",
+		} as any);
+
+		expect(start).toContain("-f docker-compose.yml up -d");
 	});
 });
