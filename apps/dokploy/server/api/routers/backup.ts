@@ -650,7 +650,7 @@ export const backupRouter = createTRPCRouter({
 			const onLog = (log: string) => queue.push(log);
 			const assertBackupFileInService = (...folders: string[]) => {
 				if (
-					input.backupFile.includes("..") ||
+					input.backupFile.split("/").includes("..") ||
 					!folders.some((folder) => input.backupFile.startsWith(`${folder}/`))
 				) {
 					throw new TRPCError({

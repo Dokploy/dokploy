@@ -1,5 +1,6 @@
 import {
 	createVolumeBackup,
+	findServiceOwningVolume,
 	findVolumeBackupById,
 	IS_CLOUD,
 	removeVolumeBackup,
@@ -17,8 +18,6 @@ import {
 	VOLUME_NAME_REGEX,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
-import { findApplicationById } from "@dokploy/server/services/application";
-import { findComposeById } from "@dokploy/server/services/compose";
 import {
 	findDestinationById,
 	findDestinationByIdForOrganization,
@@ -328,23 +327,11 @@ export const volumeBackupsRouter = createTRPCRouter({
 					message: "You don't have access to this destination.",
 				});
 			}
-			const service =
-				input.serviceType === "application"
-					? await findApplicationById(input.id)
-					: await findComposeById(input.id);
-			const ownsVolume =
-				service.mounts.some(
-					(mount) =>
-						mount.type === "volume" && mount.volumeName === input.volumeName,
-				) ||
-				(input.serviceType === "compose" &&
-					input.volumeName.startsWith(`${service.appName}_`));
-			if (!ownsVolume) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "This volume does not belong to the service.",
-				});
-			}
+			const service = await findServiceOwningVolume(
+				input.id,
+				input.serviceType,
+				input.volumeName,
+			);
 			const serverId = service.serverId ?? undefined;
 			return observable<string>((emit) => {
 				const runRestore = async () => {
