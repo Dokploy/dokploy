@@ -39,6 +39,7 @@ export const findEnvironmentById = async (environmentId: string) => {
 			description: true,
 			environmentId: true,
 			isDefault: true,
+			color: true,
 			projectId: true,
 			env: true,
 		},
@@ -259,6 +260,7 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 			description: true,
 			environmentId: true,
 			isDefault: true,
+			color: true,
 		},
 	});
 	return projectEnvironments;
@@ -331,6 +333,7 @@ export const duplicateEnvironment = async (
 		.values({
 			name: input.name,
 			description: input.description || originalEnvironment.description,
+			color: input.color ?? originalEnvironment.color,
 			projectId: originalEnvironment.projectId,
 			env: originalEnvironment.env,
 		})
