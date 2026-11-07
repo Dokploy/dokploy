@@ -87,7 +87,7 @@ export const loadDockerComposeRemote = async (
 		}
 		const { stdout, stderr } = await execAsyncRemote(
 			compose.serverId,
-			`cat ${path}`,
+			`cat ${quote([path])}`,
 		);
 
 		if (stderr) {
@@ -130,7 +130,7 @@ exit 1;
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
 		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > "${path}";`;
+		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : String(error ?? "");
