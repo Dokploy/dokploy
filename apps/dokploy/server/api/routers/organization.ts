@@ -356,6 +356,17 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			if (
+				input.role === "admin" &&
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin"
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners and admins can invite a user as admin",
+				});
+			}
+
 			// If assigning a custom role, verify it exists
 			if (!["owner", "admin", "member"].includes(input.role)) {
 				const customRole = await db.query.organizationRole.findFirst({
@@ -503,6 +514,18 @@ export const organizationRouter = createTRPCRouter({
 					code: "FORBIDDEN",
 					message:
 						"Only the organization owner can change admin roles. Admins can only modify member roles.",
+				});
+			}
+
+			const callerIsPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+			if (
+				!callerIsPrivileged &&
+				(input.role === "admin" || target.role === "admin")
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners and admins can assign or change the admin role",
 				});
 			}
 

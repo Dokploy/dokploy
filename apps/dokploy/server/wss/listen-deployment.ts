@@ -1,6 +1,12 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
+import {
+	findDeploymentByLogPath,
+	findServerById,
+	IS_CLOUD,
+	validateRequest,
+} from "@dokploy/server";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
@@ -53,6 +59,65 @@ export const setupDeploymentLogsWebSocketServer = (
 
 		if (!user || !session) {
 			ws.close();
+			return;
+		}
+
+		try {
+			const deployment = await findDeploymentByLogPath(logPath);
+			if (!deployment) {
+				ws.close(4003, "Not authorized");
+				return;
+			}
+			const ctxLike = {
+				user: { id: user.id },
+				session: { activeOrganizationId: session.activeOrganizationId },
+			} as Parameters<typeof checkServicePermissionAndAccess>[0];
+
+			const { backup, volumeBackup, schedule } = deployment;
+			const serviceId =
+				deployment.applicationId ??
+				deployment.composeId ??
+				deployment.previewDeployment?.applicationId ??
+				schedule?.applicationId ??
+				schedule?.composeId ??
+				backup?.postgresId ??
+				backup?.mysqlId ??
+				backup?.mariadbId ??
+				backup?.mongoId ??
+				backup?.libsqlId ??
+				backup?.composeId ??
+				(volumeBackup &&
+					(volumeBackup.applicationId ??
+						volumeBackup.postgresId ??
+						volumeBackup.mysqlId ??
+						volumeBackup.mariadbId ??
+						volumeBackup.mongoId ??
+						volumeBackup.redisId ??
+						volumeBackup.libsqlId ??
+						volumeBackup.composeId)) ??
+				null;
+
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctxLike, serviceId, {
+					deployment: ["read"],
+				});
+			} else {
+				const org =
+					deployment.server?.organizationId ??
+					schedule?.organizationId ??
+					backup?.destination?.organizationId ??
+					null;
+				if (!org || org !== session.activeOrganizationId) {
+					ws.close(4003, "Not authorized");
+					return;
+				}
+			}
+		} catch {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		if (ws.readyState !== ws.OPEN) {
 			return;
 		}
 
@@ -192,7 +257,7 @@ export const setupDeploymentLogsWebSocketServer = (
 				sshClient.end();
 			}
 			if (ws.readyState === ws.OPEN) {
-				// @ts-ignore
+				// @ts-expect-error
 				const errorMessage = error?.message as unknown as string;
 				ws.send(errorMessage || "An error occurred");
 				ws.close();

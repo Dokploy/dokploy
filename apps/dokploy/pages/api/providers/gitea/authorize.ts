@@ -1,3 +1,4 @@
+import { validateRequest } from "@dokploy/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { findGitea, redirectWithError } from "./helper";
 
@@ -16,8 +17,17 @@ export default async function handler(
 			return res.status(400).json({ error: "Invalid Gitea provider ID" });
 		}
 
+		const { user, session } = await validateRequest(req);
+		if (!user || !session?.activeOrganizationId) {
+			return res.status(401).json({ error: "Unauthorized" });
+		}
+
 		const gitea = await findGitea(giteaId as string);
 		if (!gitea || !gitea.clientId || !gitea.redirectUri) {
+			return redirectWithError(res, "Incomplete OAuth configuration");
+		}
+
+		if (gitea.gitProvider.organizationId !== session.activeOrganizationId) {
 			return redirectWithError(res, "Incomplete OAuth configuration");
 		}
 

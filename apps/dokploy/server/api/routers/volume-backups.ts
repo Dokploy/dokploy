@@ -1,5 +1,6 @@
 import {
 	createVolumeBackup,
+	findServiceOwningVolume,
 	findVolumeBackupById,
 	IS_CLOUD,
 	removeVolumeBackup,
@@ -22,7 +23,6 @@ import {
 	findDestinationByIdForOrganization,
 } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
-import { findServerById } from "@dokploy/server/services/server";
 import {
 	execAsyncRemote,
 	execAsyncStream,
@@ -296,7 +296,16 @@ export const volumeBackupsRouter = createTRPCRouter({
 		})
 		.input(
 			z.object({
-				backupFileName: z.string().min(1),
+				backupFileName: z
+					.string()
+					.min(1)
+					.refine(
+						(name) =>
+							!name.startsWith("/") &&
+							!name.split("/").includes("..") &&
+							!/[\0\r\n]/.test(name),
+						"Invalid backup file name",
+					),
 				destinationId: z.string().min(1),
 				volumeName: z
 					.string()
@@ -308,6 +317,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 			}),
 		)
 		.subscription(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.id, {
+				volumeBackup: ["restore"],
+			});
 			const destination = await findDestinationById(input.destinationId);
 			if (destination.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
@@ -315,15 +327,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 					message: "You don't have access to this destination.",
 				});
 			}
-			if (input.serverId) {
-				const targetServer = await findServerById(input.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this server.",
-					});
-				}
-			}
+			const service = await findServiceOwningVolume(
+				input.id,
+				input.serviceType,
+				input.volumeName,
+			);
+			const serverId = service.serverId ?? undefined;
 			return observable<string>((emit) => {
 				const runRestore = async () => {
 					try {
@@ -339,7 +348,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 							input.destinationId,
 							input.volumeName,
 							input.backupFileName,
-							input.serverId || "",
+							serverId || "",
 							input.serviceType,
 						);
 
@@ -348,9 +357,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next(""); // Empty line
 
 						// Execute the restore command with real-time output
-						if (input.serverId) {
-							emit.next(`🌐 Executing on remote server: ${input.serverId}`);
-							await execAsyncRemote(input.serverId, restoreCommand, (data) => {
+						if (serverId) {
+							emit.next(`🌐 Executing on remote server: ${serverId}`);
+							await execAsyncRemote(serverId, restoreCommand, (data) => {
 								emit.next(data);
 							});
 						} else {

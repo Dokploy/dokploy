@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	createNetwork,
 	findNetworkById,
 	findNetworksToSync,
@@ -52,6 +53,7 @@ export const networkRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateNetwork)
 		.mutation(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			const created = await createNetwork(
 				input,
 				ctx.session.activeOrganizationId,
@@ -67,6 +69,7 @@ export const networkRouter = createTRPCRouter({
 	networksToSync: protectedProcedure
 		.input(z.object({ serverId: z.string().optional() }))
 		.query(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			return findNetworksToSync(
 				ctx.session.activeOrganizationId,
 				input.serverId ?? null,
@@ -81,6 +84,7 @@ export const networkRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			const result = await importDockerNetworks(
 				ctx.session.activeOrganizationId,
 				input.serverId ?? null,
@@ -107,6 +111,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			return inspectNetwork(input.networkId);
 		}),
 
@@ -120,6 +125,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			const recreated = await recreateNetwork(input.networkId);
 			await audit(ctx, {
 				action: "reload",
@@ -140,6 +146,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			const resynced = await resyncNetwork(
 				input.networkId,
 				ctx.session.activeOrganizationId,
@@ -163,6 +170,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Not authorized to delete this network",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			const removed = await removeNetwork(input.networkId);
 			await audit(ctx, {
 				action: "delete",

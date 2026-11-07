@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
 import { db } from "../db";
 import {
@@ -7,6 +7,8 @@ import {
 	type updateVolumeBackupSchema,
 	volumeBackups,
 } from "../db/schema";
+import { findApplicationById } from "./application";
+import { findComposeById } from "./compose";
 
 export const findVolumeBackupById = async (volumeBackupId: string) => {
 	const volumeBackup = await db.query.volumeBackups.findFirst({
@@ -136,4 +138,42 @@ export const updateVolumeBackup = async (
 		.where(eq(volumeBackups.volumeBackupId, volumeBackupId))
 		.returning()
 		.then((e) => e[0]);
+};
+
+// Compose volumes can be renamed (`name:`) or external, so a volume this
+// service already backs up also counts as its own.
+export const findServiceOwningVolume = async (
+	id: string,
+	serviceType: "application" | "compose",
+	volumeName: string,
+) => {
+	const service =
+		serviceType === "application"
+			? await findApplicationById(id)
+			: await findComposeById(id);
+	const backedUp = await db.query.volumeBackups.findFirst({
+		where: and(
+			eq(
+				serviceType === "application"
+					? volumeBackups.applicationId
+					: volumeBackups.composeId,
+				id,
+			),
+			eq(volumeBackups.volumeName, volumeName),
+		),
+		columns: { volumeBackupId: true },
+	});
+	const ownsVolume =
+		!!backedUp ||
+		service.mounts.some(
+			(mount) => mount.type === "volume" && mount.volumeName === volumeName,
+		) ||
+		(serviceType === "compose" && volumeName.startsWith(`${service.appName}_`));
+	if (!ownsVolume) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "This volume does not belong to the service.",
+		});
+	}
+	return service;
 };
