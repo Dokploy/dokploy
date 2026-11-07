@@ -34,7 +34,35 @@ export const scheduleRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			await assertHostScheduleAccess(ctx, input.scheduleType, input.serverId);
 
-			const serviceId = input.applicationId || input.composeId;
+			const serviceId =
+				input.scheduleType === "application"
+					? input.applicationId
+					: input.scheduleType === "compose"
+						? input.composeId
+						: undefined;
+			if (
+				(input.scheduleType === "application" ||
+					input.scheduleType === "compose") &&
+				!serviceId
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A service is required for this schedule type",
+				});
+			}
+			const extraIds = [
+				input.scheduleType !== "application" && input.applicationId,
+				input.scheduleType !== "compose" && input.composeId,
+				(input.scheduleType === "application" ||
+					input.scheduleType === "compose") &&
+					input.serverId,
+			].filter(Boolean);
+			if (extraIds.length > 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Unexpected service or server for this schedule type",
+				});
+			}
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
@@ -115,6 +143,20 @@ export const scheduleRouter = createTRPCRouter({
 					input.scheduleType,
 					input.serverId ?? existingSchedule.serverId,
 				);
+			}
+
+			const rebinds =
+				(input.applicationId !== undefined &&
+					input.applicationId !== existingSchedule.applicationId) ||
+				(input.composeId !== undefined &&
+					input.composeId !== existingSchedule.composeId) ||
+				(input.serverId !== undefined &&
+					input.serverId !== existingSchedule.serverId);
+			if (rebinds) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A schedule cannot be moved to another service or server",
+				});
 			}
 
 			const serviceId =
