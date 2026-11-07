@@ -400,7 +400,7 @@ export const ShowOverviewServices = () => {
 							</TableHeader>
 							<TableBody>
 								{pagedServices.map((service) => {
-									const href = `/dashboard/project/${service.projectId}/environment/${service.environmentId}/services/${service.type}/${service.id}`;
+									const href = `/dashboard/project/${service.projectId}/environment/${service.environmentId}/services/${service.type}/${service.id}?from=overview&overviewTab=services`;
 									const hasActions = service.type in actionsByType;
 									return (
 										<TableRow key={service.id}>
