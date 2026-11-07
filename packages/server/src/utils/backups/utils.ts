@@ -3,6 +3,7 @@ import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { quote } from "shell-quote";
+import { wrapInBash } from "../process/bash";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
 import { runLibsqlBackup } from "./libsql";
@@ -285,7 +286,7 @@ export const getBackupCommand = (
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
-	return `
+	return wrapInBash(`
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
 	echo "[$(date)] Executing backup command..." >> ${logPath};
@@ -308,7 +309,7 @@ export const getBackupCommand = (
 
 	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
-	`;
+	`);
 };
 
 const getServiceAppName = (backup: BackupSchedule) => {
