@@ -111,6 +111,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			return inspectNetwork(input.networkId);
 		}),
 
@@ -124,6 +125,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			const recreated = await recreateNetwork(input.networkId);
 			await audit(ctx, {
 				action: "reload",
@@ -144,6 +146,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Network not found",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			const resynced = await resyncNetwork(
 				input.networkId,
 				ctx.session.activeOrganizationId,
@@ -167,6 +170,7 @@ export const networkRouter = createTRPCRouter({
 					message: "Not authorized to delete this network",
 				});
 			}
+			await assertServerAccess(ctx.session, network.serverId);
 			const removed = await removeNetwork(input.networkId);
 			await audit(ctx, {
 				action: "delete",

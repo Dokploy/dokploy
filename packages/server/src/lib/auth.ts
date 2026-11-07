@@ -75,7 +75,7 @@ const rewriteToCanonicalOrigin = async (url: string): Promise<string> => {
 		if (!origin) {
 			const settings = await getWebServerSettings();
 			origin = settings?.host
-				? `https://${settings.host}`
+				? `${settings.https ? "https" : "http"}://${settings.host}`
 				: settings?.serverIp
 					? `http://${settings.serverIp}:3000`
 					: null;

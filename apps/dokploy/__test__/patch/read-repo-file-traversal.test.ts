@@ -46,9 +46,10 @@ describe("patch.readRepoFile path traversal", () => {
 	it("still reads a normal file inside the repo", async () => {
 		const out = await readPatchRepoFile("a", "application", "Dockerfile");
 		expect(execMocks.execAsync).toHaveBeenCalledTimes(1);
-		const command = execMocks.execAsync.mock.calls[0][0] as string;
+		const command = execMocks.execAsync.mock.calls[0]?.[0] ?? "";
 		const { PATCH_REPOS_PATH } = paths(false);
 		expect(command).toContain(join(PATCH_REPOS_PATH, "application", "app1"));
+		expect(command).toMatch(/--filters HEAD\\?:Dockerfile/);
 		expect(out).toBe("ROOT:x:0:0");
 	});
 });

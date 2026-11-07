@@ -41,7 +41,7 @@ export const restoreVolume = async (
 		-v ${volumeName}:/volume_data \
 		-v ${volumeBackupPath}:/backup \
 		ubuntu \
-		bash -c "cd /volume_data && tar xvf /backup/${quote([backupFileName])} ."
+		tar -C /volume_data -xvf ${quote([`/backup/${backupFileName}`])}
 	echo "Volume restore completed ✅"
 	`;
 

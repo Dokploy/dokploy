@@ -17,12 +17,13 @@ import {
 	VOLUME_NAME_REGEX,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
+import { findApplicationById } from "@dokploy/server/services/application";
+import { findComposeById } from "@dokploy/server/services/compose";
 import {
 	findDestinationById,
 	findDestinationByIdForOrganization,
 } from "@dokploy/server/services/destination";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
-import { findServerById } from "@dokploy/server/services/server";
 import {
 	execAsyncRemote,
 	execAsyncStream,
@@ -299,9 +300,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 				backupFileName: z
 					.string()
 					.min(1)
-					.regex(
-						/^[A-Za-z0-9._/-]+$/,
-						"Invalid backup file name: only letters, numbers, '.', '_', '-' and '/' are allowed",
+					.refine(
+						(name) =>
+							!name.startsWith("/") &&
+							!name.split("/").includes("..") &&
+							!/[\0\r\n]/.test(name),
+						"Invalid backup file name",
 					),
 				destinationId: z.string().min(1),
 				volumeName: z
@@ -324,15 +328,24 @@ export const volumeBackupsRouter = createTRPCRouter({
 					message: "You don't have access to this destination.",
 				});
 			}
-			if (input.serverId) {
-				const targetServer = await findServerById(input.serverId);
-				if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You don't have access to this server.",
-					});
-				}
+			const service =
+				input.serviceType === "application"
+					? await findApplicationById(input.id)
+					: await findComposeById(input.id);
+			const ownsVolume =
+				service.mounts.some(
+					(mount) =>
+						mount.type === "volume" && mount.volumeName === input.volumeName,
+				) ||
+				(input.serviceType === "compose" &&
+					input.volumeName.startsWith(`${service.appName}_`));
+			if (!ownsVolume) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "This volume does not belong to the service.",
+				});
 			}
+			const serverId = service.serverId ?? undefined;
 			return observable<string>((emit) => {
 				const runRestore = async () => {
 					try {
@@ -348,7 +361,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 							input.destinationId,
 							input.volumeName,
 							input.backupFileName,
-							input.serverId || "",
+							serverId || "",
 							input.serviceType,
 						);
 
@@ -357,9 +370,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next(""); // Empty line
 
 						// Execute the restore command with real-time output
-						if (input.serverId) {
-							emit.next(`🌐 Executing on remote server: ${input.serverId}`);
-							await execAsyncRemote(input.serverId, restoreCommand, (data) => {
+						if (serverId) {
+							emit.next(`🌐 Executing on remote server: ${serverId}`);
+							await execAsyncRemote(serverId, restoreCommand, (data) => {
 								emit.next(data);
 							});
 						} else {

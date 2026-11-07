@@ -1113,8 +1113,33 @@ export const findDeploymentByLogPath = async (logPath: string) => {
 		columns: { applicationId: true, composeId: true },
 		with: {
 			server: { columns: { organizationId: true } },
-			schedule: { columns: { organizationId: true } },
+			schedule: {
+				columns: { organizationId: true, applicationId: true, composeId: true },
+			},
 			previewDeployment: { columns: { applicationId: true } },
+			backup: {
+				columns: {
+					postgresId: true,
+					mysqlId: true,
+					mariadbId: true,
+					mongoId: true,
+					libsqlId: true,
+					composeId: true,
+				},
+				with: { destination: { columns: { organizationId: true } } },
+			},
+			volumeBackup: {
+				columns: {
+					applicationId: true,
+					postgresId: true,
+					mysqlId: true,
+					mariadbId: true,
+					mongoId: true,
+					redisId: true,
+					libsqlId: true,
+					composeId: true,
+				},
+			},
 		},
 	});
 };

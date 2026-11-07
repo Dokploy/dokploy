@@ -73,10 +73,28 @@ export const setupDeploymentLogsWebSocketServer = (
 				session: { activeOrganizationId: session.activeOrganizationId },
 			} as Parameters<typeof checkServicePermissionAndAccess>[0];
 
+			const { backup, volumeBackup, schedule } = deployment;
 			const serviceId =
 				deployment.applicationId ??
 				deployment.composeId ??
 				deployment.previewDeployment?.applicationId ??
+				schedule?.applicationId ??
+				schedule?.composeId ??
+				backup?.postgresId ??
+				backup?.mysqlId ??
+				backup?.mariadbId ??
+				backup?.mongoId ??
+				backup?.libsqlId ??
+				backup?.composeId ??
+				(volumeBackup &&
+					(volumeBackup.applicationId ??
+						volumeBackup.postgresId ??
+						volumeBackup.mysqlId ??
+						volumeBackup.mariadbId ??
+						volumeBackup.mongoId ??
+						volumeBackup.redisId ??
+						volumeBackup.libsqlId ??
+						volumeBackup.composeId)) ??
 				null;
 
 			if (serviceId) {
@@ -86,7 +104,8 @@ export const setupDeploymentLogsWebSocketServer = (
 			} else {
 				const org =
 					deployment.server?.organizationId ??
-					deployment.schedule?.organizationId ??
+					schedule?.organizationId ??
+					backup?.destination?.organizationId ??
 					null;
 				if (!org || org !== session.activeOrganizationId) {
 					ws.close(4003, "Not authorized");

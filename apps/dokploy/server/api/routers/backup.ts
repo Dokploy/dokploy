@@ -73,6 +73,22 @@ import {
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 
+const assertWebServerBackupAccess = async (
+	ctx: { user: { role: string }; session: { activeOrganizationId: string } },
+	destinationId: string,
+) => {
+	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Only owners and admins can manage web-server backups",
+		});
+	}
+	await findDestinationByIdForOrganization(
+		destinationId,
+		ctx.session.activeOrganizationId,
+	);
+};
+
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
@@ -94,16 +110,7 @@ export const backupRouter = createTRPCRouter({
 						ctx.session.activeOrganizationId,
 					);
 				} else {
-					if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Only owners and admins can manage web-server backups",
-						});
-					}
-					await findDestinationByIdForOrganization(
-						input.destinationId,
-						ctx.session.activeOrganizationId,
-					);
+					await assertWebServerBackupAccess(ctx, input.destinationId);
 				}
 
 				if (IS_CLOUD) {
@@ -195,11 +202,8 @@ export const backupRouter = createTRPCRouter({
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					backup: ["read"],
 				});
-			} else if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Only owners and admins can read web-server backups",
-				});
+			} else {
+				await assertWebServerBackupAccess(ctx, backup.destinationId);
 			}
 
 			return backup;
@@ -225,16 +229,8 @@ export const backupRouter = createTRPCRouter({
 						ctx.session.activeOrganizationId,
 					);
 				} else {
-					if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Only owners and admins can manage web-server backups",
-						});
-					}
-					await findDestinationByIdForOrganization(
-						input.destinationId,
-						ctx.session.activeOrganizationId,
-					);
+					await assertWebServerBackupAccess(ctx, existing.destinationId);
+					await assertWebServerBackupAccess(ctx, input.destinationId);
 				}
 
 				await updateBackupById(input.backupId, input);
@@ -292,11 +288,8 @@ export const backupRouter = createTRPCRouter({
 					await checkServicePermissionAndAccess(ctx, serviceId, {
 						backup: ["delete"],
 					});
-				} else if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Only owners and admins can manage web-server backups",
-					});
+				} else {
+					await assertWebServerBackupAccess(ctx, backup.destinationId);
 				}
 
 				const value = await removeBackupById(input.backupId);
@@ -493,13 +486,8 @@ export const backupRouter = createTRPCRouter({
 	manualBackupWebServer: withPermission("backup", "create")
 		.input(apiFindOneBackup)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Only owners and admins can run a web-server backup",
-				});
-			}
 			const backup = await findBackupById(input.backupId);
+			await assertWebServerBackupAccess(ctx, backup.destinationId);
 			await runWebServerBackup(backup);
 			await keepLatestNBackups(backup);
 			await audit(ctx, {
@@ -660,10 +648,10 @@ export const backupRouter = createTRPCRouter({
 			const queue: string[] = [];
 			let done = false;
 			const onLog = (log: string) => queue.push(log);
-			const assertBackupFileInService = (appName: string) => {
+			const assertBackupFileInService = (...folders: string[]) => {
 				if (
-					input.backupFile !== appName &&
-					!input.backupFile.startsWith(`${appName}/`)
+					input.backupFile.includes("..") ||
+					!folders.some((folder) => input.backupFile.startsWith(`${folder}/`))
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -698,7 +686,11 @@ export const backupRouter = createTRPCRouter({
 					}
 				} else if (input.backupType === "compose") {
 					const compose = await findComposeById(input.databaseId);
-					assertBackupFileInService(compose.appName);
+					const serviceName = input.metadata?.serviceName;
+					assertBackupFileInService(
+						compose.appName,
+						...(serviceName ? [`${compose.appName}_${serviceName}`] : []),
+					);
 					await restoreComposeBackup(compose, destination, input, onLog);
 				}
 			};

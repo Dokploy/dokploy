@@ -1,4 +1,4 @@
-import { join, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
@@ -200,7 +200,8 @@ export const readPatchRepoFile = async (
 		});
 	}
 
-	const command = `cat ${quote([fullPath])}`;
+	// Read from the git tree so symlinks in the repo can't point at host files.
+	const command = `git -C ${quote([repoPath])} cat-file --filters ${quote([`HEAD:${relative(resolvedRepo, resolvedFull)}`])}`;
 
 	if (serverId) {
 		const result = await execAsyncRemote(serverId, command);
