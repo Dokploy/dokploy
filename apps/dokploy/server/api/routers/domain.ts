@@ -1,12 +1,13 @@
 import {
 	createDomain,
+	FREE_DOMAIN_PROVIDERS,
 	findApplicationById,
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
 	findServerById,
-	generateTraefikMeDomain,
+	generateFreeDomain,
 	getServerIpCandidates,
 	getWebServerSettings,
 	manageDomain,
@@ -82,12 +83,19 @@ export const domainRouter = createTRPCRouter({
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: withPermission("domain", "create")
-		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
+		.input(
+			z.object({
+				appName: z.string(),
+				serverId: z.string().optional(),
+				domainProvider: z.enum(FREE_DOMAIN_PROVIDERS).optional(),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
-			return generateTraefikMeDomain(
+			return generateFreeDomain(
 				input.appName,
 				ctx.user.ownerId,
 				input.serverId,
+				input.domainProvider,
 			);
 		}),
 	canGenerateTraefikMeDomains: withPermission("domain", "read")

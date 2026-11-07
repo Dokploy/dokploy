@@ -1,4 +1,11 @@
 import {
+	DEFAULT_FREE_DOMAIN_PROVIDER,
+	FREE_DOMAIN_PROVIDERS,
+	type FreeDomainProvider,
+	getFreeDomainProvider,
+	isFreeDomain,
+} from "@dokploy/server/utils/free-domain";
+import {
 	INVALID_HOSTNAME_MESSAGE,
 	VALID_HOSTNAME_REGEX,
 } from "@dokploy/server/utils/hostname-validation";
@@ -186,6 +193,10 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const { mutateAsync: generateDomain, isPending: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
+	const [domainProvider, setDomainProvider] = useState<FreeDomainProvider>(
+		DEFAULT_FREE_DOMAIN_PROVIDER,
+	);
+
 	const { data: canGenerateTraefikMeDomains } =
 		api.domain.canGenerateTraefikMeDomains.useQuery(
 			{
@@ -238,7 +249,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
 	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("sslip.io") || false;
+	const isGeneratedFreeDomain = isFreeDomain(host);
 
 	useEffect(() => {
 		if (data) {
@@ -257,6 +268,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				domainType: data?.domainType || type,
 				middlewares: data?.middlewares || [],
 			});
+			setDomainProvider(
+				getFreeDomainProvider(data.host) ?? DEFAULT_FREE_DOMAIN_PROVIDER,
+			);
 		}
 
 		if (!domainId) {
@@ -274,6 +288,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				domainType: type,
 				middlewares: [],
 			});
+			setDomainProvider(DEFAULT_FREE_DOMAIN_PROVIDER);
 		}
 	}, [form, data, isPending, domainId]);
 
@@ -523,7 +538,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											{!canGenerateTraefikMeDomains &&
-												field.value.includes("sslip.io") && (
+												isFreeDomain(field.value) && (
 													<AlertBlock type="warning">
 														You need to set an IP address in your{" "}
 														<Link
@@ -534,14 +549,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 																: "Web Server -> Server -> Update Server IP"}
 														</Link>{" "}
-														to make your sslip.io domain work.
+														to make your {domainProvider} domain work.
 													</AlertBlock>
 												)}
-											{isTraefikMeDomain && (
+											{isGeneratedFreeDomain && (
 												<AlertBlock type="info">
-													<strong>Note:</strong> sslip.io is a public HTTP
-													service and does not support SSL/HTTPS. HTTPS and
-													certificate options will not have any effect.
+													<strong>Note:</strong> sslip.io and traefik.me are
+													public HTTP services and do not support SSL/HTTPS.
+													HTTPS and certificate options will not have any
+													effect.
 												</AlertBlock>
 											)}
 											<FormLabel>Host</FormLabel>
@@ -549,6 +565,23 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												<FormControl>
 													<Input placeholder="api.dokploy.com" {...field} />
 												</FormControl>
+												<Select
+													value={domainProvider}
+													onValueChange={(value) =>
+														setDomainProvider(value as FreeDomainProvider)
+													}
+												>
+													<SelectTrigger className="w-[140px] shrink-0">
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														{FREE_DOMAIN_PROVIDERS.map((provider) => (
+															<SelectItem key={provider} value={provider}>
+																{provider}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
 														<TooltipTrigger asChild>
@@ -560,6 +593,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																	generateDomain({
 																		appName: application?.appName || "",
 																		serverId: application?.serverId || "",
+																		domainProvider,
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -577,7 +611,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															sideOffset={5}
 															className="max-w-40"
 														>
-															<p>Generate sslip.io domain</p>
+															<p>Generate {domainProvider} domain</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
