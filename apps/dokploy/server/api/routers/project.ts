@@ -1,31 +1,10 @@
 import {
-	createApplication,
-	createBackup,
-	createCompose,
-	createDomain,
-	createLibsql,
-	createMariadb,
-	createMongo,
-	createMount,
-	createMysql,
-	createPort,
-	createPostgres,
-	createPreviewDeployment,
+	assertDuplicateTargetServer,
 	createProject,
-	createRedirect,
-	createRedis,
-	createSecurity,
 	deleteProject,
-	findApplicationById,
-	findComposeById,
+	duplicateService,
 	findEnvironmentById,
-	findLibsqlById,
-	findMariadbById,
-	findMongoById,
-	findMySqlById,
-	findPostgresById,
 	findProjectById,
-	findRedisById,
 	findUserById,
 	IS_CLOUD,
 	updateProjectById,
@@ -52,6 +31,7 @@ import {
 import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateProject,
+	apiDuplicateTargetServer,
 	apiFindOneProject,
 	apiRemoveProject,
 	apiUpdateProject,
@@ -65,6 +45,7 @@ import {
 	postgres,
 	projects,
 	redis,
+	serviceType,
 } from "@/server/db/schema";
 import { getBillingStatus } from "@/server/utils/billing";
 
@@ -848,20 +829,12 @@ export const projectRouter = createTRPCRouter({
 					.array(
 						z.object({
 							id: z.string(),
-							type: z.enum([
-								"application",
-								"compose",
-								"libsql",
-								"mariadb",
-								"mongo",
-								"mysql",
-								"postgres",
-								"redis",
-							]),
+							type: z.enum(serviceType.enumValues),
 						}),
 					)
 					.optional(),
 				duplicateInSameProject: z.boolean().default(false),
+				targetServer: apiDuplicateTargetServer.default({ kind: "keep" }),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -901,6 +874,8 @@ export const projectRouter = createTRPCRouter({
 					}
 				}
 
+				await assertDuplicateTargetServer(ctx.session, input.targetServer);
+
 				const targetProject = input.duplicateInSameProject
 					? sourceEnvironment
 					: await createProject(
@@ -913,342 +888,14 @@ export const projectRouter = createTRPCRouter({
 						).then((value) => value.environment);
 
 				if (input.includeServices) {
-					const servicesToDuplicate = input.selectedServices || [];
-
-					const duplicateService = async (id: string, type: string) => {
-						switch (type) {
-							case "application": {
-								const {
-									applicationId,
-									domains,
-									security,
-									ports,
-									registry,
-									redirects,
-									previewDeployments,
-									mounts,
-									appName,
-									refreshToken,
-									...application
-								} = await findApplicationById(id);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newApplication = await createApplication({
-									...application,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${application.name} (copy)`
-										: application.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const domain of domains) {
-									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										applicationId: newApplication.applicationId,
-										domainType: "application",
-									});
-								}
-
-								for (const port of ports) {
-									const { portId, ...rest } = port;
-									await createPort({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newApplication.applicationId,
-										serviceType: "application",
-									});
-								}
-
-								for (const redirect of redirects) {
-									const { redirectId, ...rest } = redirect;
-									await createRedirect({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
-
-								for (const secure of security) {
-									const { securityId, ...rest } = secure;
-									await createSecurity({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
-
-								for (const previewDeployment of previewDeployments) {
-									const { previewDeploymentId, ...rest } = previewDeployment;
-									await createPreviewDeployment({
-										...rest,
-										applicationId: newApplication.applicationId,
-										domainId: undefined,
-									});
-								}
-
-								break;
-							}
-							case "compose": {
-								const {
-									composeId,
-									mounts,
-									domains,
-									appName,
-									refreshToken,
-									...compose
-								} = await findComposeById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newCompose = await createCompose({
-									...compose,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${compose.name} (copy)`
-										: compose.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newCompose.composeId,
-										serviceType: "compose",
-									});
-								}
-
-								for (const domain of domains) {
-									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										composeId: newCompose.composeId,
-										domainType: "compose",
-									});
-								}
-
-								break;
-							}
-							case "libsql": {
-								const { libsqlId, mounts, appName, ...libsql } =
-									await findLibsqlById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newLibsql = await createLibsql({
-									...libsql,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${libsql.name} (copy)`
-										: libsql.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newLibsql.libsqlId,
-										serviceType: "libsql",
-									});
-								}
-
-								break;
-							}
-							case "mariadb": {
-								const { mariadbId, mounts, backups, appName, ...mariadb } =
-									await findMariadbById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newMariadb = await createMariadb({
-									...mariadb,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${mariadb.name} (copy)`
-										: mariadb.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newMariadb.mariadbId,
-										serviceType: "mariadb",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, appName: _appName, ...rest } = backup;
-									await createBackup({
-										...rest,
-										mariadbId: newMariadb.mariadbId,
-									});
-								}
-								break;
-							}
-							case "mongo": {
-								const { mongoId, mounts, backups, appName, ...mongo } =
-									await findMongoById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newMongo = await createMongo({
-									...mongo,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${mongo.name} (copy)`
-										: mongo.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newMongo.mongoId,
-										serviceType: "mongo",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, appName: _appName, ...rest } = backup;
-									await createBackup({
-										...rest,
-										mongoId: newMongo.mongoId,
-									});
-								}
-								break;
-							}
-							case "mysql": {
-								const { mysqlId, mounts, backups, appName, ...mysql } =
-									await findMySqlById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newMysql = await createMysql({
-									...mysql,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${mysql.name} (copy)`
-										: mysql.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newMysql.mysqlId,
-										serviceType: "mysql",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, appName: _appName, ...rest } = backup;
-									await createBackup({
-										...rest,
-										mysqlId: newMysql.mysqlId,
-									});
-								}
-								break;
-							}
-							case "postgres": {
-								const { postgresId, mounts, backups, appName, ...postgres } =
-									await findPostgresById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newPostgres = await createPostgres({
-									...postgres,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${postgres.name} (copy)`
-										: postgres.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newPostgres.postgresId,
-										serviceType: "postgres",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
-									await createBackup({
-										...rest,
-										postgresId: newPostgres.postgresId,
-									});
-								}
-								break;
-							}
-							case "redis": {
-								const { redisId, mounts, appName, ...redis } =
-									await findRedisById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newRedis = await createRedis({
-									...redis,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${redis.name} (copy)`
-										: redis.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newRedis.redisId,
-										serviceType: "redis",
-									});
-								}
-
-								break;
-							}
-						}
-					};
-
-					for (const service of servicesToDuplicate) {
-						await duplicateService(service.id, service.type);
+					for (const service of input.selectedServices ?? []) {
+						await duplicateService({
+							id: service.id,
+							type: service.type,
+							environmentId: targetProject?.environmentId || "",
+							targetServer: input.targetServer,
+							renameAsCopy: input.duplicateInSameProject,
+						});
 					}
 				}
 
@@ -1261,10 +908,16 @@ export const projectRouter = createTRPCRouter({
 					resourceType: "project",
 					resourceId: targetProject?.projectId || "",
 					resourceName: input.name,
-					metadata: { duplicatedFrom: input.sourceEnvironmentId },
+					metadata: {
+						duplicatedFrom: input.sourceEnvironmentId,
+						targetServer: input.targetServer,
+					},
 				});
 				return targetProject;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error duplicating the project: ${error instanceof Error ? error.message : error}`,
