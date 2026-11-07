@@ -38,6 +38,7 @@ import {
 	Sheet,
 	SheetContent,
 	SheetDescription,
+	SheetFooter,
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
@@ -353,8 +354,8 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							Details of the request log entry.
 						</SheetDescription>
 					</SheetHeader>
-					<ScrollArea className="grow mt-4 pr-4">
-						<div className="border rounded-md">
+					<ScrollArea className="grow min-h-0">
+						<div className="border rounded-md mx-6">
 							<Table>
 								<TableBody>
 									{Object.entries(selectedRow || {}).map(([key, value]) => (
@@ -382,7 +383,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							</Table>
 						</div>
 					</ScrollArea>
-					<div className="mt-4 pt-4 border-t">
+					<SheetFooter className="border-t">
 						<Button
 							variant="outline"
 							className="w-full gap-2"
@@ -406,7 +407,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							<Download className="h-4 w-4" />
 							Download as JSON
 						</Button>
-					</div>
+					</SheetFooter>
 				</SheetContent>
 			</Sheet>
 		</>
