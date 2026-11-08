@@ -8,14 +8,7 @@ import {
 } from "@tanstack/react-table";
 import copy from "copy-to-clipboard";
 import { format, formatDistanceToNow, isValid } from "date-fns";
-import {
-	ArrowUpDown,
-	Copy,
-	KeyRound,
-	Loader2,
-	Plus,
-	RefreshCw,
-} from "lucide-react";
+import { ArrowUpDown, Copy, KeyRound, RefreshCw } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -36,7 +29,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -45,8 +37,8 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { api, type RouterOutputs } from "@/utils/api";
+import { CreateSecret } from "./create-secret";
 import { DeleteSecret } from "./delete-secret";
 
 interface Props {
@@ -97,8 +89,8 @@ export const ShowSecrets = ({ serverId }: Props) => {
 				<CardContent className="space-y-4">
 					<AlertBlock>
 						Docker never returns a secret value after creation. Values cannot be
-						viewed or edited here. To rotate a secret, create one with a new
-						name and update your stack.
+						viewed or changed in place. To rotate a secret, use the edit icon to
+						create a replacement, then update your stack.
 					</AlertBlock>
 					<SecretList serverId={serverId} />
 				</CardContent>
@@ -132,19 +124,10 @@ export const ShowSecrets = ({ serverId }: Props) => {
 };
 
 const SecretList = ({ serverId }: Props) => {
-	const utils = api.useUtils();
 	const list = api.dockerSecret.list.useQuery({ serverId }, { retry: false });
-	const create = api.dockerSecret.create.useMutation({
-		gcTime: 0,
-		onSuccess: () => utils.dockerSecret.count.invalidate({ serverId }),
-	});
 	const [filter, setFilter] = useState("");
 	const [pageIndex, setPageIndex] = useState(0);
 	const [sorting, setSorting] = useState<SortingState>([]);
-	const [open, setOpen] = useState(false);
-	const [name, setName] = useState("");
-	const [value, setValue] = useState("");
-	const [error, setError] = useState("");
 	const { refetch } = list;
 	const refresh = useCallback(() => {
 		void refetch();
@@ -250,7 +233,8 @@ const SecretList = ({ serverId }: Props) => {
 				header: () => <div className="text-right">Actions</div>,
 				enableSorting: false,
 				cell: ({ row: { original: secret } }) => (
-					<div className="text-right">
+					<div className="flex items-center justify-end gap-3">
+						<CreateSecret serverId={serverId} sourceName={secret.name} />
 						<DeleteSecret
 							secretId={secret.id}
 							name={secret.name}
@@ -280,14 +264,6 @@ const SecretList = ({ serverId }: Props) => {
 	const rows = table
 		.getRowModel()
 		.rows.slice(currentPage * 10, (currentPage + 1) * 10);
-	const changeOpen = (next: boolean) => {
-		setOpen(next);
-		if (!next) {
-			setName("");
-			setValue("");
-			setError("");
-		}
-	};
 
 	return (
 		<div className="space-y-4">
@@ -315,13 +291,10 @@ const SecretList = ({ serverId }: Props) => {
 						/>
 						Refresh
 					</Button>
-					<Button
-						onClick={() => changeOpen(true)}
+					<CreateSecret
+						serverId={serverId}
 						disabled={list.isPending || !!list.error}
-					>
-						<Plus className="size-4" />
-						Create secret
-					</Button>
+					/>
 				</div>
 			</div>
 			{list.error ? (
@@ -434,104 +407,6 @@ const SecretList = ({ serverId }: Props) => {
 				Deletion is blocked while a service or its rollback specification
 				references the secret, including services scaled to zero.
 			</p>
-			<Dialog
-				open={open}
-				onOpenChange={(next) => {
-					if (!create.isPending) changeOpen(next);
-				}}
-			>
-				<DialogContent className="max-h-[85vh] overflow-y-auto">
-					<DialogHeader>
-						<DialogTitle>Create Swarm secret</DialogTitle>
-						<DialogDescription>
-							The value is sent to Docker and cannot be retrieved after
-							creation. Keep a copy in your password manager if needed.
-						</DialogDescription>
-					</DialogHeader>
-					<form
-						className="space-y-4"
-						onSubmit={async (event) => {
-							event.preventDefault();
-							setError("");
-							try {
-								await create.mutateAsync({ serverId, name, value });
-								toast.success("Secret created");
-								changeOpen(false);
-								refresh();
-							} catch (cause) {
-								setError(
-									cause instanceof Error
-										? cause.message
-										: "Could not create the secret.",
-								);
-							} finally {
-								setValue("");
-								create.reset();
-							}
-						}}
-					>
-						<div className="space-y-2">
-							<Label htmlFor="secret-name">Name</Label>
-							<Input
-								id="secret-name"
-								maxLength={64}
-								pattern="[a-zA-Z0-9][a-zA-Z0-9_.\-]*"
-								placeholder="mysql_password_production_v1"
-								value={name}
-								onChange={(event) => setName(event.target.value)}
-								required
-								disabled={create.isPending}
-							/>
-							<p className="text-xs text-muted-foreground">
-								1 to 64 letters, numbers, dots, underscores, or hyphens. Start
-								with a letter or number.
-							</p>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="secret-value">Value</Label>
-							<Textarea
-								id="secret-value"
-								autoComplete="off"
-								spellCheck={false}
-								rows={5}
-								maxLength={500 * 1024 - 1}
-								value={value}
-								onChange={(event) => setValue(event.target.value)}
-								required
-								disabled={create.isPending}
-							/>
-							<p className="text-xs text-muted-foreground">
-								Text or a multiline key, less than 500 KiB. Whitespace is
-								preserved.
-							</p>
-						</div>
-						{error && (
-							<AlertBlock type="error" role="alert">
-								{error}
-							</AlertBlock>
-						)}
-						<div className="flex justify-end gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => changeOpen(false)}
-								disabled={create.isPending}
-							>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								disabled={create.isPending || !name || !value}
-							>
-								{create.isPending && (
-									<Loader2 className="size-4 animate-spin" />
-								)}
-								Create secret
-							</Button>
-						</div>
-					</form>
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 };

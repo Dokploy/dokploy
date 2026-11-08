@@ -25,6 +25,12 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 interface Props {
@@ -70,21 +76,29 @@ export const DeleteSecret = ({
 
 	return (
 		<Dialog open={open} onOpenChange={changeOpen}>
-			<DialogTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					aria-label={`Delete ${name}`}
-					title={
-						disabled
-							? "Remove service and rollback references before deleting"
-							: "Delete secret"
-					}
-					disabled={disabled}
-				>
-					<Trash2 className="size-4 text-destructive" />
-				</Button>
-			</DialogTrigger>
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<span className="inline-flex" tabIndex={disabled ? 0 : undefined}>
+							<DialogTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									aria-label={`Delete ${name}`}
+									disabled={disabled}
+								>
+									<Trash2 className="size-4 text-destructive" />
+								</Button>
+							</DialogTrigger>
+						</span>
+					</TooltipTrigger>
+					<TooltipContent>
+						{disabled
+							? "This secret is used by a service or its rollback settings. Remove those references before deleting it."
+							: "Delete secret"}
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Are you absolutely sure?</DialogTitle>

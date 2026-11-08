@@ -13,16 +13,19 @@ The list opens directly for signed-in users with Docker permission and access to
 the selected server, using the same access checks as the other Docker tabs.
 Use HTTPS to protect new secret values while they are sent to the dashboard.
 
-Choose **Create secret**, enter a unique name and its value, and submit. Names
+Choose **Create secret**, enter the content in Dokploy's shared code editor and
+a unique name, then submit. Names
 must start with a letter or number and contain at most 64 letters, numbers, dots,
 underscores, or hyphens. Values support UTF-8 text, including multiline keys,
 less than 500 KiB (maximum 511,999 UTF-8 bytes). Whitespace is preserved. Binary
 file upload is not supported.
 
 Docker stores the value in the Swarm. Dokploy does not keep another copy. Docker
-never returns the value after creation, so there is no view or edit action. To
-rotate a secret, create one with a new name, update its service references, and
-redeploy. Keep a separate copy in your password manager if you need one.
+never returns the value after creation, so existing content cannot be loaded or
+changed in place. The edit icon opens **Create replacement secret** with an empty
+content editor and a new name. Creating the replacement preserves the old secret
+and its references. Update your stack to use the new name and redeploy, then
+delete the old secret after its references are removed. Keep a separate copy in your password manager if you need one.
 
 ## Use a secret in a stack
 
@@ -78,7 +81,9 @@ Search by secret name, ID, service, or stack. References use immutable Docker
 secret IDs, so a different secret with the same name is not treated as the same
 object.
 
-Deletion requires typing the exact secret name in the confirmation dialog.
+Hover over or focus a disabled delete icon to see why the secret cannot be
+deleted. Deletion requires typing the exact secret name in the confirmation
+dialog.
 The server checks the confirmation name against the secret with that ID too.
 Deletion is blocked for referenced secrets, including
 services scaled to zero and rollback-only references. Remove those references
