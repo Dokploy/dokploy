@@ -5,6 +5,7 @@ const mock = vi.hoisted(() => ({
 	count: vi.fn(),
 	permission: vi.fn(),
 	serverAccess: vi.fn(),
+	server: vi.fn(),
 	list: vi.fn(),
 	create: vi.fn(),
 	remove: vi.fn(),
@@ -13,6 +14,7 @@ const mock = vi.hoisted(() => ({
 vi.mock("@dokploy/server", () => ({
 	countSwarmSecrets: mock.count,
 	assertServerAccess: mock.serverAccess,
+	findServerById: mock.server,
 	createSwarmSecret: mock.create,
 	listSwarmSecrets: mock.list,
 	removeSwarmSecret: mock.remove,
@@ -28,6 +30,18 @@ vi.mock("@/server/api/utils/audit", () => ({ audit: mock.audit }));
 import { dockerSecretRouter } from "@/server/api/routers/docker-secret";
 
 const secretId = "a".repeat(25);
+const remoteInput = {
+	serverId: "remote-1",
+	name: "test",
+	value: "value",
+	secretId,
+	confirmationName: "test",
+};
+const methods = ["count", "list", "create", "remove"] as const;
+const expectNoSecretOperations = () => {
+	for (const method of methods) expect(mock[method]).not.toHaveBeenCalled();
+	expect(mock.audit).not.toHaveBeenCalled();
+};
 const context = () => ({
 	user: { id: "user-1", email: "tester@example.test", role: "member" },
 	session: { id: "session-1", userId: "user-1", activeOrganizationId: "org-1" },
@@ -42,6 +56,7 @@ beforeEach(() => {
 	mock.create.mockResolvedValue({ id: secretId });
 	mock.list.mockResolvedValue([]);
 	mock.count.mockResolvedValue({ total: 2 });
+	mock.server.mockResolvedValue({ organizationId: "org-1" });
 });
 
 describe("Swarm secret API boundary", () => {
@@ -120,10 +135,58 @@ describe("Swarm secret API boundary", () => {
 			);
 		},
 	);
-	it("checks the local-server boundary too", async () => {
-		await caller().list({});
-		expect(mock.serverAccess).toHaveBeenCalledWith(context().session, null);
+	it.each(methods)(
+		"rejects a foreign organization even when assigned-server access allows %s",
+		async (method) => {
+			mock.serverAccess.mockResolvedValue(undefined);
+			mock.server.mockResolvedValue({ organizationId: "org-2" });
+			await expect(caller()[method](remoteInput)).rejects.toMatchObject({
+				code: "UNAUTHORIZED",
+			});
+			expect(mock.serverAccess).toHaveBeenCalledWith(
+				context().session,
+				remoteInput.serverId,
+			);
+			expectNoSecretOperations();
+		},
+	);
+	it.each(methods)(
+		"allows an assigned server in the active organization for %s",
+		async (method) => {
+			await caller()[method](remoteInput);
+			expect(mock.server).toHaveBeenCalledWith(remoteInput.serverId);
+			expect(mock[method]).toHaveBeenCalled();
+		},
+	);
+	it.each(methods)("rejects a missing remote server for %s", async (method) => {
+		mock.server.mockRejectedValue(new TRPCError({ code: "NOT_FOUND" }));
+		await expect(caller()[method](remoteInput)).rejects.toMatchObject({
+			code: "NOT_FOUND",
+		});
+		expectNoSecretOperations();
 	});
+	it.each(methods)(
+		"redacts a failed server ownership lookup for %s",
+		async (method) => {
+			mock.server.mockRejectedValue(new Error("PRIVATE_SERVER_DIAGNOSTIC"));
+			const error = await caller()
+				[method](remoteInput)
+				.catch((error) => error);
+			expect(error.code).toBe("INTERNAL_SERVER_ERROR");
+			expect(error.message).not.toContain("PRIVATE_SERVER_DIAGNOSTIC");
+			expect(error.cause).toBeUndefined();
+			expectNoSecretOperations();
+		},
+	);
+	it.each(methods)(
+		"checks local-server access without a remote lookup for %s",
+		async (method) => {
+			await caller()[method]({ ...remoteInput, serverId: undefined });
+			expect(mock.serverAccess).toHaveBeenCalledWith(context().session, null);
+			expect(mock.server).not.toHaveBeenCalled();
+			expect(mock[method]).toHaveBeenCalled();
+		},
+	);
 	it("opens the list directly with normal Docker access", async () => {
 		expect(await caller().list({ serverId: "remote-1" })).toEqual([]);
 		expect(mock.list).toHaveBeenCalledWith("remote-1");

@@ -2,6 +2,7 @@ import {
 	assertServerAccess,
 	countSwarmSecrets,
 	createSwarmSecret,
+	findServerById,
 	listSwarmSecrets,
 	removeSwarmSecret,
 	SWARM_SECRET_MAX_BYTES,
@@ -30,6 +31,12 @@ const scopedProcedure = withPermission("docker", "read")
 	.input(serverInput)
 	.use(async ({ ctx, input, next }) => {
 		await assertServerAccess(ctx.session, input.serverId ?? null);
+		if (input.serverId) {
+			const server = await findServerById(input.serverId);
+			if (server.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+		}
 		return next();
 	});
 
