@@ -89,8 +89,8 @@ export const ShowSecrets = ({ serverId }: Props) => {
 				<CardContent className="space-y-4">
 					<AlertBlock>
 						Docker never returns a secret value after creation. Values cannot be
-						viewed or changed in place. To rotate a secret, use the edit icon to
-						create a replacement, then update your stack.
+						viewed or changed in place. To rotate a secret, create a new secret
+						with a new name, then update your stack.
 					</AlertBlock>
 					<SecretList serverId={serverId} />
 				</CardContent>
@@ -234,7 +234,6 @@ const SecretList = ({ serverId }: Props) => {
 				enableSorting: false,
 				cell: ({ row: { original: secret } }) => (
 					<div className="flex items-center justify-end gap-3">
-						<CreateSecret serverId={serverId} sourceName={secret.name} />
 						<DeleteSecret
 							secretId={secret.id}
 							name={secret.name}

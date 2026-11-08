@@ -22,10 +22,10 @@ file upload is not supported.
 
 Docker stores the value in the Swarm. Dokploy does not keep another copy. Docker
 never returns the value after creation, so existing content cannot be loaded or
-changed in place. The edit icon opens **Create replacement secret** with an empty
-content editor and a new name. Creating the replacement preserves the old secret
-and its references. Update your stack to use the new name and redeploy, then
-delete the old secret after its references are removed. Keep a separate copy in your password manager if you need one.
+changed in place. To rotate a secret, choose **Create secret** and enter new
+content and a new name. Update your stack to use the new name and redeploy, then
+delete the old secret after its references are removed. Keep a separate copy in
+your password manager if you need one.
 
 ## Use a secret in a stack
 

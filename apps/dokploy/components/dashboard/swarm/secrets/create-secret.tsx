@@ -1,5 +1,5 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
-import { PenBoxIcon, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -25,16 +25,14 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
 interface Props {
 	serverId?: string;
-	sourceName?: string;
 	disabled?: boolean;
 }
 
-export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
+export const CreateSecret = ({ serverId, disabled }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [error, setError] = useState("");
 	const formId = useId();
@@ -58,10 +56,6 @@ export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
 					.regex(
 						/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
 						"Use letters, numbers, dots, underscores, or hyphens, starting with a letter or number.",
-					)
-					.refine(
-						(name) => !sourceName || name !== sourceName,
-						"Choose a new name for the replacement secret.",
 					),
 				value: z
 					.string()
@@ -77,52 +71,26 @@ export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
 		if (create.isPending) return;
 		setOpen(next);
 		setError("");
-		form.reset({
-			name: next && sourceName ? `${sourceName.slice(0, 60)}-new` : "",
-			value: "",
-		});
+		form.reset({ name: "", value: "" });
 		create.reset();
 	};
 
 	return (
 		<Dialog open={open} onOpenChange={changeOpen}>
 			<DialogTrigger asChild>
-				{sourceName ? (
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						className="group hover:bg-blue-500/10"
-						aria-label={`Create replacement for ${sourceName}`}
-						title="Create replacement secret"
-						disabled={disabled}
-					>
-						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
-					</Button>
-				) : (
-					<Button disabled={disabled}>
-						<Plus className="size-4" />
-						Create secret
-					</Button>
-				)}
+				<Button disabled={disabled}>
+					<Plus className="size-4" />
+					Create secret
+				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>
-						{sourceName ? "Create replacement secret" : "Create Swarm secret"}
-					</DialogTitle>
+					<DialogTitle>Create Swarm secret</DialogTitle>
 					<DialogDescription>
-						{sourceName
-							? "Enter new content and a new name. Docker does not return the existing value."
-							: "The content is sent to Docker and cannot be retrieved after creation. Keep a copy in your password manager if needed."}
+						The content is sent to Docker and cannot be retrieved after
+						creation. Keep a copy in your password manager if needed.
 					</DialogDescription>
 				</DialogHeader>
-				{sourceName && (
-					<AlertBlock type="warning">
-						Swarm secrets cannot be edited in place. This creates a new secret.
-						Update your stack to use its name, then delete the old secret when
-						it is unused.
-					</AlertBlock>
-				)}
 				{error && (
 					<AlertBlock type="error" role="alert">
 						{error}
@@ -136,9 +104,7 @@ export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
 							setError("");
 							try {
 								await create.mutateAsync({ serverId, name, value });
-								toast.success(
-									sourceName ? "Replacement secret created" : "Secret created",
-								);
+								toast.success("Secret created");
 								setOpen(false);
 								form.reset({ name: "", value: "" });
 							} catch (cause) {
@@ -186,20 +152,12 @@ export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
 								</FormItem>
 							)}
 						/>
-						{sourceName && (
-							<div className="space-y-2">
-								<Label htmlFor={`${formId}-source`}>Current secret</Label>
-								<Input id={`${formId}-source`} value={sourceName} disabled />
-							</div>
-						)}
 						<FormField
 							control={form.control}
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>
-										{sourceName ? "New secret name" : "Name"}
-									</FormLabel>
+									<FormLabel>Name</FormLabel>
 									<FormControl>
 										<Input
 											maxLength={64}
@@ -236,7 +194,7 @@ export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
 							create.isPending || !form.watch("name") || !form.watch("value")
 						}
 					>
-						{sourceName ? "Create replacement" : "Create secret"}
+						Create secret
 					</Button>
 				</DialogFooter>
 			</DialogContent>
