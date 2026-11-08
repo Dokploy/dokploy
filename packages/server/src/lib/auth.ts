@@ -586,6 +586,8 @@ const { handler, api } = globalForAuth.betterAuthInstance;
 
 const _auth = {
 	handler,
+	verifyPassword: api.verifyPassword,
+	verifyTOTP: api.verifyTOTP,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
