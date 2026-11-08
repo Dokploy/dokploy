@@ -108,22 +108,37 @@ export const pipeBetweenServers = async ({
 		onProgress?.(bytes);
 	});
 	from.stdout.on("error", () => {});
-	from.stdout.pipe(to.stdin);
 
-	const targetExit = to.exit.then((code) => {
-		if (code !== 0) from.close();
-		return code;
-	});
+	let sourceStopped = false;
+	const stopSource = () => {
+		if (sourceStopped) return;
+		sourceStopped = true;
+		from.stdout.unpipe(to.stdin);
+		from.stdout.resume();
+		from.close();
+	};
 
-	const [sourceCode, targetCode] = await Promise.all([from.exit, targetExit]);
-	const failures = [
-		sourceCode !== 0 &&
-			`source exited with code ${sourceCode}: ${sourceError()}`,
-		targetCode !== 0 &&
-			`target exited with code ${targetCode}: ${targetError()}`,
-	].filter(Boolean);
-	if (failures.length > 0) {
-		throw new Error(failures.join("\n"));
+	if (to.stdin.writable) {
+		from.stdout.pipe(to.stdin);
+	} else {
+		stopSource();
+	}
+
+	const targetExit = to.exit
+		.then((code) => {
+			if (code !== 0) {
+				throw new Error(`target exited with code ${code}: ${targetError()}`);
+			}
+			return code;
+		})
+		.catch((error) => {
+			stopSource();
+			throw error;
+		});
+
+	const [sourceCode] = await Promise.all([from.exit, targetExit]);
+	if (sourceCode !== 0) {
+		throw new Error(`source exited with code ${sourceCode}: ${sourceError()}`);
 	}
 	return bytes;
 };

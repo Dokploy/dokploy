@@ -50,6 +50,7 @@ import {
 	projects,
 	redis as redisTable,
 } from "@/server/db/schema";
+import { cancelDatabaseScheduleJobs } from "@/server/utils/database-schedules";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)
@@ -337,6 +338,8 @@ export const redisRouter = createTRPCRouter({
 				resourceId: redis.redisId,
 				resourceName: redis.appName,
 			});
+			await cancelDatabaseScheduleJobs("redis", input.redisId);
+
 			const cleanupOperations = [
 				async () => await removeService(redis?.appName, redis.serverId),
 				async () => await removeRedisById(input.redisId),

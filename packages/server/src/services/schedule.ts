@@ -8,13 +8,36 @@ import type {
 	createScheduleSchema,
 	updateScheduleSchema,
 } from "../db/schema/schedule";
-import { type Schedule, schedules } from "../db/schema/schedule";
+import {
+	isDatabaseScheduleType,
+	type Schedule,
+	schedules,
+} from "../db/schema/schedule";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { findMemberByUserId } from "./permission";
 import { findServerById } from "./server";
 
 export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
+
+// Only the container identity and ownership chain are needed to manage
+// database schedules. In particular, never load database credentials or the
+// encrypted environment values from the database, environment, or project.
+const databaseScheduleRelation = {
+	columns: {
+		name: true,
+		appName: true,
+		serverId: true,
+	},
+	with: {
+		environment: {
+			columns: { environmentId: true },
+			with: {
+				project: { columns: { organizationId: true } },
+			},
+		},
+	},
+} as const;
 
 // Host-level schedules (server / dokploy-server) run their script as root on the
 // host and must stay restricted to owners/admins, regardless of whether the
@@ -62,7 +85,13 @@ export const createSchedule = async (
 	const { scheduleId, ...rest } = input;
 	const [newSchedule] = await db
 		.insert(schedules)
-		.values(rest as typeof schedules.$inferInsert)
+		.values({
+			...rest,
+			// Database images commonly provide /bin/sh but not bash. The UI uses
+			// sh by default; keep API-created database schedules consistent.
+			...(isDatabaseScheduleType(rest.scheduleType) &&
+				rest.shellType === undefined && { shellType: "sh" as const }),
+		} as typeof schedules.$inferInsert)
 		.returning();
 
 	if (
@@ -103,6 +132,13 @@ export const findScheduleById = async (scheduleId: string) => {
 					},
 				},
 			},
+			postgres: databaseScheduleRelation,
+			mysql: databaseScheduleRelation,
+			mariadb: databaseScheduleRelation,
+			mongo: databaseScheduleRelation,
+			redis: databaseScheduleRelation,
+			libsql: databaseScheduleRelation,
+
 			server: {
 				with: {
 					organization: true,
@@ -129,6 +165,16 @@ export const findScheduleOrganizationId = async (scheduleId: string) => {
 	if (schedule?.compose) {
 		return schedule?.compose?.environment?.project?.organizationId;
 	}
+	for (const database of [
+		schedule.postgres,
+		schedule.mysql,
+		schedule.mariadb,
+		schedule.mongo,
+		schedule.redis,
+		schedule.libsql,
+	]) {
+		if (database) return database.environment.project.organizationId;
+	}
 	if (schedule?.server) {
 		return schedule?.server?.organization?.id;
 	}
@@ -138,12 +184,21 @@ export const findScheduleOrganizationId = async (scheduleId: string) => {
 	return null;
 };
 
+export const getScheduleServerId = (schedule: ScheduleExtended) =>
+	schedule.serverId ||
+	schedule.application?.serverId ||
+	schedule.compose?.serverId ||
+	schedule.postgres?.serverId ||
+	schedule.mysql?.serverId ||
+	schedule.mariadb?.serverId ||
+	schedule.mongo?.serverId ||
+	schedule.redis?.serverId ||
+	schedule.libsql?.serverId ||
+	null;
+
 export const deleteSchedule = async (scheduleId: string) => {
 	const schedule = await findScheduleById(scheduleId);
-	const serverId =
-		schedule?.serverId ||
-		schedule?.application?.serverId ||
-		schedule?.compose?.serverId;
+	const serverId = getScheduleServerId(schedule);
 	const { SCHEDULES_PATH } = paths(!!serverId);
 
 	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");
