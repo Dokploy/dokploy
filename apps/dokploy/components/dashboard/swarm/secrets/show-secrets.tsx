@@ -255,14 +255,14 @@ const SecretList = ({ serverId }: Props) => {
 							secretId={secret.id}
 							name={secret.name}
 							serverId={serverId}
-							disabled={!!secret.services.length || list.isFetching}
+							disabled={!!secret.services.length}
 							onRefresh={refresh}
 						/>
 					</div>
 				),
 			},
 		],
-		[list.isFetching, refresh, serverId],
+		[refresh, serverId],
 	);
 	const table = useReactTable({
 		data: filteredRows,
