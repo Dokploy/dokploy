@@ -352,6 +352,23 @@ const UnlockedSecrets = ({
 					),
 			},
 			{
+				id: "createdAt",
+				accessorFn: (secret) =>
+					secret.createdAt ? new Date(secret.createdAt).getTime() || 0 : 0,
+				header: "Created",
+				cell: ({ row: { original: secret } }) => {
+					const date = secret.createdAt ? new Date(secret.createdAt) : null;
+					return date && isValid(date) ? (
+						<div className="text-muted-foreground whitespace-nowrap">
+							<time dateTime={date.toISOString()}>{format(date, "PP")}</time>
+							<div>{formatDistanceToNow(date, { addSuffix: true })}</div>
+						</div>
+					) : (
+						<span className="text-muted-foreground">Unknown</span>
+					);
+				},
+			},
+			{
 				id: "actions",
 				header: () => <div className="text-right">Actions</div>,
 				enableSorting: false,
@@ -367,23 +384,6 @@ const UnlockedSecrets = ({
 						/>
 					</div>
 				),
-			},
-			{
-				id: "createdAt",
-				accessorFn: (secret) =>
-					secret.createdAt ? new Date(secret.createdAt).getTime() || 0 : 0,
-				header: "Created",
-				cell: ({ row: { original: secret } }) => {
-					const date = secret.createdAt ? new Date(secret.createdAt) : null;
-					return date && isValid(date) ? (
-						<div className="text-muted-foreground whitespace-nowrap">
-							<time dateTime={date.toISOString()}>{format(date, "PPpp")}</time>
-							<div>{formatDistanceToNow(date, { addSuffix: true })}</div>
-						</div>
-					) : (
-						<span className="text-muted-foreground">Unknown</span>
-					);
-				},
 			},
 		],
 		[grant.token, list.isPending, refresh, serverId],

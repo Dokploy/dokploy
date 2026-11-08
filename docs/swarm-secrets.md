@@ -78,8 +78,9 @@ The list shows each secret's ID, name, creation time, and the current and rollba
 service specifications that reference it. Stack names appear beside services.
 The **Used by** column counts distinct Swarm services, including rollback-only
 references. The copy button beside each secret name copies its exact name for
-use in your stack environment. The last column shows the date above the relative time. Sort by name or creation
-date using the table headers.
+use in your stack environment. The Created column appears before Actions and
+shows the date above the relative time, without an exact clock time. Sort by
+name or creation date using the table headers.
 Search by secret name, ID, service, or stack. References use immutable Docker
 secret IDs, so a different secret with the same name is not treated as the same
 object.
