@@ -157,7 +157,9 @@ export const CreateSecret = ({ serverId, sourceName, disabled }: Props) => {
 							name="value"
 							render={({ field }) => (
 								<FormItem className="w-full min-w-0">
-									<FormLabel>Content</FormLabel>
+									<FormLabel onClick={() => form.setFocus("value")}>
+										Content
+									</FormLabel>
 									<FormControl>
 										<CodeEditor
 											language="properties"
