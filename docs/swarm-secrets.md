@@ -9,16 +9,9 @@ The Swarm Overview also shows a **Total Secrets** card for the selected server.
 This count does not expose secret names or values. If Docker cannot return the
 count, the card shows **Unavailable** instead of zero.
 
-Enter your account password to open the list. If you have enabled two-factor
-authentication, enter a code from your authenticator instead. SSO-only accounts
-need an account password or 2FA first. API keys and impersonated sessions cannot
-unlock the page. Verification allows access for five minutes on the current
-session, organization, and server. Use **Lock** to revoke access sooner.
-Five verification attempts are allowed per account every five minutes, shared
-across sessions and servers.
-
-Use HTTPS for Dokploy to protect passwords, authenticator codes, and new secret
-values while they are sent to the dashboard.
+The list opens directly for signed-in users with Docker permission and access to
+the selected server, using the same access checks as the other Docker tabs.
+Use HTTPS to protect new secret values while they are sent to the dashboard.
 
 Choose **Create secret**, enter a unique name and its value, and submit. Names
 must start with a letter or number and contain at most 64 letters, numbers, dots,
@@ -98,7 +91,7 @@ Secrets are Swarm-wide resources. As with the other Docker management tabs,
 Docker access grants visibility into the selected Swarm, rather than filtering
 by Dokploy project. Names and service references are metadata, but should still
 be chosen carefully. Create and delete actions use Dokploy's existing audit log;
-values, account passwords, authenticator codes, and access tokens are excluded.
+secret values are excluded.
 
 See [Docker secrets](https://docs.docker.com/engine/swarm/secrets/) for Docker's
 storage and rotation behavior.

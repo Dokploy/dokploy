@@ -13,11 +13,10 @@ import {
 	Copy,
 	KeyRound,
 	Loader2,
-	LockKeyhole,
 	Plus,
 	RefreshCw,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +52,6 @@ import { DeleteSecret } from "./delete-secret";
 interface Props {
 	serverId?: string;
 }
-type Grant = RouterOutputs["dockerSecret"]["unlock"];
 type Secret = RouterOutputs["dockerSecret"]["list"][number];
 
 const composeExample = `services:
@@ -75,31 +73,7 @@ secrets:
     name: \${MYSQL_ROOT_PASSWORD_SECRET:?Set the root password secret for this environment}`;
 
 export const ShowSecrets = ({ serverId }: Props) => {
-	const status = api.dockerSecret.status.useQuery(
-		{ serverId },
-		{ retry: false },
-	);
-	const unlock = api.dockerSecret.unlock.useMutation({ gcTime: 0 });
-	const lock = api.dockerSecret.lock.useMutation({ gcTime: 0 });
-	const [grant, setGrant] = useState<Grant | null>(null);
-	const [credential, setCredential] = useState("");
-	const [error, setError] = useState("");
 	const [exampleOpen, setExampleOpen] = useState(false);
-
-	useEffect(() => {
-		if (!grant) return;
-		const timer = setTimeout(
-			() => setGrant(null),
-			Math.max(0, grant.expiresAt - Date.now()),
-		);
-		return () => clearTimeout(timer);
-	}, [grant]);
-
-	const lockAccess = () => {
-		setGrant(null);
-		setCredential("");
-		lock.mutate({ serverId });
-	};
 
 	return (
 		<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
@@ -126,95 +100,7 @@ export const ShowSecrets = ({ serverId }: Props) => {
 						viewed or edited here. To rotate a secret, create one with a new
 						name and update your stack.
 					</AlertBlock>
-					{status.isLoading ? (
-						<p role="status">Checking Swarm manager...</p>
-					) : status.error ? (
-						<div className="space-y-3">
-							<AlertBlock type="error">{status.error.message}</AlertBlock>
-							<Button variant="outline" onClick={() => status.refetch()}>
-								Try again
-							</Button>
-						</div>
-					) : grant ? (
-						<UnlockedSecrets
-							key={grant.token}
-							serverId={serverId}
-							grant={grant}
-							onLock={lockAccess}
-						/>
-					) : status.data?.method === "unavailable" ? (
-						<AlertBlock type="warning">
-							Set an account password or enable two-factor authentication in
-							your profile before managing Swarm secrets.
-						</AlertBlock>
-					) : (
-						<form
-							className="mx-auto max-w-md space-y-4 rounded-xl border p-6"
-							onSubmit={async (event) => {
-								event.preventDefault();
-								setError("");
-								try {
-									setGrant(await unlock.mutateAsync({ serverId, credential }));
-								} catch (cause) {
-									setError(
-										cause instanceof Error
-											? cause.message
-											: "Could not verify your identity.",
-									);
-								} finally {
-									setCredential("");
-									unlock.reset();
-								}
-							}}
-						>
-							<div className="flex items-center gap-2 font-medium">
-								<LockKeyhole className="size-4" />
-								Verify your identity
-							</div>
-							<p className="text-sm text-muted-foreground">
-								Access lasts five minutes and is limited to this server.
-							</p>
-							<div className="space-y-2">
-								<Label htmlFor="secret-credential">
-									{status.data?.method === "totp"
-										? "Authenticator code"
-										: "Account password"}
-								</Label>
-								<Input
-									id="secret-credential"
-									type={status.data?.method === "totp" ? "text" : "password"}
-									autoComplete={
-										status.data?.method === "totp"
-											? "one-time-code"
-											: "current-password"
-									}
-									inputMode={
-										status.data?.method === "totp" ? "numeric" : undefined
-									}
-									maxLength={status.data?.method === "totp" ? 6 : 1024}
-									value={credential}
-									onChange={(event) => setCredential(event.target.value)}
-									required
-									disabled={unlock.isPending}
-								/>
-							</div>
-							{error && (
-								<AlertBlock type="error" role="alert">
-									{error}
-								</AlertBlock>
-							)}
-							<Button
-								type="submit"
-								disabled={unlock.isPending || !credential}
-								className="w-full"
-							>
-								{unlock.isPending && (
-									<Loader2 className="size-4 animate-spin" />
-								)}
-								Unlock secrets
-							</Button>
-						</form>
-					)}
+					<SecretList serverId={serverId} />
 				</CardContent>
 			</div>
 			<Dialog open={exampleOpen} onOpenChange={setExampleOpen}>
@@ -245,13 +131,9 @@ export const ShowSecrets = ({ serverId }: Props) => {
 	);
 };
 
-const UnlockedSecrets = ({
-	serverId,
-	grant,
-	onLock,
-}: Props & { grant: Grant; onLock: () => void }) => {
+const SecretList = ({ serverId }: Props) => {
 	const utils = api.useUtils();
-	const list = api.dockerSecret.list.useMutation({ gcTime: 0 });
+	const list = api.dockerSecret.list.useQuery({ serverId }, { retry: false });
 	const create = api.dockerSecret.create.useMutation({
 		gcTime: 0,
 		onSuccess: () => utils.dockerSecret.count.invalidate({ serverId }),
@@ -263,15 +145,10 @@ const UnlockedSecrets = ({
 	const [name, setName] = useState("");
 	const [value, setValue] = useState("");
 	const [error, setError] = useState("");
-	const input = { serverId, token: grant.token };
-	const { mutate: load } = list;
-	const refresh = useCallback(
-		() => load({ serverId, token: grant.token }),
-		[load, serverId, grant.token],
-	);
-	useEffect(() => {
-		load({ serverId, token: grant.token });
-	}, [load, serverId, grant.token]);
+	const { refetch } = list;
+	const refresh = useCallback(() => {
+		void refetch();
+	}, [refetch]);
 	const filteredRows = useMemo(
 		() =>
 			list.data?.filter((secret) =>
@@ -378,15 +255,14 @@ const UnlockedSecrets = ({
 							secretId={secret.id}
 							name={secret.name}
 							serverId={serverId}
-							token={grant.token}
-							disabled={!!secret.services.length || list.isPending}
+							disabled={!!secret.services.length || list.isFetching}
 							onRefresh={refresh}
 						/>
 					</div>
 				),
 			},
 		],
-		[grant.token, list.isPending, refresh, serverId],
+		[list.isFetching, refresh, serverId],
 	);
 	const table = useReactTable({
 		data: filteredRows,
@@ -429,17 +305,20 @@ const UnlockedSecrets = ({
 					/>
 				</div>
 				<div className="flex flex-wrap gap-2">
-					<Button variant="outline" onClick={onLock}>
-						<LockKeyhole className="size-4" />
-						Lock
-					</Button>
-					<Button variant="outline" onClick={refresh} disabled={list.isPending}>
+					<Button
+						variant="outline"
+						onClick={refresh}
+						disabled={list.isFetching}
+					>
 						<RefreshCw
-							className={`size-4 ${list.isPending ? "animate-spin" : ""}`}
+							className={`size-4 ${list.isFetching ? "animate-spin" : ""}`}
 						/>
 						Refresh
 					</Button>
-					<Button onClick={() => changeOpen(true)}>
+					<Button
+						onClick={() => changeOpen(true)}
+						disabled={list.isPending || !!list.error}
+					>
 						<Plus className="size-4" />
 						Create secret
 					</Button>
@@ -575,7 +454,7 @@ const UnlockedSecrets = ({
 							event.preventDefault();
 							setError("");
 							try {
-								await create.mutateAsync({ ...input, name, value });
+								await create.mutateAsync({ serverId, name, value });
 								toast.success("Secret created");
 								changeOpen(false);
 								refresh();

@@ -31,7 +31,6 @@ interface Props {
 	secretId: string;
 	name: string;
 	serverId?: string;
-	token: string;
 	disabled: boolean;
 	onRefresh: () => void;
 }
@@ -40,7 +39,6 @@ export const DeleteSecret = ({
 	secretId,
 	name,
 	serverId,
-	token,
 	disabled,
 	onRefresh,
 }: Props) => {
@@ -107,7 +105,6 @@ export const DeleteSecret = ({
 										secretId,
 										confirmationName,
 										serverId,
-										token,
 									});
 									toast.success("Secret deleted");
 									setOpen(false);
