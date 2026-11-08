@@ -77,6 +77,7 @@ describe("mounts.update for file mounts", () => {
 		const saved = mocks.updateMount.mock.calls[0]?.[1];
 		expect(saved).toMatchObject({ content: "FOO=edited\n" });
 		expect(saved).not.toHaveProperty("expectedContent");
+		expect(saved).not.toHaveProperty("serviceType");
 	});
 
 	it("saves when the file still doesn't exist", async () => {
