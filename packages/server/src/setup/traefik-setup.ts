@@ -134,8 +134,32 @@ const recreateStandaloneTraefik = async ({
 			.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
 			.remove({ force: true })
 			.catch(() => {});
-		await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
+		// Renamed while it runs, so an interrupted recreate can be restored. Docker before 29.8
+		// can't do that on a swarm overlay network like dokploy-network: then it's stopped first.
+		const renamedWhileRunning = await current
+			.rename({ name: PREVIOUS_TRAEFIK_CONTAINER })
+			.then(
+				() => true,
+				() => false,
+			);
 		await current.stop().catch(() => {});
+		if (!renamedWhileRunning) {
+			try {
+				await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
+			} catch (error) {
+				const reason = error instanceof Error ? error.message : String(error);
+				if (currentInfo?.State.Running) {
+					try {
+						await current.start();
+					} catch (startError) {
+						throw new Error(
+							`${reason}. Restoring the previous Traefik also failed: ${startError instanceof Error ? startError.message : startError}`,
+						);
+					}
+				}
+				throw new Error(`${reason}. The previous Traefik was restored.`);
+			}
+		}
 		await sleep(5000);
 	}
 
