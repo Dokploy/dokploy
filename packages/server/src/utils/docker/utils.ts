@@ -535,6 +535,61 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export interface PreviewDeployUrlTarget {
+	appName: string;
+	name: string;
+	host: string | null | undefined;
+}
+
+const PREVIEW_DEPLOY_URL_REFERENCE = /\$\{\{([^{}]+?)\.DOKPLOY_DEPLOY_URL\}\}/g;
+
+export const hasPreviewDeployUrlReference = (input: string | null) =>
+	!!input && new RegExp(PREVIEW_DEPLOY_URL_REFERENCE).test(input);
+
+/**
+ * Resolves `${{<app>.DOKPLOY_DEPLOY_URL}}` to the preview host of another
+ * application deployed for the same pull request. `<app>` may be the
+ * application's appName or its display name.
+ */
+export const resolvePreviewDeployUrlReferences = (
+	input: string | null,
+	targets: PreviewDeployUrlTarget[],
+) => {
+	if (!input) return "";
+
+	return input.replace(PREVIEW_DEPLOY_URL_REFERENCE, (match, ref: string) => {
+		// These prefixes belong to the existing project/environment/vault resolvers.
+		if (
+			ref === "project" ||
+			ref === "environment" ||
+			ref.startsWith("vault.")
+		) {
+			return match;
+		}
+
+		let target = targets.find((t) => t.appName === ref);
+		if (!target) {
+			const byName = targets.filter((t) => t.name === ref);
+			if (byName.length > 1) {
+				throw new Error(
+					`Ambiguous preview reference "${ref}": several applications share this name, use the appName instead`,
+				);
+			}
+			target = byName[0];
+		}
+
+		if (!target) {
+			throw new Error(
+				`No preview deployment found for "${ref}" in this pull request`,
+			);
+		}
+		if (!target.host) {
+			throw new Error(`Preview deployment for "${ref}" has no domain`);
+		}
+		return target.host;
+	});
+};
+
 export const prepareEnvironmentVariablesForShell = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,

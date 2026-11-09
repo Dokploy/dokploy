@@ -481,6 +481,7 @@ export default async function handler(
 				});
 			}
 
+			const previewJobs: DeploymentJob[] = [];
 			for (const app of secureApps) {
 				// check for labels
 				if (app?.previewLabels && app?.previewLabels?.length > 0) {
@@ -534,21 +535,27 @@ export default async function handler(
 				};
 
 				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
-						});
-						continue;
-					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
-					);
+					previewJobs.push(jobData);
 				}
+			}
+
+			// Enqueue only after every preview row exists, so builds can resolve
+			// ${{<app>.DOKPLOY_DEPLOY_URL}} references to sibling previews.
+			for (const jobData of previewJobs) {
+				if (IS_CLOUD && jobData.serverId) {
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
+					continue;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
 			return res.status(200).json({ message: "Apps Deployed" });
 		}

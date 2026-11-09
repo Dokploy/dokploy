@@ -9,7 +9,10 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import type { z } from "zod";
 import { generatePassword } from "../templates";
-import { removeService } from "../utils/docker/utils";
+import {
+	type PreviewDeployUrlTarget,
+	removeService,
+} from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
@@ -250,6 +253,29 @@ export const findPreviewDeploymentsByPullRequestIdForGithub = async (
 		with: { application: true },
 	});
 	return rows.filter((row) => row.application?.githubId === githubId);
+};
+
+export const findPreviewDeployUrlTargets = async (
+	pullRequestId: string,
+	environmentId: string,
+): Promise<PreviewDeployUrlTarget[]> => {
+	const rows = await db.query.previewDeployments.findMany({
+		where: eq(previewDeployments.pullRequestId, pullRequestId),
+		with: {
+			domain: { columns: { host: true } },
+			application: {
+				columns: { appName: true, name: true, environmentId: true },
+			},
+		},
+	});
+
+	return rows
+		.filter((row) => row.application?.environmentId === environmentId)
+		.map((row) => ({
+			appName: row.application.appName,
+			name: row.application.name,
+			host: row.domain?.host,
+		}));
 };
 
 export const findPreviewDeploymentByApplicationId = async (

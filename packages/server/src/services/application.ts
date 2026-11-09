@@ -10,6 +10,10 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import {
+	hasPreviewDeployUrlReference,
+	resolvePreviewDeployUrlReferences,
+} from "@dokploy/server/utils/docker/utils";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
@@ -48,6 +52,7 @@ import {
 import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,
+	findPreviewDeployUrlTargets,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
@@ -335,6 +340,34 @@ export const rebuildApplication = async ({
 	return true;
 };
 
+const getPreviewEnvironment = async (
+	application: Pick<
+		Application,
+		"previewEnv" | "previewBuildArgs" | "previewBuildSecrets" | "environmentId"
+	>,
+	previewDeployment: Awaited<ReturnType<typeof findPreviewDeploymentById>>,
+) => {
+	const deployUrl = `DOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+	const sources = {
+		env: application.previewEnv,
+		buildArgs: application.previewBuildArgs,
+		buildSecrets: application.previewBuildSecrets,
+	};
+
+	const targets = Object.values(sources).some(hasPreviewDeployUrlReference)
+		? await findPreviewDeployUrlTargets(
+				previewDeployment.pullRequestId,
+				application.environmentId,
+			)
+		: [];
+
+	return {
+		env: `${resolvePreviewDeployUrlReferences(sources.env, targets)}\n${deployUrl}`,
+		buildArgs: `${resolvePreviewDeployUrlReferences(sources.buildArgs, targets)}\n${deployUrl}`,
+		buildSecrets: `${resolvePreviewDeployUrlReferences(sources.buildSecrets, targets)}\n${deployUrl}`,
+	};
+};
+
 export const deployPreviewApplication = async ({
 	applicationId,
 	titleLog = "Preview Deployment",
@@ -401,9 +434,10 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		Object.assign(
+			application,
+			await getPreviewEnvironment(application, previewDeployment),
+		);
 		application.rollbackActive = false;
 		application.rollbackRegistry = null;
 
@@ -520,9 +554,10 @@ export const rebuildPreviewApplication = async ({
 
 		// Set application properties for preview deployment
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		Object.assign(
+			application,
+			await getPreviewEnvironment(application, previewDeployment),
+		);
 		application.rollbackActive = false;
 		application.rollbackRegistry = null;
 
