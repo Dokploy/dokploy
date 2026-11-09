@@ -6,11 +6,11 @@ import {
 	IS_CLOUD,
 	validateRequest,
 } from "@dokploy/server";
-import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
 import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { assertDeploymentAccess } from "../api/utils/deployment-access";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -63,55 +63,15 @@ export const setupDeploymentLogsWebSocketServer = (
 		}
 
 		try {
-			const deployment = await findDeploymentByLogPath(logPath);
-			if (!deployment) {
-				ws.close(4003, "Not authorized");
-				return;
-			}
 			const ctxLike = {
 				user: { id: user.id },
 				session: { activeOrganizationId: session.activeOrganizationId },
-			} as Parameters<typeof checkServicePermissionAndAccess>[0];
-
-			const { backup, volumeBackup, schedule } = deployment;
-			const serviceId =
-				deployment.applicationId ??
-				deployment.composeId ??
-				deployment.previewDeployment?.applicationId ??
-				schedule?.applicationId ??
-				schedule?.composeId ??
-				backup?.postgresId ??
-				backup?.mysqlId ??
-				backup?.mariadbId ??
-				backup?.mongoId ??
-				backup?.libsqlId ??
-				backup?.composeId ??
-				(volumeBackup &&
-					(volumeBackup.applicationId ??
-						volumeBackup.postgresId ??
-						volumeBackup.mysqlId ??
-						volumeBackup.mariadbId ??
-						volumeBackup.mongoId ??
-						volumeBackup.redisId ??
-						volumeBackup.libsqlId ??
-						volumeBackup.composeId)) ??
-				null;
-
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctxLike, serviceId, {
-					deployment: ["read"],
-				});
-			} else {
-				const org =
-					deployment.server?.organizationId ??
-					schedule?.organizationId ??
-					backup?.destination?.organizationId ??
-					null;
-				if (!org || org !== session.activeOrganizationId) {
-					ws.close(4003, "Not authorized");
-					return;
-				}
-			}
+			} as Parameters<typeof assertDeploymentAccess>[0];
+			await assertDeploymentAccess(
+				ctxLike,
+				await findDeploymentByLogPath(logPath),
+				"read",
+			);
 		} catch {
 			ws.close(4003, "Not authorized");
 			return;

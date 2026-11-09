@@ -80,6 +80,7 @@ import {
 	myQueue,
 } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
+import { containerBelongsToService } from "@/server/wss/container-ownership";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { audit } from "../utils/audit";
@@ -1248,6 +1249,18 @@ export const composeRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
+				});
+			}
+			if (
+				!(await containerBelongsToService(
+					input.composeId,
+					input.containerId,
+					compose.serverId,
+				))
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Container does not belong to this compose",
 				});
 			}
 			return await getContainerLogs(
