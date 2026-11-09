@@ -474,6 +474,9 @@ export const deployPreviewApplication = async ({
 			previewStatus: "done",
 		});
 	} catch (error) {
+		const serverId = application.buildServerId || application.serverId;
+		await writeDeploymentErrorLog(deployment, serverId, error);
+
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,

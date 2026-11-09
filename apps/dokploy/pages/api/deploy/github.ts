@@ -512,15 +512,25 @@ export default async function handler(
 						);
 						continue;
 					}
-					const previewDeployment = await createPreviewDeployment({
-						applicationId: app.applicationId as string,
-						branch: prBranch,
-						pullRequestId: prId,
-						pullRequestNumber: prNumber,
-						pullRequestTitle: prTitle,
-						pullRequestURL: prURL,
-					});
-					previewDeploymentId = previewDeployment.previewDeploymentId;
+					// Builds are queued after this loop, so one failing app must not
+					// stop the previews already created for the others.
+					try {
+						const previewDeployment = await createPreviewDeployment({
+							applicationId: app.applicationId as string,
+							branch: prBranch,
+							pullRequestId: prId,
+							pullRequestNumber: prNumber,
+							pullRequestTitle: prTitle,
+							pullRequestURL: prURL,
+						});
+						previewDeploymentId = previewDeployment.previewDeploymentId;
+					} catch (error) {
+						console.error(
+							`Failed to create preview deployment for ${app.name} on pull request #${prNumber}:`,
+							error,
+						);
+						continue;
+					}
 				}
 
 				const jobData: DeploymentJob = {
