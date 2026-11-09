@@ -41,7 +41,9 @@ import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	hasPermission,
 } from "@dokploy/server/services/permission";
+
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -184,8 +186,10 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			const canDeploy = await hasPermission(ctx, { deployment: ["create"] });
 			return {
 				...compose,
+				refreshToken: canDeploy ? compose.refreshToken : null,
 				hasGitProviderAccess,
 				unauthorizedProvider,
 			};
