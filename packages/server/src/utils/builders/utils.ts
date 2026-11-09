@@ -16,5 +16,7 @@ export const createEnvFileCommand = (
 	const encodedContent = encodeBase64(envFileContent || "");
 	const envFilePath = join(dirname(directory), ".env");
 
-	return `echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
+	// The file holds the app's secrets: restrict it to its owner before any
+	// content is written, so it is never readable by other users on the host.
+	return `touch "${envFilePath}" && chmod 600 "${envFilePath}"; echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
 };
