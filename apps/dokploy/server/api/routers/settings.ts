@@ -124,12 +124,26 @@ const traefikUpdateLocks = new Map<string, symbol>();
 const traefikUpdateErrors = new Map<string, string>();
 
 export const settingsRouter = createTRPCRouter({
-	getWebServerSettings: protectedProcedure.query(async () => {
+	getWebServerSettings: protectedProcedure.query(async ({ ctx }) => {
 		if (IS_CLOUD) {
 			return null;
 		}
-		const settings = await getWebServerSettings();
-		return settings;
+		const current = await getWebServerSettings();
+		if (!current) {
+			return current;
+		}
+		const { sshPrivateKey: _, ...settings } = current;
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return settings;
+		}
+		const { metricsConfig } = settings;
+		return {
+			...settings,
+			metricsConfig: {
+				...metricsConfig,
+				server: { ...metricsConfig.server, token: "" },
+			},
+		};
 	}),
 	reloadServer: adminProcedure.mutation(async ({ ctx }) => {
 		if (IS_CLOUD) {
