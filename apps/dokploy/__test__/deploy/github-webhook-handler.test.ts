@@ -225,6 +225,20 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.json).toHaveBeenCalledWith({ message: "Deployed 1 apps" });
 	});
 
+	it("ignores push events that delete a branch", async () => {
+		const res = createResponse();
+		const req = createPushRequest("main") as unknown as {
+			body: { deleted: boolean; commits: unknown[] };
+		};
+		req.body.deleted = true;
+		req.body.commits = [];
+
+		await handler(req as unknown as NextApiRequest, res);
+
+		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
+
 	it("matches compose push events using repository owner login fallback", async () => {
 		mocks.applicationsFindMany.mockResolvedValue([]);
 		mocks.composeFindMany.mockImplementation(({ where }) => {
