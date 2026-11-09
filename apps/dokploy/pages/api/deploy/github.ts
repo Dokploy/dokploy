@@ -538,33 +538,43 @@ export default async function handler(
 							);
 							return;
 						}
-						const previewDeployment = await createPreviewDeployment({
-							applicationId: app.applicationId as string,
-							branch: prBranch,
-							pullRequestId: prId,
-							pullRequestNumber: prNumber,
-							pullRequestTitle: prTitle,
-							pullRequestURL: prURL,
-						}).catch(async (error) => {
-							// The row is saved before the domain; drop it so a retry can recreate it.
-							await findPreviewDeploymentByApplicationId(
-								app.applicationId,
-								prId,
-							)
-								.then(
-									(partial) =>
-										partial &&
-										removePreviewDeployment(partial.previewDeploymentId),
+						// Builds are queued after this loop, so one failing app must not
+						// stop the previews already created for the others.
+						try {
+							const previewDeployment = await createPreviewDeployment({
+								applicationId: app.applicationId as string,
+								branch: prBranch,
+								pullRequestId: prId,
+								pullRequestNumber: prNumber,
+								pullRequestTitle: prTitle,
+								pullRequestURL: prURL,
+							}).catch(async (error) => {
+								// The row is saved before the domain; drop it so a retry can recreate it.
+								await findPreviewDeploymentByApplicationId(
+									app.applicationId,
+									prId,
 								)
-								.catch((cleanupError) =>
-									console.error(
-										"Failed to clean up partial preview deployment:",
-										cleanupError,
-									),
-								);
-							throw error;
-						});
-						previewDeploymentId = previewDeployment.previewDeploymentId;
+									.then(
+										(partial) =>
+											partial &&
+											removePreviewDeployment(partial.previewDeploymentId),
+									)
+									.catch((cleanupError) =>
+										console.error(
+											"Failed to clean up partial preview deployment:",
+											cleanupError,
+										),
+									);
+								throw error;
+							});
+							previewDeploymentId = previewDeployment.previewDeploymentId;
+						} catch (error) {
+							console.error(
+								`Failed to create preview deployment for ${app.name} on pull request #${prNumber}:`,
+								error,
+							);
+							return;
+						}
 					}
 
 					if (!previewDeploymentId) return;

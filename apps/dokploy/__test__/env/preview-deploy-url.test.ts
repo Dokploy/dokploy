@@ -93,6 +93,30 @@ describe("resolvePreviewDeployUrlReferences", () => {
 		).toThrow(/ambiguous|appName/i);
 	});
 
+	it("ignores references in commented-out lines", () => {
+		const env = [
+			"# API=${{worker.DOKPLOY_DEPLOY_URL}}",
+			"API=${{backend.DOKPLOY_DEPLOY_URL}}",
+		].join("\n");
+
+		const resolved = resolvePreviewDeployUrlReferences(env, targets);
+
+		expect(prepareEnvironmentVariables(resolved)).toEqual([
+			"API=preview-backend-zeeuhb-dtzv3p.preview.xyz.com",
+		]);
+	});
+
+	it("ignores references in inline comments", () => {
+		const env =
+			"API=${{backend.DOKPLOY_DEPLOY_URL}} # was ${{worker.DOKPLOY_DEPLOY_URL}}";
+
+		const resolved = resolvePreviewDeployUrlReferences(env, targets);
+
+		expect(prepareEnvironmentVariables(resolved)).toEqual([
+			"API=preview-backend-zeeuhb-dtzv3p.preview.xyz.com",
+		]);
+	});
+
 	it("returns empty input unchanged", () => {
 		expect(resolvePreviewDeployUrlReferences(null, targets)).toBe("");
 		expect(resolvePreviewDeployUrlReferences("", targets)).toBe("");
