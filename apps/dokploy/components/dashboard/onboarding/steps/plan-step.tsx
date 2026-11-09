@@ -61,6 +61,7 @@ export const PlanStep = ({ onNext }: Props) => {
 		`${"trial" | "checkout"}:${Tier}` | null
 	>(null);
 	const { data } = api.stripe.getProducts.useQuery();
+	const { data: status } = api.project.onboardingStatus.useQuery();
 	const { mutateAsync: createCheckoutSession } =
 		api.stripe.createCheckoutSession.useMutation();
 	const { mutateAsync: startFreeTrial } =
@@ -121,6 +122,28 @@ export const PlanStep = ({ onNext }: Props) => {
 				</p>
 			</div>
 
+			{status?.hasActiveAccess && (
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border bg-muted/40 p-5">
+					<div>
+						<p className="font-medium">
+							{status.isOnTrial
+								? `Your ${status.plan ? `${status.plan[0]!.toUpperCase()}${status.plan.slice(1)} ` : ""}trial is active`
+								: "You already have an active plan"}
+						</p>
+						{status.isOnTrial && status.trialDaysRemaining !== null && (
+							<p className="text-sm text-muted-foreground mt-1">
+								{status.trialDaysRemaining}{" "}
+								{status.trialDaysRemaining === 1 ? "day" : "days"} remaining
+							</p>
+						)}
+					</div>
+					<Button onClick={onNext}>
+						Continue
+						<ArrowRightIcon className="size-4" />
+					</Button>
+				</div>
+			)}
+
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden border">
 				{PLANS.map((plan) => {
 					const productId =
@@ -161,24 +184,28 @@ export const PlanStep = ({ onNext }: Props) => {
 									))}
 								</ul>
 							</div>
-							<div className="flex flex-col gap-2">
-								<Button
-									isLoading={loading === `trial:${plan.tier}`}
-									disabled={loading !== null}
-									onClick={() => handleTrial(plan.tier)}
-								>
-									Start 7-day free trial
-									<ArrowRightIcon className="size-4" />
-								</Button>
-								<Button
-									variant="outline"
-									isLoading={loading === `checkout:${plan.tier}`}
-									disabled={loading !== null || !productId}
-									onClick={() => handleCheckout(plan.tier)}
-								>
-									Subscribe now
-								</Button>
-							</div>
+							{!status?.hasActiveAccess && (
+								<div className="flex flex-col gap-2">
+									{!status?.hasUsedTrial && (
+										<Button
+											isLoading={loading === `trial:${plan.tier}`}
+											disabled={loading !== null}
+											onClick={() => handleTrial(plan.tier)}
+										>
+											Start 7-day free trial
+											<ArrowRightIcon className="size-4" />
+										</Button>
+									)}
+									<Button
+										variant={status?.hasUsedTrial ? "default" : "outline"}
+										isLoading={loading === `checkout:${plan.tier}`}
+										disabled={loading !== null || !productId}
+										onClick={() => handleCheckout(plan.tier)}
+									>
+										Subscribe now
+									</Button>
+								</div>
+							)}
 						</div>
 					);
 				})}
