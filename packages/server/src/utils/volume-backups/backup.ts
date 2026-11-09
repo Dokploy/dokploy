@@ -162,6 +162,10 @@ export const backupVolume = async (
 				sleep 5
 			done
 			trap 'rm -rf "$LOCK_DIR"' EXIT
+			# dash skips the EXIT trap when a signal kills it, which would leave the lock behind.
+			trap 'exit 129' HUP
+			trap 'exit 130' INT
+			trap 'exit 143' TERM
 		fi
 
 		echo "Volume backup lock acquired"
