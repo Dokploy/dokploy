@@ -13,7 +13,6 @@ import {
 	createTelegramNotification,
 	findNotificationById,
 	getWebServerSettings,
-	IS_CLOUD,
 	removeNotificationById,
 	sendCustomNotification,
 	sendDiscordNotification,
@@ -603,10 +602,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (
-					IS_CLOUD &&
-					notification.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -674,10 +670,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (
-					IS_CLOUD &&
-					notification.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -753,10 +746,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (
-					IS_CLOUD &&
-					notification.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -892,10 +882,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (
-					IS_CLOUD &&
-					notification.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -964,10 +951,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (
-					IS_CLOUD &&
-					notification.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
@@ -1037,10 +1021,7 @@ export const notificationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const notification = await findNotificationById(input.notificationId);
-				if (
-					IS_CLOUD &&
-					notification.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to update this notification",
