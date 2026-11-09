@@ -18,5 +18,7 @@ export const createEnvFileCommand = (
 
 	// The file holds the app's secrets: restrict it to its owner before any
 	// content is written, so it is never readable by other users on the host.
-	return `touch "${envFilePath}" && chmod 600 "${envFilePath}"; echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
+	// Bail out if the permissions cannot be set, rather than writing the secret
+	// into a file that may still be readable by others.
+	return `touch "${envFilePath}" && chmod 600 "${envFilePath}" || exit 1; echo "${encodedContent}" | base64 -d > "${envFilePath}";`;
 };
