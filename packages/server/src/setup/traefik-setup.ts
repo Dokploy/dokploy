@@ -37,6 +37,23 @@ export interface TraefikOptions {
 	}[];
 }
 
+export const applyAdditionalPortBindings = (
+	exposedPorts: Record<string, {}>,
+	portBindings: Record<string, Array<{ HostPort: string }>>,
+	additionalPorts: NonNullable<TraefikOptions["additionalPorts"]>,
+) => {
+	for (const port of additionalPorts) {
+		const portKey = `${port.targetPort}/${port.protocol ?? "tcp"}`;
+		exposedPorts[portKey] = {};
+		if (!portBindings[portKey]) {
+			portBindings[portKey] = [];
+		}
+		portBindings[portKey].push({
+			HostPort: port.publishedPort.toString(),
+		});
+	}
+};
+
 // Overlapping recreates of one server would remove each other's containers.
 const recreateQueue = new Map<string, Promise<void>>();
 
@@ -90,11 +107,7 @@ const recreateStandaloneTraefik = async ({
 		portBindings["8080/tcp"] = [{ HostPort: "8080" }];
 	}
 
-	for (const port of additionalPorts) {
-		const portKey = `${port.targetPort}/${port.protocol ?? "tcp"}`;
-		exposedPorts[portKey] = {};
-		portBindings[portKey] = [{ HostPort: port.publishedPort.toString() }];
-	}
+	applyAdditionalPortBindings(exposedPorts, portBindings, additionalPorts);
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
