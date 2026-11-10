@@ -21,6 +21,7 @@ export const createServer = async (
 		.insert(server)
 		.values({
 			...input,
+			privateIpAddress: input.privateIpAddress || null,
 			organizationId: organizationId,
 			createdAt: new Date().toISOString(),
 		} as typeof server.$inferInsert)
