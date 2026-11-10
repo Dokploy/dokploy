@@ -14,11 +14,13 @@ import {
 	IS_CLOUD,
 	redactServerSshKey,
 	removeDeploymentsByServerId,
+	removeServerProxyRoutes,
 	removeServerVectorAgent,
 	serverAudit,
 	serverSetup,
 	serverValidate,
 	setupMonitoring,
+	syncServerProxyRoutes,
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -545,6 +547,7 @@ export const serverRouter = createTRPCRouter({
 				});
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
+				await removeServerProxyRoutes(currentServer.appName);
 
 				if (IS_CLOUD) {
 					const admin = await findUserById(ctx.user.ownerId);
@@ -584,7 +587,11 @@ export const serverRouter = createTRPCRouter({
 				);
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
+					...(input.privateIpAddress !== undefined && {
+						privateIpAddress: input.privateIpAddress || null,
+					}),
 				});
+				await syncServerProxyRoutes(input.serverId);
 
 				await applyDockerCleanupSchedule(
 					input.serverId,

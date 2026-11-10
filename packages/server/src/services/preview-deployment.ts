@@ -14,6 +14,7 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
+import { syncServerProxyRoutes } from "../utils/traefik/server-proxy";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
@@ -99,6 +100,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				console.error(error);
 			}
 		}
+		await syncServerProxyRoutes(application.serverId);
 		return previewDeployment;
 	} catch (error) {
 		const message =

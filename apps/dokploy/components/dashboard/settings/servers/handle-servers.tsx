@@ -55,6 +55,8 @@ const Schema = z.object({
 	}),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
+	privateIpAddress: z.string().optional(),
+	routeThroughMainServer: z.boolean().default(false),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -79,6 +81,7 @@ export const HandleServers = ({ serverId, children }: Props) => {
 		},
 	);
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const { mutateAsync, error, isPending, isError } = serverId
 		? api.server.update.useMutation()
@@ -93,6 +96,8 @@ export const HandleServers = ({ serverId, children }: Props) => {
 			sshKeyId: "",
 			serverType: "deploy",
 			enableDockerCleanup: true,
+			privateIpAddress: "",
+			routeThroughMainServer: false,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -107,6 +112,8 @@ export const HandleServers = ({ serverId, children }: Props) => {
 			sshKeyId: data?.sshKeyId || "",
 			serverType: data?.serverType || "deploy",
 			enableDockerCleanup: data?.enableDockerCleanup ?? true,
+			privateIpAddress: data?.privateIpAddress || "",
+			routeThroughMainServer: data?.routeThroughMainServer ?? false,
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -124,6 +131,8 @@ export const HandleServers = ({ serverId, children }: Props) => {
 			sshKeyId: data.sshKeyId || "",
 			serverType: data.serverType || "deploy",
 			enableDockerCleanup: data.enableDockerCleanup,
+			privateIpAddress: data.privateIpAddress?.trim() || "",
+			routeThroughMainServer: data.routeThroughMainServer,
 			serverId: serverId || "",
 		})
 			.then(async (_data) => {
@@ -442,6 +451,53 @@ export const HandleServers = ({ serverId, children }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{!isCloud && form.watch("serverType") === "deploy" && (
+							<>
+								<FormField
+									control={form.control}
+									name="routeThroughMainServer"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+											<div className="space-y-0.5">
+												<FormLabel>Route traffic through main server</FormLabel>
+												<FormDescription>
+													Enable when this server has no public IP of its own
+													(NAT / single public IP). The main server&apos;s
+													Traefik forwards every domain of this server to it, so
+													DNS records must point to the main server.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								{form.watch("routeThroughMainServer") && (
+									<FormField
+										control={form.control}
+										name="privateIpAddress"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Private IP Address</FormLabel>
+												<FormControl>
+													<Input placeholder="10.0.0.12" {...field} />
+												</FormControl>
+												<FormDescription>
+													Address the main server uses to reach this server on
+													ports 80 and 443. Leave empty to use the IP Address
+													above.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+							</>
+						)}
 					</form>
 
 					<DialogFooter>

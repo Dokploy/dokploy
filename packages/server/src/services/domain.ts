@@ -2,11 +2,17 @@ import dns from "node:dns";
 import { isIP } from "node:net";
 import os from "node:os";
 import { promisify } from "node:util";
+import { IS_CLOUD } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import {
+	findDomainServerId,
+	syncProxyRoutesForDomain,
+	syncServerProxyRoutes,
+} from "@dokploy/server/utils/traefik/server-proxy";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -44,8 +50,14 @@ export const createDomain = async (input: z.infer<typeof apiCreateDomain>) => {
 		return domain;
 	});
 
+	await syncProxyRoutesForDomain(result);
+
 	return result;
 };
+
+const isRoutedThroughMainServer = (server: {
+	routeThroughMainServer: boolean;
+}) => server.routeThroughMainServer && !IS_CLOUD;
 
 export const generateTraefikMeDomain = async (
 	appName: string,
@@ -54,10 +66,12 @@ export const generateTraefikMeDomain = async (
 ) => {
 	if (serverId) {
 		const server = await findServerById(serverId);
-		return generateRandomDomain({
-			serverIp: server.ipAddress,
-			projectName: appName,
-		});
+		if (!isRoutedThroughMainServer(server)) {
+			return generateRandomDomain({
+				serverIp: server.ipAddress,
+				projectName: appName,
+			});
+		}
 	}
 
 	if (process.env.NODE_ENV === "development") {
@@ -137,15 +151,22 @@ export const updateDomainById = async (
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
+	if (domain[0]) {
+		await syncProxyRoutesForDomain(domain[0]);
+	}
+
 	return domain[0];
 };
 
 export const removeDomainById = async (domainId: string) => {
-	await findDomainById(domainId);
+	const domain = await findDomainById(domainId);
+	const serverId = await findDomainServerId(domain);
 	const result = await db
 		.delete(domains)
 		.where(eq(domains.domainId, domainId))
 		.returning();
+
+	await syncServerProxyRoutes(serverId);
 
 	return result[0];
 };
@@ -267,26 +288,35 @@ export const getServerIpCandidates = async (
 				candidates.add(detectedIp);
 			}
 		}
+		// DNS for a server routed through the main server points at the main
+		// server's public IP, not at the remote server itself.
+		if (isRoutedThroughMainServer(server)) {
+			await addMainServerIpCandidates(candidates);
+		}
 	} else {
-		const settings = await getWebServerSettings();
-		if (settings?.serverIp) {
-			candidates.add(settings.serverIp);
-		}
-		for (const addresses of Object.values(os.networkInterfaces())) {
-			for (const address of addresses ?? []) {
-				if (!address.internal && isIP(address.address)) {
-					candidates.add(address.address);
-				}
-			}
-		}
-
-		const publicIp = await withTimeout(getPublicIpWithFallback(), 7000);
-		if (publicIp && isIP(publicIp)) {
-			candidates.add(publicIp);
-		}
+		await addMainServerIpCandidates(candidates);
 	}
 
 	return Array.from(candidates);
+};
+
+const addMainServerIpCandidates = async (candidates: Set<string>) => {
+	const settings = await getWebServerSettings();
+	if (settings?.serverIp) {
+		candidates.add(settings.serverIp);
+	}
+	for (const addresses of Object.values(os.networkInterfaces())) {
+		for (const address of addresses ?? []) {
+			if (!address.internal && isIP(address.address)) {
+				candidates.add(address.address);
+			}
+		}
+	}
+
+	const publicIp = await withTimeout(getPublicIpWithFallback(), 7000);
+	if (publicIp && isIP(publicIp)) {
+		candidates.add(publicIp);
+	}
 };
 
 const parseIpCandidates = (output?: string): string[] =>
