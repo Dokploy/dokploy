@@ -28,6 +28,16 @@ import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
+const getScheduleServiceId = (schedule: {
+	scheduleType: string;
+	applicationId: string | null;
+	composeId: string | null;
+}) => {
+	if (schedule.scheduleType === "application") return schedule.applicationId;
+	if (schedule.scheduleType === "compose") return schedule.composeId;
+	return null;
+};
+
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
@@ -159,8 +169,7 @@ export const scheduleRouter = createTRPCRouter({
 				});
 			}
 
-			const serviceId =
-				existingSchedule.applicationId || existingSchedule.composeId;
+			const serviceId = getScheduleServiceId(existingSchedule);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["update"],
@@ -213,7 +222,7 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.serverId,
 			);
 
-			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
+			const serviceId = getScheduleServiceId(scheduleItem);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["delete"],
@@ -331,7 +340,7 @@ export const scheduleRouter = createTRPCRouter({
 		.input(z.object({ scheduleId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			const schedule = await findScheduleById(input.scheduleId);
-			const serviceId = schedule.applicationId || schedule.composeId;
+			const serviceId = getScheduleServiceId(schedule);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["read"],
@@ -364,7 +373,7 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.serverId,
 			);
 
-			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
+			const serviceId = getScheduleServiceId(scheduleItem);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
