@@ -7,9 +7,14 @@ import {
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
+import type {
+	Container,
+	ContainerCreateOptions,
+	CreateServiceOptions,
+} from "dockerode";
 import { stringify } from "yaml";
 import { paths } from "../constants";
+import { sleep } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
@@ -20,7 +25,7 @@ export const TRAEFIK_PORT =
 	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
-export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.6.25";
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.7.16";
 
 export interface TraefikOptions {
 	env?: string[];
@@ -32,11 +37,33 @@ export interface TraefikOptions {
 	}[];
 }
 
-export const initializeStandaloneTraefik = async ({
+// Overlapping recreates and restores of one server would remove each other's containers.
+const recreateQueue = new Map<string, Promise<void>>();
+
+export const initializeStandaloneTraefik = (options: TraefikOptions = {}) =>
+	runQueued(options.serverId, () => recreateStandaloneTraefik(options));
+
+const runQueued = (serverId: string | undefined, task: () => Promise<void>) => {
+	const key = serverId ?? "local";
+	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(task);
+	// So a hung Docker call can't block later recreates.
+	const settled = Promise.race([run.catch(() => {}), sleep(5 * 60_000)]).then(
+		() => {},
+	);
+	recreateQueue.set(key, settled);
+	void settled.then(() => {
+		if (recreateQueue.get(key) === settled) {
+			recreateQueue.delete(key);
+		}
+	});
+	return run;
+};
+
+const recreateStandaloneTraefik = async ({
 	env,
 	serverId,
 	additionalPorts = [],
-}: TraefikOptions = {}) => {
+}: TraefikOptions) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
 	const containerName = "dokploy-traefik";
@@ -71,7 +98,7 @@ export const initializeStandaloneTraefik = async ({
 	}
 
 	const settings: ContainerCreateOptions = {
-		name: containerName,
+		name: NEXT_TRAEFIK_CONTAINER,
 		Image: imageName,
 		NetworkingConfig: {
 			EndpointsConfig: {
@@ -94,27 +121,184 @@ export const initializeStandaloneTraefik = async ({
 	};
 
 	const docker = await getRemoteDocker(serverId);
-	try {
-		await docker.pull(imageName);
-		await new Promise((resolve) => setTimeout(resolve, 3000));
-		console.log("Traefik Image Pulled ✅");
-	} catch (error) {
-		console.log("Traefik Image Not Found: Pulling ", error);
-	}
-	try {
-		const container = docker.getContainer(containerName);
-		await container.remove({ force: true });
-		await new Promise((resolve) => setTimeout(resolve, 5000));
-	} catch {}
+	await restoreBackupTraefik(serverId);
+	await ensureTraefikImage(serverId);
 
+	// Kept until the new container stays up, so it can be restored on failure.
+	const currentInfo = await docker
+		.getContainer(containerName)
+		.inspect()
+		.catch(() => null);
+	const current = currentInfo ? docker.getContainer(currentInfo.Id) : null;
+	const otherNetworks = Object.entries(
+		currentInfo?.NetworkSettings?.Networks ?? {},
+	).filter(([name]) => name !== "dokploy-network");
+
+	let created: Container | undefined;
+	let movedAside = false;
 	try {
-		await docker.createContainer(settings);
-		const newContainer = docker.getContainer(containerName);
-		await newContainer.start();
-		console.log("Traefik Started ✅");
+		// Created first so an interrupted update can be detected.
+		created = await docker.createContainer(settings);
+		for (const [, endpoint] of otherNetworks) {
+			await docker.getNetwork(endpoint.NetworkID).connect({
+				Container: created.id,
+				EndpointConfig: { Aliases: endpoint.Aliases },
+			});
+		}
+		if (current) {
+			await docker
+				.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
+				.remove({ force: true })
+				.catch(() => {});
+			await current.stop().catch(() => {});
+			await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
+			movedAside = true;
+			await sleep(5000);
+		}
+		await created.rename({ name: containerName });
+		await created.start();
+		await waitUntilStable(created);
 	} catch (error) {
-		console.log("Traefik Not Found: Starting ", error);
+		if (!current) {
+			await created?.remove({ force: true }).catch(() => {});
+			console.log("Traefik Not Found: Starting ", error);
+			return;
+		}
+		if (!movedAside) {
+			const now = await current.inspect().catch(() => null);
+			if (currentInfo?.State.Running && !now?.State.Running) {
+				await current.start();
+			}
+			await created?.remove({ force: true }).catch(() => {});
+			throw error;
+		}
+		await created?.remove({ force: true }).catch(() => {});
+		const reason = error instanceof Error ? error.message : String(error);
+		try {
+			await current.rename({ name: containerName });
+			if (currentInfo?.State.Running) {
+				await current.start();
+			}
+		} catch (restoreError) {
+			throw new Error(
+				`${reason}. Restoring the previous Traefik also failed: ${restoreError instanceof Error ? restoreError.message : restoreError}`,
+			);
+		}
+		throw new Error(`${reason}. The previous Traefik was restored.`);
 	}
+
+	await current?.remove({ force: true }).catch(() => {});
+	console.log("Traefik Started ✅");
+};
+
+const NEXT_TRAEFIK_CONTAINER = "dokploy-traefik-next";
+const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
+
+export const restoreInterruptedTraefik = (serverId?: string) =>
+	runQueued(serverId, () => restoreBackupTraefik(serverId));
+
+// Undoes an update interrupted by a Dokploy restart.
+const restoreBackupTraefik = async (serverId?: string) => {
+	const docker = await getRemoteDocker(serverId);
+	const inspect = (name: string) =>
+		docker
+			.getContainer(name)
+			.inspect()
+			.catch(() => null);
+	const nextInfo = await inspect(NEXT_TRAEFIK_CONTAINER);
+	const backupInfo = await inspect(PREVIOUS_TRAEFIK_CONTAINER);
+	if (!nextInfo && !backupInfo) {
+		return;
+	}
+	let currentInfo = await inspect("dokploy-traefik");
+	if (currentInfo?.State.Status === "created" && backupInfo) {
+		await docker.getContainer(currentInfo.Id).remove({ force: true });
+		currentInfo = null;
+	}
+	if (currentInfo) {
+		if (nextInfo && !currentInfo.State.Running) {
+			await docker.getContainer(currentInfo.Id).start();
+		}
+	} else if (backupInfo) {
+		const backup = docker.getContainer(backupInfo.Id);
+		if (backupInfo.State.Running) {
+			await backup.stop().catch(() => {});
+		}
+		try {
+			await backup.rename({ name: "dokploy-traefik" });
+		} finally {
+			await backup.start();
+		}
+		console.log("Restored Traefik left behind by an interrupted recreate");
+	}
+	if (nextInfo) {
+		await docker.getContainer(nextInfo.Id).remove({ force: true });
+	}
+};
+
+// docker.pull resolves before the download ends and reports errors in the stream.
+export const ensureTraefikImage = async (serverId?: string) => {
+	const imageName = `traefik:v${TRAEFIK_VERSION}`;
+	const docker = await getRemoteDocker(serverId);
+	const image = docker.getImage(imageName);
+	if (
+		await image.inspect().then(
+			() => true,
+			() => false,
+		)
+	) {
+		return;
+	}
+	const stream = await docker.pull(imageName);
+	await new Promise<void>((resolve, reject) => {
+		docker.modem.followProgress(
+			stream,
+			(error: Error | null, events: { error?: string }[] = []) => {
+				const failed = events.find((event) => event.error);
+				if (error || failed) {
+					reject(error ?? new Error(failed?.error));
+				} else {
+					resolve();
+				}
+			},
+		);
+	});
+	await image.inspect();
+};
+
+// restart: always hides a container that exits on start.
+const waitUntilStable = async (container: Container) => {
+	await sleep(3000);
+	const first = await container.inspect();
+	await sleep(2000);
+	const second = await container.inspect();
+	if (
+		second.State.Running &&
+		second.State.StartedAt === first.State.StartedAt
+	) {
+		return;
+	}
+	const logs = await container
+		.logs({ stdout: true, stderr: true, tail: 5 })
+		.catch(() => null);
+	const lastLine = logs ? lastLogLine(logs) : "";
+	throw new Error(
+		`The new Traefik container stopped right after starting${lastLine ? `: ${lastLine}` : ""}`,
+	);
+};
+
+const ANSI_COLOR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
+
+// Non-TTY container logs come in frames with an 8-byte header.
+export const lastLogLine = (logs: Buffer) => {
+	let text = "";
+	for (let offset = 0; offset + 8 <= logs.length; ) {
+		const size = logs.readUInt32BE(offset + 4);
+		text += logs.subarray(offset + 8, offset + 8 + size).toString();
+		offset += 8 + size;
+	}
+	const lines = text.replace(ANSI_COLOR, "").trim().split("\n");
+	return (lines.at(-1) ?? "").trim().slice(0, 300);
 };
 
 export const initializeTraefikService = async ({
@@ -320,13 +504,15 @@ export const getDefaultTraefikConfig = () => {
 	return yamlStr;
 };
 
-export const getDefaultServerTraefikConfig = () => {
+export const getDefaultServerTraefikConfig = (withSwarmProvider = true) => {
 	const configObject: MainTraefikConfig = {
 		providers: {
-			swarm: {
-				exposedByDefault: false,
-				watch: true,
-			},
+			...(withSwarmProvider && {
+				swarm: {
+					exposedByDefault: false,
+					watch: true,
+				},
+			}),
 			docker: {
 				exposedByDefault: false,
 				watch: true,

@@ -16,74 +16,79 @@ interface Props {
 
 export const Terminal: React.FC<Props> = ({ id, serverId }) => {
 	const termRef = useRef<HTMLDivElement>(null);
-	const initialized = useRef<boolean>(false);
 	const { resolvedTheme } = useTheme();
 	useEffect(() => {
-		if (initialized.current) {
-			// Required in strict mode to avoid issues due to double wss connection
-			return;
-		}
+		let cancelled = false;
+		let term: XTerm | null = null;
+		let ws: WebSocket | null = null;
+		let resizeObserver: ResizeObserver | null = null;
 
-		initialized.current = true;
-		const container = document.getElementById(id);
-		if (container) {
-			container.innerHTML = "";
-		}
-		const term = new XTerm({
-			cursorBlink: true,
-			lineHeight: 1.4,
-			convertEol: true,
-			theme: {
-				cursor: resolvedTheme === "light" ? "#000000" : "transparent",
-				background: "rgba(0, 0, 0, 0)",
-				foreground: "currentColor",
-			},
+		const frame = requestAnimationFrame(() => {
+			if (cancelled) return;
+
+			const container = document.getElementById(id);
+			if (container) {
+				container.innerHTML = "";
+			}
+			term = new XTerm({
+				cursorBlink: true,
+				lineHeight: 1.4,
+				convertEol: true,
+				theme: {
+					cursor: resolvedTheme === "light" ? "#000000" : "transparent",
+					background: "rgba(0, 0, 0, 0)",
+					foreground: "currentColor",
+				},
+			});
+
+			const addonFit = new FitAddon();
+			const clipboardAddon = new ClipboardAddon();
+			term.loadAddon(clipboardAddon);
+			fixMacOsAltKeys(term);
+
+			// @ts-expect-error
+			term.open(termRef.current);
+			term.loadAddon(addonFit);
+			addonFit.fit();
+
+			const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+			const urlParams = new URLSearchParams();
+			urlParams.set("serverId", serverId);
+			urlParams.set("cols", term.cols.toString());
+			urlParams.set("rows", term.rows.toString());
+
+			if (serverId === "local") {
+				const { port, username } = getLocalServerData();
+				urlParams.set("port", port.toString());
+				urlParams.set("username", username);
+			}
+
+			const wsUrl = `${protocol}//${window.location.host}/terminal?${urlParams}`;
+
+			ws = new WebSocket(wsUrl);
+			const addonAttach = new AttachAddon(ws);
+			term.loadAddon(addonAttach);
+
+			const sendResize = (cols: number, rows: number) => {
+				if (ws && ws.readyState === WebSocket.OPEN) {
+					ws.send(JSON.stringify({ type: "resize", cols, rows }));
+				}
+			};
+			term.onResize(({ cols, rows }) => sendResize(cols, rows));
+
+			resizeObserver = new ResizeObserver(() => addonFit.fit());
+			if (termRef.current) {
+				resizeObserver.observe(termRef.current);
+			}
 		});
 
-		const addonFit = new FitAddon();
-		const clipboardAddon = new ClipboardAddon();
-		term.loadAddon(clipboardAddon);
-		fixMacOsAltKeys(term);
-
-		// @ts-expect-error
-		term.open(termRef.current);
-		term.loadAddon(addonFit);
-		addonFit.fit();
-
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
-		const urlParams = new URLSearchParams();
-		urlParams.set("serverId", serverId);
-		urlParams.set("cols", term.cols.toString());
-		urlParams.set("rows", term.rows.toString());
-
-		if (serverId === "local") {
-			const { port, username } = getLocalServerData();
-			urlParams.set("port", port.toString());
-			urlParams.set("username", username);
-		}
-
-		const wsUrl = `${protocol}//${window.location.host}/terminal?${urlParams}`;
-
-		const ws = new WebSocket(wsUrl);
-		const addonAttach = new AttachAddon(ws);
-		term.loadAddon(addonAttach);
-
-		const sendResize = (cols: number, rows: number) => {
-			if (ws.readyState === WebSocket.OPEN) {
-				ws.send(JSON.stringify({ type: "resize", cols, rows }));
-			}
-		};
-		term.onResize(({ cols, rows }) => sendResize(cols, rows));
-
-		const resizeObserver = new ResizeObserver(() => addonFit.fit());
-		if (termRef.current) {
-			resizeObserver.observe(termRef.current);
-		}
-
 		return () => {
-			resizeObserver.disconnect();
-			ws.readyState === WebSocket.OPEN && ws.close();
+			cancelled = true;
+			cancelAnimationFrame(frame);
+			resizeObserver?.disconnect();
+			ws?.close();
+			term?.dispose();
 		};
 	}, [id, serverId]);
 

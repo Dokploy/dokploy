@@ -8,6 +8,7 @@ import {
 	findPatchByFilePath,
 	findPatchById,
 	findPatchesByEntityId,
+	getPatchRepoPath,
 	markPatchForDeletion,
 	readPatchRepoDirectory,
 	readPatchRepoFile,
@@ -190,15 +191,11 @@ export const patchRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.id, {
 				service: ["read"],
 			});
-			let serverId: string | null = null;
-			if (input.type === "application") {
-				const app = await findApplicationById(input.id);
-				serverId = app.serverId;
-			} else {
-				const compose = await findComposeById(input.id);
-				serverId = compose.serverId;
-			}
-			return await readPatchRepoDirectory(input.repoPath, serverId);
+			const { repoPath, serverId } = await getPatchRepoPath(
+				input.id,
+				input.type,
+			);
+			return await readPatchRepoDirectory(repoPath, serverId);
 		}),
 
 	readRepoFile: protectedProcedure

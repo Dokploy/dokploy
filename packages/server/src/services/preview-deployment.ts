@@ -33,6 +33,7 @@ export const findPreviewDeploymentById = async (
 				columns: {
 					applicationId: true,
 					serverId: true,
+					buildServerId: true,
 				},
 			},
 		},
@@ -67,6 +68,22 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				await removeDirectoryCode(application?.appName, application?.serverId),
 			async () =>
 				await removeTraefikConfig(application?.appName, application?.serverId),
+			async () => {
+				if (application.buildServerId) {
+					await removeDeploymentsByPreviewDeploymentId(
+						previewDeployment,
+						application.buildServerId,
+					);
+				}
+			},
+			async () => {
+				if (application.buildServerId) {
+					await removeDirectoryCode(
+						application.appName,
+						application.buildServerId,
+					);
+				}
+			},
 			async () =>
 				await db
 					.delete(previewDeployments)
@@ -222,6 +239,17 @@ export const findPreviewDeploymentsByPullRequestId = async (
 	});
 
 	return previewDeploymentResult;
+};
+
+export const findPreviewDeploymentsByPullRequestIdForGithub = async (
+	pullRequestId: string,
+	githubId: string,
+) => {
+	const rows = await db.query.previewDeployments.findMany({
+		where: eq(previewDeployments.pullRequestId, pullRequestId),
+		with: { application: true },
+	});
+	return rows.filter((row) => row.application?.githubId === githubId);
 };
 
 export const findPreviewDeploymentByApplicationId = async (

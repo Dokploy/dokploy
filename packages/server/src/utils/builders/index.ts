@@ -12,6 +12,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { sleep } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
 import { getDockerCommand } from "./docker-file";
@@ -186,16 +187,22 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 	};
 
+	let forceUpdate = 0;
 	try {
 		const service = docker.getService(appName);
 		const inspect = await service.inspect();
+		forceUpdate = inspect.Spec.TaskTemplate.ForceUpdate + 1;
 
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			// Dokploy sets no service-level labels of its own. A service update
+			// replaces the whole spec, so labels added outside Dokploy (e.g.
+			// traefik.* for the Swarm provider) are dropped unless carried over.
+			Labels: inspect.Spec?.Labels ?? {},
 			TaskTemplate: {
 				...settings.TaskTemplate,
-				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+				ForceUpdate: forceUpdate,
 			},
 		});
 	} catch (error) {
@@ -205,6 +212,35 @@ export const mechanizeDockerContainer = async (
 		} else {
 			await docker.createService(settings);
 		}
+	}
+
+	// Swarm only reports a task it can't place (e.g. insufficient resources) on the task itself.
+	const deadline = Date.now() + 3000;
+	while (Date.now() < deadline) {
+		const tasks = await docker.listTasks({
+			filters: JSON.stringify({
+				service: [appName],
+				"desired-state": ["running"],
+			}),
+		});
+		const newTasks = tasks.filter(
+			(task) => (task.Spec?.ForceUpdate ?? 0) === forceUpdate,
+		);
+		const unscheduled = newTasks.find(
+			(task) => task.Status?.State === "pending" && task.Status?.Err,
+		);
+		if (unscheduled) {
+			throw new Error(
+				`Swarm could not start the new version: ${unscheduled.Status.Err}. Lower the memory/CPU reservation or free resources on the server.`,
+			);
+		}
+		const scheduled =
+			newTasks.length > 0 &&
+			newTasks.every(
+				(task) => !["new", "allocated", "pending"].includes(task.Status?.State),
+			);
+		if (scheduled) return;
+		await sleep(300);
 	}
 };
 

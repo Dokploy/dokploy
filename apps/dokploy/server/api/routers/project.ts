@@ -37,6 +37,7 @@ import {
 	addNewProject,
 	checkPermission,
 	checkProjectAccess,
+	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { serviceColumns } from "@dokploy/server/services/project";
@@ -880,6 +881,14 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				await checkProjectAccess(ctx, "create");
+
+				if (input.includeServices) {
+					for (const service of input.selectedServices || []) {
+						await checkServicePermissionAndAccess(ctx, service.id, {
+							service: ["read"],
+						});
+					}
+				}
 
 				const sourceEnvironment = input.duplicateInSameProject
 					? await findEnvironmentById(input.sourceEnvironmentId)

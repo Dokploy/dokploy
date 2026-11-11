@@ -1,8 +1,10 @@
 import {
+	assertServerAccess,
 	createRegistry,
+	dockerLogin,
 	findRegistryById,
+	IS_CLOUD,
 	removeRegistry,
-	testRegistryConnection,
 	updateRegistry,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -100,9 +102,23 @@ export const registryRouter = createTRPCRouter({
 		}),
 	testRegistry: withPermission("registry", "read")
 		.input(apiTestRegistry)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			try {
-				await testRegistryConnection(input);
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Select a server to test the registry",
+					});
+				}
+
+				await dockerLogin(
+					input.registryUrl,
+					input.username,
+					input.password,
+					input.serverId,
+				);
+
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -118,6 +134,7 @@ export const registryRouter = createTRPCRouter({
 	testRegistryById: withPermission("registry", "read")
 		.input(apiTestRegistryById)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			try {
 				const registryData = await db.query.registry.findFirst({
 					where: eq(registry.registryId, input.registryId ?? ""),
@@ -137,12 +154,19 @@ export const registryRouter = createTRPCRouter({
 					});
 				}
 
-				await testRegistryConnection({
-					registryUrl: registryData.registryUrl,
-					username: registryData.username,
-					password: registryData.password,
-					serverId: input.serverId,
-				});
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Select a server to test the registry",
+					});
+				}
+
+				await dockerLogin(
+					registryData.registryUrl,
+					registryData.username,
+					registryData.password,
+					input.serverId,
+				);
 
 				return true;
 			} catch (error) {

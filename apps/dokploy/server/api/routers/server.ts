@@ -1,4 +1,5 @@
 import {
+	captureEvent,
 	createServer,
 	defaultCommand,
 	deleteServer,
@@ -6,6 +7,7 @@ import {
 	findServersByUserId,
 	findUserById,
 	getAccessibleServerIds,
+	getPostHogSessionId,
 	getPublicIpWithFallback,
 	getServicesByServerId,
 	haveActiveServices,
@@ -20,11 +22,13 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import {
 	findMemberByUserId,
 	hasPermission,
 } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { findSSHKeyById } from "@dokploy/server/services/ssh-key";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
@@ -71,6 +75,20 @@ const toServerOptions = async (
 	}));
 };
 
+const assertSshKeyInOrganization = async (
+	sshKeyId: string | null | undefined,
+	organizationId: string,
+) => {
+	if (!sshKeyId) return;
+	const sshKey = await findSSHKeyById(sshKeyId);
+	if (sshKey.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to use this SSH key",
+		});
+	}
+};
+
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
 		.input(apiCreateServer)
@@ -84,6 +102,10 @@ export const serverRouter = createTRPCRouter({
 						message: "You cannot create more servers",
 					});
 				}
+				await assertSshKeyInOrganization(
+					input.sshKeyId,
+					ctx.session.activeOrganizationId,
+				);
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
@@ -102,6 +124,13 @@ export const serverRouter = createTRPCRouter({
 					resourceType: "server",
 					resourceId: project.serverId,
 					resourceName: project.name,
+				});
+				void captureEvent({
+					distinctId: user.id,
+					event: "server_created",
+					organizationId: ctx.session.activeOrganizationId,
+					sessionId: getPostHogSessionId(ctx.req.headers),
+					properties: { server_type: project.serverType },
 				});
 				return project;
 			} catch (error) {
@@ -366,6 +395,10 @@ export const serverRouter = createTRPCRouter({
 						enabled: boolean;
 						version: string;
 					};
+					traefik: {
+						enabled: boolean;
+						version: string;
+					};
 					isDokployNetworkInstalled: boolean;
 					isSwarmInstalled: boolean;
 					isMainDirectoryInstalled: boolean;
@@ -545,6 +578,10 @@ export const serverRouter = createTRPCRouter({
 						message: "Server is inactive",
 					});
 				}
+				await assertSshKeyInOrganization(
+					input.sshKeyId,
+					ctx.session.activeOrganizationId,
+				);
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
@@ -608,7 +645,7 @@ export const serverRouter = createTRPCRouter({
 			try {
 				const url = new URL(input.url);
 				url.searchParams.append("limit", input.dataPoints);
-				const response = await fetch(url.toString(), {
+				const response = await providerFetch(url.toString(), {
 					headers: {
 						Authorization: `Bearer ${input.token}`,
 					},

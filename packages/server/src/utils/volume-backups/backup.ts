@@ -82,6 +82,7 @@ export const backupVolume = async (
 
 	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
 
+	// GNU tar exits 1 when a file changes while being read, which is expected on a live volume
 	const backupCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
@@ -93,7 +94,7 @@ export const backupVolume = async (
   -v ${volumeName}:/volume_data \
   -v ${volumeBackupPath}:/backup \
   ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
+  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} . || [ \\$? -eq 1 ]"
   echo "Volume backup done ✅"
   `;
 

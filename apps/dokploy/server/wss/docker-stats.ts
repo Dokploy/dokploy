@@ -10,7 +10,8 @@ import {
 } from "@dokploy/server";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
-import { canAccessDockerOverWss } from "./authorize";
+import { canAccessDockerOverWss, isServiceContainerName } from "./authorize";
+import { findServiceAppName } from "./container-ownership";
 
 type AppType = "application" | "stack" | "docker-compose";
 
@@ -110,10 +111,30 @@ export const setupDockerStatsMonitoringSocketServer = (
 			ws.close(4003, "Not authorized");
 			return;
 		}
+
+		// Service access only covers that service's containers, so pin the
+		// request to them instead of trusting appName.
+		const serviceAppName = serviceId
+			? await findServiceAppName(serviceId)
+			: null;
+		if (
+			serviceId &&
+			(!serviceAppName ||
+				!isServiceContainerName(appName, appType, serviceAppName))
+		) {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		// Client may have disconnected during the awaits; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
-				if (appName === "dokploy") {
+				if (appName === "dokploy" && !serviceId) {
 					const stat = await getHostSystemStats();
 
 					await recordAdvancedStats(stat, appName);
@@ -133,10 +154,18 @@ export const setupDockerStatsMonitoringSocketServer = (
 						label: [`com.docker.swarm.service.name=${appName}`],
 					}),
 					...(appType === "stack" && {
-						label: [`com.docker.swarm.task.name=${appName}`],
+						label: [
+							`com.docker.swarm.task.name=${appName}`,
+							...(serviceAppName
+								? [`com.docker.stack.namespace=${serviceAppName}`]
+								: []),
+						],
 					}),
 					...(appType === "docker-compose" && {
 						name: [appName],
+						...(serviceAppName && {
+							label: [`com.docker.compose.project=${serviceAppName}`],
+						}),
 					}),
 				};
 

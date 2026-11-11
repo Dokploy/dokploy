@@ -54,6 +54,7 @@ export type AuditAction =
 	| "login"
 	| "logout"
 	| "restore"
+	| "download"
 	| "run"
 	| "start"
 	| "stop"
@@ -97,4 +98,5 @@ export type AuditResourceType =
 	| "network"
 	| "vaultProvider"
 	| "dnsProvider"
-	| "telemetryProvider";
+	| "telemetryProvider"
+	| "ai";

@@ -15,7 +15,7 @@ export const jobQueueSchema = z.discriminatedUnion("type", [
 		cronSchedule: z.string(),
 		type: z.literal("schedule"),
 		scheduleId: z.string(),
-		timezone: z.string().optional(),
+		timezone: z.string().nullish(),
 	}),
 	z.object({
 		cronSchedule: z.string(),
