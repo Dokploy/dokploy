@@ -24,6 +24,7 @@ vi.mock("@dokploy/server/utils/traefik/redirect", () => ({
 
 import {
 	applications,
+	compose,
 	domains,
 	environments,
 	libsql,
@@ -159,6 +160,7 @@ const fakeImportDb = (existing: {
 					applicationId: `new-app-${id}`,
 					postgresId: `new-pg-${id}`,
 					libsqlId: `new-libsql-${id}`,
+					composeId: `new-compose-${id}`,
 					mountId: `new-mount-${id}`,
 					tagId: `new-tag-${id}`,
 				};
@@ -335,7 +337,7 @@ describe("importBundle", () => {
 		expect(createRedirectMiddleware).toHaveBeenCalledTimes(1);
 	});
 
-	it("turns off forward auth and flags domains generated for the source IP", async () => {
+	it("imports forward-auth domains disabled and flags domains generated for the source IP", async () => {
 		const payload = await exportedPayload();
 		const app = payload.services.find((s) => s.kind === "application");
 		const [domain] = app?.domains as Record<string, unknown>[];
@@ -346,8 +348,11 @@ describe("importBundle", () => {
 			organizationId: "org",
 			serverId: null,
 		});
-		expect(insertsInto(domains)[0]?.forwardAuthEnabled).toBe(false);
-		expect(result.warnings.join("\n")).toMatch(/Forward auth was turned off/);
+		expect(insertsInto(domains)[0]).toMatchObject({
+			forwardAuthEnabled: false,
+			enabled: false,
+		});
+		expect(result.warnings.join("\n")).toMatch(/used forward auth/);
 		expect(result.warnings.join("\n")).toMatch(/source server's IP/);
 	});
 
@@ -391,6 +396,33 @@ describe("importBundle", () => {
 		expect(result.warnings.join("\n")).toMatch(/shop\.example\.com/);
 		expect(result.warnings.join("\n")).toMatch(/Port 8080/);
 		expect(result.warnings.join("\n")).toMatch(/Port 5432/);
+	});
+
+	it("keeps the compose suffix so randomized domain targets still match", async () => {
+		const payload = await exportedPayload();
+		payload.services.push({
+			kind: "compose",
+			environmentId: "e1",
+			appName: "shop-stack-ccc333",
+			name: "stack",
+			randomize: true,
+			suffix: "abc123",
+			domains: [
+				{
+					domainId: "cd1",
+					host: "stack.example.com",
+					serviceName: "web-abc123",
+				},
+			],
+			mounts: [],
+		});
+		const { db, insertsInto } = fakeImportDb({});
+		await importBundle(db, payload, { organizationId: "org", serverId: null });
+		expect(insertsInto(compose)[0]?.suffix).toBe("abc123");
+		expect(
+			insertsInto(domains).find((d) => d.host === "stack.example.com")
+				?.serviceName,
+		).toBe("web-abc123");
 	});
 
 	it.each(["../../etc/passwd", ".", ""])(

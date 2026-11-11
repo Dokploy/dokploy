@@ -23,7 +23,6 @@ import {
 } from "@dokploy/server/db/schema/utils";
 import { findApplicationById } from "@dokploy/server/services/application";
 import { createFileMount } from "@dokploy/server/services/mount";
-import { generateRandomHash } from "@dokploy/server/utils/docker/compose";
 import { isValidMountFilePath } from "@dokploy/server/utils/docker/utils";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { createRedirectMiddleware } from "@dokploy/server/utils/traefik/redirect";
@@ -282,15 +281,17 @@ const insertChildren = async (
 					`Domain ${host} on "${name}" was generated for the source server's IP; generate a new one.`,
 				);
 			}
-			if (row.forwardAuthEnabled) {
+			// Without forward auth the route would be public, so keep it off until auth is set up again.
+			const forwardAuth = row.forwardAuthEnabled === true;
+			if (forwardAuth && row.enabled !== false) {
 				warnings.push(
-					`Forward auth was turned off for ${host} on "${name}"; enable it again once this server is set up for it.`,
+					`Domain ${host} on "${name}" used forward auth; it was imported disabled. Set up forward auth on this server before enabling it.`,
 				);
 			}
 			await tx.insert(domains).values({
 				...omit(row, ["domainId", "uniqueConfigKey", "previewDeploymentId"]),
 				host,
-				enabled: conflict ? false : row.enabled,
+				enabled: conflict || forwardAuth ? false : row.enabled,
 				forwardAuthEnabled: false,
 				...parent,
 			} as typeof domains.$inferInsert);
@@ -384,7 +385,6 @@ const insertService = async (
 
 	if (type === "compose") {
 		row.composeStatus = "idle";
-		if (row.suffix) row.suffix = generateRandomHash();
 	} else {
 		row.applicationStatus = "idle";
 	}
