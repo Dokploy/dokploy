@@ -67,10 +67,11 @@ const removeAppMiddlewares = async (application: ApplicationNested) => {
 			delete config.http.middlewares[middlewareName];
 		}
 
-		// The app's domains are already gone from the DB by now, so match by name.
-		const noIndexName = new RegExp(`^noindex-${escapeRegExp(appName)}-\\d+$`);
+		const appNoIndexMiddleware = new RegExp(
+			`^noindex-${escapeRegExp(appName)}-\\d+$`,
+		);
 		for (const middlewareName of Object.keys(config.http.middlewares)) {
-			if (noIndexName.test(middlewareName)) {
+			if (appNoIndexMiddleware.test(middlewareName)) {
 				delete config.http.middlewares[middlewareName];
 			}
 		}
@@ -162,8 +163,6 @@ const removeNoIndexMiddleware = async (
 	}
 };
 
-// middlewares.yml is shared by every app, while manageDomain only locks per
-// app, so concurrent read-modify-write cycles would drop each other's entries.
 const MIDDLEWARES_FILE_LOCK_KEY = "__middlewares.yml";
 
 const writePathMiddlewares = async (app: ApplicationNested, domain: Domain) => {
