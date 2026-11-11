@@ -349,6 +349,7 @@ const createSchema = createInsertSchema(applications, {
 	giteaBuildPath: buildPath.nullable().optional(),
 	bitbucketBuildPath: buildPath.nullable().optional(),
 	dockerContextPath: buildPath.nullable().optional(),
+	dropBuildPath: buildPath.nullable().optional(),
 	dockerBuildStage: buildToken.nullable().optional(),
 	environmentId: z.string(),
 	sourceType: z
