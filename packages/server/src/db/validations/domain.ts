@@ -7,8 +7,8 @@ import {
 const domainPath = z
 	.string()
 	.regex(
-		/^(\/[^`\s]*)?$/,
-		"Path must start with '/' and cannot contain spaces or backticks",
+		/^(\/[^`\s$]*)?$/,
+		"Path must start with '/' and cannot contain spaces, backticks or '$'",
 	);
 
 export const domain = z
