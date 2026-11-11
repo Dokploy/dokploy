@@ -25,7 +25,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { sshKeyCreate, type sshKeyType } from "@/server/db/validations";
+import {
+	sshKeyCreate,
+	type sshKeyType,
+	sshKeyUpdate,
+} from "@/server/db/validations";
 import { api } from "@/utils/api";
 
 type SSHKey = z.infer<typeof sshKeyCreate>;
@@ -55,7 +59,9 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 	const generateMutation = api.sshKey.generate.useMutation();
 
 	const form = useForm<SSHKey>({
-		resolver: zodResolver(sshKeyCreate),
+		resolver: zodResolver(
+			(sshKeyId ? sshKeyUpdate : sshKeyCreate) as typeof sshKeyCreate,
+		),
 		defaultValues: {
 			name: "",
 			description: "",
