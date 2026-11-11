@@ -5,7 +5,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
-import { writeTraefikConfigRemote } from "./application";
+import { withTraefikConfigLock, writeTraefikConfigRemote } from "./application";
 import type { FileConfig } from "./file-types";
 
 export const addMiddleware = (config: FileConfig, middlewareName: string) => {
@@ -146,10 +146,11 @@ const removeNoIndexMiddleware = async (
 	}
 };
 
-export const createPathMiddlewares = async (
-	app: ApplicationNested,
-	domain: Domain,
-) => {
+// middlewares.yml is shared by every app, while manageDomain only locks per
+// app, so concurrent read-modify-write cycles would drop each other's entries.
+const MIDDLEWARES_FILE_LOCK_KEY = "__middlewares.yml";
+
+const writePathMiddlewares = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
 	const { uniqueConfigKey, internalPath, stripPath, path, noIndex } = domain;
 
@@ -228,7 +229,12 @@ export const createPathMiddlewares = async (
 	}
 };
 
-export const removePathMiddlewares = async (
+export const createPathMiddlewares = (app: ApplicationNested, domain: Domain) =>
+	withTraefikConfigLock(MIDDLEWARES_FILE_LOCK_KEY, app.serverId, () =>
+		writePathMiddlewares(app, domain),
+	);
+
+const deletePathMiddlewares = async (
 	app: ApplicationNested,
 	uniqueConfigKey: number,
 ) => {
@@ -288,3 +294,11 @@ export const removePathMiddlewares = async (
 		writeMiddleware(config);
 	}
 };
+
+export const removePathMiddlewares = (
+	app: ApplicationNested,
+	uniqueConfigKey: number,
+) =>
+	withTraefikConfigLock(MIDDLEWARES_FILE_LOCK_KEY, app.serverId, () =>
+		deletePathMiddlewares(app, uniqueConfigKey),
+	);

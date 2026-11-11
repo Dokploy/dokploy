@@ -98,4 +98,20 @@ describe("noindex middleware in middlewares.yml", () => {
 		await removePathMiddlewares(app, 7);
 		expect(readMiddlewares()[name]).toBeUndefined();
 	});
+
+	test("keeps the entries of apps saved at the same time", async () => {
+		const other = { appName: "other-app", serverId: null } as ApplicationNested;
+		await Promise.all([
+			createPathMiddlewares(app, { ...domain, noIndex: true }),
+			createPathMiddlewares(other, {
+				...domain,
+				uniqueConfigKey: 1,
+				noIndex: true,
+			}),
+		]);
+		expect(readMiddlewares()[name]).toBeDefined();
+		expect(
+			readMiddlewares()[noIndexMiddlewareName("other-app", 1)],
+		).toBeDefined();
+	});
 });

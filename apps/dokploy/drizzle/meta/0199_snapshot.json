@@ -8945,7 +8945,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false,
-          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null,\"passwordResetGuide\":null,\"supportEmail\":null,\"logoLightUrl\":null,\"loginLogoLightUrl\":null,\"faviconLightUrl\":null,\"dualModeBranding\":false}'::jsonb"
+          "default": "'{\"appName\":null,\"appDescription\":null,\"logoUrl\":null,\"faviconUrl\":null,\"customCss\":null,\"loginLogoUrl\":null,\"supportUrl\":null,\"docsUrl\":null,\"errorPageTitle\":null,\"errorPageDescription\":null,\"footerText\":null,\"ogImageUrl\":null}'::jsonb"
         },
         "remoteServersOnly": {
           "name": "remoteServersOnly",
