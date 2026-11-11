@@ -113,19 +113,26 @@ export const writeMiddleware = (config: FileConfig) => {
 	writeFileSync(configPath, newYamlContent, "utf8");
 };
 
+export const NO_INDEX_HEADER_VALUE = "noindex, nofollow";
+
+export const noIndexMiddlewareName = (
+	appName: string,
+	uniqueConfigKey: number,
+) => `noindex-${appName}-${uniqueConfigKey}`;
+
 export const createPathMiddlewares = async (
 	app: ApplicationNested,
 	domain: Domain,
 ) => {
 	const { appName } = app;
-	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+	const { uniqueConfigKey, internalPath, stripPath, path, noIndex } = domain;
 
 	// Early return if there's no path middleware to create
 	const needsInternalPathMiddleware =
 		internalPath && internalPath !== "/" && internalPath !== path;
 	const needsStripPathMiddleware = stripPath && path && path !== "/";
 
-	if (!needsInternalPathMiddleware && !needsStripPathMiddleware) {
+	if (!needsInternalPathMiddleware && !needsStripPathMiddleware && !noIndex) {
 		return;
 	}
 
@@ -174,6 +181,17 @@ export const createPathMiddlewares = async (
 		};
 	}
 
+	if (noIndex) {
+		config.http!.middlewares[noIndexMiddlewareName(appName, uniqueConfigKey)] =
+			{
+				headers: {
+					customResponseHeaders: {
+						"X-Robots-Tag": NO_INDEX_HEADER_VALUE,
+					},
+				},
+			};
+	}
+
 	if (app.serverId) {
 		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
 	} else {
@@ -213,6 +231,9 @@ export const removePathMiddlewares = async (
 
 		delete config.http.middlewares[addPrefixMiddleware];
 		delete config.http.middlewares[stripPrefixMiddleware];
+		delete config.http.middlewares[
+			noIndexMiddlewareName(appName, uniqueConfigKey)
+		];
 	}
 
 	if (

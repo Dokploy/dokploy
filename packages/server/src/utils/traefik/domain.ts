@@ -16,7 +16,11 @@ import {
 	forwardAuthMiddlewareName,
 	removeForwardAuthMiddleware,
 } from "./forward-auth";
-import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+import {
+	createPathMiddlewares,
+	noIndexMiddlewareName,
+	removePathMiddlewares,
+} from "./middleware";
 
 export const manageDomain = (app: ApplicationNested, domain: Domain) =>
 	withTraefikConfigLock(app.appName, app.serverId, () =>
@@ -222,6 +226,12 @@ export const createRouterConfig = async (
 			const name = forwardAuthMiddlewareName(appName, uniqueConfigKey);
 			routerConfig.middlewares?.push(`${name}-errors`);
 			routerConfig.middlewares?.push(name);
+		}
+
+		if (domain.noIndex) {
+			routerConfig.middlewares?.push(
+				noIndexMiddlewareName(appName, uniqueConfigKey),
+			);
 		}
 
 		// custom middlewares from domain

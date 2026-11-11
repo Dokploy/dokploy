@@ -151,6 +151,7 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	noIndex: false,
 	enabled: true,
 };
 
