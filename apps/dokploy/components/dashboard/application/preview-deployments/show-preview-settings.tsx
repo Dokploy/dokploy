@@ -354,7 +354,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<div className="space-y-0.5">
 													<FormLabel>Block Search Engines</FormLabel>
 													<FormDescription>
-														Add an X-Robots-Tag: noindex, nofollow header to new
+														Add an X-Robots-Tag: noindex, nofollow header to
 														preview deployments so search engines don't index
 														them.
 													</FormDescription>
