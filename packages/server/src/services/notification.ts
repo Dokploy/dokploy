@@ -48,12 +48,15 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Replaces the project links of a notification. `undefined` leaves the links
- * untouched (partial update); an empty array makes the notification org-wide.
+ * untouched (partial update). The scope is explicit when given, so a scoped
+ * notification saved with no projects stays scoped instead of becoming
+ * org-wide; without it, an empty list means org-wide.
  */
 const syncNotificationProjects = async (
 	tx: Transaction,
 	notification: Pick<Notification, "notificationId" | "organizationId">,
 	projectIds?: string[],
+	scopedToProjects?: boolean | null,
 ) => {
 	if (projectIds === undefined) return;
 
@@ -79,7 +82,7 @@ const syncNotificationProjects = async (
 
 	await tx
 		.update(notifications)
-		.set({ scopedToProjects: uniqueIds.length > 0 })
+		.set({ scopedToProjects: scopedToProjects ?? uniqueIds.length > 0 })
 		.where(eq(notifications.notificationId, notification.notificationId));
 
 	await tx
@@ -147,7 +150,12 @@ export const createSlackNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -191,7 +199,12 @@ export const updateSlackNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -244,7 +257,12 @@ export const createTelegramNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -289,7 +307,12 @@ export const updateTelegramNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -341,7 +364,12 @@ export const createDiscordNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -385,7 +413,12 @@ export const updateDiscordNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -441,7 +474,12 @@ export const createEmailNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -489,7 +527,12 @@ export const updateEmailNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -542,7 +585,12 @@ export const createResendNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -587,7 +635,12 @@ export const updateResendNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -641,7 +694,12 @@ export const createGotifyNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -685,7 +743,12 @@ export const updateGotifyNotification = async (
 			})
 			.where(eq(gotify.gotifyId, input.gotifyId));
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -739,7 +802,12 @@ export const createNtfyNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -783,7 +851,12 @@ export const updateNtfyNotification = async (
 			})
 			.where(eq(ntfy.ntfyId, input.ntfyId));
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -835,7 +908,12 @@ export const createCustomNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -877,7 +955,12 @@ export const updateCustomNotification = async (
 			})
 			.where(eq(custom.customId, input.customId));
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -965,7 +1048,12 @@ export const createLarkNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1008,7 +1096,12 @@ export const updateLarkNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1059,7 +1152,12 @@ export const createTeamsNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1102,7 +1200,12 @@ export const updateTeamsNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1170,7 +1273,12 @@ export const createMattermostNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1215,7 +1323,12 @@ export const updateMattermostNotification = async (
 			.returning()
 			.then((value) => value[0]);
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1270,7 +1383,12 @@ export const createPushoverNotification = async (
 			});
 		}
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };
@@ -1315,7 +1433,12 @@ export const updatePushoverNotification = async (
 			})
 			.where(eq(pushover.pushoverId, input.pushoverId));
 
-		await syncNotificationProjects(tx, newDestination, input.projectIds);
+		await syncNotificationProjects(
+			tx,
+			newDestination,
+			input.projectIds,
+			input.scopedToProjects,
+		);
 		return newDestination;
 	});
 };

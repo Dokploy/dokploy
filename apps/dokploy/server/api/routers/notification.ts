@@ -510,7 +510,7 @@ export const notificationRouter = createTRPCRouter({
 			return notification;
 		}),
 	all: withPermission("notification", "read").query(async ({ ctx }) => {
-		return await db.query.notifications.findMany({
+		const notificationList = await db.query.notifications.findMany({
 			with: {
 				slack: true,
 				telegram: true,
@@ -533,6 +533,32 @@ export const notificationRouter = createTRPCRouter({
 			},
 			orderBy: desc(notifications.createdAt),
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
+		});
+
+		if (ctx.user.role === "owner" || ctx.user.role === "admin") {
+			return notificationList.map((notification) => ({
+				...notification,
+				hiddenProjectCount: 0,
+			}));
+		}
+
+		// Members only see the names of projects they can access; links to the
+		// rest are reported as a count so the scope is still understandable.
+		const { accessedProjects } = await findMemberByUserId(
+			ctx.user.id,
+			ctx.session.activeOrganizationId,
+		);
+		const accessible = new Set(accessedProjects);
+		return notificationList.map((notification) => {
+			const visibleLinks = notification.notificationToProjects.filter((link) =>
+				accessible.has(link.projectId),
+			);
+			return {
+				...notification,
+				notificationToProjects: visibleLinks,
+				hiddenProjectCount:
+					notification.notificationToProjects.length - visibleLinks.length,
+			};
 		});
 	}),
 	projectOptions: withPermission("notification", "read").query(

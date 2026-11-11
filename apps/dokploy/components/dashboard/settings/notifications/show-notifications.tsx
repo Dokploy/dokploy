@@ -53,7 +53,9 @@ const NotificationProjectBadges = ({
 		.map((link) => link.project.name)
 		.sort((a, b) => a.localeCompare(b));
 
-	if (projectNames.length === 0) {
+	const hiddenCount = notification.hiddenProjectCount;
+
+	if (projectNames.length === 0 && hiddenCount === 0) {
 		return (
 			<span className="flex flex-row gap-1 flex-wrap">
 				<Badge variant="destructive" className="text-xs font-normal">
@@ -65,6 +67,11 @@ const NotificationProjectBadges = ({
 
 	const visible = projectNames.slice(0, MAX_PROJECT_BADGES);
 	const rest = projectNames.slice(MAX_PROJECT_BADGES);
+	if (hiddenCount > 0) {
+		rest.push(
+			`${hiddenCount} project${hiddenCount > 1 ? "s" : ""} you don't have access to`,
+		);
+	}
 
 	return (
 		<span className="flex flex-row gap-1 flex-wrap">
@@ -85,7 +92,7 @@ const NotificationProjectBadges = ({
 							tabIndex={0}
 							className="text-xs font-normal cursor-default"
 						>
-							+{rest.length} more
+							+{projectNames.length - visible.length + hiddenCount} more
 						</Badge>
 					</TooltipTrigger>
 					<TooltipContent className="max-w-xs">
