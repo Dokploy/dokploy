@@ -54,7 +54,7 @@ describe("getRailpackCommand", () => {
 		const command = getRailpackCommand(createApplication());
 
 		expect(command).toContain(
-			'$SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"',
+			'$SUDO_CMD env RAILPACK_VERSION="$RAILPACK_VERSION" bash -c "$(curl -fsSL https://railpack.com/install.sh)"',
 		);
 		expect(command).toContain("sudo -n true 2>/dev/null");
 	});
