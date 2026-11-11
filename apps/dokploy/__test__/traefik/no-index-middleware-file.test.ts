@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type { ApplicationNested, Domain } from "@dokploy/server";
 import {
 	createPathMiddlewares,
+	deleteAllMiddlewares,
 	noIndexMiddlewareName,
 	removePathMiddlewares,
 } from "@dokploy/server";
@@ -97,6 +98,32 @@ describe("noindex middleware in middlewares.yml", () => {
 		await createPathMiddlewares(app, { ...domain, noIndex: true });
 		await removePathMiddlewares(app, 7);
 		expect(readMiddlewares()[name]).toBeUndefined();
+	});
+
+	test("removes every noindex middleware of an app when the app is deleted", async () => {
+		const sibling = {
+			appName: "my-app-2",
+			serverId: null,
+		} as ApplicationNested;
+		await createPathMiddlewares(app, { ...domain, noIndex: true });
+		await createPathMiddlewares(app, {
+			...domain,
+			uniqueConfigKey: 8,
+			noIndex: true,
+		});
+		await createPathMiddlewares(sibling, { ...domain, noIndex: true });
+
+		await deleteAllMiddlewares({
+			...app,
+			security: [],
+			redirects: [],
+		} as ApplicationNested);
+
+		const remaining = Object.keys(readMiddlewares());
+		expect(remaining).not.toContain(name);
+		expect(remaining).not.toContain(noIndexMiddlewareName("my-app", 8));
+		expect(remaining).toContain(noIndexMiddlewareName("my-app-2", 7));
+		expect(remaining).toContain("redirect-to-https");
 	});
 
 	test("keeps the entries of apps saved at the same time", async () => {

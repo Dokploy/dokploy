@@ -45,7 +45,7 @@ export const deleteMiddleware = (
 	}
 };
 
-export const deleteAllMiddlewares = async (application: ApplicationNested) => {
+const removeAppMiddlewares = async (application: ApplicationNested) => {
 	const { security, appName, redirects, serverId } = application;
 	let config: FileConfig;
 
@@ -66,6 +66,14 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 			const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
 			delete config.http.middlewares[middlewareName];
 		}
+
+		// The app's domains are already gone from the DB by now, so match by name.
+		const noIndexName = new RegExp(`^noindex-${escapeRegExp(appName)}-\\d+$`);
+		for (const middlewareName of Object.keys(config.http.middlewares)) {
+			if (noIndexName.test(middlewareName)) {
+				delete config.http.middlewares[middlewareName];
+			}
+		}
 	}
 
 	if (serverId) {
@@ -74,6 +82,14 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 		writeMiddleware(config);
 	}
 };
+
+export const deleteAllMiddlewares = (application: ApplicationNested) =>
+	withTraefikConfigLock(MIDDLEWARES_FILE_LOCK_KEY, application.serverId, () =>
+		removeAppMiddlewares(application),
+	);
+
+const escapeRegExp = (value: string) =>
+	value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const loadMiddlewares = <T>() => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
