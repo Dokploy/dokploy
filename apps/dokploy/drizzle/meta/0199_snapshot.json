@@ -1,5 +1,5 @@
 {
-  "id": "29d59db4-d93b-4dd1-8c65-cf50c094bb28",
+  "id": "264ecba8-191b-49dd-a337-5d627224a6f2",
   "prevId": "4c5cd64c-f0fa-4b62-9a8e-504f2f435212",
   "version": "7",
   "dialect": "postgresql",
@@ -1192,6 +1192,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "previewNoIndex": {
+          "name": "previewNoIndex",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "previewLimit": {
           "name": "previewLimit",
