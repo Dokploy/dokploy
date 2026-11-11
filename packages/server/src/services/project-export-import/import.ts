@@ -23,6 +23,7 @@ import {
 } from "@dokploy/server/db/schema/utils";
 import { findApplicationById } from "@dokploy/server/services/application";
 import { createFileMount } from "@dokploy/server/services/mount";
+import { generateRandomHash } from "@dokploy/server/utils/docker/compose";
 import { isValidMountFilePath } from "@dokploy/server/utils/docker/utils";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { createRedirectMiddleware } from "@dokploy/server/utils/traefik/redirect";
@@ -256,6 +257,7 @@ const insertChildren = async (
 	type: ServiceType,
 	service: Row,
 	newServiceId: string,
+	renameService: (serviceName: unknown) => unknown,
 ) => {
 	const { tx, appNameMap, warnings } = ctx;
 	const parent = { [SERVICE_ID_FIELD[type]]: newServiceId };
@@ -291,6 +293,7 @@ const insertChildren = async (
 			await tx.insert(domains).values({
 				...omit(row, ["domainId", "uniqueConfigKey", "previewDeploymentId"]),
 				host,
+				serviceName: renameService(row.serviceName),
 				enabled: conflict || forwardAuth ? false : row.enabled,
 				forwardAuthEnabled: false,
 				...parent,
@@ -383,8 +386,19 @@ const insertService = async (
 	row.environmentId = environmentId;
 	row.serverId = ctx.serverId;
 
+	let renameService = (serviceName: unknown) => serviceName;
 	if (type === "compose") {
 		row.composeStatus = "idle";
+		// Randomize appends the suffix to container names, so reusing it collides with the source.
+		const oldSuffix = row.suffix;
+		if (typeof oldSuffix === "string" && oldSuffix) {
+			const newSuffix = generateRandomHash();
+			row.suffix = newSuffix;
+			renameService = (serviceName) =>
+				typeof serviceName === "string" && serviceName.endsWith(`-${oldSuffix}`)
+					? `${serviceName.slice(0, -oldSuffix.length)}${newSuffix}`
+					: serviceName;
+		}
 	} else {
 		row.applicationStatus = "idle";
 	}
@@ -408,7 +422,7 @@ const insertService = async (
 	const newId = inserted?.[idField] as string | undefined;
 	if (!newId) throw new Error(`Failed to create "${service.name}"`);
 	if (type === "application") ctx.applicationIds.push(newId);
-	await insertChildren(ctx, type, service, newId);
+	await insertChildren(ctx, type, service, newId, renameService);
 };
 
 export type ImportOptions = {

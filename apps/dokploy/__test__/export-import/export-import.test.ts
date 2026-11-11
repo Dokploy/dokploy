@@ -398,7 +398,7 @@ describe("importBundle", () => {
 		expect(result.warnings.join("\n")).toMatch(/Port 5432/);
 	});
 
-	it("keeps the compose suffix so randomized domain targets still match", async () => {
+	it("regenerates the compose suffix and rewrites domain targets to match", async () => {
 		const payload = await exportedPayload();
 		payload.services.push({
 			kind: "compose",
@@ -418,11 +418,13 @@ describe("importBundle", () => {
 		});
 		const { db, insertsInto } = fakeImportDb({});
 		await importBundle(db, payload, { organizationId: "org", serverId: null });
-		expect(insertsInto(compose)[0]?.suffix).toBe("abc123");
+		const suffix = insertsInto(compose)[0]?.suffix;
+		expect(suffix).toEqual(expect.any(String));
+		expect(suffix).not.toBe("abc123");
 		expect(
 			insertsInto(domains).find((d) => d.host === "stack.example.com")
 				?.serviceName,
-		).toBe("web-abc123");
+		).toBe(`web-${suffix}`);
 	});
 
 	it.each(["../../etc/passwd", ".", ""])(
