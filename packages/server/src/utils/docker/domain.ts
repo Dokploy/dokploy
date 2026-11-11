@@ -58,7 +58,12 @@ export const getComposePath = (compose: Compose) => {
 		path = composePath;
 	}
 
-	return join(COMPOSE_PATH, appName, "code", path);
+	const codePath = join(COMPOSE_PATH, appName, "code");
+	const composePathResolved = join(codePath, path);
+	if (!composePathResolved.startsWith(`${codePath}/`)) {
+		throw new Error("Invalid compose path");
+	}
+	return composePathResolved;
 };
 
 export const loadDockerCompose = async (

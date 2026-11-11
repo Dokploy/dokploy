@@ -202,7 +202,7 @@ const createSchema = createInsertSchema(compose, {
 	composePath: z
 		.string()
 		.min(1)
-		.regex(/^[a-zA-Z0-9._@+/][a-zA-Z0-9._@+/-]*$/, "Invalid compose path")
+		.regex(/^[a-zA-Z0-9._@+][a-zA-Z0-9._@+/-]*$/, "Invalid compose path")
 		.refine((p) => !p.split("/").includes(".."), "Invalid compose path"),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
