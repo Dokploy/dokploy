@@ -2,7 +2,6 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import {
 	Activity,
-	Archive,
 	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
@@ -411,13 +410,6 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: HardDrive,
 			isEnabled: ({ permissions }) => !!permissions?.destination.read,
-		},
-		{
-			isSingle: true,
-			title: "Exports",
-			url: "/dashboard/settings/exports",
-			icon: Archive,
-			isEnabled: ({ auth }) => auth?.role === "owner" || auth?.role === "admin",
 		},
 
 		{

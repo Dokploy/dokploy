@@ -1,189 +1,89 @@
 import {
 	createCipheriv,
 	createDecipheriv,
-	type DecipherGCM,
 	randomBytes,
 	scrypt,
 } from "node:crypto";
-import { Transform } from "node:stream";
-import { KDF_PARAMS } from "./types";
+import { gunzipSync, gzipSync } from "node:zlib";
+import {
+	BUNDLE_FORMAT,
+	BUNDLE_FORMAT_VERSION,
+	type Envelope,
+	MAX_BUNDLE_BYTES,
+	MIN_PASSPHRASE_LENGTH,
+} from "./types";
 
-const deriveScryptKey = (
-	passphrase: string,
-	salt: Buffer,
-	keylen: number,
-): Promise<Buffer> =>
-	new Promise((resolve, reject) => {
-		scrypt(
-			passphrase,
-			salt,
-			keylen,
-			{
-				N: KDF_PARAMS.N,
-				r: KDF_PARAMS.r,
-				p: KDF_PARAMS.p,
-				maxmem: 64 * 1024 * 1024,
-			},
-			(err, derivedKey) => {
-				if (err) {
-					reject(err);
-					return;
-				}
-				resolve(derivedKey);
-			},
-		);
-	});
-
-export class TransferCryptoError extends Error {
+export class BundleCryptoError extends Error {
 	constructor(
 		message = "Failed to decrypt: wrong passphrase or corrupted bundle",
 	) {
 		super(message);
-		this.name = "TransferCryptoError";
+		this.name = "BundleCryptoError";
 	}
 }
 
-const IV_LENGTH = 12;
-const KEY_LENGTH = KDF_PARAMS.dkLen / 2;
-const KEY_CHECK_ID = "keyCheck";
-const KEY_CHECK_PLAINTEXT = "dokploy-export-v1";
+const deriveKey = (passphrase: string, salt: Buffer): Promise<Buffer> =>
+	new Promise((resolve, reject) => {
+		scrypt(
+			passphrase,
+			salt,
+			32,
+			{ N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
+			(error, key) => (error ? reject(error) : resolve(key)),
+		);
+	});
 
-export type DerivedKeys = { salt: string; kEnc: Buffer };
-export type EncryptedEntry = { iv: string; ct: string; tag: string };
+const aad = Buffer.from(`${BUNDLE_FORMAT}:${BUNDLE_FORMAT_VERSION}`);
 
-export const assertPassphrase = (passphrase: string) => {
-	if (passphrase.length < 12) {
-		throw new Error("Passphrase must be at least 12 characters long");
-	}
-};
-
-export const deriveKeys = async (
+export const encryptPayload = async (
+	json: string,
 	passphrase: string,
-	saltInput?: string,
-): Promise<DerivedKeys> => {
-	assertPassphrase(passphrase);
-	const salt = saltInput ? Buffer.from(saltInput, "base64") : randomBytes(16);
-	const derived = await deriveScryptKey(passphrase, salt, KDF_PARAMS.dkLen);
+): Promise<Pick<Envelope, "kdf" | "iv" | "tag" | "data">> => {
+	if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
+		throw new Error(
+			`Passphrase must be at least ${MIN_PASSPHRASE_LENGTH} characters long`,
+		);
+	}
+	const salt = randomBytes(16);
+	const iv = randomBytes(12);
+	const cipher = createCipheriv(
+		"aes-256-gcm",
+		await deriveKey(passphrase, salt),
+		iv,
+	);
+	cipher.setAAD(aad);
+	const data = Buffer.concat([
+		cipher.update(gzipSync(Buffer.from(json, "utf8"))),
+		cipher.final(),
+	]);
 	return {
-		salt: salt.toString("base64"),
-		kEnc: derived.subarray(0, KEY_LENGTH),
-	};
-};
-
-export const encryptField = (
-	kEnc: Buffer,
-	id: string,
-	plaintext: string,
-): EncryptedEntry => {
-	const iv = randomBytes(IV_LENGTH);
-	const cipher = createCipheriv("aes-256-gcm", kEnc, iv);
-	cipher.setAAD(Buffer.from(id, "utf8"));
-	const ct = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-	return {
+		kdf: { salt: salt.toString("base64") },
 		iv: iv.toString("base64"),
-		ct: ct.toString("base64"),
 		tag: cipher.getAuthTag().toString("base64"),
+		data: data.toString("base64"),
 	};
 };
 
-export const decryptField = (
-	kEnc: Buffer,
-	id: string,
-	entry: EncryptedEntry,
-): string => {
+export const decryptPayload = async (
+	envelope: Envelope,
+	passphrase: string,
+): Promise<string> => {
 	try {
 		const decipher = createDecipheriv(
 			"aes-256-gcm",
-			kEnc,
-			Buffer.from(entry.iv, "base64"),
+			await deriveKey(passphrase, Buffer.from(envelope.kdf.salt, "base64")),
+			Buffer.from(envelope.iv, "base64"),
 		);
-		decipher.setAAD(Buffer.from(id, "utf8"));
-		decipher.setAuthTag(Buffer.from(entry.tag, "base64"));
-		return Buffer.concat([
-			decipher.update(Buffer.from(entry.ct, "base64")),
+		decipher.setAAD(aad);
+		decipher.setAuthTag(Buffer.from(envelope.tag, "base64"));
+		const compressed = Buffer.concat([
+			decipher.update(Buffer.from(envelope.data, "base64")),
 			decipher.final(),
-		]).toString("utf8");
+		]);
+		return gunzipSync(compressed, {
+			maxOutputLength: MAX_BUNDLE_BYTES,
+		}).toString("utf8");
 	} catch {
-		throw new TransferCryptoError();
+		throw new BundleCryptoError();
 	}
-};
-
-export const makeKeyCheck = (kEnc: Buffer): string =>
-	JSON.stringify(encryptField(kEnc, KEY_CHECK_ID, KEY_CHECK_PLAINTEXT));
-
-export const verifyKeyCheck = (kEnc: Buffer, keyCheck: string): boolean => {
-	try {
-		const entry = JSON.parse(keyCheck) as EncryptedEntry;
-		return decryptField(kEnc, KEY_CHECK_ID, entry) === KEY_CHECK_PLAINTEXT;
-	} catch {
-		return false;
-	}
-};
-
-const FILE_TAG_LENGTH = 16;
-
-export const gcmEncryptStream = (kEnc: Buffer): Transform => {
-	const iv = randomBytes(IV_LENGTH);
-	const cipher = createCipheriv("aes-256-gcm", kEnc, iv);
-	let started = false;
-	return new Transform({
-		transform(chunk: Buffer, _encoding, callback) {
-			if (!started) {
-				started = true;
-				this.push(iv);
-			}
-			callback(null, cipher.update(chunk));
-		},
-		flush(callback) {
-			if (!started) this.push(iv);
-			this.push(cipher.final());
-			this.push(cipher.getAuthTag());
-			callback();
-		},
-	});
-};
-
-export const gcmDecryptStream = (kEnc: Buffer): Transform => {
-	let head = Buffer.alloc(0);
-	let decipher: DecipherGCM | undefined;
-	let tail = Buffer.alloc(0);
-	return new Transform({
-		transform(chunk: Buffer, _encoding, callback) {
-			let data = chunk;
-			if (!decipher) {
-				head = Buffer.concat([head, data]);
-				if (head.length < IV_LENGTH) return callback();
-				decipher = createDecipheriv(
-					"aes-256-gcm",
-					kEnc,
-					head.subarray(0, IV_LENGTH),
-				) as DecipherGCM;
-				data = head.subarray(IV_LENGTH);
-			}
-			const combined = Buffer.concat([tail, data]);
-			if (combined.length <= FILE_TAG_LENGTH) {
-				tail = combined;
-				return callback();
-			}
-			tail = combined.subarray(combined.length - FILE_TAG_LENGTH);
-			callback(
-				null,
-				decipher.update(
-					combined.subarray(0, combined.length - FILE_TAG_LENGTH),
-				),
-			);
-		},
-		flush(callback) {
-			if (!decipher || tail.length < FILE_TAG_LENGTH) {
-				return callback(new TransferCryptoError());
-			}
-			try {
-				decipher.setAuthTag(tail);
-				this.push(decipher.final());
-				callback();
-			} catch {
-				callback(new TransferCryptoError());
-			}
-		},
-	});
 };

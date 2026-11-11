@@ -8,7 +8,6 @@ import {
 	initCronJobs,
 	initEnterpriseBackupCronJobs,
 	initializeNetwork,
-	initProjectExportImportCleanup,
 	initSchedules,
 	initVolumeBackupsCronJobs,
 	restoreInterruptedTraefik,
@@ -73,7 +72,6 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 		await initEnterpriseBackupCronJobs();
-		initProjectExportImportCleanup();
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");

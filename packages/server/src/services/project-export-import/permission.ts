@@ -54,16 +54,19 @@ export const findOrganizationServerId = async (
 		if (IS_CLOUD) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Choose the server the bundle will be imported to",
+				message: "Choose the server the project will be imported to",
 			});
 		}
 		return null;
 	}
 	const server = await db.query.server.findFirst({
-		where: (fields, { eq, and }) =>
+		where: (fields, { eq, and, isNotNull }) =>
 			and(
 				eq(fields.serverId, serverId),
 				eq(fields.organizationId, organizationId),
+				eq(fields.serverType, "deploy"),
+				isNotNull(fields.sshKeyId),
+				...(IS_CLOUD ? [eq(fields.serverStatus, "active")] : []),
 			),
 		columns: { serverId: true },
 	});
@@ -71,24 +74,4 @@ export const findOrganizationServerId = async (
 		throw new TRPCError({ code: "NOT_FOUND", message: "Server not found" });
 	}
 	return server.serverId;
-};
-
-export const findOrganizationDestination = async (
-	destinationId: string,
-	organizationId: string,
-) => {
-	const destination = await db.query.destinations.findFirst({
-		where: (fields, { eq, and }) =>
-			and(
-				eq(fields.destinationId, destinationId),
-				eq(fields.organizationId, organizationId),
-			),
-	});
-	if (!destination) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Destination not found",
-		});
-	}
-	return destination;
 };
