@@ -1,25 +1,18 @@
 import {
+	assertCanUseBindMount,
 	createMount,
 	deleteMount,
 	findApplicationById,
-	findComposeById,
-	findLibsqlById,
-	findMariadbById,
-	findMongoById,
 	findMountById,
 	findMountsByApplicationId,
-	findMySqlById,
-	findPostgresById,
-	findRedisById,
 	getServiceContainer,
+	getServiceOrganizationId,
 	readFileMountContent,
 	updateMount,
 } from "@dokploy/server";
-import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
-	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -32,66 +25,6 @@ import {
 	apiUpdateMount,
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-
-async function getServiceOrganizationId(
-	serviceId: string,
-	serviceType: ServiceType,
-): Promise<string | null> {
-	switch (serviceType) {
-		case "application": {
-			const app = await findApplicationById(serviceId);
-			return app?.environment?.project?.organizationId ?? null;
-		}
-		case "postgres": {
-			const postgres = await findPostgresById(serviceId);
-			return postgres?.environment?.project?.organizationId ?? null;
-		}
-		case "mariadb": {
-			const mariadb = await findMariadbById(serviceId);
-			return mariadb?.environment?.project?.organizationId ?? null;
-		}
-		case "mongo": {
-			const mongo = await findMongoById(serviceId);
-			return mongo?.environment?.project?.organizationId ?? null;
-		}
-		case "mysql": {
-			const mysql = await findMySqlById(serviceId);
-			return mysql?.environment?.project?.organizationId ?? null;
-		}
-		case "redis": {
-			const redis = await findRedisById(serviceId);
-			return redis?.environment?.project?.organizationId ?? null;
-		}
-		case "compose": {
-			const compose = await findComposeById(serviceId);
-			return compose?.environment?.project?.organizationId ?? null;
-		}
-		case "libsql": {
-			const libsql = await findLibsqlById(serviceId);
-			return libsql?.environment?.project?.organizationId ?? null;
-		}
-		default:
-			return null;
-	}
-}
-
-const assertCanUseBindMount = async (
-	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
-	type: string | null | undefined,
-	hostPath: string | null | undefined,
-) => {
-	if (type !== "bind" && !hostPath) return;
-	const member = await findMemberByUserId(
-		ctx.user.id,
-		ctx.session.activeOrganizationId,
-	);
-	if (member.role !== "owner" && member.role !== "admin") {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "Only owners and admins can manage bind mounts",
-		});
-	}
-};
 
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure

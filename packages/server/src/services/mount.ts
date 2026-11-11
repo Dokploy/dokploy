@@ -20,6 +20,15 @@ import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { findApplicationById } from "./application";
+import { findComposeById } from "./compose";
+import { findLibsqlById } from "./libsql";
+import { findMariadbById } from "./mariadb";
+import { findMongoById } from "./mongo";
+import { findMySqlById } from "./mysql";
+import { findMemberByUserId } from "./permission";
+import { findPostgresById } from "./postgres";
+import { findRedisById } from "./redis";
 
 export type Mount = typeof mounts.$inferSelect;
 
@@ -412,3 +421,94 @@ export const getServerId = async (mount: MountNested) => {
 
 	return null;
 };
+
+const BLOCKED_HOST_PATHS = [
+	"/etc",
+	"/root",
+	"/proc",
+	"/sys",
+	"/dev",
+	"/boot",
+	"/run",
+	"/var/run",
+	"/var/lib/docker",
+	"/usr",
+	"/bin",
+	"/sbin",
+	"/lib",
+	"/lib64",
+];
+
+const isWithin = (child: string, parent: string) =>
+	child === parent || child.startsWith(`${parent}/`);
+
+const isBlockedHostPath = (hostPath: string) => {
+	const normalized = path.posix.normalize(hostPath).replace(/\/+$/, "") || "/";
+	if (!normalized.startsWith("/") || normalized === "/") return true;
+	// A parent of a blocked path (e.g. /var) exposes it just the same.
+	return BLOCKED_HOST_PATHS.some(
+		(blocked) => isWithin(normalized, blocked) || isWithin(blocked, normalized),
+	);
+};
+
+export const assertCanUseBindMount = async (
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+	type: string | null | undefined,
+	hostPath: string | null | undefined,
+) => {
+	if (type !== "bind" && !hostPath) return;
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role === "owner" || member.role === "admin") return;
+	if (!hostPath || isBlockedHostPath(hostPath)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"This host path is not allowed for bind mounts. Ask an owner or admin to add it.",
+		});
+	}
+};
+
+export async function getServiceOrganizationId(
+	serviceId: string,
+	serviceType: ServiceType,
+): Promise<string | null> {
+	switch (serviceType) {
+		case "application": {
+			const app = await findApplicationById(serviceId);
+			return app?.environment?.project?.organizationId ?? null;
+		}
+		case "postgres": {
+			const postgres = await findPostgresById(serviceId);
+			return postgres?.environment?.project?.organizationId ?? null;
+		}
+		case "mariadb": {
+			const mariadb = await findMariadbById(serviceId);
+			return mariadb?.environment?.project?.organizationId ?? null;
+		}
+		case "mongo": {
+			const mongo = await findMongoById(serviceId);
+			return mongo?.environment?.project?.organizationId ?? null;
+		}
+		case "mysql": {
+			const mysql = await findMySqlById(serviceId);
+			return mysql?.environment?.project?.organizationId ?? null;
+		}
+		case "redis": {
+			const redis = await findRedisById(serviceId);
+			return redis?.environment?.project?.organizationId ?? null;
+		}
+		case "compose": {
+			const compose = await findComposeById(serviceId);
+			return compose?.environment?.project?.organizationId ?? null;
+		}
+		case "libsql": {
+			const libsql = await findLibsqlById(serviceId);
+			return libsql?.environment?.project?.organizationId ?? null;
+		}
+		default:
+			return null;
+	}
+}
