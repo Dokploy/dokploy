@@ -81,6 +81,9 @@ describe("docker cleanup keeps a stopped dokploy-traefik", () => {
 		expect(
 			runWithFakeDocker(script!, { "dokploy-traefik-previous": "false" }),
 		).toEqual([]);
+		expect(
+			runWithFakeDocker(script!, { "dokploy-traefik-next": "false" }),
+		).toEqual([]);
 		expect(runWithFakeDocker(script!, { "dokploy-traefik": "true" })).toEqual([
 			prune,
 		]);

@@ -127,9 +127,9 @@ Document.getInitialProps = async (
 			appName = config.appName;
 			appDescription = config.appDescription;
 			ogImageUrl = config.ogImageUrl;
-			// Remove any </style> tags to prevent XSS breakout
+			// A raw "<" could close the <style> block; "\3C " is the same character to CSS.
 			customCss = config.customCss
-				? config.customCss.replace(/<\/\s*style[^>]*>/gi, "")
+				? config.customCss.replace(/</g, "\\3C ")
 				: null;
 			faviconHref = config.faviconUrl || null;
 			faviconLightHref = config.faviconLightUrl || null;

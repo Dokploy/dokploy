@@ -1,4 +1,5 @@
 import {
+	assertVolumeBelongsToService,
 	createVolumeBackup,
 	findServiceOwningVolume,
 	findVolumeBackupById,
@@ -85,7 +86,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
-			const serviceType = (
+			const serviceTypes = (
 				[
 					"application",
 					"postgres",
@@ -96,13 +97,24 @@ export const volumeBackupsRouter = createTRPCRouter({
 					"libsql",
 					"compose",
 				] as const
-			).find((type) => input[`${type}Id`]);
+			).filter((type) => input[`${type}Id`]);
+			const [serviceType] = serviceTypes;
 			const serviceId = serviceType ? input[`${serviceType}Id`] : undefined;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["create"],
+			if (serviceTypes.length !== 1 || !serviceType || !serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A volume backup must target exactly one service",
 				});
 			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["create"],
+			});
+			await assertVolumeBelongsToService({
+				serviceType,
+				serviceId,
+				volumeName: input.volumeName,
+				serviceName: input.serviceName,
+			});
 			await findDestinationByIdForOrganization(
 				input.destinationId,
 				ctx.session.activeOrganizationId,
@@ -203,9 +215,49 @@ export const volumeBackupsRouter = createTRPCRouter({
 				existingVb.redisId ||
 				existingVb.libsqlId ||
 				existingVb.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["update"],
+			const serviceTypes = [
+				"application",
+				"postgres",
+				"mysql",
+				"mariadb",
+				"mongo",
+				"redis",
+				"libsql",
+				"compose",
+			] as const;
+			const serviceType = serviceTypes.find((type) => existingVb[`${type}Id`]);
+			if (!serviceType || !serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Volume backup is not attached to a service",
+				});
+			}
+			if (
+				serviceTypes.some(
+					(type) =>
+						input[`${type}Id`] !== undefined &&
+						input[`${type}Id`] !== existingVb[`${type}Id`],
+				)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A volume backup cannot be moved to another service",
+				});
+			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["update"],
+			});
+			const volumeName = input.volumeName ?? existingVb.volumeName;
+			const serviceName = input.serviceName ?? existingVb.serviceName;
+			if (
+				volumeName !== existingVb.volumeName ||
+				serviceName !== existingVb.serviceName
+			) {
+				await assertVolumeBelongsToService({
+					serviceType,
+					serviceId,
+					volumeName,
+					serviceName,
 				});
 			}
 			await findDestinationByIdForOrganization(

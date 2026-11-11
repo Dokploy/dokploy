@@ -1,3 +1,7 @@
+import {
+	BUILD_TOKEN_REGEX,
+	isSafeBuildPath,
+} from "@dokploy/server/db/schema/utils";
 import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
@@ -41,11 +45,42 @@ export type ApplicationNested = InferResultType<
 	}
 >;
 
+const assertSafeBuildFields = (application: ApplicationNested) => {
+	const paths = {
+		buildPath: application.buildPath,
+		gitlabBuildPath: application.gitlabBuildPath,
+		giteaBuildPath: application.giteaBuildPath,
+		bitbucketBuildPath: application.bitbucketBuildPath,
+		customGitBuildPath: application.customGitBuildPath,
+		dropBuildPath: application.dropBuildPath,
+		dockerfile: application.dockerfile,
+		dockerContextPath: application.dockerContextPath,
+		publishDirectory: application.publishDirectory,
+	};
+	const tokens = {
+		dockerBuildStage: application.dockerBuildStage,
+		railpackVersion: application.railpackVersion,
+		herokuVersion: application.herokuVersion,
+	};
+	const invalid = [
+		...Object.entries(paths).filter(([, v]) => v && !isSafeBuildPath(v)),
+		...Object.entries(tokens).filter(
+			([, v]) => v && !BUILD_TOKEN_REGEX.test(v),
+		),
+	].map(([field]) => field);
+	if (invalid.length > 0) {
+		throw new Error(
+			`Invalid build settings (${invalid.join(", ")}). Update them and deploy again.`,
+		);
+	}
+};
+
 export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 	const application = await withResolvedVaultRefs(rawApplication);
 	let command = "";
 
 	if (application.sourceType !== "docker") {
+		assertSafeBuildFields(application);
 		const { buildType } = application;
 		switch (buildType) {
 			case "nixpacks":

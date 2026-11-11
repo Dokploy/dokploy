@@ -186,7 +186,7 @@ echo "Execution completed."
 
 // A stopped Traefik must stay startable; keeping its container also keeps its image from `image prune --all`.
 const skipIfTraefikStopped = (command: string) => `
-if docker container inspect --format '{{.State.Running}}' dokploy-traefik dokploy-traefik-previous 2>/dev/null | grep -q false; then
+if docker container inspect --format '{{.State.Running}}' dokploy-traefik dokploy-traefik-previous dokploy-traefik-next 2>/dev/null | grep -q false; then
     echo "Skipping '${command}': dokploy-traefik is stopped"
 else
     ${command}

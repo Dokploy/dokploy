@@ -7,6 +7,8 @@ import {
 	type updateVolumeBackupSchema,
 	volumeBackups,
 } from "../db/schema";
+import { mounts } from "../db/schema/mount";
+import { getComposeContainer } from "../utils/docker/utils";
 import { findApplicationById } from "./application";
 import { findComposeById } from "./compose";
 
@@ -176,4 +178,56 @@ export const findServiceOwningVolume = async (
 		});
 	}
 	return service;
+};
+
+type VolumeServiceType =
+	| "application"
+	| "postgres"
+	| "mysql"
+	| "mariadb"
+	| "mongo"
+	| "redis"
+	| "libsql"
+	| "compose";
+
+export const assertVolumeBelongsToService = async ({
+	serviceType,
+	serviceId,
+	volumeName,
+	serviceName,
+}: {
+	serviceType: VolumeServiceType;
+	serviceId: string;
+	volumeName: string;
+	serviceName?: string | null;
+}) => {
+	const mounted = await db.query.mounts.findFirst({
+		where: and(
+			eq(mounts[`${serviceType}Id`], serviceId),
+			eq(mounts.type, "volume"),
+			eq(mounts.volumeName, volumeName),
+		),
+		columns: { mountId: true },
+	});
+	if (mounted) return;
+
+	if (serviceType === "compose") {
+		const compose = await findComposeById(serviceId);
+		if (volumeName.startsWith(`${compose.appName}_`)) return;
+		if (serviceName) {
+			const container = await getComposeContainer(compose, serviceName);
+			if (
+				container?.Mounts.some(
+					(mount) => mount.Type === "volume" && mount.Name === volumeName,
+				)
+			) {
+				return;
+			}
+		}
+	}
+
+	throw new TRPCError({
+		code: "UNAUTHORIZED",
+		message: "This volume does not belong to the service.",
+	});
 };

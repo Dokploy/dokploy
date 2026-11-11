@@ -35,6 +35,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import {
+	checkPermission,
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
@@ -782,6 +783,13 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 			}
+
+			const activeOrganizationId =
+				input.metadata?.organizationId || ctx.session.activeOrganizationId;
+			await checkPermission(
+				{ user: ctx.user, session: { activeOrganizationId } },
+				{ api: ["read"] },
+			);
 
 			const apiKey = await createApiKey(ctx.user.id, input);
 			await audit(ctx, {
