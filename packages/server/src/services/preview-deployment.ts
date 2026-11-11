@@ -17,7 +17,7 @@ import { manageDomain } from "../utils/traefik/domain";
 import { deleteAllMiddlewares } from "../utils/traefik/middleware";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, updateDomainById } from "./domain";
 import { findGithubById, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -143,6 +143,25 @@ export const findPreviewDeploymentsByApplicationId = async (
 		},
 	});
 	return deploymentsList;
+};
+
+export const syncPreviewNoIndex = async (
+	applicationId: string,
+	noIndex: boolean,
+) => {
+	const previews = await findPreviewDeploymentsByApplicationId(applicationId);
+	let application: Awaited<ReturnType<typeof findApplicationById>> | undefined;
+
+	for (const { appName, domain } of previews) {
+		if (!domain || domain.noIndex === noIndex) {
+			continue;
+		}
+		application ??= await findApplicationById(applicationId);
+		const updated = await updateDomainById(domain.domainId, { noIndex });
+		if (updated) {
+			await manageDomain({ ...application, appName }, updated);
+		}
+	}
 };
 
 export const createPreviewDeployment = async (
