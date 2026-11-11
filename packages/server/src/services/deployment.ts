@@ -633,7 +633,7 @@ export const removeDeployment = async (deploymentId: string) => {
 
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
-			const command = `rm -f ${logPath};`;
+			const command = `rm -f ${quote([logPath])};`;
 			if (deployment.serverId) {
 				await execAsyncRemote(deployment.serverId, command);
 			} else {
@@ -719,7 +719,7 @@ const removeLastTenDeployments = async (
 					}
 
 					if (logPath && logPath !== ".") {
-						command += `rm -rf ${logPath};`;
+						command += `rm -rf ${quote([logPath])};`;
 					}
 					await removeDeployment(oldDeployment.deploymentId);
 				} catch (err) {
