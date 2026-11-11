@@ -1,4 +1,4 @@
-import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
+import { CLEANUP_CRON_JOB, IS_CLOUD } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { findDestinationById } from "@dokploy/server/services/destination";
@@ -6,6 +6,7 @@ import { getAllServers } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
+import { quote } from "shell-quote";
 import { db } from "../../db/index";
 import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
@@ -110,6 +111,7 @@ export const keepLatestNBackups = async (
 	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
 	// is saved as 0 in the database
 	if (!backup.keepLatestCount) return;
+	if (IS_CLOUD && !serverId) return;
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
@@ -118,12 +120,12 @@ export const keepLatestNBackups = async (
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
 		// sort by server mtime: custom names break lexical order
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" --format "tp" --use-server-modtime ${backupFilesPath}`;
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" --format "tp" --use-server-modtime ${quote([backupFilesPath])}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | cut -d';' -f2- | xargs -I{}`;
 		// this command deletes the files
 		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${quote([backupFilesPath])}{}`;
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
