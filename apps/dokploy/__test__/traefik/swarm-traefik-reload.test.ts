@@ -21,6 +21,7 @@ describe("Swarm Traefik reload", () => {
 	const inspect = vi.fn();
 	const update = vi.fn();
 	const listTasks = vi.fn();
+	const createService = vi.fn();
 	const serviceInfo = (forceUpdate: number, updateState?: string) => ({
 		Version: { Index: 12 },
 		Spec: {
@@ -42,6 +43,7 @@ describe("Swarm Traefik reload", () => {
 		mocks.getRemoteDocker.mockResolvedValue({
 			getService: () => ({ inspect, update }),
 			listTasks,
+			createService,
 		});
 	});
 	afterEach(() => vi.useRealTimers());
@@ -118,6 +120,67 @@ describe("Swarm Traefik reload", () => {
 		expect(finished).toBe(false);
 		listTasks.mockResolvedValue([task(3)]);
 		await vi.advanceTimersByTimeAsync(6000);
+		await change;
+		expect(finished).toBe(true);
+	});
+	it("serializes settings updates and reloads on the same server", async () => {
+		let generation = 2;
+		inspect.mockReset().mockImplementation(async () => serviceInfo(generation));
+		update.mockImplementation(async (options) => {
+			generation = options.TaskTemplate.ForceUpdate;
+		});
+		listTasks.mockImplementation(async () => [task(generation)]);
+		const change = initializeTraefikService({ serverId: "swarm-server" }).catch(
+			(error: Error) => error,
+		);
+		await vi.advanceTimersByTimeAsync(1000);
+		const reload = ensureTraefikRunning("swarm-server", true).catch(
+			(error: Error) => error,
+		);
+		await vi.advanceTimersByTimeAsync(1000);
+		const updatesBeforeStability = update.mock.calls.length;
+		await vi.advanceTimersByTimeAsync(65_000);
+		expect(await change).toBeUndefined();
+		expect(await reload).toBe(false);
+		expect(updatesBeforeStability).toBe(1);
+		expect(
+			update.mock.calls.map(([options]) => options.TaskTemplate.ForceUpdate),
+		).toEqual([3, 4]);
+	});
+	it.each(["inspect", "update"])(
+		"preserves Docker %s errors without trying to create a duplicate service",
+		async (operation) => {
+			const failure = Object.assign(new Error("Docker unavailable"), {
+				statusCode: 503,
+			});
+			if (operation === "inspect")
+				inspect.mockReset().mockRejectedValue(failure);
+			else update.mockRejectedValue(failure);
+			const result = initializeTraefikService({}).catch(
+				(error: Error) => error,
+			);
+			await vi.advanceTimersByTimeAsync(6000);
+			expect(await result).toBe(failure);
+			expect(createService).not.toHaveBeenCalled();
+		},
+	);
+	it("creates a missing service and waits for its initial task to stabilize", async () => {
+		inspect
+			.mockReset()
+			.mockRejectedValueOnce(
+				Object.assign(new Error("not found"), { statusCode: 404 }),
+			)
+			.mockResolvedValue(serviceInfo(0));
+		listTasks.mockResolvedValue([task(0)]);
+		let finished = false;
+		const change = initializeTraefikService({}).then(() => {
+			finished = true;
+		});
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(createService).toHaveBeenCalledOnce();
+		expect(update).not.toHaveBeenCalled();
+		expect(finished).toBe(false);
+		await vi.advanceTimersByTimeAsync(5000);
 		await change;
 		expect(finished).toBe(true);
 	});

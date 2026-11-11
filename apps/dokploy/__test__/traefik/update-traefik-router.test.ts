@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+	audit: vi.fn(),
 	findServerById: vi.fn(),
 	recoverTraefik: vi.fn(),
 	getTraefikOverview: vi.fn(),
@@ -33,7 +34,7 @@ vi.mock("@dokploy/server/lib/auth", () => ({
 }));
 
 vi.mock("@/server/api/utils/audit", () => ({
-	audit: vi.fn(async () => undefined),
+	audit: mocks.audit,
 }));
 
 vi.mock("@/server/queues/queueSetup", () => ({
@@ -71,6 +72,7 @@ const overview = (versionStatus: string) => ({
 describe("Traefik update endpoints", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.audit.mockResolvedValue(undefined);
 		mocks.findServerById.mockImplementation(async (serverId: string) => ({
 			serverId,
 			organizationId: serverId === "server-b" ? "org-b" : "org-a",
@@ -347,6 +349,7 @@ describe("Traefik update endpoints", () => {
 describe("Traefik reload recovery", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.audit.mockResolvedValue(undefined);
 		mocks.findServerById.mockImplementation(async (serverId: string) => ({
 			organizationId: serverId === "server-b" ? "org-b" : "org-a",
 		}));
@@ -397,6 +400,35 @@ describe("Traefik reload recovery", () => {
 				lastReloadError: null,
 			}),
 		);
+	});
+	it("deduplicates concurrent reload requests while auditing is pending", async () => {
+		const { EventEmitter } = await import("node:events");
+		const res = new EventEmitter();
+		const httpCaller = settingsRouter.createCaller({
+			session: { activeOrganizationId: "org-a" },
+			user: { id: "user-1", role: "admin" },
+			res,
+		} as unknown as Parameters<typeof settingsRouter.createCaller>[0]);
+		let finishAudit: () => void = () => {};
+		mocks.audit.mockReturnValue(
+			new Promise<void>((resolve) => {
+				finishAudit = resolve;
+			}),
+		);
+		const requests = Promise.all([
+			httpCaller.reloadTraefik({}),
+			httpCaller.reloadTraefik({}),
+		]);
+		await vi.waitFor(() => expect(mocks.audit).toHaveBeenCalledTimes(2));
+		finishAudit();
+		await requests;
+		res.emit("finish");
+		await vi.waitFor(async () =>
+			expect(await caller.getTraefikOverview({})).toMatchObject({
+				isReloading: false,
+			}),
+		);
+		expect(mocks.recoverTraefik).toHaveBeenCalledOnce();
 	});
 	it("denies reload on another organization's server", async () => {
 		await expect(

@@ -39,23 +39,23 @@ export interface TraefikOptions {
 	}[];
 }
 
-// Overlapping recreates and restores of one server would remove each other's containers.
-const recreateQueue = new Map<string, Promise<void>>();
+// Serialize updates, reloads and recovery for each server.
+const traefikQueue = new Map<string, Promise<void>>();
 
 export const initializeStandaloneTraefik = (options: TraefikOptions = {}) =>
 	runQueued(options.serverId, () => recreateStandaloneTraefik(options));
 
 const runQueued = <T>(serverId: string | undefined, task: () => Promise<T>) => {
 	const key = serverId ?? "local";
-	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(task);
+	const run = (traefikQueue.get(key) ?? Promise.resolve()).then(task);
 	// So a hung Docker call can't block later recreates.
 	const settled = Promise.race([run.catch(() => {}), sleep(5 * 60_000)]).then(
 		() => {},
 	);
-	recreateQueue.set(key, settled);
+	traefikQueue.set(key, settled);
 	void settled.then(() => {
-		if (recreateQueue.get(key) === settled) {
-			recreateQueue.delete(key);
+		if (traefikQueue.get(key) === settled) {
+			traefikQueue.delete(key);
 		}
 	});
 	return run;
@@ -476,7 +476,10 @@ export const lastLogLine = (logs: Buffer) => {
 	return (lines.at(-1) ?? "").trim().slice(0, 300);
 };
 
-export const initializeTraefikService = async ({
+export const initializeTraefikService = (options: TraefikOptions) =>
+	runQueued(options.serverId, () => configureTraefikService(options));
+
+const configureTraefikService = async ({
 	env,
 	additionalPorts = [],
 	serverId,
@@ -550,14 +553,14 @@ export const initializeTraefikService = async ({
 		},
 	};
 	const docker = await getRemoteDocker(serverId);
+	const service = docker.getService(appName);
+	const inspect = await service.inspect().catch(missingDockerResource);
 	let forceUpdate = 0;
-	try {
-		const service = docker.getService(appName);
-		const inspect = await service.inspect();
+	if (inspect) {
 		forceUpdate = (inspect.Spec.TaskTemplate.ForceUpdate ?? 0) + 1;
 
 		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
+			version: inspect.Version.Index,
 			...settings,
 			TaskTemplate: {
 				...settings.TaskTemplate,
@@ -565,7 +568,7 @@ export const initializeTraefikService = async ({
 			},
 		});
 		console.log("Traefik Updated ✅");
-	} catch {
+	} else {
 		await docker.createService(settings);
 		console.log("Traefik Started ✅");
 	}

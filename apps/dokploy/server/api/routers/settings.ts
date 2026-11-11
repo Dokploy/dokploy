@@ -185,6 +185,8 @@ export const settingsRouter = createTRPCRouter({
 				resourceType: "settings",
 				resourceName: "dokploy-traefik",
 			});
+			// Another request may have started a reload while the audit was pending.
+			if (traefikReloads.get(key)?.running) return true;
 			const state = { running: true, error: null as string | null };
 			traefikReloads.set(key, state);
 			let started = false;

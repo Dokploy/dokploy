@@ -25,8 +25,8 @@ interface Props {
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
 	const utils = api.useUtils();
-	const [isReloadHealthCheckExecuting, setIsReloading] = useState(false);
-	const { mutateAsync: reloadTraefik, isPending: reloadTraefikIsLoading } =
+	const [isReloading, setIsReloading] = useState(false);
+	const { mutateAsync: reloadTraefik } =
 		api.settings.reloadTraefik.useMutation();
 
 	const { mutateAsync: toggleDashboard, isPending: toggleDashboardIsLoading } =
@@ -54,18 +54,12 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 			<DropdownMenuTrigger
 				asChild
 				disabled={
-					reloadTraefikIsLoading ||
-					toggleDashboardIsLoading ||
-					isHealthCheckExecuting ||
-					isReloadHealthCheckExecuting
+					toggleDashboardIsLoading || isHealthCheckExecuting || isReloading
 				}
 			>
 				<Button
 					isLoading={
-						reloadTraefikIsLoading ||
-						toggleDashboardIsLoading ||
-						isHealthCheckExecuting ||
-						isReloadHealthCheckExecuting
+						toggleDashboardIsLoading || isHealthCheckExecuting || isReloading
 					}
 					variant="outline"
 				>
@@ -95,7 +89,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							}
 						}}
 						className="cursor-pointer"
-						disabled={isReloadHealthCheckExecuting}
+						disabled={isReloading}
 					>
 						<span>Reload</span>
 					</DropdownMenuItem>
