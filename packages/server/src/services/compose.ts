@@ -22,6 +22,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { cloneAzureDevopsRepository } from "@dokploy/server/utils/providers/azure-devops";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import {
 	cloneGitRepository,
@@ -32,10 +33,15 @@ import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { getDokployUrl } from "./admin";
+import {
+	azureHookFieldsChanged,
+	syncAzureDevopsWebhook,
+} from "./azure-devops-hooks";
 import {
 	createDeploymentCompose,
 	updateDeployment,
@@ -135,6 +141,7 @@ export const findComposeById = async (composeId: string) => {
 			gitlab: {
 				columns: { secret: false, accessToken: false, refreshToken: false },
 			},
+			azureDevops: { columns: { personalAccessToken: false } },
 			bitbucket: { columns: { appPassword: false, apiToken: false } },
 			gitea: {
 				columns: {
@@ -214,14 +221,49 @@ export const updateCompose = async (
 	composeData: Partial<Compose>,
 ) => {
 	const { appName, ...rest } = composeData;
-	const composeResult = await db
-		.update(compose)
-		.set({
-			...rest,
-		})
-		.where(eq(compose.composeId, composeId))
-		.returning();
+	if (rest.sourceType !== undefined || rest.azureDevopsId !== undefined) {
+		const current = await db.query.compose.findFirst({
+			where: eq(compose.composeId, composeId),
+			columns: { sourceType: true, azureDevopsId: true },
+		});
+		if (
+			current?.sourceType === "azureDevops" &&
+			((rest.sourceType && rest.sourceType !== "azureDevops") ||
+				(rest.azureDevopsId !== undefined &&
+					rest.azureDevopsId !== current.azureDevopsId))
+		)
+			rest.refreshToken = nanoid();
+		if (rest.sourceType && rest.sourceType !== "azureDevops") {
+			rest.azureDevopsId = null;
+			rest.azureDevopsProjectId = null;
+			rest.azureDevopsRepositoryId = null;
+			rest.azureDevopsBranch = null;
+			rest.azureDevopsProjectName = null;
+			rest.azureDevopsRepositoryName = null;
+		}
+	}
+	const persist = (database: Pick<typeof db, "update">) =>
+		database
+			.update(compose)
+			.set(rest)
+			.where(eq(compose.composeId, composeId))
+			.returning();
+	const composeResult = rest.azureDevopsId
+		? await db.transaction(async (tx) => {
+				await tx.execute(
+					sql`select pg_advisory_xact_lock(hashtextextended(${`azure-provider:${rest.azureDevopsId}`}, 0))`,
+				);
+				return persist(tx);
+			})
+		: await persist(db);
 
+	if (azureHookFieldsChanged(composeData)) {
+		try {
+			await syncAzureDevopsWebhook("compose", composeId);
+		} catch {
+			console.error("Azure DevOps hook sync will be retried.");
+		}
+	}
 	return composeResult[0];
 };
 
@@ -253,7 +295,12 @@ export const deployCompose = async ({
 			type: "compose" as const,
 		};
 		let command = "set -e;";
-		if (compose.sourceType === "github") {
+		if (compose.sourceType === "azureDevops") {
+			command += await cloneAzureDevopsRepository({
+				...entity,
+				logPath: deployment.logPath,
+			});
+		} else if (compose.sourceType === "github") {
 			command += await cloneGithubRepository(entity);
 		} else if (compose.sourceType === "gitlab") {
 			command += await cloneGitlabRepository(entity);

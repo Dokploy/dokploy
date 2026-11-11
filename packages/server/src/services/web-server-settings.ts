@@ -40,6 +40,16 @@ export const updateWebServerSettings = async (
 		.where(eq(webServerSettings.id, current?.id ?? ""))
 		.returning();
 
+	if (
+		updates.host !== undefined ||
+		updates.https !== undefined ||
+		updates.serverIp !== undefined
+	) {
+		const { reconcileAzureDevopsHooks } = await import("./azure-devops-hooks");
+		void reconcileAzureDevopsHooks().catch(() =>
+			console.error("Azure DevOps hooks will be retried after the URL change."),
+		);
+	}
 	return updated;
 };
 

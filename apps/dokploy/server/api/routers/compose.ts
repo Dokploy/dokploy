@@ -35,6 +35,15 @@ import {
 } from "@dokploy/server";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
+import {
+	azureDevopsComposePath,
+	azureDevopsSourceFields,
+} from "@dokploy/server/db/schema";
+import { assertAzureDevopsSourceAccess } from "@dokploy/server/services/azure-devops";
+import {
+	getAzureDevopsHookStatus,
+	syncAzureDevopsWebhook,
+} from "@dokploy/server/services/azure-devops-hooks";
 import { canEditDeployGitSource } from "@dokploy/server/services/git-provider";
 import {
 	addNewService,
@@ -169,6 +178,8 @@ export const composeRouter = createTRPCRouter({
 						return compose.gitlab?.gitProviderId;
 					case "bitbucket":
 						return compose.bitbucket?.gitProviderId;
+					case "azureDevops":
+						return compose.azureDevops?.gitProviderId;
 					case "gitea":
 						return compose.gitea?.gitProviderId;
 					default:
@@ -204,6 +215,52 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			if (
+				Object.keys(input).some((key) => key.startsWith("azureDevops")) ||
+				input.sourceType !== undefined ||
+				input.autoDeploy !== undefined ||
+				input.triggerType !== undefined ||
+				input.composePath !== undefined
+			) {
+				const currentSource = await findComposeById(input.composeId);
+				if (
+					currentSource.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				)
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Service not found",
+					});
+				await assertAzureDevopsSourceAccess(
+					ctx.session,
+					currentSource,
+					input.azureDevopsId,
+				);
+				if (
+					(input.sourceType ?? currentSource.sourceType) !== "azureDevops" &&
+					Object.entries(input).some(
+						([key, value]) => key.startsWith("azureDevops") && value != null,
+					)
+				)
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Select the Azure DevOps source before setting Azure DevOps fields",
+					});
+				if ((input.sourceType ?? currentSource.sourceType) === "azureDevops") {
+					azureDevopsSourceFields.parse({ ...currentSource, ...input });
+					azureDevopsComposePath.parse(
+						input.composePath ??
+							currentSource.composePath ??
+							"./docker-compose.yml",
+					);
+					if (input.triggerType === "tag")
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Azure DevOps supports push deployments only",
+						});
+				}
+			}
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {
 				action: "update",
@@ -255,6 +312,24 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
+			let azureDevopsCleanup = await getAzureDevopsHookStatus(
+				"compose",
+				input.composeId,
+			);
+			if (
+				composeResult.sourceType === "azureDevops" ||
+				azureDevopsCleanup.length
+			) {
+				await db
+					.update(composeTable)
+					.set({ refreshToken: nanoid() })
+					.where(eq(composeTable.composeId, input.composeId));
+				await syncAzureDevopsWebhook("compose", input.composeId, true);
+				azureDevopsCleanup = await getAzureDevopsHookStatus(
+					"compose",
+					input.composeId,
+				);
+			}
 			const result = await db
 				.delete(composeTable)
 				.where(eq(composeTable.composeId, input.composeId))
@@ -282,7 +357,7 @@ export const composeRouter = createTRPCRouter({
 				resourceId: composeResult.composeId,
 				resourceName: composeResult.appName,
 			});
-			return composeResult;
+			return { ...composeResult, azureDevopsCleanup };
 		}),
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
@@ -742,6 +817,10 @@ export const composeRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			await assertAzureDevopsSourceAccess(
+				ctx.session,
+				await findComposeById(input.composeId),
+			);
 			await updateCompose(input.composeId, {
 				repository: null,
 				branch: null,
@@ -762,6 +841,12 @@ export const composeRouter = createTRPCRouter({
 				bitbucketBranch: null,
 				bitbucketId: null,
 
+				azureDevopsId: null,
+				azureDevopsProjectId: null,
+				azureDevopsRepositoryId: null,
+				azureDevopsProjectName: null,
+				azureDevopsRepositoryName: null,
+				azureDevopsBranch: null,
 				giteaRepository: null,
 				giteaOwner: null,
 				giteaBranch: null,
@@ -971,6 +1056,7 @@ export const composeRouter = createTRPCRouter({
 					service: ["create"],
 				});
 				const compose = await findComposeById(input.composeId);
+				await assertAzureDevopsSourceAccess(ctx.session, compose);
 				const decodedData = Buffer.from(input.base64, "base64").toString(
 					"utf-8",
 				);
