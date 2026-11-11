@@ -86,7 +86,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input, ctx }) => {
-			const serviceType = (
+			const serviceTypes = (
 				[
 					"application",
 					"postgres",
@@ -97,12 +97,13 @@ export const volumeBackupsRouter = createTRPCRouter({
 					"libsql",
 					"compose",
 				] as const
-			).find((type) => input[`${type}Id`]);
+			).filter((type) => input[`${type}Id`]);
+			const [serviceType] = serviceTypes;
 			const serviceId = serviceType ? input[`${serviceType}Id`] : undefined;
-			if (!serviceType || !serviceId) {
+			if (serviceTypes.length !== 1 || !serviceType || !serviceId) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "A service is required for a volume backup",
+					message: "A volume backup must target exactly one service",
 				});
 			}
 			await checkServicePermissionAndAccess(ctx, serviceId, {
