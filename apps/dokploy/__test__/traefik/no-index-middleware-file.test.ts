@@ -126,6 +126,28 @@ describe("noindex middleware in middlewares.yml", () => {
 		expect(remaining).toContain("redirect-to-https");
 	});
 
+	test("removes a preview deployment's middleware when it is deleted", async () => {
+		const preview = {
+			appName: "my-app-preview-abc123",
+			serverId: null,
+			security: [],
+			redirects: [],
+		} as unknown as ApplicationNested;
+		await createPathMiddlewares(preview, {
+			...domain,
+			domainType: "preview",
+			noIndex: true,
+		});
+		await createPathMiddlewares(app, { ...domain, noIndex: true });
+
+		await deleteAllMiddlewares(preview);
+
+		expect(readMiddlewares()[name]).toBeDefined();
+		expect(
+			readMiddlewares()[noIndexMiddlewareName("my-app-preview-abc123", 7)],
+		).toBeUndefined();
+	});
+
 	test("keeps the entries of apps saved at the same time", async () => {
 		const other = { appName: "other-app", serverId: null } as ApplicationNested;
 		await Promise.all([

@@ -53,6 +53,7 @@ const schema = z
 		previewLimit: z.number(),
 		previewLabels: z.array(z.string()).optional(),
 		previewHttps: z.boolean(),
+		previewNoIndex: z.boolean(),
 		previewPath: z.string(),
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
 		previewCustomCertResolver: z.string().optional(),
@@ -93,6 +94,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewLimit: 3,
 			previewLabels: [],
 			previewHttps: false,
+			previewNoIndex: false,
 			previewPath: "/",
 			previewCertificateType: "none",
 			previewRequireCollaboratorPermissions: true,
@@ -119,6 +121,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewLabels: data.previewLabels || [],
 				previewLimit: data.previewLimit || 3,
 				previewHttps: data.previewHttps || false,
+				previewNoIndex: data.previewNoIndex || false,
 				previewPath: data.previewPath || "/",
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
@@ -139,6 +142,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			applicationId,
 			previewLimit: formData.previewLimit,
 			previewHttps: formData.previewHttps,
+			previewNoIndex: formData.previewNoIndex,
 			previewPath: formData.previewPath,
 			previewCertificateType: formData.previewCertificateType,
 			previewCustomCertResolver: formData.previewCustomCertResolver,
@@ -330,6 +334,29 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 													<FormLabel>HTTPS</FormLabel>
 													<FormDescription>
 														Automatically provision SSL Certificate.
+													</FormDescription>
+													<FormMessage />
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewNoIndex"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-xs">
+												<div className="space-y-0.5">
+													<FormLabel>Block Search Engines</FormLabel>
+													<FormDescription>
+														Add an X-Robots-Tag: noindex, nofollow header to new
+														preview deployments so search engines don't index
+														them.
 													</FormDescription>
 													<FormMessage />
 												</div>

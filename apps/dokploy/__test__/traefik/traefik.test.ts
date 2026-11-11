@@ -49,6 +49,7 @@ const baseApp: ApplicationNested = {
 	previewPort: 3000,
 	previewLimit: 0,
 	previewCustomCertResolver: null,
+	previewNoIndex: false,
 	previewWildcard: "",
 	environmentId: "",
 	environment: {

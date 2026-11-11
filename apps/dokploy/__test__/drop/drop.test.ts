@@ -67,6 +67,7 @@ const baseApp: ApplicationNested = {
 	previewBuildSecrets: null,
 	previewCertificateType: "none",
 	previewCustomCertResolver: null,
+	previewNoIndex: false,
 	previewEnv: null,
 	previewHttps: false,
 	previewPath: "/",

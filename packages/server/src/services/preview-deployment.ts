@@ -14,6 +14,7 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
+import { deleteAllMiddlewares } from "../utils/traefik/middleware";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
@@ -57,6 +58,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 
 		application.appName = previewDeployment.appName;
 		const cleanupOperations = [
+			async () => await deleteAllMiddlewares(application),
 			async () =>
 				await removeService(application?.appName, application?.serverId),
 			async () =>
@@ -208,6 +210,7 @@ export const createPreviewDeployment = async (
 		https: application.previewHttps,
 		certificateType: application.previewCertificateType,
 		customCertResolver: application.previewCustomCertResolver,
+		noIndex: application.previewNoIndex,
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
 	});

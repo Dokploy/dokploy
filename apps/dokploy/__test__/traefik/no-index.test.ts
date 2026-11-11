@@ -63,6 +63,22 @@ describe("createRouterConfig noIndex wiring", () => {
 		expect(config.middlewares).toContain("noindex-my-app-7");
 	});
 
+	test("applies to preview deployment domains", async () => {
+		const previewApp = {
+			appName: "my-app-preview-abc123",
+			redirects: [],
+			security: [],
+		} as unknown as ApplicationNested;
+		const config = await createRouterConfig(
+			previewApp,
+			{ ...baseDomain, domainType: "preview", noIndex: true },
+			"websecure",
+		);
+		expect(config.middlewares).toContain(
+			noIndexMiddlewareName("my-app-preview-abc123", 7),
+		);
+	});
+
 	test("skips the redirect-only web router when https is on", async () => {
 		const domain: Domain = {
 			...baseDomain,
