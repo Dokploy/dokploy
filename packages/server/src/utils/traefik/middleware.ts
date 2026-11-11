@@ -120,6 +120,32 @@ export const noIndexMiddlewareName = (
 	uniqueConfigKey: number,
 ) => `noindex-${appName}-${uniqueConfigKey}`;
 
+const removeNoIndexMiddleware = async (
+	app: ApplicationNested,
+	uniqueConfigKey: number,
+) => {
+	let config: FileConfig;
+	try {
+		config = app.serverId
+			? await loadRemoteMiddlewares(app.serverId)
+			: loadMiddlewares<FileConfig>();
+	} catch {
+		return;
+	}
+
+	const name = noIndexMiddlewareName(app.appName, uniqueConfigKey);
+	if (!config?.http?.middlewares?.[name]) {
+		return;
+	}
+	delete config.http.middlewares[name];
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
+	} else {
+		writeMiddleware(config);
+	}
+};
+
 export const createPathMiddlewares = async (
 	app: ApplicationNested,
 	domain: Domain,
@@ -133,6 +159,7 @@ export const createPathMiddlewares = async (
 	const needsStripPathMiddleware = stripPath && path && path !== "/";
 
 	if (!needsInternalPathMiddleware && !needsStripPathMiddleware && !noIndex) {
+		await removeNoIndexMiddleware(app, uniqueConfigKey);
 		return;
 	}
 
@@ -181,15 +208,17 @@ export const createPathMiddlewares = async (
 		};
 	}
 
+	const noIndexName = noIndexMiddlewareName(appName, uniqueConfigKey);
 	if (noIndex) {
-		config.http!.middlewares[noIndexMiddlewareName(appName, uniqueConfigKey)] =
-			{
-				headers: {
-					customResponseHeaders: {
-						"X-Robots-Tag": NO_INDEX_HEADER_VALUE,
-					},
+		config.http!.middlewares[noIndexName] = {
+			headers: {
+				customResponseHeaders: {
+					"X-Robots-Tag": NO_INDEX_HEADER_VALUE,
 				},
-			};
+			},
+		};
+	} else {
+		delete config.http!.middlewares[noIndexName];
 	}
 
 	if (app.serverId) {
