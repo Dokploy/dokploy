@@ -133,6 +133,14 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 									means the container will be deleted and created again, which
 									may cause downtime in your applications.
 								</AlertBlock>
+								{!haveTraefikDashboardPortEnabled && (
+									<AlertBlock type="warning">
+										This publishes the Traefik API and dashboard on port 8080
+										without authentication. Anyone who can reach this port can
+										view your routing configuration. Restrict access to a
+										trusted network before enabling it.
+									</AlertBlock>
+								)}
 								<p>
 									Are you sure you want to{" "}
 									{haveTraefikDashboardPortEnabled ? "disable" : "enable"} the
