@@ -10,13 +10,13 @@ import {
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
-	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
 import packageInfo from "../package.json";
+import { startTraefikRecovery } from "./utils/traefik-recovery";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -62,9 +62,8 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
-			await restoreInterruptedTraefik().catch((error) => {
-				console.error("Failed to restore Traefik:", error);
-			});
+			const stopTraefikRecovery = startTraefikRecovery();
+			server.once("close", stopTraefikRecovery);
 			await initCronJobs();
 			await initSchedules();
 			await initCancelDeployments();

@@ -4,19 +4,21 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import semver from "semver";
 import { db } from "../db";
 import { compose } from "../db/schema";
 import {
 	ensureTraefikImage,
+	ensureTraefikRunning,
 	initializeStandaloneTraefik,
 	initializeTraefikService,
 	restoreInterruptedTraefik,
 	TRAEFIK_VERSION,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import { getRemoteDocker } from "../utils/servers/remote-docker";
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -649,7 +651,7 @@ export const pullTraefikImage = (serverId?: string) =>
 export const reconnectServicesToTraefik = async (serverId?: string) => {
 	const composeResult = await db.query.compose.findMany({
 		where: and(
-			...(serverId ? [eq(compose.serverId, serverId)] : []),
+			serverId ? eq(compose.serverId, serverId) : isNull(compose.serverId),
 			eq(compose.isolatedDeployment, true),
 		),
 	});
@@ -657,15 +659,27 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 	if (composeResult.length === 0) {
 		return;
 	}
-	let commands = "";
-
+	const docker = await getRemoteDocker(serverId);
+	const container = await docker.getContainer("dokploy-traefik").inspect();
 	for (const compose of composeResult) {
-		commands += `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n`;
+		const network = docker.getNetwork(compose.appName);
+		const info = await network.inspect().catch((error) => {
+			// An isolated deployment may not have been deployed yet.
+			if (error.statusCode === 404) return null;
+			throw error;
+		});
+		if (info && !container.NetworkSettings.Networks[compose.appName]) {
+			await network.connect({ Container: container.Id });
+		}
 	}
+};
 
-	if (serverId) {
-		await execAsyncRemote(serverId, commands);
-	} else {
-		await execAsync(commands);
+export const recoverTraefik = async (serverId?: string, reload = false) => {
+	const recovered = await ensureTraefikRunning(serverId, reload);
+	if (recovered !== null) {
+		await reconnectServicesToTraefik(serverId);
+	}
+	if (recovered) {
+		console.log(`Traefik recovered on ${serverId ?? "the local server"}`);
 	}
 };
