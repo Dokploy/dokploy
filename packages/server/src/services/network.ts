@@ -360,6 +360,27 @@ export const recreateNetwork = async (networkId: string) => {
 	return row;
 };
 
+export const resolveNetworkIds = async (
+	networkIds: string[] | null | undefined,
+	targetServerId: string | null,
+) => {
+	if (!networkIds || networkIds.length === 0) {
+		return { kept: [] as string[], dropped: [] as string[] };
+	}
+	const rows = await db.query.network.findMany({
+		where: inArray(network.networkId, networkIds),
+		columns: { networkId: true, name: true, serverId: true },
+	});
+	return {
+		kept: rows
+			.filter((row) => (row.serverId ?? null) === targetServerId)
+			.map((row) => row.networkId),
+		dropped: rows
+			.filter((row) => (row.serverId ?? null) !== targetServerId)
+			.map((row) => row.name),
+	};
+};
+
 export const resolveServiceNetworks = async (
 	application: Partial<ApplicationNested>,
 ) => {
