@@ -660,7 +660,18 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 		return;
 	}
 	const docker = await getRemoteDocker(serverId);
-	const container = await docker.getContainer("dokploy-traefik").inspect();
+	// Swarm tasks have generated names, and container APIs also work on workers.
+	const tasks = await docker.listContainers({
+		filters: JSON.stringify({
+			label: ["com.docker.swarm.service.name=dokploy-traefik"],
+			status: ["running"],
+		}),
+	});
+	const containers = await Promise.all(
+		(tasks.length ? tasks.map((task) => task.Id) : ["dokploy-traefik"]).map(
+			(id) => docker.getContainer(id).inspect(),
+		),
+	);
 	for (const compose of composeResult) {
 		const network = docker.getNetwork(compose.appName);
 		const info = await network.inspect().catch((error) => {
@@ -668,8 +679,10 @@ export const reconnectServicesToTraefik = async (serverId?: string) => {
 			if (error.statusCode === 404) return null;
 			throw error;
 		});
-		if (info && !container.NetworkSettings.Networks[compose.appName]) {
-			await network.connect({ Container: container.Id });
+		for (const container of containers) {
+			if (info && !container.NetworkSettings.Networks[compose.appName]) {
+				await network.connect({ Container: container.Id });
+			}
 		}
 	}
 };

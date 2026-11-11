@@ -30,6 +30,7 @@ const CRASH_LOG = frame(
 interface FakeOptions {
 	oldRunning?: boolean | null;
 	oldStartError?: Error;
+	backupStartError?: Error;
 	staleBackup?: boolean;
 	staleBackupRunning?: boolean;
 	imagePresent?: boolean;
@@ -45,6 +46,7 @@ interface FakeOptions {
 const fakeDocker = ({
 	oldRunning = true,
 	oldStartError,
+	backupStartError,
 	staleBackup = false,
 	staleBackupRunning = false,
 	imagePresent = true,
@@ -157,6 +159,7 @@ const fakeDocker = ({
 			log.push(`start ${c.id}`);
 			if (startError && c.id === "new") throw startError;
 			if (oldStartError && c.id === "old") throw oldStartError;
+			if (backupStartError && c.id === "stale") throw backupStartError;
 			neverStarted.delete(c.id);
 			c.running = true;
 		},
@@ -174,6 +177,9 @@ const fakeDocker = ({
 				throw Object.assign(new Error("No such service"), { statusCode: 404 });
 			}),
 		})),
+		info: vi.fn().mockResolvedValue({
+			Swarm: { LocalNodeState: "active", ControlAvailable: true },
+		}),
 		getImage: () => ({
 			inspect: async () => {
 				if (!hasImage) throw new Error("No such image");
@@ -634,7 +640,7 @@ describe("restoreInterruptedTraefik", () => {
 
 		await restoreInterruptedTraefik();
 
-		expect(fake.log).toEqual(["create new", "start old", "remove new"]);
+		expect(fake.log).toEqual(["create new", "remove new", "start old"]);
 		expect(fake.containers).toEqual([
 			{ id: "old", name: "dokploy-traefik", running: true },
 		]);
@@ -662,9 +668,9 @@ describe("restoreInterruptedTraefik", () => {
 
 		expect(fake.log).toEqual([
 			"create new",
+			"remove new",
 			"rename stale -> dokploy-traefik",
 			"start stale",
-			"remove new",
 		]);
 		expect(fake.containers).toEqual([
 			{ id: "stale", name: "dokploy-traefik", running: true },
@@ -750,6 +756,45 @@ describe("restoreInterruptedTraefik", () => {
 			{ id: "new", name: "dokploy-traefik", running: true },
 		]);
 	});
+	it.each(["restore", "recreate"])(
+		"handles stale backup networking during %s without blocking the next recreate",
+		async (operation) => {
+			const fake = fakeDocker({
+				oldRunning: null,
+				staleBackup: true,
+				backupStartError: new Error(
+					"attaching to network failed: network dokploy-network not found",
+				),
+			});
+			mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+			const result = (
+				operation === "restore"
+					? restoreInterruptedTraefik()
+					: initializeStandaloneTraefik()
+			).then(
+				() => null,
+				(error: Error) => error,
+			);
+			await vi.runAllTimersAsync();
+			expect(await result).toBeNull();
+			expect(fake.containers).toEqual([
+				{ id: "new", name: "dokploy-traefik", running: true },
+			]);
+		},
+	);
+	it("keeps a healthy restored backup running if the following update fails", async () => {
+		const fake = fakeDocker({
+			oldRunning: null,
+			staleBackup: true,
+			staleBackupRunning: true,
+			startError: new Error("invalid replacement configuration"),
+		});
+		const error = await recreate(fake);
+		expect(error?.message).toContain("The previous Traefik was restored");
+		expect(fake.containers).toEqual([
+			{ id: "stale", name: "dokploy-traefik", running: true },
+		]);
+	});
 });
 
 describe("lastLogLine", () => {
@@ -803,6 +848,52 @@ describe("ensureTraefikRunning", () => {
 		expect(await recover(fake)).toEqual({ value: false });
 		expect(fake.log).toEqual([]);
 	});
+	it.each([
+		{ LocalNodeState: "inactive", ControlAvailable: false },
+		{ LocalNodeState: "active", ControlAvailable: false },
+	])(
+		"reloads standalone Traefik on a node with Swarm state %j",
+		async (Swarm) => {
+			const fake = fakeDocker({ oldRunning: false });
+			fake.docker.getService.mockReturnValue({
+				inspect: vi.fn().mockRejectedValue({ statusCode: 503 }),
+			});
+			fake.docker.info.mockResolvedValue({ Swarm });
+			expect(await recover(fake, true)).toEqual({ value: true });
+			expect(fake.log).toEqual(["start old"]);
+		},
+	);
+	it("reports a manager service inspection failure instead of creating a container", async () => {
+		const fake = fakeDocker({ oldRunning: null });
+		fake.docker.getService.mockReturnValue({
+			inspect: vi.fn().mockRejectedValue({ statusCode: 503 }),
+		});
+		expect(await recover(fake)).toMatchObject({ error: { statusCode: 503 } });
+		expect(fake.log).toEqual([]);
+	});
+	it.each(["current", "backup"])(
+		"repairs an interrupted update with a stale network on the %s container",
+		async (source) => {
+			const networkError = new Error(
+				"could not allocate IP from IPAM: Address already in use",
+			);
+			const fake = fakeDocker({
+				oldRunning: source === "current" ? false : null,
+				staleBackup: source === "backup",
+				oldStartError: networkError,
+				backupStartError: networkError,
+			});
+			await fake.docker.createContainer({ name: "dokploy-traefik-next" });
+			expect(await recover(fake)).toHaveProperty("value");
+			expect(fake.containers).toEqual([
+				{ id: "new2", name: "dokploy-traefik", running: true },
+			]);
+			expect(fake.createdWith()).toMatchObject({
+				Image: "custom-traefik:original",
+				Env: ["DNS_TOKEN=kept"],
+			});
+		},
+	);
 	it("recreates a missing container", async () => {
 		const fake = fakeDocker({ oldRunning: null });
 		expect(await recover(fake)).toEqual({ value: true });

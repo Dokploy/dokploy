@@ -23,6 +23,7 @@ vi.mock("@dokploy/server/setup/traefik-setup", () => ({
 const connect = vi.fn();
 const inspectNetwork = vi.fn();
 const inspectContainer = vi.fn();
+const listContainers = vi.fn();
 describe("reconnectServicesToTraefik", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -30,7 +31,9 @@ describe("reconnectServicesToTraefik", () => {
 		mocks.getRemoteDocker.mockResolvedValue({
 			getContainer: () => ({ inspect: inspectContainer }),
 			getNetwork: () => ({ inspect: inspectNetwork, connect }),
+			listContainers,
 		});
+		listContainers.mockResolvedValue([]);
 		inspectContainer.mockResolvedValue({
 			Id: "exact-traefik-id",
 			NetworkSettings: { Networks: {} },
@@ -63,6 +66,24 @@ describe("reconnectServicesToTraefik", () => {
 		);
 		expect(remote.params).toContain("server-id");
 		expect(remote.sql).not.toContain("is null");
+	});
+	it("reconnects running Swarm tasks by service label instead of the standalone name", async () => {
+		mocks.findMany.mockResolvedValue([{ appName: "first-compose" }]);
+		listContainers.mockResolvedValue([
+			{ Id: "task-container", Names: ["/dokploy-traefik.1.task-id"] },
+		]);
+		inspectContainer.mockResolvedValue({
+			Id: "task-container",
+			NetworkSettings: { Networks: {} },
+		});
+		await reconnectServicesToTraefik("server-id");
+		expect(listContainers).toHaveBeenCalledWith({
+			filters: JSON.stringify({
+				label: ["com.docker.swarm.service.name=dokploy-traefik"],
+				status: ["running"],
+			}),
+		});
+		expect(connect).toHaveBeenCalledWith({ Container: "task-container" });
 	});
 	it("does not reconnect existing attachments", async () => {
 		mocks.findMany.mockResolvedValue([{ appName: "first-compose" }]);
