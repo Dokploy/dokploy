@@ -636,8 +636,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			serverThreshold,
 			projectScope,
 		} = data;
-		const projectIds =
-			projectScope === "specific" ? (data.projectIds ?? []) : [];
+		const projectScopeInput = {
+			projectIds: projectScope === "specific" ? (data.projectIds ?? []) : [],
+			scopedToProjects: projectScope === "specific",
+		};
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
 			promise = slackMutation.mutateAsync({
@@ -652,7 +654,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
-				projectIds,
+				...projectScopeInput,
 				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
 			});
@@ -671,7 +673,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
@@ -688,7 +690,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
@@ -709,7 +711,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "resend") {
@@ -727,7 +729,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				resendId: notification?.resendId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "gotify") {
@@ -747,7 +749,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
-				projectIds,
+				...projectScopeInput,
 			});
 		} else if (data.type === "ntfy") {
 			promise = ntfyMutation.mutateAsync({
@@ -766,7 +768,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
-				projectIds,
+				...projectScopeInput,
 			});
 		} else if (data.type === "mattermost") {
 			promise = mattermostMutation.mutateAsync({
@@ -783,7 +785,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				mattermostId: notification?.mattermostId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "lark") {
@@ -799,7 +801,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "teams") {
@@ -815,7 +817,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				teamsId: notification?.teamsId || "",
-				projectIds,
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "custom") {
@@ -845,7 +847,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
-				projectIds,
+				...projectScopeInput,
 			});
 		} else if (data.type === "pushover") {
 			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
@@ -869,7 +871,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				pushoverId: notification?.pushoverId || "",
-				projectIds,
+				...projectScopeInput,
 			});
 		}
 

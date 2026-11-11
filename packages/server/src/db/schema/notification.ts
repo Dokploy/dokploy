@@ -328,6 +328,7 @@ export const apiCreateSlack = notificationsSchema
 		webhookUrl: z.string().min(1),
 		channel: z.string(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -336,6 +337,7 @@ export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	slackId: z.string(),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestSlackConnection = apiCreateSlack.pick({
@@ -360,6 +362,7 @@ export const apiCreateTelegram = notificationsSchema
 		chatId: z.string().min(1),
 		messageThreadId: z.string(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -368,6 +371,7 @@ export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	telegramId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
@@ -392,6 +396,7 @@ export const apiCreateDiscord = notificationsSchema
 		webhookUrl: z.string().min(1),
 		decoration: z.boolean(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -400,6 +405,7 @@ export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	discordId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestDiscordConnection = apiCreateDiscord
@@ -430,6 +436,7 @@ export const apiCreateEmail = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -438,6 +445,7 @@ export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	emailId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestEmailConnection = apiCreateEmail.pick({
@@ -466,6 +474,7 @@ export const apiCreateResend = notificationsSchema
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -474,6 +483,7 @@ export const apiUpdateResend = apiCreateResend.partial().extend({
 	resendId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestResendConnection = apiCreateResend.pick({
@@ -500,6 +510,7 @@ export const apiCreateGotify = notificationsSchema
 		priority: z.number().min(1),
 		decoration: z.boolean(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -508,6 +519,7 @@ export const apiUpdateGotify = apiCreateGotify.partial().extend({
 	gotifyId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestGotifyConnection = apiCreateGotify
@@ -538,6 +550,7 @@ export const apiCreateNtfy = notificationsSchema
 		accessToken: z.string().optional(),
 		priority: z.number().min(1),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -546,6 +559,7 @@ export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
 	ntfyId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestNtfyConnection = apiCreateNtfy.pick({
@@ -572,6 +586,7 @@ export const apiCreateMattermost = notificationsSchema
 		channel: z.string().optional(),
 		username: z.string().optional(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required({
 		name: true,
@@ -591,6 +606,7 @@ export const apiUpdateMattermost = apiCreateMattermost.partial().extend({
 	mattermostId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestMattermostConnection = apiCreateMattermost
@@ -624,6 +640,7 @@ export const apiCreateCustom = notificationsSchema
 		endpoint: z.string().min(1),
 		headers: z.record(z.string(), z.string()).optional(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
@@ -631,6 +648,7 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 	customId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestCustomConnection = z.object({
@@ -653,6 +671,7 @@ export const apiCreateLark = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -661,6 +680,7 @@ export const apiUpdateLark = apiCreateLark.partial().extend({
 	larkId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestLarkConnection = apiCreateLark.pick({
@@ -682,6 +702,7 @@ export const apiCreateTeams = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.required();
 
@@ -690,6 +711,7 @@ export const apiUpdateTeams = apiCreateTeams.partial().extend({
 	teamsId: z.string().min(1),
 	organizationId: z.string().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestTeamsConnection = apiCreateTeams.pick({
@@ -715,6 +737,7 @@ export const apiCreatePushover = notificationsSchema
 		retry: z.number().min(30).nullish(),
 		expire: z.number().min(1).max(10800).nullish(),
 		projectIds: projectIdsSchema.optional().default([]),
+		scopedToProjects: z.boolean().nullable().default(null),
 	})
 	.refine(
 		(data) =>
@@ -744,6 +767,7 @@ export const apiUpdatePushover = z.object({
 	dockerCleanup: z.boolean().optional(),
 	serverThreshold: z.boolean().optional(),
 	projectIds: projectIdsSchema.optional(),
+	scopedToProjects: z.boolean().nullable().optional(),
 });
 
 export const apiTestPushoverConnection = z

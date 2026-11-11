@@ -133,9 +133,7 @@ export const ProjectScopeField = ({
 
 	const clearMatches = () => {
 		const matchIds = new Set(matches.map((project) => project.projectId));
-		onSelectedChange(
-			query ? selectedIds.filter((id) => !matchIds.has(id)) : [],
-		);
+		onSelectedChange(selectedIds.filter((id) => !matchIds.has(id)));
 	};
 
 	const handleOpenChange = (next: boolean) => {
