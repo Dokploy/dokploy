@@ -124,7 +124,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 	try {
 		const command = await backupVolume(volumeBackup);
 
-		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const commandWithLog = `(${command}) >> ${quote([deployment.logPath])} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
 		} else {

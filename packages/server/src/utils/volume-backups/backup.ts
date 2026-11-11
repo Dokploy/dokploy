@@ -90,10 +90,10 @@ export const backupVolume = async (
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
 	echo "Starting volume backup" 
-	echo "Dir: ${volumeBackupPath}"
+	echo ${quote([`Dir: ${volumeBackupPath}`])}
     docker run --rm \
   -v ${volumeName}:/volume_data \
-  -v ${volumeBackupPath}:/backup \
+  -v ${quote([`${volumeBackupPath}:/backup`])} \
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} . || [ \\$? -eq 1 ]"
   echo "Volume backup done ✅"
@@ -104,7 +104,7 @@ export const backupVolume = async (
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
   echo "Cleaning up local backup file..."
-  rm "${volumeBackupPath}/${backupFileName}"
+  rm ${quote([`${volumeBackupPath}/${backupFileName}`])}
   echo "Local backup file cleaned up ✅"
   `;
 
@@ -188,7 +188,7 @@ export const backupVolume = async (
 		if (compose.composeType === "stack") {
 			stopCommand = `
 			echo "Stopping compose to 0 replicas"
-			echo "Service name: ${serviceName}"
+			echo ${quote([`Service name: ${compose.appName}_${volumeBackup.serviceName}`])}
             ACTUAL_REPLICAS=$(docker service inspect ${serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
             echo "Actual replicas: $ACTUAL_REPLICAS"
             docker service update --replicas=0 ${serviceName}`;
