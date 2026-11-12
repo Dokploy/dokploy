@@ -117,6 +117,7 @@ export const AddApiKey = () => {
 	});
 
 	const rateLimitEnabled = form.watch("rateLimitEnabled");
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const onSubmit = async (values: FormValues) => {
 		createApiKey.mutate({
@@ -243,6 +244,12 @@ export const AddApiKey = () => {
 							{/* Rate Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">
 								<h3 className="text-lg font-medium">Rate Limiting</h3>
+								{isCloud && (
+									<p className="text-sm text-muted-foreground">
+										Keys are limited to 300 requests per minute by default. You
+										can set a stricter limit below.
+									</p>
+								)}
 								<FormField
 									control={form.control}
 									name="rateLimitEnabled"
