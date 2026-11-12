@@ -49,8 +49,8 @@ export default async function handler(
 		return redirectWithError(res, "Unauthorized");
 	}
 
-	const [giteaId, nonce] = state.split(":");
-	if (!giteaId || !nonce || nonce !== req.cookies.gitea_oauth_state) {
+	const giteaId = state.split(":")[0];
+	if (!giteaId || state !== req.cookies.gitea_oauth_state) {
 		return redirectWithError(res, "Invalid state");
 	}
 

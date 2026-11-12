@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { nanoid } from "nanoid";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
 	BitbucketIcon,
@@ -58,10 +58,7 @@ export const ShowGitProviders = () => {
 	const isOrgAdmin =
 		currentMember?.role === "owner" || currentMember?.role === "admin";
 
-	const [gitlabOAuthState] = useState(() => nanoid());
-	useEffect(() => {
-		document.cookie = `gitlab_oauth_state=${gitlabOAuthState}; path=/; max-age=3600; samesite=lax`;
-	}, [gitlabOAuthState]);
+	const [gitlabOAuthNonce] = useState(() => nanoid());
 
 	const getGitlabUrl = (
 		clientId: string,
@@ -70,7 +67,7 @@ export const ShowGitProviders = () => {
 	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}&state=${gitlabOAuthState}`;
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}&state=${gitlabId}:${gitlabOAuthNonce}`;
 		return authUrl;
 	};
 
@@ -293,6 +290,9 @@ export const ShowGitProviders = () => {
 																				gitProvider.gitlab?.gitlabUrl || "",
 																			)}
 																			target="_blank"
+																			onClick={() => {
+																				document.cookie = `gitlab_oauth_state=${gitProvider.gitlab?.gitlabId}:${gitlabOAuthNonce}; path=/; max-age=600; samesite=lax`;
+																			}}
 																			className={buttonVariants({
 																				size: "icon",
 																				variant: "ghost",

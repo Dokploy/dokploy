@@ -37,7 +37,11 @@ export default async function handler(
 	) {
 		return res.status(403).json({ error: "Forbidden" });
 	}
-	if (!state || state !== req.cookies.gitlab_oauth_state) {
+	if (
+		typeof state !== "string" ||
+		state !== req.cookies.gitlab_oauth_state ||
+		!state.startsWith(`${gitlabId}:`)
+	) {
 		return res.status(400).json({ error: "Invalid state" });
 	}
 	// Use internal URL for token exchange when GitLab is on same instance as Dokploy

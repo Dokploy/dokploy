@@ -47,7 +47,7 @@ export default async function handler(
 		const nonce = randomBytes(16).toString("hex");
 		res.setHeader(
 			"Set-Cookie",
-			`gitea_oauth_state=${nonce}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
+			`gitea_oauth_state=${giteaId}:${nonce}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`,
 		);
 
 		// Generate the Gitea authorization URL
@@ -58,7 +58,10 @@ export default async function handler(
 			"redirect_uri",
 			gitea.redirectUri as string,
 		);
-		authorizationUrl.searchParams.append("scope", "read:user repo");
+		authorizationUrl.searchParams.append(
+			"scope",
+			"read:repository read:user read:organization",
+		);
 		authorizationUrl.searchParams.append("state", `${giteaId}:${nonce}`);
 
 		// Redirect user to Gitea authorization URL
