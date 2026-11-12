@@ -27,6 +27,7 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
+	syncServerProxyRoutes,
 	unzipDrop,
 	updateApplication,
 	updateApplicationStatus,
@@ -373,6 +374,8 @@ export const applicationRouter = createTRPCRouter({
 				.delete(applications)
 				.where(eq(applications.applicationId, input.applicationId))
 				.returning();
+
+			await syncServerProxyRoutes(application.serverId);
 
 			if (!IS_CLOUD) {
 				await cleanQueuesByApplication(input.applicationId);

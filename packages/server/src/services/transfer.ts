@@ -32,6 +32,7 @@ import {
 } from "@dokploy/server/utils/traefik/middleware";
 import { createRedirectMiddleware } from "@dokploy/server/utils/traefik/redirect";
 import { createSecurityMiddleware } from "@dokploy/server/utils/traefik/security";
+import { syncServerProxyRoutes } from "@dokploy/server/utils/traefik/server-proxy";
 import { TRPCError } from "@trpc/server";
 import { eq, inArray, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
@@ -560,6 +561,8 @@ export const transferService = async (
 			log(`Recreating Traefik configuration on ${targetName}`);
 			await moveTraefikConfig(service, moved, log);
 		}
+		await syncServerProxyRoutes(sourceServerId);
+		await syncServerProxyRoutes(targetServerId);
 		if (isApplication(service) || isCompose(service)) {
 			await moveDeploymentLogs(service, targetServerId, log);
 		}
@@ -573,6 +576,8 @@ export const transferService = async (
 				serverId: sourceServerId,
 				networkIds: originalNetworkIds,
 			});
+			await syncServerProxyRoutes(sourceServerId);
+			await syncServerProxyRoutes(targetServerId);
 		}
 		log(`Data already copied to ${targetName} was left in place`);
 		log(`Restoring service on ${sourceName}`);

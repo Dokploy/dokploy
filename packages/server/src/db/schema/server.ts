@@ -36,6 +36,10 @@ export const server = pgTable("server", {
 	name: text("name").notNull(),
 	description: text("description"),
 	ipAddress: text("ipAddress").notNull(),
+	privateIpAddress: text("privateIpAddress"),
+	routeThroughMainServer: boolean("routeThroughMainServer")
+		.notNull()
+		.default(false),
 	port: integer("port").notNull(),
 	username: text("username").notNull().default("root"),
 	appName: text("appName")
@@ -145,6 +149,15 @@ const createSchema = createInsertSchema(server, {
 	serverType: z.enum(["deploy", "build"]).optional(),
 });
 
+const proxyRoutingSchema = {
+	privateIpAddress: z
+		.string()
+		.trim()
+		.regex(/^[a-zA-Z0-9.:-]*$/, "Invalid IP address or hostname")
+		.nullish(),
+	routeThroughMainServer: z.boolean().optional(),
+};
+
 export const apiCreateServer = createSchema
 	.pick({
 		name: true,
@@ -159,6 +172,7 @@ export const apiCreateServer = createSchema
 	.required()
 	.extend({
 		enableDockerCleanup: z.boolean().default(true),
+		...proxyRoutingSchema,
 	});
 
 export const apiFindOneServer = z.object({
@@ -187,6 +201,7 @@ export const apiUpdateServer = createSchema
 	.extend({
 		command: z.string().optional(),
 		enableDockerCleanup: z.boolean().default(true),
+		...proxyRoutingSchema,
 	});
 
 export const apiUpdateServerBuildsConcurrency = z.object({
