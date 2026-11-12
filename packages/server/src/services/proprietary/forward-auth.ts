@@ -23,8 +23,12 @@ import {
 } from "@dokploy/server/utils/traefik/forward-auth";
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, isNotNull, isNull } from "drizzle-orm";
-import { findApplicationById } from "../application";
+import { findApplicationById, updateApplication } from "../application";
 import { findDomainById, updateDomainById } from "../domain";
+import {
+	applyPreviewForwardAuth,
+	findPreviewDeploymentsByApplicationId,
+} from "../preview-deployment";
 
 const resolveOidcConfig = (provider: {
 	issuer: string;
@@ -334,13 +338,8 @@ export const assertApplicationDomainAccess = async (
 	return domain;
 };
 
-export const enableForwardAuthOnDomain = async (input: {
-	domainId: string;
-}) => {
-	const { application } = await resolveApplicationDomain(input.domainId);
-	const serverId = application.serverId ?? undefined;
-
-	const settings = await getForwardAuthSettings(serverId ?? null);
+const assertForwardAuthReady = async (serverId: string | null) => {
+	const settings = await getForwardAuthSettings(serverId);
 	if (!settings?.providerId) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
@@ -349,7 +348,7 @@ export const enableForwardAuthOnDomain = async (input: {
 		});
 	}
 
-	const proxyRunning = await isForwardAuthRunning(serverId);
+	const proxyRunning = await isForwardAuthRunning(serverId ?? undefined);
 	if (!proxyRunning) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
@@ -357,6 +356,14 @@ export const enableForwardAuthOnDomain = async (input: {
 				"The authentication proxy is not deployed on this server. Deploy it in SSO settings first.",
 		});
 	}
+	return settings;
+};
+
+export const enableForwardAuthOnDomain = async (input: {
+	domainId: string;
+}) => {
+	const { application } = await resolveApplicationDomain(input.domainId);
+	await assertForwardAuthReady(application.serverId ?? null);
 
 	await updateDomainById(input.domainId, { forwardAuthEnabled: true });
 	const domain = await findDomainById(input.domainId);
@@ -379,4 +386,59 @@ export const disableForwardAuthOnDomain = async (input: {
 	await removeForwardAuthMiddleware(application, uniqueConfigKey);
 
 	return { ok: true } as const;
+};
+
+// oauth2-proxy scopes its session cookie to the auth base domain, and marks it Secure when the auth domain is HTTPS.
+export const assertPreviewMatchesAuthSettings = (
+	settings: { baseDomain: string; https: boolean },
+	preview: { previewWildcard: string | null; previewHttps: boolean },
+) => {
+	const wildcard = preview.previewWildcard || "*.sslip.io";
+	const baseDomain = settings.baseDomain.toLowerCase();
+	if (
+		!wildcard.startsWith("*.") ||
+		!wildcard.slice(1).toLowerCase().endsWith(baseDomain)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `The preview wildcard domain (${wildcard}) must be under the SSO authentication base domain (*${baseDomain}).`,
+		});
+	}
+	if (settings.https && !preview.previewHttps) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Preview deployments must use HTTPS when the SSO authentication domain does.",
+		});
+	}
+};
+
+export const setPreviewForwardAuth = async (input: {
+	applicationId: string;
+	enabled: boolean;
+}) => {
+	const application = await findApplicationById(input.applicationId);
+
+	if (input.enabled) {
+		const settings = await assertForwardAuthReady(application.serverId ?? null);
+		assertPreviewMatchesAuthSettings(settings, application);
+	}
+
+	await updateApplication(input.applicationId, {
+		previewForwardAuthEnabled: input.enabled,
+	});
+
+	const previews = await findPreviewDeploymentsByApplicationId(
+		input.applicationId,
+	);
+	for (const preview of previews) {
+		if (!preview.domain) continue;
+		await applyPreviewForwardAuth(
+			{ ...application, appName: preview.appName },
+			preview.domain.domainId,
+			input.enabled,
+		);
+	}
+
+	return application;
 };

@@ -406,6 +406,13 @@ const insertService = async (
 		row.composeStatus = "idle";
 	} else {
 		row.applicationStatus = "idle";
+		if (row.previewForwardAuthEnabled === true) {
+			ctx.warnings.push(
+				`Preview deployments of "${service.name}" used forward auth; they were imported disabled. Set up forward auth on this server before enabling them.`,
+			);
+			row.previewForwardAuthEnabled = false;
+			row.isPreviewDeploymentsActive = false;
+		}
 	}
 	for (const field of DB_PORT_FIELDS) {
 		if (type === "application" || type === "compose" || !row[field]) continue;
