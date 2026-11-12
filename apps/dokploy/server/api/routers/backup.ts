@@ -77,6 +77,12 @@ const assertWebServerBackupAccess = async (
 	ctx: { user: { role: string }; session: { activeOrganizationId: string } },
 	destinationId: string,
 ) => {
+	if (IS_CLOUD) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Web-server backups are not available in the cloud version",
+		});
+	}
 	if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",

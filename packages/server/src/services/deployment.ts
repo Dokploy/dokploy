@@ -563,8 +563,8 @@ export const createDeploymentVolumeBackup = async (
 			const server = await findServerById(serverId);
 
 			const command = `
-				mkdir -p ${VOLUME_BACKUPS_PATH}/${volumeBackup.appName};
-            	echo "Initializing volume backup" >> ${logFilePath};
+				mkdir -p ${quote([path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName)])};
+            	echo "Initializing volume backup" >> ${quote([logFilePath])};
 			`;
 
 			await execAsyncRemote(server.serverId, command);

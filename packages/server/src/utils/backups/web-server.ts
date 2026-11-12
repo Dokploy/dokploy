@@ -13,6 +13,7 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { quote } from "shell-quote";
 import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
@@ -118,7 +119,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 				// If stat fails, keep undefined
 			}
 
-			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${zipPath}" "${s3Path}"`;
+			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} ${quote([zipPath, s3Path])}`;
 			writeStream.write("Running command to upload backup to S3\n");
 			await execAsync(uploadCommand);
 			writeStream.write("Uploaded backup to S3 ✅\n");

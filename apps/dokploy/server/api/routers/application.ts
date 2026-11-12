@@ -1,4 +1,5 @@
 import {
+	assertServiceCredentialAccess,
 	clearOldDeployments,
 	createApplication,
 	createDomain,
@@ -548,6 +549,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				repository: input.repository,
 				branch: input.branch,
@@ -574,6 +576,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				gitlabRepository: input.gitlabRepository,
 				gitlabOwner: input.gitlabOwner,
@@ -601,6 +604,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
 				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
@@ -627,6 +631,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				giteaRepository: input.giteaRepository,
 				giteaOwner: input.giteaOwner,
@@ -674,6 +679,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 			await updateApplication(input.applicationId, {
 				customGitBranch: input.customGitBranch,
 				customGitBuildPath: input.customGitBuildPath,
@@ -765,6 +771,7 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			await assertServiceCredentialAccess(ctx.session, input);
 
 			if (input.buildServerId) {
 				const accessibleIds = await getAccessibleServerIds(ctx.session);
