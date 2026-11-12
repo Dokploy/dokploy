@@ -1,4 +1,4 @@
-import fs, { existsSync, readFileSync } from "node:fs";
+import fs, { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
@@ -8,7 +8,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { execAsyncRemote } from "../process/execAsync";
+import { execAsyncRemote, writeFileRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -23,7 +23,6 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
 	let command = "set -e;";
@@ -134,8 +133,15 @@ exit 1;
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
-		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
+		// Written here rather than inlined in the deploy script: the script runs as a
+		// single `sh -c` argument, which Linux caps at 128 KiB, and resolved merge keys
+		// can push a compose file far past that (#5941).
+		if (compose.serverId) {
+			await writeFileRemote(compose.serverId, path, composeString);
+		} else {
+			writeFileSync(path, composeString);
+		}
+		return "";
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : String(error ?? "");
