@@ -124,7 +124,7 @@ export const ContainerFreeMonitoring = ({
 	serviceId,
 }: Props) => {
 	const { data } = api.application.readAppMonitoring.useQuery(
-		{ appName },
+		{ appName, serviceId },
 		{
 			refetchOnWindowFocus: false,
 		},
