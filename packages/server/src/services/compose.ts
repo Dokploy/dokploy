@@ -7,7 +7,10 @@ import {
 	cleanAppName,
 	compose,
 } from "@dokploy/server/db/schema";
-import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
+import {
+	createCommand,
+	getBuildComposeCommand,
+} from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
@@ -487,7 +490,10 @@ export const startCompose = async (composeId: string) => {
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 		const path =
 			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const baseCommand = `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
+		// A custom command can add compose files (e.g. an override), so start with it like deploy does.
+		const baseCommand = compose.command
+			? `env -i PATH="$PATH" docker ${createCommand(compose)}`
+			: `env -i PATH="$PATH" docker compose -p ${quote([compose.appName])} -f ${quote([path])} up -d`;
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
