@@ -106,7 +106,6 @@ const createBetterAuth = () =>
 			"/organization/invite-member",
 			"/api-key/create",
 			"/api-key/update",
-			// GHSA-j8v8-g9cx-5qf4: SCIM providers are managed via tRPC, org-scoped only.
 			"/scim/generate-token",
 			"/scim/list-provider-connections",
 			"/scim/get-provider-connection",
@@ -167,6 +166,22 @@ const createBetterAuth = () =>
 					throw new APIError("FORBIDDEN", {
 						message: "Use the account deletion flow to remove users",
 					});
+				}
+
+				if (ctx.path === "/admin/impersonate-user") {
+					const targetUserId = (ctx.body as { userId?: string } | undefined)
+						?.userId;
+					const target = targetUserId
+						? await db.query.user.findFirst({
+								where: eq(schema.user.id, targetUserId),
+								columns: { allowImpersonation: true },
+							})
+						: undefined;
+					if (!target?.allowImpersonation) {
+						throw new APIError("FORBIDDEN", {
+							message: "This user has not allowed impersonation",
+						});
+					}
 				}
 
 				if (ctx.path === "/two-factor/enable") {
@@ -565,12 +580,15 @@ const createBetterAuth = () =>
 					maximumRolesPerOrganization: 10,
 				},
 			}),
-			// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)
-			// maps to the admin plugin's `banned` field and is rejected without it.
-			// adminRoles: [] keeps every /admin/* endpoint locked on self-hosted.
 			admin(
 				IS_CLOUD
-					? { adminUserIds: [process.env.USER_ADMIN_ID as string] }
+					? {
+							adminUserIds: (process.env.USER_ADMIN_ID ?? "")
+								.split(",")
+								.map((id) => id.trim())
+								.filter(Boolean),
+							roles: {},
+						}
 					: { adminRoles: [] },
 			),
 		],
