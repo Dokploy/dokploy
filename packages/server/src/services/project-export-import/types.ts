@@ -30,7 +30,6 @@ export const bundlePayloadSchema = z.object({
 				appName: z
 					.string()
 					.min(1)
-					.max(63)
 					.regex(APP_NAME_REGEX)
 					.refine((name) => name !== "." && name !== ".."),
 				name: z.string(),

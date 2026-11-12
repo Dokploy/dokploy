@@ -273,25 +273,36 @@ describe("bundle encryption", () => {
 		);
 	});
 
+	const bundleWithAppName = async (appName: string) => {
+		const { content } = await exportProject(exportDb(), {
+			projectId: "p1",
+			passphrase: PASSPHRASE,
+		});
+		const { payload } = await readBundle(content, PASSPHRASE);
+		payload.services[0]!.appName = appName;
+		return JSON.stringify({
+			...JSON.parse(content),
+			...(await encryptPayload(JSON.stringify(payload), PASSPHRASE)),
+		});
+	};
+
 	it.each(["unused/../victim", "..", "."])(
 		"rejects a bundle with the app name %j",
 		async (appName) => {
-			const { content } = await exportProject(exportDb(), {
-				projectId: "p1",
-				passphrase: PASSPHRASE,
-			});
-			const envelope = JSON.parse(content);
-			const { payload } = await readBundle(content, PASSPHRASE);
-			payload.services[0]!.appName = appName;
-			const forged = {
-				...envelope,
-				...(await encryptPayload(JSON.stringify(payload), PASSPHRASE)),
-			};
 			await expect(
-				readBundle(JSON.stringify(forged), PASSPHRASE),
+				readBundle(await bundleWithAppName(appName), PASSPHRASE),
 			).rejects.toBeInstanceOf(BundleFormatError);
 		},
 	);
+
+	it("accepts generated app names longer than 63 characters", async () => {
+		const appName = `${"a".repeat(63)}-abc123`;
+		const { payload } = await readBundle(
+			await bundleWithAppName(appName),
+			PASSPHRASE,
+		);
+		expect(payload.services[0]?.appName).toBe(appName);
+	});
 });
 
 describe("exportProject", () => {
