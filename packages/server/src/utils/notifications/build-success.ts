@@ -29,6 +29,11 @@ interface Props {
 	organizationId: string;
 	domains: Domain[];
 	environmentName: string;
+	applicationId?: string;
+	commitHash?: string | null;
+	commitMessage?: string | null;
+	branch?: string | null;
+	repository?: string | null;
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -39,6 +44,11 @@ export const sendBuildSuccessNotifications = async ({
 	organizationId,
 	domains,
 	environmentName,
+	applicationId,
+	commitHash,
+	commitMessage,
+	branch,
+	repository,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -284,6 +294,12 @@ export const sendBuildSuccessNotifications = async ({
 					projectName,
 					applicationName,
 					applicationType,
+					applicationId,
+					environmentName,
+					commitHash,
+					commitMessage,
+					branch,
+					repository,
 					buildLink,
 					timestamp: date.toISOString(),
 					date: date.toLocaleString(),
