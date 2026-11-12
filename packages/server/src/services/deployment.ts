@@ -1,6 +1,5 @@
 import { existsSync, promises as fsPromises } from "node:fs";
 import path from "node:path";
-import { quote } from "shell-quote";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
