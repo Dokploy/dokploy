@@ -284,16 +284,18 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					</Button>
 				</form>
 			</Form>
-			<Button
-				variant="outline"
-				className="w-full mt-4"
-				type="button"
-				onClick={onPasskeySignIn}
-				isLoading={isPasskeyLoading}
-			>
-				<Fingerprint className="size-4" />
-				Sign in with Passkey
-			</Button>
+			{!whitelabeling?.hidePasskeyButton && (
+				<Button
+					variant="outline"
+					className="w-full mt-4"
+					type="button"
+					onClick={onPasskeySignIn}
+					isLoading={isPasskeyLoading}
+				>
+					<Fingerprint className="size-4" />
+					Sign in with Passkey
+				</Button>
+			)}
 		</>
 	);
 
@@ -347,7 +349,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						<>
 							{enforceSSO ? (
 								<SignInWithSSO enforce />
-							) : showSignInWithSSO ? (
+							) : showSignInWithSSO && !whitelabeling?.hideSSOButton ? (
 								<SignInWithSSO>{loginContent}</SignInWithSSO>
 							) : (
 								loginContent

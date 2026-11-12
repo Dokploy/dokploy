@@ -130,6 +130,12 @@ export const webServerSettings = pgTable("webServerSettings", {
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
+	// Visibility Controls (self-hosted only)
+	hideSocialIcons: boolean("hideSocialIcons").notNull().default(false),
+	hideDocsLink: boolean("hideDocsLink").notNull().default(false),
+	hideSupportLink: boolean("hideSupportLink").notNull().default(false),
+	hideSSOButton: boolean("hideSSOButton").notNull().default(false),
+	hidePasskeyButton: boolean("hidePasskeyButton").notNull().default(false),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
