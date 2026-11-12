@@ -7,7 +7,9 @@ import {
 	Trash2,
 	Users,
 } from "lucide-react";
+import { nanoid } from "nanoid";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
 	BitbucketIcon,
@@ -56,6 +58,11 @@ export const ShowGitProviders = () => {
 	const isOrgAdmin =
 		currentMember?.role === "owner" || currentMember?.role === "admin";
 
+	const [gitlabOAuthState] = useState(() => nanoid());
+	useEffect(() => {
+		document.cookie = `gitlab_oauth_state=${gitlabOAuthState}; path=/; max-age=3600; samesite=lax`;
+	}, [gitlabOAuthState]);
+
 	const getGitlabUrl = (
 		clientId: string,
 		gitlabId: string,
@@ -63,7 +70,7 @@ export const ShowGitProviders = () => {
 	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}`;
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}&state=${gitlabOAuthState}`;
 		return authUrl;
 	};
 
