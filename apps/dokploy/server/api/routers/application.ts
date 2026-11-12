@@ -56,6 +56,7 @@ import {
 	withPermission,
 } from "@/server/api/trpc";
 import { audit } from "@/server/api/utils/audit";
+import { assertMonitoringAccess } from "@/server/api/utils/monitoring-access";
 import {
 	apiCreateApplication,
 	apiDeployApplication,
@@ -1007,13 +1008,14 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	readAppMonitoring: withPermission("monitoring", "read")
 		.input(apiFindMonitoringStats)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "Functionality not available in cloud version",
 				});
 			}
+			await assertMonitoringAccess(ctx, input.appName, input.serviceId);
 			const stats = await getApplicationStats(input.appName);
 
 			return stats;

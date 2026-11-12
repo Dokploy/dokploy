@@ -557,6 +557,7 @@ export const apiSaveEnvironmentVariables = createSchema
 
 export const apiFindMonitoringStats = z.object({
 	appName: z.string().min(1),
+	serviceId: z.string().optional(),
 });
 
 export const apiUpdateApplication = createSchema
