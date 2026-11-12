@@ -396,15 +396,6 @@ export const ShowDeployments = ({
 													</Button>
 												</DialogAction>
 											)}
-											<Button
-												onClick={() => {
-													setActiveLog(deployment);
-												}}
-												className="w-full sm:w-auto"
-											>
-												View
-											</Button>
-
 											{canDelete && (
 												<DialogAction
 													title="Delete Deployment"
@@ -448,6 +439,15 @@ export const ShowDeployments = ({
 													</Button>
 												</DialogAction>
 											)}
+
+											<Button
+												onClick={() => {
+													setActiveLog(deployment);
+												}}
+												className="w-full sm:w-auto"
+											>
+												View
+											</Button>
 
 											{deployment?.rollback &&
 												deployment.status === "done" &&
