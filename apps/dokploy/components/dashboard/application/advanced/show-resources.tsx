@@ -64,11 +64,34 @@ const ulimitSchema = z.object({
 	Hard: z.coerce.number().int().min(-1, "Must be >= -1"),
 });
 
+// Same rules as the API: empty or zero means no limit, otherwise a whole
+// number no lower than Docker's minimum (6 MiB of memory, 0.001 CPU).
+const resourceValueSchema = (minimum: number, unit: string) =>
+	z
+		.string()
+		.regex(/^\d*$/, {
+			message: `Must be a whole number of ${unit}`,
+			abort: true,
+		})
+		.refine((value) => Number.isSafeInteger(Number(value)), {
+			message: `Must be at most ${Number.MAX_SAFE_INTEGER} ${unit}`,
+		})
+		.refine((value) => /^0*$/.test(value) || Number(value) >= minimum, {
+			message: `Must be at least ${minimum} ${unit}`,
+		})
+		.optional();
+
+const memorySchema = resourceValueSchema(6 * 1024 * 1024, "bytes");
+const cpuSchema = resourceValueSchema(
+	1_000_000,
+	"nanoCPUs (1000000000 = 1 CPU)",
+);
+
 const addResourcesSchema = z.object({
-	memoryReservation: z.string().optional(),
-	cpuLimit: z.string().optional(),
-	memoryLimit: z.string().optional(),
-	cpuReservation: z.string().optional(),
+	memoryReservation: memorySchema,
+	cpuLimit: cpuSchema,
+	memoryLimit: memorySchema,
+	cpuReservation: cpuSchema,
 	ulimitsSwarm: z.array(ulimitSchema).optional(),
 });
 
@@ -268,9 +291,10 @@ export const ShowResources = ({ id, type }: Props) => {
 													</TooltipTrigger>
 													<TooltipContent>
 														<p>
-															Memory soft limit in bytes. Example: 256MB =
-															268435456 bytes. Use +/- buttons to adjust by 256
-															MB.
+															Memory in bytes reserved on the node when
+															scheduling; it does not limit the container.
+															Example: 256MB = 268435456 bytes. Use +/- buttons
+															to adjust by 256 MB.
 														</p>
 													</TooltipContent>
 												</Tooltip>
@@ -348,9 +372,10 @@ export const ShowResources = ({ id, type }: Props) => {
 														</TooltipTrigger>
 														<TooltipContent>
 															<p>
-																CPU shares (relative weight). Example: 1 CPU =
-																1000000000. Use +/- buttons to adjust by 0.25
-																CPU.
+																CPU in units of 10^-9 CPUs reserved on the node
+																when scheduling; it does not limit the
+																container. Example: 1 CPU = 1000000000. Use +/-
+																buttons to adjust by 0.25 CPU.
 															</p>
 														</TooltipContent>
 													</Tooltip>
