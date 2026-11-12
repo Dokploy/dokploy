@@ -181,6 +181,27 @@ const importedProjectName = async (
 	return existing ? `imported-${name}` : name;
 };
 
+const existingAppNames = async (
+	db: TransferWriteDb,
+	appNames: string[],
+): Promise<Set<string>> => {
+	if (appNames.length === 0) return new Set();
+	const where = (fields: { appName: unknown }, ops: { inArray: any }) =>
+		ops.inArray(fields.appName, appNames);
+	const columns = { appName: true } as const;
+	const rows = await Promise.all([
+		db.query.applications.findMany({ where, columns }),
+		db.query.compose.findMany({ where, columns }),
+		db.query.postgres.findMany({ where, columns }),
+		db.query.mysql.findMany({ where, columns }),
+		db.query.mariadb.findMany({ where, columns }),
+		db.query.mongo.findMany({ where, columns }),
+		db.query.redis.findMany({ where, columns }),
+		db.query.libsql.findMany({ where, columns }),
+	]);
+	return new Set(rows.flat().map((row) => row.appName));
+};
+
 const publishedPortsOn = async (
 	db: TransferWriteDb,
 	serverId: string | null,
@@ -314,7 +335,10 @@ const insertChildren = async (
 				`Invalid volume name "${String(volumeName)}"`,
 			);
 		}
-		if (row.type === "volume" && volumeName === row.volumeName) {
+		if (
+			row.type === "volume" &&
+			!String(volumeName).includes(appNameMap[service.appName as string] ?? "")
+		) {
 			warnings.push(
 				`Volume "${volumeName}" on "${name}" keeps its name; if a volume with that name already exists on the target server, it will be shared.`,
 			);
@@ -422,11 +446,22 @@ export const importBundle = async (
 	payload: BundlePayload,
 	options: ImportOptions,
 ): Promise<ImportResult> => {
+	// Backups live under <appName>/ in S3, so keeping the name lets the target find them.
+	const taken = await existingAppNames(
+		db,
+		payload.services.map((service) => service.appName),
+	);
+	const warnings: string[] = [];
 	const appNameMap = Object.fromEntries(
-		payload.services.map((service) => [
-			service.appName,
-			regenerateAppName(service.kind, service.appName),
-		]),
+		payload.services.map((service) => {
+			if (!taken.has(service.appName))
+				return [service.appName, service.appName];
+			const appName = regenerateAppName(service.kind, service.appName);
+			warnings.push(
+				`App name ${service.appName} already exists on this instance; "${service.name}" was imported as ${appName}, so its backups are stored under a new folder.`,
+			);
+			return [service.appName, appName];
+		}),
 	);
 	const projectName = await importedProjectName(
 		db,
@@ -442,7 +477,6 @@ export const importBundle = async (
 		publishedPortsOn(db, options.serverId),
 		existingRoutes(db, hosts),
 	]);
-	const warnings: string[] = [];
 	const fileMountIds: string[] = [];
 	const applicationIds: string[] = [];
 

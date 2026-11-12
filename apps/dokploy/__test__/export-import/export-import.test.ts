@@ -145,6 +145,7 @@ const fakeImportDb = (existing: {
 	dbPorts?: number[];
 	libsqlPorts?: Record<string, number>[];
 	domains?: { host: string; path: string }[];
+	appNames?: string[];
 }) => {
 	const inserts: { table: unknown; values: Record<string, unknown> }[] = [];
 	let id = 0;
@@ -173,7 +174,12 @@ const fakeImportDb = (existing: {
 		}),
 		update: () => ({ set: () => ({ where: async () => {} }) }),
 	};
-	const findManyEmpty = { findMany: vi.fn(async () => []) };
+	const appNameRows = (existing.appNames ?? []).map((appName) => ({ appName }));
+	const table = (rows: () => unknown[]) => ({
+		findMany: vi.fn(async (args?: { columns?: { appName?: boolean } }) =>
+			args?.columns?.appName ? appNameRows : rows(),
+		),
+	});
 	const db = {
 		query: {
 			projects: {
@@ -181,26 +187,23 @@ const fakeImportDb = (existing: {
 					existing.projectNames?.length ? { projectId: "existing" } : undefined,
 				),
 			},
-			applications: {
-				findMany: vi.fn(async () => [
-					{
-						applicationId: "other",
-						ports: (existing.appPorts ?? []).map((publishedPort) => ({
-							publishedPort,
-						})),
-					},
-				]),
-			},
-			postgres: {
-				findMany: vi.fn(async () =>
-					(existing.dbPorts ?? []).map((externalPort) => ({ externalPort })),
-				),
-			},
-			mysql: findManyEmpty,
-			mariadb: findManyEmpty,
-			mongo: findManyEmpty,
-			redis: findManyEmpty,
-			libsql: { findMany: vi.fn(async () => existing.libsqlPorts ?? []) },
+			applications: table(() => [
+				{
+					applicationId: "other",
+					ports: (existing.appPorts ?? []).map((publishedPort) => ({
+						publishedPort,
+					})),
+				},
+			]),
+			compose: table(() => []),
+			postgres: table(() =>
+				(existing.dbPorts ?? []).map((externalPort) => ({ externalPort })),
+			),
+			mysql: table(() => []),
+			mariadb: table(() => []),
+			mongo: table(() => []),
+			redis: table(() => []),
+			libsql: table(() => existing.libsqlPorts ?? []),
 			domains: { findMany: vi.fn(async () => existing.domains ?? []) },
 		},
 		transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
@@ -309,7 +312,7 @@ describe("replaceAppNames", () => {
 describe("importBundle", () => {
 	beforeEach(() => vi.clearAllMocks());
 
-	it("creates the project on the chosen server with new app names", async () => {
+	it("creates the project on the chosen server keeping the app names", async () => {
 		const payload = await exportedPayload();
 		const { db, insertsInto } = fakeImportDb({});
 		const result = await importBundle(db, payload, {
@@ -322,12 +325,13 @@ describe("importBundle", () => {
 		expect(project?.organizationId).toBe("org-target");
 		const [pg] = insertsInto(postgres);
 		const [app] = insertsInto(applications);
-		expect(pg?.appName).not.toBe("shop-db-abc123");
+		expect(pg?.appName).toBe("shop-db-abc123");
+		expect(app?.appName).toBe("shop-web-xyz789");
 		expect(pg?.serverId).toBe("srv-target");
 		expect(pg?.applicationStatus).toBe("idle");
 		expect(app?.githubId).toBeUndefined();
-		expect(app?.env).toBe(`DATABASE_URL=postgres://${pg?.appName}:5432/app`);
-		expect(project?.env).toBe(`DB_URL=postgres://user@${pg?.appName}:5432/app`);
+		expect(app?.env).toBe("DATABASE_URL=postgres://shop-db-abc123:5432/app");
+		expect(result.warnings.join("\n")).not.toMatch(/already exists/);
 		expect(insertsInto(environments)).toHaveLength(1);
 		const [domain] = insertsInto(domains);
 		expect(domain).not.toHaveProperty("uniqueConfigKey");
@@ -374,6 +378,24 @@ describe("importBundle", () => {
 		const [row] = insertsInto(libsql);
 		expect(row?.externalGRPCPort).toBeNull();
 		expect(row?.externalAdminPort).toBe(5002);
+	});
+
+	it("renames only services whose app name is taken and rewrites references", async () => {
+		const payload = await exportedPayload();
+		const { db, insertsInto } = fakeImportDb({ appNames: ["shop-db-abc123"] });
+		const result = await importBundle(db, payload, {
+			organizationId: "org",
+			serverId: null,
+		});
+		const [pg] = insertsInto(postgres);
+		const [project] = insertsInto(projects);
+		expect(pg?.appName).not.toBe("shop-db-abc123");
+		expect(insertsInto(applications)[0]?.appName).toBe("shop-web-xyz789");
+		expect(insertsInto(applications)[0]?.env).toBe(
+			`DATABASE_URL=postgres://${pg?.appName}:5432/app`,
+		);
+		expect(project?.env).toBe(`DB_URL=postgres://user@${pg?.appName}:5432/app`);
+		expect(result.warnings.join("\n")).toMatch(/shop-db-abc123 already exists/);
 	});
 
 	it("resolves name, domain and port conflicts automatically", async () => {
