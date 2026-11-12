@@ -8,7 +8,7 @@ import {
 	findEnvironmentById,
 	findPreviewDeploymentsByApplicationId,
 	findProjectById,
-	generateTraefikMeDomain,
+	generateFreeDomain,
 	getAccessibleServerIds,
 	getApplicationStats,
 	getContainerLogs,
@@ -203,7 +203,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 			});
 
-			const host = await generateTraefikMeDomain(
+			const host = await generateFreeDomain(
 				newApplication.appName,
 				ctx.user.ownerId,
 				input.serverId,

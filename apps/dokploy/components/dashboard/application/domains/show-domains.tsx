@@ -1,3 +1,4 @@
+import { isFreeDomain } from "@dokploy/server/utils/free-domain";
 import {
 	type ColumnFiltersState,
 	flexRender,
@@ -460,7 +461,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 														</Badge>
 													)}
 													<div className="flex gap-2 flex-wrap">
-														{!item.host.includes("sslip.io") && (
+														{!isFreeDomain(item.host) && (
 															<DnsHelperModal
 																domain={{
 																	host: item.host,
