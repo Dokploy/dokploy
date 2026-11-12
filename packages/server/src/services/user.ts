@@ -9,7 +9,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
 export type User = typeof user.$inferSelect;
@@ -521,6 +521,7 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 				where: and(
 					eq(sql`lower(${invitation.email})`, userData.email.toLowerCase()),
 					eq(invitation.status, "pending"),
+					gt(invitation.expiresAt, new Date()),
 				),
 			});
 			if (pendingInvitation) {
