@@ -555,17 +555,10 @@ const resolveApiKeyRateLimit = (input: {
 }) => {
 	if (!IS_CLOUD) return input;
 
-	const { timeWindow, max } = CLOUD_API_KEY_RATE_LIMIT;
-	const isStricter =
-		input.rateLimitEnabled &&
-		!!input.rateLimitTimeWindow &&
-		!!input.rateLimitMax &&
-		input.rateLimitMax / input.rateLimitTimeWindow <= max / timeWindow;
-
 	return {
 		rateLimitEnabled: true,
-		rateLimitTimeWindow: isStricter ? input.rateLimitTimeWindow : timeWindow,
-		rateLimitMax: isStricter ? input.rateLimitMax : max,
+		rateLimitTimeWindow: CLOUD_API_KEY_RATE_LIMIT.timeWindow,
+		rateLimitMax: CLOUD_API_KEY_RATE_LIMIT.max,
 	};
 };
 

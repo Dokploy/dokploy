@@ -11,6 +11,7 @@ import {
 	findUserById,
 	getDokployUrl,
 	getMetricsOrigin,
+	getRootAdminIds,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -77,11 +78,15 @@ const hasRootAccess = (ctx: {
 	user: { id: string };
 	session: { impersonatedBy?: string } | null;
 }) => {
-	const rootId = process.env.USER_ADMIN_ID;
-	if (!IS_CLOUD || !rootId) {
+	if (!IS_CLOUD) {
 		return false;
 	}
-	return rootId === ctx.user.id || ctx.session?.impersonatedBy === rootId;
+	const rootIds = getRootAdminIds();
+	return (
+		rootIds.includes(ctx.user.id) ||
+		(!!ctx.session?.impersonatedBy &&
+			rootIds.includes(ctx.session.impersonatedBy))
+	);
 };
 
 const assertCanDeleteOwnAccount = async (ctx: {
@@ -587,7 +592,7 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			if (target.id === process.env.USER_ADMIN_ID) {
+			if (getRootAdminIds().includes(target.id)) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "The root account cannot be deleted",
