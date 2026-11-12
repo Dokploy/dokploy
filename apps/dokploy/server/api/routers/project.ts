@@ -351,26 +351,31 @@ export const projectRouter = createTRPCRouter({
 						mariadb: {
 							columns: {
 								mariadbId: true,
+								name: true,
 							},
 						},
 						mongo: {
 							columns: {
 								mongoId: true,
+								name: true,
 							},
 						},
 						mysql: {
 							columns: {
 								mysqlId: true,
+								name: true,
 							},
 						},
 						postgres: {
 							columns: {
 								postgresId: true,
+								name: true,
 							},
 						},
 						redis: {
 							columns: {
 								redisId: true,
+								name: true,
 							},
 						},
 						compose: {
@@ -383,6 +388,7 @@ export const projectRouter = createTRPCRouter({
 						libsql: {
 							columns: {
 								libsqlId: true,
+								name: true,
 							},
 						},
 					},
