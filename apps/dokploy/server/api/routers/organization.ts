@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import {
+	deleteOrganization,
 	hasValidLicense,
 	IS_CLOUD,
 	sendInvitationEmail,
@@ -285,9 +286,7 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await db
-				.delete(organization)
-				.where(eq(organization.id, input.organizationId));
+			const result = await deleteOrganization(input.organizationId);
 
 			await audit(ctx, {
 				action: "delete",
@@ -354,6 +353,17 @@ export const organizationRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Cannot invite a user with the owner role",
+				});
+			}
+
+			if (
+				input.role === "admin" &&
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin"
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners and admins can invite a user as admin",
 				});
 			}
 
@@ -504,6 +514,18 @@ export const organizationRouter = createTRPCRouter({
 					code: "FORBIDDEN",
 					message:
 						"Only the organization owner can change admin roles. Admins can only modify member roles.",
+				});
+			}
+
+			const callerIsPrivileged =
+				ctx.user.role === "owner" || ctx.user.role === "admin";
+			if (
+				!callerIsPrivileged &&
+				(input.role === "admin" || target.role === "admin")
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners and admins can assign or change the admin role",
 				});
 			}
 

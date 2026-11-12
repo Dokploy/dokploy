@@ -1,20 +1,16 @@
 import {
+	assertCanUseBindMount,
+	assertCanUseVolumeMount,
 	createMount,
 	deleteMount,
 	findApplicationById,
-	findComposeById,
-	findLibsqlById,
-	findMariadbById,
-	findMongoById,
 	findMountById,
 	findMountsByApplicationId,
-	findMySqlById,
-	findPostgresById,
-	findRedisById,
 	getServiceContainer,
+	getServiceOrganizationId,
+	readFileMountContent,
 	updateMount,
 } from "@dokploy/server";
-import type { ServiceType } from "@dokploy/server/db/schema/mount";
 import {
 	checkServiceAccess,
 	checkServicePermissionAndAccess,
@@ -31,54 +27,19 @@ import {
 } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
-async function getServiceOrganizationId(
-	serviceId: string,
-	serviceType: ServiceType,
-): Promise<string | null> {
-	switch (serviceType) {
-		case "application": {
-			const app = await findApplicationById(serviceId);
-			return app?.environment?.project?.organizationId ?? null;
-		}
-		case "postgres": {
-			const postgres = await findPostgresById(serviceId);
-			return postgres?.environment?.project?.organizationId ?? null;
-		}
-		case "mariadb": {
-			const mariadb = await findMariadbById(serviceId);
-			return mariadb?.environment?.project?.organizationId ?? null;
-		}
-		case "mongo": {
-			const mongo = await findMongoById(serviceId);
-			return mongo?.environment?.project?.organizationId ?? null;
-		}
-		case "mysql": {
-			const mysql = await findMySqlById(serviceId);
-			return mysql?.environment?.project?.organizationId ?? null;
-		}
-		case "redis": {
-			const redis = await findRedisById(serviceId);
-			return redis?.environment?.project?.organizationId ?? null;
-		}
-		case "compose": {
-			const compose = await findComposeById(serviceId);
-			return compose?.environment?.project?.organizationId ?? null;
-		}
-		case "libsql": {
-			const libsql = await findLibsqlById(serviceId);
-			return libsql?.environment?.project?.organizationId ?? null;
-		}
-		default:
-			return null;
-	}
-}
-
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMount)
 		.mutation(async ({ input, ctx }) => {
 			await checkServicePermissionAndAccess(ctx, input.serviceId, {
 				volume: ["create"],
+			});
+			await assertCanUseBindMount(ctx, input.type, input.hostPath);
+			await assertCanUseVolumeMount(ctx, {
+				serviceId: input.serviceId,
+				serviceType: input.serviceType ?? "application",
+				type: input.type,
+				volumeName: input.volumeName,
 			});
 			const mount = await createMount(input);
 			await audit(ctx, {
@@ -135,6 +96,26 @@ export const mountRouter = createTRPCRouter({
 			}
 			return mount;
 		}),
+	readFileContent: protectedProcedure
+		.input(apiFindOneMount)
+		.query(async ({ input, ctx }) => {
+			const mount = await findMountById(input.mountId);
+			const serviceId =
+				mount.applicationId ||
+				mount.postgresId ||
+				mount.mariadbId ||
+				mount.mongoId ||
+				mount.mysqlId ||
+				mount.redisId ||
+				mount.libsqlId ||
+				mount.composeId;
+			if (serviceId) {
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					volume: ["read"],
+				});
+			}
+			return await readFileMountContent(input.mountId);
+		}),
 	update: protectedProcedure
 		.input(apiUpdateMount)
 		.mutation(async ({ input, ctx }) => {
@@ -153,20 +134,27 @@ export const mountRouter = createTRPCRouter({
 					volume: ["create"],
 				});
 			}
-			// The input can move the row onto another service, which must allow it too.
-			for (const targetId of [
-				input.applicationId,
-				input.postgresId,
-				input.mariadbId,
-				input.mongoId,
-				input.mysqlId,
-				input.redisId,
-				input.libsqlId,
-				input.composeId,
-			]) {
-				if (targetId && targetId !== serviceId) {
-					await checkServicePermissionAndAccess(ctx, targetId, {
-						volume: ["create"],
+			await assertCanUseBindMount(
+				ctx,
+				input.type ?? mount.type,
+				input.hostPath ?? mount.hostPath,
+			);
+			if (serviceId) {
+				await assertCanUseVolumeMount(ctx, {
+					serviceId,
+					serviceType: mount.serviceType,
+					type: input.type ?? mount.type,
+					volumeName: input.volumeName ?? mount.volumeName,
+				});
+			}
+			const { expectedContent, ...mountData } = input;
+			if (mount.type === "file" && expectedContent !== undefined) {
+				const currentContent = await readFileMountContent(input.mountId);
+				if (currentContent !== expectedContent) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"The file changed on disk after you opened it. Reopen the editor to load the latest version.",
 					});
 				}
 			}
@@ -176,7 +164,7 @@ export const mountRouter = createTRPCRouter({
 				resourceId: input.mountId,
 				resourceName: input.mountPath,
 			});
-			return await updateMount(input.mountId, input);
+			return await updateMount(input.mountId, mountData);
 		}),
 	allNamedByApplicationId: protectedProcedure
 		.input(z.object({ applicationId: z.string().min(1) }))

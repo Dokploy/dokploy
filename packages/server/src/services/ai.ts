@@ -4,11 +4,21 @@ import { aiCustomProviderSchema } from "@dokploy/server/db/schema/ai";
 import { selectAIProvider } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { generateText, Output } from "ai";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
 import { findServerById } from "./server";
 import { getWebServerSettings } from "./web-server-settings";
+
+export const AI_SECRET_MASK = "********";
+
+export const maskAiApiKey = <T extends { apiKey: string }>(settings: T): T => ({
+	...settings,
+	apiKey: AI_SECRET_MASK,
+});
+
+export const mergeAiApiKey = (incoming: string, existing: string): string =>
+	incoming === AI_SECRET_MASK ? existing : incoming;
 
 interface SuggestionItem {
 	id: string;
@@ -36,9 +46,12 @@ export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	return aiSettings;
 };
 
-export const getAiSettingById = async (aiId: string) => {
+export const getAiSettingById = async (
+	aiId: string,
+	organizationId: string,
+) => {
 	const aiSetting = await db.query.ai.findFirst({
-		where: eq(ai.aiId, aiId),
+		where: and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)),
 	});
 	if (!aiSetting) {
 		throw new TRPCError({
@@ -95,10 +108,42 @@ export const saveCustomAiProviders = async (
 	return providers;
 };
 
-const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
+export const normalizeApiUrl = (url: string) => url.trim().replace(/\/+$/, "");
 
-export const saveAiSettings = async (organizationId: string, settings: any) => {
+export const resolveAiApiKey = async (opts: {
+	apiKey: string;
+	apiUrl: string;
+	aiId: string | undefined;
+	organizationId: string;
+	authorize: () => Promise<boolean>;
+}): Promise<string> => {
+	if (opts.apiKey !== AI_SECRET_MASK || !opts.aiId) return opts.apiKey;
+	if (!(await opts.authorize())) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
+	}
+	const stored = await getAiSettingById(opts.aiId, opts.organizationId);
+	if (normalizeApiUrl(stored.apiUrl) !== normalizeApiUrl(opts.apiUrl)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "API URL does not match the stored configuration",
+		});
+	}
+	return stored.apiKey;
+};
+
+export const saveAiSettings = async (
+	organizationId: string,
+	settings: any,
+	checkExistence = true,
+) => {
 	const aiId = settings.aiId;
+
+	if (aiId && checkExistence) {
+		await getAiSettingById(aiId, organizationId);
+	}
 
 	if (settings.apiUrl) {
 		const customProviders = await getCustomAiProviders(organizationId);
@@ -132,8 +177,13 @@ export const saveAiSettings = async (organizationId: string, settings: any) => {
 		});
 };
 
-export const deleteAiSettings = async (aiId: string) => {
-	return db.delete(ai).where(eq(ai.aiId, aiId));
+export const deleteAiSettings = async (
+	aiId: string,
+	organizationId: string,
+) => {
+	return db
+		.delete(ai)
+		.where(and(eq(ai.aiId, aiId), eq(ai.organizationId, organizationId)));
 };
 
 interface Props {
@@ -144,14 +194,14 @@ interface Props {
 }
 
 export const suggestVariants = async ({
-	organizationId: _organizationId,
+	organizationId,
 	aiId,
 	input,
 	serverId,
 }: Props) => {
 	try {
-		const aiSettings = await getAiSettingById(aiId);
-		if (!aiSettings || !aiSettings.isEnabled) {
+		const aiSettings = await getAiSettingById(aiId, organizationId);
+		if (!aiSettings?.isEnabled) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
 				message: "AI features are not enabled for this configuration",
@@ -209,7 +259,6 @@ export const suggestVariants = async ({
 
 		const result = await generateText({
 			model,
-			// @ts-ignore - Zod + AI SDK Output.object() causes excessively deep instantiation
 			output: Output.object({ schema: fullSchema }),
 			prompt: `
 		    Act as advanced DevOps engineer. Analyze the user's request and generate up to 3 deployment suggestions, each with a complete docker compose configuration.

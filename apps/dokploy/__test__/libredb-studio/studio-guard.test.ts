@@ -38,25 +38,36 @@ const serviceRows = vi.hoisted(() => ({
 	previewDeployments: vi.fn(),
 }));
 
-vi.mock("@dokploy/server/db", () => ({
-	db: {
-		query: {
-			member: {
-				findFirst: vi.fn(() => Promise.resolve(state.member)),
-				findMany: vi.fn(() => Promise.resolve([])),
+vi.mock("@dokploy/server/db", () => {
+	const selectChain = {
+		from: () => selectChain,
+		innerJoin: () => selectChain,
+		where: () => Promise.resolve([{ organizationId: "org-1" }]),
+	};
+	return {
+		db: {
+			select: vi.fn(() => selectChain),
+			query: {
+				member: {
+					findFirst: vi.fn(() => Promise.resolve(state.member)),
+					findMany: vi.fn(() => Promise.resolve([])),
+				},
+				organizationRole: {
+					findFirst: vi.fn(),
+					findMany: vi.fn(() => Promise.resolve([])),
+				},
+				libredbStudio: { findFirst: studioFindFirst, findMany: studioFindMany },
+				domains: { findMany: domainsFindMany },
+				applications: { findFirst: serviceRows.applications },
+				compose: { findFirst: serviceRows.compose },
+				previewDeployments: { findFirst: serviceRows.previewDeployments },
+				projects: {
+					findFirst: vi.fn(() => Promise.resolve({ organizationId: "org-1" })),
+				},
 			},
-			organizationRole: {
-				findFirst: vi.fn(),
-				findMany: vi.fn(() => Promise.resolve([])),
-			},
-			libredbStudio: { findFirst: studioFindFirst, findMany: studioFindMany },
-			domains: { findMany: domainsFindMany },
-			applications: { findFirst: serviceRows.applications },
-			compose: { findFirst: serviceRows.compose },
-			previewDeployments: { findFirst: serviceRows.previewDeployments },
 		},
-	},
-}));
+	};
+});
 
 vi.mock("@dokploy/server/services/proprietary/license-key", () => ({
 	hasValidLicense: vi.fn(() => Promise.resolve(false)),

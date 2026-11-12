@@ -5,10 +5,6 @@ import {
 	hasPermission,
 	isLibreDBStudioApplication,
 } from "@dokploy/server/services/permission";
-import {
-	resolveBoundTarget,
-	type WssContainerTarget,
-} from "./container-binding";
 
 type WssUser = { id: string } | null | undefined;
 type WssSession = { activeOrganizationId?: string | null } | null | undefined;
@@ -24,108 +20,78 @@ const buildCtx = (user: { id: string }, activeOrganizationId: string) => ({
 // remote server, that the server is accessible to the caller. Previously these
 // handlers only checked session + organization, so any member could reach a
 // root shell / logs of any container.
-// Resolves to null when refused, or to the target docker must run on: for a
-// service, the container or task ID inspected here.
-const authorizeDockerOverWss = async (
+export const canAccessDockerOverWss = async (
 	user: WssUser,
 	session: WssSession,
 	serverId?: string | null,
 	serviceId?: string | null,
-	target?: WssContainerTarget,
-): Promise<{ target: string | undefined } | null> => {
-	if (!user || !session?.activeOrganizationId) return null;
+): Promise<boolean> => {
+	if (!user || !session?.activeOrganizationId) return false;
 
 	const ctx = buildCtx(user, session.activeOrganizationId);
 
 	// When the container belongs to a specific Dokploy service (opened from a
 	// service page, so serviceId is present), access to that service is the
 	// authoritative gate — matching the service tRPC endpoints (e.g.
-	// application.readLogs, which check service access only), as long as the
-	// container, task or stats target belongs to that service. A member granted
+	// application.readLogs, which check service access only). A member granted
 	// the service can read its logs / open its terminal even without the broad
-	// "docker" permission or explicit access to the server it runs on, except
-	// the terminal of a LibreDB Studio, which only owners and admins open.
+	// "docker" permission or explicit access to the server it runs on.
 	if (serviceId) {
 		try {
 			await checkServiceAccess(ctx, serviceId, "read");
-			// The handlers run docker on the caller's containerId, so access to a
-			// service only covers the containers of that service.
-			if (!target) return null;
-			// The terminal prints the secrets a Studio holds in its env and seed.
-			if (
-				target.type === "terminal" &&
-				(await isLibreDBStudioApplication(serviceId))
-			) {
-				const member = await findMemberByUserId(
-					user.id,
-					session.activeOrganizationId,
-				);
-				if (member.role !== "owner" && member.role !== "admin") return null;
-			}
-			const bound = await resolveBoundTarget(serviceId, serverId, target);
-			return bound ? { target: bound } : null;
+			return true;
 		} catch {
-			return null;
+			return false;
 		}
 	}
 
 	// Generic Docker overview (no service context): mirror the docker tRPC router
 	// — require the docker permission and access to the target server.
-	if (!(await hasPermission(ctx, { docker: ["read"] }))) return null;
+	if (!(await hasPermission(ctx, { docker: ["read"] }))) return false;
 
 	if (serverId && serverId !== "local") {
 		const accessible = await getAccessibleServerIds({
 			userId: user.id,
 			activeOrganizationId: session.activeOrganizationId,
 		});
-		if (!accessible.has(serverId)) return null;
+		if (!accessible.has(serverId)) return false;
 	}
 
-	return {
-		target: target && "containerId" in target ? target.containerId : undefined,
-	};
+	return true;
 };
 
-export const canAccessDockerOverWss = async (
-	user: WssUser,
-	session: WssSession,
-	serverId?: string | null,
-	serviceId?: string | null,
-	target?: WssContainerTarget,
-): Promise<boolean> =>
-	(await authorizeDockerOverWss(user, session, serverId, serviceId, target)) !==
-	null;
-
-// The container or task ID a terminal or logs handler must run docker on, or
-// null when the caller is refused.
-export const resolveDockerContainerOverWss = async (
-	user: WssUser,
-	session: WssSession,
-	serverId: string | null,
-	serviceId: string | null,
-	target: Extract<WssContainerTarget, { containerId: string }>,
-): Promise<string | null> =>
-	(await authorizeDockerOverWss(user, session, serverId, serviceId, target))
-		?.target ?? null;
-
-// For a stats session bound by serviceId, the bound service's appName, which
-// scopes the containers listed; null for a session opened with the docker
-// permission; null in place of the object when the caller is refused.
-export const resolveDockerStatsOverWss = async (
-	user: WssUser,
+// The terminal prints the secrets a LibreDB Studio holds in its env and seed,
+// so only owners and admins open it, while members keep its logs and stats.
+export const canOpenServiceTerminalOverWss = async (
+	user: { id: string },
 	session: WssSession,
 	serviceId: string | null,
-	target: Extract<WssContainerTarget, { type: "stats" }>,
-): Promise<{ serviceAppName: string | null } | null> => {
-	const access = await authorizeDockerOverWss(
-		user,
-		session,
-		null,
-		serviceId,
-		target,
+): Promise<boolean> => {
+	if (!serviceId || !(await isLibreDBStudioApplication(serviceId))) {
+		return true;
+	}
+	if (!session?.activeOrganizationId) return false;
+	const member = await findMemberByUserId(
+		user.id,
+		session.activeOrganizationId,
 	);
-	if (!access) return null;
-	return { serviceAppName: serviceId ? (access.target ?? null) : null };
+	return member.role === "owner" || member.role === "admin";
+};
+
+// Whether a stats request for `appName` targets the service named
+// `serviceAppName`. Applications and databases run as one swarm service named
+// after the app; stack tasks are namespaced "<stack>_<service>". Compose
+// container names are free-form, so the stats socket also filters compose and
+// stack containers by their project/namespace label. `appType` comes from the
+// URL, so any other value is rejected.
+export const isServiceContainerName = (
+	appName: string,
+	appType: string,
+	serviceAppName: string,
+): boolean => {
+	if (appType === "application") return appName === serviceAppName;
+	if (appType === "stack") return appName.startsWith(`${serviceAppName}_`);
+	return appType === "docker-compose";
 };
 
 // Authorizes the host/server SSH terminal opened over a WebSocket. The local

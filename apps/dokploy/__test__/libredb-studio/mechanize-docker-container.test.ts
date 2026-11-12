@@ -8,11 +8,27 @@ const mocks = vi.hoisted(() => {
 	const update = vi.fn();
 	const getService = vi.fn(() => ({ inspect, update }));
 	const createService = vi.fn();
+	// mechanizeDockerContainer waits until Swarm has scheduled the task of the
+	// spec it just wrote, so the task reports the ForceUpdate of that spec.
+	const listTasks = vi.fn(async () => {
+		const [created] = createService.mock.calls.at(-1) ?? [];
+		const [updated] = update.mock.calls.at(-1) ?? [];
+		const spec = (updated ?? created) as
+			| { TaskTemplate?: { ForceUpdate?: number } }
+			| undefined;
+		return [
+			{
+				Spec: { ForceUpdate: spec?.TaskTemplate?.ForceUpdate ?? 0 },
+				Status: { State: "running" },
+			},
+		];
+	});
 	return {
 		inspect,
 		update,
 		getService,
 		createService,
+		listTasks,
 		getRemoteDocker: vi.fn(),
 		getLibreDBStudioDeployOverrides: vi.fn(),
 	};
@@ -139,6 +155,7 @@ describe("mechanizeDockerContainer with LibreDB Studio overrides", () => {
 		mocks.getRemoteDocker.mockResolvedValue({
 			getService: mocks.getService,
 			createService: mocks.createService,
+			listTasks: mocks.listTasks,
 		});
 		mocks.getLibreDBStudioDeployOverrides.mockResolvedValue(null);
 	});

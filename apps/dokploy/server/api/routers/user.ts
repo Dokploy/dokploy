@@ -10,6 +10,7 @@ import {
 	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
+	getMetricsOrigin,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -33,7 +34,9 @@ import {
 	session,
 	user,
 } from "@dokploy/server/db/schema";
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import {
+	checkPermission,
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
@@ -229,27 +232,35 @@ export const userRouter = createTRPCRouter({
 		return hasRootAccess(ctx);
 	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
-		const memberResult = await db.query.member.findFirst({
-			where: and(
-				eq(member.userId, ctx.user.id),
-				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
-			),
-			with: {
-				user: {
-					with: {
-						backups: {
-							with: {
-								destination: true,
-								deployments: true,
+		try {
+			const memberResult = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, ctx.user.id),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+				with: {
+					user: {
+						with: {
+							backups: {
+								with: {
+									destination: true,
+									deployments: true,
+								},
 							},
+							apiKeys: true,
 						},
-						apiKeys: true,
 					},
 				},
-			},
-		});
+			});
 
-		return memberResult?.user;
+			return memberResult?.user;
+		} catch (error) {
+			console.error("Failed to retrieve backups:", error);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to retrieve backups",
+			});
+		}
 	}),
 	getServerMetrics: withPermission("monitoring", "read").query(
 		async ({ ctx }) => {
@@ -661,7 +672,7 @@ export const userRouter = createTRPCRouter({
 				dataPoints: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				if (!input.appName) {
 					throw new Error(
@@ -672,10 +683,11 @@ export const userRouter = createTRPCRouter({
 						].join("\n"),
 					);
 				}
-				const url = new URL(`${input.url}/metrics/containers`);
+				const origin = await getMetricsOrigin(ctx.session, input.url);
+				const url = new URL(`${origin}/metrics/containers`);
 				url.searchParams.append("limit", input.dataPoints);
 				url.searchParams.append("appName", input.appName);
-				const response = await fetch(url.toString(), {
+				const response = await providerFetch(url.toString(), {
 					headers: {
 						Authorization: `Bearer ${input.token}`,
 					},
@@ -773,6 +785,13 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 			}
+
+			const activeOrganizationId =
+				input.metadata?.organizationId || ctx.session.activeOrganizationId;
+			await checkPermission(
+				{ user: ctx.user, session: { activeOrganizationId } },
+				{ api: ["read"] },
+			);
 
 			const apiKey = await createApiKey(ctx.user.id, input);
 			await audit(ctx, {

@@ -3,7 +3,11 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { resolveDockerContainerOverWss } from "./authorize";
+import {
+	canAccessDockerOverWss,
+	canOpenServiceTerminalOverWss,
+} from "./authorize";
+import { containerBelongsToService } from "./container-ownership";
 import {
 	isValidContainerId,
 	isValidShell,
@@ -70,14 +74,18 @@ export const setupDockerContainerTerminalWebSocketServer = (
 			return;
 		}
 
-		const boundContainerId = await resolveDockerContainerOverWss(
-			user,
-			session,
-			serverId,
-			serviceId,
-			{ type: "terminal", containerId },
-		);
-		if (!boundContainerId) {
+		if (!(await canAccessDockerOverWss(user, session, serverId, serviceId))) {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+		if (
+			serviceId &&
+			!(await containerBelongsToService(serviceId, containerId, serverId))
+		) {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+		if (!(await canOpenServiceTerminalOverWss(user, session, serviceId))) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
@@ -93,7 +101,10 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				if (!server.sshKeyId)
 					throw new Error("No SSH key available for this server");
 
+				if (ws.readyState !== ws.OPEN) return;
+
 				const conn = new Client();
+				ws.once("close", () => conn.destroy());
 				let _stdout = "";
 				let _stderr = "";
 				conn
@@ -105,7 +116,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 							"-it",
 							"-w",
 							"/",
-							boundContainerId,
+							containerId,
 							shell,
 						].join(" ");
 						conn.exec(dockerCommand, { pty: { cols, rows } }, (err, stream) => {
@@ -120,6 +131,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 								.on("close", (code: number, _signal: string) => {
 									ws.send(`\nContainer closed with code: ${code}\n`);
 									conn.end();
+									ws.close();
 								})
 								.on("data", (data: string) => {
 									_stdout += data.toString();
@@ -147,22 +159,16 @@ export const setupDockerContainerTerminalWebSocketServer = (
 									}
 									stream.write(text);
 								} catch (error) {
-									// @ts-ignore
+									// @ts-expect-error
 									const errorMessage = error?.message as unknown as string;
 									ws.send(errorMessage);
 								}
 							});
-
-							ws.on("close", () => {
-								stream.end();
-								// Ensure SSH connection is closed when WebSocket closes
-								conn.end();
-							});
 						});
 					})
 					.on("error", (err) => {
-						console.error("SSH connection error:", err);
 						if (ws.readyState === ws.OPEN) {
+							console.error("SSH connection error:", err);
 							ws.send(`SSH error: ${err.message}`);
 							ws.close();
 						}
@@ -182,7 +188,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				}
 				const ptyProcess = spawn(
 					"docker",
-					["exec", "-it", "-w", "/", boundContainerId, shell],
+					["exec", "-it", "-w", "/", containerId, shell],
 					{ cols, rows },
 				);
 
@@ -212,14 +218,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						}
 						ptyProcess.write(text);
 					} catch (error) {
-						// @ts-ignore
+						// @ts-expect-error
 						const errorMessage = error?.message as unknown as string;
 						ws.send(errorMessage);
 					}
 				});
 			}
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			const errorMessage = error?.message as unknown as string;
 
 			ws.send(errorMessage);

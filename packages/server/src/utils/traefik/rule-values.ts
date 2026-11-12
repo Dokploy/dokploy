@@ -1,4 +1,3 @@
-import { URL_PATH_MESSAGE } from "../../db/validations/domain";
 import { INVALID_HOSTNAME_MESSAGE } from "../hostname-validation";
 
 // Template deploys, preview deployments, project duplicates and AI suggestions
@@ -7,6 +6,9 @@ import { INVALID_HOSTNAME_MESSAGE } from "../hostname-validation";
 // host, so only that and control characters are refused here: stored hosts
 // with underscores or Unicode must still deploy, while the API schema keeps
 // the stricter hostname and path rules for new writes.
+const PATH_MESSAGE =
+	"Path must start with '/' and cannot contain spaces, backticks or '$'";
+
 const breaksRule = (value: string) =>
 	[...value].some((character) => {
 		const code = character.charCodeAt(0);
@@ -26,9 +28,9 @@ export const assertTraefikRuleValues = ({
 		throw new Error(`Invalid domain host. ${INVALID_HOSTNAME_MESSAGE}`);
 	}
 	if (path && breaksRule(path)) {
-		throw new Error(`Invalid domain path. ${URL_PATH_MESSAGE}`);
+		throw new Error(`Invalid domain path. ${PATH_MESSAGE}`);
 	}
 	if (internalPath && breaksRule(internalPath)) {
-		throw new Error(`Invalid domain internal path. ${URL_PATH_MESSAGE}`);
+		throw new Error(`Invalid domain internal path. ${PATH_MESSAGE}`);
 	}
 };

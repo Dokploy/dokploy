@@ -39,6 +39,7 @@ const addInvitation = z
 		mode: z.enum(["invitation", "credentials"]),
 		email: z
 			.string()
+			.trim()
 			.min(1, "Email is required")
 			.email({ message: "Invalid email" }),
 		role: z.string().min(1, "Role is required"),

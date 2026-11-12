@@ -11,6 +11,7 @@ import {
 	initLibreDBStudioReconcileJob,
 	initSchedules,
 	initVolumeBackupsCronJobs,
+	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -62,6 +63,9 @@ void app.prepare().then(async () => {
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			createDefaultMiddlewares();
 			await initializeNetwork();
+			await restoreInterruptedTraefik().catch((error) => {
+				console.error("Failed to restore Traefik:", error);
+			});
 			await initCronJobs();
 			initLibreDBStudioReconcileJob();
 			await initSchedules();

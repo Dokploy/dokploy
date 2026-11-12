@@ -9,7 +9,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
 export type User = typeof user.$inferSelect;
@@ -510,6 +510,23 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		if (!emailRegex.test(userData.email)) {
 			throw new Error("Please enter a valid email address");
+		}
+
+		const current = await db.query.user.findFirst({
+			where: eq(user.id, userId),
+			columns: { email: true },
+		});
+		if (current?.email !== userData.email) {
+			const pendingInvitation = await db.query.invitation.findFirst({
+				where: and(
+					eq(sql`lower(${invitation.email})`, userData.email.toLowerCase()),
+					eq(invitation.status, "pending"),
+					gt(invitation.expiresAt, new Date()),
+				),
+			});
+			if (pendingInvitation) {
+				throw new Error("This email address can't be used");
+			}
 		}
 	}
 

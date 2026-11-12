@@ -10,7 +10,8 @@ import {
 } from "@dokploy/server";
 import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
-import { resolveDockerStatsOverWss } from "./authorize";
+import { canAccessDockerOverWss, isServiceContainerName } from "./authorize";
+import { findServiceAppName } from "./container-ownership";
 
 type AppType = "application" | "stack" | "docker-compose";
 
@@ -101,25 +102,47 @@ export const setupDockerStatsMonitoringSocketServer = (
 			return;
 		}
 
+		if (
+			!/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(appName) ||
+			appName.includes("..")
+		) {
+			ws.close(4000, "Invalid appName");
+			return;
+		}
+
 		if (!user || !session) {
 			ws.close();
 			return;
 		}
 
-		const access = await resolveDockerStatsOverWss(user, session, serviceId, {
-			type: "stats",
-			appName,
-			appType,
-		});
-		if (!access) {
+		if (!(await canAccessDockerOverWss(user, session, null, serviceId))) {
 			ws.close(4003, "Not authorized");
 			return;
 		}
-		const { serviceAppName } = access;
+
+		// Service access only covers that service's containers, so pin the
+		// request to them instead of trusting appName.
+		const serviceAppName = serviceId
+			? await findServiceAppName(serviceId)
+			: null;
+		if (
+			serviceId &&
+			(!serviceAppName ||
+				!isServiceContainerName(appName, appType, serviceAppName))
+		) {
+			ws.close(4003, "Not authorized");
+			return;
+		}
+
+		// Client may have disconnected during the awaits; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		const intervalId = setInterval(async () => {
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
-				if (appName === "dokploy") {
+				if (appName === "dokploy" && !serviceId) {
 					const stat = await getHostSystemStats();
 
 					await recordAdvancedStats(stat, appName);
@@ -133,8 +156,6 @@ export const setupDockerStatsMonitoringSocketServer = (
 					return;
 				}
 
-				// Docker's name filter matches a substring, so a session bound to a
-				// service also filters by that service's own label.
 				const filter = {
 					status: ["running"],
 					...(appType === "application" && {
@@ -149,10 +170,10 @@ export const setupDockerStatsMonitoringSocketServer = (
 						],
 					}),
 					...(appType === "docker-compose" && {
+						name: [appName],
 						...(serviceAppName && {
 							label: [`com.docker.compose.project=${serviceAppName}`],
 						}),
-						name: [appName],
 					}),
 				};
 

@@ -1,4 +1,5 @@
 import {
+	captureEvent,
 	createServer,
 	defaultCommand,
 	deleteServer,
@@ -6,12 +7,15 @@ import {
 	findServersByUserId,
 	findUserById,
 	getAccessibleServerIds,
+	getMetricsOrigin,
+	getPostHogSessionId,
 	getPublicIpWithFallback,
 	getServicesByServerId,
 	haveActiveServices,
 	IS_CLOUD,
 	redactServerSshKey,
 	removeDeploymentsByServerId,
+	removeServerVectorAgent,
 	serverAudit,
 	serverSetup,
 	serverValidate,
@@ -19,8 +23,13 @@ import {
 	updateServerById,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { findMemberByUserId } from "@dokploy/server/services/permission";
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
+import {
+	findMemberByUserId,
+	hasPermission,
+} from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { findSSHKeyById } from "@dokploy/server/services/ssh-key";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
@@ -51,6 +60,36 @@ import {
 } from "@/server/db/schema";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 
+// Users without server.read only get what the server pickers render
+const toServerOptions = async (
+	ctx: Parameters<typeof hasPermission>[0],
+	servers: (typeof server.$inferSelect)[],
+) => {
+	await findMemberByUserId(ctx.user.id, ctx.session.activeOrganizationId);
+	if (await hasPermission(ctx, { server: ["read"] })) {
+		return servers;
+	}
+	return servers.map(({ serverId, name, ipAddress }) => ({
+		serverId,
+		name,
+		ipAddress,
+	}));
+};
+
+const assertSshKeyInOrganization = async (
+	sshKeyId: string | null | undefined,
+	organizationId: string,
+) => {
+	if (!sshKeyId) return;
+	const sshKey = await findSSHKeyById(sshKeyId);
+	if (sshKey.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to use this SSH key",
+		});
+	}
+};
+
 export const serverRouter = createTRPCRouter({
 	create: withPermission("server", "create")
 		.input(apiCreateServer)
@@ -64,6 +103,10 @@ export const serverRouter = createTRPCRouter({
 						message: "You cannot create more servers",
 					});
 				}
+				await assertSshKeyInOrganization(
+					input.sshKeyId,
+					ctx.session.activeOrganizationId,
+				);
 				const project = await createServer(
 					input,
 					ctx.session.activeOrganizationId,
@@ -82,6 +125,13 @@ export const serverRouter = createTRPCRouter({
 					resourceType: "server",
 					resourceId: project.serverId,
 					resourceName: project.name,
+				});
+				void captureEvent({
+					distinctId: user.id,
+					event: "server_created",
+					organizationId: ctx.session.activeOrganizationId,
+					sessionId: getPostHogSessionId(ctx.req.headers),
+					properties: { server_type: project.serverType },
 				});
 				return project;
 			} catch (error) {
@@ -216,7 +266,7 @@ export const serverRouter = createTRPCRouter({
 
 		return servers.length ?? 0;
 	}),
-	withSSHKey: withPermission("server", "read").query(async ({ ctx }) => {
+	withSSHKey: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
 		const result = await db.query.server.findMany({
@@ -234,9 +284,12 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "deploy"),
 					),
 		});
-		return result.filter((s) => accessibleIds.has(s.serverId));
+		return toServerOptions(
+			ctx,
+			result.filter((s) => accessibleIds.has(s.serverId)),
+		);
 	}),
-	buildServers: withPermission("server", "read").query(async ({ ctx }) => {
+	buildServers: protectedProcedure.query(async ({ ctx }) => {
 		const accessibleIds = await getAccessibleServerIds(ctx.session);
 
 		const result = await db.query.server.findMany({
@@ -254,7 +307,10 @@ export const serverRouter = createTRPCRouter({
 						eq(server.serverType, "build"),
 					),
 		});
-		return result.filter((s) => accessibleIds.has(s.serverId));
+		return toServerOptions(
+			ctx,
+			result.filter((s) => accessibleIds.has(s.serverId)),
+		);
 	}),
 	setup: withPermission("server", "create")
 		.input(apiFindOneServer)
@@ -337,6 +393,10 @@ export const serverRouter = createTRPCRouter({
 						version: string;
 					};
 					railpack: {
+						enabled: boolean;
+						version: string;
+					};
+					traefik: {
 						enabled: boolean;
 						version: string;
 					};
@@ -473,11 +533,16 @@ export const serverRouter = createTRPCRouter({
 						message: "Server has active services, please delete them first",
 					});
 				}
+				const vectorAgentRemovalWarning =
+					await removeServerVectorAgent(currentServer);
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "server",
 					resourceId: currentServer.serverId,
 					resourceName: currentServer.name,
+					...(vectorAgentRemovalWarning
+						? { metadata: { vectorAgentRemovalWarning } }
+						: {}),
 				});
 				await removeDeploymentsByServerId(currentServer);
 				await deleteServer(input.serverId);
@@ -488,7 +553,10 @@ export const serverRouter = createTRPCRouter({
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
 				}
 
-				return redactServerSshKey(currentServer);
+				return {
+					...redactServerSshKey(currentServer),
+					vectorAgentRemovalWarning,
+				};
 			} catch (error) {
 				throw error;
 			}
@@ -511,6 +579,10 @@ export const serverRouter = createTRPCRouter({
 						message: "Server is inactive",
 					});
 				}
+				await assertSshKeyInOrganization(
+					input.sshKeyId,
+					ctx.session.activeOrganizationId,
+				);
 				const currentServer = await updateServerById(input.serverId, {
 					...input,
 				});
@@ -570,11 +642,12 @@ export const serverRouter = createTRPCRouter({
 				dataPoints: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
-				const url = new URL(input.url);
+				const origin = await getMetricsOrigin(ctx.session, input.url);
+				const url = new URL(`${origin}/metrics`);
 				url.searchParams.append("limit", input.dataPoints);
-				const response = await fetch(url.toString(), {
+				const response = await providerFetch(url.toString(), {
 					headers: {
 						Authorization: `Bearer ${input.token}`,
 					},

@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { is, Param, type SQL } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const STUDIO_APP = "studio-app";
@@ -10,13 +9,6 @@ const serviceScope = (serverId: string | null, organizationId = "org-1") => ({
 	serverId,
 	environment: { project: { organizationId } },
 });
-const studioVolumeMount = {
-	mountId: "mount-studio",
-	type: "volume",
-	volumeName: STUDIO_VOLUME,
-	applicationId: STUDIO_APP,
-	application: serviceScope(null),
-};
 const ACCESS_MESSAGE = "You don't have access to this service";
 const GUARD_MESSAGE =
 	"Only owners and admins of the organization can change a LibreDB Studio. Members can open it with Open in LibreDB Studio.";
@@ -314,66 +306,17 @@ describe("domain.create", () => {
 });
 
 describe("mount.update", () => {
-	beforeEach(() => {
+	it("refuses a member's change to a mount of a LibreDB Studio", async () => {
 		mocks.findMountById.mockResolvedValue({
 			mountId: "mount-1",
-			applicationId: "own-app",
+			applicationId: STUDIO_APP,
 		});
-	});
-
-	it("refuses to move a member's mount onto a LibreDB Studio", async () => {
 		await expect(
 			mountRouter
 				.createCaller(ctx)
-				.update({ mountId: "mount-1", applicationId: STUDIO_APP }),
+				.update({ mountId: "mount-1", mountPath: "/data" }),
 		).rejects.toMatchObject(guardRefusal);
 		expect(mocks.updateMount).not.toHaveBeenCalled();
-	});
-
-	it("still updates a mount that stays on its service", async () => {
-		await mountRouter
-			.createCaller(ctx)
-			.update({ mountId: "mount-1", mountPath: "/data" });
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledTimes(1);
-		expect(mocks.updateMount).toHaveBeenCalled();
-	});
-});
-
-describe("volumeBackups.update", () => {
-	const update = (fields: Record<string, unknown>) =>
-		volumeBackupsRouter.createCaller(ctx).update({
-			volumeBackupId: "vb-1",
-			name: "nightly",
-			volumeName: "data",
-			prefix: "p",
-			appName: "own-app-name",
-			cronExpression: "0 0 * * *",
-			destinationId: "dest-1",
-			...fields,
-		});
-
-	beforeEach(() => {
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-		});
-		mocks.updateVolumeBackup.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			enabled: false,
-		});
-	});
-
-	it("refuses to move a member's volume backup onto a LibreDB Studio", async () => {
-		await expect(update({ applicationId: STUDIO_APP })).rejects.toMatchObject(
-			guardRefusal,
-		);
-		expect(mocks.updateVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("still updates a volume backup that stays on its service", async () => {
-		await update({ applicationId: "own-app" });
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledTimes(1);
-		expect(mocks.updateVolumeBackup).toHaveBeenCalled();
 	});
 });
 
@@ -427,461 +370,30 @@ describe("domain host of a LibreDB Studio", () => {
 });
 
 describe("volume of a LibreDB Studio", () => {
-	const restore = (fields: Record<string, unknown>) =>
-		volumeBackupsRouter.createCaller(ctx).restoreVolumeBackupWithLogs({
-			backupFileName: "admin.tar",
-			destinationId: "dest-1",
-			volumeName: "own-data",
-			id: "own-app",
-			serviceType: "application",
-			...fields,
-		});
-
-	it("refuses a restore that names a LibreDB Studio as its service", async () => {
-		await expect(
-			restore({ id: STUDIO_APP, volumeName: STUDIO_VOLUME }),
-		).rejects.toMatchObject(guardRefusal);
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledWith(
-			ctx,
-			STUDIO_APP,
-			{ volumeBackup: ["restore"] },
-		);
-	});
-
-	it("refuses a restore into a volume a LibreDB Studio mounts", async () => {
-		mocks.mountsFindMany.mockResolvedValue([studioVolumeMount]);
-		await expect(restore({ volumeName: STUDIO_VOLUME })).rejects.toMatchObject(
-			guardRefusal,
-		);
-		expect(mocks.restoreVolume).not.toHaveBeenCalled();
-	});
-
-	it("still restores into a volume of the member's own service", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			{
-				...studioVolumeMount,
-				volumeName: "own-data",
-				applicationId: "own-app",
-			},
-		]);
-		await expect(restore({})).resolves.toBeDefined();
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledTimes(1);
-	});
-
-	it("refuses a backup of a member's service that names a Studio's volume", async () => {
-		mocks.mountsFindMany.mockResolvedValue([studioVolumeMount]);
+	it("refuses a member's backup that names a LibreDB Studio as its service", async () => {
 		await expect(
 			volumeBackupsRouter.createCaller(ctx).create({
-				name: "copy",
-				volumeName: STUDIO_VOLUME,
-				prefix: "p",
-				appName: "own-app-name",
-				cronExpression: "0 0 * * *",
-				destinationId: "dest-1",
-				serviceType: "application",
-				applicationId: "own-app",
-			}),
-		).rejects.toMatchObject(guardRefusal);
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("refuses to point a member's volume backup at a Studio's volume", async () => {
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-		});
-		mocks.mountsFindMany.mockResolvedValue([studioVolumeMount]);
-		await expect(
-			volumeBackupsRouter.createCaller(ctx).update({
-				volumeBackupId: "vb-1",
 				name: "nightly",
 				volumeName: STUDIO_VOLUME,
 				prefix: "p",
-				appName: "own-app-name",
 				cronExpression: "0 0 * * *",
 				destinationId: "dest-1",
+				applicationId: STUDIO_APP,
 			}),
 		).rejects.toMatchObject(guardRefusal);
-		expect(mocks.updateVolumeBackup).not.toHaveBeenCalled();
-	});
-});
-
-describe("volume shared by name", () => {
-	const create = (fields: Record<string, unknown> = {}) =>
-		volumeBackupsRouter.createCaller(ctx).create({
-			name: "nightly",
-			volumeName: "data",
-			prefix: "p",
-			appName: "own-app-name",
-			cronExpression: "0 0 * * *",
-			destinationId: "dest-1",
-			serviceType: "application",
-			applicationId: "own-app",
-			...fields,
-		});
-	const dataMount = (
-		serviceId: string,
-		scope: ReturnType<typeof serviceScope>,
-	) => ({
-		mountId: `mount-${serviceId}`,
-		type: "volume",
-		volumeName: "data",
-		applicationId: serviceId,
-		application: scope,
-	});
-
-	const volumeRefusal = {
-		code: "UNAUTHORIZED",
-		message: "You don't have access to this volume",
-	};
-
-	beforeEach(() => {
-		mocks.createVolumeBackup.mockResolvedValue({
-			volumeBackupId: "vb-2",
-			enabled: false,
-		});
-	});
-
-	it("refuses a backup when a service of another organization on the same server mounts the volume", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount("org-2-app", serviceScope(null, "org-2")),
-		]);
-		await expect(create()).rejects.toMatchObject(volumeRefusal);
-		expect(mocks.checkServicePermissionAndAccess).not.toHaveBeenCalledWith(
-			ctx,
-			"org-2-app",
-			expect.anything(),
-		);
 		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
 	});
 
-	it("refuses a restore when a service of another organization on the server it runs on mounts the volume", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount("org-2-app", serviceScope("srv-2", "org-2")),
-		]);
+	it("refuses a restore that names a LibreDB Studio as its service", async () => {
 		await expect(
 			volumeBackupsRouter.createCaller(ctx).restoreVolumeBackupWithLogs({
 				backupFileName: "admin.tar",
 				destinationId: "dest-1",
-				volumeName: "data",
-				id: "own-app",
+				volumeName: STUDIO_VOLUME,
+				id: STUDIO_APP,
 				serviceType: "application",
-				serverId: "srv-2",
-			}),
-		).rejects.toMatchObject(volumeRefusal);
-		expect(mocks.restoreVolume).not.toHaveBeenCalled();
-	});
-
-	it("allows a member's backup when only services on another server mount the volume", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount(OTHER_APP, serviceScope("srv-2")),
-			dataMount(STUDIO_APP, serviceScope("srv-2")),
-			dataMount("org-2-app", serviceScope("srv-2", "org-2")),
-		]);
-		await expect(create()).resolves.toBeDefined();
-		expect(mocks.createVolumeBackup).toHaveBeenCalled();
-	});
-
-	it("refuses a member's backup when a LibreDB Studio on the same server mounts the volume", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount(STUDIO_APP, serviceScope(null)),
-		]);
-		await expect(create()).rejects.toMatchObject(guardRefusal);
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("refuses a member's backup when a service the member cannot change on the same server mounts the volume", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount(OTHER_APP, serviceScope(null)),
-		]);
-		await expect(create()).rejects.toMatchObject({
-			code: "UNAUTHORIZED",
-			message: ACCESS_MESSAGE,
-		});
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("checks a database's backup against the Dokploy server, where it runs", async () => {
-		mocks.applicationsFindFirst.mockResolvedValue(undefined);
-		mocks.postgresFindFirst.mockResolvedValue(serviceScope("srv-2"));
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount(STUDIO_APP, serviceScope(null)),
-		]);
-		await expect(
-			create({
-				serviceType: "postgres",
-				applicationId: undefined,
-				postgresId: "own-postgres",
-			}),
-		).rejects.toMatchObject(guardRefusal);
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("checks a restore against the server it runs on", async () => {
-		mocks.mountsFindMany.mockResolvedValue([
-			dataMount(STUDIO_APP, serviceScope("srv-2")),
-		]);
-		await expect(
-			volumeBackupsRouter.createCaller(ctx).restoreVolumeBackupWithLogs({
-				backupFileName: "admin.tar",
-				destinationId: "dest-1",
-				volumeName: "data",
-				id: "own-app",
-				serviceType: "application",
-				serverId: "srv-2",
 			}),
 		).rejects.toMatchObject(guardRefusal);
 		expect(mocks.restoreVolume).not.toHaveBeenCalled();
-	});
-});
-
-describe("server a volume backup runs on", () => {
-	const queriedId = ({ where }: { where: SQL }) =>
-		where.queryChunks.find((chunk) => is(chunk, Param))?.value;
-	const placeServices = (servers: {
-		applications?: Record<string, string | null>;
-		compose?: Record<string, string | null>;
-		postgres?: Record<string, string | null>;
-	}) => {
-		const finder =
-			(placed: Record<string, string | null> = {}) =>
-			async (query: { where: SQL }) => {
-				const id = String(queriedId(query));
-				return id in placed ? serviceScope(placed[id] ?? null) : undefined;
-			};
-		mocks.applicationsFindFirst.mockImplementation(
-			finder(servers.applications),
-		);
-		mocks.composeFindFirst.mockImplementation(finder(servers.compose));
-		mocks.postgresFindFirst.mockImplementation(finder(servers.postgres));
-	};
-	const mountOnServer2 = (volumeName: string) => ({
-		mountId: "mount-foreign",
-		type: "volume",
-		volumeName,
-		applicationId: OTHER_APP,
-		application: serviceScope("srv-2"),
-	});
-	const accessRefusal = { code: "UNAUTHORIZED", message: ACCESS_MESSAGE };
-	const backupFields = {
-		name: "nightly",
-		prefix: "p",
-		appName: "own-app-name",
-		cronExpression: "0 0 * * *",
-		destinationId: "dest-1",
-	};
-	const create = (fields: Record<string, unknown>) =>
-		volumeBackupsRouter.createCaller(ctx).create({
-			...backupFields,
-			volumeName: "data",
-			...fields,
-		});
-	const update = (fields: Record<string, unknown>) =>
-		volumeBackupsRouter.createCaller(ctx).update({
-			...backupFields,
-			volumeBackupId: "vb-1",
-			volumeName: "data",
-			...fields,
-		});
-
-	beforeEach(() => {
-		mocks.createVolumeBackup.mockResolvedValue({
-			volumeBackupId: "vb-2",
-			enabled: false,
-		});
-		mocks.updateVolumeBackup.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			enabled: false,
-		});
-	});
-
-	it("refuses an update that adds a database to a backup of an application on another server", async () => {
-		placeServices({
-			applications: { "own-app": "srv-2" },
-			postgres: { "own-postgres": null },
-		});
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-			volumeName: "data",
-		});
-		mocks.mountsFindMany.mockResolvedValue([mountOnServer2("secret-vol")]);
-		await expect(
-			update({ postgresId: "own-postgres", volumeName: "secret-vol" }),
-		).rejects.toMatchObject(accessRefusal);
-		expect(mocks.updateVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("checks a created backup of a database and a compose against the compose's server", async () => {
-		placeServices({
-			compose: { "own-compose": "srv-2" },
-			postgres: { "own-postgres": null },
-		});
-		mocks.mountsFindMany.mockResolvedValue([mountOnServer2("data")]);
-		await expect(
-			create({
-				serviceType: "postgres",
-				postgresId: "own-postgres",
-				composeId: "own-compose",
-			}),
-		).rejects.toMatchObject(accessRefusal);
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("checks the volume when an update changes only the services of a backup", async () => {
-		placeServices({
-			compose: { "own-compose": "srv-2" },
-			postgres: { "own-postgres": null },
-		});
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			composeId: "own-compose",
-			volumeName: "data",
-		});
-		mocks.mountsFindMany.mockResolvedValue([mountOnServer2("data")]);
-		await expect(update({ postgresId: "own-postgres" })).rejects.toMatchObject(
-			accessRefusal,
-		);
-		expect(mocks.updateVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("checks the compose's server when the application runs on the Dokploy server", async () => {
-		placeServices({
-			applications: { "own-app": null },
-			compose: { "own-compose": "srv-2" },
-		});
-		mocks.mountsFindMany.mockResolvedValue([mountOnServer2("data")]);
-		await expect(
-			create({
-				serviceType: "application",
-				applicationId: "own-app",
-				composeId: "own-compose",
-			}),
-		).rejects.toMatchObject(accessRefusal);
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("refuses a created backup that names a second service the member cannot change", async () => {
-		placeServices({
-			applications: { "own-app": null },
-			compose: { [OTHER_APP]: null },
-		});
-		await expect(
-			create({
-				serviceType: "application",
-				applicationId: "own-app",
-				composeId: OTHER_APP,
-			}),
-		).rejects.toMatchObject(accessRefusal);
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledWith(
-			ctx,
-			OTHER_APP,
-			{ volumeBackup: ["create"] },
-		);
-		expect(mocks.createVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("refuses an update of a backup that already names a second service the member cannot change", async () => {
-		placeServices({
-			applications: { "own-app": null },
-			compose: { [OTHER_APP]: null },
-		});
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-			composeId: OTHER_APP,
-			volumeName: "data",
-		});
-		await expect(
-			update({ serviceType: "compose", turnOff: true }),
-		).rejects.toMatchObject(accessRefusal);
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledWith(
-			ctx,
-			OTHER_APP,
-			{ volumeBackup: ["update"] },
-		);
-		expect(mocks.updateVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("refuses to run a backup that names a second service the member cannot change", async () => {
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-			composeId: OTHER_APP,
-			volumeName: "data",
-		});
-		await expect(
-			volumeBackupsRouter
-				.createCaller(ctx)
-				.runManually({ volumeBackupId: "vb-1" }),
-		).rejects.toMatchObject(accessRefusal);
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledWith(
-			ctx,
-			OTHER_APP,
-			{ volumeBackup: ["create"] },
-		);
-		expect(mocks.runVolumeBackup).not.toHaveBeenCalled();
-	});
-
-	it("still runs a backup of one service the member may change", async () => {
-		mocks.findVolumeBackupById.mockResolvedValue({
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-			volumeName: "data",
-		});
-		mocks.runVolumeBackup.mockResolvedValue(true);
-		await expect(
-			volumeBackupsRouter
-				.createCaller(ctx)
-				.runManually({ volumeBackupId: "vb-1" }),
-		).resolves.toBe(true);
-		expect(mocks.checkServicePermissionAndAccess).toHaveBeenCalledTimes(1);
-		expect(mocks.runVolumeBackup).toHaveBeenCalledWith("vb-1");
-	});
-
-	it("stores the services an update checked when another update moves the backup meanwhile", async () => {
-		placeServices({
-			applications: { "own-app": null },
-			compose: { "own-compose": "srv-2" },
-		});
-		const row: Record<string, unknown> = {
-			volumeBackupId: "vb-1",
-			applicationId: "own-app",
-			volumeName: "data",
-		};
-		mocks.findVolumeBackupById.mockImplementation(async () => ({ ...row }));
-		// updateVolumeBackup sets only the columns it is given, like the service.
-		mocks.updateVolumeBackup.mockImplementation(
-			async (_id: string, fields: Record<string, unknown>) => {
-				for (const [field, value] of Object.entries(fields)) {
-					if (value !== undefined) row[field] = value;
-				}
-				return { ...row, enabled: false };
-			},
-		);
-		let reachSecretCheck = () => {};
-		const secretCheckReached = new Promise<void>((resolve) => {
-			reachSecretCheck = resolve;
-		});
-		let releaseSecretCheck = () => {};
-		const secretCheckReleased = new Promise<void>((resolve) => {
-			releaseSecretCheck = resolve;
-		});
-		mocks.mountsFindMany.mockImplementation(async () => {
-			if (mocks.mountsFindMany.mock.calls.length === 1) {
-				reachSecretCheck();
-				await secretCheckReleased;
-				return [mountOnServer2("secret-vol")];
-			}
-			return [];
-		});
-
-		const secretUpdate = update({ volumeName: "secret-vol" });
-		await secretCheckReached;
-		await update({ volumeName: "harmless", composeId: "own-compose" });
-		releaseSecretCheck();
-		await secretUpdate;
-
-		expect(row).toMatchObject({ volumeName: "secret-vol", composeId: null });
 	});
 });

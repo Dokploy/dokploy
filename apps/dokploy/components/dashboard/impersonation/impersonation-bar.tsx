@@ -186,6 +186,7 @@ export const ImpersonationBar = () => {
 						<Logo
 							className="w-10 h-10"
 							logoUrl={whitelabeling?.logoUrl || undefined}
+							logoLightUrl={whitelabeling?.logoLightUrl || undefined}
 						/>
 						{!isImpersonating ? (
 							<div className="flex items-center gap-2 w-full">

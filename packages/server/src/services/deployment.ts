@@ -16,14 +16,18 @@ import {
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
+import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { trackDeploymentResult } from "@dokploy/server/utils/tracking/posthog";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
 	type Application,
@@ -210,22 +214,22 @@ export const createDeploymentPreview = async (
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
 	);
+	const { buildServerId } = previewDeployment.application;
+	const serverId = buildServerId || previewDeployment.application.serverId;
 	await removeLastTenDeployments(
 		deployment.previewDeploymentId,
 		"previewDeployment",
-		previewDeployment?.application?.serverId,
+		previewDeployment.application.serverId,
 	);
 	try {
 		const appName = `${previewDeployment.appName}`;
-		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
+		if (serverId) {
+			const server = await findServerById(serverId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
@@ -249,6 +253,7 @@ export const createDeploymentPreview = async (
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
 				startedAt: new Date().toISOString(),
+				...(buildServerId && { buildServerId }),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -476,8 +481,8 @@ export const createDeploymentSchedule = async (
 			const server = await findServerById(serverId);
 
 			const command = `
-				mkdir -p ${SCHEDULES_PATH}/${schedule.appName};
-            	echo "Initializing schedule" >> ${logFilePath};
+				mkdir -p ${quote([path.join(SCHEDULES_PATH, schedule.appName)])};
+            	echo "Initializing schedule" >> ${quote([logFilePath])};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -558,8 +563,8 @@ export const createDeploymentVolumeBackup = async (
 			const server = await findServerById(serverId);
 
 			const command = `
-				mkdir -p ${VOLUME_BACKUPS_PATH}/${volumeBackup.appName};
-            	echo "Initializing volume backup" >> ${logFilePath};
+				mkdir -p ${quote([path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName)])};
+            	echo "Initializing volume backup" >> ${quote([logFilePath])};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -628,7 +633,7 @@ export const removeDeployment = async (deploymentId: string) => {
 
 		const logPath = path.join(deployment.logPath);
 		if (logPath && logPath !== ".") {
-			const command = `rm -f ${logPath};`;
+			const command = `rm -f ${quote([logPath])};`;
 			if (deployment.serverId) {
 				await execAsyncRemote(deployment.serverId, command);
 			} else {
@@ -671,7 +676,7 @@ const getDeploymentsByType = async (
 		where: eq(deployments[`${type}Id`], id),
 		orderBy: desc(deployments.createdAt),
 		with: {
-			rollback: true,
+			rollback: { columns: { fullContext: false } },
 		},
 	});
 	return deploymentList;
@@ -714,7 +719,7 @@ const removeLastTenDeployments = async (
 					}
 
 					if (logPath && logPath !== ".") {
-						command += `rm -rf ${logPath};`;
+						command += `rm -rf ${quote([logPath])};`;
 					}
 					await removeDeployment(oldDeployment.deploymentId);
 				} catch (err) {
@@ -973,7 +978,37 @@ export const updateDeploymentStatus = async (
 		.where(eq(deployments.deploymentId, deploymentId))
 		.returning();
 
+	if (deploymentStatus === "done" || deploymentStatus === "error") {
+		trackDeploymentResult(deploymentId, deploymentStatus).catch((error) =>
+			console.error("Failed to track deployment result", error),
+		);
+	}
+
 	return application;
+};
+
+export const writeDeploymentErrorLog = async (
+	deployment: Pick<Deployment, "deploymentId" | "logPath">,
+	serverId: string | null | undefined,
+	error: unknown,
+) => {
+	const message = error instanceof Error ? error.message : String(error);
+	let command = "";
+	if (!(error instanceof ExecError)) {
+		command += `echo "${encodeBase64(message)}" | base64 -d >> "${deployment.logPath}";`;
+	}
+
+	command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+	try {
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (logError) {
+		console.error("Failed to write the deployment error log", logError);
+		await updateDeployment(deployment.deploymentId, { errorMessage: message });
+	}
 };
 
 export const createServerDeployment = async (
@@ -1072,3 +1107,56 @@ export const clearOldDeployments = async (
 		await execAsync(command);
 	}
 };
+
+const deploymentOwnerQuery = {
+	columns: { applicationId: true, composeId: true },
+	with: {
+		server: { columns: { organizationId: true } },
+		schedule: {
+			columns: { organizationId: true, applicationId: true, composeId: true },
+			with: { server: { columns: { organizationId: true } } },
+		},
+		previewDeployment: { columns: { applicationId: true } },
+		backup: {
+			columns: {
+				postgresId: true,
+				mysqlId: true,
+				mariadbId: true,
+				mongoId: true,
+				libsqlId: true,
+				composeId: true,
+			},
+			with: { destination: { columns: { organizationId: true } } },
+		},
+		volumeBackup: {
+			columns: {
+				applicationId: true,
+				postgresId: true,
+				mysqlId: true,
+				mariadbId: true,
+				mongoId: true,
+				redisId: true,
+				libsqlId: true,
+				composeId: true,
+			},
+		},
+	},
+} as const;
+
+export const findDeploymentByLogPath = async (logPath: string) => {
+	return db.query.deployments.findFirst({
+		where: (fields, { eq }) => eq(fields.logPath, logPath),
+		...deploymentOwnerQuery,
+	});
+};
+
+export const findDeploymentOwnerById = async (deploymentId: string) => {
+	return db.query.deployments.findFirst({
+		where: (fields, { eq }) => eq(fields.deploymentId, deploymentId),
+		...deploymentOwnerQuery,
+	});
+};
+
+export type DeploymentOwner = NonNullable<
+	Awaited<ReturnType<typeof findDeploymentOwnerById>>
+>;

@@ -30,9 +30,9 @@ import { resolveServiceNetworks } from "./network";
 import type { Port } from "./port";
 import type { Project } from "./project";
 import {
+	dockerLogin,
 	findRegistryByIdWithCredentials,
 	type Registry,
-	safeDockerLoginCommand,
 } from "./registry";
 
 export const createRollback = async (
@@ -186,23 +186,6 @@ export const rollback = async (rollbackId: string) => {
 	);
 };
 
-const dockerLoginForRegistry = async (
-	registry: Registry,
-	serverId?: string | null,
-) => {
-	const loginCommand = safeDockerLoginCommand(
-		registry.registryUrl,
-		registry.username,
-		registry.password,
-	);
-
-	if (serverId) {
-		await execAsyncRemote(serverId, loginCommand);
-	} else {
-		await execAsync(loginCommand);
-	}
-};
-
 const rollbackApplication = async (
 	appName: string,
 	image: string,
@@ -229,7 +212,12 @@ const rollbackApplication = async (
 	// alone is not sufficient — Docker Swarm also relies on the daemon's
 	// cached credentials (~/.docker/config.json) to distribute auth to nodes.
 	if (rollbackRegistry) {
-		await dockerLoginForRegistry(rollbackRegistry, serverId);
+		await dockerLogin(
+			rollbackRegistry.registryUrl,
+			rollbackRegistry.username,
+			rollbackRegistry.password,
+			serverId,
+		);
 	}
 
 	const docker = await getRemoteDocker(serverId);

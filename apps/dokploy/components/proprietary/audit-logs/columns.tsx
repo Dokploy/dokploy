@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import {
 	ArrowUpDown,
+	Download,
 	FileJson,
 	LogIn,
 	LogOut,
@@ -77,6 +78,11 @@ const ACTION_CONFIG: Record<
 		className:
 			"bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
 	},
+	download: {
+		label: "Downloaded",
+		icon: Download,
+		className: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+	},
 };
 
 const RESOURCE_LABELS: Record<string, string> = {
@@ -96,6 +102,7 @@ const RESOURCE_LABELS: Record<string, string> = {
 	settings: "Settings",
 	session: "Session",
 	network: "Network",
+	telemetryProvider: "Logs & Metrics",
 };
 
 function MetadataCell({ metadata }: { metadata: string | null }) {

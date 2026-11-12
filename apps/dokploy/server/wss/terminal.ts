@@ -187,7 +187,10 @@ export const setupTerminalWebSocketServer = (
 			};
 		}
 
+		if (ws.readyState !== ws.OPEN) return;
+
 		const conn = new Client();
+		ws.once("close", () => conn.destroy());
 		let _stdout = "";
 		let _stderr = "";
 
@@ -199,12 +202,18 @@ export const setupTerminalWebSocketServer = (
 				ws.send("\x1bc");
 
 				conn.shell({ cols, rows }, (err, stream) => {
-					if (err) throw err;
+					if (err) {
+						ws.send(`SSH shell error: ${err.message}`);
+						ws.close();
+						conn.end();
+						return;
+					}
 
 					stream
 						.on("close", (code: number, _signal: string) => {
 							ws.send(`\nContainer closed with code: ${code}\n`);
 							conn.end();
+							ws.close();
 						})
 						.on("data", (data: string) => {
 							_stdout += data.toString();
@@ -236,10 +245,6 @@ export const setupTerminalWebSocketServer = (
 							const errorMessage = error?.message as unknown as string;
 							ws.send(errorMessage);
 						}
-					});
-
-					ws.on("close", () => {
-						stream.end();
 					});
 				});
 			})
