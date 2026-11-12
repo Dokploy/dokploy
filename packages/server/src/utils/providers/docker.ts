@@ -1,9 +1,10 @@
 import { safeDockerLoginCommand } from "@dokploy/server/services/registry";
 import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
+import { getAuthConfig } from "../docker/auth-config";
 
 export const buildRemoteDocker = async (application: ApplicationNested) => {
-	const { registryUrl, dockerImage, username, password } = application;
+	const { dockerImage } = application;
 
 	try {
 		if (!dockerImage) {
@@ -13,9 +14,13 @@ export const buildRemoteDocker = async (application: ApplicationNested) => {
 echo ${quote([`Pulling ${dockerImage}`])};
 		`;
 
-		if (username && password) {
+		// deployApplication pulls the image before mechanizeDockerContainer creates
+		// the Swarm service, so the same credentials (app-level, then the matched
+		// configured registry) must be resolved here or private pulls fail.
+		const authConfig = await getAuthConfig(application);
+		if (authConfig) {
 			command += `
-if ! ${safeDockerLoginCommand(registryUrl || "", username, password)} 2>&1; then
+if ! ${safeDockerLoginCommand(authConfig.serveraddress, authConfig.username, authConfig.password)} 2>&1; then
 	echo "❌ Login failed";
 	exit 1;
 fi
