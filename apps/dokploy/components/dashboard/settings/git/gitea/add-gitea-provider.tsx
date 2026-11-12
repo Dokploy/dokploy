@@ -112,22 +112,7 @@ export const AddGiteaProvider = () => {
 				return;
 			}
 
-			// Generate OAuth URL using the shared utility
-			const authUrl = getGiteaOAuthUrl(
-				result.giteaId,
-				data.clientId,
-				data.giteaUrl,
-				baseUrl,
-			);
-
-			// Open the Gitea OAuth URL
-			if (authUrl !== "#") {
-				window.open(authUrl, "_blank");
-			} else {
-				toast.error("Configuration Incomplete", {
-					description: "Please fill in Client ID and Gitea URL first.",
-				});
-			}
+			window.open(getGiteaOAuthUrl(result.giteaId), "_blank");
 
 			toast.success("Gitea provider created successfully");
 			setIsOpen(false);
