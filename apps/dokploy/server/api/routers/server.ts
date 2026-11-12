@@ -32,15 +32,7 @@ import { hasValidLicense } from "@dokploy/server/services/proprietary/license-ke
 import { findSSHKeyById } from "@dokploy/server/services/ssh-key";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import {
-	and,
-	desc,
-	eq,
-	getTableColumns,
-	isNotNull,
-	isNull,
-	sql,
-} from "drizzle-orm";
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import {
@@ -66,7 +58,6 @@ import {
 	postgres,
 	redis,
 	server,
-	sshKeys,
 } from "@/server/db/schema";
 import {
 	canOwnerCreateMoreServers,
@@ -176,19 +167,6 @@ export const serverRouter = createTRPCRouter({
 				keys.privateKey,
 			);
 			return { token, sshKeyId: sshKey.sshKeyId, expiresAt };
-		}),
-	cancelConnectCommand: withPermission("server", "create")
-		.input(z.object({ sshKeyId: z.string().min(1) }))
-		.mutation(async ({ ctx, input }) => {
-			await db
-				.delete(sshKeys)
-				.where(
-					and(
-						eq(sshKeys.sshKeyId, input.sshKeyId),
-						eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
-						isNull(sshKeys.lastUsedAt),
-					),
-				);
 		}),
 	connectStatus: withPermission("server", "create")
 		.input(z.object({ sshKeyId: z.string().min(1) }))

@@ -82,8 +82,6 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 		api.stripe.canCreateMoreServers.useQuery();
 	const { mutateAsync, isPending, error, isError } =
 		api.server.generateConnectCommand.useMutation();
-	const { mutate: cancelCommand } =
-		api.server.cancelConnectCommand.useMutation();
 
 	const form = useForm({
 		defaultValues: {
@@ -191,10 +189,7 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 				<button
 					type="button"
 					className="self-start text-sm text-muted-foreground underline"
-					onClick={() => {
-						cancelCommand({ sshKeyId: pending.sshKeyId });
-						setPending(null);
-					}}
+					onClick={() => setPending(null)}
 				>
 					Start over
 				</button>
