@@ -1,17 +1,49 @@
-import { findGitlabById, updateGitlab } from "@dokploy/server";
+import {
+	canViewGitProviderSecrets,
+	findGitlabById,
+	updateGitlab,
+	validateRequest,
+} from "@dokploy/server";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const { code, gitlabId } = req.query;
+	const { code, gitlabId, state } = req.query;
 
 	if (!code || Array.isArray(code)) {
 		return res.status(400).json({ error: "Missing or invalid code" });
 	}
 
+	const { user, session } = await validateRequest(req);
+	if (!user || !session?.activeOrganizationId) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
 	const gitlab = await findGitlabById(gitlabId as string);
+
+	if (gitlab.gitProvider.organizationId !== session.activeOrganizationId) {
+		return res.status(404).json({ error: "Gitlab provider not found" });
+	}
+	if (
+		!(await canViewGitProviderSecrets(
+			{
+				userId: user.id,
+				activeOrganizationId: session.activeOrganizationId,
+			},
+			gitlab.gitProvider,
+		))
+	) {
+		return res.status(403).json({ error: "Forbidden" });
+	}
+	if (
+		typeof state !== "string" ||
+		state !== req.cookies.gitlab_oauth_state ||
+		!state.startsWith(`${gitlabId}:`)
+	) {
+		return res.status(400).json({ error: "Invalid state" });
+	}
 	// Use internal URL for token exchange when GitLab is on same instance as Dokploy
 	const baseUrl = gitlab.gitlabInternalUrl || gitlab.gitlabUrl;
 	const gitlabUrl = new URL(baseUrl);

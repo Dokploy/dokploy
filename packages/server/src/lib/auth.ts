@@ -68,6 +68,29 @@ const resolveTrustedOrigins = async () => {
 	}
 };
 
+const rewriteToCanonicalOrigin = async (url: string): Promise<string> => {
+	try {
+		const configured = process.env.BETTER_AUTH_URL;
+		let origin: string | null = configured ?? null;
+		if (!origin) {
+			const settings = await getWebServerSettings();
+			origin = settings?.host
+				? `${settings.https ? "https" : "http"}://${settings.host}`
+				: settings?.serverIp
+					? `http://${settings.serverIp}:3000`
+					: null;
+		}
+		if (!origin) return url;
+		const target = new URL(url);
+		const canonical = new URL(origin);
+		target.protocol = canonical.protocol;
+		target.host = canonical.host;
+		return target.toString();
+	} catch {
+		return url;
+	}
+};
+
 const createBetterAuth = () =>
 	betterAuth({
 		database: drizzleAdapter(db, {
@@ -79,6 +102,10 @@ const createBetterAuth = () =>
 			"/organization/create",
 			"/organization/update",
 			"/organization/delete",
+			"/organization/update-member-role",
+			"/organization/invite-member",
+			"/api-key/create",
+			"/api-key/update",
 			// GHSA-j8v8-g9cx-5qf4: SCIM providers are managed via tRPC, org-scoped only.
 			"/scim/generate-token",
 			"/scim/list-provider-connections",
@@ -185,7 +212,7 @@ const createBetterAuth = () =>
 					await sendVerificationEmail({
 						userName: user.name || "User",
 						email: user.email,
-						verificationUrl: url,
+						verificationUrl: await rewriteToCanonicalOrigin(url),
 					});
 				}
 			},
@@ -204,11 +231,12 @@ const createBetterAuth = () =>
 				},
 			},
 			sendResetPassword: async ({ user, url }) => {
+				const safeUrl = await rewriteToCanonicalOrigin(url);
 				await sendEmail({
 					email: user.email,
 					subject: "Reset your password",
 					text: `
-				<p>Click the link to reset your password: <a href="${url}">Reset Password</a></p>
+				<p>Click the link to reset your password: <a href="${safeUrl}">Reset Password</a></p>
 				`,
 				});
 			},
@@ -548,8 +576,6 @@ const createBetterAuth = () =>
 		],
 	});
 
-// Una sola instancia de better-auth por proceso aunque el módulo esté
-// duplicado en varios bundles.
 const globalForAuth = globalThis as unknown as {
 	betterAuthInstance?: ReturnType<typeof createBetterAuth>;
 };
@@ -629,6 +655,13 @@ export const validateRequest = async (request: IncomingMessage) => {
 					organization: true,
 				},
 			});
+
+			if (!member) {
+				return {
+					session: null,
+					user: null,
+				};
+			}
 
 			// When accessing from DB, use actual column names
 			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {

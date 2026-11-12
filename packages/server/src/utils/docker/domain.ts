@@ -58,7 +58,12 @@ export const getComposePath = (compose: Compose) => {
 		path = composePath;
 	}
 
-	return join(COMPOSE_PATH, appName, "code", path);
+	const codePath = join(COMPOSE_PATH, appName, "code");
+	const composePathResolved = join(codePath, path);
+	if (!composePathResolved.startsWith(`${codePath}/`)) {
+		throw new Error("Invalid compose path");
+	}
+	return composePathResolved;
 };
 
 export const loadDockerCompose = async (
@@ -87,7 +92,7 @@ export const loadDockerComposeRemote = async (
 		}
 		const { stdout, stderr } = await execAsyncRemote(
 			compose.serverId,
-			`cat ${path}`,
+			`cat ${quote([path])}`,
 		);
 
 		if (stderr) {
@@ -130,7 +135,7 @@ exit 1;
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
 		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > "${path}";`;
+		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : String(error ?? "");

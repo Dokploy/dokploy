@@ -4,6 +4,13 @@ import {
 	VALID_HOSTNAME_REGEX,
 } from "../../utils/hostname-validation";
 
+const domainPath = z
+	.string()
+	.regex(
+		/^(\/[^`\s$]*)?$/,
+		"Path must start with '/' and cannot contain spaces, backticks or '$'",
+	);
+
 export const domain = z
 	.object({
 		host: z
@@ -16,8 +23,8 @@ export const domain = z
 			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		path: z.string().min(1).optional(),
-		internalPath: z.string().optional(),
+		path: domainPath.min(1).optional(),
+		internalPath: domainPath.optional(),
 		stripPath: z.boolean().optional(),
 		port: z
 			.number()
@@ -82,8 +89,8 @@ export const domainCompose = z
 			.refine((val) => VALID_HOSTNAME_REGEX.test(val), {
 				message: INVALID_HOSTNAME_MESSAGE,
 			}),
-		path: z.string().min(1).optional(),
-		internalPath: z.string().optional(),
+		path: domainPath.min(1).optional(),
+		internalPath: domainPath.optional(),
 		stripPath: z.boolean().optional(),
 		port: z
 			.number()

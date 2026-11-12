@@ -16,11 +16,24 @@ vi.mock("@dokploy/server/services/permission", () => ({
 	checkPermission: vi.fn(async () => undefined),
 }));
 
-vi.mock("@dokploy/server", () => ({
-	IS_CLOUD: false,
-	paths: () => ({ MAIN_TRAEFIK_PATH: traefikPath }),
-	...mocks,
-}));
+vi.mock("@dokploy/server", async () => {
+	const { TRPCError } = await import("@trpc/server");
+	return {
+		IS_CLOUD: false,
+		paths: () => ({ MAIN_TRAEFIK_PATH: traefikPath }),
+		...mocks,
+		assertServerAccess: async (
+			session: { activeOrganizationId: string },
+			serverId?: string | null,
+		) => {
+			if (!serverId) return;
+			const server = await mocks.findServerById(serverId);
+			if (server.organizationId !== session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+		},
+	};
+});
 
 vi.mock("@dokploy/server/lib/auth", () => ({
 	validateRequest: vi.fn(),
