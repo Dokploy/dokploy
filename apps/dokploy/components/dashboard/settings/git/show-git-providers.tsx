@@ -7,9 +7,7 @@ import {
 	Trash2,
 	Users,
 } from "lucide-react";
-import { nanoid } from "nanoid";
 import Link from "next/link";
-import { useState } from "react";
 import { toast } from "sonner";
 import {
 	BitbucketIcon,
@@ -36,7 +34,6 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
-import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { AddGiteaProvider } from "./gitea/add-gitea-provider";
@@ -54,22 +51,8 @@ export const ShowGitProviders = () => {
 		api.gitProvider.toggleShare.useMutation();
 	const { data: currentMember } = api.user.get.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const url = useUrl();
 	const isOrgAdmin =
 		currentMember?.role === "owner" || currentMember?.role === "admin";
-
-	const [gitlabOAuthNonce] = useState(() => nanoid());
-
-	const getGitlabUrl = (
-		clientId: string,
-		gitlabId: string,
-		gitlabUrl: string,
-	) => {
-		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
-		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}&state=${gitlabId}:${gitlabOAuthNonce}`;
-		return authUrl;
-	};
 
 	return (
 		<div className="w-full">
@@ -284,15 +267,8 @@ export const ShowGitProviders = () => {
 																			Action Required
 																		</Badge>
 																		<Link
-																			href={getGitlabUrl(
-																				gitProvider.gitlab?.applicationId || "",
-																				gitProvider.gitlab?.gitlabId || "",
-																				gitProvider.gitlab?.gitlabUrl || "",
-																			)}
+																			href={`/api/providers/gitlab/authorize?gitlabId=${gitProvider.gitlab?.gitlabId}`}
 																			target="_blank"
-																			onClick={() => {
-																				document.cookie = `gitlab_oauth_state=${gitProvider.gitlab?.gitlabId}:${gitlabOAuthNonce}; path=/; max-age=600; samesite=lax`;
-																			}}
 																			className={buttonVariants({
 																				size: "icon",
 																				variant: "ghost",
