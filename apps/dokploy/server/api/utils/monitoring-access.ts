@@ -3,7 +3,10 @@ import {
 	hasPermission,
 } from "@dokploy/server/services/permission";
 import { TRPCError } from "@trpc/server";
-import { findServiceAppName } from "@/server/wss/container-ownership";
+import {
+	containerBelongsToService,
+	findServiceAppName,
+} from "@/server/wss/container-ownership";
 
 type Ctx = Parameters<typeof checkServiceAccess>[0];
 
@@ -17,7 +20,12 @@ export const assertMonitoringAccess = async (
 	if (serviceId) {
 		await checkServiceAccess(ctx, serviceId, "read");
 		const serviceAppName = await findServiceAppName(serviceId);
-		if (serviceAppName && appName.startsWith(serviceAppName)) return;
+		if (
+			appName === serviceAppName ||
+			(await containerBelongsToService(serviceId, appName))
+		) {
+			return;
+		}
 	}
 
 	throw new TRPCError({
