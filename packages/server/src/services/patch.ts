@@ -1,4 +1,4 @@
-import { dirname, join, resolve, sep } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreatePatch, patch } from "@dokploy/server/db/schema";
@@ -170,17 +170,15 @@ export const generateApplyPatchesCommand = async ({
 
 		if (p.type === "delete") {
 			command += `
-			if [ -d ${quote([dirname(filePath)])} ]; then
-				${getSymlinkEscapeGuard(codePath, filePath)}
-				rm -f ${quotedPath};
-			fi;
+			${getSymlinkEscapeGuard(codePath, filePath)}
+			rm -f ${quotedPath};
 			`;
 		} else {
 			command += `
 file=${quotedPath}
 dir="$(dirname "$file")"
-mkdir -p "$dir"
 ${getSymlinkEscapeGuard(codePath, filePath)}
+mkdir -p "$dir"
 echo "${encodeBase64(p.content)}" | base64 -d > "$file"
 `;
 		}
