@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
+import { parseTriggerTagPatterns } from "@/utils/parse-trigger-tag-patterns";
 
 const GithubProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -161,14 +162,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
 			triggerType: data.triggerType,
-			triggerTags: [
-				...new Set(
-					data.triggerTags
-						.split(",")
-						.map((tag) => tag.trim())
-						.filter(Boolean),
-				),
-			],
+			triggerTags: parseTriggerTagPatterns(data.triggerTags),
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -481,11 +475,12 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 											<Input {...field} placeholder="all-*, go-*" />
 										</FormControl>
 										<p className="text-sm text-muted-foreground">
-											Separate names or patterns with commas. Use * to match any
-											characters. Matching is case-sensitive; leave empty to
-											deploy on any tag. Example: all-*, go-* matches go-1, go-2
-											or all-1. Use a new tag name for each release. Add all-*
-											to each service to deploy them together.
+											Separate patterns with commas, e.g. go-*, node-*. Commas
+											inside braces stay in one pattern: {"{go,node}-*"}. Use *
+											to match any characters. Matching is case-sensitive; leave
+											empty to deploy on any tag. Example: all-*, go-* matches
+											go-1, go-2 or all-1. Use a new tag name for each release.
+											Add all-* to each service to deploy them together.
 										</p>
 										<FormMessage />
 									</FormItem>

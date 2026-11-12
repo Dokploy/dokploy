@@ -95,6 +95,7 @@ vi.mock("@/server/utils/deploy", () => ({
 }));
 
 import handler from "@/pages/api/deploy/github";
+import { parseTriggerTagPatterns } from "@/utils/parse-trigger-tag-patterns";
 
 const getConditionValue = (
 	where: { conditions?: Array<{ field: string; value: unknown }> } | undefined,
@@ -317,6 +318,34 @@ describe("GitHub app webhook auto-deploy", () => {
 					(call) => call[1].applicationId || call[1].composeId,
 				),
 			).toEqual(expected);
+		},
+	);
+
+	it.each([
+		["{go,node}-*", "go-1", true],
+		["{go,node}-*", "node-2", true],
+		["{go,node}-*", "web-1", false],
+		["go-*, node-*", "go-1", true],
+		["go-*, node-*", "node-2", true],
+		["go-*, node-*", "web-1", false],
+	])(
+		"routes tag %s / %s from parsed settings for Application and Compose",
+		async (input, tag, matches) => {
+			const triggerTags = parseTriggerTagPatterns(input);
+			mocks.applicationsFindMany.mockResolvedValue([
+				{ applicationId: "filtered-app", triggerTags },
+			]);
+			mocks.composeFindMany.mockResolvedValue([
+				{ composeId: "filtered-compose", triggerTags },
+			]);
+
+			await handler(createTagRequest(tag), createResponse());
+
+			expect(
+				mocks.queueAdd.mock.calls.map(
+					(call) => call[1].applicationId || call[1].composeId,
+				),
+			).toEqual(matches ? ["filtered-app", "filtered-compose"] : []);
 		},
 	);
 
