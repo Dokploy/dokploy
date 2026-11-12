@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@dokploy/server", () => ({
 	assertCanUseBindMount: vi.fn(async () => {}),
+	assertCanUseVolumeMount: vi.fn(async () => {}),
 	getServiceOrganizationId: vi.fn(),
 	createMount: vi.fn(),
 	deleteMount: vi.fn(),

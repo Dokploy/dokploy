@@ -1,5 +1,6 @@
 import {
 	assertCanUseBindMount,
+	assertCanUseVolumeMount,
 	createMount,
 	deleteMount,
 	findApplicationById,
@@ -34,6 +35,12 @@ export const mountRouter = createTRPCRouter({
 				volume: ["create"],
 			});
 			await assertCanUseBindMount(ctx, input.type, input.hostPath);
+			await assertCanUseVolumeMount(ctx, {
+				serviceId: input.serviceId,
+				serviceType: input.serviceType ?? "application",
+				type: input.type,
+				volumeName: input.volumeName,
+			});
 			const mount = await createMount(input);
 			await audit(ctx, {
 				action: "create",
@@ -132,6 +139,14 @@ export const mountRouter = createTRPCRouter({
 				input.type ?? mount.type,
 				input.hostPath ?? mount.hostPath,
 			);
+			if (serviceId) {
+				await assertCanUseVolumeMount(ctx, {
+					serviceId,
+					serviceType: mount.serviceType,
+					type: input.type ?? mount.type,
+					volumeName: input.volumeName ?? mount.volumeName,
+				});
+			}
 			const { expectedContent, ...mountData } = input;
 			if (mount.type === "file" && expectedContent !== undefined) {
 				const currentContent = await readFileMountContent(input.mountId);

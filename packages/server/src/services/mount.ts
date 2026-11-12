@@ -16,8 +16,9 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
-import { eq, type SQL, sql } from "drizzle-orm";
+import { and, eq, type SQL, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import { findApplicationById } from "./application";
@@ -467,6 +468,62 @@ export const assertCanUseBindMount = async (
 			code: "FORBIDDEN",
 			message:
 				"This host path is not allowed for bind mounts. Ask an owner or admin to add it.",
+		});
+	}
+};
+
+const SERVICE_FINDERS = {
+	application: findApplicationById,
+	compose: findComposeById,
+	postgres: findPostgresById,
+	mysql: findMySqlById,
+	mariadb: findMariadbById,
+	mongo: findMongoById,
+	redis: findRedisById,
+	libsql: findLibsqlById,
+};
+
+// Attaching a volume that already exists gives the service everything stored in it.
+export const assertCanUseVolumeMount = async (
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+	input: {
+		serviceId: string;
+		serviceType: ServiceType;
+		type?: string | null;
+		volumeName?: string | null;
+	},
+) => {
+	const { serviceId, serviceType, type, volumeName } = input;
+	if (type !== "volume" || !volumeName) return;
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role === "owner" || member.role === "admin") return;
+
+	const attached = await db.query.mounts.findFirst({
+		where: and(
+			eq(mounts[`${serviceType}Id`], serviceId),
+			eq(mounts.type, "volume"),
+			eq(mounts.volumeName, volumeName),
+		),
+	});
+	if (attached) return;
+
+	const service = await SERVICE_FINDERS[serviceType](serviceId);
+	const docker = await getRemoteDocker(service.serverId);
+	const exists = await docker
+		.getVolume(volumeName)
+		.inspect()
+		.then(
+			() => true,
+			(error) => error?.statusCode !== 404,
+		);
+	if (exists) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"This volume already exists and is not attached to this service. Ask an owner or admin to attach it.",
 		});
 	}
 };
