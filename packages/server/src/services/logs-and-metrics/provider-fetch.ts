@@ -106,3 +106,16 @@ export const providerFetch = async (url: string, init: RequestInit = {}) => {
 		throw error;
 	}
 };
+
+// Same guard without the fixed timeout, so long generations keep the caller's own signal.
+export const guardedFetch: typeof fetch = (input, init) => {
+	assertNotBlockedEndpoint(
+		input instanceof Request ? input.url : String(input),
+	);
+	return fetch(input, {
+		...init,
+		redirect: "error",
+		// @ts-expect-error Node's fetch accepts an undici dispatcher, but lib.dom's RequestInit doesn't declare it.
+		dispatcher: guardedAgent,
+	});
+};
