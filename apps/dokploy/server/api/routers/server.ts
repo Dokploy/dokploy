@@ -7,6 +7,7 @@ import {
 	findServersByUserId,
 	findUserById,
 	getAccessibleServerIds,
+	getMetricsOrigin,
 	getPostHogSessionId,
 	getPublicIpWithFallback,
 	getServicesByServerId,
@@ -641,9 +642,10 @@ export const serverRouter = createTRPCRouter({
 				dataPoints: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
-				const url = new URL(input.url);
+				const origin = await getMetricsOrigin(ctx.session, input.url);
+				const url = new URL(`${origin}/metrics`);
 				url.searchParams.append("limit", input.dataPoints);
 				const response = await providerFetch(url.toString(), {
 					headers: {

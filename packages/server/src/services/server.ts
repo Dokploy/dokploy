@@ -7,6 +7,7 @@ import {
 	server,
 } from "@dokploy/server/db/schema";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { z } from "zod";
@@ -323,4 +324,44 @@ export const assertServerAccess = async (
 	if (!accessible.has(serverId)) {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
+};
+
+const toOrigin = (ip?: string | null, port?: number) => {
+	try {
+		return new URL(`http://${ip}:${port}`).origin;
+	} catch {
+		return null;
+	}
+};
+
+export const getMetricsOrigin = async (
+	session: { userId: string; activeOrganizationId: string },
+	url: string,
+) => {
+	const accessible = await getAccessibleServerIds(session);
+	const servers = await db.query.server.findMany({
+		where: eq(server.organizationId, session.activeOrganizationId),
+	});
+	const allowed = servers
+		.filter((s) => accessible.has(s.serverId))
+		.map((s) => toOrigin(s.ipAddress, s.metricsConfig?.server?.port));
+
+	if (!IS_CLOUD) {
+		const settings = await getWebServerSettings();
+		allowed.push(
+			toOrigin(settings?.serverIp, settings?.metricsConfig?.server?.port),
+		);
+	}
+	if (process.env.NODE_ENV !== "production") {
+		allowed.push("http://localhost:3001");
+	}
+
+	const origin = URL.canParse(url) ? new URL(url).origin : null;
+	if (!origin || !allowed.includes(origin)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "This URL is not a monitoring endpoint of your servers",
+		});
+	}
+	return origin;
 };

@@ -10,6 +10,7 @@ import {
 	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
+	getMetricsOrigin,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
@@ -671,7 +672,7 @@ export const userRouter = createTRPCRouter({
 				dataPoints: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				if (!input.appName) {
 					throw new Error(
@@ -682,7 +683,8 @@ export const userRouter = createTRPCRouter({
 						].join("\n"),
 					);
 				}
-				const url = new URL(`${input.url}/metrics/containers`);
+				const origin = await getMetricsOrigin(ctx.session, input.url);
+				const url = new URL(`${origin}/metrics/containers`);
 				url.searchParams.append("limit", input.dataPoints);
 				url.searchParams.append("appName", input.appName);
 				const response = await providerFetch(url.toString(), {
