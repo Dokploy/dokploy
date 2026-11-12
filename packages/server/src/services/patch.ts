@@ -1,4 +1,4 @@
-import { join, resolve, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreatePatch, patch } from "@dokploy/server/db/schema";
@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { encodeBase64 } from "../utils/docker/utils";
+import { encodeBase64, getSymlinkEscapeGuard } from "../utils/docker/utils";
 import { findApplicationById } from "./application";
 import { findComposeById } from "./compose";
 
@@ -170,13 +170,17 @@ export const generateApplyPatchesCommand = async ({
 
 		if (p.type === "delete") {
 			command += `
-			rm -f ${quotedPath};
+			if [ -d ${quote([dirname(filePath)])} ]; then
+				${getSymlinkEscapeGuard(codePath, filePath)}
+				rm -f ${quotedPath};
+			fi;
 			`;
 		} else {
 			command += `
 file=${quotedPath}
 dir="$(dirname "$file")"
 mkdir -p "$dir"
+${getSymlinkEscapeGuard(codePath, filePath)}
 echo "${encodeBase64(p.content)}" | base64 -d > "$file"
 `;
 		}

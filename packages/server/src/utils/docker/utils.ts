@@ -795,6 +795,25 @@ const resolveMountFilePath = (outputPath: string, filePath: string) => {
 	return path.join(outputPath, filePath);
 };
 
+// The lexical path check can't see symlinks planted inside the directory by a container or a repository.
+export const assertNoSymlinkEscape = (basePath: string, fullPath: string) => {
+	const realBase = fs.realpathSync(basePath);
+	const realDirectory = fs.realpathSync(path.dirname(fullPath));
+	if (
+		!`${realDirectory}${path.sep}`.startsWith(`${realBase}${path.sep}`) ||
+		fs.lstatSync(fullPath, { throwIfNoEntry: false })?.isSymbolicLink()
+	) {
+		throw new Error(`Path escapes its base directory: ${fullPath}`);
+	}
+};
+
+export const getSymlinkEscapeGuard = (basePath: string, fullPath: string) => `
+	real_dir="$(cd ${quote([path.dirname(fullPath)])} && pwd -P)";
+	real_base="$(cd ${quote([basePath])} && pwd -P)";
+	case "$real_dir/" in "$real_base/"*) ;; *) echo "Path escapes its base directory" >&2; exit 1;; esac;
+	if [ -L ${quote([fullPath])} ]; then echo "Path escapes its base directory" >&2; exit 1; fi;
+`;
+
 export const createFile = async (
 	outputPath: string,
 	filePath: string,
@@ -809,6 +828,7 @@ export const createFile = async (
 
 		const directory = path.dirname(fullPath);
 		fs.mkdirSync(directory, { recursive: true });
+		assertNoSymlinkEscape(outputPath, fullPath);
 		// Docker creates missing bind sources as empty directories if the stack was deployed before the mount existed
 		if (fs.statSync(fullPath, { throwIfNoEntry: false })?.isDirectory()) {
 			fs.rmdirSync(fullPath);
@@ -835,6 +855,7 @@ export const getCreateFileCommand = (
 	const encodedContent = encodeBase64(content);
 	return `
 		mkdir -p ${quote([directory])};
+		${getSymlinkEscapeGuard(outputPath, fullPath)}
 		if [ -d ${quote([fullPath])} ]; then rmdir ${quote([fullPath])}; fi;
 		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
 	`;

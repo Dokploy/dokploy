@@ -7,8 +7,10 @@ import {
 	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
+	assertNoSymlinkEscape,
 	createFile,
 	getCreateFileCommand,
+	getSymlinkEscapeGuard,
 	isValidMountFilePath,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
@@ -330,9 +332,10 @@ export const deleteFileMount = async (mountId: string) => {
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${quote([fullPath])}`;
+			const command = `${getSymlinkEscapeGuard(basePath, fullPath)} rm -rf ${quote([fullPath])}`;
 			await execAsyncRemote(serverId, command);
 		} else {
+			assertNoSymlinkEscape(basePath, fullPath);
 			await removeFileOrDirectory(fullPath);
 		}
 	} catch {}
