@@ -247,7 +247,7 @@ export const findPreviewDeploymentsByPullRequestIdForGithub = async (
 ) => {
 	const rows = await db.query.previewDeployments.findMany({
 		where: eq(previewDeployments.pullRequestId, pullRequestId),
-		with: { application: true },
+		with: { application: { columns: { githubId: true } } },
 	});
 	return rows.filter((row) => row.application?.githubId === githubId);
 };

@@ -161,6 +161,13 @@ export const apiCreateServer = createSchema
 		enableDockerCleanup: z.boolean().default(true),
 	});
 
+export const apiGenerateConnectCommand = z.object({
+	name: z.string().trim().min(1).max(100),
+	description: z.string().max(200).optional(),
+	serverType: z.enum(["deploy", "build"]).default("deploy"),
+	enableDockerCleanup: z.boolean().default(true),
+});
+
 export const apiFindOneServer = z.object({
 	serverId: z.string().min(1),
 });

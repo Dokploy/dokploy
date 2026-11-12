@@ -1,6 +1,5 @@
 import {
 	captureEvent,
-	findServersByUserId,
 	findUserById,
 	getPostHogSessionId,
 	IS_CLOUD,
@@ -16,6 +15,7 @@ import {
 	TRIAL_DURATION_DAYS,
 	TRIAL_SERVER_LIMITS,
 } from "@/server/utils/billing";
+import { canOwnerCreateMoreServers } from "@/server/utils/connect-server";
 import {
 	type BillingTier,
 	getStripeItems,
@@ -411,16 +411,7 @@ export const stripeRouter = createTRPCRouter({
 		}),
 
 	canCreateMoreServers: withPermission("server", "create").query(
-		async ({ ctx }) => {
-			const user = await findUserById(ctx.user.ownerId);
-			const servers = await findServersByUserId(user.id);
-
-			if (!IS_CLOUD) {
-				return true;
-			}
-
-			return servers.length < user.serversQuantity;
-		},
+		async ({ ctx }) => canOwnerCreateMoreServers(ctx.user.ownerId),
 	),
 
 	updateInvoiceNotifications: adminProcedure

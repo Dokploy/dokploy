@@ -10,6 +10,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, desc, eq, gt, sql } from "drizzle-orm";
+import { IS_CLOUD } from "../constants";
 import { auth } from "../lib/auth";
 
 export type User = typeof user.$inferSelect;
@@ -542,6 +543,25 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 	return userResult;
 };
 
+export const CLOUD_API_KEY_RATE_LIMIT = {
+	timeWindow: 60 * 1000,
+	max: 300,
+};
+
+const resolveApiKeyRateLimit = (input: {
+	rateLimitEnabled?: boolean;
+	rateLimitTimeWindow?: number;
+	rateLimitMax?: number;
+}) => {
+	if (!IS_CLOUD) return input;
+
+	return {
+		rateLimitEnabled: true,
+		rateLimitTimeWindow: CLOUD_API_KEY_RATE_LIMIT.timeWindow,
+		rateLimitMax: CLOUD_API_KEY_RATE_LIMIT.max,
+	};
+};
+
 export const createApiKey = async (
 	userId: string,
 	input: {
@@ -559,14 +579,15 @@ export const createApiKey = async (
 		refillInterval?: number;
 	},
 ) => {
+	const rateLimit = resolveApiKeyRateLimit(input);
 	const result = await auth.createApiKey({
 		body: {
 			name: input.name,
 			expiresIn: input.expiresIn,
 			prefix: input.prefix,
-			rateLimitEnabled: input.rateLimitEnabled,
-			rateLimitTimeWindow: input.rateLimitTimeWindow,
-			rateLimitMax: input.rateLimitMax,
+			rateLimitEnabled: rateLimit.rateLimitEnabled,
+			rateLimitTimeWindow: rateLimit.rateLimitTimeWindow,
+			rateLimitMax: rateLimit.rateLimitMax,
 			remaining: input.remaining,
 			refillAmount: input.refillAmount,
 			refillInterval: input.refillInterval,

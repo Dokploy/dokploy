@@ -13,7 +13,7 @@ import {
 } from "better-auth/api";
 import { admin, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
+import { getRootAdminIds, IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import {
@@ -106,7 +106,6 @@ const createBetterAuth = () =>
 			"/organization/invite-member",
 			"/api-key/create",
 			"/api-key/update",
-			// GHSA-j8v8-g9cx-5qf4: SCIM providers are managed via tRPC, org-scoped only.
 			"/scim/generate-token",
 			"/scim/list-provider-connections",
 			"/scim/get-provider-connection",
@@ -167,6 +166,22 @@ const createBetterAuth = () =>
 					throw new APIError("FORBIDDEN", {
 						message: "Use the account deletion flow to remove users",
 					});
+				}
+
+				if (ctx.path === "/admin/impersonate-user") {
+					const targetUserId = (ctx.body as { userId?: string } | undefined)
+						?.userId;
+					const target = targetUserId
+						? await db.query.user.findFirst({
+								where: eq(schema.user.id, targetUserId),
+								columns: { allowImpersonation: true },
+							})
+						: undefined;
+					if (!target?.allowImpersonation) {
+						throw new APIError("FORBIDDEN", {
+							message: "This user has not allowed impersonation",
+						});
+					}
 				}
 
 				if (ctx.path === "/two-factor/enable") {
@@ -565,12 +580,12 @@ const createBetterAuth = () =>
 					maximumRolesPerOrganization: 10,
 				},
 			}),
-			// Self-hosted needs the admin plugin too: SCIM deactivation (active: false)
-			// maps to the admin plugin's `banned` field and is rejected without it.
-			// adminRoles: [] keeps every /admin/* endpoint locked on self-hosted.
 			admin(
 				IS_CLOUD
-					? { adminUserIds: [process.env.USER_ADMIN_ID as string] }
+					? {
+							adminUserIds: getRootAdminIds(),
+							roles: {},
+						}
 					: { adminRoles: [] },
 			),
 		],
@@ -599,7 +614,23 @@ const _auth = {
 export type AuthType = typeof _auth;
 export const auth: AuthType = _auth;
 
-export const validateRequest = async (request: IncomingMessage) => {
+// The OpenAPI handler and the tRPC context both validate the same request;
+// without this an API key's usage counters would be consumed twice per call.
+const validatedRequests = new WeakMap<
+	IncomingMessage,
+	ReturnType<typeof resolveRequest>
+>();
+
+export const validateRequest = (request: IncomingMessage) => {
+	let result = validatedRequests.get(request);
+	if (!result) {
+		result = resolveRequest(request);
+		validatedRequests.set(request, result);
+	}
+	return result;
+};
+
+const resolveRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
 	if (apiKey) {
 		try {
@@ -608,6 +639,18 @@ export const validateRequest = async (request: IncomingMessage) => {
 					key: apiKey,
 				},
 			});
+
+			if (error?.code === "RATE_LIMITED" || error?.code === "USAGE_EXCEEDED") {
+				const tryAgainIn = (error as { details?: { tryAgainIn?: number } })
+					.details?.tryAgainIn;
+				return {
+					session: null,
+					user: null,
+					rateLimited: {
+						retryAfterSeconds: tryAgainIn ? Math.ceil(tryAgainIn / 1000) : null,
+					},
+				};
+			}
 
 			if (error) {
 				throw new Error(error.message?.toString() || "Error verifying API key");

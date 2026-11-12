@@ -1,11 +1,12 @@
 import {
-	captureEvent,
-	createServer,
+	CONNECT_TOKEN_TTL_SECONDS,
+	createConnectToken,
+	createSshKey,
 	defaultCommand,
 	deleteServer,
 	findServerById,
-	findServersByUserId,
 	findUserById,
+	generateSSHKey,
 	getAccessibleServerIds,
 	getMetricsOrigin,
 	getPostHogSessionId,
@@ -44,6 +45,7 @@ import { audit } from "@/server/api/utils/audit";
 import {
 	apiCreateServer,
 	apiFindOneServer,
+	apiGenerateConnectCommand,
 	apiRemoveServer,
 	apiUpdateServer,
 	apiUpdateServerBuildsConcurrency,
@@ -58,6 +60,10 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
+import {
+	canOwnerCreateMoreServers,
+	createServerWithSideEffects,
+} from "@/server/utils/connect-server";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 
 // Users without server.read only get what the server pickers render
@@ -95,9 +101,7 @@ export const serverRouter = createTRPCRouter({
 		.input(apiCreateServer)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				const user = await findUserById(ctx.user.ownerId);
-				const servers = await findServersByUserId(user.id);
-				if (IS_CLOUD && servers.length >= user.serversQuantity) {
+				if (!(await canOwnerCreateMoreServers(ctx.user.ownerId))) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "You cannot create more servers",
@@ -107,31 +111,12 @@ export const serverRouter = createTRPCRouter({
 					input.sshKeyId,
 					ctx.session.activeOrganizationId,
 				);
-				const project = await createServer(
+				const project = await createServerWithSideEffects({
 					input,
-					ctx.session.activeOrganizationId,
-				);
-				try {
-					await applyDockerCleanupSchedule(
-						project.serverId,
-						ctx.session.activeOrganizationId,
-						input.enableDockerCleanup,
-					);
-				} catch (error) {
-					console.error("Failed to schedule docker cleanup:", error);
-				}
-				await audit(ctx, {
-					action: "create",
-					resourceType: "server",
-					resourceId: project.serverId,
-					resourceName: project.name,
-				});
-				void captureEvent({
-					distinctId: user.id,
-					event: "server_created",
 					organizationId: ctx.session.activeOrganizationId,
+					actor: ctx.user,
+					ownerId: ctx.user.ownerId,
 					sessionId: getPostHogSessionId(ctx.req.headers),
-					properties: { server_type: project.serverType },
 				});
 				return project;
 			} catch (error) {
@@ -144,6 +129,58 @@ export const serverRouter = createTRPCRouter({
 					cause: error,
 				});
 			}
+		}),
+
+	generateConnectCommand: withPermission("server", "create")
+		.input(apiGenerateConnectCommand)
+		.mutation(async ({ ctx, input }) => {
+			if (!(await canOwnerCreateMoreServers(ctx.user.ownerId))) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "You cannot create more servers",
+				});
+			}
+			const organizationId = ctx.session.activeOrganizationId;
+			const keys = await generateSSHKey("ed25519");
+			const sshKey = await createSshKey({
+				name: input.name,
+				description: input.description,
+				privateKey: keys.privateKey,
+				publicKey: keys.publicKey,
+				organizationId,
+			});
+			await audit(ctx, {
+				action: "create",
+				resourceType: "sshKey",
+				resourceId: sshKey.sshKeyId,
+				resourceName: sshKey.name,
+			});
+			const expiresAt =
+				Math.floor(Date.now() / 1000) + CONNECT_TOKEN_TTL_SECONDS;
+			const token = createConnectToken(
+				{
+					sshKeyId: sshKey.sshKeyId,
+					userId: ctx.user.id,
+					expiresAt,
+					serverType: input.serverType,
+					enableDockerCleanup: input.enableDockerCleanup,
+				},
+				keys.privateKey,
+			);
+			return { token, sshKeyId: sshKey.sshKeyId, expiresAt };
+		}),
+	connectStatus: withPermission("server", "create")
+		.input(z.object({ sshKeyId: z.string().min(1) }))
+		.query(async ({ ctx, input }) => {
+			await assertSshKeyInOrganization(
+				input.sshKeyId,
+				ctx.session.activeOrganizationId,
+			);
+			const connected = await db.query.server.findFirst({
+				where: eq(server.sshKeyId, input.sshKeyId),
+				columns: { serverId: true, name: true, ipAddress: true },
+			});
+			return connected ?? null;
 		}),
 
 	one: withPermission("server", "read")
@@ -355,9 +392,14 @@ export const serverRouter = createTRPCRouter({
 					});
 				}
 				return observable<string>((emit) => {
+					// The setup keeps running after the client leaves; emitting then throws.
+					let closed = false;
 					serverSetup(input.serverId, (log) => {
-						emit.next(log);
+						if (!closed) emit.next(log);
 					});
+					return () => {
+						closed = true;
+					};
 				});
 			} catch (error) {
 				throw error;
