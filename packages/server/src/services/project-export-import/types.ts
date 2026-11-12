@@ -1,4 +1,5 @@
 import { serviceType } from "@dokploy/server/db/schema";
+import { APP_NAME_REGEX } from "@dokploy/server/db/schema/utils";
 import { z } from "zod";
 
 export const BUNDLE_FORMAT = "dokploy-project-export" as const;
@@ -25,7 +26,13 @@ export const bundlePayloadSchema = z.object({
 			.object({
 				kind: serviceTypeSchema,
 				environmentId: z.string(),
-				appName: z.string(),
+				// App names become directory names on the server, so "." and ".." would escape them.
+				appName: z
+					.string()
+					.min(1)
+					.max(63)
+					.regex(APP_NAME_REGEX)
+					.refine((name) => name !== "." && name !== ".."),
 				name: z.string(),
 			})
 			.catchall(z.unknown()),

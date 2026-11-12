@@ -36,6 +36,7 @@ import {
 import {
 	BundleCryptoError,
 	BundleFormatError,
+	encryptPayload,
 	exportProject,
 	importBundle,
 	readBundle,
@@ -271,6 +272,26 @@ describe("bundle encryption", () => {
 			/newer version/,
 		);
 	});
+
+	it.each(["unused/../victim", "..", "."])(
+		"rejects a bundle with the app name %j",
+		async (appName) => {
+			const { content } = await exportProject(exportDb(), {
+				projectId: "p1",
+				passphrase: PASSPHRASE,
+			});
+			const envelope = JSON.parse(content);
+			const { payload } = await readBundle(content, PASSPHRASE);
+			payload.services[0]!.appName = appName;
+			const forged = {
+				...envelope,
+				...(await encryptPayload(JSON.stringify(payload), PASSPHRASE)),
+			};
+			await expect(
+				readBundle(JSON.stringify(forged), PASSPHRASE),
+			).rejects.toBeInstanceOf(BundleFormatError);
+		},
+	);
 });
 
 describe("exportProject", () => {
