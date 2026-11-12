@@ -23,7 +23,7 @@ Dokploy includes multiple features to make your life easier.
 - **Backups**: Automate backups for databases to an external storage destination.
 - **Docker Compose**: Native support for Docker Compose to manage complex applications.
 - **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
-- **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click.
+- **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click +600 Templates.
 - **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
 - **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage for every resource.
 - **Logs & Metrics**: Ship container logs and host/container metrics to Grafana (Loki, Prometheus/Mimir), Datadog, New Relic, InfluxDB, VictoriaMetrics, Better Stack, Elasticsearch/OpenSearch, Splunk, or AWS CloudWatch, tagged by project/environment/application.

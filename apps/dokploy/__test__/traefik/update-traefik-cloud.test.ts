@@ -9,10 +9,25 @@ const mocks = vi.hoisted(() => ({
 	writeTraefikSetup: vi.fn(),
 }));
 
-vi.mock("@dokploy/server", () => ({
-	IS_CLOUD: true,
-	...mocks,
-}));
+vi.mock("@dokploy/server", async () => {
+	const { TRPCError } = await import("@trpc/server");
+	return {
+		IS_CLOUD: true,
+		...mocks,
+		assertServerAccess: async (
+			session: { activeOrganizationId: string },
+			serverId?: string | null,
+		) => {
+			if (!serverId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+			const server = await mocks.findServerById(serverId);
+			if (server.organizationId !== session.activeOrganizationId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+		},
+	};
+});
 
 vi.mock("@dokploy/server/lib/auth", () => ({
 	validateRequest: vi.fn(),

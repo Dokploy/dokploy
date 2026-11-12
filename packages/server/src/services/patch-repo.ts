@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
@@ -77,6 +77,25 @@ interface DirectoryEntry {
 	type: "file" | "directory";
 	children?: DirectoryEntry[];
 }
+
+export const getPatchRepoPath = async (
+	id: string,
+	type: "application" | "compose",
+): Promise<{ repoPath: string; serverId: string | null }> => {
+	let serverId: string | null = null;
+	let appName: string;
+	if (type === "application") {
+		const application = await findApplicationById(id);
+		serverId = application.buildServerId || application.serverId;
+		appName = application.appName;
+	} else {
+		const compose = await findComposeById(id);
+		serverId = compose.serverId;
+		appName = compose.appName;
+	}
+	const { PATCH_REPOS_PATH } = paths(!!serverId);
+	return { repoPath: join(PATCH_REPOS_PATH, type, appName), serverId };
+};
 
 /**
  * Read directory tree of the patch repo
@@ -169,7 +188,20 @@ export const readPatchRepoFile = async (
 	const repoPath = join(PATCH_REPOS_PATH, type, application.appName);
 	const fullPath = join(repoPath, filePath);
 
-	const command = `cat ${quote([fullPath])}`;
+	const resolvedRepo = resolve(repoPath);
+	const resolvedFull = resolve(fullPath);
+	if (
+		resolvedFull !== resolvedRepo &&
+		!resolvedFull.startsWith(resolvedRepo + sep)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid file path",
+		});
+	}
+
+	// Read from the git tree so symlinks in the repo can't point at host files.
+	const command = `git -C ${quote([repoPath])} cat-file --filters ${quote([`HEAD:${relative(resolvedRepo, resolvedFull)}`])}`;
 
 	if (serverId) {
 		const result = await execAsyncRemote(serverId, command);

@@ -51,10 +51,16 @@ vi.mock("ssh2", () => ({
 
 const mockValidateRequest = vi.hoisted(() => vi.fn());
 const mockFindServerById = vi.hoisted(() => vi.fn());
+const mockFindDeploymentByLogPath = vi.hoisted(() => vi.fn());
+const mockCheckServiceAccess = vi.hoisted(() => vi.fn());
 vi.mock("@dokploy/server", () => ({
 	IS_CLOUD: false,
 	validateRequest: mockValidateRequest,
 	findServerById: mockFindServerById,
+	findDeploymentByLogPath: mockFindDeploymentByLogPath,
+}));
+vi.mock("@dokploy/server/services/permission", () => ({
+	checkServicePermissionAndAccess: mockCheckServiceAccess,
 }));
 vi.mock("@dokploy/server/wss/utils", () => ({
 	readValidDirectory: () => true,
@@ -85,6 +91,10 @@ beforeEach(async () => {
 	sshClients.length = 0;
 	nextChild.ignoreSigterm = false;
 	vi.clearAllMocks();
+	// Authorized-by-default: the requested logPath maps to a deployment of an
+	// accessible service. Individual tests override as needed.
+	mockFindDeploymentByLogPath.mockResolvedValue({ applicationId: "app-1" });
+	mockCheckServiceAccess.mockResolvedValue(undefined);
 	server = http.createServer();
 	setupDeploymentLogsWebSocketServer(server);
 	await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));

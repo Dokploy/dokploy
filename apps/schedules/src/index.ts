@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
@@ -15,8 +16,26 @@ import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
 
 const app = new Hono();
 
-cleanQueue();
-initializeJobs();
+if (!process.env.API_KEY) {
+	console.error(
+		"API_KEY is not set; all authenticated routes will be rejected",
+	);
+}
+
+const isValidApiKey = (header: string | undefined): boolean => {
+	const apiKey = process.env.API_KEY;
+	if (!apiKey || !header) {
+		return false;
+	}
+
+	const headerBuffer = Buffer.from(header);
+	const apiKeyBuffer = Buffer.from(apiKey);
+	if (headerBuffer.length !== apiKeyBuffer.length) {
+		return false;
+	}
+
+	return timingSafeEqual(headerBuffer, apiKeyBuffer);
+};
 
 app.use(async (c, next) => {
 	if (c.req.path === "/health") {
@@ -24,7 +43,7 @@ app.use(async (c, next) => {
 	}
 	const authHeader = c.req.header("X-API-Key");
 
-	if (process.env.API_KEY !== authHeader) {
+	if (!isValidApiKey(authHeader)) {
 		return c.json({ message: "Invalid API Key" }, 403);
 	}
 
@@ -112,6 +131,16 @@ process.on("unhandledRejection", (reason, _promise) => {
 });
 
 const port = Number.parseInt(process.env.PORT || "3000");
+
+// Restore jobs before accepting requests, so cleanQueue() can't wipe jobs
+// registered through the API during startup.
+try {
+	await cleanQueue();
+	await initializeJobs();
+} catch (error) {
+	logger.error(error, "Failed to initialize jobs");
+	process.exit(1);
+}
 
 logger.info("Starting Schedules Server ✅", port);
 serve({ fetch: app.fetch, port });

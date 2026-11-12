@@ -37,14 +37,15 @@ export interface TraefikOptions {
 	}[];
 }
 
-// Overlapping recreates of one server would remove each other's containers.
+// Overlapping recreates and restores of one server would remove each other's containers.
 const recreateQueue = new Map<string, Promise<void>>();
 
-export const initializeStandaloneTraefik = (options: TraefikOptions = {}) => {
-	const key = options.serverId ?? "local";
-	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(() =>
-		recreateStandaloneTraefik(options),
-	);
+export const initializeStandaloneTraefik = (options: TraefikOptions = {}) =>
+	runQueued(options.serverId, () => recreateStandaloneTraefik(options));
+
+const runQueued = (serverId: string | undefined, task: () => Promise<void>) => {
+	const key = serverId ?? "local";
+	const run = (recreateQueue.get(key) ?? Promise.resolve()).then(task);
 	// So a hung Docker call can't block later recreates.
 	const settled = Promise.race([run.catch(() => {}), sleep(5 * 60_000)]).then(
 		() => {},
@@ -97,7 +98,7 @@ const recreateStandaloneTraefik = async ({
 	}
 
 	const settings: ContainerCreateOptions = {
-		name: containerName,
+		name: NEXT_TRAEFIK_CONTAINER,
 		Image: imageName,
 		NetworkingConfig: {
 			EndpointsConfig: {
@@ -120,7 +121,7 @@ const recreateStandaloneTraefik = async ({
 	};
 
 	const docker = await getRemoteDocker(serverId);
-	await restoreInterruptedTraefik(serverId);
+	await restoreBackupTraefik(serverId);
 	await ensureTraefikImage(serverId);
 
 	// Kept until the new container stays up, so it can be restored on failure.
@@ -129,29 +130,49 @@ const recreateStandaloneTraefik = async ({
 		.inspect()
 		.catch(() => null);
 	const current = currentInfo ? docker.getContainer(currentInfo.Id) : null;
-	if (current) {
-		await docker
-			.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
-			.remove({ force: true })
-			.catch(() => {});
-		await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
-		await current.stop().catch(() => {});
-		await sleep(5000);
-	}
+	const otherNetworks = Object.entries(
+		currentInfo?.NetworkSettings?.Networks ?? {},
+	).filter(([name]) => name !== "dokploy-network");
 
+	let created: Container | undefined;
+	let movedAside = false;
 	try {
-		const created = await docker.createContainer(settings);
+		// Created first so an interrupted update can be detected.
+		created = await docker.createContainer(settings);
+		for (const [, endpoint] of otherNetworks) {
+			await docker.getNetwork(endpoint.NetworkID).connect({
+				Container: created.id,
+				EndpointConfig: { Aliases: endpoint.Aliases },
+			});
+		}
+		if (current) {
+			await docker
+				.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
+				.remove({ force: true })
+				.catch(() => {});
+			await current.stop().catch(() => {});
+			await current.rename({ name: PREVIOUS_TRAEFIK_CONTAINER });
+			movedAside = true;
+			await sleep(5000);
+		}
+		await created.rename({ name: containerName });
 		await created.start();
 		await waitUntilStable(created);
 	} catch (error) {
 		if (!current) {
+			await created?.remove({ force: true }).catch(() => {});
 			console.log("Traefik Not Found: Starting ", error);
 			return;
 		}
-		await docker
-			.getContainer(containerName)
-			.remove({ force: true })
-			.catch(() => {});
+		if (!movedAside) {
+			const now = await current.inspect().catch(() => null);
+			if (currentInfo?.State.Running && !now?.State.Running) {
+				await current.start();
+			}
+			await created?.remove({ force: true }).catch(() => {});
+			throw error;
+		}
+		await created?.remove({ force: true }).catch(() => {});
 		const reason = error instanceof Error ? error.message : String(error);
 		try {
 			await current.rename({ name: containerName });
@@ -170,34 +191,49 @@ const recreateStandaloneTraefik = async ({
 	console.log("Traefik Started ✅");
 };
 
+const NEXT_TRAEFIK_CONTAINER = "dokploy-traefik-next";
 const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 
-// An interrupted recreate (e.g. a Dokploy restart) leaves only the stopped backup.
-export const restoreInterruptedTraefik = async (serverId?: string) => {
+export const restoreInterruptedTraefik = (serverId?: string) =>
+	runQueued(serverId, () => restoreBackupTraefik(serverId));
+
+// Undoes an update interrupted by a Dokploy restart.
+const restoreBackupTraefik = async (serverId?: string) => {
 	const docker = await getRemoteDocker(serverId);
-	const exists = await docker
-		.getContainer("dokploy-traefik")
-		.inspect()
-		.then(
-			() => true,
-			() => false,
-		);
-	if (exists) {
+	const inspect = (name: string) =>
+		docker
+			.getContainer(name)
+			.inspect()
+			.catch(() => null);
+	const nextInfo = await inspect(NEXT_TRAEFIK_CONTAINER);
+	const backupInfo = await inspect(PREVIOUS_TRAEFIK_CONTAINER);
+	if (!nextInfo && !backupInfo) {
 		return;
 	}
-	const backupInfo = await docker
-		.getContainer(PREVIOUS_TRAEFIK_CONTAINER)
-		.inspect()
-		.catch(() => null);
-	if (!backupInfo) {
-		return;
+	let currentInfo = await inspect("dokploy-traefik");
+	if (currentInfo?.State.Status === "created" && backupInfo) {
+		await docker.getContainer(currentInfo.Id).remove({ force: true });
+		currentInfo = null;
 	}
-	const backup = docker.getContainer(backupInfo.Id);
-	await backup.rename({ name: "dokploy-traefik" });
-	if (!backupInfo.State.Running) {
-		await backup.start();
+	if (currentInfo) {
+		if (nextInfo && !currentInfo.State.Running) {
+			await docker.getContainer(currentInfo.Id).start();
+		}
+	} else if (backupInfo) {
+		const backup = docker.getContainer(backupInfo.Id);
+		if (backupInfo.State.Running) {
+			await backup.stop().catch(() => {});
+		}
+		try {
+			await backup.rename({ name: "dokploy-traefik" });
+		} finally {
+			await backup.start();
+		}
+		console.log("Restored Traefik left behind by an interrupted recreate");
 	}
-	console.log("Restored Traefik left behind by an interrupted recreate");
+	if (nextInfo) {
+		await docker.getContainer(nextInfo.Id).remove({ force: true });
+	}
 };
 
 // docker.pull resolves before the download ends and reports errors in the stream.

@@ -241,6 +241,17 @@ export const findPreviewDeploymentsByPullRequestId = async (
 	return previewDeploymentResult;
 };
 
+export const findPreviewDeploymentsByPullRequestIdForGithub = async (
+	pullRequestId: string,
+	githubId: string,
+) => {
+	const rows = await db.query.previewDeployments.findMany({
+		where: eq(previewDeployments.pullRequestId, pullRequestId),
+		with: { application: true },
+	});
+	return rows.filter((row) => row.application?.githubId === githubId);
+};
+
 export const findPreviewDeploymentByApplicationId = async (
 	applicationId: string,
 	pullRequestId: string,

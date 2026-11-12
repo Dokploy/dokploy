@@ -5,6 +5,7 @@ import { createDeepInfra } from "@ai-sdk/deepinfra";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { guardedFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import { createOllama } from "ai-sdk-ollama";
 
 export function getProviderName(apiUrl: string) {
@@ -31,6 +32,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createOpenAI({
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 			});
 		case "azure":
 			// Azure OpenAI-compatible endpoints already include /v1 in the path.
@@ -39,6 +41,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				return createOpenAICompatible({
 					name: "azure",
 					baseURL: config.apiUrl,
+					fetch: guardedFetch,
 					headers: {
 						"api-key": config.apiKey,
 						Authorization: `Bearer ${config.apiKey}`,
@@ -48,21 +51,25 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createAzure({
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 			});
 		case "anthropic":
 			return createAnthropic({
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 			});
 		case "cohere":
 			return createCohere({
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				apiKey: config.apiKey,
 			});
 		case "perplexity":
 			return createOpenAICompatible({
 				name: "perplexity",
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 					"X-Pplx-Integration": "dokploy",
@@ -71,11 +78,13 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 		case "mistral":
 			return createMistral({
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				apiKey: config.apiKey,
 			});
 		case "ollama":
 			return createOllama({
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: config.apiKey
 					? { Authorization: `Bearer ${config.apiKey}` }
 					: undefined,
@@ -83,12 +92,14 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 		case "deepinfra":
 			return createDeepInfra({
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				apiKey: config.apiKey,
 			});
 		case "gemini":
 			return createOpenAICompatible({
 				name: "gemini",
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
@@ -97,6 +108,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createOpenAICompatible({
 				name: "openrouter",
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
@@ -105,6 +117,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createOpenAICompatible({
 				name: "zai",
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
@@ -113,6 +126,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createOpenAICompatible({
 				name: "minimax",
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
@@ -121,6 +135,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createOpenAICompatible({
 				name: "custom",
 				baseURL: config.apiUrl,
+				fetch: guardedFetch,
 				headers: {
 					Authorization: `Bearer ${config.apiKey}`,
 				},
