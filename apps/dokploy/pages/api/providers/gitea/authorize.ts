@@ -32,7 +32,15 @@ export default async function handler(
 			return redirectWithError(res, "Incomplete OAuth configuration");
 		}
 
-		if (!(await canViewGitProviderSecrets(session, gitea.gitProvider))) {
+		if (
+			!(await canViewGitProviderSecrets(
+				{
+					userId: user.id,
+					activeOrganizationId: session.activeOrganizationId,
+				},
+				gitea.gitProvider,
+			))
+		) {
 			return redirectWithError(res, "Unauthorized");
 		}
 

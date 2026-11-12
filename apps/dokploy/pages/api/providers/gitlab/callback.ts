@@ -26,7 +26,15 @@ export default async function handler(
 	if (gitlab.gitProvider.organizationId !== session.activeOrganizationId) {
 		return res.status(404).json({ error: "Gitlab provider not found" });
 	}
-	if (!(await canViewGitProviderSecrets(session, gitlab.gitProvider))) {
+	if (
+		!(await canViewGitProviderSecrets(
+			{
+				userId: user.id,
+				activeOrganizationId: session.activeOrganizationId,
+			},
+			gitlab.gitProvider,
+		))
+	) {
 		return res.status(403).json({ error: "Forbidden" });
 	}
 	if (!state || state !== req.cookies.gitlab_oauth_state) {

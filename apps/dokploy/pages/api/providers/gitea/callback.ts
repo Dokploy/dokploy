@@ -60,7 +60,15 @@ export default async function handler(
 	if (gitea.gitProvider.organizationId !== session.activeOrganizationId) {
 		return redirectWithError(res, "Failed to find Gitea provider");
 	}
-	if (!(await canViewGitProviderSecrets(session, gitea.gitProvider))) {
+	if (
+		!(await canViewGitProviderSecrets(
+			{
+				userId: user.id,
+				activeOrganizationId: session.activeOrganizationId,
+			},
+			gitea.gitProvider,
+		))
+	) {
 		return redirectWithError(res, "Unauthorized");
 	}
 
