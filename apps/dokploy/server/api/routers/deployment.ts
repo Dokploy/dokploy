@@ -1,4 +1,5 @@
 import {
+	assertHostScheduleAccess,
 	execAsync,
 	execAsyncRemote,
 	findAllDeploymentsByApplicationId,
@@ -120,7 +121,11 @@ export const deploymentRouter = createTRPCRouter({
 			rows = jobRows;
 		}
 
-		return Promise.all(
+		const accessedServices =
+			ctx.user.role !== "owner" && ctx.user.role !== "admin"
+				? (await findMemberByUserId(ctx.user.id, orgId)).accessedServices
+				: null;
+		const jobs = await Promise.all(
 			rows.map(async (row) => ({
 				...row,
 				servicePath: await resolveServicePath(
@@ -129,6 +134,15 @@ export const deploymentRouter = createTRPCRouter({
 				),
 			})),
 		);
+		return jobs.filter((job) => {
+			const serviceId = String(
+				job.data?.applicationId ?? job.data?.composeId ?? "",
+			);
+			return (
+				job.servicePath.href &&
+				(accessedServices === null || accessedServices.includes(serviceId))
+			);
+		});
 	}),
 
 	allByType: protectedProcedure
@@ -136,6 +150,11 @@ export const deploymentRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			if (input.type === "schedule") {
 				const schedule = await findScheduleById(input.id);
+				await assertHostScheduleAccess(
+					ctx,
+					schedule.scheduleType,
+					schedule.serverId,
+				);
 				const serviceId = schedule.applicationId || schedule.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
