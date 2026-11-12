@@ -240,7 +240,10 @@ export const apiUpdateUser = z.object({
 		.email("Please enter a valid email address")
 		.min(1, "Email is required")
 		.optional(),
-	password: z.string().min(8, "Password must be at least 8 characters").optional(),
+	password: z
+		.string()
+		.min(8, "Password must be at least 8 characters")
+		.optional(),
 	currentPassword: z.string().optional(),
 	firstName: z.string().optional(),
 	lastName: z.string().optional(),
