@@ -38,7 +38,6 @@ export const ImportProject = () => {
 	const [bundle, setBundle] = useState<string | null>(null);
 	const [passphrase, setPassphrase] = useState("");
 	const [preview, setPreview] = useState<Preview | null>(null);
-	const [projectName, setProjectName] = useState("");
 	const [serverId, setServerId] = useState("");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery(undefined, {
@@ -51,7 +50,6 @@ export const ImportProject = () => {
 		setBundle(null);
 		setPassphrase("");
 		setPreview(null);
-		setProjectName("");
 		setServerId(isCloud ? "" : LOCAL_SERVER);
 	};
 
@@ -71,7 +69,6 @@ export const ImportProject = () => {
 		try {
 			const result = await previewMutation.mutateAsync({ bundle, passphrase });
 			setPreview(result);
-			setProjectName(result.projectName);
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "Invalid bundle");
 		}
@@ -83,7 +80,6 @@ export const ImportProject = () => {
 			const result = await importMutation.mutateAsync({
 				bundle,
 				passphrase,
-				projectName,
 				serverId: serverId === LOCAL_SERVER ? undefined : serverId,
 			});
 			await utils.project.all.invalidate();
@@ -133,14 +129,6 @@ export const ImportProject = () => {
 					</div>
 				) : (
 					<div className="space-y-4">
-						<div className="grid gap-2">
-							<Label htmlFor="import-project-name">Project name</Label>
-							<Input
-								id="import-project-name"
-								value={projectName}
-								onChange={(e) => setProjectName(e.target.value)}
-							/>
-						</div>
 						<div className="grid gap-2">
 							<Label>Server</Label>
 							<Select value={serverId} onValueChange={setServerId}>
@@ -205,7 +193,7 @@ export const ImportProject = () => {
 							</Button>
 							<Button
 								isLoading={importMutation.isPending}
-								disabled={!serverId || !projectName.trim()}
+								disabled={!serverId}
 								onClick={handleImport}
 							>
 								Import

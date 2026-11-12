@@ -77,7 +77,6 @@ export const projectExportImportRouter = createTRPCRouter({
 			z.object({
 				bundle: bundleSchema,
 				passphrase: passphraseSchema,
-				projectName: z.string().max(255).optional(),
 				serverId: z.string().optional(),
 			}),
 		)
@@ -95,7 +94,6 @@ export const projectExportImportRouter = createTRPCRouter({
 			const result = await importBundle(db, payload, {
 				organizationId,
 				serverId,
-				projectName: input.projectName,
 			}).catch((error) => {
 				if (error instanceof BundleFormatError) {
 					throw new TRPCError({ code: "BAD_REQUEST", message: error.message });

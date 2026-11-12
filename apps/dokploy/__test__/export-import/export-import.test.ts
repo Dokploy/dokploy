@@ -177,8 +177,8 @@ const fakeImportDb = (existing: {
 	const db = {
 		query: {
 			projects: {
-				findMany: vi.fn(async () =>
-					(existing.projectNames ?? []).map((name) => ({ name })),
+				findFirst: vi.fn(async () =>
+					existing.projectNames?.length ? { projectId: "existing" } : undefined,
 				),
 			},
 			applications: {
@@ -379,7 +379,7 @@ describe("importBundle", () => {
 	it("resolves name, domain and port conflicts automatically", async () => {
 		const payload = await exportedPayload();
 		const { db, insertsInto } = fakeImportDb({
-			projectNames: ["Shop", "Shop (imported)"],
+			projectNames: ["Shop"],
 			appPorts: [8080],
 			dbPorts: [5432],
 			domains: [{ host: "shop.example.com", path: "/" }],
@@ -389,7 +389,7 @@ describe("importBundle", () => {
 			serverId: null,
 		});
 
-		expect(result.projectName).toBe("Shop (imported 2)");
+		expect(result.projectName).toBe("imported-Shop");
 		expect(insertsInto(ports)).toHaveLength(0);
 		expect(insertsInto(postgres)[0]?.externalPort).toBeNull();
 		expect(insertsInto(domains)[0]?.enabled).toBe(false);
@@ -398,7 +398,7 @@ describe("importBundle", () => {
 		expect(result.warnings.join("\n")).toMatch(/Port 5432/);
 	});
 
-	it("regenerates the compose suffix and rewrites domain targets to match", async () => {
+	it("keeps the compose suffix so saved service names still match", async () => {
 		const payload = await exportedPayload();
 		payload.services.push({
 			kind: "compose",
@@ -418,13 +418,11 @@ describe("importBundle", () => {
 		});
 		const { db, insertsInto } = fakeImportDb({});
 		await importBundle(db, payload, { organizationId: "org", serverId: null });
-		const suffix = insertsInto(compose)[0]?.suffix;
-		expect(suffix).toEqual(expect.any(String));
-		expect(suffix).not.toBe("abc123");
+		expect(insertsInto(compose)[0]?.suffix).toBe("abc123");
 		expect(
 			insertsInto(domains).find((d) => d.host === "stack.example.com")
 				?.serviceName,
-		).toBe(`web-${suffix}`);
+		).toBe("web-abc123");
 	});
 
 	it.each(["../../etc/passwd", ".", ""])(

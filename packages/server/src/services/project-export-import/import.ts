@@ -23,7 +23,6 @@ import {
 } from "@dokploy/server/db/schema/utils";
 import { findApplicationById } from "@dokploy/server/services/application";
 import { createFileMount } from "@dokploy/server/services/mount";
-import { generateRandomHash } from "@dokploy/server/utils/docker/compose";
 import { isValidMountFilePath } from "@dokploy/server/utils/docker/utils";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { createRedirectMiddleware } from "@dokploy/server/utils/traefik/redirect";
@@ -169,22 +168,17 @@ const DB_PORT_FIELDS = [
 
 const SOURCE_IP_HOST = /-\d{1,3}(?:-\d{1,3}){3}\.(?:sslip\.io|traefik\.me)$/;
 
-const uniqueProjectName = async (
+const importedProjectName = async (
 	db: TransferWriteDb,
 	organizationId: string,
 	name: string,
 ): Promise<string> => {
-	const existing = await db.query.projects.findMany({
-		where: (fields, { eq }) => eq(fields.organizationId, organizationId),
-		columns: { name: true },
+	const existing = await db.query.projects.findFirst({
+		where: (fields, { and, eq }) =>
+			and(eq(fields.organizationId, organizationId), eq(fields.name, name)),
+		columns: { projectId: true },
 	});
-	const taken = new Set(existing.map((project) => project.name));
-	if (!taken.has(name)) return name;
-	for (let i = 1; ; i++) {
-		const candidate =
-			i === 1 ? `${name} (imported)` : `${name} (imported ${i})`;
-		if (!taken.has(candidate)) return candidate;
-	}
+	return existing ? `imported-${name}` : name;
 };
 
 const publishedPortsOn = async (
@@ -257,7 +251,6 @@ const insertChildren = async (
 	type: ServiceType,
 	service: Row,
 	newServiceId: string,
-	renameService: (serviceName: unknown) => unknown,
 ) => {
 	const { tx, appNameMap, warnings } = ctx;
 	const parent = { [SERVICE_ID_FIELD[type]]: newServiceId };
@@ -293,7 +286,6 @@ const insertChildren = async (
 			await tx.insert(domains).values({
 				...omit(row, ["domainId", "uniqueConfigKey", "previewDeploymentId"]),
 				host,
-				serviceName: renameService(row.serviceName),
 				enabled: conflict || forwardAuth ? false : row.enabled,
 				forwardAuthEnabled: false,
 				...parent,
@@ -386,19 +378,8 @@ const insertService = async (
 	row.environmentId = environmentId;
 	row.serverId = ctx.serverId;
 
-	let renameService = (serviceName: unknown) => serviceName;
 	if (type === "compose") {
 		row.composeStatus = "idle";
-		// Randomize appends the suffix to container names, so reusing it collides with the source.
-		const oldSuffix = row.suffix;
-		if (typeof oldSuffix === "string" && oldSuffix) {
-			const newSuffix = generateRandomHash();
-			row.suffix = newSuffix;
-			renameService = (serviceName) =>
-				typeof serviceName === "string" && serviceName.endsWith(`-${oldSuffix}`)
-					? `${serviceName.slice(0, -oldSuffix.length)}${newSuffix}`
-					: serviceName;
-		}
 	} else {
 		row.applicationStatus = "idle";
 	}
@@ -422,13 +403,12 @@ const insertService = async (
 	const newId = inserted?.[idField] as string | undefined;
 	if (!newId) throw new Error(`Failed to create "${service.name}"`);
 	if (type === "application") ctx.applicationIds.push(newId);
-	await insertChildren(ctx, type, service, newId, renameService);
+	await insertChildren(ctx, type, service, newId);
 };
 
 export type ImportOptions = {
 	organizationId: string;
 	serverId: string | null;
-	projectName?: string;
 };
 
 export type ImportResult = {
@@ -448,10 +428,10 @@ export const importBundle = async (
 			regenerateAppName(service.kind, service.appName),
 		]),
 	);
-	const projectName = await uniqueProjectName(
+	const projectName = await importedProjectName(
 		db,
 		options.organizationId,
-		options.projectName?.trim() || String(payload.project.name ?? "Imported"),
+		String(payload.project.name ?? "project"),
 	);
 	const hosts = payload.services.flatMap((service) =>
 		((service.domains as Row[] | undefined) ?? []).map((domain) =>
