@@ -69,6 +69,11 @@ export const apiSetForwardAuthSettings = z.object({
 	customCertResolver: z.string().optional(),
 });
 
+export const apiSetPreviewForwardAuth = z.object({
+	applicationId: z.string().min(1),
+	enabled: z.boolean(),
+});
+
 export const apiDeployForwardAuthOnServer = z.object({
 	serverId: z.string().nullable(),
 	providerId: z.string().min(1),
