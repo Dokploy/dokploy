@@ -3,6 +3,7 @@
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
+import { wasNestedPopupJustClosed } from "@/components/ui/nested-popup-context";
 import { cn } from "@/lib/utils";
 
 function AlertDialog({
@@ -46,6 +47,7 @@ function AlertDialogOverlay({
 function AlertDialogContent({
 	className,
 	size = "default",
+	onEscapeKeyDown,
 	...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
 	size?: "default" | "sm";
@@ -60,6 +62,13 @@ function AlertDialogContent({
 					"group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-6 text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-[size=default]:max-w-lg data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
 					className,
 				)}
+				onEscapeKeyDown={(event) => {
+					if (wasNestedPopupJustClosed()) {
+						event.preventDefault();
+						return;
+					}
+					onEscapeKeyDown?.(event);
+				}}
 				{...props}
 			/>
 		</AlertDialogPortal>
