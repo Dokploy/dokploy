@@ -27,7 +27,7 @@ describe("removeCompose file preservation", () => {
 		await removeCompose(compose, false);
 
 		expect(mocks.execAsync).toHaveBeenCalled();
-		const command = mocks.execAsync.mock.calls[0][0];
+		const command = mocks.execAsync.mock.calls[0]![0];
 		expect(command).toMatch(/rm -rf .*test-app[/\\]code/);
 		expect(command).not.toContain("down --volumes");
 	});
@@ -42,7 +42,7 @@ describe("removeCompose file preservation", () => {
 		await removeCompose(compose, true);
 
 		expect(mocks.execAsync).toHaveBeenCalled();
-		const command = mocks.execAsync.mock.calls[0][0];
+		const command = mocks.execAsync.mock.calls[0]![0];
 		expect(command).toMatch(/rm -rf .*test-app$/m);
 		expect(command).toContain("down --volumes");
 	});
