@@ -514,4 +514,63 @@ describe("GitHub app webhook preview deployments", () => {
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
 	});
+
+	it("creates every preview before queueing any build", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({ applicationId: "web-id", name: "web" }),
+			createApplication({ applicationId: "api-id", name: "api" }),
+		]);
+		const calls: string[] = [];
+		mocks.createPreviewDeployment.mockImplementation(
+			async ({ applicationId }: { applicationId: string }) => {
+				calls.push(`create:${applicationId}`);
+				return { previewDeploymentId: `${applicationId}-preview` };
+			},
+		);
+		mocks.queueAdd.mockImplementation(
+			async (_name: string, job: { applicationId: string }) => {
+				calls.push(`queue:${job.applicationId}`);
+				return { id: "job-id" };
+			},
+		);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(calls).toEqual([
+			"create:web-id",
+			"create:api-id",
+			"queue:web-id",
+			"queue:api-id",
+		]);
+	});
+
+	it("still queues the other previews when one fails to be created", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({ applicationId: "web-id", name: "web" }),
+			createApplication({ applicationId: "api-id", name: "api" }),
+		]);
+		mocks.createPreviewDeployment.mockImplementation(
+			async ({ applicationId }: { applicationId: string }) => {
+				if (applicationId === "api-id") {
+					throw new Error("Pull request comment not found");
+				}
+				return { previewDeploymentId: `${applicationId}-preview` };
+			},
+		);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "web-id",
+				previewDeploymentId: "web-id-preview",
+			}),
+			expect.anything(),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
 });

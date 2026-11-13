@@ -535,6 +535,75 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export interface PreviewDeployUrlTarget {
+	appName: string;
+	name: string;
+	host: string | null | undefined;
+}
+
+const PREVIEW_DEPLOY_URL_REFERENCE = /\$\{\{([^{}]+?)\.DOKPLOY_DEPLOY_URL\}\}/g;
+
+export const hasPreviewDeployUrlReference = (input: string | null) =>
+	!!input && new RegExp(PREVIEW_DEPLOY_URL_REFERENCE).test(input);
+
+// These prefixes belong to the existing project/environment/vault resolvers.
+const isReservedReference = (ref: string) =>
+	ref === "project" || ref === "environment" || ref.startsWith("vault.");
+
+const lookupPreviewHost = (
+	ref: string,
+	targets: PreviewDeployUrlTarget[],
+): { host: string } | { error: string } => {
+	let target = targets.find((t) => t.appName === ref);
+	if (!target) {
+		const byName = targets.filter((t) => t.name === ref);
+		if (byName.length > 1) {
+			return {
+				error: `Ambiguous preview reference "${ref}": several applications share this name, use the appName instead`,
+			};
+		}
+		target = byName[0];
+	}
+
+	if (!target) {
+		return {
+			error: `No preview deployment found for "${ref}" in this pull request`,
+		};
+	}
+	if (!target.host) {
+		return { error: `Preview deployment for "${ref}" has no domain` };
+	}
+	return { host: target.host };
+};
+
+/**
+ * Resolves `${{<app>.DOKPLOY_DEPLOY_URL}}` to the preview host of another
+ * application deployed for the same pull request. `<app>` may be the
+ * application's appName or its display name.
+ */
+export const resolvePreviewDeployUrlReferences = (
+	input: string | null,
+	targets: PreviewDeployUrlTarget[],
+) => {
+	if (!input) return "";
+
+	// Only values that survive dotenv parsing must resolve; references inside
+	// comments are dropped by prepareEnvironmentVariables anyway.
+	for (const value of Object.values(parse(input))) {
+		for (const [, ref] of value.matchAll(PREVIEW_DEPLOY_URL_REFERENCE)) {
+			if (!ref || isReservedReference(ref)) continue;
+			const result = lookupPreviewHost(ref, targets);
+			if ("error" in result) throw new Error(result.error);
+		}
+	}
+
+	return input.replace(PREVIEW_DEPLOY_URL_REFERENCE, (match, ref: string) => {
+		if (isReservedReference(ref)) return match;
+		const result = lookupPreviewHost(ref, targets);
+		return "host" in result ? result.host : match;
+	});
+};
+
 export const prepareEnvironmentVariablesForShell = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
