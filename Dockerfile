@@ -31,7 +31,9 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install -y tini curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y tini curl unzip zip apache2-utils iproute2 rsync git-lfs \
+	&& dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apache2-utils)" ge 2.4.71-1~deb12u1 \
+	&& git lfs install && rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary files
 COPY --from=build /prod/dokploy/.next ./.next
