@@ -40,6 +40,7 @@ export function AnalyzeLogs({ logs, context }: Props) {
 	const [open, setOpen] = useState(false);
 	const [aiId, setAiId] = useState<string>("");
 	const [copied, setCopied] = useState(false);
+	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: providers } = api.ai.getEnabledProviders.useQuery(undefined, {
 		enabled: open,
 	});
@@ -50,6 +51,8 @@ export function AnalyzeLogs({ logs, context }: Props) {
 			});
 		},
 	});
+
+	if (!permissions?.ai.read) return null;
 
 	const handleAnalyze = () => {
 		if (!aiId || logs.length === 0) return;

@@ -12,6 +12,7 @@ import type {
 	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
@@ -83,7 +84,7 @@ export const sendDiscordNotification = async (
 	embed: any,
 ) => {
 	try {
-		const response = await fetch(connection.webhookUrl, {
+		const response = await providerFetch(connection.webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ embeds: [embed] }),
@@ -168,7 +169,7 @@ export const sendSlackNotification = async (
 	message: any,
 ) => {
 	try {
-		const response = await fetch(connection.webhookUrl, {
+		const response = await providerFetch(connection.webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(message),
@@ -191,7 +192,7 @@ export const sendGotifyNotification = async (
 	title: string,
 	message: string,
 ) => {
-	const response = await fetch(`${connection.serverUrl}/message`, {
+	const response = await providerFetch(`${connection.serverUrl}/message`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -223,19 +224,22 @@ export const sendNtfyNotification = async (
 	actions: string,
 	message: string,
 ) => {
-	const response = await fetch(`${connection.serverUrl}/${connection.topic}`, {
-		method: "POST",
-		headers: {
-			...(connection.accessToken && {
-				Authorization: `Bearer ${connection.accessToken}`,
-			}),
-			"X-Priority": connection.priority?.toString() || "3",
-			"X-Title": title,
-			"X-Tags": tags,
-			"X-Actions": actions,
+	const response = await providerFetch(
+		`${connection.serverUrl}/${connection.topic}`,
+		{
+			method: "POST",
+			headers: {
+				...(connection.accessToken && {
+					Authorization: `Bearer ${connection.accessToken}`,
+				}),
+				"X-Priority": connection.priority?.toString() || "3",
+				"X-Title": title,
+				"X-Tags": tags,
+				"X-Actions": actions,
+			},
+			body: message,
 		},
-		body: message,
-	});
+	);
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
@@ -256,7 +260,7 @@ export const sendMattermostNotification = async (
 		}),
 	};
 
-	const response = await fetch(connection.webhookUrl, {
+	const response = await providerFetch(connection.webhookUrl, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(payload),
@@ -283,7 +287,7 @@ export const sendCustomNotification = async (
 		// Default body with payload
 		const body = JSON.stringify(payload);
 
-		const response = await fetch(connection.endpoint, {
+		const response = await providerFetch(connection.endpoint, {
 			method: "POST",
 			headers,
 			body,
@@ -307,7 +311,7 @@ export const sendLarkNotification = async (
 	message: any,
 ) => {
 	try {
-		await fetch(connection.webhookUrl, {
+		await providerFetch(connection.webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(message),
@@ -376,7 +380,7 @@ export const sendTeamsNotification = async (
 			],
 		};
 
-		const response = await fetch(connection.webhookUrl, {
+		const response = await providerFetch(connection.webhookUrl, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(payload),

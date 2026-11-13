@@ -283,6 +283,7 @@ const Postgresql = (
 														<>
 															<ContainerFreeMonitoring
 																appName={data?.appName || ""}
+																serviceId={data?.postgresId}
 															/>
 														</>
 													)}

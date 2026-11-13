@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	containerKill,
 	containerRemove,
 	containerRestart,
@@ -45,6 +46,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -63,6 +65,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			await checkPermission(ctx, { docker: ["read"], server: ["read"] });
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
@@ -88,6 +91,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -114,6 +118,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -140,6 +145,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -166,6 +172,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -192,6 +199,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -218,6 +226,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -236,6 +245,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -258,6 +268,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -279,6 +290,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -296,6 +308,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -308,6 +321,7 @@ export const dockerRouter = createTRPCRouter({
 	uploadFileToContainer: withPermission("docker", "read")
 		.input(uploadFileToContainerSchema)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -350,6 +364,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -375,6 +390,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -401,6 +417,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -436,6 +453,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -459,6 +477,7 @@ export const dockerRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {

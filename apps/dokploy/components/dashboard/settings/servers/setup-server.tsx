@@ -29,17 +29,27 @@ import { ShowDeployment } from "../../application/deployments/show-deployment";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
-import { SecurityAudit } from "./security-audit";
 import { SetupMonitoring } from "./setup-monitoring";
 import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;
 	children?: React.ReactNode;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+	defaultTab?: string;
 }
 
-export const SetupServer = ({ serverId, children }: Props) => {
-	const [isOpen, setIsOpen] = useState(false);
+export const SetupServer = ({
+	serverId,
+	children,
+	open,
+	onOpenChange,
+	defaultTab = "ssh-keys",
+}: Props) => {
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+	const isOpen = open ?? uncontrolledOpen;
+	const setIsOpen = onOpenChange ?? setUncontrolledOpen;
 	const { data: server } = api.server.one.useQuery(
 		{
 			serverId,
@@ -81,7 +91,7 @@ export const SetupServer = ({ serverId, children }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			{children ? (
+			{open !== undefined ? null : children ? (
 				<DialogTrigger asChild>{children}</DialogTrigger>
 			) : (
 				<DialogTrigger asChild>
@@ -119,15 +129,15 @@ export const SetupServer = ({ serverId, children }: Props) => {
 							configured.
 						</AlertBlock>
 
-						<Tabs defaultValue="ssh-keys">
+						<Tabs defaultValue={defaultTab}>
 							<TabsList
 								className={cn(
 									"grid  w-[700px]",
 									isBuildServer
 										? "grid-cols-3"
 										: isCloud
-											? "grid-cols-6"
-											: "grid-cols-5",
+											? "grid-cols-5"
+											: "grid-cols-4",
 								)}
 							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
@@ -136,7 +146,6 @@ export const SetupServer = ({ serverId, children }: Props) => {
 
 								{!isBuildServer && (
 									<>
-										<TabsTrigger value="audit">Security</TabsTrigger>
 										{isCloud && (
 											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 										)}
@@ -328,14 +337,6 @@ export const SetupServer = ({ serverId, children }: Props) => {
 							</TabsContent>
 							{!isBuildServer && (
 								<>
-									<TabsContent
-										value="audit"
-										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-									>
-										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-											<SecurityAudit serverId={serverId} />
-										</div>
-									</TabsContent>
 									<TabsContent
 										value="monitoring"
 										className="outline-hidden ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"

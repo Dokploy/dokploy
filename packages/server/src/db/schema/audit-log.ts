@@ -54,12 +54,15 @@ export type AuditAction =
 	| "login"
 	| "logout"
 	| "restore"
+	| "download"
 	| "run"
 	| "start"
 	| "stop"
 	| "reload"
 	| "rebuild"
-	| "move";
+	| "move"
+	| "export"
+	| "import";
 
 export type AuditResourceType =
 	| "project"

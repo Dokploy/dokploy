@@ -31,13 +31,13 @@ export const removeDirectoryIfExistsContent = async (
 	path: string,
 ): Promise<void> => {
 	if (fs.existsSync(path) && fs.readdirSync(path).length !== 0) {
-		await execAsync(`rm -rf ${path}`);
+		await fsPromises.rm(path, { recursive: true, force: true });
 	}
 };
 
 export const removeFileOrDirectory = async (path: string) => {
 	try {
-		await execAsync(`rm -rf ${path}`);
+		await fsPromises.rm(path, { recursive: true, force: true });
 	} catch (error) {
 		console.error(`Error removing ${path}: ${error}`);
 		throw error;

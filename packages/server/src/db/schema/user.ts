@@ -232,13 +232,18 @@ export const apiReadStatsLogs = z.object({
 		.optional(),
 });
 
-export const apiUpdateUser = createSchema.partial().extend({
+export const apiUpdateUser = z.object({
+	image: z.string().nullable().optional(),
+	allowImpersonation: z.boolean().optional(),
 	email: z
 		.string()
 		.email("Please enter a valid email address")
 		.min(1, "Email is required")
 		.optional(),
-	password: z.string().optional(),
+	password: z
+		.string()
+		.min(8, "Password must be at least 8 characters")
+		.optional(),
 	currentPassword: z.string().optional(),
 	firstName: z.string().optional(),
 	lastName: z.string().optional(),

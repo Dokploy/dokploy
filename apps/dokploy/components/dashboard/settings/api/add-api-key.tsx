@@ -117,6 +117,7 @@ export const AddApiKey = () => {
 	});
 
 	const rateLimitEnabled = form.watch("rateLimitEnabled");
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const onSubmit = async (values: FormValues) => {
 		createApiKey.mutate({
@@ -241,97 +242,106 @@ export const AddApiKey = () => {
 							/>
 
 							{/* Rate Limiting Section */}
-							<div className="space-y-4 rounded-lg border p-4">
-								<h3 className="text-lg font-medium">Rate Limiting</h3>
-								<FormField
-									control={form.control}
-									name="rateLimitEnabled"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-											<div className="space-y-0.5">
-												<FormLabel>Enable Rate Limiting</FormLabel>
-												<FormDescription>
-													Limit the number of requests within a time window
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
+							{isCloud ? (
+								<div className="space-y-2 rounded-lg border p-4">
+									<h3 className="text-lg font-medium">Rate Limiting</h3>
+									<p className="text-sm text-muted-foreground">
+										API keys are limited to 300 requests per minute.
+									</p>
+								</div>
+							) : (
+								<div className="space-y-4 rounded-lg border p-4">
+									<h3 className="text-lg font-medium">Rate Limiting</h3>
+									<FormField
+										control={form.control}
+										name="rateLimitEnabled"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+												<div className="space-y-0.5">
+													<FormLabel>Enable Rate Limiting</FormLabel>
+													<FormDescription>
+														Limit the number of requests within a time window
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
 
-								{rateLimitEnabled && (
-									<>
-										<FormField
-											control={form.control}
-											name="rateLimitTimeWindow"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Time Window</FormLabel>
-													<Select
-														value={field.value?.toString()}
-														onValueChange={(value) =>
-															field.onChange(Number.parseInt(value, 10))
-														}
-													>
-														<FormControl>
-															<SelectTrigger>
-																<SelectValue placeholder="Select time window" />
-															</SelectTrigger>
-														</FormControl>
-														<SelectContent>
-															{TIME_WINDOW_OPTIONS.map((option) => (
-																<SelectItem
-																	key={option.value}
-																	value={option.value}
-																>
-																	{option.label}
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
-													<FormDescription>
-														The duration in which requests are counted
-													</FormDescription>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-										<FormField
-											control={form.control}
-											name="rateLimitMax"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Maximum Requests</FormLabel>
-													<FormControl>
-														<Input
-															type="number"
-															placeholder="100"
-															value={field.value?.toString() ?? ""}
-															onChange={(e) =>
-																field.onChange(
-																	e.target.value
-																		? Number.parseInt(e.target.value, 10)
-																		: null,
-																)
+									{rateLimitEnabled && (
+										<>
+											<FormField
+												control={form.control}
+												name="rateLimitTimeWindow"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Time Window</FormLabel>
+														<Select
+															value={field.value?.toString()}
+															onValueChange={(value) =>
+																field.onChange(Number.parseInt(value, 10))
 															}
-														/>
-													</FormControl>
-													<FormDescription>
-														Maximum number of requests allowed within the time
-														window
-													</FormDescription>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
-									</>
-								)}
-							</div>
+														>
+															<FormControl>
+																<SelectTrigger>
+																	<SelectValue placeholder="Select time window" />
+																</SelectTrigger>
+															</FormControl>
+															<SelectContent>
+																{TIME_WINDOW_OPTIONS.map((option) => (
+																	<SelectItem
+																		key={option.value}
+																		value={option.value}
+																	>
+																		{option.label}
+																	</SelectItem>
+																))}
+															</SelectContent>
+														</Select>
+														<FormDescription>
+															The duration in which requests are counted
+														</FormDescription>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="rateLimitMax"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Maximum Requests</FormLabel>
+														<FormControl>
+															<Input
+																type="number"
+																placeholder="100"
+																value={field.value?.toString() ?? ""}
+																onChange={(e) =>
+																	field.onChange(
+																		e.target.value
+																			? Number.parseInt(e.target.value, 10)
+																			: null,
+																	)
+																}
+															/>
+														</FormControl>
+														<FormDescription>
+															Maximum number of requests allowed within the time
+															window
+														</FormDescription>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
+									)}
+								</div>
+							)}
 
 							{/* Request Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">

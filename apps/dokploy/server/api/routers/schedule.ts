@@ -66,7 +66,7 @@ export const scheduleRouter = createTRPCRouter({
 
 			if (newSchedule?.enabled) {
 				if (IS_CLOUD) {
-					schedule({
+					await schedule({
 						scheduleId: newSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: newSchedule.cronExpression,
@@ -309,6 +309,11 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 			}
+			await assertHostScheduleAccess(
+				ctx,
+				schedule.scheduleType,
+				schedule.serverId,
+			);
 			return schedule;
 		}),
 

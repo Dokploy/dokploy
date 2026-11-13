@@ -36,9 +36,15 @@ import { ManagePasskeys } from "./manage-passkeys";
 const profileSchema = z.object({
 	email: z
 		.string()
+		.trim()
 		.email("Please enter a valid email address")
 		.min(1, "Email is required"),
-	password: z.string().nullable(),
+	password: z
+		.string()
+		.nullable()
+		.refine((val) => !val || val.length >= 8, {
+			message: "Password must be at least 8 characters",
+		}),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 	firstName: z.string().optional(),
