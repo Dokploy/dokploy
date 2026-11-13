@@ -103,15 +103,57 @@ export const getConfig = async (
 	} catch {}
 };
 
+export type AppContainer = {
+	containerId: string;
+	name: string;
+	state: string;
+	status: string;
+	/** Server the container runs on, when it differs from the app's own server. */
+	serverId?: string;
+	/** Swarm node hostname, set for containers found on other swarm nodes. */
+	node?: string;
+	/** True when the container runs on a swarm node that is not registered as a remote server. */
+	unreachable?: boolean;
+};
+
 export const getContainersByAppNameMatch = async (
 	appName: string,
 	appType?: "stack" | "docker-compose",
 	serverId?: string,
-) => {
+	otherServerIds: string[] = [],
+): Promise<AppContainer[]> => {
+	if (appType === "stack") {
+		return (await getStackTaskContainers(appName, serverId)) ?? [];
+	}
+	const containers = await listContainersByAppNameOnHost(
+		appName,
+		appType,
+		serverId,
+	);
+	if (appType === "docker-compose") return containers;
+
+	// Applications and databases run as swarm services. When the swarm has
+	// more than one node, a task may have been scheduled on a node other than
+	// the one Dokploy talks to, so `docker ps` there misses it. Look the tasks
+	// up through the swarm and list them on the matching remote servers.
 	try {
-		if (appType === "stack") {
-			return await getStackTaskContainers(appName, serverId);
-		}
+		const remote = await getContainersOnOtherSwarmNodes(
+			appName,
+			serverId,
+			otherServerIds,
+		);
+		return [...containers, ...remote];
+	} catch {
+		return containers;
+	}
+};
+
+const listContainersByAppNameOnHost = async (
+	appName: string,
+	appType?: "docker-compose",
+	serverId?: string,
+): Promise<AppContainer[]> => {
+	try {
 		let result: string[] = [];
 		const cmd =
 			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}} | Status: {{.Status}}'";
@@ -168,6 +210,102 @@ export const getContainersByAppNameMatch = async (
 	} catch {}
 
 	return [];
+};
+
+const runOn = (serverId: string | undefined, command: string) =>
+	serverId ? execAsyncRemote(serverId, command) : execAsync(command);
+
+// Swarm node IDs never change for a joined node, so cache which node each
+// remote server is to avoid one SSH round trip per server on every lookup.
+const serverNodeIdCache = new Map<string, { nodeId: string; at: number }>();
+const NODE_ID_TTL_MS = 5 * 60 * 1000;
+
+const getSwarmNodeId = async (serverId?: string) => {
+	const cacheKey = serverId ?? "local";
+	const cached = serverNodeIdCache.get(cacheKey);
+	if (cached && Date.now() - cached.at < NODE_ID_TTL_MS) return cached.nodeId;
+	const { stdout } = await runOn(
+		serverId,
+		"docker info --format '{{.Swarm.NodeID}}'",
+	);
+	const nodeId = stdout.trim();
+	serverNodeIdCache.set(cacheKey, { nodeId, at: Date.now() });
+	return nodeId;
+};
+
+const getContainersOnOtherSwarmNodes = async (
+	appName: string,
+	serverId: string | undefined,
+	otherServerIds: string[],
+): Promise<AppContainer[]> => {
+	const selfNodeId = await getSwarmNodeId(serverId);
+	if (!selfNodeId) return [];
+
+	const { stdout: taskIds } = await runOn(
+		serverId,
+		`docker service ps ${quote([appName])} --quiet --no-trunc --filter desired-state=running`,
+	);
+	const ids = taskIds.trim().split("\n").filter(Boolean);
+	if (ids.length === 0) return [];
+
+	const { stdout: tasksOut } = await runOn(
+		serverId,
+		`docker inspect --format '{{.NodeID}}|{{.Status.ContainerStatus.ContainerID}}' ${quote(ids)}`,
+	);
+	const tasksByNode = new Map<string, string[]>();
+	for (const line of tasksOut.trim().split("\n")) {
+		const [nodeId, containerId] = line.split("|");
+		if (!nodeId || !containerId || nodeId === selfNodeId) continue;
+		tasksByNode.set(nodeId, [...(tasksByNode.get(nodeId) ?? []), containerId]);
+	}
+	if (tasksByNode.size === 0) return [];
+
+	const { stdout: nodesOut } = await runOn(
+		serverId,
+		"docker node ls --format '{{.ID}}|{{.Hostname}}'",
+	);
+	const hostnames = new Map(
+		nodesOut
+			.trim()
+			.split("\n")
+			.map((line) => line.split("|") as [string, string]),
+	);
+
+	const serverByNode = new Map<string, string>();
+	await Promise.all(
+		otherServerIds.map(async (id) => {
+			try {
+				const nodeId = await getSwarmNodeId(id);
+				if (tasksByNode.has(nodeId)) serverByNode.set(nodeId, id);
+			} catch {}
+		}),
+	);
+
+	const results = await Promise.all(
+		[...tasksByNode].map(async ([nodeId, containerIds]) => {
+			const node = hostnames.get(nodeId) ?? nodeId;
+			const remoteServerId = serverByNode.get(nodeId);
+			if (!remoteServerId) {
+				return containerIds.map((containerId) => ({
+					containerId: containerId.slice(0, 12),
+					name: appName,
+					state: "running",
+					status: "",
+					node,
+					unreachable: true,
+				}));
+			}
+			const onServer = await listContainersByAppNameOnHost(
+				appName,
+				undefined,
+				remoteServerId,
+			);
+			return onServer
+				.filter((c) => containerIds.some((id) => id.startsWith(c.containerId)))
+				.map((c) => ({ ...c, serverId: remoteServerId, node }));
+		}),
+	);
+	return results.flat();
 };
 
 const getStackTaskContainers = async (appName: string, serverId?: string) => {

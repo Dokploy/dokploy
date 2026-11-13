@@ -7,6 +7,7 @@ import {
 	containerStop,
 	deleteContainerFile,
 	findServerById,
+	getAccessibleServerIds,
 	getConfig,
 	getContainers,
 	getContainersByAppLabel,
@@ -252,10 +253,20 @@ export const dockerRouter = createTRPCRouter({
 					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 			}
+			// Swarm tasks can run on any node; let the lookup reach the other
+			// remote servers this user may access.
+			const accessible = await getAccessibleServerIds({
+				userId: ctx.user.id,
+				activeOrganizationId: ctx.session.activeOrganizationId,
+			});
+			const otherServerIds = [...accessible].filter(
+				(id) => id !== input.serverId,
+			);
 			return await getContainersByAppNameMatch(
 				input.appName,
 				input.appType,
 				input.serverId,
+				otherServerIds,
 			);
 		}),
 

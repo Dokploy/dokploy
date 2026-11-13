@@ -83,10 +83,16 @@ export const DockerTerminalModal = ({
 	};
 
 	useEffect(() => {
-		if (data && data?.length > 0) {
-			setContainerId(data[0]?.containerId);
+		const first = data?.find((container) => !container.unreachable);
+		if (first) {
+			setContainerId(first.containerId);
 		}
 	}, [data]);
+
+	// Swarm tasks may run on another node; open the terminal on that server.
+	const selectedServerId =
+		data?.find((container) => container.containerId === containerId)
+			?.serverId ?? serverId;
 
 	return (
 		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
@@ -118,11 +124,20 @@ export const DockerTerminalModal = ({
 								<SelectItem
 									key={container.containerId}
 									value={container.containerId}
+									disabled={container.unreachable}
 								>
 									{container.name} ({container.containerId}){" "}
 									<Badge variant={badgeStateColor(container.state)}>
 										{container.state}
 									</Badge>
+									{container.node && (
+										<span className="text-muted-foreground">
+											{" "}
+											on {container.node}
+											{container.unreachable &&
+												" (add this node as a remote server to open it)"}
+										</span>
+									)}
 								</SelectItem>
 							))}
 							<SelectLabel>Containers ({data?.length})</SelectLabel>
@@ -130,7 +145,7 @@ export const DockerTerminalModal = ({
 					</SelectContent>
 				</Select>
 				<Terminal
-					serverId={serverId || ""}
+					serverId={selectedServerId || ""}
 					id="terminal"
 					containerId={containerId || "select-a-container"}
 					serviceId={serviceId}
