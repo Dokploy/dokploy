@@ -46,7 +46,6 @@ import {
 	findMemberByUserId,
 	hasPermission,
 } from "@dokploy/server/services/permission";
-
 import {
 	type CompleteTemplate,
 	fetchTemplateFiles,
@@ -54,6 +53,7 @@ import {
 	fetchTemplatesList,
 } from "@dokploy/server/templates/github";
 import { processTemplate } from "@dokploy/server/templates/processors";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import _ from "lodash";
@@ -356,11 +356,16 @@ export const composeRouter = createTRPCRouter({
 				});
 				const compose = await findComposeById(input.composeId);
 
-				const command = await cloneCompose(compose);
-				if (compose.serverId) {
-					await execAsyncRemote(compose.serverId, command);
-				} else {
-					await execAsync(command);
+				const staging = createContentStaging(compose.serverId);
+				try {
+					const command = await cloneCompose(compose, staging);
+					if (compose.serverId) {
+						await execAsyncRemote(compose.serverId, command);
+					} else {
+						await execAsync(command);
+					}
+				} finally {
+					await staging.cleanup();
 				}
 				return compose.sourceType;
 			} catch (err) {

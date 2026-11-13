@@ -28,6 +28,8 @@ const state = vi.hoisted(() => ({
 	failValidation: false,
 	failWrite: false,
 	failPromote: false,
+	failOnWrite: 0,
+	writeAttempts: 0,
 	truncateTransfer: false,
 	truncatedBytes: 0,
 	updates: [] as any[],
@@ -36,6 +38,8 @@ vi.mock("@dokploy/server/constants", async (original) => ({
 	...(await original<any>()),
 	paths: () => ({
 		BASE_PATH: state.root,
+		APPLICATIONS_PATH: join(state.root, "apps"),
+		SSH_PATH: join(state.root, "ssh"),
 		SCHEDULES_PATH: join(state.root, "schedules"),
 		CERTIFICATES_PATH: join(state.root, "certs"),
 		VECTOR_PATH: join(state.root, "vector"),
@@ -83,6 +87,10 @@ vi.mock("@dokploy/server/services/server", () => ({
 	}),
 	findServersByOrganizationForVectorAgent: async () => [],
 	getAccessibleServerIds: async () => [],
+}));
+vi.mock("@dokploy/server/services/ssh-key", () => ({
+	findSSHKeyById: async () => ({ privateKey: state.content }),
+	updateSSHKeyById: async () => {},
 }));
 vi.mock("@dokploy/server/services/web-server-settings", () => ({
 	getWebServerSettings: async () => ({
@@ -133,6 +141,7 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (original) => {
 	) => {
 		let transferInput = input;
 		state.commands.push(command);
+		if (transferInput) state.writeAttempts++;
 		if (transferInput && state.truncateTransfer) {
 			state.truncateTransfer = false;
 			transferInput = transferInput.slice(0, 8);
@@ -140,6 +149,7 @@ vi.mock("@dokploy/server/utils/process/execAsync", async (original) => {
 		}
 		if (
 			(state.failWrite && transferInput) ||
+			(transferInput && state.failOnWrite === state.writeAttempts) ||
 			(state.failPromote && command.startsWith("mv "))
 		)
 			throw new actual.ExecError("write failed", {
@@ -190,12 +200,15 @@ import {
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
 import { reconcileVectorAgent } from "@dokploy/server/setup/vector-setup";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import {
 	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
 
+let staging: ReturnType<typeof createContentStaging> | undefined;
 const heldFiles: Awaited<ReturnType<typeof open>>[] = [];
 beforeEach(async () => {
 	state.root = await mkdtemp(
@@ -207,12 +220,16 @@ beforeEach(async () => {
 	state.failValidation = false;
 	state.failWrite = false;
 	state.failPromote = false;
+	state.failOnWrite = 0;
+	state.writeAttempts = 0;
 	state.truncateTransfer = false;
 	state.truncatedBytes = 0;
 	state.updatedSchedule = null;
 	state.updates = [];
 });
 afterEach(async () => {
+	await staging?.cleanup();
+	staging = undefined;
 	await Promise.all(heldFiles.splice(0).map((file) => file.close()));
 	await rm(state.root, { recursive: true, force: true });
 });
@@ -239,7 +256,7 @@ const prepare = async (file: string, kind: string) => {
 
 describe("stream server file content and canary metadata", () => {
 	for (const remote of [false, true])
-		for (const site of ["schedule", "certificate", "log", "vector"])
+		for (const site of ["schedule", "certificate", "log", "git", "vector"])
 			for (const kind of ["new", "existing", "symlink"]) {
 				it.each([
 					"",
@@ -250,6 +267,7 @@ describe("stream server file content and canary metadata", () => {
 					async (content) => {
 						state.content = content;
 						const server = remote ? "fixture" : null;
+						if (site === "git") staging = createContentStaging(server);
 						const file =
 							site === "schedule"
 								? join(state.root, "schedules/probe/script.sh")
@@ -285,6 +303,7 @@ describe("stream server file content and canary metadata", () => {
 						let baseline = `echo bm9ybWFs | base64 -d ${site === "log" ? ">>" : ">"} ${q}`;
 						if (site === "schedule")
 							baseline = `rm -f ${q}; touch ${q}; chmod +x ${q}; ${baseline}`;
+						if (site === "git") baseline += `; chmod 600 ${q}`;
 						if (site === "vector")
 							baseline = `umask 077; echo bm9ybWFs | base64 -d > ${q}.candidate; mv ${q}.candidate ${q}`;
 						await run(baseline);
@@ -321,6 +340,33 @@ describe("stream server file content and canary metadata", () => {
 							expect(await readFile(file, "utf8")).toBe(
 								`${kind === "new" ? "" : "prior"}${state.content}\nError occurred ❌, check the logs for details.\n`,
 							);
+						} else if (site === "git") {
+							await mkdir(join(state.root, "bin"), { recursive: true });
+							await writeFile(
+								join(state.root, "bin", "git"),
+								"#!/bin/sh\nexit 0\n",
+								{ mode: 0o755 },
+							);
+							try {
+								const command = await cloneGitRepository(
+									{
+										appName: "probe",
+										customGitUrl: "https://example.invalid/repo.git",
+										customGitBranch: "main",
+										customGitSSHKeyId: "key",
+										serverId: server,
+									},
+									staging!,
+								);
+								if (state.content) expect(command).not.toContain(state.content);
+								await run(
+									`PATH=${quote([join(state.root, "bin")])}:"$PATH"; ${command.replaceAll("/tmp/id_rsa", file)}`,
+								);
+								expect(await readFile(file, "utf8")).toBe(`${state.content}\n`);
+							} finally {
+								await staging?.cleanup();
+								staging = undefined;
+							}
 						} else {
 							await reconcileVectorAgent(server || undefined);
 							expect(await readFile(file, "utf8")).toContain(
@@ -615,6 +661,64 @@ describe("stream server file content and canary metadata", () => {
 			expect(await readFile(target, "utf8")).toBe("target content");
 			expect(await readdir(join(state.root, ".staging"))).toEqual([]);
 			expect(state.commands.join(" ")).not.toContain(replacement);
+		},
+	);
+	it("cleans the first staged Git key if staging the second copy fails", async () => {
+		staging = createContentStaging("fixture");
+		state.failOnWrite = 2;
+		try {
+			await expect(
+				cloneGitRepository(
+					{
+						appName: "probe",
+						customGitUrl: "https://example.invalid/repo",
+						customGitBranch: "main",
+						customGitSSHKeyId: "key",
+						serverId: "fixture",
+					},
+					staging,
+				),
+			).rejects.toThrow("Permission denied");
+			expect(await readdir(join(state.root, ".staging"))).toHaveLength(1);
+		} finally {
+			await staging.cleanup();
+		}
+		expect(await readdir(join(state.root, ".staging"))).toEqual([]);
+	});
+	it.each([false, true])(
+		"retains the installed 0600 Git key after clone failure (remote=%s)",
+		async (remote) => {
+			staging = createContentStaging(remote ? "fixture" : null);
+			const file = join(state.root, "git-key");
+			await mkdir(join(state.root, "bin"), { recursive: true });
+			await writeFile(join(state.root, "bin", "git"), "#!/bin/sh\nexit 7\n", {
+				mode: 0o755,
+			});
+			const command = await cloneGitRepository(
+				{
+					appName: "probe",
+					customGitUrl: "https://example.invalid/repo",
+					customGitBranch: "main",
+					customGitSSHKeyId: "key",
+					serverId: remote ? "fixture" : null,
+				},
+				staging,
+			);
+			const execute = remote
+				? (text: string) => execAsyncRemote("fixture", text)
+				: execAsync;
+			try {
+				await expect(
+					execute(
+						`PATH=${quote([join(state.root, "bin")])}:"$PATH"; ${command.replaceAll("/tmp/id_rsa", file)}`,
+					),
+				).rejects.toMatchObject({ exitCode: 1 });
+			} finally {
+				await staging.cleanup();
+			}
+			expect(await readFile(file, "utf8")).toBe(`${state.content}\n`);
+			expect((await stat(file)).mode & 0o777).toBe(0o600);
+			expect(await readdir(join(state.root, ".staging"))).toEqual([]);
 		},
 	);
 });

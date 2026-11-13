@@ -22,6 +22,7 @@ const baseCompose = {
 	domains: [],
 	environment: { project: { env: "" }, env: "" },
 } as unknown as Parameters<typeof getBuildComposeCommand>[0];
+const staging = { stage: vi.fn(), cleanup: vi.fn() };
 
 // Regression coverage for #4401: the deploy command runs under `env -i`, which
 // clears the environment except for the vars listed explicitly. HOME must be
@@ -30,10 +31,13 @@ const baseCompose = {
 // and private-registry images fail to pull.
 describe("getBuildComposeCommand registry auth (#4401)", () => {
 	it("preserves HOME for swarm stack deploys", async () => {
-		const command = await getBuildComposeCommand({
-			...baseCompose,
-			composeType: "stack",
-		});
+		const command = await getBuildComposeCommand(
+			{
+				...baseCompose,
+				composeType: "stack",
+			},
+			staging,
+		);
 
 		expect(command).toContain("stack deploy");
 		expect(command).toContain("--with-registry-auth");
@@ -41,10 +45,13 @@ describe("getBuildComposeCommand registry auth (#4401)", () => {
 	});
 
 	it("preserves HOME for docker compose deploys", async () => {
-		const command = await getBuildComposeCommand({
-			...baseCompose,
-			composeType: "docker-compose",
-		});
+		const command = await getBuildComposeCommand(
+			{
+				...baseCompose,
+				composeType: "docker-compose",
+			},
+			staging,
+		);
 
 		expect(command).toContain("compose -p my-app");
 		expect(command).toContain('env -i PATH="$PATH" HOME="$HOME"');

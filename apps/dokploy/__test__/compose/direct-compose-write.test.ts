@@ -29,6 +29,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parse, stringify } from "yaml";
 
 const state = vi.hoisted(() => ({ root: "" }));
+const staging = { stage: vi.fn(), cleanup: vi.fn() };
 
 vi.mock("@dokploy/server/constants", async (importOriginal) => ({
 	...(await importOriginal<typeof import("@dokploy/server/constants")>()),
@@ -124,7 +125,7 @@ describe("direct transformed compose writes (#5941)", () => {
 		const expected = await addDomainToCompose(compose, compose.domains);
 		expect(Buffer.byteLength(stringify(expected))).toBeGreaterThan(131072);
 
-		const command = await getBuildComposeCommand(compose);
+		const command = await getBuildComposeCommand(compose, staging);
 		expect(Buffer.byteLength(command)).toBeLessThan(4096);
 		expect(command).not.toContain("base64");
 		const written = parse(await readFile(getComposePath(compose), "utf8"));
@@ -152,7 +153,7 @@ describe("direct transformed compose writes (#5941)", () => {
 			await addDomainToCompose(compose, compose.domains),
 			{ lineWidth: 1000 },
 		);
-		const command = await getBuildComposeCommand(compose);
+		const command = await getBuildComposeCommand(compose, staging);
 		const path = getComposePath(compose);
 		const temporaryPath = quote([
 			join(dirname(path), `.${basename(path)}.XXXXXX`),
@@ -218,7 +219,7 @@ describe("direct transformed compose writes (#5941)", () => {
 			} else {
 				vi.mocked(writeFile).mockRejectedValueOnce(error);
 			}
-			const command = await getBuildComposeCommand(compose);
+			const command = await getBuildComposeCommand(compose, staging);
 			expect(command).toContain("exit 1");
 			expect(command).not.toContain("synthetic-value");
 			await expect(execAsync(command)).rejects.toMatchObject({

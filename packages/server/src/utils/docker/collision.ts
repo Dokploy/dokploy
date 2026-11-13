@@ -1,5 +1,6 @@
 import { findComposeById } from "@dokploy/server/services/compose";
 import { stringify } from "yaml";
+import { createContentStaging } from "../filesystem/write-content";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { addAppNameToAllServiceNames } from "./collision/root-network";
 import { generateRandomHash } from "./compose";
@@ -31,11 +32,16 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 ) => {
 	const compose = await findComposeById(composeId);
 
-	const command = await cloneCompose(compose);
-	if (compose.serverId) {
-		await execAsyncRemote(compose.serverId, command);
-	} else {
-		await execAsync(command);
+	const staging = createContentStaging(compose.serverId);
+	try {
+		const command = await cloneCompose(compose, staging);
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} finally {
+		await staging.cleanup();
 	}
 
 	let composeData: ComposeSpecification | null;

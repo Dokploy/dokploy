@@ -8,7 +8,10 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { writeContentToPath } from "../filesystem/write-content";
+import {
+	type ContentStaging,
+	writeContentToPath,
+} from "../filesystem/write-content";
 import { ExecError, execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -25,7 +28,10 @@ import type {
 	PropertiesNetworks,
 } from "./types";
 
-export const cloneCompose = async (compose: Compose) => {
+export const cloneCompose = async (
+	compose: Compose,
+	staging: ContentStaging,
+) => {
 	let command = "set -e;";
 	const entity = {
 		...compose,
@@ -38,11 +44,11 @@ export const cloneCompose = async (compose: Compose) => {
 	} else if (compose.sourceType === "bitbucket") {
 		command += await cloneBitbucketRepository(entity);
 	} else if (compose.sourceType === "git") {
-		command += await cloneGitRepository(entity);
+		command += await cloneGitRepository(entity, staging);
 	} else if (compose.sourceType === "gitea") {
 		command += await cloneGiteaRepository(entity);
 	} else if (compose.sourceType === "raw") {
-		command += getCreateComposeFileCommand(compose);
+		command += await getCreateComposeFileCommand(compose, staging);
 	}
 	return command;
 };

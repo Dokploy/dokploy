@@ -1,5 +1,5 @@
 import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Compose now has a `createEnvFile` toggle (default true), mirroring the
 // Application builder's flag: when disabled, Dokploy never writes `.env`,
@@ -23,23 +23,38 @@ const baseCompose = {
 	domains: [],
 	environment: { project: { env: "" }, env: "" },
 } as unknown as Parameters<typeof getBuildComposeCommand>[0];
+const staging = {
+	stage: vi.fn().mockResolvedValue("/staged/env"),
+	cleanup: vi.fn(),
+};
+beforeEach(() => vi.clearAllMocks());
 
 describe("getBuildComposeCommand createEnvFile toggle", () => {
 	it("createEnvFile: false never writes the .env file", async () => {
-		const command = await getBuildComposeCommand({
-			...baseCompose,
-			createEnvFile: false,
-		});
+		const command = await getBuildComposeCommand(
+			{
+				...baseCompose,
+				createEnvFile: false,
+			},
+			staging,
+		);
 
 		expect(command).not.toContain("base64 -d >");
+		expect(staging.stage).not.toHaveBeenCalled();
 	});
 
 	it("createEnvFile: true (default) writes Dokploy's vars", async () => {
-		const command = await getBuildComposeCommand({
-			...baseCompose,
-			createEnvFile: true,
-		});
+		const command = await getBuildComposeCommand(
+			{
+				...baseCompose,
+				createEnvFile: true,
+			},
+			staging,
+		);
 
-		expect(command).toContain("base64 -d >");
+		expect(command).toContain("cat /staged/env >");
+		expect(staging.stage).toHaveBeenCalledWith(
+			expect.stringContaining('FOO="bar"'),
+		);
 	});
 });
