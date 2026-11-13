@@ -1,6 +1,5 @@
 import fs, { existsSync, readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { network, patch } from "@dokploy/server/db/schema";
@@ -9,6 +8,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
+import { writeContentToPath } from "../filesystem/write-content";
 import { ExecError, execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
@@ -134,21 +134,7 @@ exit 1;
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
-		if (compose.serverId) {
-			const temporaryPath = quote([
-				join(dirname(path), `.${basename(path)}.XXXXXX`),
-			]);
-			// Stage before opening the destination; trap PIPE when SSH closes stderr.
-			const command = `set -e; tmp=$(mktemp ${temporaryPath} 2>/dev/null || mktemp) || { echo 'Unable to create compose staging file' >&2; exit 1; }; trap 'rc=$?; rm -f "$tmp" || rc=1; exit "$rc"' 0; trap 'rm -f "$tmp"; exit 1' HUP INT TERM PIPE; cat > "$tmp"; size=$(wc -c < "$tmp"); [ "$size" -eq ${Buffer.byteLength(composeString)} ] || { echo 'Incomplete compose transfer' >&2; exit 1; }; cat "$tmp" > ${quote([path])}`;
-			await execAsyncRemote(
-				compose.serverId,
-				command,
-				undefined,
-				composeString,
-			);
-		} else {
-			await writeFile(path, composeString, "utf8");
-		}
+		await writeContentToPath(compose.serverId, path, composeString);
 		return "";
 	} catch (error) {
 		const message =

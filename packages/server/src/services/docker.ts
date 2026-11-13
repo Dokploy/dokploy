@@ -1,3 +1,4 @@
+import { stageContent } from "@dokploy/server/utils/filesystem/write-content";
 import {
 	ExecError,
 	execAsync,
@@ -752,6 +753,24 @@ export const getAllContainerStats = async (serverId?: string) => {
 
 const destinationPathRegex = /^[a-zA-Z0-9.\-_/]+$/;
 
+const copyContentToContainer = async (
+	containerPath: string,
+	content: string | Buffer,
+	tempPath: string,
+	serverId?: string | null,
+) => {
+	const staged = await stageContent(serverId, content);
+	try {
+		const temporary = quote([tempPath]);
+		// docker cp inherits the host source mode, not the private staging mode.
+		const command = `set -e; trap 'rc=$?; rm -f ${temporary} || rc=1; exit "$rc"' 0; trap 'rm -f ${temporary}; exit 1' HUP INT TERM PIPE; cat ${quote([staged.path])} > ${temporary}; docker cp ${temporary} ${quote([containerPath])}`;
+		if (serverId) await execAsyncRemote(serverId, command);
+		else await execAsync(command);
+	} finally {
+		await staged.cleanup();
+	}
+};
+
 export const uploadFileToContainer = async (
 	containerId: string,
 	fileBuffer: Buffer,
@@ -774,21 +793,19 @@ export const uploadFileToContainer = async (
 		? destinationPath
 		: `/${destinationPath}`;
 
-	const base64Content = fileBuffer.toString("base64");
 	const tempFileName = `dokploy-upload-${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 	const tempPath = `/tmp/${tempFileName}`;
-
-	const command = `echo '${base64Content}' | base64 -d > "${tempPath}" && docker cp "${tempPath}" "${containerId}:${normalizedPath}" ; rm -f "${tempPath}"`;
-
 	try {
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
-		} else {
-			await execAsync(command);
-		}
+		await copyContentToContainer(
+			`${containerId}:${normalizedPath}`,
+			fileBuffer,
+			tempPath,
+			serverId,
+		);
 	} catch (error) {
 		throw new Error(
-			`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}`,
+			`Failed to upload file to container: ${error instanceof Error ? error.message : String(error)}${error instanceof ExecError && error.stderr ? `: ${error.stderr.trim()}` : ""}`,
+			{ cause: error },
 		);
 	}
 };
@@ -873,13 +890,12 @@ export const writeContainerFile = async (
 	}
 
 	const tempPath = `/tmp/dokploy-edit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-	const command = `printf '%s' ${quote([base64Content])} | base64 -d > ${quote([tempPath])} && docker cp ${quote([tempPath])} ${quote([`${containerId}:${filePath}`])}; status=$?; rm -f ${quote([tempPath])}; exit $status`;
-
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
-	}
+	await copyContentToContainer(
+		`${containerId}:${filePath}`,
+		content,
+		tempPath,
+		serverId,
+	);
 };
 
 export const deleteContainerFile = async (

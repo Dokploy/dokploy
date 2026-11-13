@@ -10,8 +10,12 @@ import type {
 	updateScheduleSchema,
 } from "../db/schema/schedule";
 import { type Schedule, schedules } from "../db/schema/schedule";
-import { encodeBase64 } from "../utils/docker/utils";
-import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
+import { stageContent } from "../utils/filesystem/write-content";
+import {
+	ExecError,
+	execAsync,
+	execAsyncRemote,
+} from "../utils/process/execAsync";
 import { findMemberByUserId } from "./permission";
 import { findServerById } from "./server";
 
@@ -196,6 +200,10 @@ export const updateSchedule = async (
 };
 
 const handleScript = async (schedule: Schedule) => {
+	if (schedule.scheduleType === "server" && !schedule.serverId) {
+		throw new Error("A server ID is required for server schedules");
+	}
+
 	const { SCHEDULES_PATH } = paths(!!schedule?.serverId);
 	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");
 
@@ -203,20 +211,34 @@ const handleScript = async (schedule: Schedule) => {
 	const scriptWithPid = `echo "PID: $$ | Schedule ID: ${schedule.scheduleId}"
 ${schedule?.script || ""}`;
 
-	const encodedContent = encodeBase64(scriptWithPid);
 	const dir = quote([fullPath]);
 	const file = quote([path.join(fullPath, "script.sh")]);
-	const script = `
+	const serverId =
+		schedule.scheduleType === "server" ? schedule.serverId : null;
+	let staged: Awaited<ReturnType<typeof stageContent>> | undefined;
+
+	try {
+		staged = await stageContent(serverId, scriptWithPid);
+		const script = `
 	 	 mkdir -p ${dir}
 	 	 rm -f ${file}
 		 touch ${file}
 		 chmod +x ${file}
-		 echo "${encodedContent}" | base64 -d > ${file}
+		 cat ${quote([staged.path])} > ${file} || exit 1
 	`;
 
-	if (schedule?.scheduleType === "dokploy-server") {
-		await execAsync(script);
-	} else if (schedule?.scheduleType === "server") {
-		await execAsyncRemote(schedule?.serverId || "", script);
+		if (schedule?.scheduleType === "dokploy-server") {
+			await execAsync(script);
+		} else if (schedule?.scheduleType === "server" && serverId) {
+			await execAsyncRemote(serverId, script);
+		}
+	} catch (error) {
+		if (error instanceof ExecError && error.stderr)
+			throw new Error(`${error.message}: ${error.stderr.trim()}`, {
+				cause: error,
+			});
+		throw error;
+	} finally {
+		await staged?.cleanup();
 	}
 };
