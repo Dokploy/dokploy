@@ -27,6 +27,7 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
+	syncPreviewNoIndex,
 	unzipDrop,
 	updateApplication,
 	updateApplicationStatus,
@@ -794,6 +795,9 @@ export const applicationRouter = createTRPCRouter({
 					code: "BAD_REQUEST",
 					message: "Error updating application",
 				});
+			}
+			if (input.previewNoIndex !== undefined) {
+				await syncPreviewNoIndex(applicationId, input.previewNoIndex);
 			}
 			await audit(ctx, {
 				action: "update",

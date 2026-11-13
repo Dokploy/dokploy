@@ -49,6 +49,7 @@ const baseApp: ApplicationNested = {
 	previewPort: 3000,
 	previewLimit: 0,
 	previewCustomCertResolver: null,
+	previewNoIndex: false,
 	previewWildcard: "",
 	environmentId: "",
 	environment: {
@@ -151,6 +152,7 @@ const baseDomain: Domain = {
 	stripPath: false,
 	middlewares: null,
 	forwardAuthEnabled: false,
+	noIndex: false,
 	enabled: true,
 };
 

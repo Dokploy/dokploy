@@ -15,6 +15,10 @@ import { cloneGiteaRepository } from "../providers/gitea";
 import { cloneGithubRepository } from "../providers/github";
 import { cloneGitlabRepository } from "../providers/gitlab";
 import { getCreateComposeFileCommand } from "../providers/raw";
+import {
+	NO_INDEX_HEADER_VALUE,
+	noIndexMiddlewareName,
+} from "../traefik/middleware";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import { buildDokployLabels } from "./dokploy-labels";
@@ -189,6 +193,7 @@ const removeDomainLabels = (
 		`traefik.http.services.${appName}-${uniqueConfigKey}-`,
 		`traefik.http.middlewares.stripprefix-${appName}-${uniqueConfigKey}.`,
 		`traefik.http.middlewares.addprefix-${appName}-${uniqueConfigKey}.`,
+		`traefik.http.middlewares.${noIndexMiddlewareName(appName, uniqueConfigKey)}.`,
 	];
 	const belongsToDomain = (label: string) =>
 		prefixes.some((prefix) => label.startsWith(prefix));
@@ -516,6 +521,7 @@ export const createDomainLabels = (
 		customCertResolver,
 		stripPath,
 		internalPath,
+		noIndex,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
@@ -556,6 +562,18 @@ export const createDomainLabels = (
 		if (entrypoint === "web" || customEntrypoint) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
+			);
+		}
+		if (!isRedirectRouter) {
+			middlewares.push(middlewareName);
+		}
+	}
+
+	if (noIndex) {
+		const middlewareName = noIndexMiddlewareName(appName, uniqueConfigKey);
+		if (entrypoint === "web" || customEntrypoint) {
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.headers.customresponseheaders.X-Robots-Tag=${NO_INDEX_HEADER_VALUE}`,
 			);
 		}
 		if (!isRedirectRouter) {

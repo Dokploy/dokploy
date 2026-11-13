@@ -65,6 +65,7 @@ export const domain = z
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
+		noIndex: z.boolean().optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
@@ -220,6 +221,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			path: undefined,
 			internalPath: undefined,
 			stripPath: false,
+			noIndex: false,
 			port: undefined,
 			useCustomEntrypoint: false,
 			customEntrypoint: undefined,
@@ -248,6 +250,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				path: data?.path || undefined,
 				internalPath: data?.internalPath || undefined,
 				stripPath: data?.stripPath || false,
+				noIndex: data?.noIndex || false,
 				port: data?.port || undefined,
 				useCustomEntrypoint: !!data.customEntrypoint,
 				customEntrypoint: data.customEntrypoint || undefined,
@@ -265,6 +268,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				path: undefined,
 				internalPath: undefined,
 				stripPath: false,
+				noIndex: false,
 				port: undefined,
 				useCustomEntrypoint: false,
 				customEntrypoint: undefined,
@@ -634,6 +638,29 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												<FormDescription>
 													Remove the external path from the request before
 													forwarding to the application
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="noIndex"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-xs">
+											<div className="space-y-0.5">
+												<FormLabel>Block Search Engines</FormLabel>
+												<FormDescription>
+													Add an X-Robots-Tag: noindex, nofollow header so
+													search engines don't index this domain
 												</FormDescription>
 												<FormMessage />
 											</div>

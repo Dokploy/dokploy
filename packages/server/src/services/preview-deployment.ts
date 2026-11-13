@@ -14,9 +14,10 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
+import { deleteAllMiddlewares } from "../utils/traefik/middleware";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, updateDomainById } from "./domain";
 import { findGithubById, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -57,6 +58,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 
 		application.appName = previewDeployment.appName;
 		const cleanupOperations = [
+			async () => await deleteAllMiddlewares(application),
 			async () =>
 				await removeService(application?.appName, application?.serverId),
 			async () =>
@@ -143,6 +145,25 @@ export const findPreviewDeploymentsByApplicationId = async (
 	return deploymentsList;
 };
 
+export const syncPreviewNoIndex = async (
+	applicationId: string,
+	noIndex: boolean,
+) => {
+	const previews = await findPreviewDeploymentsByApplicationId(applicationId);
+	let application: Awaited<ReturnType<typeof findApplicationById>> | undefined;
+
+	for (const { appName, domain } of previews) {
+		if (!domain || domain.noIndex === noIndex) {
+			continue;
+		}
+		application ??= await findApplicationById(applicationId);
+		const updated = await updateDomainById(domain.domainId, { noIndex });
+		if (updated) {
+			await manageDomain({ ...application, appName }, updated);
+		}
+	}
+};
+
 export const createPreviewDeployment = async (
 	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
@@ -208,6 +229,7 @@ export const createPreviewDeployment = async (
 		https: application.previewHttps,
 		certificateType: application.previewCertificateType,
 		customCertResolver: application.previewCustomCertResolver,
+		noIndex: application.previewNoIndex,
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
 	});

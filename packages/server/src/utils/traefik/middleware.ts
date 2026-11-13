@@ -5,7 +5,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
-import { writeTraefikConfigRemote } from "./application";
+import { withTraefikConfigLock, writeTraefikConfigRemote } from "./application";
 import type { FileConfig } from "./file-types";
 
 export const addMiddleware = (config: FileConfig, middlewareName: string) => {
@@ -45,7 +45,7 @@ export const deleteMiddleware = (
 	}
 };
 
-export const deleteAllMiddlewares = async (application: ApplicationNested) => {
+const removeAppMiddlewares = async (application: ApplicationNested) => {
 	const { security, appName, redirects, serverId } = application;
 	let config: FileConfig;
 
@@ -66,6 +66,15 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 			const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
 			delete config.http.middlewares[middlewareName];
 		}
+
+		const appNoIndexMiddleware = new RegExp(
+			`^noindex-${escapeRegExp(appName)}-\\d+$`,
+		);
+		for (const middlewareName of Object.keys(config.http.middlewares)) {
+			if (appNoIndexMiddleware.test(middlewareName)) {
+				delete config.http.middlewares[middlewareName];
+			}
+		}
 	}
 
 	if (serverId) {
@@ -74,6 +83,14 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 		writeMiddleware(config);
 	}
 };
+
+export const deleteAllMiddlewares = (application: ApplicationNested) =>
+	withTraefikConfigLock(MIDDLEWARES_FILE_LOCK_KEY, application.serverId, () =>
+		removeAppMiddlewares(application),
+	);
+
+const escapeRegExp = (value: string) =>
+	value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const loadMiddlewares = <T>() => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
@@ -113,19 +130,52 @@ export const writeMiddleware = (config: FileConfig) => {
 	writeFileSync(configPath, newYamlContent, "utf8");
 };
 
-export const createPathMiddlewares = async (
+export const NO_INDEX_HEADER_VALUE = "noindex, nofollow";
+
+export const noIndexMiddlewareName = (
+	appName: string,
+	uniqueConfigKey: number,
+) => `noindex-${appName}-${uniqueConfigKey}`;
+
+const removeNoIndexMiddleware = async (
 	app: ApplicationNested,
-	domain: Domain,
+	uniqueConfigKey: number,
 ) => {
+	let config: FileConfig;
+	try {
+		config = app.serverId
+			? await loadRemoteMiddlewares(app.serverId)
+			: loadMiddlewares<FileConfig>();
+	} catch {
+		return;
+	}
+
+	const name = noIndexMiddlewareName(app.appName, uniqueConfigKey);
+	if (!config?.http?.middlewares?.[name]) {
+		return;
+	}
+	delete config.http.middlewares[name];
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
+	} else {
+		writeMiddleware(config);
+	}
+};
+
+const MIDDLEWARES_FILE_LOCK_KEY = "__middlewares.yml";
+
+const writePathMiddlewares = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
-	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+	const { uniqueConfigKey, internalPath, stripPath, path, noIndex } = domain;
 
 	// Early return if there's no path middleware to create
 	const needsInternalPathMiddleware =
 		internalPath && internalPath !== "/" && internalPath !== path;
 	const needsStripPathMiddleware = stripPath && path && path !== "/";
 
-	if (!needsInternalPathMiddleware && !needsStripPathMiddleware) {
+	if (!needsInternalPathMiddleware && !needsStripPathMiddleware && !noIndex) {
+		await removeNoIndexMiddleware(app, uniqueConfigKey);
 		return;
 	}
 
@@ -174,6 +224,19 @@ export const createPathMiddlewares = async (
 		};
 	}
 
+	const noIndexName = noIndexMiddlewareName(appName, uniqueConfigKey);
+	if (noIndex) {
+		config.http!.middlewares[noIndexName] = {
+			headers: {
+				customResponseHeaders: {
+					"X-Robots-Tag": NO_INDEX_HEADER_VALUE,
+				},
+			},
+		};
+	} else {
+		delete config.http!.middlewares[noIndexName];
+	}
+
 	if (app.serverId) {
 		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
 	} else {
@@ -181,7 +244,12 @@ export const createPathMiddlewares = async (
 	}
 };
 
-export const removePathMiddlewares = async (
+export const createPathMiddlewares = (app: ApplicationNested, domain: Domain) =>
+	withTraefikConfigLock(MIDDLEWARES_FILE_LOCK_KEY, app.serverId, () =>
+		writePathMiddlewares(app, domain),
+	);
+
+const deletePathMiddlewares = async (
 	app: ApplicationNested,
 	uniqueConfigKey: number,
 ) => {
@@ -213,6 +281,9 @@ export const removePathMiddlewares = async (
 
 		delete config.http.middlewares[addPrefixMiddleware];
 		delete config.http.middlewares[stripPrefixMiddleware];
+		delete config.http.middlewares[
+			noIndexMiddlewareName(appName, uniqueConfigKey)
+		];
 	}
 
 	if (
@@ -238,3 +309,11 @@ export const removePathMiddlewares = async (
 		writeMiddleware(config);
 	}
 };
+
+export const removePathMiddlewares = (
+	app: ApplicationNested,
+	uniqueConfigKey: number,
+) =>
+	withTraefikConfigLock(MIDDLEWARES_FILE_LOCK_KEY, app.serverId, () =>
+		deletePathMiddlewares(app, uniqueConfigKey),
+	);
