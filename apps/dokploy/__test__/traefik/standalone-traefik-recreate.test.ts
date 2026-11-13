@@ -1,4 +1,5 @@
 import {
+	ensureTraefikRunning,
 	initializeStandaloneTraefik,
 	lastLogLine,
 	restoreInterruptedTraefik,
@@ -28,6 +29,8 @@ const CRASH_LOG = frame(
 
 interface FakeOptions {
 	oldRunning?: boolean | null;
+	oldStartError?: Error;
+	backupStartError?: Error;
 	staleBackup?: boolean;
 	staleBackupRunning?: boolean;
 	imagePresent?: boolean;
@@ -42,6 +45,8 @@ interface FakeOptions {
 
 const fakeDocker = ({
 	oldRunning = true,
+	oldStartError,
+	backupStartError,
 	staleBackup = false,
 	staleBackupRunning = false,
 	imagePresent = true,
@@ -81,7 +86,10 @@ const fakeDocker = ({
 
 	const find = (ref: string) => {
 		const found = containers.find((c) => c.id === ref || c.name === ref);
-		if (!found) throw new Error(`No such container: ${ref}`);
+		if (!found)
+			throw Object.assign(new Error(`No such container: ${ref}`), {
+				statusCode: 404,
+			});
 		return found;
 	};
 
@@ -93,6 +101,19 @@ const fakeDocker = ({
 				c.id === "new" && crashLoop ? `crash-${++restarts}` : "steady";
 			return {
 				Id: c.id,
+				Config: {
+					Image: "custom-traefik:original",
+					Env: ["DNS_TOKEN=kept"],
+					Cmd: ["--ping"],
+					Labels: { custom: "kept" },
+				},
+				HostConfig: {
+					PortBindings: {
+						"9000/tcp": [{ HostPort: "9001", HostIp: "127.0.0.1" }],
+					},
+					Binds: ["/custom:/custom:ro"],
+					NetworkMode: "dokploy-network",
+				},
 				State: {
 					Running: c.running,
 					Status: c.running
@@ -137,6 +158,8 @@ const fakeDocker = ({
 			const c = find(ref);
 			log.push(`start ${c.id}`);
 			if (startError && c.id === "new") throw startError;
+			if (oldStartError && c.id === "old") throw oldStartError;
+			if (backupStartError && c.id === "stale") throw backupStartError;
 			neverStarted.delete(c.id);
 			c.running = true;
 		},
@@ -149,6 +172,14 @@ const fakeDocker = ({
 	});
 
 	const docker = {
+		getService: vi.fn(() => ({
+			inspect: vi.fn(async () => {
+				throw Object.assign(new Error("No such service"), { statusCode: 404 });
+			}),
+		})),
+		info: vi.fn().mockResolvedValue({
+			Swarm: { LocalNodeState: "active", ControlAvailable: true },
+		}),
 		getImage: () => ({
 			inspect: async () => {
 				if (!hasImage) throw new Error("No such image");
@@ -170,6 +201,7 @@ const fakeDocker = ({
 		},
 		getContainer: (ref: string) => container(ref),
 		getNetwork: (networkId: string) => ({
+			inspect: async () => ({ Id: networkId }),
 			connect: async ({
 				Container,
 				EndpointConfig,
@@ -500,7 +532,7 @@ describe("initializeStandaloneTraefik", () => {
 		]);
 	});
 
-	it("keeps the old behaviour on a fresh setup that fails: logs instead of throwing", async () => {
+	it("reports failure when a missing Traefik cannot be created", async () => {
 		const fake = fakeDocker({
 			oldRunning: null,
 			startError: new Error("port is already allocated"),
@@ -508,7 +540,7 @@ describe("initializeStandaloneTraefik", () => {
 
 		const error = await recreate(fake);
 
-		expect(error).toBeNull();
+		expect(error?.message).toBe("port is already allocated");
 		expect(fake.log).toEqual([
 			"create new",
 			"rename new -> dokploy-traefik",
@@ -608,7 +640,7 @@ describe("restoreInterruptedTraefik", () => {
 
 		await restoreInterruptedTraefik();
 
-		expect(fake.log).toEqual(["create new", "start old", "remove new"]);
+		expect(fake.log).toEqual(["create new", "remove new", "start old"]);
 		expect(fake.containers).toEqual([
 			{ id: "old", name: "dokploy-traefik", running: true },
 		]);
@@ -636,9 +668,9 @@ describe("restoreInterruptedTraefik", () => {
 
 		expect(fake.log).toEqual([
 			"create new",
+			"remove new",
 			"rename stale -> dokploy-traefik",
 			"start stale",
-			"remove new",
 		]);
 		expect(fake.containers).toEqual([
 			{ id: "stale", name: "dokploy-traefik", running: true },
@@ -724,6 +756,45 @@ describe("restoreInterruptedTraefik", () => {
 			{ id: "new", name: "dokploy-traefik", running: true },
 		]);
 	});
+	it.each(["restore", "recreate"])(
+		"handles stale backup networking during %s without blocking the next recreate",
+		async (operation) => {
+			const fake = fakeDocker({
+				oldRunning: null,
+				staleBackup: true,
+				backupStartError: new Error(
+					"attaching to network failed: network dokploy-network not found",
+				),
+			});
+			mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+			const result = (
+				operation === "restore"
+					? restoreInterruptedTraefik()
+					: initializeStandaloneTraefik()
+			).then(
+				() => null,
+				(error: Error) => error,
+			);
+			await vi.runAllTimersAsync();
+			expect(await result).toBeNull();
+			expect(fake.containers).toEqual([
+				{ id: "new", name: "dokploy-traefik", running: true },
+			]);
+		},
+	);
+	it("keeps a healthy restored backup running if the following update fails", async () => {
+		const fake = fakeDocker({
+			oldRunning: null,
+			staleBackup: true,
+			staleBackupRunning: true,
+			startError: new Error("invalid replacement configuration"),
+		});
+		const error = await recreate(fake);
+		expect(error?.message).toContain("The previous Traefik was restored");
+		expect(fake.containers).toEqual([
+			{ id: "stale", name: "dokploy-traefik", running: true },
+		]);
+	});
 });
 
 describe("lastLogLine", () => {
@@ -742,5 +813,192 @@ describe("lastLogLine", () => {
 
 	it("handles empty logs", () => {
 		expect(lastLogLine(Buffer.alloc(0))).toBe("");
+	});
+});
+
+describe("ensureTraefikRunning", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.useFakeTimers();
+		vi.spyOn(console, "log").mockImplementation(() => {});
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+	const recover = async (
+		fake: ReturnType<typeof fakeDocker>,
+		reload = false,
+	) => {
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		const result = ensureTraefikRunning(undefined, reload).then(
+			(value) => ({ value }),
+			(error: Error) => ({ error }),
+		);
+		await vi.runAllTimersAsync();
+		return result;
+	};
+	it("starts Traefik left exited after the overlay boot race without recreating it", async () => {
+		const fake = fakeDocker({ oldRunning: false });
+		expect(await recover(fake)).toEqual({ value: true });
+		expect(fake.log).toEqual(["start old"]);
+	});
+	it("does not disturb a running container", async () => {
+		const fake = fakeDocker();
+		expect(await recover(fake)).toEqual({ value: false });
+		expect(fake.log).toEqual([]);
+	});
+	it.each([
+		{ LocalNodeState: "inactive", ControlAvailable: false },
+		{ LocalNodeState: "active", ControlAvailable: false },
+	])(
+		"reloads standalone Traefik on a node with Swarm state %j",
+		async (Swarm) => {
+			const fake = fakeDocker({ oldRunning: false });
+			fake.docker.getService.mockReturnValue({
+				inspect: vi.fn().mockRejectedValue({ statusCode: 503 }),
+			});
+			fake.docker.info.mockResolvedValue({ Swarm });
+			expect(await recover(fake, true)).toEqual({ value: true });
+			expect(fake.log).toEqual(["start old"]);
+		},
+	);
+	it("reports a manager service inspection failure instead of creating a container", async () => {
+		const fake = fakeDocker({ oldRunning: null });
+		fake.docker.getService.mockReturnValue({
+			inspect: vi.fn().mockRejectedValue({ statusCode: 503 }),
+		});
+		expect(await recover(fake)).toMatchObject({ error: { statusCode: 503 } });
+		expect(fake.log).toEqual([]);
+	});
+	it.each(["current", "backup"])(
+		"repairs an interrupted update with a stale network on the %s container",
+		async (source) => {
+			const networkError = new Error(
+				"could not allocate IP from IPAM: Address already in use",
+			);
+			const fake = fakeDocker({
+				oldRunning: source === "current" ? false : null,
+				staleBackup: source === "backup",
+				oldStartError: networkError,
+				backupStartError: networkError,
+			});
+			await fake.docker.createContainer({ name: "dokploy-traefik-next" });
+			expect(await recover(fake)).toHaveProperty("value");
+			expect(fake.containers).toEqual([
+				{ id: "new2", name: "dokploy-traefik", running: true },
+			]);
+			expect(fake.createdWith()).toMatchObject({
+				Image: "custom-traefik:original",
+				Env: ["DNS_TOKEN=kept"],
+			});
+		},
+	);
+	it("recreates a missing container", async () => {
+		const fake = fakeDocker({ oldRunning: null });
+		expect(await recover(fake)).toEqual({ value: true });
+		expect(fake.containers).toEqual([
+			{ id: "new", name: "dokploy-traefik", running: true },
+		]);
+	});
+	it("recreates stale overlay endpoints while preserving the exact image, env, mounts, ports, command and other networks", async () => {
+		const fake = fakeDocker({
+			oldRunning: false,
+			oldStartError: new Error(
+				"could not allocate IP from IPAM: Address already in use",
+			),
+			oldNetworks: {
+				"isolated-compose": { NetworkID: "isolated-id", Aliases: ["proxy"] },
+			},
+		});
+		expect(await recover(fake)).toEqual({ value: true });
+		expect(fake.createdWith()).toMatchObject({
+			Image: "custom-traefik:original",
+			Env: ["DNS_TOKEN=kept"],
+			Cmd: ["--ping"],
+			Labels: { custom: "kept" },
+			HostConfig: {
+				Binds: ["/custom:/custom:ro"],
+				PortBindings: {
+					"9000/tcp": [{ HostPort: "9001", HostIp: "127.0.0.1" }],
+				},
+			},
+		});
+		expect(fake.log).toContain("connect new -> isolated-id");
+	});
+	it("does not replace a container when start fails for a non-network reason", async () => {
+		const fake = fakeDocker({
+			oldRunning: false,
+			oldStartError: new Error("permission denied"),
+		});
+		expect(await recover(fake)).toMatchObject({
+			error: { message: "permission denied" },
+		});
+		expect(fake.log).toEqual(["start old"]);
+	});
+	it("does not recreate for a port conflict reported as a container networking error", async () => {
+		const fake = fakeDocker({
+			oldRunning: false,
+			oldStartError: new Error(
+				"failed to set up container networking: driver failed programming external connectivity on endpoint dokploy-traefik: Bind for 0.0.0.0:80 failed: port is already allocated",
+			),
+		});
+		expect(await recover(fake)).toMatchObject({
+			error: { message: expect.stringContaining("port is already allocated") },
+		});
+		expect(fake.log).toEqual(["start old"]);
+	});
+	it("does not create a standalone container alongside a Swarm service", async () => {
+		const fake = fakeDocker({ oldRunning: null });
+		fake.docker.getService.mockReturnValue({
+			inspect: vi.fn().mockResolvedValue({ Spec: {} }),
+		});
+		expect(await recover(fake)).toEqual({ value: null });
+		expect(fake.log).toEqual([]);
+	});
+	it("propagates Docker errors instead of mistaking them for missing resources", async () => {
+		const fake = fakeDocker();
+		fake.docker.getService.mockReturnValue({
+			inspect: vi.fn().mockRejectedValue(new Error("connection reset")),
+		});
+		expect(await recover(fake)).toMatchObject({
+			error: { message: "connection reset" },
+		});
+		expect(fake.log).toEqual([]);
+	});
+	it("waits for the overlay to exist before trying any repair", async () => {
+		const fake = fakeDocker({ oldRunning: false });
+		vi.spyOn(fake.docker, "getNetwork").mockImplementation(() => {
+			throw new Error("network dokploy-network not found");
+		});
+		expect(await recover(fake)).toMatchObject({
+			error: { message: "network dokploy-network not found" },
+		});
+		expect(fake.log).toEqual([]);
+	});
+	it("a manual reload starts an exited container", async () => {
+		const fake = fakeDocker({ oldRunning: false });
+		expect(await recover(fake, true)).toEqual({ value: true });
+		expect(fake.log).toEqual(["start old"]);
+	});
+	it("reports creation failure when recovery cannot start a missing proxy", async () => {
+		const fake = fakeDocker({
+			oldRunning: null,
+			startError: new Error("port is already allocated"),
+		});
+		expect(await recover(fake)).toMatchObject({
+			error: { message: "port is already allocated" },
+		});
+		expect(fake.containers).toEqual([]);
+	});
+	it("serializes recovery with recreates", async () => {
+		const fake = fakeDocker();
+		mocks.getRemoteDocker.mockResolvedValue(fake.docker);
+		const update = initializeStandaloneTraefik();
+		const recovery = ensureTraefikRunning();
+		await vi.runAllTimersAsync();
+		await update;
+		expect(await recovery).toBe(false);
+		expect(fake.log.filter((line) => line === "create new")).toHaveLength(1);
 	});
 });

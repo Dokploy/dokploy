@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+	audit: vi.fn(),
 	findServerById: vi.fn(),
+	recoverTraefik: vi.fn(),
 	getTraefikOverview: vi.fn(),
 	pullTraefikImage: vi.fn(),
 	readEnvironmentVariableList: vi.fn(),
@@ -32,7 +34,7 @@ vi.mock("@dokploy/server/lib/auth", () => ({
 }));
 
 vi.mock("@/server/api/utils/audit", () => ({
-	audit: vi.fn(async () => undefined),
+	audit: mocks.audit,
 }));
 
 vi.mock("@/server/queues/queueSetup", () => ({
@@ -70,6 +72,7 @@ const overview = (versionStatus: string) => ({
 describe("Traefik update endpoints", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mocks.audit.mockResolvedValue(undefined);
 		mocks.findServerById.mockImplementation(async (serverId: string) => ({
 			serverId,
 			organizationId: serverId === "server-b" ? "org-b" : "org-a",
@@ -340,5 +343,97 @@ describe("Traefik update endpoints", () => {
 			memberCaller.updateTraefik({ serverId: "server-a" }),
 		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
 		expect(mocks.getTraefikOverview).not.toHaveBeenCalled();
+	});
+});
+
+describe("Traefik reload recovery", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.audit.mockResolvedValue(undefined);
+		mocks.findServerById.mockImplementation(async (serverId: string) => ({
+			organizationId: serverId === "server-b" ? "org-b" : "org-a",
+		}));
+		mocks.recoverTraefik.mockResolvedValue(undefined);
+	});
+	it("uses recovery for both local and selected-server reloads", async () => {
+		await caller.reloadTraefik({});
+		expect(mocks.recoverTraefik).toHaveBeenLastCalledWith(undefined, true);
+		await caller.reloadTraefik({ serverId: "server-a" });
+		expect(mocks.recoverTraefik).toHaveBeenLastCalledWith("server-a", true);
+	});
+	it("exposes background failures through the selected server overview", async () => {
+		mocks.recoverTraefik.mockRejectedValueOnce(
+			new Error("port is already allocated"),
+		);
+		await expect(caller.reloadTraefik({})).resolves.toBe(true);
+		await vi.waitFor(async () =>
+			expect(await caller.getTraefikOverview({})).toMatchObject({
+				isReloading: false,
+				lastReloadError: "port is already allocated",
+			}),
+		);
+		expect(
+			await caller.getTraefikOverview({ serverId: "server-a" }),
+		).toMatchObject({ lastReloadError: null });
+	});
+
+	it("starts recovery after the HTTP response is sent and starts it only once", async () => {
+		const { EventEmitter } = await import("node:events");
+		const res = new EventEmitter();
+		const httpCaller = settingsRouter.createCaller({
+			session: { activeOrganizationId: "org-a" },
+			user: { id: "user-1", role: "admin" },
+			res,
+		} as unknown as Parameters<typeof settingsRouter.createCaller>[0]);
+		await httpCaller.reloadTraefik({});
+		expect(mocks.recoverTraefik).not.toHaveBeenCalled();
+		expect(await caller.getTraefikOverview({})).toMatchObject({
+			isReloading: true,
+		});
+		await httpCaller.reloadTraefik({});
+		res.emit("finish");
+		res.emit("close");
+		await vi.waitFor(() => expect(mocks.recoverTraefik).toHaveBeenCalledOnce());
+		await vi.waitFor(async () =>
+			expect(await caller.getTraefikOverview({})).toMatchObject({
+				isReloading: false,
+				lastReloadError: null,
+			}),
+		);
+	});
+	it("deduplicates concurrent reload requests while auditing is pending", async () => {
+		const { EventEmitter } = await import("node:events");
+		const res = new EventEmitter();
+		const httpCaller = settingsRouter.createCaller({
+			session: { activeOrganizationId: "org-a" },
+			user: { id: "user-1", role: "admin" },
+			res,
+		} as unknown as Parameters<typeof settingsRouter.createCaller>[0]);
+		let finishAudit: () => void = () => {};
+		mocks.audit.mockReturnValue(
+			new Promise<void>((resolve) => {
+				finishAudit = resolve;
+			}),
+		);
+		const requests = Promise.all([
+			httpCaller.reloadTraefik({}),
+			httpCaller.reloadTraefik({}),
+		]);
+		await vi.waitFor(() => expect(mocks.audit).toHaveBeenCalledTimes(2));
+		finishAudit();
+		await requests;
+		res.emit("finish");
+		await vi.waitFor(async () =>
+			expect(await caller.getTraefikOverview({})).toMatchObject({
+				isReloading: false,
+			}),
+		);
+		expect(mocks.recoverTraefik).toHaveBeenCalledOnce();
+	});
+	it("denies reload on another organization's server", async () => {
+		await expect(
+			caller.reloadTraefik({ serverId: "server-b" }),
+		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+		expect(mocks.recoverTraefik).not.toHaveBeenCalled();
 	});
 });

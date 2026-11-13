@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useHealthCheckAfterMutation } from "@/hooks/use-health-check-after-mutation";
 import { api } from "@/utils/api";
+import { waitForTraefikReload } from "@/utils/wait-for-traefik-reload";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
@@ -22,7 +24,9 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
-	const { mutateAsync: reloadTraefik, isPending: reloadTraefikIsLoading } =
+	const utils = api.useUtils();
+	const [isReloading, setIsReloading] = useState(false);
+	const { mutateAsync: reloadTraefik } =
 		api.settings.reloadTraefik.useMutation();
 
 	const { mutateAsync: toggleDashboard, isPending: toggleDashboardIsLoading } =
@@ -45,32 +49,17 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 		},
 	});
 
-	const {
-		execute: executeReloadWithHealthCheck,
-		isExecuting: isReloadHealthCheckExecuting,
-	} = useHealthCheckAfterMutation({
-		initialDelay: 5000,
-		pollInterval: 4000,
-		successMessage: "Traefik Reloaded",
-	});
-
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				asChild
 				disabled={
-					reloadTraefikIsLoading ||
-					toggleDashboardIsLoading ||
-					isHealthCheckExecuting ||
-					isReloadHealthCheckExecuting
+					toggleDashboardIsLoading || isHealthCheckExecuting || isReloading
 				}
 			>
 				<Button
 					isLoading={
-						reloadTraefikIsLoading ||
-						toggleDashboardIsLoading ||
-						isHealthCheckExecuting ||
-						isReloadHealthCheckExecuting
+						toggleDashboardIsLoading || isHealthCheckExecuting || isReloading
 					}
 					variant="outline"
 				>
@@ -83,19 +72,24 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 				<DropdownMenuGroup>
 					<DropdownMenuItem
 						onClick={async () => {
+							setIsReloading(true);
 							try {
-								await executeReloadWithHealthCheck(() =>
-									reloadTraefik({ serverId }),
+								await reloadTraefik({ serverId });
+								await waitForTraefikReload(() =>
+									utils.client.settings.getTraefikOverview.query({ serverId }),
 								);
+								toast.success("Traefik Reloaded");
 							} catch (error) {
 								const errorMessage =
 									(error as Error)?.message ||
 									"Failed to reload Traefik. Please try again.";
 								toast.error(errorMessage);
+							} finally {
+								setIsReloading(false);
 							}
 						}}
 						className="cursor-pointer"
-						disabled={isReloadHealthCheckExecuting}
+						disabled={isReloading}
 					>
 						<span>Reload</span>
 					</DropdownMenuItem>

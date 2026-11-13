@@ -41,6 +41,7 @@ import {
 	readMainConfig,
 	readMonitoringConfig,
 	readPorts,
+	recoverTraefik,
 	recreateDirectory,
 	reloadDockerResource,
 	sendDockerCleanupNotifications,
@@ -122,6 +123,10 @@ const resolveTraefikFilePath = (
 
 const traefikUpdateLocks = new Map<string, symbol>();
 const traefikUpdateErrors = new Map<string, string>();
+const traefikReloads = new Map<
+	string,
+	{ running: boolean; error: string | null }
+>();
 
 export const settingsRouter = createTRPCRouter({
 	getWebServerSettings: protectedProcedure.query(async ({ ctx }) => {
@@ -173,17 +178,38 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.mutation(async ({ input, ctx }) => {
 			await assertServerAccess(ctx.session, input?.serverId);
-			// Run in background so the request returns immediately; avoids proxy timeouts.
-			void reloadDockerResource("dokploy-traefik", input?.serverId).catch(
-				(err) => {
-					console.error("reloadTraefik background:", err);
-				},
-			);
+			const key = input?.serverId ?? "local";
+			if (traefikReloads.get(key)?.running) return true;
 			await audit(ctx, {
 				action: "reload",
 				resourceType: "settings",
 				resourceName: "dokploy-traefik",
 			});
+			// Another request may have started a reload while the audit was pending.
+			if (traefikReloads.get(key)?.running) return true;
+			const state = { running: true, error: null as string | null };
+			traefikReloads.set(key, state);
+			let started = false;
+			const start = () => {
+				if (started) return;
+				started = true;
+				void recoverTraefik(input?.serverId, true)
+					.catch((error) => {
+						state.error =
+							error instanceof Error ? error.message : String(error);
+						console.error("Failed to reload Traefik:", error);
+					})
+					.finally(() => {
+						state.running = false;
+					});
+			};
+			// Send the response before restarting the proxy that may be serving it.
+			if (ctx.res) {
+				ctx.res.once("finish", start);
+				ctx.res.once("close", start);
+			} else {
+				start();
+			}
 			return true;
 		}),
 	toggleDashboard: adminProcedure
@@ -1228,6 +1254,8 @@ export const settingsRouter = createTRPCRouter({
 				...overview,
 				isUpdating: traefikUpdateLocks.has(key),
 				lastUpdateError: traefikUpdateErrors.get(key) ?? null,
+				isReloading: traefikReloads.get(key)?.running ?? false,
+				lastReloadError: traefikReloads.get(key)?.error ?? null,
 			};
 		}),
 	updateTraefik: adminProcedure

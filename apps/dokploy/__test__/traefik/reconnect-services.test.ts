@@ -1,71 +1,120 @@
-import { reconnectServicesToTraefik } from "@dokploy/server/services/settings";
+import {
+	reconnectServicesToTraefik,
+	recoverTraefik,
+} from "@dokploy/server/services/settings";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
 	findMany: vi.fn(),
-	execAsync: vi.fn(),
-	execAsyncRemote: vi.fn(),
+	getRemoteDocker: vi.fn(),
+	ensureTraefikRunning: vi.fn(),
 }));
-
 vi.mock("@dokploy/server/db", () => ({
-	db: {
-		query: {
-			compose: {
-				findMany: mocks.findMany,
-			},
-		},
-	},
+	db: { query: { compose: { findMany: mocks.findMany } } },
+}));
+vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
+	getRemoteDocker: mocks.getRemoteDocker,
+}));
+vi.mock("@dokploy/server/setup/traefik-setup", () => ({
+	ensureTraefikRunning: mocks.ensureTraefikRunning,
 }));
 
-vi.mock("@dokploy/server/utils/process/execAsync", () => ({
-	execAsync: mocks.execAsync,
-	execAsyncRemote: mocks.execAsyncRemote,
-}));
-
+const connect = vi.fn();
+const inspectNetwork = vi.fn();
+const inspectContainer = vi.fn();
+const listContainers = vi.fn();
 describe("reconnectServicesToTraefik", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mocks.findMany.mockResolvedValue([]);
+		mocks.getRemoteDocker.mockResolvedValue({
+			getContainer: () => ({ inspect: inspectContainer }),
+			getNetwork: () => ({ inspect: inspectNetwork, connect }),
+			listContainers,
+		});
+		listContainers.mockResolvedValue([]);
+		inspectContainer.mockResolvedValue({
+			Id: "exact-traefik-id",
+			NetworkSettings: { Networks: {} },
+		});
+		inspectNetwork.mockResolvedValue({ Id: "compose-network-id" });
+		connect.mockResolvedValue(undefined);
 	});
-
-	it("does not execute an empty local command when no isolated deployments exist", async () => {
+	it("does nothing when there are no isolated deployments", async () => {
 		await reconnectServicesToTraefik();
-
-		expect(mocks.execAsync).not.toHaveBeenCalled();
+		expect(mocks.getRemoteDocker).not.toHaveBeenCalled();
 	});
-
-	it("does not execute an empty remote command when no isolated deployments exist", async () => {
+	it.each([undefined, "server-id"])(
+		"reconnects the exact Traefik container on %s",
+		async (serverId) => {
+			mocks.findMany.mockResolvedValue([{ appName: "first-compose" }]);
+			await reconnectServicesToTraefik(serverId);
+			expect(mocks.getRemoteDocker).toHaveBeenCalledWith(serverId);
+			expect(connect).toHaveBeenCalledWith({ Container: "exact-traefik-id" });
+		},
+	);
+	it("filters local and remote deployments by the selected server", async () => {
+		await reconnectServicesToTraefik();
+		const local = new PgDialect().sqlToQuery(
+			mocks.findMany.mock.calls[0]![0].where,
+		);
+		expect(local.sql).toContain('"compose"."serverId" is null');
 		await reconnectServicesToTraefik("server-id");
-
-		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
+		const remote = new PgDialect().sqlToQuery(
+			mocks.findMany.mock.calls[1]![0].where,
+		);
+		expect(remote.params).toContain("server-id");
+		expect(remote.sql).not.toContain("is null");
 	});
-
-	it("reconnects isolated deployments to the local Traefik network", async () => {
-		mocks.findMany.mockResolvedValue([
-			{ appName: "first-compose" },
-			{ appName: "second-compose" },
+	it("reconnects running Swarm tasks by service label instead of the standalone name", async () => {
+		mocks.findMany.mockResolvedValue([{ appName: "first-compose" }]);
+		listContainers.mockResolvedValue([
+			{ Id: "task-container", Names: ["/dokploy-traefik.1.task-id"] },
 		]);
-
-		await reconnectServicesToTraefik();
-
-		expect(mocks.execAsync).toHaveBeenCalledOnce();
-		expect(mocks.execAsync).toHaveBeenCalledWith(
-			'docker network connect first-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n' +
-				'docker network connect second-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n',
-		);
-		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
-	});
-
-	it("reconnects isolated deployments on a remote server", async () => {
-		mocks.findMany.mockResolvedValue([{ appName: "remote-compose" }]);
-
+		inspectContainer.mockResolvedValue({
+			Id: "task-container",
+			NetworkSettings: { Networks: {} },
+		});
 		await reconnectServicesToTraefik("server-id");
-
-		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
-		expect(mocks.execAsyncRemote).toHaveBeenCalledWith(
-			"server-id",
-			'docker network connect remote-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n',
+		expect(listContainers).toHaveBeenCalledWith({
+			filters: JSON.stringify({
+				label: ["com.docker.swarm.service.name=dokploy-traefik"],
+				status: ["running"],
+			}),
+		});
+		expect(connect).toHaveBeenCalledWith({ Container: "task-container" });
+	});
+	it("does not reconnect existing attachments", async () => {
+		mocks.findMany.mockResolvedValue([{ appName: "first-compose" }]);
+		inspectContainer.mockResolvedValue({
+			Id: "exact-traefik-id",
+			NetworkSettings: { Networks: { "first-compose": {} } },
+		});
+		await reconnectServicesToTraefik();
+		expect(connect).not.toHaveBeenCalled();
+	});
+	it("skips undeployed networks but reports connection failures", async () => {
+		mocks.findMany.mockResolvedValue([{ appName: "first-compose" }]);
+		inspectNetwork.mockRejectedValueOnce({ statusCode: 404 });
+		await reconnectServicesToTraefik();
+		expect(connect).not.toHaveBeenCalled();
+		connect.mockRejectedValueOnce(new Error("connection failed"));
+		await expect(reconnectServicesToTraefik()).rejects.toThrow(
+			"connection failed",
 		);
-		expect(mocks.execAsync).not.toHaveBeenCalled();
+	});
+	it("retries network reconnection on healthy containers after a partial recovery", async () => {
+		mocks.ensureTraefikRunning
+			.mockResolvedValueOnce(false)
+			.mockResolvedValueOnce(true);
+		await recoverTraefik();
+		expect(mocks.findMany).toHaveBeenCalledOnce();
+		await recoverTraefik("server-id", true);
+		expect(mocks.ensureTraefikRunning).toHaveBeenLastCalledWith(
+			"server-id",
+			true,
+		);
+		expect(mocks.findMany).toHaveBeenCalledTimes(2);
 	});
 });
