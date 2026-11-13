@@ -27,6 +27,9 @@ const baseSettings: WebServerSettings = {
 	enableDockerCleanup: false,
 	telemetryProviderIds: [],
 	vectorAgentOrganizationId: null,
+	instanceOwnerId: null,
+	pendingOwnerId: null,
+	pendingOwnerExpiresAt: null,
 	buildsConcurrency: 1,
 	logCleanupCron: null,
 	metricsConfig: {

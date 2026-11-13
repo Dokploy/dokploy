@@ -15,6 +15,7 @@ import {
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
+	isInstanceOwner,
 	removeUserById,
 	renderInvitationEmail,
 	sendAccountDeletionCodeEmail,
@@ -225,7 +226,14 @@ export const userRouter = createTRPCRouter({
 			},
 		});
 
-		return memberResult;
+		if (!memberResult) {
+			return memberResult;
+		}
+
+		return {
+			...memberResult,
+			isInstanceOwner: !IS_CLOUD && (await isInstanceOwner(ctx.user.id)),
+		};
 	}),
 	getPermissions: protectedProcedure.query(async ({ ctx }) => {
 		return resolvePermissions(ctx);
@@ -483,6 +491,13 @@ export const userRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You cannot delete the organization owner",
+				});
+			}
+
+			if (await isInstanceOwner(input.userId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot delete the instance owner",
 				});
 			}
 

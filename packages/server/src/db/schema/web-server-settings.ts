@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { certificateType } from "./shared";
+import { user } from "./user";
 
 export const webServerSettings = pgTable("webServerSettings", {
 	id: text("id")
@@ -130,6 +131,13 @@ export const webServerSettings = pgTable("webServerSettings", {
 	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	// Auth Configuration (self-hosted only)
 	enforceSSO: boolean("enforceSSO").notNull().default(false),
+	instanceOwnerId: text("instanceOwnerId").references(() => user.id, {
+		onDelete: "set null",
+	}),
+	pendingOwnerId: text("pendingOwnerId").references(() => user.id, {
+		onDelete: "set null",
+	}),
+	pendingOwnerExpiresAt: timestamp("pendingOwnerExpiresAt"),
 	// Cache Cleanup Configuration
 	cleanupCacheApplications: boolean("cleanupCacheApplications")
 		.notNull()
@@ -198,6 +206,9 @@ export const apiUpdateWebServerSettings = createSchema
 	.omit({
 		telemetryProviderIds: true,
 		vectorAgentOrganizationId: true,
+		instanceOwnerId: true,
+		pendingOwnerId: true,
+		pendingOwnerExpiresAt: true,
 	});
 
 export const apiUpdateWebServerBuildsConcurrency = z.object({

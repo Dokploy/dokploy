@@ -607,6 +607,11 @@ function SidebarLogo() {
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
+	const { data: ownershipTransfer } = api.ownershipTransfer.incoming.useQuery(
+		undefined,
+		{ enabled: isCloud === false },
+	);
+	const pendingCount = (invitations?.length ?? 0) + (ownershipTransfer ? 1 : 0);
 
 	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
@@ -832,9 +837,7 @@ function SidebarLogo() {
 											})}
 										</CommandGroup>
 									</CommandList>
-									{(user?.role === "owner" ||
-										user?.role === "admin" ||
-										isCloud) && (
+									{(isCloud || user?.isInstanceOwner) && (
 										<div className="border-t p-1">
 											<AddOrganization />
 										</div>
@@ -857,9 +860,9 @@ function SidebarLogo() {
 									)}
 								>
 									<Bell className="size-4" />
-									{invitations && invitations.length > 0 && (
+									{pendingCount > 0 && (
 										<span className="absolute top-0 right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
-											{invitations.length}
+											{pendingCount}
 										</span>
 									)}
 								</Button>
@@ -871,6 +874,27 @@ function SidebarLogo() {
 							>
 								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
 								<div className="flex flex-col gap-2">
+									{ownershipTransfer && (
+										<DropdownMenuItem
+											asChild
+											className="flex flex-col items-start gap-1 p-3"
+										>
+											<Link href="/ownership-transfer">
+												<div className="font-medium">
+													Instance ownership transfer
+												</div>
+												<div className="text-xs text-muted-foreground break-words">
+													From: {ownershipTransfer.fromUser.email}
+												</div>
+												<div className="text-xs text-muted-foreground">
+													Expires:{" "}
+													{new Date(
+														ownershipTransfer.expiresAt,
+													).toLocaleString()}
+												</div>
+											</Link>
+										</DropdownMenuItem>
+									)}
 									{invitations && invitations.length > 0 ? (
 										invitations.map((invitation) => (
 											<div key={invitation.id} className="flex flex-col gap-2">
@@ -916,11 +940,11 @@ function SidebarLogo() {
 												</DialogAction>
 											</div>
 										))
-									) : (
+									) : pendingCount === 0 ? (
 										<DropdownMenuItem disabled>
 											No pending invitations
 										</DropdownMenuItem>
-									)}
+									) : null}
 								</div>
 							</DropdownMenuContent>
 						</DropdownMenu>

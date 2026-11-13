@@ -110,7 +110,13 @@ const createBetterAuth = () =>
 			"/scim/list-provider-connections",
 			"/scim/get-provider-connection",
 			"/scim/delete-provider-connection",
-			...(!IS_CLOUD ? ["/verify-email"] : []),
+			...(!IS_CLOUD
+				? [
+						"/verify-email",
+						"/organization/update-member-role",
+						"/organization/invite-member",
+					]
+				: []),
 		],
 		secret: betterAuthSecret,
 		onAPIError: {
@@ -319,6 +325,7 @@ const createBetterAuth = () =>
 						if (!IS_CLOUD && !isAdminPresent) {
 							await updateWebServerSettings({
 								serverIp: await getPublicIpWithFallback(),
+								instanceOwnerId: user.id,
 							});
 						}
 
