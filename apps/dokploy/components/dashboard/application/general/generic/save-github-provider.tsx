@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
+import { parseTriggerTagPatterns } from "@/utils/parse-trigger-tag-patterns";
 
 const GithubProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -64,6 +65,7 @@ const GithubProviderSchema = z.object({
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
+	triggerTags: z.string().default(""),
 	enableSubmodules: z.boolean().default(false),
 });
 
@@ -90,6 +92,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			githubId: "",
 			branch: "",
 			triggerType: "push",
+			triggerTags: "",
 			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
@@ -141,6 +144,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
+				triggerTags: data.triggerTags?.join(", ") || "",
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
@@ -156,6 +160,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			githubId: data.githubId,
 			watchPaths: data.watchPaths || [],
 			triggerType: data.triggerType,
+			triggerTags: parseTriggerTagPatterns(data.triggerTags),
 			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
@@ -466,6 +471,29 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{triggerType === "tag" && (
+							<FormField
+								control={form.control}
+								name="triggerTags"
+								render={({ field }) => (
+									<FormItem className="md:col-span-2">
+										<FormLabel>Tag patterns (optional)</FormLabel>
+										<FormControl>
+											<Input {...field} placeholder="all-*, go-*" />
+										</FormControl>
+										<p className="text-sm text-muted-foreground">
+											Separate patterns with commas, e.g. go-*, node-*. Commas
+											inside braces stay in one pattern: {"{go,node}-*"}. Use *
+											to match any characters. Matching is case-sensitive; leave
+											empty to deploy on any tag. Example: all-*, go-* matches
+											go-1, go-2 or all-1. Use a new tag name for each release.
+											Add all-* to each service to deploy them together.
+										</p>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						{triggerType === "push" && (
 							<FormField
 								control={form.control}

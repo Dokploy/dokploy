@@ -138,6 +138,7 @@ export const applications = pgTable("application", {
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
 	triggerType: triggerType("triggerType").default("push"),
+	triggerTags: text("triggerTags").array(),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
@@ -356,6 +357,7 @@ const createSchema = createInsertSchema(applications, {
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
 	triggerType: z.enum(["push", "tag"]).optional(),
+	triggerTags: z.array(z.string().trim().min(1)).optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",
@@ -477,7 +479,13 @@ export const apiSaveGithubProvider = createSchema
 		triggerType: z.enum(["push", "tag"]).default("push"),
 	})
 	.required()
-	.merge(createSchema.pick({ enableSubmodules: true, watchPaths: true }));
+	.merge(
+		createSchema.pick({
+			enableSubmodules: true,
+			watchPaths: true,
+			triggerTags: true,
+		}),
+	);
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({
