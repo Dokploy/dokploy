@@ -1,7 +1,7 @@
 import {
 	createSandbox,
 	execInSandbox,
-	findSandboxById,
+	findOrganizationSandbox,
 	findSandboxesByOrganizationId,
 	getAccessibleServerIds,
 	getWebServerSettings,
@@ -12,6 +12,7 @@ import {
 	removeSandbox,
 	SANDBOX_TEMPLATES,
 	setSandboxTimeout,
+	stripSandboxSecrets,
 	writeSandboxFile,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -26,25 +27,6 @@ import {
 	apiSetTimeoutSandbox,
 	apiWriteFileSandbox,
 } from "@/server/db/schema";
-
-const findOrganizationSandbox = async (
-	sandboxId: string,
-	organizationId: string,
-) => {
-	const sandbox = await findSandboxById(sandboxId);
-	if (sandbox.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not authorized to access this sandbox",
-		});
-	}
-	return sandbox;
-};
-
-const stripSecrets = <T extends { envVars: string | null }>(sandbox: T) => {
-	const { envVars: _envVars, ...rest } = sandbox;
-	return rest;
-};
 
 export const sandboxRouter = createTRPCRouter({
 	templates: withPermission("sandbox", "read").query(() =>
@@ -88,7 +70,7 @@ export const sandboxRouter = createTRPCRouter({
 				resourceId: sandbox.sandboxId,
 				resourceName: sandbox.name,
 			});
-			return stripSecrets(sandbox);
+			return stripSandboxSecrets(sandbox);
 		}),
 
 	one: withPermission("sandbox", "read")
@@ -98,14 +80,14 @@ export const sandboxRouter = createTRPCRouter({
 				input.sandboxId,
 				ctx.session.activeOrganizationId,
 			);
-			return stripSecrets(sandbox);
+			return stripSandboxSecrets(sandbox);
 		}),
 
 	list: withPermission("sandbox", "read").query(async ({ ctx }) => {
 		const sandboxes = await findSandboxesByOrganizationId(
 			ctx.session.activeOrganizationId,
 		);
-		return sandboxes.map(stripSecrets);
+		return sandboxes.map(stripSandboxSecrets);
 	}),
 
 	exec: withPermission("sandbox", "create")
@@ -185,7 +167,7 @@ export const sandboxRouter = createTRPCRouter({
 				resourceName: sandbox.name,
 				metadata: { timeoutMs: input.timeoutMs },
 			});
-			return updated ? stripSecrets(updated) : null;
+			return updated ? stripSandboxSecrets(updated) : null;
 		}),
 
 	kill: withPermission("sandbox", "create")
@@ -202,7 +184,7 @@ export const sandboxRouter = createTRPCRouter({
 				resourceId: sandbox.sandboxId,
 				resourceName: sandbox.name,
 			});
-			return killed ? stripSecrets(killed) : null;
+			return killed ? stripSandboxSecrets(killed) : null;
 		}),
 
 	remove: withPermission("sandbox", "delete")

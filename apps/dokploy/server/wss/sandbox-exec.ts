@@ -1,7 +1,7 @@
 import type http from "node:http";
 import {
 	execInSandbox,
-	findSandboxById,
+	findOrganizationSandbox,
 	validateRequest,
 } from "@dokploy/server";
 import { checkPermission } from "@dokploy/server/services/permission";
@@ -47,6 +47,7 @@ export const setupSandboxExecWebSocketServer = (
 		}
 
 		let running = false;
+		let organizationId = "";
 		const handle = async (raw: RawData) => {
 			let parsed: z.infer<typeof execMessage>;
 			try {
@@ -64,7 +65,10 @@ export const setupSandboxExecWebSocketServer = (
 			}
 			running = true;
 			try {
-				const sandbox = await findSandboxById(sandboxId);
+				const sandbox = await findOrganizationSandbox(
+					sandboxId,
+					organizationId,
+				);
 				const result = await execInSandbox(sandbox, {
 					cmd: parsed.cmd,
 					cwd: parsed.cwd,
@@ -105,18 +109,15 @@ export const setupSandboxExecWebSocketServer = (
 			ws.close(4001, "Unauthorized");
 			return;
 		}
+		organizationId = session.activeOrganizationId;
 		const ctx = {
 			user: { id: user.id },
-			session: { activeOrganizationId: session.activeOrganizationId },
+			session: { activeOrganizationId: organizationId },
 		};
 
 		try {
 			await checkPermission(ctx, { sandbox: ["create"] });
-			const sandbox = await findSandboxById(sandboxId);
-			if (sandbox.organizationId !== session.activeOrganizationId) {
-				ws.close(4003, "Not authorized");
-				return;
-			}
+			await findOrganizationSandbox(sandboxId, organizationId);
 		} catch {
 			ws.close(4003, "Not authorized");
 			return;

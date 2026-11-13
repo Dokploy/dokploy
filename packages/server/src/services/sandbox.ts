@@ -119,6 +119,27 @@ export const findSandboxById = async (sandboxId: string) => {
 	return settleSandboxStatus(result);
 };
 
+export const findOrganizationSandbox = async (
+	sandboxId: string,
+	organizationId: string,
+) => {
+	const sandbox = await findSandboxById(sandboxId);
+	if (sandbox.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this sandbox",
+		});
+	}
+	return sandbox;
+};
+
+export const stripSandboxSecrets = <T extends { envVars: string | null }>(
+	sandbox: T,
+) => {
+	const { envVars: _envVars, ...rest } = sandbox;
+	return rest;
+};
+
 export const findSandboxesByOrganizationId = async (organizationId: string) => {
 	const rows = await db.query.sandboxes.findMany({
 		where: eq(sandboxes.organizationId, organizationId),
