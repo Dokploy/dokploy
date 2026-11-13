@@ -8,6 +8,10 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import {
+	ArchivedRepositoryAlert,
+	RepositoryCommandGroups,
+} from "@/components/shared/repository-command-groups";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,15 +52,8 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-
-interface GiteaRepository {
-	name: string;
-	url: string;
-	id: number;
-	owner: {
-		username: string;
-	};
-}
+import type { Repository as GiteaRepository } from "@/utils/gitea-utils";
+import { toGiteaRepositoryOption } from "@/utils/repository-options";
 
 interface GiteaBranch {
 	name: string;
@@ -124,13 +121,18 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 		data: repositories,
 		isLoading: isLoadingRepositories,
 		error,
-	} = api.gitea.getGiteaRepositories.useQuery(
+	} = api.gitea.getGiteaRepositories.useQuery<GiteaRepository[]>(
 		{
 			giteaId,
 		},
 		{
 			enabled: !!giteaId,
 		},
+	);
+	const selectedRepository = repositories?.find(
+		(repo) =>
+			repo.name === repository?.repo &&
+			repo.owner.username === repository?.owner,
 	);
 
 	const {
@@ -268,11 +270,8 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 														? "Select repository"
 														: isLoadingRepositories
 															? "Loading...."
-															: (repositories?.find(
-																	(repo: GiteaRepository) =>
-																		repo.name === field.value.repo &&
-																		repo.owner.username === field.value.owner,
-																)?.name ?? "Select repository")}
+															: (selectedRepository?.name ??
+																"Select repository")}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -298,51 +297,26 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
-													<CommandGroup>
-														{repositories && repositories.length === 0 && (
-															<CommandEmpty>
-																No repositories found.
-															</CommandEmpty>
-														)}
-														{repositories?.map((repo: GiteaRepository) => {
-															return (
-																<CommandItem
-																	value={`${repo.owner.username}/${repo.name}`}
-																	key={repo.url}
-																	onSelect={() => {
-																		form.setValue("repository", {
-																			owner: repo.owner.username as string,
-																			repo: repo.name,
-																		});
-																		form.setValue("branch", "");
-																	}}
-																>
-																	<span className="flex min-w-0 items-center gap-2">
-																		<span className="truncate">
-																			{repo.name}
-																		</span>
-																		<span className="text-muted-foreground text-xs">
-																			{repo.owner.username}
-																		</span>
-																	</span>
-																	<CheckIcon
-																		className={cn(
-																			"ml-auto h-4 w-4",
-																			repo.name === field.value.repo &&
-																				repo.owner.username ===
-																					field.value.owner
-																				? "opacity-100"
-																				: "opacity-0",
-																		)}
-																	/>
-																</CommandItem>
-															);
-														})}
-													</CommandGroup>
+													<RepositoryCommandGroups
+														repositories={repositories}
+														toOption={toGiteaRepositoryOption}
+														isSelected={(repo) =>
+															repo.name === field.value.repo &&
+															repo.owner.username === field.value.owner
+														}
+														onSelect={(repo) => {
+															form.setValue("repository", {
+																owner: repo.owner.username as string,
+																repo: repo.name,
+															});
+															form.setValue("branch", "");
+														}}
+													/>
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
 									</Popover>
+									{selectedRepository?.archived && <ArchivedRepositoryAlert />}
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
 											Repository is required

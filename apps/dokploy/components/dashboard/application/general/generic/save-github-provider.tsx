@@ -7,6 +7,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
+import {
+	ArchivedRepositoryAlert,
+	RepositoryCommandGroups,
+} from "@/components/shared/repository-command-groups";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +52,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { DEFAULT_GITHUB_URL } from "@/utils/github-utils";
+import { toGithubRepositoryOption } from "@/utils/repository-options";
 
 const GithubProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -113,6 +118,10 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				enabled: !!githubId,
 			},
 		);
+	const selectedRepository = repositories?.find(
+		(repo) =>
+			repo.name === repository?.repo && repo.owner.login === repository?.owner,
+	);
 
 	const {
 		data: branches,
@@ -257,11 +266,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 														? "Select repository"
 														: isLoadingRepositories
 															? "Loading...."
-															: (repositories?.find(
-																	(repo) =>
-																		repo.name === field.value.repo &&
-																		repo.owner.login === field.value.owner,
-																)?.name ?? field.value.repo)}
+															: (selectedRepository?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -287,41 +292,26 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												) : null}
 												<CommandEmpty>No repositories found.</CommandEmpty>
 												<ScrollArea className="h-96">
-													<CommandGroup>
-														{repositories?.map((repo) => (
-															<CommandItem
-																value={`${repo.owner.login}/${repo.name}`}
-																key={repo.url}
-																onSelect={() => {
-																	form.setValue("repository", {
-																		owner: repo.owner.login as string,
-																		repo: repo.name,
-																	});
-																	form.setValue("branch", "");
-																}}
-															>
-																<span className="flex min-w-0 items-center gap-2">
-																	<span className="truncate">{repo.name}</span>
-																	<span className="text-muted-foreground text-xs">
-																		{repo.owner.login}
-																	</span>
-																</span>
-																<CheckIcon
-																	className={cn(
-																		"ml-auto h-4 w-4",
-																		repo.name === field.value.repo &&
-																			repo.owner.login === field.value.owner
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-															</CommandItem>
-														))}
-													</CommandGroup>
+													<RepositoryCommandGroups
+														repositories={repositories}
+														toOption={toGithubRepositoryOption}
+														isSelected={(repo) =>
+															repo.name === field.value.repo &&
+															repo.owner.login === field.value.owner
+														}
+														onSelect={(repo) => {
+															form.setValue("repository", {
+																owner: repo.owner.login as string,
+																repo: repo.name,
+															});
+															form.setValue("branch", "");
+														}}
+													/>
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
 									</Popover>
+									{selectedRepository?.archived && <ArchivedRepositoryAlert />}
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
 											Repository is required

@@ -145,6 +145,9 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 		url: string;
 		slug: string;
 		owner: { username: string };
+		visibility: "public" | "private";
+		fork: boolean;
+		lastActivityAt: string | null;
 	}[] = [];
 
 	try {
@@ -170,6 +173,9 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 				owner: {
 					username: repo.workspace.slug,
 				},
+				visibility: repo.is_private ? "private" : "public",
+				fork: Boolean(repo.parent),
+				lastActivityAt: repo.updated_on,
 			}));
 			repositories = repositories.concat(mappedData);
 			url = data.next || null;
