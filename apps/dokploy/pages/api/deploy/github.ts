@@ -112,6 +112,12 @@ export default async function handler(
 		return;
 	}
 
+	// Deleting a branch or tag also sends a push event, with nothing left to deploy.
+	if (req.headers["x-github-event"] === "push" && githubBody?.deleted) {
+		res.status(200).json({ message: "Deployment skipped: ref was deleted" });
+		return;
+	}
+
 	// Handle tag creation event
 	if (
 		req.headers["x-github-event"] === "push" &&
