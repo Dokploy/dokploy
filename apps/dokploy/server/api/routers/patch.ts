@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	cleanPatchRepos,
 	createPatch,
 	deletePatch,
@@ -317,6 +318,7 @@ export const patchRouter = createTRPCRouter({
 	cleanPatchRepos: adminProcedure
 		.input(z.object({ serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId);
 			await cleanPatchRepos(input.serverId);
 			await audit(ctx, {
 				action: "delete",
