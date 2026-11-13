@@ -28,13 +28,51 @@ import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
+const getScheduleServiceId = (schedule: {
+	scheduleType: string;
+	applicationId: string | null;
+	composeId: string | null;
+}) => {
+	if (schedule.scheduleType === "application") return schedule.applicationId;
+	if (schedule.scheduleType === "compose") return schedule.composeId;
+	return null;
+};
+
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
 			await assertHostScheduleAccess(ctx, input.scheduleType, input.serverId);
 
-			const serviceId = input.applicationId || input.composeId;
+			const serviceId =
+				input.scheduleType === "application"
+					? input.applicationId
+					: input.scheduleType === "compose"
+						? input.composeId
+						: undefined;
+			if (
+				(input.scheduleType === "application" ||
+					input.scheduleType === "compose") &&
+				!serviceId
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A service is required for this schedule type",
+				});
+			}
+			const extraIds = [
+				input.scheduleType !== "application" && input.applicationId,
+				input.scheduleType !== "compose" && input.composeId,
+				(input.scheduleType === "application" ||
+					input.scheduleType === "compose") &&
+					input.serverId,
+			].filter(Boolean);
+			if (extraIds.length > 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Unexpected service or server for this schedule type",
+				});
+			}
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
@@ -117,8 +155,21 @@ export const scheduleRouter = createTRPCRouter({
 				);
 			}
 
-			const serviceId =
-				existingSchedule.applicationId || existingSchedule.composeId;
+			const rebinds =
+				(input.applicationId !== undefined &&
+					input.applicationId !== existingSchedule.applicationId) ||
+				(input.composeId !== undefined &&
+					input.composeId !== existingSchedule.composeId) ||
+				(input.serverId !== undefined &&
+					input.serverId !== existingSchedule.serverId);
+			if (rebinds) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A schedule cannot be moved to another service or server",
+				});
+			}
+
+			const serviceId = getScheduleServiceId(existingSchedule);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["update"],
@@ -171,7 +222,7 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.serverId,
 			);
 
-			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
+			const serviceId = getScheduleServiceId(scheduleItem);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["delete"],
@@ -289,7 +340,7 @@ export const scheduleRouter = createTRPCRouter({
 		.input(z.object({ scheduleId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			const schedule = await findScheduleById(input.scheduleId);
-			const serviceId = schedule.applicationId || schedule.composeId;
+			const serviceId = getScheduleServiceId(schedule);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["read"],
@@ -327,7 +378,7 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.serverId,
 			);
 
-			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
+			const serviceId = getScheduleServiceId(scheduleItem);
 			if (serviceId) {
 				await checkServicePermissionAndAccess(ctx, serviceId, {
 					schedule: ["create"],
