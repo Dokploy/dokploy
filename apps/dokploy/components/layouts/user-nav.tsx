@@ -40,7 +40,7 @@ export const UserNav = () => {
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
-						<AvatarFallback>
+						<AvatarFallback className="rounded-full">
 							{getFallbackAvatarInitials(
 								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
 							)}
