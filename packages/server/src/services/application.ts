@@ -225,7 +225,7 @@ export const deployApplication = async ({
 			});
 		}
 
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, staging);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
@@ -305,11 +305,12 @@ export const rebuildApplication = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	const staging = createContentStaging(serverId);
 
 	try {
 		let command = "set -e;";
 		// Check case for docker only
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, staging);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -334,6 +335,8 @@ export const rebuildApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
+	} finally {
+		await staging.cleanup();
 	}
 
 	return true;
@@ -373,6 +376,9 @@ export const deployPreviewApplication = async ({
 		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
 		githubId: application?.githubId || "",
 	};
+	const staging = createContentStaging(
+		application.buildServerId || application.serverId,
+	);
 	try {
 		const commentExists = await issueCommentExists({
 			...issueParams,
@@ -420,7 +426,7 @@ export const deployPreviewApplication = async ({
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
-			command += await getBuildCommand(application);
+			command += await getBuildCommand(application, staging);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (serverId) {
@@ -454,6 +460,8 @@ export const deployPreviewApplication = async ({
 			previewStatus: "error",
 		});
 		throw error;
+	} finally {
+		await staging.cleanup();
 	}
 
 	return true;
@@ -488,6 +496,9 @@ export const rebuildPreviewApplication = async ({
 		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
 		githubId: application?.githubId || "",
 	};
+	const staging = createContentStaging(
+		application.buildServerId || application.serverId,
+	);
 
 	try {
 		const commentExists = await issueCommentExists({
@@ -533,7 +544,7 @@ export const rebuildPreviewApplication = async ({
 		const serverId = application.buildServerId || application.serverId;
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(application, staging);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -569,6 +580,8 @@ export const rebuildPreviewApplication = async ({
 			previewStatus: "error",
 		});
 		throw error;
+	} finally {
+		await staging.cleanup();
 	}
 
 	return true;

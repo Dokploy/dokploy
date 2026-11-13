@@ -241,6 +241,10 @@ describe("deployApplication - Command Generation Tests", () => {
 			expect(execProcess.execAsync).not.toHaveBeenCalled();
 			expect(builders.getBuildCommand).toHaveBeenCalledWith(
 				expect.objectContaining({ buildType: "nixpacks" }),
+				expect.objectContaining({
+					stage: expect.any(Function),
+					cleanup: expect.any(Function),
+				}),
 			);
 		} finally {
 			cloneSpy.mockRestore();
@@ -262,6 +266,10 @@ describe("deployApplication - Command Generation Tests", () => {
 				buildType: "nixpacks",
 				customGitUrl: "https://github.com/Dokploy/examples.git",
 				buildPath: "/astro",
+			}),
+			expect.objectContaining({
+				stage: expect.any(Function),
+				cleanup: expect.any(Function),
 			}),
 		);
 
@@ -291,6 +299,10 @@ describe("deployApplication - Command Generation Tests", () => {
 		expect(builders.getBuildCommand).toHaveBeenCalledWith(
 			expect.objectContaining({
 				buildType: "railpack",
+			}),
+			expect.objectContaining({
+				stage: expect.any(Function),
+				cleanup: expect.any(Function),
 			}),
 		);
 

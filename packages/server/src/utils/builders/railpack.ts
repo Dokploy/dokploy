@@ -1,13 +1,14 @@
 import { createHash } from "node:crypto";
 import { nanoid } from "nanoid";
-import { quote } from "shell-quote";
 import {
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForShell,
 } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import type { ContentStaging } from "../filesystem/write-content";
 import type { ApplicationNested } from ".";
+import { stageBuildArguments } from "./utils";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");
@@ -17,7 +18,10 @@ const calculateSecretsHash = (envVariables: string[]): string => {
 	return hash.digest("hex");
 };
 
-export const getRailpackCommand = (application: ApplicationNested) => {
+export const getRailpackCommand = async (
+	application: ApplicationNested,
+	staging: ContentStaging,
+) => {
 	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariablesForShell(
@@ -36,9 +40,14 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		`${buildAppDirectory}/railpack-info.json`,
 	];
 
-	for (const env of envVariables) {
-		prepareArgs.push("--env", env);
-	}
+	const preparePrefix = await stageBuildArguments(
+		staging,
+		prepareEnvironmentVariables(
+			env,
+			application.environment.project.env,
+			application.environment.env,
+		).flatMap((pair) => ["--env", pair]),
+	);
 
 	// Calculate secrets hash for layer invalidation
 	const secretsHash = calculateSecretsHash(envVariables);
@@ -71,16 +80,22 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		application.environment.project.env,
 		application.environment.env,
 	);
-	const exportEnvs = [];
+	const exportEnvs: Record<string, string> = {};
+	const secretArgs: string[] = [];
 	for (const pair of rawEnvVariables) {
 		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
-			buildArgs.push("--secret", `id=${key},env=${key}`);
-			exportEnvs.push(`export ${key}=${quote([value])}`);
+			secretArgs.push("--secret", `id=${key},env=${key}`);
+			exportEnvs[key] = value;
 		}
 	}
 
 	buildArgs.push(buildAppDirectory);
+	const buildPrefix = await stageBuildArguments(
+		staging,
+		secretArgs,
+		exportEnvs,
+	);
 
 	const bashCommand = `
 
@@ -99,7 +114,7 @@ $SUDO_CMD bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 docker buildx create --name ${builderName} --driver docker-container || true
 
 echo "Preparing Railpack build plan..." ;
-railpack ${prepareArgs.join(" ")} || {
+${preparePrefix} railpack ${prepareArgs.join(" ")} || {
 	echo "❌ Railpack prepare failed" ;
 	docker buildx rm ${builderName} || true
 	exit 1;
@@ -107,9 +122,7 @@ railpack ${prepareArgs.join(" ")} || {
 echo "✅ Railpack prepare completed." ;
 
 echo "Building with Railpack frontend..." ;
-# Export environment variables for secrets
-${exportEnvs.join("\n")}
-docker ${buildArgs.join(" ")} || {
+${buildPrefix} docker ${buildArgs.join(" ")} || {
 	echo "❌ Railpack build failed" ;
 	docker buildx rm ${builderName} || true
 	exit 1;

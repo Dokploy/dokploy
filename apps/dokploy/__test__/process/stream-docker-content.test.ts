@@ -171,10 +171,10 @@ describe("stream Docker file content", () => {
 				async () => {
 					const prefix = read();
 					for (const kind of ["new", "existing", "symlink"]) {
-						const base = site === "volume" ? "/__volume" : "";
 						await run(
-							`${prefix} sh -c ${quote([`rm -f ${base}/file.txt ${base}/legacy.txt ${base}/pin ${base}/legacy-pin`])} `,
+							`${prefix} sh -c ${quote(["rm -f /" + (site === "volume" ? "__volume/" : "") + "file.txt /" + (site === "volume" ? "__volume/" : "") + "legacy.txt /" + (site === "volume" ? "__volume/" : "") + "pin /" + (site === "volume" ? "__volume/" : "") + "legacy-pin"])} `,
 						);
+						const base = site === "volume" ? "/__volume" : "";
 						if (kind !== "new")
 							await run(
 								`${prefix} sh -c ${quote([`echo prior > ${base}/target; echo prior > ${base}/legacy-target; chmod 646 ${base}/target ${base}/legacy-target; chown 1234:1235 ${base}/target ${base}/legacy-target; ln ${base}/target ${base}/pin; ln ${base}/legacy-target ${base}/legacy-pin; ${kind === "symlink" ? `ln -s target ${base}/file.txt; ln -s legacy-target ${base}/legacy.txt` : `mv ${base}/target ${base}/file.txt; mv ${base}/legacy-target ${base}/legacy.txt`}`])}`,
