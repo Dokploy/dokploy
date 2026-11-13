@@ -18,7 +18,7 @@ export const VAULT_SECRET_MASK = "********";
 const SENSITIVE_FIELDS: Record<VaultProviderConfig["providerType"], string[]> =
 	{
 		hashicorp: ["token"],
-		infisical: ["clientSecret"],
+		infisical: ["clientSecret", "serviceToken"],
 		aws: ["secretAccessKey"],
 		"aws-parameter-store": ["secretAccessKey"],
 		doppler: ["serviceToken"],

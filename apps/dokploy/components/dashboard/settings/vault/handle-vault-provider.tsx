@@ -73,6 +73,7 @@ const VaultProviderSchema = z
 		namespace: z.string(),
 		mount: z.string(),
 		siteUrl: z.string(),
+		infisicalAuthMethod: z.enum(["universal-auth", "service-token"]),
 		clientId: z.string(),
 		clientSecret: z.string(),
 		projectId: z.string(),
@@ -205,8 +206,6 @@ const VaultProviderSchema = z
 			],
 			infisical: [
 				["siteUrl", "Site URL is required"],
-				["clientId", "Client ID is required"],
-				["clientSecret", "Client Secret is required"],
 				["projectId", "Project ID is required"],
 				["environmentSlug", "Environment is required"],
 			],
@@ -238,6 +237,33 @@ const VaultProviderSchema = z
 				["phaseEnv", "Environment is required"],
 			],
 		};
+
+		if (data.providerType === "infisical") {
+			if (data.infisicalAuthMethod === "service-token") {
+				if (!data.serviceToken?.trim()) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Service Token is required",
+						path: ["serviceToken"],
+					});
+				}
+			} else {
+				if (!data.clientId?.trim()) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Client ID is required",
+						path: ["clientId"],
+					});
+				}
+				if (!data.clientSecret?.trim()) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Client Secret is required",
+						path: ["clientSecret"],
+					});
+				}
+			}
+		}
 
 		for (const [field, message] of required[data.providerType] ?? []) {
 			if (!data[field]) {
@@ -277,6 +303,7 @@ const defaultValues: VaultProviderForm = {
 	namespace: "",
 	mount: "secret",
 	siteUrl: "https://app.infisical.com",
+	infisicalAuthMethod: "universal-auth",
 	clientId: "",
 	clientSecret: "",
 	projectId: "",
@@ -319,9 +346,20 @@ const buildConfig = (data: VaultProviderForm) => {
 		case "infisical":
 			return {
 				providerType: "infisical" as const,
+				authMethod: data.infisicalAuthMethod,
 				siteUrl: data.siteUrl || "https://app.infisical.com",
-				clientId: data.clientId,
-				clientSecret: data.clientSecret,
+				clientId:
+					data.infisicalAuthMethod === "service-token"
+						? undefined
+						: data.clientId,
+				clientSecret:
+					data.infisicalAuthMethod === "service-token"
+						? undefined
+						: data.clientSecret,
+				serviceToken:
+					data.infisicalAuthMethod === "service-token"
+						? data.serviceToken
+						: undefined,
 				projectId: data.projectId,
 				environmentSlug: data.environmentSlug,
 				secretPath: data.secretPath || "/",
@@ -418,6 +456,7 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 	});
 
 	const providerType = form.watch("providerType");
+	const infisicalAuthMethod = form.watch("infisicalAuthMethod");
 	const assignments = form.watch("assignments");
 	const { data: orgProjects } = api.project.all.useQuery();
 
@@ -467,8 +506,12 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				}),
 				...(provider.config.providerType === "infisical" && {
 					siteUrl: provider.config.siteUrl,
-					clientId: provider.config.clientId,
-					clientSecret: provider.config.clientSecret,
+					infisicalAuthMethod:
+						provider.config.authMethod ??
+						(provider.config.serviceToken ? "service-token" : "universal-auth"),
+					clientId: provider.config.clientId ?? "",
+					clientSecret: provider.config.clientSecret ?? "",
+					serviceToken: provider.config.serviceToken ?? "",
 					projectId: provider.config.projectId,
 					environmentSlug: provider.config.environmentSlug,
 					secretPath: provider.config.secretPath,
@@ -534,6 +577,14 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 	const onTestConnection = async () => {
 		const isValid = await form.trigger();
 		if (!isValid) {
+			const errors = form.formState.errors;
+			const message = Object.values(errors)
+				.map((err) => err?.message)
+				.filter(Boolean)
+				.join(", ");
+			toast.error(
+				"Validation error: " + (message || "Please check required fields"),
+			);
 			return;
 		}
 		const data = form.getValues();
@@ -583,7 +634,16 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
-						onSubmit={form.handleSubmit(onSubmit)}
+						onSubmit={form.handleSubmit(onSubmit, (errors) => {
+							const message = Object.values(errors)
+								.map((err) => err?.message)
+								.filter(Boolean)
+								.join(", ");
+							toast.error(
+								"Validation error: " +
+									(message || "Please check required fields"),
+							);
+						})}
 						className="grid w-full gap-4"
 					>
 						<FormField
@@ -719,43 +779,98 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="infisicalAuthMethod"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Authentication Method</FormLabel>
+											<Select
+												value={field.value || "universal-auth"}
+												onValueChange={field.onChange}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select authentication method" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="universal-auth">
+														Universal Auth (Machine Identity)
+													</SelectItem>
+													<SelectItem value="service-token">
+														Service Token
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								{infisicalAuthMethod === "service-token" ? (
 									<FormField
 										control={form.control}
-										name="clientId"
+										name="serviceToken"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Client ID</FormLabel>
+												<FormLabel>Service Token</FormLabel>
 												<FormControl>
-													<Input {...field} />
+													<Input
+														type="password"
+														placeholder="st.xxxx"
+														{...field}
+													/>
 												</FormControl>
+												<FormDescription>
+													Service token scoped to your project and environment
+													(e.g. st.xxx)
+												</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}
 									/>
-									<FormField
-										control={form.control}
-										name="clientSecret"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Client Secret</FormLabel>
-												<FormControl>
-													<Input type="password" {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</div>
+								) : (
+									<div className="grid grid-cols-2 gap-4">
+										<FormField
+											control={form.control}
+											name="clientId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Client ID</FormLabel>
+													<FormControl>
+														<Input {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="clientSecret"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Client Secret</FormLabel>
+													<FormControl>
+														<Input type="password" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								)}
 								<div className="grid grid-cols-2 gap-4">
 									<FormField
 										control={form.control}
 										name="projectId"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Project ID</FormLabel>
+												<FormLabel>Project ID or Slug</FormLabel>
 												<FormControl>
-													<Input {...field} />
+													<Input
+														placeholder="e.g. apps or 94551e77-..."
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -788,6 +903,11 @@ export const HandleVaultProvider = ({ vaultProviderId }: Props) => {
 										</FormItem>
 									)}
 								/>
+								<FormDescription>
+									Reference format:{" "}
+									<code>{"${{vault.<name>.SECRET_NAME}}"}</code> or with path:{" "}
+									<code>{"${{vault.<name>.path/to/folder:SECRET_NAME}}"}</code>
+								</FormDescription>
 							</>
 						)}
 
