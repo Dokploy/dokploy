@@ -376,7 +376,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual MySQL backup ",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error running manual MySQL backup ",
 					cause: error,
 				});
 			}
@@ -403,7 +406,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Mariadb backup ",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error running manual Mariadb backup ",
 					cause: error,
 				});
 			}
@@ -430,7 +436,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Compose backup ",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error running manual Compose backup ",
 					cause: error,
 				});
 			}
@@ -457,7 +466,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Mongo backup ",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error running manual Mongo backup ",
 					cause: error,
 				});
 			}
@@ -484,7 +496,10 @@ export const backupRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error running manual Libsql backup ",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error running manual Libsql backup ",
 					cause: error,
 				});
 			}
