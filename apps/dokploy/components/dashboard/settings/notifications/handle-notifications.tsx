@@ -46,6 +46,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { ProjectScopeField } from "./project-scope-field";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
@@ -59,130 +60,155 @@ const notificationBaseSchema = z.object({
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
 	serverThreshold: z.boolean().default(false),
+	projectScope: z.enum(["all", "specific"]).default("all"),
+	projectIds: z.array(z.string()).optional().default([]),
 });
 
-export const notificationSchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("slack"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			channel: z.string(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("telegram"),
-			botToken: z.string().min(1, { message: "Bot Token is required" }),
-			chatId: z.string().min(1, { message: "Chat ID is required" }),
-			messageThreadId: z.string().optional(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("discord"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			decoration: z.boolean().default(true),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("email"),
-			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
-			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-			username: z.string().min(1, { message: "Username is required" }),
-			password: z.string().min(1, { message: "Password is required" }),
-			fromAddress: z.string().min(1, { message: "From Address is required" }),
-			toAddresses: z
-				.array(
-					z.string().trim().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
-				.min(1, { message: "At least one email is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("resend"),
-			apiKey: z.string().min(1, { message: "API Key is required" }),
-			fromAddress: z
-				.string()
-				.trim()
-				.min(1, { message: "From Address is required" })
-				.email({ message: "Email is invalid" }),
-			toAddresses: z
-				.array(
-					z.string().trim().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
-				.min(1, { message: "At least one email is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("gotify"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			appToken: z.string().min(1, { message: "App Token is required" }),
-			priority: z.number().min(1).max(10).default(5),
-			decoration: z.boolean().default(true),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("ntfy"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			topic: z.string().min(1, { message: "Topic is required" }),
-			accessToken: z.string().optional(),
-			priority: z.number().min(1).max(5).default(3),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("mattermost"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			channel: z.string().optional(),
-			username: z.string().optional(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("pushover"),
-			userKey: z.string().min(1, { message: "User Key is required" }),
-			apiToken: z.string().min(1, { message: "API Token is required" }),
-			priority: z.number().min(-2).max(2).default(0),
-			retry: z.number().min(30).nullish(),
-			expire: z.number().min(1).max(10800).nullish(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("custom"),
-			endpoint: z.string().min(1, { message: "Endpoint URL is required" }),
-			headers: z
-				.array(
-					z.object({
-						key: z.string(),
-						value: z.string(),
-					}),
-				)
-				.optional()
-				.default([]),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("lark"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("teams"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-		})
-		.merge(notificationBaseSchema),
-]);
+/** Actions whose notifications are filtered by the project scope. */
+const PROJECT_ACTIONS = [
+	"appDeploy",
+	"appBuildError",
+	"databaseBackup",
+	"volumeBackup",
+] as const;
+
+export const notificationSchema = z
+	.discriminatedUnion("type", [
+		z
+			.object({
+				type: z.literal("slack"),
+				webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+				channel: z.string(),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("telegram"),
+				botToken: z.string().min(1, { message: "Bot Token is required" }),
+				chatId: z.string().min(1, { message: "Chat ID is required" }),
+				messageThreadId: z.string().optional(),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("discord"),
+				webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+				decoration: z.boolean().default(true),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("email"),
+				smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
+				smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
+				username: z.string().min(1, { message: "Username is required" }),
+				password: z.string().min(1, { message: "Password is required" }),
+				fromAddress: z.string().min(1, { message: "From Address is required" }),
+				toAddresses: z
+					.array(
+						z.string().trim().min(1, { message: "Email is required" }).email({
+							message: "Email is invalid",
+						}),
+					)
+					.min(1, { message: "At least one email is required" }),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("resend"),
+				apiKey: z.string().min(1, { message: "API Key is required" }),
+				fromAddress: z
+					.string()
+					.trim()
+					.min(1, { message: "From Address is required" })
+					.email({ message: "Email is invalid" }),
+				toAddresses: z
+					.array(
+						z.string().trim().min(1, { message: "Email is required" }).email({
+							message: "Email is invalid",
+						}),
+					)
+					.min(1, { message: "At least one email is required" }),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("gotify"),
+				serverUrl: z.string().min(1, { message: "Server URL is required" }),
+				appToken: z.string().min(1, { message: "App Token is required" }),
+				priority: z.number().min(1).max(10).default(5),
+				decoration: z.boolean().default(true),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("ntfy"),
+				serverUrl: z.string().min(1, { message: "Server URL is required" }),
+				topic: z.string().min(1, { message: "Topic is required" }),
+				accessToken: z.string().optional(),
+				priority: z.number().min(1).max(5).default(3),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("mattermost"),
+				webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+				channel: z.string().optional(),
+				username: z.string().optional(),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("pushover"),
+				userKey: z.string().min(1, { message: "User Key is required" }),
+				apiToken: z.string().min(1, { message: "API Token is required" }),
+				priority: z.number().min(-2).max(2).default(0),
+				retry: z.number().min(30).nullish(),
+				expire: z.number().min(1).max(10800).nullish(),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("custom"),
+				endpoint: z.string().min(1, { message: "Endpoint URL is required" }),
+				headers: z
+					.array(
+						z.object({
+							key: z.string(),
+							value: z.string(),
+						}),
+					)
+					.optional()
+					.default([]),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("lark"),
+				webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			})
+			.merge(notificationBaseSchema),
+		z
+			.object({
+				type: z.literal("teams"),
+				webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			})
+			.merge(notificationBaseSchema),
+	])
+	.superRefine((data, ctx) => {
+		const hasProjectActions = PROJECT_ACTIONS.some((action) => data[action]);
+		if (
+			data.projectScope === "specific" &&
+			hasProjectActions &&
+			(data.projectIds ?? []).length === 0
+		) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["projectIds"],
+				message: "Choose at least one project, or switch to All projects.",
+			});
+		}
+	});
 
 export const notificationsMap = {
 	slack: {
@@ -245,6 +271,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: projects, isPending: isLoadingProjects } =
+		api.notification.projectOptions.useQuery();
 
 	const { data: notification } = api.notification.one.useQuery(
 		{
@@ -324,10 +352,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			webhookUrl: "",
 			channel: "",
 			name: "",
+			projectScope: "all",
+			projectIds: [],
 		},
 		resolver: zodResolver(notificationSchema),
 	});
 	const type = form.watch("type");
+	const projectScope = form.watch("projectScope") ?? "all";
+	const watchedProjectActions = form.watch([...PROJECT_ACTIONS]);
+	const hasProjectActions = watchedProjectActions.some(Boolean);
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -351,6 +384,14 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 	useEffect(() => {
 		if (notification) {
+			const projectScopeValues = {
+				projectScope: notification.scopedToProjects
+					? ("specific" as const)
+					: ("all" as const),
+				projectIds: notification.notificationToProjects.map(
+					(link) => link.projectId,
+				),
+			};
 			if (notification.notificationType === "slack") {
 				form.reset({
 					appBuildError: notification.appBuildError,
@@ -365,6 +406,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					type: notification.notificationType,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -381,6 +423,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -396,6 +439,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -415,6 +459,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "resend") {
 				form.reset({
@@ -431,6 +476,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "gotify") {
 				form.reset({
@@ -448,6 +494,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -465,6 +512,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "mattermost") {
 				form.reset({
@@ -481,6 +529,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "lark") {
 				form.reset({
@@ -495,6 +544,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					volumeBackup: notification.volumeBackup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "teams") {
 				form.reset({
@@ -509,6 +559,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "custom") {
 				form.reset({
@@ -531,6 +582,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			} else if (notification.notificationType === "pushover") {
 				form.reset({
@@ -549,6 +601,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					...projectScopeValues,
 				});
 			}
 		} else {
@@ -581,7 +634,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			volumeBackup,
 			dockerCleanup,
 			serverThreshold,
+			projectScope,
 		} = data;
+		const projectScopeInput = {
+			projectIds: projectScope === "specific" ? (data.projectIds ?? []) : [],
+			scopedToProjects: projectScope === "specific",
+		};
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
 			promise = slackMutation.mutateAsync({
@@ -596,6 +654,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
+				...projectScopeInput,
 				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
 			});
@@ -614,6 +673,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
@@ -630,6 +690,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
@@ -650,6 +711,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "resend") {
@@ -667,6 +729,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				resendId: notification?.resendId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "gotify") {
@@ -686,6 +749,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
+				...projectScopeInput,
 			});
 		} else if (data.type === "ntfy") {
 			promise = ntfyMutation.mutateAsync({
@@ -704,6 +768,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+				...projectScopeInput,
 			});
 		} else if (data.type === "mattermost") {
 			promise = mattermostMutation.mutateAsync({
@@ -720,6 +785,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				mattermostId: notification?.mattermostId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "lark") {
@@ -735,6 +801,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "teams") {
@@ -750,6 +817,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				teamsId: notification?.teamsId || "",
+				...projectScopeInput,
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "custom") {
@@ -779,6 +847,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
+				...projectScopeInput,
 			});
 		} else if (data.type === "pushover") {
 			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
@@ -802,6 +871,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				pushoverId: notification?.pushoverId || "",
+				...projectScopeInput,
 			});
 		}
 
@@ -1997,6 +2067,34 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								)}
 							</div>
 						</div>
+
+						<FormField
+							control={form.control}
+							name="projectIds"
+							render={({ field, fieldState }) => (
+								<ProjectScopeField
+									projects={projects}
+									isLoading={isLoadingProjects}
+									scope={projectScope}
+									onScopeChange={(scope) => {
+										form.setValue("projectScope", scope, { shouldDirty: true });
+										form.clearErrors("projectIds");
+									}}
+									selectedIds={field.value ?? []}
+									onSelectedChange={(ids) => {
+										field.onChange(ids);
+										if (ids.length > 0) form.clearErrors("projectIds");
+									}}
+									hasProjectActions={hasProjectActions}
+									isOrphaned={
+										!!notification?.scopedToProjects &&
+										notification.notificationToProjects.length === 0 &&
+										(field.value ?? []).length === 0
+									}
+									error={fieldState.error?.message}
+								/>
+							)}
+						/>
 					</form>
 
 					<DialogFooter className="flex flex-row gap-2 justify-between! w-full">

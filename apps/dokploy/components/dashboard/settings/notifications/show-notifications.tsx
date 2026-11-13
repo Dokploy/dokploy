@@ -1,4 +1,4 @@
-import { Bell, Loader2, Mail, PenBoxIcon, Trash2 } from "lucide-react";
+import { Bell, Globe, Loader2, Mail, PenBoxIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
@@ -12,6 +12,7 @@ import {
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -20,8 +21,88 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/utils/api";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { api, type RouterOutputs } from "@/utils/api";
 import { HandleNotifications } from "./handle-notifications";
+
+const MAX_PROJECT_BADGES = 3;
+
+type NotificationItem = RouterOutputs["notification"]["all"][number];
+
+const NotificationProjectBadges = ({
+	notification,
+}: {
+	notification: NotificationItem;
+}) => {
+	if (!notification.scopedToProjects) {
+		return (
+			<span className="flex flex-row gap-1 flex-wrap">
+				<Badge variant="secondary" className="text-xs font-normal">
+					<Globe className="size-3 mr-1" />
+					All Projects
+				</Badge>
+			</span>
+		);
+	}
+
+	const projectNames = notification.notificationToProjects
+		.map((link) => link.project.name)
+		.sort((a, b) => a.localeCompare(b));
+
+	const hiddenCount = notification.hiddenProjectCount;
+
+	if (projectNames.length === 0 && hiddenCount === 0) {
+		return (
+			<span className="flex flex-row gap-1 flex-wrap">
+				<Badge variant="destructive" className="text-xs font-normal">
+					No projects linked
+				</Badge>
+			</span>
+		);
+	}
+
+	const visible = projectNames.slice(0, MAX_PROJECT_BADGES);
+	const rest = projectNames.slice(MAX_PROJECT_BADGES);
+	if (hiddenCount > 0) {
+		rest.push(
+			`${hiddenCount} project${hiddenCount > 1 ? "s" : ""} you don't have access to`,
+		);
+	}
+
+	return (
+		<span className="flex flex-row gap-1 flex-wrap">
+			{visible.map((name, index) => (
+				<Badge
+					key={`${name}-${index}`}
+					variant="outline"
+					className="text-xs font-normal"
+				>
+					{name}
+				</Badge>
+			))}
+			{rest.length > 0 && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge
+							variant="outline"
+							tabIndex={0}
+							className="text-xs font-normal cursor-default"
+						>
+							+{projectNames.length - visible.length + hiddenCount} more
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent className="max-w-xs">
+						{rest.join(", ")}
+					</TooltipContent>
+				</Tooltip>
+			)}
+		</span>
+	);
+};
 
 export const ShowNotifications = () => {
 	const { data, isPending, refetch } = api.notification.all.useQuery();
@@ -129,7 +210,12 @@ export const ShowNotifications = () => {
 																</div>
 															)}
 
-															{notification.name}
+															<span className="flex flex-col gap-1">
+																<span>{notification.name}</span>
+																<NotificationProjectBadges
+																	notification={notification}
+																/>
+															</span>
 														</span>
 														<div className="flex flex-row gap-1">
 															<HandleNotifications

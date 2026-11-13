@@ -58,6 +58,7 @@ export const runMariadbBackup = async (
 			databaseType: "mariadb",
 			type: "success",
 			organizationId: project.organizationId,
+			projectId: project.projectId,
 			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -71,6 +72,7 @@ export const runMariadbBackup = async (
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			projectId: project.projectId,
 			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
