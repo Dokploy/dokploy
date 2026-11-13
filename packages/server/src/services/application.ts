@@ -48,6 +48,7 @@ import {
 import { generateApplyPatchesCommand } from "./patch";
 import {
 	findPreviewDeploymentById,
+	previewDeploymentExists,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
@@ -424,6 +425,15 @@ export const deployPreviewApplication = async ({
 			} else {
 				await execAsync(commandWithLog);
 			}
+			// The preview may have been removed (pull request closed, preview label
+			// taken off) while the build ran. Its service must not be created now:
+			// nothing would be left to remove it through.
+			if (!(await previewDeploymentExists(previewDeploymentId))) {
+				console.log(
+					`Preview deployment ${previewDeploymentId} was removed during the build, ${previewDeployment.appName} is not started`,
+				);
+				return false;
+			}
 			await mechanizeDockerContainer(application);
 		}
 		const successComment = getIssueComment(
@@ -535,6 +545,15 @@ export const rebuildPreviewApplication = async ({
 			await execAsyncRemote(serverId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
+		}
+		// The preview may have been removed (pull request closed, preview label
+		// taken off) while the build ran. Its service must not be created now:
+		// nothing would be left to remove it through.
+		if (!(await previewDeploymentExists(previewDeploymentId))) {
+			console.log(
+				`Preview deployment ${previewDeploymentId} was removed during the build, ${previewDeployment.appName} is not started`,
+			);
+			return false;
 		}
 		await mechanizeDockerContainer(application);
 
