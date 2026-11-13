@@ -184,7 +184,7 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 
 	const encodedContent = encodeBase64(envFileContent);
 	return `
-touch ${quote([envFilePath])};
+touch ${quote([envFilePath])} && chmod 600 ${quote([envFilePath])} || exit 1;
 echo "${encodedContent}" | base64 -d > ${quote([envFilePath])};
 	`;
 };
