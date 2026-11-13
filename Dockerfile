@@ -32,7 +32,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 RUN apt-get update && apt-get install -y tini curl unzip zip apache2-utils iproute2 rsync git-lfs \
-	&& apt-get install -y --only-upgrade apache2-utils \
+	&& dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apache2-utils)" ge 2.4.71-1~deb12u1 \
 	&& git lfs install && rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary files
