@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { execFileSync, execSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@dokploy/server/db", () => {
 	const chain: any = {
@@ -216,6 +220,123 @@ describe("preview deployments with a build server", () => {
 		expect(
 			vi.mocked(mechanizeDockerContainer).mock.calls[0]?.[0],
 		).toMatchObject({ serverId: "deploy-server", buildRegistry });
+	});
+
+	it("clones the preview branch on rebuild only when the source is missing", async () => {
+		setup();
+
+		await rebuildPreviewApplication({
+			applicationId: "app-1",
+			titleLog: "Rebuild",
+			descriptionLog: "",
+			previewDeploymentId: "preview-1",
+		});
+
+		expect(vi.mocked(cloneGithubRepository).mock.calls[0]?.[0]).toMatchObject({
+			serverId: "build-server",
+			appName: "preview-app-abc-xyz",
+			branch: "feature",
+		});
+
+		const command = remoteCalls().find(({ command }) =>
+			command.includes("build;"),
+		)?.command;
+		expect(command).toMatch(
+			/if ! git --git-dir=\S*applications\/preview-app-abc-xyz\/code\/\.git rev-parse --verify --quiet HEAD .*then .*clone; fi;.*build;/,
+		);
+	});
+
+	describe("running the rebuild command", () => {
+		let dir: string;
+		afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+		// Runs the generated command against a temp dir standing in for the
+		// preview's code path; clone and build only record that they ran.
+		const runRebuild = async ({
+			source,
+			clone = 'echo clone >> "$TRACE";',
+		}: {
+			source: "missing" | "present";
+			clone?: string;
+		}) => {
+			dir = mkdtempSync(join(tmpdir(), "preview-rebuild-"));
+			const code = join(dir, "code");
+			mkdirSync(code);
+			if (source === "present") {
+				execFileSync("git", ["init", "-q", code]);
+				execFileSync("git", [
+					"-C",
+					code,
+					"-c",
+					"user.name=test",
+					"-c",
+					"user.email=test@example.com",
+					"commit",
+					"-q",
+					"--allow-empty",
+					"-m",
+					"init",
+				]);
+			}
+			setup();
+			vi.mocked(cloneGithubRepository).mockResolvedValueOnce(clone);
+			vi.mocked(getBuildCommand).mockResolvedValueOnce(
+				'echo build >> "$TRACE";',
+			);
+
+			await rebuildPreviewApplication({
+				applicationId: "app-1",
+				titleLog: "Rebuild",
+				descriptionLog: "",
+				previewDeploymentId: "preview-1",
+			});
+
+			const command = remoteCalls()
+				.find(({ command }) => command.includes("echo build"))
+				?.command.replaceAll(
+					"/etc/dokploy/applications/preview-app-abc-xyz/code",
+					code,
+				);
+			const trace = join(dir, "trace");
+			let failed = false;
+			try {
+				// cwd: the mocked deployment has no log path, keep the log in dir.
+				execSync(command ?? "exit 1", {
+					cwd: dir,
+					shell: "/bin/sh",
+					stdio: "ignore",
+					env: { ...process.env, TRACE: trace },
+				});
+			} catch {
+				failed = true;
+			}
+			let steps: string[] = [];
+			try {
+				steps = readFileSync(trace, "utf8").trim().split("\n");
+			} catch {}
+			return { failed, steps };
+		};
+
+		it("clones before building when the source is missing", async () => {
+			expect(await runRebuild({ source: "missing" })).toEqual({
+				failed: false,
+				steps: ["clone", "build"],
+			});
+		});
+
+		it("builds without cloning when the source is present", async () => {
+			expect(await runRebuild({ source: "present" })).toEqual({
+				failed: false,
+				steps: ["build"],
+			});
+		});
+
+		it("stops before building when the clone fails", async () => {
+			expect(await runRebuild({ source: "missing", clone: "false;" })).toEqual({
+				failed: true,
+				steps: [],
+			});
+		});
 	});
 
 	it("writes the deployment log on the build server and records it", async () => {
