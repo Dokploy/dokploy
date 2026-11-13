@@ -553,8 +553,13 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
 	if (IS_CLOUD) {
 		try {
-			const { user } = await validateRequest(context.req);
-			if (user) {
+			const session = await validateRequest(context.req);
+			if ("twoFactorSetupRequired" in session) {
+				return {
+					redirect: { permanent: false, destination: "/setup-2fa" },
+				};
+			}
+			if (session.user) {
 				return {
 					redirect: {
 						permanent: false,
@@ -583,9 +588,15 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
-	const { user } = await validateRequest(context.req);
+	const session = await validateRequest(context.req);
 
-	if (user) {
+	if ("twoFactorSetupRequired" in session) {
+		return {
+			redirect: { permanent: false, destination: "/setup-2fa" },
+		};
+	}
+
+	if (session.user) {
 		return {
 			redirect: {
 				permanent: false,

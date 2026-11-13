@@ -67,6 +67,7 @@ export const organization = pgTable("organization", {
 	createdAt: timestamp("created_at").notNull(),
 	metadata: text("metadata"),
 	defaultRole: text("default_role"),
+	enforceTwoFactor: boolean("enforce_two_factor").notNull().default(false),
 	ownerId: text("owner_id")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
