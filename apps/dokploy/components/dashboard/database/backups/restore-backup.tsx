@@ -430,6 +430,7 @@ export const RestoreBackup = ({
 											<FormControl>
 												<Button
 													variant="outline"
+													disabled={!destinationId}
 													className={cn(
 														"w-full justify-between",
 														!field.value && "text-muted-foreground",
