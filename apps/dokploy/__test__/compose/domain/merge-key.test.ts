@@ -64,6 +64,7 @@ const domain: Domain = {
 	port: 80,
 	customEntrypoint: null,
 	https: false,
+	backendHttps: false,
 	uniqueConfigKey: 1,
 	customCertResolver: null,
 	certificateType: "none",

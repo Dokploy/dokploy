@@ -524,6 +524,11 @@ export const createDomainLabels = (
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
+	if (domain.backendHttps) {
+		labels.push(
+			`traefik.http.services.${routerName}.loadbalancer.server.scheme=https`,
+		);
+	}
 
 	// Collect middlewares for this router
 	const middlewares: string[] = [];
