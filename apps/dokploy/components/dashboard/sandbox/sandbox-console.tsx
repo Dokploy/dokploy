@@ -167,7 +167,7 @@ export const SandboxConsole = ({ sandboxId, enabled, workdir }: Props) => {
 						onChange={(event) => setCommand(event.target.value)}
 						placeholder="echo hello"
 						className="font-mono"
-						disabled={!enabled || !connected || running}
+						disabled={!enabled || !connected}
 						autoComplete="off"
 					/>
 					<Button type="submit" disabled={!enabled || !connected || running}>
