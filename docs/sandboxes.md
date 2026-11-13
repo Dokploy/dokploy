@@ -36,6 +36,10 @@ create  ─►  running  ─►  killed
   `expiresAt` or `deadlineAt` has passed becomes `killed`, and any operation
   that finds the container gone marks it `killed` and fails with
   `Sandbox is killed`. `expiresAt` never goes past `deadlineAt`.
+- `list` with a `serverId` also checks the containers actually running on that
+  server (one Docker call) and marks as `killed` any `running` row whose
+  container is gone, for example after a server reboot. If the server cannot
+  be reached the time-based status is returned.
 - Images must include `sh`, `sleep` and `date`; otherwise `create` fails with
   a clear error.
 - `kill` stops the container (2 s grace, then SIGKILL) and removes it. The row
@@ -148,12 +152,16 @@ curl -s -X POST "$DOKPLOY_URL/api/sandbox.setTimeout" \
   -d '{"sandboxId": "SANDBOX_ID", "timeoutMs": 900000}'
 
 curl -s "$DOKPLOY_URL/api/sandbox.list" -H "x-api-key: $DOKPLOY_KEY"
+curl -s "$DOKPLOY_URL/api/sandbox.list?serverId=SERVER_ID" -H "x-api-key: $DOKPLOY_KEY"
 curl -s "$DOKPLOY_URL/api/sandbox.one?sandboxId=SANDBOX_ID" -H "x-api-key: $DOKPLOY_KEY"
 
 curl -s -X POST "$DOKPLOY_URL/api/sandbox.kill" \
   -H "x-api-key: $DOKPLOY_KEY" -H "content-type: application/json" \
   -d '{"sandboxId": "SANDBOX_ID"}'
 ```
+
+`sandbox.list` without `serverId` returns every sandbox of the organization;
+with `serverId` it returns the ones on that server with their live status.
 
 `sandbox.remove` deletes the record (killing the container first if needed).
 `sandbox.templates` lists the built-in templates.

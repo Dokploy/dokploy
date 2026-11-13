@@ -138,6 +138,12 @@ export const apiFindOneSandbox = z.object({
 	sandboxId: z.string().min(1),
 });
 
+export const apiListSandbox = z
+	.object({
+		serverId: z.string().min(1).nullable().optional(),
+	})
+	.optional();
+
 export const apiExecSandbox = z.object({
 	sandboxId: z.string().min(1),
 	cmd: z.string().min(1).max(65_536),

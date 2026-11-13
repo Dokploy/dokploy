@@ -8,7 +8,7 @@ import {
 import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import type Dockerode from "dockerode";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
@@ -17,6 +17,7 @@ import {
 	getSandboxNetworkName,
 	parseSandboxUser,
 	SANDBOX_LABEL,
+	SANDBOX_ORGANIZATION_LABEL,
 	SANDBOX_TIMEOUT_FILE,
 	type SandboxNetworkMode,
 	toSandboxTimeoutSeconds,
@@ -58,9 +59,6 @@ const isContainerGone = (error: unknown) => {
 	);
 };
 
-// Containers stop and remove themselves (see buildSandboxLifetimeCommand), so
-// the stored status is brought up to date whenever a sandbox is read instead
-// of by a background job.
 const settleSandboxStatus = async <T extends Sandbox>(sandbox: T) => {
 	const now = Date.now();
 	let data: Partial<Sandbox> | null = null;
@@ -140,13 +138,63 @@ export const stripSandboxSecrets = <T extends { envVars: string | null }>(
 	return rest;
 };
 
-export const findSandboxesByOrganizationId = async (organizationId: string) => {
+const settleSandboxesWithDocker = async <T extends Sandbox>(
+	rows: T[],
+	organizationId: string,
+	serverId: string | null,
+) => {
+	const running = rows.filter((row) => row.status === "running");
+	if (running.length === 0) return rows;
+	let live: Set<string>;
+	try {
+		const docker = await getRemoteDocker(serverId);
+		const containers = await docker.listContainers({
+			filters: {
+				label: [
+					`${SANDBOX_LABEL}=true`,
+					`${SANDBOX_ORGANIZATION_LABEL}=${organizationId}`,
+				],
+			},
+		});
+		live = new Set(containers.map((container) => container.Id));
+	} catch (error) {
+		console.warn(
+			`[Sandbox] Could not read container status on ${serverId ?? "the Dokploy server"}:`,
+			error instanceof Error ? error.message : error,
+		);
+		return rows;
+	}
+	const killedAt = new Date();
+	return Promise.all(
+		rows.map(async (row) => {
+			if (row.status !== "running") return row;
+			if (row.containerId && live.has(row.containerId)) return row;
+			const data = { status: "killed" as const, killedAt };
+			await updateSandboxById(row.sandboxId, data);
+			return { ...row, ...data };
+		}),
+	);
+};
+
+export const findSandboxesByOrganizationId = async (
+	organizationId: string,
+	serverId?: string | null,
+) => {
 	const rows = await db.query.sandboxes.findMany({
-		where: eq(sandboxes.organizationId, organizationId),
+		where: and(
+			eq(sandboxes.organizationId, organizationId),
+			serverId === undefined
+				? undefined
+				: serverId === null
+					? isNull(sandboxes.serverId)
+					: eq(sandboxes.serverId, serverId),
+		),
 		orderBy: desc(sandboxes.createdAt),
 		with: { server: { columns: { serverId: true, name: true } } },
 	});
-	return Promise.all(rows.map(settleSandboxStatus));
+	const settled = await Promise.all(rows.map(settleSandboxStatus));
+	if (serverId === undefined) return settled;
+	return settleSandboxesWithDocker(settled, organizationId, serverId);
 };
 
 export const updateSandboxById = async (
@@ -190,8 +238,6 @@ export const ensureSandboxImage = async (docker: Dockerode, image: string) => {
 	});
 };
 
-// Sandboxes share a bridge per server, so inter-container traffic must be
-// disabled or two isolated sandboxes could talk to each other.
 export const SANDBOX_NETWORK_OPTIONS = {
 	"com.docker.network.bridge.enable_icc": "false",
 };
@@ -234,7 +280,6 @@ export const ensureSandboxNetwork = async (
 			Labels: { [SANDBOX_LABEL]: "true" },
 		});
 	} catch (error) {
-		// Another create raced us; the network exists now.
 		if (statusCodeOf(error) !== 409) throw error;
 	}
 	return name;
@@ -273,8 +318,6 @@ const prepareSandboxWorkdir = async (
 		}).catch(() => {});
 	}
 	const ids = parseSandboxUser(user) ?? { uid: 0, gid: 0 };
-	// putArchive runs in the daemon, so it can create the directory owned by the
-	// sandbox user even though every capability (CAP_CHOWN included) is dropped.
 	const tar = await buildSandboxDirectoryTar({ name, ...ids });
 	await docker.getContainer(containerId).putArchive(tar, { path: parent });
 };
@@ -313,8 +356,6 @@ const startSandboxContainer = async (sandbox: Sandbox) => {
 		});
 	} catch (error) {
 		await container.remove({ force: true }).catch(() => {});
-		// AutoRemove may delete a container that exits at once (missing sh,
-		// sleep or date) before any of the steps above reports why.
 		if (isContainerGone(error)) throw new SandboxExitedOnStartError();
 		throw error;
 	}
@@ -529,7 +570,6 @@ export const listSandboxFiles = async (sandbox: Sandbox, path?: string) => {
 		if (find.exitCode === 0) {
 			return { path: target, entries: parseSandboxFindOutput(find.stdout) };
 		}
-		// busybox find has no -printf; fall back to a name-only listing.
 		const ls = await runSandboxExec(docker, sandbox.containerId, {
 			cmd: buildSandboxLsCommand(target),
 			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
@@ -577,11 +617,9 @@ export const removeSandboxContainer = async (
 	const docker = await getRemoteDocker(serverId);
 	const container = docker.getContainer(containerId);
 	await container.stop({ t: 2 }).catch((error: unknown) => {
-		// 304 = already stopped, 404 = already gone
 		if (statusCodeOf(error) !== 304 && !isNotFound(error)) throw error;
 	});
 	await container.remove({ force: true }).catch((error: unknown) => {
-		// AutoRemove may already be deleting it after the stop above.
 		if (!isNotFound(error) && statusCodeOf(error) !== 409) throw error;
 	});
 };

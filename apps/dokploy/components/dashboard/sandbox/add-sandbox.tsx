@@ -58,7 +58,11 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export const AddSandbox = () => {
+interface Props {
+	serverId?: string;
+}
+
+export const AddSandbox = ({ serverId }: Props) => {
 	const router = useRouter();
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
@@ -77,7 +81,7 @@ export const AddSandbox = () => {
 			source: "template",
 			template: "python",
 			image: "",
-			serverId: null,
+			serverId: serverId ?? null,
 			cpu: 1,
 			memoryMb: 512,
 			timeoutMinutes: 5,

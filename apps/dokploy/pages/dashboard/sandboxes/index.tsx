@@ -8,6 +8,7 @@ import superjson from "superjson";
 import { AddSandbox } from "@/components/dashboard/sandbox/add-sandbox";
 import { ShowSandboxes } from "@/components/dashboard/sandbox/show-sandboxes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { ServerFilter } from "@/components/shared/server-filter";
 import {
 	Card,
 	CardContent,
@@ -29,25 +30,31 @@ const SandboxesPage = () => {
 			<Head>
 				<title>Sandboxes | {appName}</title>
 			</Head>
-			<Card className="bg-sidebar p-2.5 rounded-xl w-full">
-				<div className="rounded-xl bg-background shadow-md">
-					<CardHeader className="flex flex-row flex-wrap justify-between items-center gap-4">
-						<div className="flex flex-col gap-1">
-							<CardTitle className="text-xl flex items-center gap-2">
-								<Box className="size-6 text-muted-foreground" />
-								Sandboxes
-							</CardTitle>
-							<CardDescription>
-								Ephemeral containers for agents and automations.
-							</CardDescription>
+			<ServerFilter>
+				{(serverId) => (
+					<Card className="bg-sidebar p-2.5 rounded-xl w-full">
+						<div className="rounded-xl bg-background shadow-md">
+							<CardHeader className="flex flex-row flex-wrap justify-between items-center gap-4">
+								<div className="flex flex-col gap-1">
+									<CardTitle className="text-xl flex items-center gap-2">
+										<Box className="size-6 text-muted-foreground" />
+										Sandboxes
+									</CardTitle>
+									<CardDescription>
+										Ephemeral containers for agents and automations.
+									</CardDescription>
+								</div>
+								{permissions?.sandbox.create && (
+									<AddSandbox serverId={serverId} />
+								)}
+							</CardHeader>
+							<CardContent className="py-8 border-t">
+								<ShowSandboxes serverId={serverId} />
+							</CardContent>
 						</div>
-						{permissions?.sandbox.create && <AddSandbox />}
-					</CardHeader>
-					<CardContent className="py-8 border-t">
-						<ShowSandboxes />
-					</CardContent>
-				</div>
-			</Card>
+					</Card>
+				)}
+			</ServerFilter>
 		</div>
 	);
 };

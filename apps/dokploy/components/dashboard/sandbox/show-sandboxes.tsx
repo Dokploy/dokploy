@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Box, ServerIcon, Trash2 } from "lucide-react";
+import { Box, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
@@ -22,12 +22,17 @@ export const formatExpiresIn = (expiresAt: Date | null, status: string) => {
 	return formatDistanceToNow(expiresAt, { addSuffix: true });
 };
 
-export const ShowSandboxes = () => {
+interface Props {
+	serverId?: string;
+}
+
+export const ShowSandboxes = ({ serverId }: Props) => {
 	const utils = api.useUtils();
 	const { data: permissions } = api.user.getPermissions.useQuery();
-	const { data: sandboxes, isLoading } = api.sandbox.list.useQuery(undefined, {
-		refetchInterval: 10_000,
-	});
+	const { data: sandboxes, isLoading } = api.sandbox.list.useQuery(
+		{ serverId: serverId ?? null },
+		{ refetchInterval: 10_000 },
+	);
 	const { mutateAsync: kill } = api.sandbox.kill.useMutation();
 
 	if (isLoading) {
@@ -43,7 +48,8 @@ export const ShowSandboxes = () => {
 			<div className="flex min-h-[40vh] w-full flex-col items-center justify-center gap-2">
 				<Box className="size-8 text-muted-foreground" />
 				<span className="font-medium text-muted-foreground">
-					No sandboxes yet. Create one from the UI or through the API.
+					No sandboxes on this server yet. Create one from the UI or through the
+					API.
 				</span>
 			</div>
 		);
@@ -57,7 +63,6 @@ export const ShowSandboxes = () => {
 						<TableHead>Name</TableHead>
 						<TableHead>Image</TableHead>
 						<TableHead>Status</TableHead>
-						<TableHead>Server</TableHead>
 						<TableHead>CPU / RAM</TableHead>
 						<TableHead>Expires</TableHead>
 						<TableHead>Created</TableHead>
@@ -80,12 +85,6 @@ export const ShowSandboxes = () => {
 							</TableCell>
 							<TableCell>
 								<SandboxStatusBadge status={sandbox.status} />
-							</TableCell>
-							<TableCell>
-								<span className="flex items-center gap-1.5 text-sm">
-									<ServerIcon className="size-3.5 text-muted-foreground" />
-									{sandbox.server?.name ?? "Dokploy Server"}
-								</span>
 							</TableCell>
 							<TableCell className="text-sm">
 								{sandbox.cpu} vCPU / {sandbox.memoryMb} MB

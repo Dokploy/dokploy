@@ -23,6 +23,7 @@ import {
 	apiExecSandbox,
 	apiFindOneSandbox,
 	apiListFilesSandbox,
+	apiListSandbox,
 	apiReadFileSandbox,
 	apiSetTimeoutSandbox,
 	apiWriteFileSandbox,
@@ -83,12 +84,24 @@ export const sandboxRouter = createTRPCRouter({
 			return stripSandboxSecrets(sandbox);
 		}),
 
-	list: withPermission("sandbox", "read").query(async ({ ctx }) => {
-		const sandboxes = await findSandboxesByOrganizationId(
-			ctx.session.activeOrganizationId,
-		);
-		return sandboxes.map(stripSandboxSecrets);
-	}),
+	list: withPermission("sandbox", "read")
+		.input(apiListSandbox)
+		.query(async ({ input, ctx }) => {
+			if (input?.serverId) {
+				const accessibleIds = await getAccessibleServerIds(ctx.session);
+				if (!accessibleIds.has(input.serverId)) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+			}
+			const sandboxes = await findSandboxesByOrganizationId(
+				ctx.session.activeOrganizationId,
+				input?.serverId,
+			);
+			return sandboxes.map(stripSandboxSecrets);
+		}),
 
 	exec: withPermission("sandbox", "create")
 		.input(apiExecSandbox)
