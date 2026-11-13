@@ -98,5 +98,6 @@ export type AuditResourceType =
 	| "network"
 	| "vaultProvider"
 	| "dnsProvider"
+	| "sandbox"
 	| "telemetryProvider"
 	| "ai";

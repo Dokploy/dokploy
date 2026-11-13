@@ -180,6 +180,11 @@ const RESOURCE_META: Record<string, { label: string; description: string }> = {
 		description:
 			"Manage DNS providers (Cloudflare, AWS Route53) and create, update, or delete their DNS records",
 	},
+	sandbox: {
+		label: "Sandboxes",
+		description:
+			"Create ephemeral sandbox containers, run commands and manage files inside them",
+	},
 	telemetryProvider: {
 		label: "Logs & Metrics",
 		description:
@@ -483,6 +488,21 @@ const ACTION_META: Record<
 		delete: {
 			label: "Delete",
 			description: "Remove DNS providers and delete their records",
+		},
+	},
+	sandbox: {
+		read: {
+			label: "Read",
+			description: "View sandboxes, their files and details",
+		},
+		create: {
+			label: "Create",
+			description:
+				"Create sandboxes, run commands, write files, extend timeouts and kill them",
+		},
+		delete: {
+			label: "Delete",
+			description: "Delete sandbox records and their containers",
 		},
 	},
 	telemetryProvider: {
