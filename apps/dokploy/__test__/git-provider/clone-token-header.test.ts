@@ -51,8 +51,8 @@ const { cloneGiteaRepository } = await import(
 	"@dokploy/server/utils/providers/gitea"
 );
 
-const basic = (token: string) =>
-	Buffer.from(`oauth2:${token}`).toString("base64");
+const basic = (username: string, token: string) =>
+	Buffer.from(`${username}:${token}`).toString("base64");
 
 const base = { appName: "my-app", enableSubmodules: true, serverId: null };
 
@@ -60,6 +60,7 @@ describe("clone commands keep the token out of the URL (#5618)", () => {
 	it.each([
 		{
 			provider: "github",
+			username: "x-access-token",
 			token: "gh-token",
 			origin: "https://github.com",
 			url: "https://github.com/acme/web.git",
@@ -74,6 +75,7 @@ describe("clone commands keep the token out of the URL (#5618)", () => {
 		},
 		{
 			provider: "gitlab",
+			username: "oauth2",
 			token: "gl-token",
 			origin: "https://gitlab.example.com",
 			url: "https://gitlab.example.com/acme/web.git",
@@ -85,10 +87,11 @@ describe("clone commands keep the token out of the URL (#5618)", () => {
 					gitlabPathNamespace: "acme/web",
 					gitlabOwner: "acme",
 					gitlabRepository: "web",
-				} as Parameters<typeof cloneGitlabRepository>[0]),
+				}),
 		},
 		{
 			provider: "gitea",
+			username: "oauth2",
 			token: "gt-token",
 			origin: "https://gitea.example.com:3000",
 			url: "https://gitea.example.com:3000/acme/web.git",
@@ -103,14 +106,15 @@ describe("clone commands keep the token out of the URL (#5618)", () => {
 		},
 	])(
 		"$provider sends the token as a host-scoped header",
-		async ({ token, origin, url, build }) => {
+		async ({ username, token, origin, url, build }) => {
 			const command = (await build()).replace(/\\/g, "");
 
-			expect(command).not.toContain(`${token}@`);
+			expect(command).not.toMatch(/https?:\/\/[^/\s'"]+@/);
 			expect(command).toContain(
-				`http.${origin}/.extraHeader=Authorization: Basic ${basic(token)}`,
+				`http.${origin}/.extraheader=Authorization: Basic ${basic(username, token)}`,
 			);
-			expect(command).toContain(`--recurse-submodules ${url} `);
+			expect(command).toContain(`clone --branch main --depth 1 ${url}`);
+			expect(command).toContain("submodule update --init --depth 1");
 		},
 	);
 });
