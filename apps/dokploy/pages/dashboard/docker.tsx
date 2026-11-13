@@ -14,6 +14,7 @@ import { ShowNetworks } from "@/components/dashboard/networks/show-networks";
 import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
 import { ShowSwarmContainers } from "@/components/dashboard/swarm/containers/show-swarm-containers";
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
+import { ShowSecrets } from "@/components/dashboard/swarm/secrets/show-secrets";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { ServerFilter } from "@/components/shared/server-filter";
 import { Card } from "@/components/ui/card";
@@ -88,6 +89,7 @@ const Dashboard = () => {
 								<TabsTrigger value="overview">Overview</TabsTrigger>
 								<TabsTrigger value="containers">Containers</TabsTrigger>
 								<TabsTrigger value="nodes">Nodes</TabsTrigger>
+								<TabsTrigger value="secrets">Secrets</TabsTrigger>
 							</TabsList>
 							<TabsContent value="overview">
 								<SwarmMonitorCard serverId={serverId} />
@@ -101,6 +103,9 @@ const Dashboard = () => {
 							</TabsContent>
 							<TabsContent value="nodes">
 								<ShowNodes serverId={serverId} />
+							</TabsContent>
+							<TabsContent value="secrets">
+								<ShowSecrets key={serverId ?? "local"} serverId={serverId} />
 							</TabsContent>
 						</Tabs>
 					</TabsContent>

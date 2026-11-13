@@ -13,6 +13,7 @@ import { dnsProviderRouter } from "./routers/dns-provider";
 import { dockerRouter } from "./routers/docker";
 import { dockerDiskUsageRouter } from "./routers/docker-disk-usage";
 import { dockerImageRouter } from "./routers/docker-image";
+import { dockerSecretRouter } from "./routers/docker-secret";
 import { dockerVolumeRouter } from "./routers/docker-volume";
 import { domainRouter } from "./routers/domain";
 import { environmentRouter } from "./routers/environment";
@@ -81,6 +82,7 @@ export const appRouter = createTRPCRouter({
 	docker: dockerRouter,
 	dockerDiskUsage: dockerDiskUsageRouter,
 	dockerImage: dockerImageRouter,
+	dockerSecret: dockerSecretRouter,
 	dockerVolume: dockerVolumeRouter,
 	domain: domainRouter,
 	gitea: giteaRouter,
