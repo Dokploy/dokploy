@@ -190,7 +190,6 @@ export const findSandboxesByOrganizationId = async (
 					: eq(sandboxes.serverId, serverId),
 		),
 		orderBy: desc(sandboxes.createdAt),
-		with: { server: { columns: { serverId: true, name: true } } },
 	});
 	const settled = await Promise.all(rows.map(settleSandboxStatus));
 	if (serverId === undefined) return settled;
@@ -394,6 +393,7 @@ export const createSandbox = async (
 				null,
 			workdir: input.workdir ?? template?.workdir ?? SANDBOX_DEFAULTS.workdir,
 			user: template?.user ?? null,
+			runtime: input.runtime ?? null,
 			status: "creating",
 		})
 		.returning();

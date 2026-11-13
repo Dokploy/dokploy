@@ -67,6 +67,16 @@ describe("buildSandboxContainerOptions", () => {
 		});
 	});
 
+	it("sets the runtime only when one is given", () => {
+		expect(
+			buildSandboxContainerOptions(spec).HostConfig?.Runtime,
+		).toBeUndefined();
+		expect(
+			buildSandboxContainerOptions({ ...spec, runtime: "runsc" }).HostConfig
+				?.Runtime,
+		).toBe("runsc");
+	});
+
 	it("selects the isolated or internet network and never dokploy-network", () => {
 		expect(buildSandboxContainerOptions(spec).HostConfig?.NetworkMode).toBe(
 			SANDBOX_ISOLATED_NETWORK,

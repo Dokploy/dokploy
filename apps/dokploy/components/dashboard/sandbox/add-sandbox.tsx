@@ -50,6 +50,11 @@ const schema = z
 		timeoutMinutes: z.number().min(1).max(1440),
 		networkMode: z.enum(["isolated", "internet"]),
 		envVars: z.string().optional(),
+		runtime: z
+			.string()
+			.max(64)
+			.regex(/^([a-zA-Z0-9][a-zA-Z0-9_.-]*)?$/, "Invalid runtime name")
+			.optional(),
 	})
 	.refine((value) => value.source === "template" || !!value.image?.trim(), {
 		message: "Image is required",
@@ -87,6 +92,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 			timeoutMinutes: 5,
 			networkMode: "isolated",
 			envVars: "",
+			runtime: "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -107,6 +113,7 @@ export const AddSandbox = ({ serverId }: Props) => {
 				timeoutMs: Math.round(values.timeoutMinutes * 60_000),
 				networkMode: values.networkMode,
 				envVars: values.envVars?.trim() || undefined,
+				runtime: values.runtime?.trim() || undefined,
 			});
 			toast.success("Sandbox created");
 			await utils.sandbox.list.invalidate();
@@ -342,6 +349,28 @@ export const AddSandbox = ({ serverId }: Props) => {
 									<FormDescription>
 										Sandboxes are never attached to dokploy-network or any
 										application network.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="runtime"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Runtime</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="runc (default)"
+											className="font-mono"
+											{...field}
+										/>
+									</FormControl>
+									<FormDescription>
+										Optional Docker runtime, for example runsc (gVisor). It must
+										be installed and registered on the server.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>

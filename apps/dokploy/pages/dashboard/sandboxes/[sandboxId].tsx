@@ -141,6 +141,7 @@ const SandboxPage = (
 								<Field label="Memory" value={`${data?.memoryMb} MB`} />
 								<Field label="PIDs limit" value={data?.pidsLimit} />
 								<Field label="Network" value={data?.networkMode} />
+								<Field label="Runtime" value={data?.runtime ?? "default"} />
 								<Field label="Workdir" value={data?.workdir} />
 								<Field label="User" value={data?.user ?? "image default"} />
 								<Field

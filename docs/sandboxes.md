@@ -99,7 +99,8 @@ curl -s -X POST "$DOKPLOY_URL/api/sandbox.create" \
 ```
 
 Optional fields: `image` (instead of `template`), `serverId` (omit for the
-Dokploy server), `pidsLimit`, `workdir`. The response is the sandbox record
+Dokploy server), `pidsLimit`, `workdir`, `runtime`
+(a Docker runtime registered on the server, e.g. `runsc`). The response is the sandbox record
 (`sandboxId`, `status`, `containerId`, `expiresAt`, …). `envVars` is never
 returned.
 
@@ -239,7 +240,9 @@ never returned by the API.
 - No in-container agent: everything goes through `docker exec`, `putArchive`
   and `getArchive`. There is no PTY / interactive shell, no stdin, and no
   process management beyond the per-command timeout.
-- Plain Docker runtime only (`runtime` column reserved for gVisor/Kata later).
+- The default runtime is plain Docker (`runc`). `runtime` lets you pick another
+  one (for example `runsc` for gVisor), but Dokploy does not install it: it
+  must already be registered in the Docker daemon of the target server.
 - No snapshots, pause/resume, warm pools, or billing.
 - No public domains or exposed ports.
 - Remote servers reuse the existing Dokploy SSH Docker client, which opens an

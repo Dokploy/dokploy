@@ -24,6 +24,7 @@ export interface SandboxContainerSpec {
 	user?: string | null;
 	timeoutMs: number;
 	deadlineAt: Date;
+	runtime?: string | null;
 }
 
 export const getSandboxNetworkName = (mode: SandboxNetworkMode) =>
@@ -134,6 +135,7 @@ export const buildSandboxContainerOptions = (
 				Config: { "max-size": "10m", "max-file": "1" },
 			},
 			NetworkMode: getSandboxNetworkName(spec.networkMode),
+			...(spec.runtime ? { Runtime: spec.runtime } : {}),
 		},
 	};
 };

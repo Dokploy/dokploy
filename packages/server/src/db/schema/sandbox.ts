@@ -128,6 +128,11 @@ export const apiCreateSandbox = z
 		networkMode: z.enum(["isolated", "internet"]).optional(),
 		envVars: z.string().max(65_536).optional(),
 		workdir: absolutePath.optional(),
+		runtime: z
+			.string()
+			.max(64)
+			.regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, "Invalid runtime name")
+			.optional(),
 	})
 	.refine((value) => !!value.template || !!value.image, {
 		message: "Either template or image is required",
