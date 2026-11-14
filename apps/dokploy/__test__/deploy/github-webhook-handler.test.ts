@@ -514,4 +514,44 @@ describe("GitHub app webhook preview deployments", () => {
 		);
 		expect(res.status).toHaveBeenCalledWith(200);
 	});
+
+	it("continues deploying remaining apps when createPreviewDeployment fails for one app", async () => {
+		mocks.applicationsFindMany.mockResolvedValue([
+			createApplication({
+				applicationId: "failing-app-id",
+				name: "failing-app",
+				serverId: "remote-server-1",
+			}),
+			createApplication({
+				applicationId: "healthy-app-id",
+				name: "healthy-app",
+				serverId: null,
+			}),
+		]);
+		mocks.createPreviewDeployment
+			.mockRejectedValueOnce(new Error("SSH write failed"))
+			.mockResolvedValueOnce({
+				previewDeploymentId: "healthy-preview-id",
+			});
+		const consoleErrorSpy = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => undefined);
+		const res = createResponse();
+
+		await handler(createPullRequestRequest("opened"), res);
+
+		expect(mocks.createPreviewDeployment).toHaveBeenCalledTimes(2);
+		expect(mocks.queueAdd).toHaveBeenCalledTimes(1);
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "healthy-app-id",
+				applicationType: "application-preview",
+				previewDeploymentId: "healthy-preview-id",
+			}),
+			expect.anything(),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+		consoleErrorSpy.mockRestore();
+	});
 });
