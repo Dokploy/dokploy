@@ -8,7 +8,8 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { execAsyncRemote } from "../process/execAsync";
+import { writeContentToPath } from "../filesystem/write-content";
+import { ExecError, execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -23,7 +24,6 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
 	let command = "set -e;";
@@ -134,11 +134,15 @@ exit 1;
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
-		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
+		await writeContentToPath(compose.serverId, path, composeString);
+		return "";
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : String(error ?? "");
+			error instanceof ExecError && error.stderr
+				? `${error.message}: ${error.stderr.trim()}`
+				: error instanceof Error
+					? error.message
+					: String(error ?? "");
 		// The error message embeds user-controlled fields (e.g. serviceName) and is
 		// executed as part of the compose build shell script, so it must be escaped.
 		return `echo ${quote([`❌ Has occurred an error: ${message}`])};

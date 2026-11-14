@@ -12,8 +12,8 @@ import { eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { stringify } from "yaml";
 import type { z } from "zod";
-import { encodeBase64 } from "../utils/docker/utils";
-import { execAsyncRemote } from "../utils/process/execAsync";
+import { writeContentToPath } from "../utils/filesystem/write-content";
+import { ExecError, execAsyncRemote } from "../utils/process/execAsync";
 
 export type Certificate = typeof certificates.$inferSelect;
 
@@ -118,16 +118,36 @@ const createCertificateFiles = async (certificate: Certificate) => {
 	const configFile = path.join(certDir, "certificate.yml");
 
 	if (certificate.serverId) {
-		const certificateData = encodeBase64(certificate.certificateData);
-		const privateKey = encodeBase64(certificate.privateKey);
-		const command = `
-			mkdir -p ${quote([certDir])};
-			echo "${certificateData}" | base64 -d > ${quote([crtPath])};
-			echo "${privateKey}" | base64 -d > ${quote([keyPath])};
-			echo "${yamlConfig}" > ${quote([configFile])};
-		`;
-
-		await execAsyncRemote(certificate.serverId, command);
+		try {
+			await execAsyncRemote(
+				certificate.serverId,
+				`mkdir -p ${quote([certDir])}`,
+			);
+			await writeContentToPath(
+				certificate.serverId,
+				crtPath,
+				certificate.certificateData,
+				{ label: "certificate" },
+			);
+			await writeContentToPath(
+				certificate.serverId,
+				keyPath,
+				certificate.privateKey,
+				{ label: "private key" },
+			);
+			await writeContentToPath(
+				certificate.serverId,
+				configFile,
+				`${yamlConfig}\n`,
+				{ label: "certificate config" },
+			);
+		} catch (error) {
+			if (error instanceof ExecError && error.stderr)
+				throw new Error(`${error.message}: ${error.stderr.trim()}`, {
+					cause: error,
+				});
+			throw error;
+		}
 	} else {
 		if (!fs.existsSync(certDir)) {
 			fs.mkdirSync(certDir, { recursive: true });
