@@ -124,6 +124,16 @@ export const webServerSettings = pgTable("webServerSettings", {
 			faviconLightUrl: null,
 			dualModeBranding: false,
 		}),
+	// Domain Restriction Configuration
+	domainRestrictionConfig: jsonb("domainRestrictionConfig")
+		.$type<{
+			enabled: boolean;
+			allowedWildcards: string[];
+		}>()
+		.default({
+			enabled: false,
+			allowedWildcards: [],
+		}),
 	// Deployment Configuration (self-hosted only)
 	remoteServersOnly: boolean("remoteServersOnly").notNull().default(false),
 	// Concurrent builds on the local web server
@@ -288,4 +298,21 @@ export const apiUpdateWebServerMonitoring = z.object({
 			}),
 		})
 		.required(),
+});
+
+// Domain Restriction validation schemas
+export const domainRestrictionConfigSchema = z.object({
+	enabled: z.boolean(),
+	allowedWildcards: z.array(
+		z
+			.string()
+			.min(1)
+			.refine((s) => s.startsWith("*.") || s.startsWith("**."), {
+				message: "Pattern must start with '*.' or '**.' (e.g. *.example.com)",
+			}),
+	),
+});
+
+export const apiUpdateDomainRestriction = z.object({
+	domainRestrictionConfig: domainRestrictionConfigSchema,
 });
