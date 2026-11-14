@@ -12,6 +12,7 @@ import {
 } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
+import { writeContentToPath } from "@dokploy/server/utils/filesystem/write-content";
 import { ExecError } from "@dokploy/server/utils/process/ExecError";
 import {
 	execAsync,
@@ -326,48 +327,52 @@ const syncVectorConfig = async (
 	const configPath = `${VECTOR_PATH}/vector.yaml`;
 	const candidatePath = `${VECTOR_PATH}/vector.yaml.candidate.${nanoid(10)}`;
 	const encodedYaml = encodeBase64(yamlStr);
-	// Failed commands echo their command line, which carries the whole config.
 	const redact = (error: unknown) =>
-		redactSecrets(describeError(error), [encodedYaml, ...secrets]);
+		redactSecrets(describeError(error), [yamlStr, encodedYaml, ...secrets]);
 
 	try {
-		await runOnTarget(
-			serverId,
-			`umask 077 && mkdir -p ${quote([`${VECTOR_PATH}/data`])} && chmod 700 ${quote([VECTOR_PATH])} ${quote([`${VECTOR_PATH}/data`])} && echo "${encodedYaml}" | base64 -d > ${quote([candidatePath])}`,
-		);
-	} catch (error) {
-		throw new Error(`Failed to write the Vector config: ${redact(error)}`);
-	}
+		try {
+			await runOnTarget(
+				serverId,
+				`umask 077 && mkdir -p ${quote([`${VECTOR_PATH}/data`])} && chmod 700 ${quote([VECTOR_PATH])} ${quote([`${VECTOR_PATH}/data`])} && : > ${quote([candidatePath])}`,
+			);
+			await writeContentToPath(serverId, candidatePath, yamlStr, {
+				mode: 0o600,
+				label: "Vector config",
+			});
+		} catch (error) {
+			throw new Error(`Failed to write the Vector config: ${redact(error)}`);
+		}
 
-	try {
-		await runOnTarget(
-			serverId,
-			`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro -v ${quote([`${candidatePath}:/etc/vector/vector.yaml:ro`])} ${VECTOR_IMAGE} validate --skip-healthchecks /etc/vector/vector.yaml`,
-		);
-	} catch (error) {
-		const sanitizedDetail = redact(error);
+		try {
+			await runOnTarget(
+				serverId,
+				`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro -v ${quote([`${candidatePath}:/etc/vector/vector.yaml:ro`])} ${VECTOR_IMAGE} validate --skip-healthchecks /etc/vector/vector.yaml`,
+			);
+		} catch (error) {
+			const sanitizedDetail = redact(error);
+			throw new Error(
+				`Generated Vector config failed validation, not applying it: ${sanitizedDetail}`,
+			);
+		}
+
+		try {
+			await runOnTarget(
+				serverId,
+				`mv ${quote([candidatePath])} ${quote([configPath])}`,
+			);
+		} catch (error) {
+			throw new Error(`Failed to apply the Vector config: ${redact(error)}`);
+		}
+	} finally {
 		try {
 			await runOnTarget(serverId, `rm -f ${quote([candidatePath])}`);
 		} catch (cleanupError) {
 			console.error(
-				`[Vector] Failed to remove invalid config candidate ${candidatePath}${
-					serverId ? ` on server ${serverId}` : ""
-				}:`,
-				cleanupError,
+				`[Vector] Failed to remove config candidate ${candidatePath}${serverId ? ` on server ${serverId}` : ""}:`,
+				redact(cleanupError),
 			);
 		}
-		throw new Error(
-			`Generated Vector config failed validation, not applying it: ${sanitizedDetail}`,
-		);
-	}
-
-	try {
-		await runOnTarget(
-			serverId,
-			`mv ${quote([candidatePath])} ${quote([configPath])}`,
-		);
-	} catch (error) {
-		throw new Error(`Failed to apply the Vector config: ${redact(error)}`);
 	}
 };
 

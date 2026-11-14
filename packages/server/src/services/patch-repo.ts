@@ -2,6 +2,7 @@ import { join, relative, resolve, sep } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
+import { createContentStaging } from "../utils/filesystem/write-content";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { cloneBitbucketRepository } from "../utils/providers/bitbucket";
 import { cloneGitRepository } from "../utils/providers/git";
@@ -49,26 +50,31 @@ export const ensurePatchRepo = async ({
 		outputPathOverride: repoPath,
 	};
 
-	let command = "set -e;";
-	if (application.sourceType === "github") {
-		command += await cloneGithubRepository(applicationEntity);
-	} else if (application.sourceType === "gitlab") {
-		command += await cloneGitlabRepository(applicationEntity);
-	} else if (application.sourceType === "gitea") {
-		command += await cloneGiteaRepository(applicationEntity);
-	} else if (application.sourceType === "bitbucket") {
-		command += await cloneBitbucketRepository(applicationEntity);
-	} else if (application.sourceType === "git") {
-		command += await cloneGitRepository(applicationEntity);
-	}
+	const staging = createContentStaging(serverId);
+	try {
+		let command = "set -e;";
+		if (application.sourceType === "github") {
+			command += await cloneGithubRepository(applicationEntity);
+		} else if (application.sourceType === "gitlab") {
+			command += await cloneGitlabRepository(applicationEntity);
+		} else if (application.sourceType === "gitea") {
+			command += await cloneGiteaRepository(applicationEntity);
+		} else if (application.sourceType === "bitbucket") {
+			command += await cloneBitbucketRepository(applicationEntity);
+		} else if (application.sourceType === "git") {
+			command += await cloneGitRepository(applicationEntity, staging);
+		}
 
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
-	}
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 
-	return repoPath;
+		return repoPath;
+	} finally {
+		await staging.cleanup();
+	}
 };
 
 interface DirectoryEntry {

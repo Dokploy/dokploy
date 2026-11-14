@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 	findEnabledTelemetryProvidersByOrganization: vi.fn(),
 	execAsync: vi.fn(),
 	execAsyncRemote: vi.fn(),
+	writeContentToPath: vi.fn(),
 	inspectService: vi.fn(),
 	updateService: vi.fn(),
 	removeService: vi.fn(),
@@ -17,6 +18,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@dokploy/server/db", () => ({ db: {} }));
+vi.mock("@dokploy/server/utils/filesystem/write-content", () => ({
+	writeContentToPath: mocks.writeContentToPath,
+}));
 vi.mock("@dokploy/server/constants", () => ({
 	IS_CLOUD: false,
 	paths: (isServer: boolean) => ({
@@ -84,9 +88,8 @@ const promProvider = {
 const notFound = () =>
 	Object.assign(new Error("not found"), { statusCode: 404 });
 
-const writtenYaml = (command: string) => {
-	const match = command.match(/echo "([^"]+)" \| base64 -d/);
-	return parse(Buffer.from(match?.[1] ?? "", "base64").toString("utf8"));
+const writtenYaml = (_command: string) => {
+	return parse(mocks.writeContentToPath.mock.calls.at(-1)?.[2] ?? "");
 };
 
 const commandsOf = (mock: typeof mocks.execAsync) =>
@@ -103,6 +106,7 @@ beforeEach(() => {
 	mocks.removeService.mockRejectedValue(notFound());
 	mocks.execAsync.mockResolvedValue({ stdout: "", stderr: "" });
 	mocks.execAsyncRemote.mockResolvedValue({ stdout: "", stderr: "" });
+	mocks.writeContentToPath.mockResolvedValue(undefined);
 	mocks.listContainers.mockResolvedValue([{ Id: "vector-container" }]);
 	mocks.killContainer.mockResolvedValue(undefined);
 });
@@ -120,7 +124,7 @@ describe("reconcileVectorAgent", () => {
 		await reconcileVectorAgent();
 
 		const commands = commandsOf(mocks.execAsync);
-		expect(commands).toHaveLength(3);
+		expect(commands).toHaveLength(4);
 		expect(commands[0]).toContain(
 			"/local/dokploy/vector/vector.yaml.candidate.",
 		);
@@ -129,6 +133,13 @@ describe("reconcileVectorAgent", () => {
 		);
 		expect(commands[2]).toMatch(
 			/^mv \/local\/dokploy\/vector\/vector\.yaml\.candidate\.\S+ \/local\/dokploy\/vector\/vector\.yaml$/,
+		);
+		expect(commands[3]).toMatch(/^rm -f .*vector.yaml.candidate./);
+		expect(mocks.writeContentToPath).toHaveBeenCalledWith(
+			undefined,
+			expect.stringContaining("vector.yaml.candidate."),
+			expect.any(String),
+			{ mode: 0o600, label: "Vector config" },
 		);
 		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
 
@@ -354,7 +365,7 @@ describe("reconcileVectorAgent", () => {
 			lokiProvider,
 		]);
 		const echoCommand = async (command: string) => {
-			if (command.includes("base64 -d") || command.startsWith("mv ")) {
+			if (command.includes("umask 077") || command.startsWith("mv ")) {
 				throw new Error(`Command failed: ${command} (token sekret-token)`);
 			}
 			return { stdout: "", stderr: "" };
