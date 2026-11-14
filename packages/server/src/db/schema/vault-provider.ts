@@ -13,6 +13,7 @@ export const vaultProviderType = pgEnum("VaultProviderType", [
 	"azure",
 	"scaleway",
 	"phase",
+	"oci",
 ]);
 
 export const hashicorpVaultConfigSchema = z.object({
@@ -88,6 +89,40 @@ export const phaseVaultConfigSchema = z.object({
 	apiUrl: z.string().url().default("https://api.phase.dev"),
 });
 
+const ociOcid = (...resourceTypes: string[]) =>
+	z
+		.string()
+		.trim()
+		.regex(
+			new RegExp(`^ocid1\\.(${resourceTypes.join("|")})\\.[a-z0-9.-]+$`),
+			`Must be an OCID starting with ${resourceTypes.map((type) => `ocid1.${type}.`).join(" or ")}`,
+		);
+
+export const ociVaultConfigSchema = z.object({
+	providerType: z.literal("oci"),
+	// The region becomes part of the API hostname, so only identifier characters are allowed.
+	region: z
+		.string()
+		.trim()
+		.regex(
+			/^[a-z0-9]+(-[a-z0-9]+)+$/,
+			"Must be an OCI region identifier (e.g. eu-madrid-1)",
+		),
+	tenancyId: ociOcid("tenancy"),
+	userId: ociOcid("user"),
+	fingerprint: z
+		.string()
+		.trim()
+		.regex(
+			/^([0-9a-f]{2}:){15}[0-9a-f]{2}$/i,
+			"Must be an API key fingerprint (e.g. 12:34:...:ef)",
+		),
+	privateKey: z.string().min(1),
+	passphrase: z.string().optional(),
+	vaultId: ociOcid("vault"),
+	compartmentId: ociOcid("compartment", "tenancy"),
+});
+
 export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	hashicorpVaultConfigSchema,
 	infisicalVaultConfigSchema,
@@ -97,6 +132,7 @@ export const vaultProviderConfigSchema = z.discriminatedUnion("providerType", [
 	azureVaultConfigSchema,
 	scalewayVaultConfigSchema,
 	phaseVaultConfigSchema,
+	ociVaultConfigSchema,
 ]);
 
 export type VaultProviderConfig = z.infer<typeof vaultProviderConfigSchema>;
