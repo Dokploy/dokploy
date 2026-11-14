@@ -1,4 +1,4 @@
-import { ClipboardList, DatabaseBackup, Play, Trash2 } from "lucide-react";
+import { ClipboardList, DatabaseBackup, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,17 +18,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
 import { HandleBackup } from "./handle-backup";
+import { ManualBackupButton } from "./manual-backup-button";
 import { RestoreBackup } from "./restore-backup";
 import { ShowBackupFiles } from "./show-backup-files";
 
@@ -205,7 +200,9 @@ export const ShowBackups = ({
 																			{backup.serviceName}
 																		</h3>
 																		<span className="px-1.5 py-0.5 rounded-full bg-muted text-xs font-medium capitalize">
-																			{backup.databaseType}
+																			{backup.metadata?.backupMode === "custom"
+																				? "Custom script"
+																				: backup.databaseType}
 																		</span>
 																	</div>
 																)}
@@ -298,44 +295,34 @@ export const ShowBackups = ({
 																<ClipboardList className="size-4  transition-colors " />
 															</Button>
 														</ShowDeploymentsModal>
-														<TooltipProvider delayDuration={0}>
-															<Tooltip>
-																<TooltipTrigger asChild>
-																	<Button
-																		type="button"
-																		variant="ghost"
-																		size="icon"
-																		className="size-8"
-																		isLoading={
-																			isManualBackup &&
-																			activeManualBackup === backup.backupId
-																		}
-																		onClick={async () => {
-																			setActiveManualBackup(backup.backupId);
-																			await manualBackup({
-																				backupId: backup.backupId as string,
-																			})
-																				.then(async () => {
-																					toast.success(
-																						"Manual Backup Successful",
-																					);
-																				})
-																				.catch(() => {
-																					toast.error(
-																						"Error creating the manual backup",
-																					);
-																				});
-																			setActiveManualBackup(undefined);
-																		}}
-																	>
-																		<Play className="size-4 " />
-																	</Button>
-																</TooltipTrigger>
-																<TooltipContent>
-																	Run Manual Backup
-																</TooltipContent>
-															</Tooltip>
-														</TooltipProvider>
+														<ManualBackupButton
+															backupId={backup.backupId}
+															checkAvailability={
+																backup.databaseType !== "web-server"
+															}
+															isBusy={isManualBackup}
+															isLoading={
+																isManualBackup &&
+																activeManualBackup === backup.backupId
+															}
+															onClick={async () => {
+																setActiveManualBackup(backup.backupId);
+																await manualBackup({
+																	backupId: backup.backupId as string,
+																})
+																	.then(async () => {
+																		toast.success("Manual Backup Successful");
+																	})
+																	.catch((error: unknown) => {
+																		toast.error(
+																			error instanceof Error
+																				? error.message
+																				: "Error creating the manual backup",
+																		);
+																	});
+																setActiveManualBackup(undefined);
+															}}
+														/>
 
 														<ShowBackupFiles backupId={backup.backupId} />
 														<HandleBackup
