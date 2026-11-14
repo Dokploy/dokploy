@@ -5,12 +5,17 @@ import { scheduledJobs, scheduleJob } from "node-schedule";
 import { quote } from "shell-quote";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
+import {
+	getComposeBackupCommand,
+	hasComposeBackupOptions,
+	isCustomBackup,
+} from "./compose-command";
 import { runLibsqlBackup } from "./libsql";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { redactRcloneCredentials } from "./redact";
+import { getBackupSecrets, redactRcloneCredentials } from "./redact";
 import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
@@ -138,7 +143,7 @@ export const getLibsqlBackupCommand = (database: string) => {
 };
 
 export const getServiceContainerCommand = (appName: string) => {
-	return `docker ps -q --filter "status=running" --filter "label=com.docker.swarm.service.name=${appName}" | head -n 1`;
+	return `docker ps -q --filter "status=running" --filter ${quote([`label=com.docker.swarm.service.name=${appName}`])} | head -n 1`;
 };
 
 export const getComposeContainerCommand = (
@@ -152,7 +157,7 @@ export const getComposeContainerCommand = (
 	return `docker ps -q --filter "status=running" --filter ${quote([`label=com.docker.compose.project=${appName}`])} --filter ${quote([`label=com.docker.compose.service=${serviceName}`])} | head -n 1`;
 };
 
-const getContainerSearchCommand = (backup: BackupSchedule) => {
+export const getContainerSearchCommand = (backup: BackupSchedule) => {
 	const {
 		backupType,
 		postgres,
@@ -185,6 +190,9 @@ const getContainerSearchCommand = (backup: BackupSchedule) => {
 
 export const generateBackupCommand = (backup: BackupSchedule) => {
 	const { backupType, databaseType } = backup;
+	// Existing configurations keep the original commands and authentication behavior.
+	if (backupType === "compose" && hasComposeBackupOptions(backup))
+		return getComposeBackupCommand(backup);
 	switch (databaseType) {
 		case "postgres": {
 			const postgres = backup.postgres;
@@ -194,7 +202,7 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 			if (backupType === "compose" && backup.metadata?.postgres) {
 				return getPostgresBackupCommand(
 					backup.database,
-					backup.metadata.postgres.databaseUser,
+					backup.metadata.postgres.databaseUser ?? "postgres",
 				);
 			}
 			break;
@@ -227,8 +235,8 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 			if (backupType === "compose" && backup.metadata?.mariadb) {
 				return getMariadbBackupCommand(
 					backup.database,
-					backup.metadata.mariadb.databaseUser,
-					backup.metadata.mariadb.databasePassword,
+					backup.metadata.mariadb.databaseUser ?? "root",
+					backup.metadata.mariadb.databasePassword ?? "",
 				);
 			}
 			break;
@@ -245,8 +253,8 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 			if (backupType === "compose" && backup.metadata?.mongo) {
 				return getMongoBackupCommand(
 					backup.database,
-					backup.metadata.mongo.databaseUser,
-					backup.metadata.mongo.databasePassword,
+					backup.metadata.mongo.databaseUser ?? "",
+					backup.metadata.mongo.databasePassword ?? "",
 				);
 			}
 			break;
@@ -272,12 +280,18 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	const secrets = getBackupSecrets(backup.metadata);
+	const redactOutput = secrets.length
+		? `for BACKUP_SECRET in ${quote(secrets)}; do UPLOAD_OUTPUT="\${UPLOAD_OUTPUT//"$BACKUP_SECRET"/[REDACTED]}"; done;`
+		: "";
 	const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 	const rcloneDeleteCommand = `rclone deletefile ${rcloneFlags.join(" ")} ${quote([rcloneDestination])}`;
 
 	logger.info(
 		{
 			containerSearch,
+			// Commands may contain connection passwords, URIs, or user scripts.
+			backupMode: isCustomBackup(backup) ? "custom" : "default",
 			rcloneCommand: redactRcloneCredentials(rcloneCommand),
 			logPath,
 		},
@@ -286,27 +300,28 @@ export const getBackupCommand = (
 
 	return `
 	set -eo pipefail;
-	echo "[$(date)] Starting backup process..." >> ${logPath};
-	echo "[$(date)] Executing backup command..." >> ${logPath};
+	echo "[$(date)] Starting backup process..." >> ${quote([logPath])};
+	echo "[$(date)] Executing backup command..." >> ${quote([logPath])};
 	CONTAINER_ID=$(${containerSearch});
 
 	if [ -z "$CONTAINER_ID" ]; then
-		echo "[$(date)] ❌ Error: Container not found" >> ${logPath};
+		echo "[$(date)] ❌ Error: Container not found" >> ${quote([logPath])};
 		exit 1;
 	fi;
 
-	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	echo "[$(date)] Starting backup and upload to S3..." >> ${logPath};
+	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${quote([logPath])};
+	echo "[$(date)] Starting backup and upload to S3..." >> ${quote([logPath])};
 
 	UPLOAD_OUTPUT=$({ ${backupCommand} | ${rcloneCommand}; } 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
+		echo "[$(date)] ❌ Error: Backup failed" >> ${quote([logPath])};
+		${redactOutput}
+		printf 'Error: %s\n' "$UPLOAD_OUTPUT" >> ${quote([logPath])};
 		${rcloneDeleteCommand} >/dev/null 2>&1 || true;
 		exit 1;
 	};
 
-	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${logPath};
-	echo "Backup done ✅" >> ${logPath};
+	echo "[$(date)] ✅ Backup uploaded to S3 successfully" >> ${quote([logPath])};
+	echo "Backup done ✅" >> ${quote([logPath])};
 	`;
 };
 
