@@ -1,4 +1,5 @@
 import {
+	ArrowUpRightIcon,
 	BookIcon,
 	DatabaseIcon,
 	GitMergeIcon,
@@ -15,33 +16,16 @@ import { displayFont } from "../font";
 interface Props {
 	projectId?: string;
 	environmentId?: string;
+	applicationId?: string;
 	onFinish: () => void | Promise<void>;
 }
 
-const features = [
-	{
-		icon: DatabaseIcon,
-		title: "Databases",
-		description: "Postgres, MySQL, MongoDB, Redis and more, one click away.",
-	},
-	{
-		icon: GlobeIcon,
-		title: "Custom domains",
-		description: "Attach your own domains and get automatic HTTPS.",
-	},
-	{
-		icon: GitMergeIcon,
-		title: "CI/CD",
-		description: "Auto-deploy on every push from GitHub, GitLab or Bitbucket.",
-	},
-	{
-		icon: UsersIcon,
-		title: "Team collaboration",
-		description: "Invite teammates with fine-grained permissions.",
-	},
-];
-
-export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
+export const CompleteStep = ({
+	projectId,
+	environmentId,
+	applicationId,
+	onFinish,
+}: Props) => {
 	const router = useRouter();
 	const [showConfetti, setShowConfetti] = useState(false);
 	const [isFinishing, setIsFinishing] = useState(false);
@@ -54,6 +38,39 @@ export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 		projectId && environmentId
 			? `/dashboard/project/${projectId}/environment/${environmentId}`
 			: "/dashboard/projects";
+
+	const domainsHref =
+		applicationId && projectId && environmentId
+			? `/dashboard/project/${projectId}/environment/${environmentId}/services/application/${applicationId}?tab=domains`
+			: projectHref;
+
+	const features = [
+		{
+			icon: DatabaseIcon,
+			title: "Databases",
+			description: "Postgres, MySQL, MongoDB, Redis and more, one click away.",
+			href: projectHref,
+		},
+		{
+			icon: GlobeIcon,
+			title: "Custom domains",
+			description: "Attach your own domains and get automatic HTTPS.",
+			href: domainsHref,
+		},
+		{
+			icon: GitMergeIcon,
+			title: "CI/CD",
+			description:
+				"Auto-deploy on every push from GitHub, GitLab or Bitbucket.",
+			href: "/dashboard/settings/git-providers",
+		},
+		{
+			icon: UsersIcon,
+			title: "Team collaboration",
+			description: "Invite teammates with fine-grained permissions.",
+			href: "/dashboard/settings/users",
+		},
+	];
 
 	const handleFinish = async () => {
 		setIsFinishing(true);
@@ -89,13 +106,24 @@ export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 				</p>
 			</div>
 
-			<dl className="flex flex-col divide-y">
+			<nav
+				aria-label="More of what you can do with Dokploy"
+				className="flex flex-col divide-y"
+			>
 				{features.map((feature, index) => (
-					<div key={feature.title} className="flex gap-6 py-5 first:pt-0">
-						<dt className="font-mono text-xs text-muted-foreground pt-1 shrink-0 w-6">
+					<Link
+						key={feature.title}
+						href={feature.href}
+						onClick={() => {
+							// Navigating away ends onboarding; close it without blocking the link.
+							void onFinish();
+						}}
+						className="group -mx-4 flex items-start gap-6 rounded-lg px-4 py-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+					>
+						<span className="font-mono text-xs text-muted-foreground pt-1 shrink-0 w-6">
 							{String(index + 1).padStart(2, "0")}
-						</dt>
-						<dd className="flex flex-col gap-1">
+						</span>
+						<span className="flex flex-col gap-1 flex-1">
 							<span className="font-medium flex items-center gap-2">
 								<feature.icon className="size-4 text-muted-foreground" />
 								{feature.title}
@@ -103,10 +131,14 @@ export const CompleteStep = ({ projectId, environmentId, onFinish }: Props) => {
 							<span className="text-sm text-muted-foreground">
 								{feature.description}
 							</span>
-						</dd>
-					</div>
+						</span>
+						<ArrowUpRightIcon
+							className="size-4 mt-1 shrink-0 text-muted-foreground opacity-0 -translate-x-0.5 translate-y-0.5 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:translate-y-0"
+							aria-hidden
+						/>
+					</Link>
 				))}
-			</dl>
+			</nav>
 
 			<div className="flex items-center gap-4">
 				<Button
