@@ -17,6 +17,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { scheduleLibreDBStudioSync } from "./libredb-studio";
 import { validUniqueServerAppName } from "./project";
 
 export type Mongo = typeof mongo.$inferSelect;
@@ -51,6 +52,7 @@ export const createMongo = async (input: z.infer<typeof apiCreateMongo>) => {
 		});
 	}
 
+	scheduleLibreDBStudioSync(newMongo);
 	return newMongo;
 };
 
@@ -92,6 +94,13 @@ export const updateMongoById = async (
 	mongoData: Partial<Mongo>,
 ) => {
 	const { appName, ...rest } = mongoData;
+	const previous =
+		rest.environmentId !== undefined || rest.serverId !== undefined
+			? await db.query.mongo.findFirst({
+					where: eq(mongo.mongoId, mongoId),
+					columns: { environmentId: true, serverId: true },
+				})
+			: undefined;
 	const result = await db
 		.update(mongo)
 		.set({
@@ -100,6 +109,12 @@ export const updateMongoById = async (
 		.where(eq(mongo.mongoId, mongoId))
 		.returning();
 
+	if (previous) {
+		scheduleLibreDBStudioSync(previous);
+	}
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
@@ -147,6 +162,9 @@ export const removeMongoById = async (mongoId: string) => {
 		.where(eq(mongo.mongoId, mongoId))
 		.returning();
 
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 

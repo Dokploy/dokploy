@@ -40,6 +40,9 @@ vi.mock("@dokploy/server/db", () => {
 				member: {
 					findMany: vi.fn().mockResolvedValue([]),
 				},
+				libredbStudio: {
+					findFirst: vi.fn().mockResolvedValue(undefined),
+				},
 			},
 		},
 	};

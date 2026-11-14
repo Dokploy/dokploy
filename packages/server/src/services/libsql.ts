@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { scheduleLibreDBStudioSync } from "./libredb-studio";
 import { validUniqueServerAppName } from "./project";
 
 export type Libsql = typeof libsql.$inferSelect;
@@ -50,6 +51,7 @@ export const createLibsql = async (input: z.infer<typeof apiCreateLibsql>) => {
 		});
 	}
 
+	scheduleLibreDBStudioSync(newLibsql);
 	return newLibsql;
 };
 
@@ -92,6 +94,13 @@ export const updateLibsqlById = async (
 	libsqlData: Partial<Libsql>,
 ) => {
 	const { appName, ...rest } = libsqlData;
+	const previous =
+		rest.environmentId !== undefined || rest.serverId !== undefined
+			? await db.query.libsql.findFirst({
+					where: eq(libsql.libsqlId, libsqlId),
+					columns: { environmentId: true, serverId: true },
+				})
+			: undefined;
 	const result = await db
 		.update(libsql)
 		.set({
@@ -100,6 +109,12 @@ export const updateLibsqlById = async (
 		.where(eq(libsql.libsqlId, libsqlId))
 		.returning();
 
+	if (previous) {
+		scheduleLibreDBStudioSync(previous);
+	}
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
@@ -109,6 +124,9 @@ export const removeLibsqlById = async (libsqlId: string) => {
 		.where(eq(libsql.libsqlId, libsqlId))
 		.returning();
 
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 

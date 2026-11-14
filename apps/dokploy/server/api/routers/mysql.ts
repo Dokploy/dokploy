@@ -17,6 +17,7 @@ import {
 	rebuildDatabase,
 	removeMySqlById,
 	removeService,
+	scheduleLibreDBStudioSync,
 	startService,
 	startServiceRemote,
 	stopService,
@@ -465,6 +466,7 @@ export const mysqlRouter = createTRPCRouter({
 					await execAsync(command, { shell: "/bin/bash" });
 				}
 			});
+			scheduleLibreDBStudioSync(my);
 
 			await audit(ctx, {
 				action: "update",
@@ -488,6 +490,11 @@ export const mysqlRouter = createTRPCRouter({
 				service: ["create"],
 			});
 
+			const previous = await db.query.mysql.findFirst({
+				where: eq(mysqlTable.mysqlId, input.mysqlId),
+				columns: { environmentId: true, serverId: true },
+			});
+
 			const updatedMysql = await db
 				.update(mysqlTable)
 				.set({
@@ -503,6 +510,10 @@ export const mysqlRouter = createTRPCRouter({
 					message: "Failed to move mysql",
 				});
 			}
+			if (previous) {
+				scheduleLibreDBStudioSync(previous);
+			}
+			scheduleLibreDBStudioSync(updatedMysql);
 
 			await audit(ctx, {
 				action: "move",

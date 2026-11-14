@@ -126,6 +126,14 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				await checkPermission(ctx, { schedule: ["update"] });
 			}
+			// The input can move the row onto another service, which must allow it too.
+			for (const targetId of [input.applicationId, input.composeId]) {
+				if (targetId && targetId !== serviceId) {
+					await checkServicePermissionAndAccess(ctx, targetId, {
+						schedule: ["create"],
+					});
+				}
+			}
 			const updatedSchedule = await updateSchedule(input);
 
 			if (IS_CLOUD) {

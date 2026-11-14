@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { scheduleLibreDBStudioSync } from "./libredb-studio";
 import { validUniqueServerAppName } from "./project";
 
 export type Mariadb = typeof mariadb.$inferSelect;
@@ -55,6 +56,7 @@ export const createMariadb = async (
 		});
 	}
 
+	scheduleLibreDBStudioSync(newMariadb);
 	return newMariadb;
 };
 
@@ -97,6 +99,13 @@ export const updateMariadbById = async (
 	mariadbData: Partial<Mariadb>,
 ) => {
 	const { appName, ...rest } = mariadbData;
+	const previous =
+		rest.environmentId !== undefined || rest.serverId !== undefined
+			? await db.query.mariadb.findFirst({
+					where: eq(mariadb.mariadbId, mariadbId),
+					columns: { environmentId: true, serverId: true },
+				})
+			: undefined;
 	const result = await db
 		.update(mariadb)
 		.set({
@@ -105,6 +114,12 @@ export const updateMariadbById = async (
 		.where(eq(mariadb.mariadbId, mariadbId))
 		.returning();
 
+	if (previous) {
+		scheduleLibreDBStudioSync(previous);
+	}
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
@@ -114,6 +129,9 @@ export const removeMariadbById = async (mariadbId: string) => {
 		.where(eq(mariadb.mariadbId, mariadbId))
 		.returning();
 
+	if (result[0]) {
+		scheduleLibreDBStudioSync(result[0]);
+	}
 	return result[0];
 };
 
