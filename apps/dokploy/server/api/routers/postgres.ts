@@ -9,6 +9,7 @@ import {
 	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
+	findResourceProfileInOrganization,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getMountPath,
@@ -401,6 +402,13 @@ export const postgresRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, postgresId, {
 				service: ["create"],
 			});
+
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
+			}
 
 			const service = await updatePostgresById(postgresId, {
 				...rest,

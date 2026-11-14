@@ -9,6 +9,7 @@ import {
 	findEnvironmentById,
 	findMySqlById,
 	findProjectById,
+	findResourceProfileInOrganization,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainer,
@@ -392,6 +393,13 @@ export const mysqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mysqlId, {
 				service: ["create"],
 			});
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
+			}
+
 			const service = await updateMySqlById(mysqlId, {
 				...rest,
 			});

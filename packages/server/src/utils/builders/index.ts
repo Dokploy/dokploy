@@ -6,10 +6,10 @@ import { resolveServiceNetworks } from "@dokploy/server/services/network";
 import { findRegistryByIdWithCredentials } from "@dokploy/server/services/registry";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
@@ -119,25 +119,9 @@ export const mechanizeDockerContainer = async (
 	rawApplication: ApplicationNested,
 ) => {
 	const application = await withResolvedVaultRefs(rawApplication);
-	const {
-		appName,
-		env,
-		mounts,
-		cpuLimit,
-		memoryLimit,
-		memoryReservation,
-		cpuReservation,
-		command,
-		args,
-		ports,
-	} = application;
+	const { appName, env, mounts, command, args, ports } = application;
 
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(application);
 
 	const volumesMount = generateVolumeMounts(mounts);
 

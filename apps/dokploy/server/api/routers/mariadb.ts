@@ -9,6 +9,7 @@ import {
 	findEnvironmentById,
 	findMariadbById,
 	findProjectById,
+	findResourceProfileInOrganization,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainer,
@@ -374,6 +375,13 @@ export const mariadbRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mariadbId, {
 				service: ["create"],
 			});
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
+			}
+
 			const service = await updateMariadbById(mariadbId, {
 				...rest,
 			});

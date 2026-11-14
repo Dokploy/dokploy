@@ -19,6 +19,7 @@ const FREE_TIER_RESOURCES = [
 	"traefikFiles",
 	"api",
 	"telemetryProvider",
+	"resourceProfiles",
 ];
 
 const ENTERPRISE_RESOURCES = [

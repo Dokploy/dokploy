@@ -23,6 +23,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { AssignComposeResourceProfiles } from "@/components/dashboard/compose/advanced/assign-compose-resource-profiles";
 import { FreshVolumes } from "@/components/dashboard/compose/advanced/fresh-volumes";
 import { ShowComposeContainers } from "@/components/dashboard/compose/containers/show-compose-containers";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -447,6 +448,7 @@ const Service = (
 												<ShowVolumes id={composeId} type="compose" />
 												<ShowImport composeId={composeId} />
 												<AssignComposeNetworks composeId={composeId} />
+												<AssignComposeResourceProfiles composeId={composeId} />
 												<IsolatedDeploymentTab composeId={composeId} />
 												<FreshVolumes composeId={composeId} />
 											</div>

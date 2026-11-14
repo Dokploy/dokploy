@@ -23,6 +23,7 @@ import {
 	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
+	loadServicesWithResources,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
 	removeCompose,
@@ -328,6 +329,14 @@ export const composeRouter = createTRPCRouter({
 				service: ["read"],
 			});
 			return await loadServices(input.composeId, input.type);
+		}),
+	loadServicesWithResources: protectedProcedure
+		.input(apiFetchServices)
+		.query(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.composeId, {
+				service: ["read"],
+			});
+			return await loadServicesWithResources(input.composeId, input.type);
 		}),
 	loadMountsByService: protectedProcedure
 		.input(

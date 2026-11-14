@@ -9,7 +9,6 @@ import {
 } from "../db/schema";
 import { getRegistryTag } from "../utils/cluster/upload";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateVolumeMounts,
@@ -30,6 +29,7 @@ import {
 	findRegistryByIdWithCredentials,
 	type Registry,
 } from "./registry";
+import { resolveEffectiveResources } from "./resource-profile";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
@@ -218,23 +218,9 @@ const rollbackApplication = async (
 
 	const docker = await getRemoteDocker(serverId);
 
-	const {
-		env,
-		mounts,
-		cpuLimit,
-		memoryLimit,
-		memoryReservation,
-		cpuReservation,
-		command,
-		ports,
-	} = resolvedContext;
+	const { env, mounts, command, ports } = resolvedContext;
 
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(resolvedContext);
 
 	const volumesMount = generateVolumeMounts(mounts);
 

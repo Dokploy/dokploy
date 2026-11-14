@@ -1,9 +1,9 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
@@ -24,14 +24,10 @@ export const buildMariadb = async (rawMariadb: MariadbNested) => {
 		env,
 		externalPort,
 		dockerImage,
-		memoryLimit,
-		memoryReservation,
 		databaseName,
 		databaseUser,
 		databasePassword,
 		databaseRootPassword,
-		cpuLimit,
-		cpuReservation,
 		command,
 		args,
 		mounts,
@@ -55,12 +51,7 @@ export const buildMariadb = async (rawMariadb: MariadbNested) => {
 		EndpointSpec,
 		Ulimits,
 	} = generateConfigContainer(mariadb);
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(mariadb);
 	const envVariables = prepareEnvironmentVariables(
 		defaultMariadbEnv,
 		mariadb.environment.project.env,

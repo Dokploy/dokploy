@@ -6,6 +6,7 @@ import {
 	findEnvironmentById,
 	findLibsqlById,
 	findProjectById,
+	findResourceProfileInOrganization,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getWebServerSettings,
@@ -403,6 +404,13 @@ export const libsqlRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, libsqlId, {
 				service: ["create"],
 			});
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
+			}
+
 			const libsql = await updateLibsqlById(libsqlId, {
 				...rest,
 			});

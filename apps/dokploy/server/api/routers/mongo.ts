@@ -9,6 +9,7 @@ import {
 	findEnvironmentById,
 	findMongoById,
 	findProjectById,
+	findResourceProfileInOrganization,
 	getAccessibleServerIds,
 	getContainerLogs,
 	getServiceContainer,
@@ -396,6 +397,13 @@ export const mongoRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, mongoId, {
 				service: ["create"],
 			});
+			if (input.resourceProfileId) {
+				await findResourceProfileInOrganization(
+					input.resourceProfileId,
+					ctx.session.activeOrganizationId,
+				);
+			}
+
 			const service = await updateMongoById(mongoId, {
 				...rest,
 			});

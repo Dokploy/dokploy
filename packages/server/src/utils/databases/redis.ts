@@ -1,9 +1,9 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { resolveServiceNetworks } from "../../services/network";
+import { resolveEffectiveResources } from "../../services/resource-profile";
 import { buildDokployLabels } from "../docker/dokploy-labels";
 import {
-	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
@@ -24,11 +24,7 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 		env,
 		externalPort,
 		dockerImage,
-		memoryLimit,
-		memoryReservation,
 		databasePassword,
-		cpuLimit,
-		cpuReservation,
 		command,
 		args,
 		mounts,
@@ -52,12 +48,7 @@ export const buildRedis = async (rawRedis: RedisNested) => {
 		EndpointSpec,
 		Ulimits,
 	} = generateConfigContainer(redis);
-	const resources = calculateResources({
-		memoryLimit,
-		memoryReservation,
-		cpuLimit,
-		cpuReservation,
-	});
+	const resources = await resolveEffectiveResources(redis);
 	const envVariables = prepareEnvironmentVariables(
 		defaultRedisEnv,
 		redis.environment.project.env,
