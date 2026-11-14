@@ -2,10 +2,12 @@ import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation"
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { BranchDirectLookup } from "@/components/dashboard/shared/branch-direct-lookup";
+import { RepositoryDirectLookup } from "@/components/dashboard/shared/repository-direct-lookup";
 import { BitbucketIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +101,8 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 
 	const repository = form.watch("repository");
 	const bitbucketId = form.watch("bitbucketId");
+	const [shouldLoadRepositories, setShouldLoadRepositories] = useState(false);
+	const [shouldLoadBranches, setShouldLoadBranches] = useState(false);
 
 	const {
 		data: repositories,
@@ -109,7 +113,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketId,
 		},
 		{
-			enabled: !!bitbucketId,
+			enabled: !!bitbucketId && shouldLoadRepositories,
 		},
 	);
 
@@ -127,7 +131,8 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			enabled:
 				!!repository?.owner &&
 				!!(repository?.slug || repository?.repo) &&
-				!!bitbucketId,
+				!!bitbucketId &&
+				shouldLoadBranches,
 		},
 	);
 
@@ -241,7 +246,27 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 											</Link>
 										)}
 									</div>
-									<Popover>
+									<RepositoryDirectLookup
+										provider="bitbucket"
+										providerId={bitbucketId}
+										onSelect={(selected) => {
+											form.setValue(
+												"repository",
+												{
+													owner: selected.owner,
+													repo: selected.name,
+													slug: selected.slug ?? selected.name,
+												},
+												{ shouldValidate: true },
+											);
+											form.setValue("branch", "");
+										}}
+									/>
+									<Popover
+										onOpenChange={(open) => {
+											if (open) setShouldLoadRepositories(true);
+										}}
+									>
 										<PopoverTrigger asChild>
 											<FormControl>
 												<Button
@@ -259,7 +284,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 																	(repo) =>
 																		repo.name === field.value.repo &&
 																		repo.owner.username === field.value.owner,
-																)?.name ?? "Select repository")}
+																)?.name ?? field.value.repo)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -335,7 +360,22 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="block w-full">
 									<FormLabel>Branch</FormLabel>
-									<Popover>
+									<BranchDirectLookup
+										provider="bitbucket"
+										providerId={bitbucketId}
+										owner={repository?.owner ?? ""}
+										repository={repository?.slug || repository?.repo || ""}
+										onSelect={(branch) => {
+											form.setValue("branch", branch, {
+												shouldValidate: true,
+											});
+										}}
+									/>
+									<Popover
+										onOpenChange={(open) => {
+											if (open) setShouldLoadBranches(true);
+										}}
+									>
 										<PopoverTrigger asChild>
 											<FormControl>
 												<Button
@@ -348,9 +388,9 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 													{status === "pending" && fetchStatus === "fetching"
 														? "Loading...."
 														: field.value
-															? branches?.find(
+															? (branches?.find(
 																	(branch) => branch.name === field.value,
-																)?.name
+																)?.name ?? field.value)
 															: "Select branch"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
