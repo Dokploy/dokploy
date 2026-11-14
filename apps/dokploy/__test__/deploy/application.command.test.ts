@@ -16,6 +16,7 @@ vi.mock("@dokploy/server/db", () => {
 			returning: vi.fn().mockResolvedValue([{}] as any),
 			from: vi.fn(() => chain),
 			innerJoin: vi.fn(() => chain),
+			// biome-ignore lint/suspicious/noThenProperty: Drizzle queries are thenable.
 			then: (resolve: (v: any) => void) => {
 				resolve([]);
 			},
@@ -77,6 +78,7 @@ vi.mock("@dokploy/server/utils/providers/git", async () => {
 
 vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 	execAsync: vi.fn(),
+	execAsyncRemote: vi.fn(),
 	ExecError: class ExecError extends Error {},
 }));
 
@@ -180,7 +182,10 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should generate correct git clone command for astro example", async () => {
 		const app = createMockApplication();
-		const command = await cloneGitRepository(app);
+		const command = await cloneGitRepository(app, {
+			stage: vi.fn(),
+			cleanup: vi.fn(),
+		});
 		console.log(command);
 
 		expect(command).toContain("https://github.com/Dokploy/examples.git");
@@ -192,10 +197,58 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should generate git clone with submodules when enabled", async () => {
 		const app = createMockApplication({ enableSubmodules: true });
-		const command = await cloneGitRepository(app);
+		const command = await cloneGitRepository(app, {
+			stage: vi.fn(),
+			cleanup: vi.fn(),
+		});
 
 		expect(command).toContain("--recurse-submodules");
 		expect(command).toContain("https://github.com/Dokploy/examples.git");
+	});
+
+	it("routes Git source staging to the configured build server", async () => {
+		const app = createMockApplication({
+			buildServerId: "build-server",
+			serverId: "deploy-server",
+		});
+		vi.mocked(applicationService.findApplicationById).mockResolvedValue(
+			app as any,
+		);
+		vi.mocked(db.query.applications.findFirst).mockResolvedValue(app as any);
+		const cloneSpy = vi
+			.spyOn(gitProvider, "cloneGitRepository")
+			.mockResolvedValueOnce("git clone;");
+		vi.mocked(builders.getBuildCommand).mockResolvedValue("build;");
+
+		try {
+			await deployApplication({
+				applicationId: "test-app-id",
+				titleLog: "Test build server deployment",
+				descriptionLog: "",
+			});
+
+			expect(cloneSpy).toHaveBeenCalledWith(
+				expect.objectContaining({ serverId: "build-server" }),
+				expect.objectContaining({
+					stage: expect.any(Function),
+					cleanup: expect.any(Function),
+				}),
+			);
+			expect(execProcess.execAsyncRemote).toHaveBeenCalledWith(
+				"build-server",
+				expect.stringContaining("git clone;"),
+			);
+			expect(execProcess.execAsync).not.toHaveBeenCalled();
+			expect(builders.getBuildCommand).toHaveBeenCalledWith(
+				expect.objectContaining({ buildType: "nixpacks" }),
+				expect.objectContaining({
+					stage: expect.any(Function),
+					cleanup: expect.any(Function),
+				}),
+			);
+		} finally {
+			cloneSpy.mockRestore();
+		}
 	});
 
 	it("should verify nixpacks command is called with correct app", async () => {
@@ -213,6 +266,10 @@ describe("deployApplication - Command Generation Tests", () => {
 				buildType: "nixpacks",
 				customGitUrl: "https://github.com/Dokploy/examples.git",
 				buildPath: "/astro",
+			}),
+			expect.objectContaining({
+				stage: expect.any(Function),
+				cleanup: expect.any(Function),
 			}),
 		);
 
@@ -242,6 +299,10 @@ describe("deployApplication - Command Generation Tests", () => {
 		expect(builders.getBuildCommand).toHaveBeenCalledWith(
 			expect.objectContaining({
 				buildType: "railpack",
+			}),
+			expect.objectContaining({
+				stage: expect.any(Function),
+				cleanup: expect.any(Function),
 			}),
 		);
 

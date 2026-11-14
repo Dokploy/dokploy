@@ -1,16 +1,20 @@
 import {
 	getEnvironmentVariablesObject,
-	prepareEnvironmentVariablesForShell,
+	prepareEnvironmentVariables,
 } from "@dokploy/server/utils/docker/utils";
 import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
 } from "../filesystem/directory";
+import type { ContentStaging } from "../filesystem/write-content";
 import type { ApplicationNested } from ".";
-import { createEnvFileCommand } from "./utils";
+import { createEnvFileCommand, stageBuildArguments } from "./utils";
 
-export const getDockerCommand = (application: ApplicationNested) => {
+export const getDockerCommand = async (
+	application: ApplicationNested,
+	staging: ContentStaging,
+) => {
 	const {
 		appName,
 		env,
@@ -49,25 +53,19 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--no-cache");
 		}
 
-		const args = prepareEnvironmentVariablesForShell(
+		const args = prepareEnvironmentVariables(
 			buildArgs,
 			application.environment.project.env,
 			application.environment.env,
 		);
 
-		for (const arg of args) {
-			commandArgs.push("--build-arg", arg);
-		}
+		const stagedArgs = args.flatMap((arg) => ["--build-arg", arg]);
 
 		const secrets = getEnvironmentVariablesObject(
 			buildSecrets,
 			application.environment.project.env,
 			application.environment.env,
 		);
-
-		const joinedSecrets = Object.entries(secrets)
-			.map(([key, value]) => `${key}=${quote([value])}`)
-			.join(" ");
 
 		/*
 			Do not generate an environment file when publishDirectory is specified,
@@ -76,9 +74,10 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		*/
 		let command = "";
 		if (!publishDirectory && createEnvFile) {
-			command += createEnvFileCommand(
+			command += await createEnvFileCommand(
 				dockerFilePath,
 				env,
+				staging,
 				application.environment.project.env,
 				application.environment.env,
 			);
@@ -88,8 +87,9 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			// Although buildx is smart enough to know we may be referring to an environment variable name,
 			// we still make sure it doesn't fall back to `type=file`.
 			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
-			commandArgs.push("--secret", `type=env,id=${key}`);
+			stagedArgs.push("--secret", `type=env,id=${key}`);
 		}
+		const prefix = await stageBuildArguments(staging, stagedArgs, secrets);
 
 		command += `
 echo ${quote([`Building ${appName}`])} ;
@@ -98,7 +98,7 @@ cd ${quote([dockerContextPath])} || {
   exit 1;
 }
 
-${joinedSecrets} docker ${commandArgs.join(" ")} || {
+${prefix} docker ${commandArgs.join(" ")} || {
   echo "❌ Docker build failed" ;
   exit 1;
 }

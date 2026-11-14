@@ -16,8 +16,8 @@ import {
 	environments,
 	projects,
 } from "@dokploy/server/db/schema";
-import { encodeBase64 } from "@dokploy/server/utils/docker/utils";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
+import { writeContentToPath } from "@dokploy/server/utils/filesystem/write-content";
 import {
 	ExecError,
 	execAsync,
@@ -993,18 +993,12 @@ export const writeDeploymentErrorLog = async (
 	error: unknown,
 ) => {
 	const message = error instanceof Error ? error.message : String(error);
-	let command = "";
-	if (!(error instanceof ExecError)) {
-		command += `echo "${encodeBase64(message)}" | base64 -d >> "${deployment.logPath}";`;
-	}
-
-	command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+	const content = `${error instanceof ExecError ? "" : message}\nError occurred ❌, check the logs for details.\n`;
 	try {
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
-		} else {
-			await execAsync(command);
-		}
+		await writeContentToPath(serverId, deployment.logPath, content, {
+			append: true,
+			label: "deployment log",
+		});
 	} catch (logError) {
 		console.error("Failed to write the deployment error log", logError);
 		await updateDeployment(deployment.deploymentId, { errorMessage: message });

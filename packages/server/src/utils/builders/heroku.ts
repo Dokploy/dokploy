@@ -1,12 +1,17 @@
-import { prepareEnvironmentVariablesForShell } from "../docker/utils";
+import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import type { ContentStaging } from "../filesystem/write-content";
 import type { ApplicationNested } from ".";
+import { stagePackEnvironment } from "./utils";
 
-export const getHerokuCommand = (application: ApplicationNested) => {
+export const getHerokuCommand = async (
+	application: ApplicationNested,
+	staging: ContentStaging,
+) => {
 	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariablesForShell(
+	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
 		application.environment.env,
@@ -25,11 +30,10 @@ export const getHerokuCommand = (application: ApplicationNested) => {
 		args.push("--clear-cache");
 	}
 
-	for (const env of envVariables) {
-		args.push("--env", env);
-	}
+	const transport = await stagePackEnvironment(staging, envVariables);
+	args.push(...transport.args);
 
-	const command = `pack ${args.join(" ")}`;
+	const command = `${transport.prefix} pack ${args.join(" ")}`;
 	const bashCommand = `
 echo "Starting heroku build..." ;
 ${command} || { 
