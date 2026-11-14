@@ -21,11 +21,43 @@ privateAddresses.addAddress("::", "ipv6");
 privateAddresses.addAddress("::1", "ipv6");
 privateAddresses.addSubnet("fc00::", 7, "ipv6");
 
+// BlockList maps ::ffff:a.b.c.d back to IPv4 by itself, but not NAT64
+// (64:ff9b::/96) or IPv4-compatible (::/96) addresses, which carry an IPv4
+// address in their low 32 bits.
+const embeddedIPv4Prefixes = new BlockList();
+embeddedIPv4Prefixes.addSubnet("64:ff9b::", 96, "ipv6");
+embeddedIPv4Prefixes.addSubnet("::", 96, "ipv6");
+
+const toEmbeddedIPv4 = (ipv6: string): string | null => {
+	if (!embeddedIPv4Prefixes.check(ipv6, "ipv6")) {
+		return null;
+	}
+	// The URL parser rewrites a dotted tail ("::1.2.3.4") into hex groups.
+	const canonical = new URL(`http://[${ipv6}]`).hostname.slice(1, -1);
+	const [head = "", tail = ""] = canonical.split("::");
+	const headGroups = head ? head.split(":") : [];
+	const tailGroups = tail ? tail.split(":") : [];
+	const groups = [
+		...headGroups,
+		...Array<string>(8 - headGroups.length - tailGroups.length).fill("0"),
+		...tailGroups,
+	].map((group) => Number.parseInt(group, 16));
+	const high = groups[6] ?? 0;
+	const low = groups[7] ?? 0;
+	return [high >> 8, high & 255, low >> 8, low & 255].join(".");
+};
+
 const isBlockedAddress = (address: string): boolean => {
 	const ip = address.replace(/^\[|\]$/g, "");
 	const family = isIP(ip);
 	if (family === 0) {
 		return IS_CLOUD && ip.toLowerCase() === "localhost";
+	}
+	if (family === 6) {
+		const embedded = toEmbeddedIPv4(ip);
+		if (embedded) {
+			return isBlockedAddress(embedded);
+		}
 	}
 	const type = family === 4 ? "ipv4" : "ipv6";
 	return (

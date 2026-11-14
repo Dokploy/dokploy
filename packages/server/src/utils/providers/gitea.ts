@@ -164,6 +164,12 @@ export const cloneGiteaRepository = async ({
 		return command;
 	}
 
+	const requirements = getErrorCloneRequirements(entity);
+	if (requirements.length > 0) {
+		command += `echo "❌ [ERROR] Gitea Repository configuration failed for application: ${appName}"; echo "Reasons:"; echo "${requirements.join("\n")}"; exit 1;`;
+		return command;
+	}
+
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;

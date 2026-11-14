@@ -11,6 +11,7 @@ import { readValidDirectory } from "@dokploy/server/wss/utils";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 import { assertDeploymentAccess } from "../api/utils/deployment-access";
+import { isAllowedWebSocketOrigin, parseRequestUrl } from "./utils";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -18,10 +19,12 @@ export const setupDeploymentLogsWebSocketServer = (
 	const wssTerm = new WebSocketServer({
 		noServer: true,
 		path: "/listen-deployment",
+		verifyClient: ({ req }: { req: http.IncomingMessage }) =>
+			isAllowedWebSocketOrigin(req),
 	});
 
 	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		const pathname = parseRequestUrl(req)?.pathname;
 
 		if (pathname === "/_next/webpack-hmr") {
 			return;
@@ -34,7 +37,7 @@ export const setupDeploymentLogsWebSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const url = new URL(req.url || "", "http://localhost");
 		const logPath = url.searchParams.get("logPath");
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);

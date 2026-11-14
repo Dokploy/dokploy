@@ -4,9 +4,10 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import semver from "semver";
+import { quote } from "shell-quote";
 import { db } from "../db";
 import { compose } from "../db/schema";
 import {
@@ -151,54 +152,47 @@ export const readDirectory = async (
 	serverId?: string,
 ): Promise<TreeDataItem[]> => {
 	if (serverId) {
+		// Entries are printed directly instead of eval'd: file names on the server
+		// are untrusted and a quote in one would otherwise run as shell code.
 		const { stdout } = await execAsyncRemote(
 			serverId,
 			`
-process_items() {
-    local parent_dir="$1"
-    local __resultvar=$2
+json_escape() {
+    printf '%s' "$1" | sed -e 's/\\\\/\\\\\\\\/g' -e 's/"/\\\\"/g'
+}
 
-    local items_json=""
+process_items() {
     local first=true
-    for item in "$parent_dir"/*; do
+    local item
+    printf '['
+    for item in "$1"/*; do
         [ -e "$item" ] || continue
-        process_item "$item" item_json
         if [ "$first" = true ]; then
             first=false
-            items_json="$item_json"
         else
-            items_json="$items_json,$item_json"
+            printf ','
         fi
+        process_item "$item"
     done
-
-    eval $__resultvar="'[$items_json]'"
+    printf ']'
 }
 
 process_item() {
     local item_path="$1"
-    local __resultvar=$2
-
-    local item_name=$(basename "$item_path")
-    local escaped_name=$(echo "$item_name" | sed 's/"/\\"/g')
-    local escaped_path=$(echo "$item_path" | sed 's/"/\\"/g')
+    local escaped_name escaped_path
+    escaped_name=$(json_escape "$(basename "$item_path")")
+    escaped_path=$(json_escape "$item_path")
 
     if [ -d "$item_path" ]; then
-        # Is directory
-        process_items "$item_path" children_json
-        local json='{"id":"'"$escaped_path"'","name":"'"$escaped_name"'","type":"directory","children":'"$children_json"'}'
+        printf '{"id":"%s","name":"%s","type":"directory","children":' "$escaped_path" "$escaped_name"
+        process_items "$item_path"
+        printf '}'
     else
-        # Is file
-        local json='{"id":"'"$escaped_path"'","name":"'"$escaped_name"'","type":"file"}'
+        printf '{"id":"%s","name":"%s","type":"file"}' "$escaped_path" "$escaped_name"
     fi
-
-    eval $__resultvar="'$json'"
 }
 
-root_dir=${dirPath}
-
-process_items "$root_dir" json_output
-
-echo "$json_output"
+process_items ${quote([dirPath])}
 			`,
 		);
 		const result = JSON.parse(stdout);
@@ -649,7 +643,7 @@ export const pullTraefikImage = (serverId?: string) =>
 export const reconnectServicesToTraefik = async (serverId?: string) => {
 	const composeResult = await db.query.compose.findMany({
 		where: and(
-			...(serverId ? [eq(compose.serverId, serverId)] : []),
+			serverId ? eq(compose.serverId, serverId) : isNull(compose.serverId),
 			eq(compose.isolatedDeployment, true),
 		),
 	});

@@ -29,8 +29,10 @@ interface ServerThresholdPayload {
 	ServerName: string;
 }
 
+// A null organizationId is the Dokploy host itself (self-hosted only), which every
+// organization on the instance shares, as with Dokploy restart notifications.
 export const sendServerThresholdNotifications = async (
-	organizationId: string,
+	organizationId: string | null,
 	payload: ServerThresholdPayload,
 ) => {
 	const date = new Date(payload.Timestamp);
@@ -39,7 +41,9 @@ export const sendServerThresholdNotifications = async (
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.serverThreshold, true),
-			eq(notifications.organizationId, organizationId),
+			organizationId === null
+				? undefined
+				: eq(notifications.organizationId, organizationId),
 		),
 		with: {
 			email: true,

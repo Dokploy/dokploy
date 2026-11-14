@@ -838,12 +838,62 @@ export const findNotificationById = async (notificationId: string) => {
 };
 
 export const removeNotificationById = async (notificationId: string) => {
-	const result = await db
-		.delete(notifications)
-		.where(eq(notifications.notificationId, notificationId))
-		.returning();
+	return await db.transaction(async (tx) => {
+		const removed = await tx
+			.delete(notifications)
+			.where(eq(notifications.notificationId, notificationId))
+			.returning()
+			.then((rows) => rows[0]);
+		if (!removed) {
+			return undefined;
+		}
 
-	return result[0];
+		// Channel rows hold webhook URLs, tokens and SMTP passwords, and their
+		// foreign keys only cascade from channel to notification, not back.
+		if (removed.slackId) {
+			await tx.delete(slack).where(eq(slack.slackId, removed.slackId));
+		}
+		if (removed.telegramId) {
+			await tx
+				.delete(telegram)
+				.where(eq(telegram.telegramId, removed.telegramId));
+		}
+		if (removed.discordId) {
+			await tx.delete(discord).where(eq(discord.discordId, removed.discordId));
+		}
+		if (removed.emailId) {
+			await tx.delete(email).where(eq(email.emailId, removed.emailId));
+		}
+		if (removed.resendId) {
+			await tx.delete(resend).where(eq(resend.resendId, removed.resendId));
+		}
+		if (removed.gotifyId) {
+			await tx.delete(gotify).where(eq(gotify.gotifyId, removed.gotifyId));
+		}
+		if (removed.ntfyId) {
+			await tx.delete(ntfy).where(eq(ntfy.ntfyId, removed.ntfyId));
+		}
+		if (removed.mattermostId) {
+			await tx
+				.delete(mattermost)
+				.where(eq(mattermost.mattermostId, removed.mattermostId));
+		}
+		if (removed.customId) {
+			await tx.delete(custom).where(eq(custom.customId, removed.customId));
+		}
+		if (removed.larkId) {
+			await tx.delete(lark).where(eq(lark.larkId, removed.larkId));
+		}
+		if (removed.pushoverId) {
+			await tx
+				.delete(pushover)
+				.where(eq(pushover.pushoverId, removed.pushoverId));
+		}
+		if (removed.teamsId) {
+			await tx.delete(teams).where(eq(teams.teamsId, removed.teamsId));
+		}
+		return removed;
+	});
 };
 
 export const createLarkNotification = async (

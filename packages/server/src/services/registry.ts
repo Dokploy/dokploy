@@ -91,16 +91,19 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
+		// In cloud the control plane is shared by every tenant, so "none" must not log it in.
+		const loginServerId =
+			input.serverId && input.serverId !== "none" ? input.serverId : null;
 		try {
 			if (
-				(input.serverId && input.serverId !== "none") ||
-				newRegistry.registryType === "cloud"
+				loginServerId ||
+				(!IS_CLOUD && newRegistry.registryType === "cloud")
 			) {
 				await dockerLogin(
 					input.registryUrl,
 					input.username,
 					input.password,
-					input.serverId,
+					loginServerId,
 				);
 			}
 		} catch (error) {
@@ -128,7 +131,15 @@ export const removeRegistry = async (registryId: string) => {
 		}
 
 		if (!IS_CLOUD) {
-			await execAsync(`docker logout ${shEscape(response.registryUrl)}`);
+			// The host keeps one docker login per registry URL, which another
+			// registry entry (possibly another organization's) may still use.
+			const stillUsed = await db.query.registry.findFirst({
+				where: eq(registry.registryUrl, response.registryUrl),
+				columns: { registryId: true },
+			});
+			if (!stillUsed) {
+				await execAsync(`docker logout ${shEscape(response.registryUrl)}`);
+			}
 		}
 
 		return response;
@@ -146,15 +157,6 @@ export const updateRegistry = async (
 	registryData: Partial<Registry> & { serverId?: string | null },
 ) => {
 	try {
-		const response = await db
-			.update(registry)
-			.set({
-				...registryData,
-			})
-			.where(eq(registry.registryId, registryId))
-			.returning()
-			.then((res) => res[0]);
-
 		if (
 			IS_CLOUD &&
 			!registryData?.serverId &&
@@ -166,16 +168,26 @@ export const updateRegistry = async (
 			});
 		}
 
+		const response = await db
+			.update(registry)
+			.set({
+				...registryData,
+			})
+			.where(eq(registry.registryId, registryId))
+			.returning()
+			.then((res) => res[0]);
+
+		const loginServerId =
+			registryData.serverId && registryData.serverId !== "none"
+				? registryData.serverId
+				: null;
 		try {
-			if (
-				(registryData.serverId && registryData.serverId !== "none") ||
-				response?.registryType === "cloud"
-			) {
+			if (loginServerId || (!IS_CLOUD && response?.registryType === "cloud")) {
 				await dockerLogin(
 					response?.registryUrl,
 					response?.username,
 					response?.password,
-					registryData.serverId,
+					loginServerId,
 				);
 			}
 		} catch (execError) {

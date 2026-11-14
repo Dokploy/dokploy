@@ -50,6 +50,7 @@ vi.mock("@dokploy/server/utils/backups/utils", () => ({
 vi.mock("@dokploy/server/utils/volume-backups/backup", () => ({
 	backupVolume: vi.fn(async () => "echo backup"),
 	getVolumeServiceAppName: vi.fn(() => "app"),
+	getVolumeBackupServerId: vi.fn(() => null),
 }));
 
 vi.mock("@dokploy/server/utils/notifications/database-backup", () => ({

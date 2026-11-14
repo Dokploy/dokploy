@@ -189,6 +189,14 @@ export const giteaRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const existing = await findGiteaById(input.giteaId);
 			await assertGitProviderAccess(ctx.session, existing.gitProvider);
+			if (
+				!(await canViewGitProviderSecrets(ctx.session, existing.gitProvider))
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You can only update your own Git providers",
+				});
+			}
 			const { gitProviderId, ...data } = input;
 			if (input.name) {
 				await updateGitProvider(existing.gitProvider.gitProviderId, {
@@ -210,7 +218,7 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaUrl: protectedProcedure
 		.input(apiFindOneGitea)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			const { giteaId } = input;
 
 			if (!giteaId) {
@@ -221,6 +229,7 @@ export const giteaRouter = createTRPCRouter({
 			}
 
 			const giteaProvider = await findGiteaById(giteaId);
+			await assertGitProviderAccess(ctx.session, giteaProvider.gitProvider);
 
 			// Return the base URL of the Gitea instance
 			return giteaProvider.giteaUrl;

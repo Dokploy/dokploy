@@ -16,12 +16,19 @@ export const rollbackRouter = createTRPCRouter({
 			try {
 				const rb = await findRollbackById(input.rollbackId);
 				const serviceId = rb.deployment.applicationId;
-				if (serviceId) {
-					await checkServicePermissionAndAccess(ctx, serviceId, {
-						deployment: ["create"],
+				if (!serviceId) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Rollback not found",
 					});
 				}
-				const result = await removeRollbackById(input.rollbackId);
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["create"],
+				});
+				// fullContext holds the decrypted registry credentials captured at deploy time.
+				const { fullContext: _, ...result } = await removeRollbackById(
+					input.rollbackId,
+				);
 				await audit(ctx, {
 					action: "delete",
 					resourceType: "deployment",
@@ -45,11 +52,15 @@ export const rollbackRouter = createTRPCRouter({
 			try {
 				const rb = await findRollbackById(input.rollbackId);
 				const serviceId = rb.deployment.applicationId;
-				if (serviceId) {
-					await checkServicePermissionAndAccess(ctx, serviceId, {
-						deployment: ["create"],
+				if (!serviceId) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Rollback not found",
 					});
 				}
+				await checkServicePermissionAndAccess(ctx, serviceId, {
+					deployment: ["create"],
+				});
 				const result = await rollback(input.rollbackId);
 				await audit(ctx, {
 					action: "restore",

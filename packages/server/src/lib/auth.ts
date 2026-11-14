@@ -21,6 +21,7 @@ import {
 	getTrustedProviders,
 	getUserByToken,
 } from "../services/admin";
+import { hasPermission } from "../services/permission";
 import { createAuditLog } from "../services/proprietary/audit-log";
 import { resolveOrganizationDefaultRole } from "../services/proprietary/license-key";
 import {
@@ -37,10 +38,15 @@ import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
 
-const resolveTrustedOrigins = async () => {
+const resolveTrustedOrigins = async (path?: string) => {
 	try {
 		if (IS_CLOUD) {
-			return await getTrustedOrigins();
+			// Tenant-managed origins exist to reach their IdP endpoints. Trusting them
+			// on every route would let any tenant allow-list redirect targets (e.g. the
+			// password reset callbackURL, which receives the reset token) for all users.
+			const isSSOPath =
+				path?.startsWith("/sso/") || path?.startsWith("/sign-in/sso");
+			return isSSOPath ? await getTrustedOrigins() : [];
 		}
 		const [trustedOrigins, settings] = await Promise.all([
 			getTrustedOrigins(),
@@ -104,6 +110,9 @@ const createBetterAuth = () =>
 			"/organization/delete",
 			"/organization/update-member-role",
 			"/organization/invite-member",
+			"/organization/create-role",
+			"/organization/update-role",
+			"/organization/delete-role",
 			"/api-key/create",
 			"/api-key/update",
 			"/scim/generate-token",
@@ -133,9 +142,10 @@ const createBetterAuth = () =>
 		account: {
 			accountLinking: {
 				enabled: true,
+				// github/google are not listed: a trusted provider links to an existing
+				// account by email even when the provider reports it unverified.
 				async trustedProviders() {
-					const fromDb = await getTrustedProviders();
-					return ["github", "google", ...fromDb];
+					return getTrustedProviders();
 				},
 				allowDifferentEmails: true,
 			},
@@ -154,12 +164,17 @@ const createBetterAuth = () =>
 		logger: {
 			disabled: process.env.NODE_ENV === "production",
 		},
-		trustedOrigins: resolveTrustedOrigins,
+		trustedOrigins: (request) =>
+			resolveTrustedOrigins(
+				request
+					? new URL(request.url).pathname.replace(/^\/api\/auth/, "")
+					: undefined,
+			),
 		hooks: {
 			before: createAuthMiddleware(async (ctx) => {
 				ctx.context.trustedOrigins = [
 					...(ctx.context.baseURL ? [new URL(ctx.context.baseURL).origin] : []),
-					...(await resolveTrustedOrigins()),
+					...(await resolveTrustedOrigins(ctx.path)),
 				].filter(Boolean);
 
 				if (ctx.path === "/admin/remove-user") {
@@ -551,7 +566,9 @@ const createBetterAuth = () =>
 				enableMetadata: true,
 				references: "user",
 			}),
-			sso({ trustEmailVerified: true }),
+			// In cloud any licensed tenant can register an IdP; trusting its
+			// email_verified claim would link that IdP to any existing account by email.
+			sso({ trustEmailVerified: !IS_CLOUD }),
 			scim({
 				beforeSCIMTokenGenerated: async ({ user }) => {
 					const dbUser = await db.query.user.findFirst({
@@ -570,6 +587,10 @@ const createBetterAuth = () =>
 			passkey(),
 			organization({
 				ac,
+				// An email change keeps the current session, so without this an
+				// unverified address could still accept invitations sent to it.
+				requireEmailVerificationOnInvitation:
+					IS_CLOUD && process.env.NODE_ENV === "production",
 				roles: {
 					owner: ownerRole,
 					admin: adminRole,
@@ -699,7 +720,16 @@ const resolveRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			if (!member) {
+			if (
+				!member ||
+				!(await hasPermission(
+					{
+						user: { id: apiKeyRecord.user.id },
+						session: { activeOrganizationId: organizationId },
+					},
+					{ api: ["read"] },
+				))
+			) {
 				return {
 					session: null,
 					user: null,

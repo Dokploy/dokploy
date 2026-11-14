@@ -1,6 +1,8 @@
 import {
+	authGithub,
 	createGithub,
 	deriveGithubApiUrl,
+	getGithubToken,
 	parseGithubBaseUrl,
 	validateRequest,
 } from "@dokploy/server";
@@ -76,8 +78,10 @@ export default async function handler(
 		);
 	} else if (action === "gh_setup") {
 		const githubId = state?.split(":")[1];
-		if (!githubId) {
-			return res.status(400).json({ error: "Missing github provider id" });
+		if (!githubId || !installation_id || Array.isArray(installation_id)) {
+			return res
+				.status(400)
+				.json({ error: "Missing github provider or installation id" });
 		}
 
 		const provider = await db.query.github.findFirst({
@@ -89,6 +93,17 @@ export default async function handler(
 			provider.gitProvider.organizationId !== session.activeOrganizationId
 		) {
 			return res.status(404).json({ error: "Github provider not found" });
+		}
+
+		// installation_id arrives in the query string; only bind an installation
+		// this provider's GitHub App can actually authenticate as, otherwise one
+		// tenant can claim another's installation and break its webhooks.
+		try {
+			await getGithubToken(
+				authGithub({ ...provider, githubInstallationId: installation_id }),
+			);
+		} catch {
+			return res.status(400).json({ error: "Invalid github installation" });
 		}
 
 		await db

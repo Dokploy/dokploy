@@ -10,7 +10,12 @@ concurrency:
 
 jobs:
   cherry-pick:
-    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'hotfix')
+    # A later, unrelated label on an already cherry-picked PR must not re-apply it to main.
+    if: >-
+      github.event.pull_request.merged == true && (
+        (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'hotfix')) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'hotfix')
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: write

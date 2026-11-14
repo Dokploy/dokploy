@@ -32,6 +32,20 @@ import {
 	apiUpdateDomain,
 } from "@/server/db/schema";
 
+const assertServerInOrganization = async (
+	serverId: string,
+	organizationId: string,
+) => {
+	const server = await findServerById(serverId);
+	if (server.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+	return server;
+};
+
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
@@ -103,6 +117,12 @@ export const domainRouter = createTRPCRouter({
 	generateDomain: withPermission("domain", "create")
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				await assertServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
+			}
 			return generateTraefikMeDomain(
 				input.appName,
 				ctx.user.ownerId,
@@ -111,9 +131,12 @@ export const domainRouter = createTRPCRouter({
 		}),
 	canGenerateTraefikMeDomains: withPermission("domain", "read")
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await findServerById(input.serverId);
+				const server = await assertServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
 				return server.ipAddress;
 			}
 			const settings = await getWebServerSettings();
@@ -273,13 +296,10 @@ export const domainRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this server",
-					});
-				}
+				await assertServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
 			}
 
 			const expectedIps = await getServerIpCandidates(input.serverId);

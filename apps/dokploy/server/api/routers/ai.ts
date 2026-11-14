@@ -10,14 +10,17 @@ import {
 	createDomain,
 	createMount,
 	findEnvironmentById,
+	getWebServerSettings,
 } from "@dokploy/server/index";
 import {
+	AI_SECRET_MASK,
 	deleteAiSettings,
 	getAiSettingById,
 	getAiSettingsByOrganizationId,
 	getCustomAiProviders,
 	maskAiApiKey,
 	mergeAiApiKey,
+	normalizeApiUrl,
 	resolveAiApiKey,
 	saveAiSettings,
 	saveCustomAiProviders,
@@ -234,6 +237,17 @@ export const aiRouter = createTRPCRouter({
 				input.aiId,
 				ctx.session.activeOrganizationId,
 			);
+			const keepsStoredKey = !input.apiKey || input.apiKey === AI_SECRET_MASK;
+			if (
+				keepsStoredKey &&
+				input.apiUrl !== undefined &&
+				normalizeApiUrl(input.apiUrl) !== normalizeApiUrl(existing.apiUrl)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Re-enter the API key when changing the API URL",
+				});
+			}
 			if (input.apiKey) {
 				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
 			}
@@ -403,6 +417,9 @@ ${input.logs}`,
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				if (input.serverId) {
+					await assertServerAccess(ctx.session, input.serverId);
+				}
 				return await suggestVariants({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
@@ -422,7 +439,11 @@ ${input.logs}`,
 			const project = await findProjectById(environment.projectId);
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
-			if (IS_CLOUD && !input.serverId) {
+			const webServerSettings = await getWebServerSettings();
+			if (
+				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+				!input.serverId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",

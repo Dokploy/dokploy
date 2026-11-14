@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	CONNECT_TOKEN_TTL_SECONDS,
 	createConnectToken,
 	createSshKey,
@@ -206,7 +207,8 @@ export const serverRouter = createTRPCRouter({
 		}),
 	getDefaultCommand: withPermission("server", "read")
 		.input(apiFindOneServer)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId);
 			const server = await findServerById(input.serverId);
 			const isBuildServer = server.serverType === "build";
 			return defaultCommand(isBuildServer);
@@ -360,6 +362,7 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to setup this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 				const currentServer = await serverSetup(input.serverId);
 				await audit(ctx, {
 					action: "update",
@@ -391,11 +394,14 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to setup this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 				return observable<string>((emit) => {
 					// The setup keeps running after the client leaves; emitting then throws.
 					let closed = false;
 					serverSetup(input.serverId, (log) => {
 						if (!closed) emit.next(log);
+					}).catch((error) => {
+						if (!closed) emit.next(`${error} ❌\n`);
 					});
 					return () => {
 						closed = true;
@@ -416,6 +422,7 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to validate this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 				const response = await serverValidate(input.serverId);
 				return response as unknown as {
 					docker: {
@@ -468,6 +475,7 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to validate this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 				const response = await serverAudit(input.serverId);
 				return response as unknown as {
 					ufw: {
@@ -518,6 +526,7 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to setup this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 
 				await updateServerById(input.serverId, {
 					metricsConfig: {
@@ -566,6 +575,7 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to delete this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 
 				const activeServers = await haveActiveServices(input.serverId);
 
@@ -614,6 +624,7 @@ export const serverRouter = createTRPCRouter({
 						message: "You are not authorized to update this server",
 					});
 				}
+				await assertServerAccess(ctx.session, input.serverId);
 
 				if (server.serverStatus === "inactive") {
 					throw new TRPCError({
@@ -656,6 +667,7 @@ export const serverRouter = createTRPCRouter({
 					message: "You are not authorized to update this server",
 				});
 			}
+			await assertServerAccess(ctx.session, input.serverId);
 			return await updateServerById(input.serverId, {
 				buildsConcurrency: input.buildsConcurrency,
 			});

@@ -1,4 +1,3 @@
-import path from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { getDokployUrl } from "@dokploy/server/services/admin";
 import {
@@ -19,7 +18,6 @@ import {
 } from "@dokploy/server/setup/traefik-setup";
 import slug from "slugify";
 import { Client } from "ssh2";
-import { recreateDirectory } from "../utils/filesystem/directory";
 import { setupMonitoring } from "./monitoring-setup";
 
 const generateToken = () => {
@@ -49,13 +47,6 @@ export const serverSetup = async (
 	onData?: (data: any) => void,
 ) => {
 	const server = await findServerById(serverId);
-	const { LOGS_PATH } = paths();
-
-	const slugifyName = slugify(`server ${server.name}`);
-
-	const fullPath = path.join(LOGS_PATH, slugifyName);
-
-	await recreateDirectory(fullPath);
 
 	const deployment = await createServerDeployment({
 		serverId: server.serverId,
@@ -501,7 +492,7 @@ const installUtilities = () => `
 		$SUDO_CMD pacman -Sy --noconfirm --needed unzip curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
-		$SUDO_CMD sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
+		$SUDO_CMD sed -i '/^#.*\\/community/s/^#//' /etc/apk/repositories
 		$SUDO_CMD apk update >/dev/null
 		$SUDO_CMD apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
 		;;

@@ -11,6 +11,8 @@ import { WebSocketServer } from "ws";
 import { getDockerHost } from "../utils/docker";
 import { canAccessTerminalOverWss } from "./authorize";
 import {
+	isAllowedWebSocketOrigin,
+	parseRequestUrl,
 	parseResizeMessage,
 	parseTerminalSize,
 	setupLocalServerSSHKey,
@@ -75,10 +77,12 @@ export const setupTerminalWebSocketServer = (
 	const wssTerm = new WebSocketServer({
 		noServer: true,
 		path: "/terminal",
+		verifyClient: ({ req }: { req: http.IncomingMessage }) =>
+			isAllowedWebSocketOrigin(req),
 	});
 
 	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		const pathname = parseRequestUrl(req)?.pathname;
 		if (pathname === "/_next/webpack-hmr") {
 			return;
 		}
@@ -90,7 +94,7 @@ export const setupTerminalWebSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const url = new URL(req.url || "", "http://localhost");
 		const serverId = url.searchParams.get("serverId");
 		const { cols, rows } = parseTerminalSize(
 			url.searchParams.get("cols"),
@@ -176,7 +180,8 @@ export const setupTerminalWebSocketServer = (
 			const { ipAddress: host, port, username, sshKey, sshKeyId } = server;
 
 			if (!sshKeyId) {
-				throw new Error("No SSH key available for this server");
+				ws.close(4000, "No SSH key available for this server");
+				return;
 			}
 
 			connectionDetails = {

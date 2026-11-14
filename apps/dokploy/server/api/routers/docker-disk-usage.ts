@@ -1,4 +1,5 @@
 import {
+	assertServerAccess,
 	cleanupBuilders,
 	findServerById,
 	getBuildCache,
@@ -17,6 +18,7 @@ export const dockerDiskUsageRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -33,6 +35,7 @@ export const dockerDiskUsageRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -49,6 +52,7 @@ export const dockerDiskUsageRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
+			await assertServerAccess(ctx.session, input.serverId ?? null);
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {

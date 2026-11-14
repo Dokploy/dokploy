@@ -57,6 +57,12 @@ export function SignInWithSSO({
 				return;
 			}
 			if (data?.url) {
+				// The URL comes from the provider's discovery/config, which the org admin controls.
+				const { protocol } = new URL(data.url, window.location.origin);
+				if (protocol !== "https:" && protocol !== "http:") {
+					toast.error("Invalid SSO redirect URL");
+					return;
+				}
 				window.location.href = data.url;
 			}
 		} catch (err) {

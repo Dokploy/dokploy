@@ -45,7 +45,7 @@ export const updateGitProvider = async (
 
 // Returns true if the user can edit the git source configuration of an existing
 // deploy that is connected to the given provider.
-// Owner/admin: always yes.
+// Owner: always yes.
 // Member: only if they own the provider or it's shared with the org.
 // Being in accessedGitProviders only grants permission to connect NEW deploys,
 // not to modify the git config of an existing deploy owned by someone else.

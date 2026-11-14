@@ -23,6 +23,7 @@ import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
 import { setupDrawerLogsWebSocketServer } from "./wss/drawer-logs";
 import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
+import { parseRequestUrl } from "./wss/utils";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
@@ -56,6 +57,26 @@ void app.prepare().then(async () => {
 		if (!IS_CLOUD) {
 			setupDockerStatsMonitoringSocketServer(server);
 		}
+
+		const websocketPaths = new Set([
+			"/drawer-logs",
+			"/listen-deployment",
+			"/docker-container-logs",
+			"/docker-container-terminal",
+			"/terminal",
+			...(IS_CLOUD ? [] : ["/listen-docker-stats-monitoring"]),
+		]);
+		// Node keeps an upgrade socket open forever when no listener takes it over.
+		server.on("upgrade", (req, socket) => {
+			const pathname = parseRequestUrl(req)?.pathname;
+			if (
+				pathname?.startsWith("/_next/") ||
+				websocketPaths.has(pathname ?? "")
+			) {
+				return;
+			}
+			socket.destroy();
+		});
 
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);

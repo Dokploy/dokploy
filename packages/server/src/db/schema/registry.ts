@@ -115,10 +115,13 @@ export const apiFindOneRegistry = z.object({
 	registryId: z.string().min(1),
 });
 
-export const apiUpdateRegistry = createSchema.partial().extend({
-	registryId: z.string().min(1),
-	serverId: z.string().optional(),
-});
+export const apiUpdateRegistry = createSchema
+	.partial()
+	.omit({ organizationId: true })
+	.extend({
+		registryId: z.string().min(1),
+		serverId: z.string().optional(),
+	});
 
 export const apiEnableSelfHostedRegistry = createSchema
 	.pick({

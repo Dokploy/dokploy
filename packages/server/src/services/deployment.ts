@@ -131,14 +131,13 @@ export const createDeployment = async (
 	>,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
+	const serverId = application.buildServerId || application.serverId;
 	await removeLastTenDeployments(
 		deployment.applicationId,
 		"application",
-		application.serverId,
+		serverId,
 	);
 	try {
-		const serverId = application.buildServerId || application.serverId;
-
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
@@ -219,7 +218,7 @@ export const createDeploymentPreview = async (
 	await removeLastTenDeployments(
 		deployment.previewDeploymentId,
 		"previewDeployment",
-		previewDeployment.application.serverId,
+		serverId,
 	);
 	try {
 		const appName = `${previewDeployment.appName}`;
@@ -1113,7 +1112,12 @@ const deploymentOwnerQuery = {
 	with: {
 		server: { columns: { organizationId: true } },
 		schedule: {
-			columns: { organizationId: true, applicationId: true, composeId: true },
+			columns: {
+				organizationId: true,
+				applicationId: true,
+				composeId: true,
+				scheduleType: true,
+			},
 			with: { server: { columns: { organizationId: true } } },
 		},
 		previewDeployment: { columns: { applicationId: true } },

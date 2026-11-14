@@ -108,6 +108,14 @@ export const githubRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const existing = await findGithubById(input.githubId);
 			await assertGitProviderAccess(ctx.session, existing.gitProvider);
+			if (
+				!(await canViewGitProviderSecrets(ctx.session, existing.gitProvider))
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You can only update your own Git providers",
+				});
+			}
 			const { gitProviderId, ...data } = input;
 			await updateGitProvider(existing.gitProvider.gitProviderId, {
 				name: input.name,

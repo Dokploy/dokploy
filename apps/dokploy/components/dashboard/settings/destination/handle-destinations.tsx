@@ -1,6 +1,8 @@
 import {
+	ADDITIONAL_FLAG_BLOCKED_ERROR,
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isAllowedAdditionalFlag,
 } from "@dokploy/server/db/validations/destination";
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { PenBoxIcon, PlusIcon, Trash2 } from "lucide-react";
@@ -56,7 +58,8 @@ const addDestination = z.object({
 				value: z
 					.string()
 					.min(1, "Flag cannot be empty")
-					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR),
+					.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR)
+					.refine(isAllowedAdditionalFlag, ADDITIONAL_FLAG_BLOCKED_ERROR),
 			}),
 		)
 		.optional(),

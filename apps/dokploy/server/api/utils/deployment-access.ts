@@ -8,7 +8,14 @@ import { TRPCError } from "@trpc/server";
 type Ctx = Parameters<typeof checkServicePermissionAndAccess>[0];
 
 const getOwningServiceId = (deployment: DeploymentOwner) => {
-	const { backup, volumeBackup, schedule } = deployment;
+	const { backup, volumeBackup } = deployment;
+	// Host-level schedules run as root on the host; an attached service id must not
+	// downgrade them to a service-access check.
+	const schedule =
+		deployment.schedule?.scheduleType === "server" ||
+		deployment.schedule?.scheduleType === "dokploy-server"
+			? null
+			: deployment.schedule;
 	return (
 		deployment.applicationId ??
 		deployment.composeId ??

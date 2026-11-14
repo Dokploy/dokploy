@@ -527,12 +527,13 @@ export const notificationRouter = createTRPCRouter({
 				Threshold: z.number(),
 				Message: z.string(),
 				Timestamp: z.string(),
-				Token: z.string(),
+				// Servers that never set up monitoring store an empty token; matching it would let anyone trigger alerts for their org.
+				Token: z.string().min(1),
 			}),
 		)
 		.mutation(async ({ input }) => {
 			try {
-				let organizationId = "";
+				let organizationId: string | null = null;
 				let ServerName = "";
 				if (input.ServerType === "Dokploy") {
 					const settings = await getWebServerSettings();
@@ -546,7 +547,6 @@ export const notificationRouter = createTRPCRouter({
 						});
 					}
 
-					organizationId = "";
 					ServerName = "Dokploy";
 				} else {
 					const result = await db

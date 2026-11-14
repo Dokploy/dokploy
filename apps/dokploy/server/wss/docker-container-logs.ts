@@ -7,10 +7,12 @@ import { canAccessDockerOverWss } from "./authorize";
 import { containerBelongsToService } from "./container-ownership";
 import {
 	getShell,
+	isAllowedWebSocketOrigin,
 	isValidContainerId,
 	isValidSearch,
 	isValidSince,
 	isValidTail,
+	parseRequestUrl,
 } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
@@ -19,10 +21,12 @@ export const setupDockerContainerLogsWebSocketServer = (
 	const wssTerm = new WebSocketServer({
 		noServer: true,
 		path: "/docker-container-logs",
+		verifyClient: ({ req }: { req: http.IncomingMessage }) =>
+			isAllowedWebSocketOrigin(req),
 	});
 
 	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		const pathname = parseRequestUrl(req)?.pathname;
 
 		if (pathname === "/_next/webpack-hmr") {
 			return;
@@ -36,7 +40,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const url = new URL(req.url || "", "http://localhost");
 		const containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail") ?? "100";
 		const search = url.searchParams.get("search") ?? "";
@@ -94,6 +98,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
+		// Client may have disconnected during the awaits; a later close handler would never fire.
+		if (ws.readyState !== ws.OPEN) {
+			return;
+		}
+
 		// Set up keep-alive ping mechanism to prevent timeout
 		// Send ping every 45 seconds to keep connection alive
 		const pingInterval = setInterval(() => {
@@ -101,17 +110,22 @@ export const setupDockerContainerLogsWebSocketServer = (
 				ws.ping();
 			}
 		}, 45000); // 45 seconds
+		ws.once("close", () => clearInterval(pingInterval));
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
 
-				if (server.organizationId !== session.activeOrganizationId) {
+				if (
+					ws.readyState !== ws.OPEN ||
+					server.organizationId !== session.activeOrganizationId ||
+					!server.sshKeyId
+				) {
 					ws.close();
 					return;
 				}
 
-				if (!server.sshKeyId) return;
 				const client = new Client();
+				ws.once("close", () => client.destroy());
 				client
 					.once("ready", () => {
 						const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
@@ -121,7 +135,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 						} --follow ${containerId}`;
 						const escapedSearch = search ? search.replace(/'/g, "'\\''") : "";
 						const command = search
-							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
+							? `${baseCommand} 2>&1 | grep --line-buffered -iF -- '${escapedSearch}'`
 							: baseCommand;
 						// Use pty: true to ensure the remote process receives SIGHUP when SSH connection closes
 						// This is crucial for terminating docker logs processes when the connection is closed
@@ -148,7 +162,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
 						ws.send(`SSH error: ${err.message}`);
-						clearInterval(pingInterval);
 						ws.close(); // Cierra el WebSocket si hay un error con SSH
 						client.end();
 					})
@@ -158,10 +171,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 						username: server.username,
 						privateKey: server.sshKey?.privateKey,
 					});
-				ws.on("close", () => {
-					clearInterval(pingInterval);
-					client.end();
-				});
 			} else {
 				if (IS_CLOUD) {
 					ws.send("This feature is not available in the cloud version.");
@@ -175,7 +184,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					since === "all" ? "" : `--since ${since}`
 				} --follow ${containerId}`;
 				const command = search
-					? `${baseCommand} 2>&1 | grep -iF '${search}'`
+					? `${baseCommand} 2>&1 | grep -iF -- '${search}'`
 					: baseCommand;
 				const ptyProcess = spawn(shell, ["-c", command], {
 					name: "xterm-256color",
@@ -190,7 +199,6 @@ export const setupDockerContainerLogsWebSocketServer = (
 					ws.send(data);
 				});
 				ws.on("close", () => {
-					clearInterval(pingInterval);
 					ptyProcess.kill();
 				});
 				ws.on("message", (message) => {

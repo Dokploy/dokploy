@@ -47,8 +47,8 @@ export const addSuffixToServiceNames = (
 
 		// Reemplazar nombres de servicios en links
 		if (newServiceConfig.links) {
-			newServiceConfig.links = newServiceConfig.links.map(
-				(link) => `${link}-${suffix}`,
+			newServiceConfig.links = newServiceConfig.links.map((link) =>
+				link.replace(/^[^:]+/, (name) => `${name}-${suffix}`),
 			);
 		}
 
@@ -63,8 +63,12 @@ export const addSuffixToServiceNames = (
 
 		// Reemplazar nombres de servicios en volumes_from
 		if (newServiceConfig.volumes_from) {
+			// `container:<name>` points outside the compose project; `:ro`/`:rw` is an access mode.
 			newServiceConfig.volumes_from = newServiceConfig.volumes_from.map(
-				(vol) => `${vol}-${suffix}`,
+				(vol) =>
+					vol.startsWith("container:")
+						? vol
+						: vol.replace(/^[^:]+/, (name) => `${name}-${suffix}`),
 			);
 		}
 

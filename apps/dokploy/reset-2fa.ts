@@ -23,5 +23,6 @@ import { eq } from "drizzle-orm";
 		process.exit(0);
 	} catch (error) {
 		console.log("Error resetting 2FA", error);
+		process.exit(1);
 	}
 })();

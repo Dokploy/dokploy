@@ -23,7 +23,7 @@ export type Libsql = typeof libsql.$inferSelect;
 export const createLibsql = async (input: z.infer<typeof apiCreateLibsql>) => {
 	const appName = buildAppName("libsql", input.appName);
 
-	const valid = await validUniqueServerAppName(input.appName);
+	const valid = await validUniqueServerAppName(appName);
 	if (!valid) {
 		throw new TRPCError({
 			code: "CONFLICT",

@@ -232,6 +232,8 @@ export const getGitlabBranches = async (input: {
 		return [];
 	}
 
+	await refreshGitlabToken(input.gitlabId);
+
 	const gitlabProvider = await findGitlabById(input.gitlabId);
 
 	const allBranches = [];

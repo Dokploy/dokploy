@@ -2,7 +2,10 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import { findDestinationById } from "@dokploy/server/services/destination";
-import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
+import type {
+	findVolumeBackupById,
+	VolumeBackupWithServices,
+} from "@dokploy/server/services/volume-backups";
 import { quote } from "shell-quote";
 import {
 	getBackupTimestamp,
@@ -47,6 +50,19 @@ export const createRestartSafeBackupCommand = ({
 	${uploadCommand}
 `;
 
+export const getVolumeBackupServerId = (
+	volumeBackup: VolumeBackupWithServices,
+) =>
+	volumeBackup.application?.serverId ??
+	volumeBackup.compose?.serverId ??
+	volumeBackup.postgres?.serverId ??
+	volumeBackup.mysql?.serverId ??
+	volumeBackup.mariadb?.serverId ??
+	volumeBackup.mongo?.serverId ??
+	volumeBackup.redis?.serverId ??
+	volumeBackup.libsql?.serverId ??
+	null;
+
 export const getVolumeServiceAppName = (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
 ): string => {
@@ -71,8 +87,7 @@ export const backupVolume = async (
 ) => {
 	const { serviceType, volumeName, turnOff, prefix } = volumeBackup;
 	const destination = await findDestinationById(volumeBackup.destinationId);
-	const serverId =
-		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	const serverId = getVolumeBackupServerId(volumeBackup);
 	const { VOLUME_BACKUPS_PATH, VOLUME_BACKUP_LOCK_PATH } = paths(!!serverId);
 	const s3AppName = getVolumeServiceAppName(volumeBackup);
 	const backupFileName = `${volumeName}-${getBackupTimestamp()}.tar`;
@@ -116,9 +131,9 @@ export const backupVolume = async (
 	}
 
 	const serviceLockId =
-		serviceType === "application"
-			? volumeBackup.application?.appName
-			: `${volumeBackup.compose?.appName}_${volumeBackup.serviceName}`;
+		serviceType === "compose"
+			? `${volumeBackup.compose?.appName}_${volumeBackup.serviceName}`
+			: s3AppName;
 
 	const lockPath = `${VOLUME_BACKUP_LOCK_PATH}-${serviceLockId}`;
 
@@ -155,18 +170,18 @@ export const backupVolume = async (
 	`),
 	);
 
-	if (serviceType === "application") {
+	if (serviceType !== "compose") {
 		return lockWrapper(
 			createRestartSafeBackupCommand({
 				stopCommand: `
 				echo "Stopping application to 0 replicas"
-				ACTUAL_REPLICAS=$(docker service inspect ${volumeBackup.application?.appName} --format "{{.Spec.Mode.Replicated.Replicas}}")
+				ACTUAL_REPLICAS=$(docker service inspect ${quote([s3AppName])} --format "{{.Spec.Mode.Replicated.Replicas}}")
 				echo "Actual replicas: $ACTUAL_REPLICAS"
-				docker service update --replicas=0 ${volumeBackup.application?.appName}`,
+				docker service update --replicas=0 ${quote([s3AppName])}`,
 				backupCommand,
 				startCommand: `
 				echo "Starting application to $ACTUAL_REPLICAS replicas"
-				docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${volumeBackup.application?.appName}`,
+				docker service update --replicas=$ACTUAL_REPLICAS --with-registry-auth ${quote([s3AppName])}`,
 				uploadCommand,
 			}),
 		);

@@ -205,6 +205,11 @@ export const composeRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.composeId, {
 				service: ["create"],
 			});
+			if (input.env !== undefined) {
+				await checkServicePermissionAndAccess(ctx, input.composeId, {
+					envVars: ["write"],
+				});
+			}
 			await assertServiceCredentialAccess(ctx.session, input);
 			const updated = await updateCompose(input.composeId, input);
 			await audit(ctx, {

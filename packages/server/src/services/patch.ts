@@ -19,6 +19,14 @@ export const createPatch = async (input: z.infer<typeof apiCreatePatch>) => {
 			message: "Either applicationId or composeId must be provided",
 		});
 	}
+	// The router only authorizes one of the ids, so a second one would attach
+	// the patch to a service the caller was never checked against.
+	if (input.applicationId && input.composeId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Provide either applicationId or composeId, not both",
+		});
+	}
 
 	const newPatch = await db
 		.insert(patch)

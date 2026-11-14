@@ -4,6 +4,7 @@ import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { appRouter } from "../api/root";
 import { createTRPCContext } from "../api/trpc";
+import { isAllowedWebSocketOrigin, parseRequestUrl } from "./utils";
 
 export const setupDrawerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -11,6 +12,8 @@ export const setupDrawerLogsWebSocketServer = (
 	const wssTerm = new WebSocketServer({
 		noServer: true,
 		path: "/drawer-logs",
+		verifyClient: ({ req }: { req: http.IncomingMessage }) =>
+			isAllowedWebSocketOrigin(req),
 	});
 
 	// Set up tRPC WebSocket handler
@@ -21,7 +24,7 @@ export const setupDrawerLogsWebSocketServer = (
 	});
 
 	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		const pathname = parseRequestUrl(req)?.pathname;
 
 		if (pathname === "/_next/webpack-hmr") {
 			return;
@@ -34,7 +37,6 @@ export const setupDrawerLogsWebSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
-		const _url = new URL(req.url || "", `http://${req.headers.host}`);
 		const { user, session } = await validateRequest(req);
 
 		if (!user || !session) {

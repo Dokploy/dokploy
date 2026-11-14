@@ -47,6 +47,10 @@ func (db *DB) SaveContainerMetric(metric *ContainerMetric) error {
 	return err
 }
 
+func escapeLike(value string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(value)
+}
+
 func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]ContainerMetric, error) {
 	containerName = strings.TrimPrefix(containerName, "/")
 
@@ -54,13 +58,13 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 		WITH recent_metrics AS (
 			SELECT metrics_json
 			FROM container_metrics
-			WHERE container_name = ? OR container_name LIKE ?
+			WHERE container_name = ? OR container_name LIKE ? ESCAPE '\'
 			ORDER BY timestamp DESC
 			LIMIT ?
 		)
 		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
 	`
-	rows, err := db.Query(query, containerName, containerName+".%", limit)
+	rows, err := db.Query(query, containerName, escapeLike(containerName)+".%", limit)
 	if err != nil {
 		return nil, err
 	}
@@ -90,12 +94,12 @@ func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, e
 		WITH recent_metrics AS (
 			SELECT metrics_json
 			FROM container_metrics
-			WHERE container_name = ? OR container_name LIKE ?
+			WHERE container_name = ? OR container_name LIKE ? ESCAPE '\'
 			ORDER BY timestamp DESC
 		)
 		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
 	`
-	rows, err := db.Query(query, containerName, containerName+".%")
+	rows, err := db.Query(query, containerName, escapeLike(containerName)+".%")
 	if err != nil {
 		return nil, err
 	}

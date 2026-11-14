@@ -1,3 +1,4 @@
+import { isAllowedAdditionalFlag } from "@dokploy/server/db/validations/destination";
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -92,7 +93,10 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	if (destination.additionalFlags?.length) {
-		rcloneFlags.push(...destination.additionalFlags);
+		// Destinations saved before the flag denylist existed may still hold blocked flags.
+		rcloneFlags.push(
+			...destination.additionalFlags.filter(isAllowedAdditionalFlag),
+		);
 	}
 
 	return rcloneFlags;

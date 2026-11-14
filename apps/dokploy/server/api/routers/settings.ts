@@ -26,6 +26,7 @@ import {
 	IS_CLOUD,
 	isPanelPortPublished,
 	isRequestFromPanelHost,
+	isValidCronSchedule,
 	PANEL_PORT_RECOVERY_COMMAND,
 	POSTHOG_HOST,
 	parseRawConfig,
@@ -404,10 +405,6 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiUpdateDockerCleanup)
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {
-				await updateServerById(input.serverId, {
-					enableDockerCleanup: input.enableDockerCleanup,
-				});
-
 				const server = await findServerById(input.serverId);
 
 				if (server.organizationId !== ctx.session?.activeOrganizationId) {
@@ -417,8 +414,11 @@ export const settingsRouter = createTRPCRouter({
 					});
 				}
 
-				if (server.enableDockerCleanup) {
-					const server = await findServerById(input.serverId);
+				await updateServerById(input.serverId, {
+					enableDockerCleanup: input.enableDockerCleanup,
+				});
+
+				if (input.enableDockerCleanup) {
 					if (server.serverStatus === "inactive") {
 						throw new TRPCError({
 							code: "NOT_FOUND",
@@ -1333,6 +1333,12 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
+			}
+			if (input.cronExpression && !isValidCronSchedule(input.cronExpression)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invalid cron expression",
+				});
 			}
 			let result: boolean;
 			if (input.cronExpression) {

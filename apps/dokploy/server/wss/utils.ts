@@ -1,7 +1,44 @@
 import fs from "node:fs";
+import type { IncomingMessage } from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { execAsync, IS_CLOUD, paths } from "@dokploy/server";
+
+// The Host header is client-controlled; resolving against it throws on a
+// malformed value, which inside a synchronous upgrade listener escapes as an
+// uncaught exception and leaves the socket open.
+export const parseRequestUrl = (req: IncomingMessage): URL | null => {
+	try {
+		return new URL(req.url || "", "http://localhost");
+	} catch {
+		return null;
+	}
+};
+
+// WebSockets are not subject to CORS and browsers attach the SameSite=Lax
+// session cookie to handshakes from any same-site page, so a page on a sibling
+// subdomain (e.g. an app deployed through Dokploy) could otherwise drive these
+// sockets as the signed-in user. Non-browser clients send no Origin.
+export const isAllowedWebSocketOrigin = (req: IncomingMessage): boolean => {
+	const { origin, host } = req.headers;
+	if (!origin) return true;
+	let originHost: string;
+	try {
+		originHost = new URL(origin).host.toLowerCase();
+	} catch {
+		return false;
+	}
+	const forwardedHost = req.headers["x-forwarded-host"];
+	const forwardedHosts = (
+		Array.isArray(forwardedHost) ? forwardedHost.join(",") : forwardedHost || ""
+	).split(",");
+	return (
+		originHost !== "" &&
+		[host || "", ...forwardedHosts].some(
+			(candidate) => candidate.trim().toLowerCase() === originHost,
+		)
+	);
+};
 
 /**
  * Validates that the container ID matches Docker's expected format.

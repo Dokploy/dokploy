@@ -39,20 +39,6 @@ export const addSuffixToServiceNetworks = (
 					}
 					return `${key}-${suffix}`;
 				});
-
-				// 3 Case
-				service.networks = _.mapValues(service.networks, (value) => {
-					if (value && typeof value === "object") {
-						return _.mapKeys(value, (_val, innerKey) => {
-							if (innerKey === "aliases") {
-								return "aliases";
-							}
-							return `${innerKey}-${suffix}`;
-						});
-					}
-
-					return value;
-				});
 			}
 		}
 		return service;

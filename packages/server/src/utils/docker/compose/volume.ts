@@ -36,7 +36,8 @@ export const addSuffixToVolumesInServices = (
 						!remainder ||
 						volumeName.startsWith(".") ||
 						volumeName.startsWith("/") ||
-						volumeName.startsWith("$")
+						volumeName.startsWith("$") ||
+						volumeName.startsWith("~")
 					) {
 						return volume;
 					}

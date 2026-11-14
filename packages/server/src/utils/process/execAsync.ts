@@ -185,11 +185,11 @@ export const execAsyncRemote = async (
 	return new Promise((resolve, reject) => {
 		const conn = new Client();
 
-		sleep(1000);
 		conn
 			.once("ready", () => {
 				conn.exec(command, (err, stream) => {
 					if (err) {
+						conn.end();
 						onData?.(err.message);
 						reject(
 							new ExecError(`Remote command execution failed: ${err.message}`, {
