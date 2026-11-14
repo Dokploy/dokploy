@@ -495,58 +495,65 @@ export default async function handler(
 					if (!hasLabel) continue;
 				}
 
-				const previewDeploymentResult =
-					await findPreviewDeploymentByApplicationId(app.applicationId, prId);
+				try {
+					const previewDeploymentResult =
+						await findPreviewDeploymentByApplicationId(app.applicationId, prId);
 
-				let previewDeploymentId =
-					previewDeploymentResult?.previewDeploymentId || "";
+					let previewDeploymentId =
+						previewDeploymentResult?.previewDeploymentId || "";
 
-				if (!previewDeploymentResult && shouldCreateDeployment) {
-					// The limit only applies to new previews, existing ones must
-					// still be redeployed when the pull request is updated.
-					const previewLimit = app?.previewLimit ?? 3;
-					if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
-						console.warn(
-							`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
-						);
-						continue;
-					}
-					const previewDeployment = await createPreviewDeployment({
-						applicationId: app.applicationId as string,
-						branch: prBranch,
-						pullRequestId: prId,
-						pullRequestNumber: prNumber,
-						pullRequestTitle: prTitle,
-						pullRequestURL: prURL,
-					});
-					previewDeploymentId = previewDeployment.previewDeploymentId;
-				}
-
-				const jobData: DeploymentJob = {
-					applicationId: app.applicationId as string,
-					titleLog: "Preview Deployment",
-					descriptionLog: `Hash: ${deploymentHash}`,
-					type: "deploy",
-					applicationType: "application-preview",
-					server: !!app.serverId,
-					serverId: app.serverId ?? undefined,
-					previewDeploymentId,
-				};
-
-				if (previewDeploymentId) {
-					if (IS_CLOUD && app.serverId) {
-						deploy(jobData).catch((error) => {
-							console.error("Background deployment failed:", error);
+					if (!previewDeploymentResult && shouldCreateDeployment) {
+						// The limit only applies to new previews, existing ones must
+						// still be redeployed when the pull request is updated.
+						const previewLimit = app?.previewLimit ?? 3;
+						if ((app?.previewDeployments?.length ?? 0) >= previewLimit) {
+							console.warn(
+								`⚠️ Preview deployment limit (${previewLimit}) reached for ${app.name}, skipping preview for pull request #${prNumber}`,
+							);
+							continue;
+						}
+						const previewDeployment = await createPreviewDeployment({
+							applicationId: app.applicationId as string,
+							branch: prBranch,
+							pullRequestId: prId,
+							pullRequestNumber: prNumber,
+							pullRequestTitle: prTitle,
+							pullRequestURL: prURL,
 						});
-						continue;
+						previewDeploymentId = previewDeployment.previewDeploymentId;
 					}
-					await myQueue.add(
-						"deployments",
-						{ ...jobData },
-						{
-							removeOnComplete: true,
-							removeOnFail: true,
-						},
+
+					const jobData: DeploymentJob = {
+						applicationId: app.applicationId as string,
+						titleLog: "Preview Deployment",
+						descriptionLog: `Hash: ${deploymentHash}`,
+						type: "deploy",
+						applicationType: "application-preview",
+						server: !!app.serverId,
+						serverId: app.serverId ?? undefined,
+						previewDeploymentId,
+					};
+
+					if (previewDeploymentId) {
+						if (IS_CLOUD && app.serverId) {
+							deploy(jobData).catch((error) => {
+								console.error("Background deployment failed:", error);
+							});
+							continue;
+						}
+						await myQueue.add(
+							"deployments",
+							{ ...jobData },
+							{
+								removeOnComplete: true,
+								removeOnFail: true,
+							},
+						);
+					}
+				} catch (error) {
+					console.error(
+						`Error creating preview deployment for ${app.name}:`,
+						error,
 					);
 				}
 			}

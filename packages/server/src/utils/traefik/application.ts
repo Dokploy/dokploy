@@ -5,6 +5,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 	writeFileRemote,
@@ -121,6 +122,11 @@ export const loadOrCreateConfig = (appName: string): FileConfig => {
 	return { http: { routers: {}, services: {} } };
 };
 
+const isMissingRemoteFileError = (error: unknown): boolean =>
+	error instanceof ExecError &&
+	error.exitCode === 1 &&
+	/no such file or directory/i.test(error.stderr ?? "");
+
 export const loadOrCreateConfigRemote = async (
 	serverId: string,
 	appName: string,
@@ -140,8 +146,11 @@ export const loadOrCreateConfigRemote = async (
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
-	} catch {
-		return fileConfig;
+	} catch (error) {
+		if (isMissingRemoteFileError(error)) {
+			return fileConfig;
+		}
+		throw error;
 	}
 };
 
@@ -263,6 +272,7 @@ export const writeConfig = (appName: string, traefikConfig: string) => {
 		fs.writeFileSync(configPath, traefikConfig, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
+		throw e;
 	}
 };
 
@@ -277,6 +287,7 @@ export const writeConfigRemote = async (
 		await writeFileRemote(serverId, configPath, traefikConfig);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
+		throw e;
 	}
 };
 
@@ -294,6 +305,7 @@ export const writeTraefikConfigInPath = async (
 		}
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
+		throw e;
 	}
 };
 
@@ -308,6 +320,7 @@ export const writeTraefikConfig = (
 		fs.writeFileSync(configPath, yamlStr, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
+		throw e;
 	}
 };
 
@@ -323,6 +336,7 @@ export const writeTraefikConfigRemote = async (
 		await writeFileRemote(serverId, configPath, yamlStr);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
+		throw e;
 	}
 };
 
