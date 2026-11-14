@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 	updateComment: vi.fn(),
 	createDomain: vi.fn(),
 	manageDomain: vi.fn(),
+	createRedirectMiddleware: vi.fn(),
 	removeTraefikConfig: vi.fn(),
 	insertReturning: vi.fn(),
 	updateWhere: vi.fn(),
@@ -27,6 +28,15 @@ vi.mock("@dokploy/server/db", () => ({
 				findMany: vi.fn(),
 			},
 		},
+		transaction: vi.fn(async (cb: (tx: unknown) => Promise<unknown>) =>
+			cb({
+				insert: vi.fn(() => ({
+					values: vi.fn(() => ({
+						returning: mocks.insertReturning,
+					})),
+				})),
+			}),
+		),
 		insert: vi.fn(() => ({
 			values: vi.fn(() => ({
 				returning: mocks.insertReturning,
@@ -71,6 +81,12 @@ vi.mock("@dokploy/server/utils/traefik/domain", () => ({
 	manageDomain: mocks.manageDomain,
 }));
 
+vi.mock("@dokploy/server/utils/traefik/redirect", () => ({
+	createRedirectMiddleware: mocks.createRedirectMiddleware,
+	removeRedirectMiddleware: vi.fn(),
+	updateRedirectMiddleware: vi.fn(),
+}));
+
 vi.mock("@dokploy/server/utils/traefik/application", () => ({
 	removeTraefikConfig: mocks.removeTraefikConfig,
 }));
@@ -78,6 +94,7 @@ vi.mock("@dokploy/server/utils/traefik/application", () => ({
 const { createPreviewDeployment } = await import(
 	"@dokploy/server/services/preview-deployment"
 );
+const { createRedirect } = await import("@dokploy/server/services/redirect");
 
 describe("createPreviewDeployment rollback on Traefik write failure", () => {
 	beforeEach(() => {
@@ -148,5 +165,32 @@ describe("createPreviewDeployment rollback on Traefik write failure", () => {
 			}),
 		);
 		expect(mocks.updateWhere).not.toHaveBeenCalled();
+	});
+
+	it("awaits createRedirectMiddleware inside createRedirect transaction so write failures reject and roll back", async () => {
+		mocks.insertReturning.mockResolvedValueOnce([
+			{
+				redirectId: "redirect-1",
+				applicationId: "app-1",
+				regex: "^/old/(.*)",
+				replacement: "/new/$1",
+				permanent: true,
+				uniqueConfigKey: 1,
+			},
+		]);
+		mocks.createRedirectMiddleware.mockRejectedValueOnce(
+			new Error("SSH SFTP write failed"),
+		);
+
+		await expect(
+			createRedirect({
+				applicationId: "app-1",
+				regex: "^/old/(.*)",
+				replacement: "/new/$1",
+				permanent: true,
+			}),
+		).rejects.toThrow("Error creating this redirect");
+
+		expect(mocks.createRedirectMiddleware).toHaveBeenCalledOnce();
 	});
 });
