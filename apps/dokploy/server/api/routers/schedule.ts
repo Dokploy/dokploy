@@ -235,17 +235,15 @@ export const scheduleRouter = createTRPCRouter({
 					}
 				}
 
-				if (input.scheduleType === "dokploy-server") {
-					const member = await findMemberByUserId(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
-					if (member.role !== "owner" && member.role !== "admin") {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "Only owners and admins can list host-level schedules.",
-						});
-					}
+				const member = await findMemberByUserId(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (member.role !== "owner" && member.role !== "admin") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only owners and admins can list host-level schedules.",
+					});
 				}
 			}
 			const where = {
