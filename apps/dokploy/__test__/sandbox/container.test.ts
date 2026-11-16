@@ -23,7 +23,6 @@ const spec = {
 	networkMode: "isolated" as const,
 	envVars: "FOO=bar\n# comment\n\nBAZ=qux=1\ninvalid",
 	workdir: "/home/user",
-	user: "1000:1000",
 	timeoutMs: 300_000,
 	deadlineAt: new Date("2026-10-21T12:00:00.000Z"),
 };
@@ -44,7 +43,6 @@ describe("buildSandboxContainerOptions", () => {
 		expect(options.HostConfig?.RestartPolicy).toEqual({ Name: "no" });
 		expect(options.HostConfig?.AutoRemove).toBe(true);
 		expect(options.HostConfig?.LogConfig?.Config?.["max-size"]).toBe("10m");
-		expect(options.User).toBe("1000:1000");
 	});
 
 	it("runs the lifetime command under an init", () => {
@@ -94,9 +92,8 @@ describe("buildSandboxContainerOptions", () => {
 		expect(options.Env).toEqual(["HOME=/home/user", "FOO=bar", "BAZ=qux=1"]);
 	});
 
-	it("omits User when the image default should be used", () => {
-		const options = buildSandboxContainerOptions({ ...spec, user: null });
-		expect(options).not.toHaveProperty("User");
+	it("runs the lifetime processes as root so commands cannot signal them", () => {
+		expect(buildSandboxContainerOptions(spec).User).toBe("0:0");
 	});
 });
 
@@ -133,7 +130,8 @@ describe("buildSandboxLifetimeCommand", () => {
 	});
 
 	it("seeds the idle timeout in whole seconds", () => {
-		expect(script).toContain("echo 91 2>/dev/null > /tmp/.dokploy-timeout");
+		expect(script).toContain("echo 91 2>/dev/null > /.dokploy/timeout");
+		expect(script).toContain("chmod 666 /.dokploy/activity");
 	});
 
 	it("runs the idle watcher in the background and kills the main sleep", () => {

@@ -6,6 +6,7 @@ import { sshKeepalive } from "../process/execAsync";
 import {
 	buildSandboxKillCommand,
 	createSandboxOutputSink,
+	getSandboxKillMarker,
 	SANDBOX_EXEC_KILL_GRACE_MS,
 	SANDBOX_EXEC_MARKER_ENV,
 	SANDBOX_EXEC_MAX_OUTPUT_BYTES,
@@ -144,9 +145,13 @@ export const runSandboxExecRemote = async (
 			timedOut = true;
 			timeoutTask = (async () => {
 				const container = quote([containerId]);
+				const killArgs = [
+					`-e ${SANDBOX_EXEC_MARKER_ENV}=${quote([getSandboxKillMarker(marker)])}`,
+					...(options.user ? [`-u ${quote([options.user])}`] : []),
+				].join(" ");
 				await runAndWait(
 					conn,
-					`docker exec ${container} sh -c ${quote([buildSandboxKillCommand(marker)])}`,
+					`docker exec ${killArgs} ${container} sh -c ${quote([buildSandboxKillCommand(marker)])}`,
 				).catch(() => {});
 				const ended = await Promise.race([
 					finished.then(

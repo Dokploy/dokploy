@@ -27,13 +27,18 @@ create  ─►  running  ─►  killed
     `PidsLimit`.
   - A background watcher inside the container (shell builtins plus
     `sleep 5`) stops it after `timeoutMs` without activity. `exec`,
-    `writeFile` and `listFiles` mark activity; `readFile` does not.
-    `setTimeout` rewrites the timeout inside the container. If the watcher
-    cannot fork (`PidsLimit` exhausted) it exits and only `deadlineAt`
-    applies from then on.
+    `writeFile` and `listFiles` mark activity; `readFile` does not and
+    leaves `expiresAt` untouched. `setTimeout` rewrites the timeout inside
+    the container and restarts the idle count. If the watcher cannot fork
+    (`PidsLimit` exhausted) it exits and only `deadlineAt` applies from then
+    on.
+  - Both processes run as root while commands run as the sandbox user, so a
+    command cannot stop or kill them, and the timeout file is not writable
+    by commands.
   - `AutoRemove` deletes the container once it stops.
 - The stored status catches up when the sandbox is read: a `running` row whose
-  `expiresAt` or `deadlineAt` has passed becomes `killed`, and any operation
+  `expiresAt` or `deadlineAt` has passed becomes `killed` and its container,
+  if it is somehow still there, is removed. Any operation
   that finds the container gone marks it `killed` and fails with
   `Sandbox is killed`. `expiresAt` never goes past `deadlineAt`.
 - `list` with a `serverId` also checks the containers actually running on that
@@ -43,7 +48,9 @@ create  ─►  running  ─►  killed
 - Images must include `sh`, `sleep` and `date`; otherwise `create` fails with
   a clear error.
 - `kill` stops the container (2 s grace, then SIGKILL) and removes it. The row
-  is kept with `status: "killed"` for history; `remove` deletes the row.
+  is kept with `status: "killed"` for history; `remove` deletes the row. If
+  Docker or the server cannot be reached both fail and leave the row as it
+  was, so the call can be retried.
 
 ## Templates
 
@@ -68,7 +75,7 @@ Template env vars come before the ones passed in `envVars`, so the caller can
 override them.
 
 A custom `image` can be used instead of a template. It must contain `sh`,
-`sleep` and `date`; it runs as the image's default user.
+`sleep` and `date`; commands run as `1000:1000` there too.
 
 ## REST API
 
@@ -213,22 +220,24 @@ Each sandbox container is created with:
   command are reaped instead of lingering as zombies.
 - CPU (`NanoCpus`), memory (`Memory` = `MemorySwap`, so no swap) and
   `PidsLimit` quotas; `RestartPolicy: no`; JSON log capped at 10 MiB.
-- A non-root user for the built-in templates (`1000:1000`); the workdir is
+- Commands always run as a non-root user (`1000:1000`); the workdir is
   created and owned by that user through the Docker archive API, so no
-  capability is needed inside the container.
+  capability is needed inside the container. The container's own processes
+  (init and the lifetime watcher) run as root without capabilities.
 - A dedicated bridge network per server: `dokploy-sandboxes-isolated`
   (`internal: true`, no egress) for `networkMode: "isolated"` (default) or
   `dokploy-sandboxes` for `networkMode: "internet"`. Both are created with
   `com.docker.network.bridge.enable_icc=false`, so sandboxes cannot reach
-  each other even on the same bridge (a network created by an earlier build
-  without that option is recreated automatically once no sandbox is attached
-  to it). Sandboxes are never attached to `dokploy-network` or to any
+  each other even on the same bridge. A network with that name but without
+  the option is recreated if empty; if containers are attached, creating a
+  sandbox fails until they are removed. Sandboxes are never attached to `dokploy-network` or to any
   application network, and nothing is published through Traefik.
 - Labels `dokploy.sandbox=true`, `dokploy.sandboxId` and
   `dokploy.organizationId`.
 - Commands run through `docker exec` with a per-command timeout; on timeout the
   whole process tree started by that exec is killed (matched by a marker env
-  var, no `procps` needed). If that kill cannot run (for example the command
+  var, no `procps` needed), together with any process of the sandbox user
+  that carries no marker at all, such as a child started with `env -i`. If that kill cannot run (for example the command
   exhausted `PidsLimit`, so nothing can fork), the container is killed and,
   through `AutoRemove`, deleted; the sandbox becomes `killed`.
 
@@ -248,8 +257,8 @@ never returned by the API.
 - On remote servers a command runs as a single `docker exec` over one SSH
   connection (the env goes through `--env-file` on a file descriptor, so values
   never reach a process list on the host). A command whose `env` has a value
-  with a line break falls back to the Docker API, as do file transfers,
-  `setTimeout` and container creation; those open an SSH session per Docker API
+  with a line break falls back to the Docker API, as do file transfers
+  and container creation; those open an SSH session per Docker API
   request, so a pooled connection would still make them faster.
 - `listFiles` needs GNU `find` for metadata; busybox images get names only.
 - Output of a single command is capped at 1 MiB per stream, files at 10 MiB.

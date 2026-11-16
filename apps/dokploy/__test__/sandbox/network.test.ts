@@ -82,15 +82,16 @@ describe("ensureSandboxNetwork", () => {
 		expect(createNetwork).toHaveBeenCalledTimes(1);
 	});
 
-	it("keeps a legacy network that still has containers attached and warns", async () => {
+	it("refuses a legacy network that still has containers attached", async () => {
 		const { docker, createNetwork, remove } = createDocker(async () => ({
 			Options: {},
 			Containers: { abc: { Name: "dokploy-sandbox-x" } },
 		}));
-		await ensureSandboxNetwork(docker as never, "isolated");
+		await expect(
+			ensureSandboxNetwork(docker as never, "isolated"),
+		).rejects.toThrow(/allows traffic between containers/);
 		expect(remove).not.toHaveBeenCalled();
 		expect(createNetwork).not.toHaveBeenCalled();
-		expect(console.warn).toHaveBeenCalled();
 	});
 
 	it("tolerates a concurrent create of the same network", async () => {

@@ -7,7 +7,6 @@ import {
 	SANDBOX_EXEC_TIMEOUT_EXIT_CODE,
 	toSandboxEnvArray,
 } from "@dokploy/server/utils/sandbox/exec";
-import { parse, quote } from "shell-quote";
 import { describe, expect, it, vi } from "vitest";
 
 const frame = (type: 1 | 2, text: string) => {
@@ -56,7 +55,7 @@ const createDocker = (opts: {
 
 	const exec = vi.fn(async (options: { Cmd: string[] }) => {
 		execCreate(options);
-		if (options.Cmd[2]?.startsWith("if grep -qzF x /dev/null")) {
+		if (options.Cmd[2]?.includes("kill -9")) {
 			return { start: killExecStart, inspect };
 		}
 		return {
@@ -188,15 +187,13 @@ describe("runSandboxExec", () => {
 });
 
 describe("buildSandboxKillCommand", () => {
-	it("matches the marker as a fixed string and never fails the shell", () => {
+	it("kills processes with the marker or with none and skips other markers", () => {
 		const cmd = buildSandboxKillCommand("abc-123");
-		expect(cmd).toContain(`grep -qzxF ${quote(["DOKPLOY_EXEC_ID=abc-123"])}`);
-		expect(cmd).toContain(
-			`tr '\\0' '\\n' < "$f" 2>/dev/null | grep -qxF ${quote(["DOKPLOY_EXEC_ID=abc-123"])}`,
-		);
-		expect(parse(cmd)).toContain("DOKPLOY_EXEC_ID=abc-123");
+		expect(cmd).toContain('*"${n}DOKPLOY_EXEC_ID=abc-123${n}"*) ;;');
+		expect(cmd).toContain('*"${n}DOKPLOY_EXEC_ID="*) continue ;;');
+		expect(cmd).toContain("|| continue");
 		expect(cmd).toContain("kill -9");
-		expect(cmd.endsWith("; true")).toBe(true);
+		expect(cmd.endsWith("done; true")).toBe(true);
 	});
 });
 

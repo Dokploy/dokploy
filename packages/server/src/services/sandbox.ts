@@ -8,19 +8,19 @@ import {
 import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import type Dockerode from "dockerode";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
 	buildSandboxContainerOptions,
-	getSandboxExpiry,
+	buildSandboxTimeoutCommand,
 	getSandboxNetworkName,
 	parseSandboxUser,
+	SANDBOX_DEFAULT_USER,
 	SANDBOX_LABEL,
 	SANDBOX_ORGANIZATION_LABEL,
-	SANDBOX_TIMEOUT_FILE,
+	SANDBOX_ROOT_USER,
 	type SandboxNetworkMode,
-	toSandboxTimeoutSeconds,
 	withSandboxActivity,
 } from "../utils/sandbox/container";
 import {
@@ -77,26 +77,59 @@ const runContainerExec = (
 		? runSandboxExecRemote(serverId, containerId, options)
 		: runSandboxExec(docker, containerId, options);
 
+const sandboxEndsAt = sql`LEAST(${sandboxes.expiresAt}, ${sandboxes.deadlineAt})`;
+
+const sandboxExpiryFrom = (timeoutMs: unknown) =>
+	sql<Date>`LEAST(now() + ${timeoutMs} * interval '1 millisecond', ${sandboxes.deadlineAt})`;
+
+const expireSandbox = async <T extends Sandbox>(sandbox: T) => {
+	const [expired] = await db
+		.update(sandboxes)
+		.set({ status: "killed", killedAt: sandboxEndsAt })
+		.where(
+			and(
+				eq(sandboxes.sandboxId, sandbox.sandboxId),
+				eq(sandboxes.status, "running"),
+				sql`${sandboxEndsAt} <= now()`,
+			),
+		)
+		.returning();
+	if (!expired) {
+		const current = await db.query.sandboxes.findFirst({
+			where: eq(sandboxes.sandboxId, sandbox.sandboxId),
+		});
+		return { ...sandbox, ...current };
+	}
+	if (expired.containerId) {
+		void removeSandboxContainer(expired.serverId, expired.containerId).catch(
+			(error: unknown) => {
+				console.warn(
+					`[Sandbox] Could not remove the container of expired sandbox ${expired.sandboxId}:`,
+					error instanceof Error ? error.message : error,
+				);
+			},
+		);
+	}
+	return { ...sandbox, ...expired };
+};
+
 const settleSandboxStatus = async <T extends Sandbox>(sandbox: T) => {
 	const now = Date.now();
-	let data: Partial<Sandbox> | null = null;
 	if (sandbox.status === "running") {
 		const endsAt = Math.min(
 			sandbox.expiresAt?.getTime() ?? Number.POSITIVE_INFINITY,
 			sandbox.deadlineAt.getTime(),
 		);
-		if (endsAt <= now) {
-			data = { status: "killed", killedAt: new Date(endsAt) };
-		}
-	} else if (
+		return endsAt <= now ? expireSandbox(sandbox) : sandbox;
+	}
+	if (
 		sandbox.status === "creating" &&
 		Date.parse(sandbox.createdAt) <= now - STUCK_CREATING_MS
 	) {
-		data = { status: "error" };
+		await updateSandboxById(sandbox.sandboxId, { status: "error" });
+		return { ...sandbox, status: "error" as const };
 	}
-	if (!data) return sandbox;
-	await updateSandboxById(sandbox.sandboxId, data);
-	return { ...sandbox, ...data };
+	return sandbox;
 };
 
 const markSandboxGone = async (sandbox: Sandbox) => {
@@ -280,10 +313,9 @@ export const ensureSandboxNetwork = async (
 			return name;
 		}
 		if (Object.keys(existing.Containers ?? {}).length > 0) {
-			console.warn(
-				`[Sandbox] Network ${name} allows inter-container traffic but is in use; it will be recreated once no sandbox is attached`,
+			throw new Error(
+				`Network ${name} allows traffic between containers and is in use. Remove the containers attached to it and try again.`,
 			);
-			return name;
 		}
 		await docker.getNetwork(name).remove();
 	}
@@ -302,23 +334,6 @@ export const ensureSandboxNetwork = async (
 	return name;
 };
 
-const resolveSandboxUser = async (
-	serverId: string | null,
-	docker: Dockerode,
-	containerId: string,
-	fallback: string | null,
-) => {
-	try {
-		const result = await runContainerExec(serverId, docker, containerId, {
-			cmd: "id -u && id -g",
-			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-		});
-		const [uid, gid] = result.stdout.trim().split(/\s+/);
-		if (result.exitCode === 0 && uid && gid) return `${uid}:${gid}`;
-	} catch {}
-	return fallback;
-};
-
 const prepareSandboxWorkdir = async (
 	serverId: string | null,
 	docker: Dockerode,
@@ -332,7 +347,7 @@ const prepareSandboxWorkdir = async (
 	if (parent !== "/") {
 		await runContainerExec(serverId, docker, containerId, {
 			cmd: `mkdir -p ${quote([parent])}`,
-			user: "root",
+			user: SANDBOX_ROOT_USER,
 			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
 		}).catch(() => {});
 	}
@@ -358,32 +373,29 @@ const startSandboxContainer = async (sandbox: Sandbox) => {
 	);
 	try {
 		await container.start();
-		const user = await resolveSandboxUser(
-			sandbox.serverId,
-			docker,
-			container.id,
-			sandbox.user,
-		);
 		await prepareSandboxWorkdir(
 			sandbox.serverId,
 			docker,
 			container.id,
 			sandbox.workdir,
-			user,
+			sandbox.user,
 		);
-		const running = await container
+		const alive = await container
 			.inspect()
 			.then((info) => info.State.Running)
 			.catch(() => false);
-		if (!running) throw new SandboxExitedOnStartError();
-		const now = new Date();
-		return await updateSandboxById(sandbox.sandboxId, {
-			containerId: container.id,
-			user,
-			status: "running",
-			expiresAt: getSandboxExpiry(now, sandbox.timeoutMs, sandbox.deadlineAt),
-			lastActivityAt: now,
-		});
+		if (!alive) throw new SandboxExitedOnStartError();
+		const [running] = await db
+			.update(sandboxes)
+			.set({
+				containerId: container.id,
+				status: "running",
+				expiresAt: sandboxExpiryFrom(sandboxes.timeoutMs),
+				lastActivityAt: sql`now()`,
+			})
+			.where(eq(sandboxes.sandboxId, sandbox.sandboxId))
+			.returning();
+		return running;
 	} catch (error) {
 		await container.remove({ force: true }).catch(() => {});
 		if (isContainerGone(error)) throw new SandboxExitedOnStartError();
@@ -423,7 +435,7 @@ export const createSandbox = async (
 				[...(template?.env ?? []), input.envVars].filter(Boolean).join("\n") ||
 				null,
 			workdir: input.workdir ?? template?.workdir ?? SANDBOX_DEFAULTS.workdir,
-			user: template?.user ?? null,
+			user: template?.user ?? SANDBOX_DEFAULT_USER,
 			runtime: input.runtime ?? null,
 			status: "creating",
 		})
@@ -463,12 +475,19 @@ export const assertSandboxRunning: (
 };
 
 export const touchSandbox = async (sandbox: Sandbox) => {
-	const now = new Date();
-	return updateSandboxById(sandbox.sandboxId, {
-		lastActivityAt: now,
-		expiresAt: getSandboxExpiry(now, sandbox.timeoutMs, sandbox.deadlineAt),
-	});
+	const [result] = await db
+		.update(sandboxes)
+		.set({
+			lastActivityAt: sql`now()`,
+			expiresAt: sandboxExpiryFrom(sandboxes.timeoutMs),
+		})
+		.where(eq(sandboxes.sandboxId, sandbox.sandboxId))
+		.returning();
+	return result;
 };
+
+const sandboxExecUser = (sandbox: Sandbox) =>
+	sandbox.user ?? SANDBOX_DEFAULT_USER;
 
 export interface ExecInSandboxOptions {
 	cmd: string;
@@ -489,6 +508,7 @@ export const execInSandbox = async (
 	const result = await withLiveContainer(sandbox, () =>
 		runContainerExec(sandbox.serverId, docker, sandbox.containerId, {
 			cmd: withSandboxActivity(options.cmd),
+			user: sandboxExecUser(sandbox),
 			cwd: options.cwd ?? sandbox.workdir,
 			env: options.env,
 			timeoutMs: options.timeoutMs ?? SANDBOX_DEFAULTS.execTimeoutMs,
@@ -533,6 +553,7 @@ export const writeSandboxFile = async (
 			sandbox.containerId,
 			{
 				cmd: withSandboxActivity(`mkdir -p ${quote([dir])}`),
+				user: sandboxExecUser(sandbox),
 				timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
 			},
 		);
@@ -542,7 +563,10 @@ export const writeSandboxFile = async (
 				message: mkdir.stderr.trim() || `Unable to create directory ${dir}`,
 			});
 		}
-		const ids = parseSandboxUser(sandbox.user) ?? { uid: 0, gid: 0 };
+		const ids = parseSandboxUser(sandboxExecUser(sandbox)) ?? {
+			uid: 0,
+			gid: 0,
+		};
 		const tar = await buildSandboxFileTar({
 			name,
 			content: options.content,
@@ -558,7 +582,6 @@ export const writeSandboxFile = async (
 
 export const readSandboxFile = async (sandbox: Sandbox, path: string) => {
 	assertSandboxRunning(sandbox);
-	await touchSandbox(sandbox);
 	const docker = await getRemoteDocker(sandbox.serverId);
 	let archive: NodeJS.ReadableStream;
 	try {
@@ -604,6 +627,7 @@ export const listSandboxFiles = async (sandbox: Sandbox, path?: string) => {
 			sandbox.containerId,
 			{
 				cmd: withSandboxActivity(buildSandboxFindCommand(target)),
+				user: sandboxExecUser(sandbox),
 				timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
 				maxOutputBytes: 4 * 1024 * 1024,
 			},
@@ -617,6 +641,7 @@ export const listSandboxFiles = async (sandbox: Sandbox, path?: string) => {
 			sandbox.containerId,
 			{
 				cmd: buildSandboxLsCommand(target),
+				user: sandboxExecUser(sandbox),
 				timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
 				maxOutputBytes: 4 * 1024 * 1024,
 			},
@@ -637,23 +662,29 @@ export const setSandboxTimeout = async (
 ) => {
 	assertSandboxRunning(sandbox);
 	const docker = await getRemoteDocker(sandbox.serverId);
-	const ids = parseSandboxUser(sandbox.user) ?? { uid: 0, gid: 0 };
-	const tar = await buildSandboxFileTar({
-		name: posix.basename(SANDBOX_TIMEOUT_FILE),
-		content: Buffer.from(`${toSandboxTimeoutSeconds(timeoutMs)}\n`),
-		...ids,
-	});
-	await withLiveContainer(sandbox, () =>
-		docker
-			.getContainer(sandbox.containerId)
-			.putArchive(tar, { path: posix.dirname(SANDBOX_TIMEOUT_FILE) }),
+	const result = await withLiveContainer(sandbox, () =>
+		runContainerExec(sandbox.serverId, docker, sandbox.containerId, {
+			cmd: buildSandboxTimeoutCommand(timeoutMs),
+			user: SANDBOX_ROOT_USER,
+			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
+		}),
 	);
-	const now = new Date();
-	return updateSandboxById(sandbox.sandboxId, {
-		timeoutMs,
-		lastActivityAt: now,
-		expiresAt: getSandboxExpiry(now, timeoutMs, sandbox.deadlineAt),
-	});
+	if (result.exitCode !== 0) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: result.stderr.trim() || "Unable to update the sandbox timeout",
+		});
+	}
+	const [updated] = await db
+		.update(sandboxes)
+		.set({
+			timeoutMs,
+			lastActivityAt: sql`now()`,
+			expiresAt: sandboxExpiryFrom(timeoutMs),
+		})
+		.where(eq(sandboxes.sandboxId, sandbox.sandboxId))
+		.returning();
+	return updated;
 };
 
 export const removeSandboxContainer = async (
@@ -676,10 +707,11 @@ export const killSandbox = async (sandboxId: string) => {
 		try {
 			await removeSandboxContainer(sandbox.serverId, sandbox.containerId);
 		} catch (error) {
-			console.error(
-				`[Sandbox] Failed to remove container for ${sandboxId}:`,
-				error instanceof Error ? error.message : error,
-			);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Could not remove the sandbox container: ${error instanceof Error ? error.message : error}`,
+				cause: error,
+			});
 		}
 	}
 	if (sandbox.status === "killed") return sandbox;

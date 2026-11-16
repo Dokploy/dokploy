@@ -47,7 +47,23 @@ export const setupSandboxExecWebSocketServer = (
 		}
 
 		let running = false;
-		let organizationId = "";
+		const authorize = async () => {
+			const { user, session } = await validateRequest(req);
+			if (!user || !session?.activeOrganizationId) return null;
+			const organizationId = session.activeOrganizationId;
+			try {
+				await checkPermission(
+					{
+						user: { id: user.id },
+						session: { activeOrganizationId: organizationId },
+					},
+					{ sandbox: ["create"] },
+				);
+				return await findOrganizationSandbox(sandboxId, organizationId);
+			} catch {
+				return null;
+			}
+		};
 		const handle = async (raw: RawData) => {
 			let parsed: z.infer<typeof execMessage>;
 			try {
@@ -65,10 +81,11 @@ export const setupSandboxExecWebSocketServer = (
 			}
 			running = true;
 			try {
-				const sandbox = await findOrganizationSandbox(
-					sandboxId,
-					organizationId,
-				);
+				const sandbox = await authorize();
+				if (!sandbox) {
+					ws.close(4003, "Not authorized");
+					return;
+				}
 				const result = await execInSandbox(sandbox, {
 					cmd: parsed.cmd,
 					cwd: parsed.cwd,
@@ -102,21 +119,7 @@ export const setupSandboxExecWebSocketServer = (
 			void handle(raw);
 		});
 
-		const { user, session } = await validateRequest(req);
-		if (!user || !session?.activeOrganizationId) {
-			ws.close(4001, "Unauthorized");
-			return;
-		}
-		organizationId = session.activeOrganizationId;
-		const ctx = {
-			user: { id: user.id },
-			session: { activeOrganizationId: organizationId },
-		};
-
-		try {
-			await checkPermission(ctx, { sandbox: ["create"] });
-			await findOrganizationSandbox(sandboxId, organizationId);
-		} catch {
+		if (!(await authorize())) {
 			ws.close(4003, "Not authorized");
 			return;
 		}

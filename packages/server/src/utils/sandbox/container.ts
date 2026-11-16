@@ -5,8 +5,11 @@ export const SANDBOX_ID_LABEL = "dokploy.sandboxId";
 export const SANDBOX_ORGANIZATION_LABEL = "dokploy.organizationId";
 export const SANDBOX_ISOLATED_NETWORK = "dokploy-sandboxes-isolated";
 export const SANDBOX_INTERNET_NETWORK = "dokploy-sandboxes";
-export const SANDBOX_ACTIVITY_FILE = "/tmp/.dokploy-activity";
-export const SANDBOX_TIMEOUT_FILE = "/tmp/.dokploy-timeout";
+export const SANDBOX_STATE_DIR = "/.dokploy";
+export const SANDBOX_ACTIVITY_FILE = `${SANDBOX_STATE_DIR}/activity`;
+export const SANDBOX_TIMEOUT_FILE = `${SANDBOX_STATE_DIR}/timeout`;
+export const SANDBOX_ROOT_USER = "0:0";
+export const SANDBOX_DEFAULT_USER = "1000:1000";
 export const SANDBOX_IDLE_CHECK_SECONDS = 5;
 
 export type SandboxNetworkMode = "isolated" | "internet";
@@ -21,7 +24,6 @@ export interface SandboxContainerSpec {
 	networkMode: SandboxNetworkMode;
 	envVars?: string | null;
 	workdir: string;
-	user?: string | null;
 	timeoutMs: number;
 	deadlineAt: Date;
 	runtime?: string | null;
@@ -45,6 +47,9 @@ export const toSandboxTimeoutSeconds = (timeoutMs: number) =>
 export const withSandboxActivity = (cmd: string) =>
 	`echo 1 2>/dev/null > ${SANDBOX_ACTIVITY_FILE}; ${cmd}`;
 
+export const buildSandboxTimeoutCommand = (timeoutMs: number) =>
+	`echo ${toSandboxTimeoutSeconds(timeoutMs)} > ${SANDBOX_TIMEOUT_FILE} && echo 1 > ${SANDBOX_ACTIVITY_FILE}`;
+
 export const buildSandboxLifetimeCommand = (
 	deadlineAt: Date,
 	timeoutMs: number,
@@ -54,8 +59,10 @@ export const buildSandboxLifetimeCommand = (
 	const a = SANDBOX_ACTIVITY_FILE;
 	const t = SANDBOX_TIMEOUT_FILE;
 	const script = [
+		`mkdir -p ${SANDBOX_STATE_DIR} 2>/dev/null`,
 		`echo ${toSandboxTimeoutSeconds(timeoutMs)} 2>/dev/null > ${t}`,
 		`echo 0 2>/dev/null > ${a}`,
+		`chmod 666 ${a} 2>/dev/null`,
 		"(",
 		"idle=0",
 		`while sleep ${tick}; do`,
@@ -101,7 +108,7 @@ export const buildSandboxContainerOptions = (
 		Cmd: buildSandboxLifetimeCommand(spec.deadlineAt, spec.timeoutMs),
 		WorkingDir: spec.workdir,
 		Env: [`HOME=${spec.workdir}`, ...parseSandboxEnvVars(spec.envVars)],
-		...(spec.user ? { User: spec.user } : {}),
+		User: SANDBOX_ROOT_USER,
 		Labels: {
 			[SANDBOX_LABEL]: "true",
 			[SANDBOX_ID_LABEL]: spec.sandboxId,

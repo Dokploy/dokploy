@@ -17,9 +17,9 @@ const runWithFakeDocker = (script: string, dockerBody: string) => {
 	let status = 0;
 	let stderr = "";
 	try {
-		execFileSync("sh", {
+		execFileSync("sh", [], {
 			input: script,
-			env: { PATH: `${dir}:${process.env.PATH}`, OUT: dir },
+			env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, OUT: dir },
 			stdio: ["pipe", "pipe", "pipe"],
 		});
 	} catch (error) {

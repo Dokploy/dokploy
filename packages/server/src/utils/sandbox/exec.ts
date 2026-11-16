@@ -2,7 +2,6 @@ import { Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import type Dockerode from "dockerode";
 import { nanoid } from "nanoid";
-import { quote } from "shell-quote";
 
 export const SANDBOX_EXEC_TIMEOUT_EXIT_CODE = 124;
 export const SANDBOX_EXEC_MARKER_ENV = "DOKPLOY_EXEC_ID";
@@ -34,12 +33,18 @@ export const toSandboxEnvArray = (env?: Record<string, string> | string[]) =>
 		? env
 		: Object.entries(env ?? {}).map(([key, value]) => `${key}=${value}`);
 
+export const getSandboxKillMarker = (marker: string) => `kill-${marker}`;
+
 export const buildSandboxKillCommand = (marker: string) => {
-	const pattern = quote([`${SANDBOX_EXEC_MARKER_ENV}=${marker}`]);
-	const kill = 'p="${f#/proc/}"; kill -9 "${p%/environ}" 2>/dev/null';
-	const withZ = `for f in /proc/[0-9]*/environ; do if grep -qzxF ${pattern} "$f" 2>/dev/null; then ${kill}; fi; done`;
-	const withTr = `for f in /proc/[0-9]*/environ; do if tr '\\0' '\\n' < "$f" 2>/dev/null | grep -qxF ${pattern}; then ${kill}; fi; done`;
-	return `if grep -qzF x /dev/null 2>/dev/null; [ $? -ne 2 ]; then ${withZ}; else ${withTr}; fi; true`;
+	const name = SANDBOX_EXEC_MARKER_ENV;
+	return [
+		"n=$(printf '\\nx'); n=${n%x}",
+		"for f in /proc/[0-9]*/environ; do",
+		"e=$(tr '\\0' '\\n' < \"$f\" 2>/dev/null) || continue",
+		`case "$n$e$n" in *"\${n}${name}=${marker}\${n}"*) ;; *"\${n}${name}="*) continue ;; esac`,
+		'p=${f#/proc/}; kill -9 "${p%/environ}" 2>/dev/null',
+		"done; true",
+	].join("\n");
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -73,11 +78,14 @@ const killByMarker = async (
 	docker: Dockerode,
 	containerId: string,
 	marker: string,
+	user?: string,
 ) => {
 	const exec = await docker.getContainer(containerId).exec({
 		Cmd: ["sh", "-c", buildSandboxKillCommand(marker)],
+		Env: [`${SANDBOX_EXEC_MARKER_ENV}=${getSandboxKillMarker(marker)}`],
 		AttachStdout: false,
 		AttachStderr: false,
+		...(user ? { User: user } : {}),
 	});
 	await exec.start({ Detach: true });
 };
@@ -121,7 +129,9 @@ export const runSandboxExec = async (
 	const timer = setTimeout(() => {
 		timedOut = true;
 		timeoutTask = (async () => {
-			await killByMarker(docker, containerId, marker).catch(() => {});
+			await killByMarker(docker, containerId, marker, options.user).catch(
+				() => {},
+			);
 			const ended = await Promise.race([
 				finished.then(
 					() => true,
