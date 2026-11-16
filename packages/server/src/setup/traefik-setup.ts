@@ -25,7 +25,7 @@ export const TRAEFIK_PORT =
 	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
-export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.7.16";
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.7.19";
 
 export interface TraefikOptions {
 	env?: string[];
@@ -196,6 +196,19 @@ const PREVIOUS_TRAEFIK_CONTAINER = "dokploy-traefik-previous";
 
 export const restoreInterruptedTraefik = (serverId?: string) =>
 	runQueued(serverId, () => restoreBackupTraefik(serverId));
+
+// At boot Docker starts Traefik once, often before the swarm network exists,
+// and never retries (#5960). Dokploy runs on that network, so it exists now.
+// A start error tells that failure apart from a Traefik stopped on purpose.
+export const startTraefikAfterFailedBoot = () =>
+	runQueued(undefined, async () => {
+		const docker = await getRemoteDocker();
+		const container = docker.getContainer("dokploy-traefik");
+		const info = await container.inspect().catch(() => null);
+		if (!info || info.State.Running || !info.State.Error) return;
+		await container.start();
+		console.log("Started Traefik after it failed to start at boot");
+	});
 
 // Undoes an update interrupted by a Dokploy restart.
 const restoreBackupTraefik = async (serverId?: string) => {
