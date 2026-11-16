@@ -10,8 +10,6 @@ import {
 import { parse, quote } from "shell-quote";
 import { describe, expect, it, vi } from "vitest";
 
-// Docker multiplexes stdout/stderr on a non-tty exec as 8-byte frames:
-// [stream type, 0, 0, 0, size (BE uint32)] followed by the payload.
 const frame = (type: 1 | 2, text: string) => {
 	const payload = Buffer.from(text);
 	const header = Buffer.alloc(8);
@@ -20,7 +18,6 @@ const frame = (type: 1 | 2, text: string) => {
 	return Buffer.concat([header, payload]);
 };
 
-// Mirrors docker-modem's demuxStream so the runner is exercised end to end.
 const demuxStream = (
 	stream: NodeJS.ReadableStream,
 	stdout: NodeJS.WritableStream,

@@ -24,7 +24,6 @@ const TYPES: Record<string, string> = {
 	"5": "directory",
 };
 
-// Minimal ustar reader: 512-byte header blocks with octal numeric fields.
 const readTar = (buffer: Buffer): Entry[] => {
 	const entries: Entry[] = [];
 	let offset = 0;
@@ -128,8 +127,6 @@ describe("extractSandboxFile", () => {
 			name: "proj/main.py",
 			content: Buffer.from("print(1)"),
 		});
-		// tar-stream pads each archive with two zero blocks; strip the first
-		// archive's end-of-archive marker so the entries are read as one tar.
 		const combined = Buffer.concat([dir.subarray(0, dir.length - 1024), file]);
 		await expect(
 			extractSandboxFile(Readable.from(combined), 1024),

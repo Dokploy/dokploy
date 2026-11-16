@@ -42,19 +42,9 @@ export const getSandboxExpiry = (
 export const toSandboxTimeoutSeconds = (timeoutMs: number) =>
 	Math.ceil(timeoutMs / 1000);
 
-// Shell builtin only: it must not fork, so it still works when the command it
-// prefixes is about to exhaust PidsLimit.
 export const withSandboxActivity = (cmd: string) =>
 	`echo 1 2>/dev/null > ${SANDBOX_ACTIVITY_FILE}; ${cmd}`;
 
-// The container enforces its own lifetime, so Dokploy never has to poll or
-// kill expired sandboxes:
-// - the main process is `sleep` until deadlineAt, which needs no further forks
-//   and therefore holds even if the sandbox exhausts PidsLimit;
-// - a background loop built from shell builtins (plus `sleep`) kills that main
-//   process once nothing marked activity for the timeout read from
-//   SANDBOX_TIMEOUT_FILE. If `sleep` cannot fork the loop gives up and only the
-//   deadline applies. `$$` in the subshell is the parent, i.e. the main sleep.
 export const buildSandboxLifetimeCommand = (
 	deadlineAt: Date,
 	timeoutMs: number,
@@ -107,7 +97,6 @@ export const buildSandboxContainerOptions = (
 	return {
 		name: getSandboxContainerName(spec.sandboxId),
 		Image: spec.image,
-		// [""] resets the image entrypoint so Cmd always becomes PID 1.
 		Entrypoint: [""],
 		Cmd: buildSandboxLifetimeCommand(spec.deadlineAt, spec.timeoutMs),
 		WorkingDir: spec.workdir,
@@ -119,8 +108,6 @@ export const buildSandboxContainerOptions = (
 			[SANDBOX_ORGANIZATION_LABEL]: spec.organizationId,
 		},
 		HostConfig: {
-			// docker-init (tini) as PID 1 reaps the orphans left behind when a
-			// timed-out command's shell is killed; `sleep` would leave zombies.
 			Init: true,
 			NanoCpus: Math.round(spec.cpu * 1e9),
 			Memory: memory,

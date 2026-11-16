@@ -10,7 +10,6 @@ export interface SandboxTemplate {
 
 const NON_ROOT = { user: "1000:1000", workdir: "/home/user" };
 
-// Placeholder images until the dokploy/sandbox-* images are published.
 export const SANDBOX_TEMPLATES: Record<SandboxTemplateName, SandboxTemplate> = {
 	base: {
 		image: "ubuntu:24.04",
@@ -52,8 +51,6 @@ export const SANDBOX_TEMPLATES: Record<SandboxTemplateName, SandboxTemplate> = {
 		image: "rust:1-slim",
 		...NON_ROOT,
 		description: "Rust stable (cargo available)",
-		// The image's CARGO_HOME is root-owned; keep the toolchain there and the
-		// registry cache in the sandbox user's home.
 		env: [
 			"CARGO_HOME=/home/user/.cargo",
 			"PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -63,7 +60,6 @@ export const SANDBOX_TEMPLATES: Record<SandboxTemplateName, SandboxTemplate> = {
 		image: "ruby:3.3-slim",
 		...NON_ROOT,
 		description: "Ruby 3.3 (gem and bundler available)",
-		// The image's GEM_HOME (/usr/local/bundle) is root-owned.
 		env: [
 			"GEM_HOME=/home/user/.gem",
 			"BUNDLE_APP_CONFIG=/home/user/.bundle",

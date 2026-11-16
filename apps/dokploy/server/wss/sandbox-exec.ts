@@ -92,8 +92,6 @@ export const setupSandboxExecWebSocketServer = (
 			}
 		};
 
-		// Clients may send as soon as the socket opens, before authorization
-		// finishes; queue those messages instead of dropping them.
 		let authorized = false;
 		const pending: RawData[] = [];
 		ws.on("message", (raw) => {

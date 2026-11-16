@@ -23,13 +23,21 @@ import {
 	toSandboxTimeoutSeconds,
 	withSandboxActivity,
 } from "../utils/sandbox/container";
-import { runSandboxExec, type SandboxExecResult } from "../utils/sandbox/exec";
+import {
+	runSandboxExec,
+	type SandboxExecOptions,
+	type SandboxExecResult,
+} from "../utils/sandbox/exec";
 import {
 	buildSandboxFindCommand,
 	buildSandboxLsCommand,
 	parseSandboxFindOutput,
 	parseSandboxLsOutput,
 } from "../utils/sandbox/files";
+import {
+	canUseSandboxRemoteExec,
+	runSandboxExecRemote,
+} from "../utils/sandbox/remote-exec";
 import {
 	buildSandboxDirectoryTar,
 	buildSandboxFileTar,
@@ -58,6 +66,16 @@ const isContainerGone = (error: unknown) => {
 			/is not running|removal .* in progress/i.test(message))
 	);
 };
+
+const runContainerExec = (
+	serverId: string | null,
+	docker: Dockerode,
+	containerId: string,
+	options: SandboxExecOptions,
+) =>
+	serverId && canUseSandboxRemoteExec(options.env)
+		? runSandboxExecRemote(serverId, containerId, options)
+		: runSandboxExec(docker, containerId, options);
 
 const settleSandboxStatus = async <T extends Sandbox>(sandbox: T) => {
 	const now = Date.now();
@@ -285,12 +303,13 @@ export const ensureSandboxNetwork = async (
 };
 
 const resolveSandboxUser = async (
+	serverId: string | null,
 	docker: Dockerode,
 	containerId: string,
 	fallback: string | null,
 ) => {
 	try {
-		const result = await runSandboxExec(docker, containerId, {
+		const result = await runContainerExec(serverId, docker, containerId, {
 			cmd: "id -u && id -g",
 			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
 		});
@@ -301,6 +320,7 @@ const resolveSandboxUser = async (
 };
 
 const prepareSandboxWorkdir = async (
+	serverId: string | null,
 	docker: Dockerode,
 	containerId: string,
 	workdir: string,
@@ -310,7 +330,7 @@ const prepareSandboxWorkdir = async (
 	const name = posix.basename(workdir);
 	if (!name) return;
 	if (parent !== "/") {
-		await runSandboxExec(docker, containerId, {
+		await runContainerExec(serverId, docker, containerId, {
 			cmd: `mkdir -p ${quote([parent])}`,
 			user: "root",
 			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
@@ -338,8 +358,19 @@ const startSandboxContainer = async (sandbox: Sandbox) => {
 	);
 	try {
 		await container.start();
-		const user = await resolveSandboxUser(docker, container.id, sandbox.user);
-		await prepareSandboxWorkdir(docker, container.id, sandbox.workdir, user);
+		const user = await resolveSandboxUser(
+			sandbox.serverId,
+			docker,
+			container.id,
+			sandbox.user,
+		);
+		await prepareSandboxWorkdir(
+			sandbox.serverId,
+			docker,
+			container.id,
+			sandbox.workdir,
+			user,
+		);
 		const running = await container
 			.inspect()
 			.then((info) => info.State.Running)
@@ -456,7 +487,7 @@ export const execInSandbox = async (
 	await touchSandbox(sandbox);
 	const docker = await getRemoteDocker(sandbox.serverId);
 	const result = await withLiveContainer(sandbox, () =>
-		runSandboxExec(docker, sandbox.containerId, {
+		runContainerExec(sandbox.serverId, docker, sandbox.containerId, {
 			cmd: withSandboxActivity(options.cmd),
 			cwd: options.cwd ?? sandbox.workdir,
 			env: options.env,
@@ -496,10 +527,15 @@ export const writeSandboxFile = async (
 	await touchSandbox(sandbox);
 	const docker = await getRemoteDocker(sandbox.serverId);
 	return withLiveContainer(sandbox, async () => {
-		const mkdir = await runSandboxExec(docker, sandbox.containerId, {
-			cmd: withSandboxActivity(`mkdir -p ${quote([dir])}`),
-			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-		});
+		const mkdir = await runContainerExec(
+			sandbox.serverId,
+			docker,
+			sandbox.containerId,
+			{
+				cmd: withSandboxActivity(`mkdir -p ${quote([dir])}`),
+				timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
+			},
+		);
 		if (mkdir.exitCode !== 0) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
@@ -562,19 +598,29 @@ export const listSandboxFiles = async (sandbox: Sandbox, path?: string) => {
 	const target = path ?? sandbox.workdir;
 	const docker = await getRemoteDocker(sandbox.serverId);
 	return withLiveContainer(sandbox, async () => {
-		const find = await runSandboxExec(docker, sandbox.containerId, {
-			cmd: withSandboxActivity(buildSandboxFindCommand(target)),
-			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-			maxOutputBytes: 4 * 1024 * 1024,
-		});
+		const find = await runContainerExec(
+			sandbox.serverId,
+			docker,
+			sandbox.containerId,
+			{
+				cmd: withSandboxActivity(buildSandboxFindCommand(target)),
+				timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
+				maxOutputBytes: 4 * 1024 * 1024,
+			},
+		);
 		if (find.exitCode === 0) {
 			return { path: target, entries: parseSandboxFindOutput(find.stdout) };
 		}
-		const ls = await runSandboxExec(docker, sandbox.containerId, {
-			cmd: buildSandboxLsCommand(target),
-			timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
-			maxOutputBytes: 4 * 1024 * 1024,
-		});
+		const ls = await runContainerExec(
+			sandbox.serverId,
+			docker,
+			sandbox.containerId,
+			{
+				cmd: buildSandboxLsCommand(target),
+				timeoutMs: INTERNAL_EXEC_TIMEOUT_MS,
+				maxOutputBytes: 4 * 1024 * 1024,
+			},
+		);
 		if (ls.exitCode === 0) {
 			return { path: target, entries: parseSandboxLsOutput(ls.stdout) };
 		}

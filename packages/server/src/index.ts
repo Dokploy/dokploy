@@ -148,6 +148,7 @@ export * from "./utils/providers/raw";
 export * from "./utils/sandbox/container";
 export * from "./utils/sandbox/exec";
 export * from "./utils/sandbox/files";
+export * from "./utils/sandbox/remote-exec";
 export * from "./utils/sandbox/tar";
 export * from "./utils/sandbox/templates";
 export * from "./utils/schedules/index";

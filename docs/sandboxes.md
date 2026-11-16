@@ -245,9 +245,12 @@ never returned by the API.
   must already be registered in the Docker daemon of the target server.
 - No snapshots, pause/resume, warm pools, or billing.
 - No public domains or exposed ports.
-- Remote servers reuse the existing Dokploy SSH Docker client, which opens an
-  SSH session per Docker API request (same behaviour as the rest of Dokploy);
-  a pooled connection would make bursts of small operations faster.
+- On remote servers a command runs as a single `docker exec` over one SSH
+  connection (the env goes through `--env-file` on a file descriptor, so values
+  never reach a process list on the host). A command whose `env` has a value
+  with a line break falls back to the Docker API, as do file transfers,
+  `setTimeout` and container creation; those open an SSH session per Docker API
+  request, so a pooled connection would still make them faster.
 - `listFiles` needs GNU `find` for metadata; busybox images get names only.
 - Output of a single command is capped at 1 MiB per stream, files at 10 MiB.
 - Sandboxes cannot join project or application networks.

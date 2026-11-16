@@ -7,7 +7,7 @@ import { quote } from "shell-quote";
 export const SANDBOX_EXEC_TIMEOUT_EXIT_CODE = 124;
 export const SANDBOX_EXEC_MARKER_ENV = "DOKPLOY_EXEC_ID";
 export const SANDBOX_EXEC_MAX_OUTPUT_BYTES = 1024 * 1024;
-const KILL_GRACE_MS = 2000;
+export const SANDBOX_EXEC_KILL_GRACE_MS = 2000;
 
 export interface SandboxExecOptions {
 	cmd: string;
@@ -34,11 +34,6 @@ export const toSandboxEnvArray = (env?: Record<string, string> | string[]) =>
 		? env
 		: Object.entries(env ?? {}).map(([key, value]) => `${key}=${value}`);
 
-// Finds every process started by the exec (children included) through the
-// marker env var and kills it with the shell builtin `kill`, so each
-// iteration needs a single extra pid, which matters when the command
-// exhausted PidsLimit. GNU grep reads the NUL-separated environ with -z;
-// busybox grep has no -z, so it falls back to tr.
 export const buildSandboxKillCommand = (marker: string) => {
 	const pattern = quote([`${SANDBOX_EXEC_MARKER_ENV}=${marker}`]);
 	const kill = 'p="${f#/proc/}"; kill -9 "${p%/environ}" 2>/dev/null';
@@ -49,7 +44,7 @@ export const buildSandboxKillCommand = (marker: string) => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const createSink = (
+export const createSandboxOutputSink = (
 	maxBytes: number,
 	onChunk: ((chunk: string) => void) | undefined,
 	state: { truncated: boolean },
@@ -110,8 +105,8 @@ export const runSandboxExec = async (
 
 	const maxBytes = options.maxOutputBytes ?? SANDBOX_EXEC_MAX_OUTPUT_BYTES;
 	const state = { truncated: false };
-	const stdout = createSink(maxBytes, options.onStdout, state);
-	const stderr = createSink(maxBytes, options.onStderr, state);
+	const stdout = createSandboxOutputSink(maxBytes, options.onStdout, state);
+	const stderr = createSandboxOutputSink(maxBytes, options.onStderr, state);
 
 	const finished = new Promise<void>((resolve, reject) => {
 		stream.once("end", resolve);
@@ -132,11 +127,9 @@ export const runSandboxExec = async (
 					() => true,
 					() => true,
 				),
-				sleep(KILL_GRACE_MS).then(() => false),
+				sleep(SANDBOX_EXEC_KILL_GRACE_MS).then(() => false),
 			]);
 			if (!ended) {
-				// The marker kill could not run (e.g. PidsLimit exhausted, no
-				// grep), so the whole container goes; AutoRemove deletes it.
 				await container
 					.kill({ signal: "SIGKILL" })
 					.then(() => {
