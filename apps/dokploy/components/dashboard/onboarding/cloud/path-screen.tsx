@@ -7,6 +7,7 @@ interface Props {
 	onNeedServer: () => void;
 	onSkip: () => void;
 	onPayNow: () => void;
+	canStartTrial: boolean;
 }
 
 export const PathScreen = ({
@@ -14,6 +15,7 @@ export const PathScreen = ({
 	onNeedServer,
 	onSkip,
 	onPayNow,
+	canStartTrial,
 }: Props) => (
 	<section className="flex flex-col gap-10">
 		<ScreenHeading
@@ -34,19 +36,22 @@ export const PathScreen = ({
 				</Button>
 				<p className="text-sm text-muted-foreground">
 					You can explore the dashboard. Nothing can be deployed until a server
-					is connected, and your trial won't start until then.
+					is connected
+					{canStartTrial ? ", and your trial won't start until then." : "."}
 				</p>
 			</div>
-			<p className="text-sm text-muted-foreground">
-				Already decided?{" "}
-				<button
-					type="button"
-					onClick={onPayNow}
-					className="font-medium text-foreground underline underline-offset-4"
-				>
-					Pay now and skip the trial
-				</button>
-			</p>
+			{canStartTrial && (
+				<p className="text-sm text-muted-foreground">
+					Already decided?{" "}
+					<button
+						type="button"
+						onClick={onPayNow}
+						className="font-medium text-foreground underline underline-offset-4"
+					>
+						Pay now and skip the trial
+					</button>
+				</p>
+			)}
 		</div>
 	</section>
 );

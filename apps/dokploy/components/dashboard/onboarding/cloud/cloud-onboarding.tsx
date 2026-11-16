@@ -6,6 +6,7 @@ import { OnboardingShell } from "../onboarding-shell";
 import { ConnectScreen } from "./connect-screen";
 import { DeployScreen, type OnboardingProject } from "./deploy-screen";
 import { PathScreen } from "./path-screen";
+import { PlanScreen } from "./plan-screen";
 import { ProviderScreen } from "./provider-screen";
 
 const STEPS = [
@@ -16,6 +17,7 @@ const STEPS = [
 ];
 const STEP_INDEX: Record<OnboardingScreen, number> = {
 	path: 1,
+	plan: 1,
 	provider: 1,
 	connect: 2,
 	deploy: 3,
@@ -50,6 +52,15 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 		saveStep({ step: screen === "provider" ? `provider:${provider}` : screen });
 	}, [screen, provider]);
 
+	const { data: billing } = api.stripe.getBillingStatus.useQuery();
+
+	// Back from checkout the saved step is still the plan screen.
+	useEffect(() => {
+		if (billing?.hasActiveAccess && screen === "plan") {
+			setScreen("path");
+		}
+	}, [billing?.hasActiveAccess]);
+
 	useEffect(() => {
 		if (hasServer && (screen === "path" || screen === "provider")) {
 			setScreen("deploy");
@@ -82,9 +93,11 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 					onHaveServer={() => setScreen("connect")}
 					onNeedServer={() => setScreen("provider")}
 					onSkip={() => finish()}
-					onPayNow={() => leave("/dashboard/settings/billing")}
+					onPayNow={() => setScreen("plan")}
+					canStartTrial={billing?.hasActiveAccess === false}
 				/>
 			)}
+			{screen === "plan" && <PlanScreen onBack={() => setScreen("path")} />}
 			{screen === "provider" && (
 				<ProviderScreen
 					provider={provider}

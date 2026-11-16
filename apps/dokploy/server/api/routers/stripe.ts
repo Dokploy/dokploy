@@ -184,6 +184,7 @@ export const stripeRouter = createTRPCRouter({
 					productId: z.string(),
 					serverQuantity: z.number().min(1),
 					isAnnual: z.boolean(),
+					fromOnboarding: z.boolean().default(false),
 				})
 				.refine((data) => data.tier !== "startup" || data.serverQuantity >= 3, {
 					message: "Startup plan requires at least 3 servers",
@@ -231,8 +232,12 @@ export const stripeRouter = createTRPCRouter({
 				billing_address_collection: "required",
 				tax_id_collection: { enabled: true },
 				allow_promotion_codes: true,
-				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
-				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+				success_url: input.fromOnboarding
+					? `${WEBSITE_URL}/dashboard/home?onboarding=path`
+					: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
+				cancel_url: input.fromOnboarding
+					? `${WEBSITE_URL}/dashboard/home?onboarding=plan`
+					: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
 			return { sessionId: session.id };

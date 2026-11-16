@@ -113,12 +113,18 @@ export const SERVER_PROVIDERS = [
 	},
 ] as const;
 
-export type OnboardingScreen = "path" | "provider" | "connect" | "deploy";
+export type OnboardingScreen =
+	| "path"
+	| "plan"
+	| "provider"
+	| "connect"
+	| "deploy";
 
 export const isOnboardingScreen = (
 	value: string | null | undefined,
 ): value is OnboardingScreen =>
 	value === "path" ||
+	value === "plan" ||
 	value === "provider" ||
 	value === "connect" ||
 	value === "deploy";

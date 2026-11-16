@@ -6,7 +6,7 @@ import {
 	GitBranchIcon,
 	Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ConfettiExplosion from "react-confetti-explosion";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -61,6 +61,34 @@ interface Props {
 	onFinish: (project?: OnboardingProject) => Promise<void>;
 }
 
+interface StoredDeploy {
+	templateId: string;
+	project: OnboardingProject;
+	deployment: { composeId: string; url: string };
+}
+
+const STORAGE_KEY = "dokploy-onboarding-deploy";
+
+// A reload in the middle of the deploy would otherwise drop the result and
+// offer to deploy a second template.
+const readStoredDeploy = (): StoredDeploy | null => {
+	try {
+		return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null");
+	} catch {
+		return null;
+	}
+};
+
+const storeDeploy = (value: StoredDeploy | null) => {
+	try {
+		if (value) {
+			sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+		} else {
+			sessionStorage.removeItem(STORAGE_KEY);
+		}
+	} catch {}
+};
+
 export const DeployScreen = ({ onFinish }: Props) => {
 	const utils = api.useUtils();
 	const { data: billing } = api.stripe.getBillingStatus.useQuery();
@@ -72,16 +100,19 @@ export const DeployScreen = ({ onFinish }: Props) => {
 		api.compose.deployTemplate.useMutation();
 	const { mutateAsync: deployCompose } = api.compose.deploy.useMutation();
 
-	const [templateId, setTemplateId] = useState("");
+	const [stored] = useState(readStoredDeploy);
+	const [templateId, setTemplateId] = useState(stored?.templateId ?? "");
 	const [isStarting, setIsStarting] = useState(false);
 	const [isLeaving, setIsLeaving] = useState<string | null>(null);
-	const [project, setProject] = useState<OnboardingProject | null>(null);
+	const [project, setProject] = useState<OnboardingProject | null>(
+		stored?.project ?? null,
+	);
 	const [deployment, setDeployment] = useState<{
 		composeId: string;
 		url: string;
-	} | null>(null);
+	} | null>(stored?.deployment ?? null);
 
-	const { data: compose } = api.compose.one.useQuery(
+	const { data: compose, isError: composeMissing } = api.compose.one.useQuery(
 		{ composeId: deployment?.composeId ?? "" },
 		{
 			enabled: !!deployment,
@@ -91,6 +122,12 @@ export const DeployScreen = ({ onFinish }: Props) => {
 			},
 		},
 	);
+	useEffect(() => {
+		if (!composeMissing) return;
+		storeDeploy(null);
+		setDeployment(null);
+	}, [composeMissing]);
+
 	const deployStatus = deployment ? compose?.composeStatus : undefined;
 	const isDeploying =
 		!!deployment && deployStatus !== "done" && deployStatus !== "error";
@@ -142,10 +179,16 @@ export const DeployScreen = ({ onFinish }: Props) => {
 				composeId: created.composeId,
 			});
 			const host = domains?.[0]?.host;
-			setDeployment({
+			const started = {
 				composeId: created.composeId,
 				url: host ? `http://${host}` : "",
+			};
+			storeDeploy({
+				templateId: template.id,
+				project: target,
+				deployment: started,
 			});
+			setDeployment(started);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Error deploying the template",
@@ -159,6 +202,7 @@ export const DeployScreen = ({ onFinish }: Props) => {
 		setIsLeaving(id);
 		try {
 			const target = await ensureProject();
+			storeDeploy(null);
 			await onFinish(target);
 		} catch (error) {
 			toast.error(
@@ -271,6 +315,7 @@ export const DeployScreen = ({ onFinish }: Props) => {
 					isLoading={isLeaving === "dashboard"}
 					onClick={async () => {
 						setIsLeaving("dashboard");
+						storeDeploy(null);
 						await onFinish(project ?? undefined);
 					}}
 				>

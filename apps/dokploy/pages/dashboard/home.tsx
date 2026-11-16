@@ -14,6 +14,7 @@ import {
 } from "@/components/dashboard/onboarding/onboarding-lock";
 import { OnboardingWizard } from "@/components/dashboard/onboarding/onboarding-wizard";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { isOnboardingScreen } from "@/lib/onboarding";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
@@ -50,7 +51,9 @@ const Home = () => {
 	useEffect(() => {
 		if (!linkedStep || !needsServer || !data) return;
 		setWizardStep(
-			linkedStep === "connect" ? "connect" : (data.onboardingStep ?? "path"),
+			isOnboardingScreen(linkedStep)
+				? linkedStep
+				: (data.onboardingStep ?? "path"),
 		);
 		setShowWizard(true);
 		router.replace("/dashboard/home", undefined, { shallow: true });
@@ -67,6 +70,7 @@ const Home = () => {
 	if (showWizard && isCloud) {
 		return (
 			<CloudOnboarding
+				key={wizardStep ?? "saved"}
 				initialStep={wizardStep ?? data?.onboardingStep}
 				onClose={closeWizard}
 			/>
