@@ -37,9 +37,6 @@ const resolveSelection = (projects: TreeProject[], selection: Selection) => {
 	const environments = projects.flatMap((project) =>
 		project.environments.map((environment) => ({ project, environment })),
 	);
-	const services = environments.flatMap(
-		({ environment }) => environment.services,
-	);
 	return {
 		projects: projects
 			.filter((project) => selection.projects.has(project.projectId))
@@ -52,21 +49,28 @@ const resolveSelection = (projects: TreeProject[], selection: Selection) => {
 				id: environment.environmentId,
 				name: `${project.name} / ${environment.name}`,
 				projectId: project.projectId,
+				isDefault: environment.isDefault,
 			})),
-		services: services
-			.filter((service) => selection.services.has(service.id))
-			.map((service) => ({
-				id: service.id,
-				type: service.type,
-				name: service.name,
-			})),
+		services: environments.flatMap(({ project, environment }) =>
+			environment.services
+				.filter((service) => selection.services.has(service.id))
+				.map((service) => ({
+					id: service.id,
+					type: service.type,
+					name: service.name,
+					environmentId: environment.environmentId,
+					projectId: project.projectId,
+				})),
+		),
 	};
 };
 
 /**
  * Deleting a project or environment deletes everything inside it, whoever it
  * is assigned to. Services go through their own delete (it cleans up
- * containers); a project delete then removes its environments with it.
+ * containers); a project delete then removes its environments with it. A
+ * default environment can't be deleted, so selecting one deletes only what is
+ * inside it.
  */
 const resolveDeletion = (
 	projects: TreeProject[],
@@ -91,13 +95,15 @@ const resolveDeletion = (
 					id: service.id,
 					type: service.type,
 					name: service.name,
+					environmentId: environment.environmentId,
+					projectId: project.projectId,
 				});
 			}
 		}
 	}
 	return {
 		services: [...services.values()],
-		environments,
+		environments: environments.filter((env) => !env.isDefault),
 		projects: selected.projects,
 	};
 };

@@ -160,20 +160,31 @@ export const reassignResources = async (input: {
 		});
 	}
 
-	// A selected project carries along only what is assigned to the same user;
-	// items assigned to someone else inside it stay with them.
+	// A selected project takes everything inside it that is assigned to the same
+	// user, including items a filter left out of the selection; items assigned
+	// to someone else stay with them. Outside selected projects, only what was
+	// picked moves.
 	const selectedProjects = new Set(input.projectIds);
-	const keepsOwnAssignee = (projectId: string, assignedTo: string | null) =>
-		selectedProjects.has(projectId) &&
-		assignedTo !== projectAssignees.get(projectId);
-	const environmentIds = input.environmentIds.filter((id) => {
-		const parent = environmentParents.get(id)!;
-		return !keepsOwnAssignee(parent.projectId, parent.assignedTo);
-	});
-	const services = input.services.filter((service) => {
-		const parent = serviceParents.get(service.id)!;
-		return !keepsOwnAssignee(parent.projectId, parent.assignedTo);
-	});
+	const moves = (
+		projectId: string,
+		assignedTo: string | null,
+		picked: boolean,
+	) =>
+		selectedProjects.has(projectId)
+			? assignedTo === projectAssignees.get(projectId)
+			: picked;
+	const pickedEnvironments = new Set(input.environmentIds);
+	const pickedServices = new Set(input.services.map((service) => service.id));
+	const environmentIds = [...environmentParents]
+		.filter(([id, parent]) =>
+			moves(parent.projectId, parent.assignedTo, pickedEnvironments.has(id)),
+		)
+		.map(([id]) => id);
+	const services = [...serviceParents]
+		.filter(([id, parent]) =>
+			moves(parent.projectId, parent.assignedTo, pickedServices.has(id)),
+		)
+		.map(([id, parent]) => ({ id, type: parent.type }));
 
 	const serviceIdsByType = new Map<ServiceType, string[]>();
 	for (const service of services) {
@@ -201,23 +212,35 @@ export const reassignResources = async (input: {
 		}
 
 		if (target.role === "owner" || target.role === "admin") return;
+		// Read under a row lock so concurrent reassignments to the same member
+		// can't overwrite each other's grants.
+		const [current] = await tx
+			.select({
+				accessedProjects: member.accessedProjects,
+				accessedEnvironments: member.accessedEnvironments,
+				accessedServices: member.accessedServices,
+			})
+			.from(member)
+			.where(eq(member.id, target.id))
+			.for("update");
+		if (!current) return;
 		const serviceParentsOf = services.map(
 			(service) => serviceParents.get(service.id)!,
 		);
 		await tx
 			.update(member)
 			.set({
-				accessedProjects: unionArrays(target.accessedProjects, [
+				accessedProjects: unionArrays(current.accessedProjects, [
 					...input.projectIds,
 					...environmentIds.map((id) => environmentParents.get(id)!.projectId),
 					...serviceParentsOf.map((parent) => parent.projectId),
 				]),
-				accessedEnvironments: unionArrays(target.accessedEnvironments, [
+				accessedEnvironments: unionArrays(current.accessedEnvironments, [
 					...environmentIds,
 					...serviceParentsOf.map((parent) => parent.environmentId),
 				]),
 				accessedServices: unionArrays(
-					target.accessedServices,
+					current.accessedServices,
 					services.map((service) => service.id),
 				),
 			})

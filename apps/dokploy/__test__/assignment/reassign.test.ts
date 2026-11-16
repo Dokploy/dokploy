@@ -9,6 +9,11 @@ const state = vi.hoisted(() => ({
 vi.mock("@dokploy/server/db", () => {
 	const db = {
 		transaction: vi.fn((run: (tx: unknown) => unknown) => run(db)),
+		select: vi.fn(() => ({
+			from: () => ({
+				where: () => ({ for: () => Promise.resolve([state.target]) }),
+			}),
+		})),
 		update: vi.fn(() => ({
 			set: vi.fn((values: Record<string, unknown>) => {
 				updates.push(values);
@@ -101,6 +106,20 @@ describe("reassignResources", () => {
 		expect(access?.accessedServices).toEqual(["shop-web"]);
 		expect(access?.accessedProjects).toEqual(["p-other", "p-shop"]);
 		expect(access?.accessedEnvironments).toEqual(["env-shop"]);
+	});
+
+	it("moves the project's same-user items even when a filter left them out of the selection", async () => {
+		state.target = member("member");
+
+		const result = await reassignResources({
+			organizationId: "org",
+			targetUserId: "carol",
+			projectIds: ["p-shop"],
+			environmentIds: [],
+			services: [],
+		});
+
+		expect(result).toEqual({ projects: 1, environments: 1, services: 1 });
 	});
 
 	it("does not touch the access lists of an admin", async () => {

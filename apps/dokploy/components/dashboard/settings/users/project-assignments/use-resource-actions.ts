@@ -15,7 +15,7 @@ interface NamedRef {
 	name: string;
 }
 
-/** Bulk start / stop / delete over many items, reporting failures without stopping. */
+/** Bulk start / stop / delete over many items, reporting failures without stopping. Returns the items that failed. */
 export const useResourceActions = () => {
 	const utils = api.useUtils();
 	const { runServiceAction } = useServiceActions();
@@ -28,13 +28,15 @@ export const useResourceActions = () => {
 		step: (item: T) => Promise<unknown>,
 	) => {
 		let done = 0;
-		const failed: string[] = [];
+		const failed: T[] = [];
+		const messages: string[] = [];
 		for (const item of items) {
 			try {
 				await step(item);
 				done++;
 			} catch (error) {
-				failed.push(
+				failed.push(item);
+				messages.push(
 					`${item.name}: ${error instanceof Error ? error.message : "failed"}`,
 				);
 			}
@@ -42,9 +44,10 @@ export const useResourceActions = () => {
 		if (done > 0) toast.success(`${verb} ${pluralize(done, "item")}`);
 		if (failed.length > 0) {
 			toast.error(`${pluralize(failed.length, "item")} failed`, {
-				description: failed.join("\n"),
+				description: messages.join("\n"),
 			});
 		}
+		return failed;
 	};
 
 	const refresh = () =>
@@ -63,21 +66,43 @@ export const useResourceActions = () => {
 		await refresh();
 	};
 
-	/** Services first (cleans up their containers), then environments, then projects. */
+	/**
+	 * Services first (cleans up their containers), then environments, then
+	 * projects. A project or environment is kept when something inside it could
+	 * not be deleted: removing it would drop those services' records and leave
+	 * their containers running.
+	 */
 	const deleteResources = async (resources: {
-		services: ServiceRef[];
-		environments: NamedRef[];
+		services: (ServiceRef & { environmentId: string; projectId: string })[];
+		environments: (NamedRef & { projectId: string })[];
 		projects: NamedRef[];
 	}) => {
-		await runEach("Deleted", resources.services, (s) =>
+		const failedServices = await runEach("Deleted", resources.services, (s) =>
 			runServiceAction("delete", s),
 		);
-		await runEach("Deleted", resources.environments, (env) =>
-			removeEnvironment.mutateAsync({ environmentId: env.id }),
+		const blocked = new Set(
+			failedServices.flatMap((s) => [s.environmentId, s.projectId]),
 		);
-		await runEach("Deleted", resources.projects, (project) =>
-			removeProject.mutateAsync({ projectId: project.id }),
+		const failedEnvironments = await runEach(
+			"Deleted",
+			resources.environments.filter((env) => !blocked.has(env.id)),
+			(env) => removeEnvironment.mutateAsync({ environmentId: env.id }),
 		);
+		for (const env of failedEnvironments) blocked.add(env.projectId);
+		await runEach(
+			"Deleted",
+			resources.projects.filter((project) => !blocked.has(project.id)),
+			(project) => removeProject.mutateAsync({ projectId: project.id }),
+		);
+		const kept = [...resources.environments, ...resources.projects].filter(
+			(item) => blocked.has(item.id),
+		);
+		if (kept.length > 0) {
+			toast.error(
+				`Kept ${pluralize(kept.length, "item")} because something inside could not be deleted`,
+				{ description: kept.map((item) => item.name).join("\n") },
+			);
+		}
 		await refresh();
 	};
 
