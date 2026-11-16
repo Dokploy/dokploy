@@ -1,10 +1,9 @@
 import {
+	assertServerAccess,
 	cleanupBuilders,
-	findServerById,
 	getBuildCache,
 	getDockerDiskUsage,
 } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
 import { createTRPCRouter, withPermission } from "../trpc";
@@ -17,12 +16,7 @@ export const dockerDiskUsageRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+			await assertServerAccess(ctx.session, input.serverId);
 			return await getDockerDiskUsage(input.serverId);
 		}),
 
@@ -33,12 +27,7 @@ export const dockerDiskUsageRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+			await assertServerAccess(ctx.session, input.serverId);
 			return await getBuildCache(input.serverId);
 		}),
 
@@ -49,12 +38,7 @@ export const dockerDiskUsageRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session?.activeOrganizationId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
-			}
+			await assertServerAccess(ctx.session, input.serverId);
 			await cleanupBuilders(input.serverId);
 			await audit(ctx, {
 				action: "delete",
