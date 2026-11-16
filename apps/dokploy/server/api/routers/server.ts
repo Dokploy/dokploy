@@ -64,6 +64,7 @@ import {
 import {
 	canOwnerCreateMoreServers,
 	createServerWithSideEffects,
+	readServerSetupLog,
 } from "@/server/utils/connect-server";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
 import { canConnectFirstServer } from "@/server/utils/first-server";
@@ -197,6 +198,19 @@ export const serverRouter = createTRPCRouter({
 		const currentUser = await findUserById(ctx.user.id);
 		return currentUser.serverConnectFailure;
 	}),
+
+	setupLog: withPermission("server", "read")
+		.input(apiFindOneServer)
+		.query(async ({ ctx, input }) => {
+			const target = await findServerById(input.serverId);
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
+			return readServerSetupLog(input.serverId);
+		}),
 
 	one: withPermission("server", "read")
 		.input(apiFindOneServer)

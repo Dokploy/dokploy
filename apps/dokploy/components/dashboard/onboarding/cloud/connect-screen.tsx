@@ -23,7 +23,7 @@ const STORAGE_KEY = "dokploy-onboarding-connect";
 const SETUP_STEP = CONNECT_STEPS.length - 1;
 const SETUP_TIMEOUT_MS = 10 * 60 * 1000;
 
-type Phase = "waiting" | "resuming" | "setup" | "failed";
+type Phase = "waiting" | "resuming" | "setup" | "installing" | "failed";
 
 type PendingCommand = { sshKeyId: string; token: string; expiresAt: number };
 
@@ -49,6 +49,9 @@ const storePending = (pending: PendingCommand | null) => {
 		}
 	} catch {}
 };
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: strips terminal colors
+const ANSI_PATTERN = /\u001b\[[0-9;]*[A-Za-z]/g;
 
 const isConnectFailKind = (
 	value: string | null | undefined,
@@ -117,7 +120,7 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 	}, [pending, serverId]);
 
 	const command = pending
-		? `curl -fsSL ${window.location.origin}/api/connect/${pending.token} | sudo bash`
+		? `curl -fsSL "${window.location.origin}/api/connect/${pending.token}?setup=true" | sudo bash`
 		: "";
 
 	const isWaiting = phase === "waiting" && !!pending && !serverId;
@@ -151,15 +154,34 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 		{ enabled: false, retry: false },
 	);
 
+	const isInstalling = phase === "setup" || phase === "installing";
+	const { data: setup, refetch: refetchSetup } = api.server.setupLog.useQuery(
+		{ serverId: serverId ?? "" },
+		{
+			enabled: !!serverId && (isInstalling || phase === "failed"),
+			refetchInterval: isInstalling ? 2000 : false,
+		},
+	);
+	const setupStatus = setup?.status;
+	const setupLog = (setup?.log ?? "").replace(ANSI_PATTERN, "").trim();
+	const logRef = useRef<HTMLPreElement>(null);
+
+	useEffect(() => {
+		logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+	}, [setupLog]);
+
 	useEffect(() => {
 		if (phase !== "resuming" || !serverId) return;
-		validate().then(({ data: validation }) => {
+		const resume = async () => {
+			const { data: validation } = await validate();
 			if (validation?.docker?.enabled && validation.isDokployNetworkInstalled) {
 				onConnected();
-			} else {
-				setPhase("setup");
+				return;
 			}
-		});
+			const { data: previous } = await refetchSetup();
+			setPhase(previous?.status === "running" ? "setup" : "installing");
+		};
+		resume();
 	}, [phase, serverId]);
 
 	const failSetup = () => setPhase("failed");
@@ -176,7 +198,7 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 	api.server.setupWithLogs.useSubscription(
 		{ serverId: serverId ?? "" },
 		{
-			enabled: !!serverId && phase === "setup",
+			enabled: !!serverId && phase === "installing",
 			onData(log) {
 				if (typeof log !== "string") return;
 				if (log.includes("Setup Server:")) {
@@ -191,6 +213,12 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 
 	useEffect(() => {
 		if (phase !== "setup") return;
+		if (setupStatus === "done") finishSetup();
+		if (setupStatus === "error") failSetup();
+	}, [phase, setupStatus]);
+
+	useEffect(() => {
+		if (!isInstalling) return;
 		const timeout = setTimeout(failSetup, SETUP_TIMEOUT_MS);
 		return () => clearTimeout(timeout);
 	}, [phase]);
@@ -208,8 +236,8 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 				? connectFailure
 				: null;
 	const failure = failKind ? CONNECT_FAILURES[failKind] : null;
-	const activeStep = phase === "setup" ? SETUP_STEP : 0;
-	const isBusy = phase === "setup" || phase === "resuming";
+	const activeStep = isInstalling ? SETUP_STEP : 0;
+	const isBusy = isInstalling || phase === "resuming";
 	const showSteps = isBusy || !!failure;
 
 	return (
@@ -270,7 +298,8 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 					) : (
 						<span className="text-sm text-muted-foreground">
 							It adds Dokploy's public SSH key and tells Dokploy where the
-							server is. It works once and expires in 1 hour.
+							server is. Dokploy then installs Docker for you and shows the
+							progress here. It works once and expires in 1 hour.
 						</span>
 					)}
 				</div>
@@ -306,7 +335,7 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 						<span className="font-mono text-xs text-muted-foreground">
 							{failure
 								? "Setup stopped"
-								: phase === "setup"
+								: isInstalling
 									? "Installing on your server"
 									: "Checking your server"}
 						</span>
@@ -343,6 +372,15 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 							);
 						})}
 					</ul>
+					{serverId && setupLog && (
+						<pre
+							ref={logRef}
+							aria-label="Setup log"
+							className="max-h-64 overflow-auto whitespace-pre-wrap break-words border-t bg-zinc-950 px-5 py-4 font-mono text-xs leading-relaxed text-zinc-300"
+						>
+							{setupLog}
+						</pre>
+					)}
 					{failure && (
 						<div
 							role="alert"
@@ -365,7 +403,7 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 							{failKind === "setup" ? (
 								<Button
 									className="mt-1 w-fit"
-									onClick={() => setPhase("setup")}
+									onClick={() => setPhase("installing")}
 								>
 									I fixed it, check again
 								</Button>

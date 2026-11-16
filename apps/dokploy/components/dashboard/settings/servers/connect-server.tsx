@@ -35,11 +35,17 @@ const Schema = z.object({
 	description: z.string().max(200).optional(),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
+	runSetup: z.boolean().default(false),
 });
 
 type Schema = z.infer<typeof Schema>;
 
-type PendingCommand = { sshKeyId: string; command: string; expiresAt: number };
+type PendingCommand = {
+	sshKeyId: string;
+	command: string;
+	expiresAt: number;
+	runSetup: boolean;
+};
 
 const isExpired = (pending: PendingCommand | null) =>
 	!!pending && Date.now() > pending.expiresAt * 1000;
@@ -89,6 +95,7 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 			description: "",
 			serverType: "deploy",
 			enableDockerCleanup: true,
+			runSetup: false,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -104,7 +111,10 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 		setPending({
 			sshKeyId: result.sshKeyId,
 			expiresAt: result.expiresAt,
-			command: `curl -fsSL ${window.location.origin}/api/connect/${result.token} | sudo bash`,
+			runSetup: data.runSetup,
+			command: data.runSetup
+				? `curl -fsSL "${window.location.origin}/api/connect/${result.token}?setup=true" | sudo bash`
+				: `curl -fsSL ${window.location.origin}/api/connect/${result.token} | sudo bash`,
 		});
 	};
 
@@ -118,9 +128,9 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 							{connected.name} is connected ({connected.ipAddress})
 						</span>
 						<span className="text-muted-foreground">
-							Complete the setup to install Docker, Traefik and the rest of the
-							server requirements. If the IP address is not right, fix it with
-							Edit Server first.
+							{pending.runSetup
+								? "Dokploy is installing Docker, Traefik and the rest of the server requirements. This takes a few minutes."
+								: "Complete the setup to install Docker, Traefik and the rest of the server requirements. If the IP address is not right, fix it with Edit Server first."}
 						</span>
 					</div>
 				</div>
@@ -135,15 +145,17 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 					>
 						Close
 					</Button>
-					<Button
-						type="button"
-						onClick={() => {
-							setPending(null);
-							onCompleteSetup(connected.serverId);
-						}}
-					>
-						Complete setup <Settings className="size-4" />
-					</Button>
+					{!pending.runSetup && (
+						<Button
+							type="button"
+							onClick={() => {
+								setPending(null);
+								onCompleteSetup(connected.serverId);
+							}}
+						>
+							Complete setup <Settings className="size-4" />
+						</Button>
+					)}
 				</div>
 			</div>
 		);
@@ -155,7 +167,9 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 				<div className="flex flex-col gap-2 text-sm">
 					<span>
 						Run this command on your server as root. It adds Dokploy&apos;s SSH
-						key and registers the server. It works once and expires in 1 hour.
+						key and registers the server
+						{pending.runSetup ? ", then Dokploy installs its requirements" : ""}
+						. It works once and expires in 1 hour.
 					</span>
 					<div className="flex items-start justify-between gap-2 rounded-lg bg-muted p-3 font-mono text-xs break-all">
 						<span>{pending.command}</span>
@@ -289,6 +303,27 @@ export const ConnectServer = ({ session, onCompleteSetup, onClose }: Props) => {
 								<FormDescription>
 									Automatically prune unused Docker images daily. Keeps disk
 									usage in check on this remote server.
+								</FormDescription>
+							</div>
+							<FormControl>
+								<Switch
+									checked={field.value}
+									onCheckedChange={field.onChange}
+								/>
+							</FormControl>
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name="runSetup"
+					render={({ field }) => (
+						<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+							<div className="space-y-0.5">
+								<FormLabel>Run the server setup</FormLabel>
+								<FormDescription>
+									Dokploy installs Docker, Traefik and the rest of the server
+									requirements as soon as the server connects.
 								</FormDescription>
 							</div>
 							<FormControl>

@@ -56,34 +56,33 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 		}
 	}, [hasServer]);
 
-	const finish = async (project?: OnboardingProject) => {
+	const leave = async (destination: string) => {
+		if (isLeaving) return;
+		setIsLeaving(true);
 		await onClose();
-		await router.push(
+		await router.push(destination);
+	};
+
+	const finish = (project?: OnboardingProject) =>
+		leave(
 			project?.projectId && project.environmentId
 				? `/dashboard/project/${project.projectId}/environment/${project.environmentId}`
 				: "/dashboard/home",
 		);
-	};
 
 	return (
 		<OnboardingShell
 			steps={STEPS.map((title) => ({ id: title, title }))}
 			currentIndex={STEP_INDEX[screen]}
-			onSkip={
-				screen === "deploy"
-					? undefined
-					: () => {
-							if (isLeaving) return;
-							setIsLeaving(true);
-							finish();
-						}
-			}
+			onSkip={screen === "deploy" ? undefined : () => finish()}
 			skipLabel="Look around first"
 		>
 			{screen === "path" && (
 				<PathScreen
 					onHaveServer={() => setScreen("connect")}
 					onNeedServer={() => setScreen("provider")}
+					onSkip={() => finish()}
+					onPayNow={() => leave("/dashboard/settings/billing")}
 				/>
 			)}
 			{screen === "provider" && (

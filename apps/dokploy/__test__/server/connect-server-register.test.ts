@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 	audit: vi.fn(),
 	captureEvent: vi.fn(),
 	prepareFirstServer: vi.fn(),
+	serverSetup: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", async () => {
@@ -26,6 +27,7 @@ vi.mock("@dokploy/server", async () => {
 		},
 		captureEvent: mocks.captureEvent,
 		createServer: mocks.createServer,
+		serverSetup: mocks.serverSetup,
 		findUserById: async () => mocks.owner,
 		findServersByUserId: async () => mocks.ownerServers,
 	};
@@ -271,5 +273,23 @@ describe("registerConnectedServer", () => {
 		});
 		expect(result.status).toBe(200);
 		expect(mocks.prepareFirstServer).not.toHaveBeenCalled();
+	});
+
+	it("starts the setup by itself only when the command asks for it", async () => {
+		mocks.serverSetup.mockResolvedValue(undefined);
+		await registerConnectedServer({
+			token: makeToken(),
+			ipAddress: "1.1.1.1",
+		});
+		expect(mocks.serverSetup).not.toHaveBeenCalled();
+
+		mocks.sshKey = { ...mocks.sshKey, sshKeyId: "key-1" };
+		const result = await registerConnectedServer({
+			token: makeToken(),
+			ipAddress: "1.1.1.1",
+			setup: true,
+		});
+		expect(result.status).toBe(200);
+		expect(mocks.serverSetup).toHaveBeenCalledWith("srv-1");
 	});
 });

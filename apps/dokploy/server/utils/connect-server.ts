@@ -1,11 +1,14 @@
+import { open } from "node:fs/promises";
 import {
 	type ConnectTokenPayload,
 	captureEvent,
 	createServer,
 	decodeConnectToken,
+	findAllDeploymentsByServerId,
 	findServersByUserId,
 	findUserById,
 	IS_CLOUD,
+	serverSetup,
 	verifyConnectToken,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -96,12 +99,40 @@ export const resolveConnectToken = async (
 	return { status, payload, sshKey };
 };
 
+const SETUP_LOG_BYTES = 64 * 1024;
+
+export const readServerSetupLog = async (serverId: string) => {
+	const deployments = await findAllDeploymentsByServerId(serverId);
+	const setup = deployments.find((item) => item.title === "Setup Server");
+	if (!setup) return null;
+	let log = "";
+	try {
+		const file = await open(setup.logPath, "r");
+		try {
+			const { size } = await file.stat();
+			const length = Math.min(size, SETUP_LOG_BYTES);
+			const { buffer } = await file.read(
+				Buffer.alloc(length),
+				0,
+				length,
+				size - length,
+			);
+			log = buffer.toString("utf8");
+		} finally {
+			await file.close();
+		}
+	} catch {}
+	return { status: setup.status, log };
+};
+
 export const registerConnectedServer = async ({
 	token,
 	ipAddress,
+	setup = false,
 }: {
 	token: string;
 	ipAddress: string | null;
+	setup?: boolean;
 }): Promise<{ status: number; message: string; serverId?: string }> => {
 	const resolved = await resolveConnectToken(token);
 	if (resolved.status !== "valid") {
@@ -213,9 +244,15 @@ export const registerConnectedServer = async ({
 		throw error;
 	}
 
+	if (setup) {
+		void serverSetup(newServer.serverId).catch((error) => {
+			console.error("Failed to set up the connected server:", error);
+		});
+	}
+
 	return {
 		status: 200,
-		message: `Server "${newServer.name.replace(/\p{Cc}/gu, "")}" is connected. Go back to Dokploy to complete the setup.`,
+		message: `Server "${newServer.name.replace(/\p{Cc}/gu, "")}" is connected. ${setup ? "Dokploy is installing Docker and the rest of its requirements now. Go back to Dokploy to follow the progress." : "Go back to Dokploy to complete the setup."}`,
 		serverId: newServer.serverId,
 	};
 };
