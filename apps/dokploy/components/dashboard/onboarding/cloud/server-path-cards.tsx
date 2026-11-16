@@ -11,8 +11,7 @@ const OPTIONS = [
 		id: "have",
 		icon: ServerIcon,
 		title: "I have a server",
-		description:
-			"Connect it with one command. About 2 minutes.",
+		description: "Connect it with one command. About 2 minutes.",
 		action: "Connect my server",
 	},
 	{
