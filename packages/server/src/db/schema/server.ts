@@ -166,6 +166,7 @@ export const apiGenerateConnectCommand = z.object({
 	description: z.string().max(200).optional(),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
+	onboarding: z.boolean().default(false),
 });
 
 export const apiFindOneServer = z.object({

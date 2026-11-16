@@ -72,6 +72,12 @@ void app.prepare().then(async () => {
 			await sendDokployRestartNotifications();
 		}
 		await initEnterpriseBackupCronJobs();
+		if (IS_CLOUD) {
+			const { initOnboardingEmailJobs } = await import(
+				"./utils/onboarding-emails"
+			);
+			initOnboardingEmailJobs();
+		}
 
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");

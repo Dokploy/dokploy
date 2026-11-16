@@ -10,6 +10,7 @@ export type ConnectTokenPayload = {
 	expiresAt: number;
 	serverType: "deploy" | "build";
 	enableDockerCleanup: boolean;
+	onboarding?: boolean;
 };
 
 const ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -34,7 +35,7 @@ const encodePayload = (payload: ConnectTokenPayload) =>
 		payload.sshKeyId,
 		payload.userId,
 		payload.expiresAt.toString(36),
-		`${payload.serverType === "build" ? "b" : "d"}${payload.enableDockerCleanup ? 1 : 0}`,
+		`${payload.serverType === "build" ? "b" : "d"}${payload.enableDockerCleanup ? 1 : 0}${payload.onboarding ? "o" : ""}`,
 	].join(".");
 
 export const createConnectToken = (
@@ -58,13 +59,14 @@ export const decodeConnectToken = (
 		string,
 	];
 	if (!ID_PATTERN.test(sshKeyId) || !ID_PATTERN.test(userId)) return null;
-	if (!/^[0-9a-z]+$/.test(expires) || !/^[db][01]$/.test(flags)) return null;
+	if (!/^[0-9a-z]+$/.test(expires) || !/^[db][01]o?$/.test(flags)) return null;
 	return {
 		sshKeyId,
 		userId,
 		expiresAt: Number.parseInt(expires, 36),
 		serverType: flags[0] === "b" ? "build" : "deploy",
 		enableDockerCleanup: flags[1] === "1",
+		...(flags[2] === "o" && { onboarding: true }),
 	};
 };
 

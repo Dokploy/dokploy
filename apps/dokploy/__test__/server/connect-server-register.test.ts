@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 	applyDockerCleanupSchedule: vi.fn(),
 	audit: vi.fn(),
 	captureEvent: vi.fn(),
+	prepareFirstServer: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", async () => {
@@ -62,6 +63,10 @@ vi.mock("@/server/api/utils/audit", () => ({ audit: mocks.audit }));
 
 vi.mock("@/server/utils/docker-cleanup", () => ({
 	applyDockerCleanupSchedule: mocks.applyDockerCleanupSchedule,
+}));
+
+vi.mock("@/server/utils/first-server", () => ({
+	prepareFirstServer: mocks.prepareFirstServer,
 }));
 
 const { createConnectToken } = await import(
@@ -228,5 +233,43 @@ describe("registerConnectedServer", () => {
 		});
 		expect(result.status).toBe(403);
 		expect(mocks.createServer).not.toHaveBeenCalled();
+	});
+
+	it("starts the first server past the quota when the onboarding checks pass", async () => {
+		mocks.isCloud = true;
+		mocks.ownerServers = [{}];
+		mocks.prepareFirstServer.mockResolvedValue(null);
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(200);
+		expect(mocks.prepareFirstServer).toHaveBeenCalledWith({
+			target: { ipAddress: "1.1.1.1", privateKey: PRIVATE_KEY },
+			userId: "user-1",
+			ownerId: "owner-1",
+			organizationId: "org-1",
+		});
+	});
+
+	it("explains a failed onboarding check and leaves the command reusable", async () => {
+		mocks.isCloud = true;
+		mocks.prepareFirstServer.mockResolvedValue("memory");
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(422);
+		expect(result.message).toContain("less than 2 GB of RAM");
+		expect(mocks.createServer).not.toHaveBeenCalled();
+	});
+
+	it("ignores the onboarding flag outside Dokploy Cloud", async () => {
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(200);
+		expect(mocks.prepareFirstServer).not.toHaveBeenCalled();
 	});
 });

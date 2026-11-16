@@ -15,6 +15,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
+import { CONNECT_FAILURES } from "@/lib/onboarding";
 import { audit } from "@/server/api/utils/audit";
 import {
 	type apiCreateServer,
@@ -22,6 +23,7 @@ import {
 	sshKeys,
 } from "@/server/db/schema";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
+import { prepareFirstServer } from "@/server/utils/first-server";
 
 export const canOwnerCreateMoreServers = async (ownerId: string) => {
 	if (!IS_CLOUD) return true;
@@ -143,7 +145,26 @@ export const registerConnectedServer = async ({
 		where: eq(organization.id, organizationId),
 		columns: { ownerId: true },
 	});
-	if (!org || !(await canOwnerCreateMoreServers(org.ownerId))) {
+	if (IS_CLOUD && payload.onboarding && org) {
+		const failure = await prepareFirstServer({
+			target: { ipAddress, privateKey: sshKey.privateKey },
+			userId: payload.userId,
+			ownerId: org.ownerId,
+			organizationId,
+		});
+		if (failure) {
+			const { title, body, fix } = CONNECT_FAILURES[failure];
+			return {
+				status: 422,
+				message: [
+					`${title}.`,
+					body,
+					"",
+					...fix.map((step, index) => `${index + 1}. ${step}`),
+				].join("\n"),
+			};
+		}
+	} else if (!org || !(await canOwnerCreateMoreServers(org.ownerId))) {
 		return {
 			status: 403,
 			message: "You cannot create more servers. Upgrade your plan in Dokploy.",
