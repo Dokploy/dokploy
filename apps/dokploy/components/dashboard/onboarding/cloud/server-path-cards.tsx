@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 interface Props {
 	onHaveServer: () => void;
 	onNeedServer: () => void;
-	compact?: boolean;
 }
 
 const OPTIONS = [
@@ -13,7 +12,7 @@ const OPTIONS = [
 		icon: ServerIcon,
 		title: "I have a server",
 		description:
-			"Connect it with one command and its IP address. About 2 minutes.",
+			"Connect it with one command. About 2 minutes.",
 		action: "Connect my server",
 	},
 	{
@@ -26,11 +25,7 @@ const OPTIONS = [
 	},
 ] as const;
 
-export const ServerPathCards = ({
-	onHaveServer,
-	onNeedServer,
-	compact,
-}: Props) => (
+export const ServerPathCards = ({ onHaveServer, onNeedServer }: Props) => (
 	<div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border rounded-2xl overflow-hidden border">
 		{OPTIONS.map((option) => (
 			<button
@@ -39,7 +34,7 @@ export const ServerPathCards = ({
 				onClick={option.id === "have" ? onHaveServer : onNeedServer}
 				className={cn(
 					"group flex flex-col items-start justify-between bg-background text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:bg-muted/60",
-					compact ? "gap-6 p-6" : "gap-10 p-7",
+					"gap-10 p-7",
 				)}
 			>
 				<div className="flex flex-col gap-3">

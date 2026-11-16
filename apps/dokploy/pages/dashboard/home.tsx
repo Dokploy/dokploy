@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import superjson from "superjson";
 import { ShowHome } from "@/components/dashboard/home/show-home";
 import { CloudOnboarding } from "@/components/dashboard/onboarding/cloud/cloud-onboarding";
-import { ConnectServerPrompt } from "@/components/dashboard/onboarding/cloud/connect-server-prompt";
 import {
 	clearOnboardingActive,
 	isOnboardingActive,
@@ -78,21 +77,7 @@ const Home = () => {
 		return <OnboardingWizard onClose={closeWizard} />;
 	}
 
-	return (
-		<>
-			{needsServer && (
-				<div className="mx-auto w-full max-w-7xl px-4 pt-6 lg:px-6">
-					<ConnectServerPrompt
-						onStart={(screen) => {
-							setWizardStep(screen);
-							setShowWizard(true);
-						}}
-					/>
-				</div>
-			)}
-			<ShowHome />
-		</>
-	);
+	return <ShowHome />;
 };
 
 export default Home;

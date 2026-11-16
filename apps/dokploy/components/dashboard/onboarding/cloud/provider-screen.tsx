@@ -14,7 +14,7 @@ const initials = (name: string) => {
 const STEPS = [
 	"Create a server with Ubuntu and at least 2 GB of RAM.",
 	"Open the server's web console, or SSH in as root.",
-	"Come back here with the server's IP address to connect it.",
+	"Come back here to get the command that connects it.",
 ];
 
 interface Props {
