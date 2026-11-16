@@ -344,17 +344,35 @@ describe("replaceAppNames", () => {
 describe("importBundle", () => {
 	beforeEach(() => vi.clearAllMocks());
 
+	it("assigns everything imported to the importer, ignoring any assignee inside the bundle", async () => {
+		const payload = await exportedPayload();
+		payload.project.assignedTo = "user-from-another-instance";
+		const { db, insertsInto } = fakeImportDb({});
+		await importBundle(db, payload, {
+			organizationId: "org",
+			serverId: null,
+			assignedTo: "importer",
+		});
+		const [project] = insertsInto(projects);
+		expect(project?.assignedTo).toBe("importer");
+		expect(insertsInto(environments)[0]?.assignedTo).toBe("importer");
+		expect(insertsInto(applications)[0]?.assignedTo).toBe("importer");
+		expect(insertsInto(postgres)[0]?.assignedTo).toBe("importer");
+	});
+
 	it("creates the project on the chosen server keeping the app names", async () => {
 		const payload = await exportedPayload();
 		const { db, insertsInto } = fakeImportDb({});
 		const result = await importBundle(db, payload, {
 			organizationId: "org-target",
 			serverId: "srv-target",
+			assignedTo: "importer",
 		});
 
 		expect(result.projectName).toBe("Shop");
 		const [project] = insertsInto(projects);
 		expect(project?.organizationId).toBe("org-target");
+		expect(project?.assignedTo).toBe("importer");
 		const [pg] = insertsInto(postgres);
 		const [app] = insertsInto(applications);
 		expect(pg?.appName).toBe("shop-db-abc123");
@@ -383,6 +401,7 @@ describe("importBundle", () => {
 		const result = await importBundle(db, payload, {
 			organizationId: "org",
 			serverId: null,
+			assignedTo: "importer",
 		});
 		expect(insertsInto(domains)[0]).toMatchObject({
 			forwardAuthEnabled: false,
@@ -406,7 +425,11 @@ describe("importBundle", () => {
 		const { db, insertsInto } = fakeImportDb({
 			libsqlPorts: [{ externalGRPCPort: 5001 }],
 		});
-		await importBundle(db, payload, { organizationId: "org", serverId: null });
+		await importBundle(db, payload, {
+			organizationId: "org",
+			serverId: null,
+			assignedTo: "importer",
+		});
 		const [row] = insertsInto(libsql);
 		expect(row?.externalGRPCPort).toBeNull();
 		expect(row?.externalAdminPort).toBe(5002);
@@ -418,6 +441,7 @@ describe("importBundle", () => {
 		const result = await importBundle(db, payload, {
 			organizationId: "org",
 			serverId: null,
+			assignedTo: "importer",
 		});
 		const [pg] = insertsInto(postgres);
 		const [project] = insertsInto(projects);
@@ -441,6 +465,7 @@ describe("importBundle", () => {
 		const result = await importBundle(db, payload, {
 			organizationId: "org-target",
 			serverId: null,
+			assignedTo: "importer",
 		});
 
 		expect(result.projectName).toBe("imported-Shop");
@@ -471,7 +496,11 @@ describe("importBundle", () => {
 			mounts: [],
 		});
 		const { db, insertsInto } = fakeImportDb({});
-		await importBundle(db, payload, { organizationId: "org", serverId: null });
+		await importBundle(db, payload, {
+			organizationId: "org",
+			serverId: null,
+			assignedTo: "importer",
+		});
 		expect(insertsInto(compose)[0]?.suffix).toBe("abc123");
 		expect(
 			insertsInto(domains).find((d) => d.host === "stack.example.com")
@@ -487,7 +516,11 @@ describe("importBundle", () => {
 			(app?.mounts as { filePath: string }[])[0]!.filePath = filePath;
 			const { db } = fakeImportDb({});
 			await expect(
-				importBundle(db, payload, { organizationId: "org", serverId: null }),
+				importBundle(db, payload, {
+					organizationId: "org",
+					serverId: null,
+					assignedTo: "importer",
+				}),
 			).rejects.toBeInstanceOf(BundleFormatError);
 		},
 	);

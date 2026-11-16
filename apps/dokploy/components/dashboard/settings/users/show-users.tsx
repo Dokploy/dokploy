@@ -1,8 +1,7 @@
 import { format } from "date-fns";
 import { Loader2, MoreHorizontal, Users } from "lucide-react";
-import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { DialogAction } from "@/components/shared/dialog-action";
+import { RoleBadge } from "@/components/shared/user-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,20 +26,18 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
 import { ChangeRole } from "./change-role";
+import { RemoveUserDialog } from "./project-assignments/remove-user-dialog";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data, isPending, refetch } = api.user.all.useQuery();
-	const { mutateAsync, isPending: isRemoving } = api.user.remove.useMutation();
+	const { data, isPending } = api.user.all.useQuery();
 	const { data: permissions } = api.user.getPermissions.useQuery();
 	const { data: hasValidLicense } =
 		api.licenseKey.haveValidLicenseKey.useQuery();
 
-	const utils = api.useUtils();
 	const { data: session } = api.user.session.useQuery();
 
 	const FREE_ROLES = ["owner", "admin", "member"];
@@ -146,6 +143,10 @@ export const ShowUsers = () => {
 
 													const canDelete = canRemove && !isCloud;
 													const canUnlink = canRemove && !!isCloud;
+													// Only owners and admins see every project, so only they get the project list.
+													const canManageRemoval =
+														currentUserRole === "owner" ||
+														currentUserRole === "admin";
 
 													const hasAnyAction =
 														canEditPermissions ||
@@ -164,15 +165,7 @@ export const ShowUsers = () => {
 																)}
 															</TableCell>
 															<TableCell className="text-center">
-																<Badge
-																	variant={
-																		member.role === "owner"
-																			? "default"
-																			: "secondary"
-																	}
-																>
-																	{member.role}
-																</Badge>
+																<RoleBadge role={member.role} />
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
@@ -233,28 +226,12 @@ export const ShowUsers = () => {
 																			)}
 
 																			{canDelete && (
-																				<DialogAction
-																					title="Delete User"
-																					description="Are you sure you want to delete this user?"
-																					type="destructive"
-																					disabled={isRemoving}
-																					onClick={async () => {
-																						await mutateAsync({
-																							userId: member.user.id,
-																						})
-																							.then(() => {
-																								toast.success(
-																									"User deleted successfully",
-																								);
-																								refetch();
-																							})
-																							.catch((err) => {
-																								toast.error(
-																									err?.message ||
-																										"Error deleting user",
-																								);
-																							});
-																					}}
+																				<RemoveUserDialog
+																					memberId={member.id}
+																					userId={member.user.id}
+																					email={member.user.email}
+																					isCloud={false}
+																					canSeeAllProjects={canManageRemoval}
 																				>
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer text-red-500 hover:text-red-600!"
@@ -262,61 +239,16 @@ export const ShowUsers = () => {
 																					>
 																						Delete User
 																					</DropdownMenuItem>
-																				</DialogAction>
+																				</RemoveUserDialog>
 																			)}
 
 																			{canUnlink && (
-																				<DialogAction
-																					title="Unlink User"
-																					description="Are you sure you want to unlink this user?"
-																					type="destructive"
-																					disabled={isRemoving}
-																					onClick={async () => {
-																						if (!isCloud) {
-																							const orgCount =
-																								await utils.user.checkUserOrganizations.fetch(
-																									{
-																										userId: member.user.id,
-																									},
-																								);
-
-																							if (orgCount === 1) {
-																								await mutateAsync({
-																									userId: member.user.id,
-																								})
-																									.then(() => {
-																										toast.success(
-																											"User deleted successfully",
-																										);
-																										refetch();
-																									})
-																									.catch(() => {
-																										toast.error(
-																											"Error deleting user",
-																										);
-																									});
-																								return;
-																							}
-																						}
-
-																						const { error } =
-																							await authClient.organization.removeMember(
-																								{
-																									memberIdOrEmail: member.id,
-																								},
-																							);
-
-																						if (!error) {
-																							toast.success(
-																								"User unlinked successfully",
-																							);
-																							refetch();
-																						} else {
-																							toast.error(
-																								"Error unlinking user",
-																							);
-																						}
-																					}}
+																				<RemoveUserDialog
+																					memberId={member.id}
+																					userId={member.user.id}
+																					email={member.user.email}
+																					isCloud
+																					canSeeAllProjects={canManageRemoval}
 																				>
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer text-red-500 hover:text-red-600!"
@@ -324,7 +256,7 @@ export const ShowUsers = () => {
 																					>
 																						Unlink User
 																					</DropdownMenuItem>
-																				</DialogAction>
+																				</RemoveUserDialog>
 																			)}
 																		</DropdownMenuContent>
 																	</DropdownMenu>

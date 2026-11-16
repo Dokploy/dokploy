@@ -53,6 +53,7 @@ export type Services = {
 	id: string;
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
+	assignedTo?: string | null;
 };
 
 export const extractServices = (data: Environment | undefined) => {
@@ -65,6 +66,7 @@ export const extractServices = (data: Environment | undefined) => {
 		status: item.applicationStatus,
 		description: item.description,
 		serverId: item.serverId,
+		assignedTo: item.assignedTo,
 	})) ?? []) as Services[];
 
 	const mariadb: Services[] =
@@ -77,6 +79,7 @@ export const extractServices = (data: Environment | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			assignedTo: item.assignedTo,
 		})) || [];
 
 	const postgres: Services[] =
@@ -89,6 +92,7 @@ export const extractServices = (data: Environment | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			assignedTo: item.assignedTo,
 		})) || [];
 
 	const mongo: Services[] =
@@ -101,6 +105,7 @@ export const extractServices = (data: Environment | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			assignedTo: item.assignedTo,
 		})) || [];
 
 	const redis: Services[] =
@@ -113,6 +118,7 @@ export const extractServices = (data: Environment | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			assignedTo: item.assignedTo,
 		})) || [];
 
 	const mysql: Services[] =
@@ -125,6 +131,7 @@ export const extractServices = (data: Environment | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			assignedTo: item.assignedTo,
 		})) || [];
 
 	const compose: Services[] = (data?.compose?.map((item) => ({
@@ -136,6 +143,7 @@ export const extractServices = (data: Environment | undefined) => {
 		status: item.composeStatus,
 		description: item.description,
 		serverId: item.serverId,
+		assignedTo: item.assignedTo,
 	})) ?? []) as Services[];
 
 	const libsql: Services[] =
@@ -148,6 +156,7 @@ export const extractServices = (data: Environment | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			assignedTo: item.assignedTo,
 		})) || [];
 
 	applications.push(

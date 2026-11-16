@@ -39,6 +39,7 @@ const DROPPED_FIELDS = [
 	"customGitSSHKeyId",
 	"networkIds",
 	"organizationId",
+	"assignedTo",
 ];
 
 export const stripForeignReferences = (row: Row): Row => {

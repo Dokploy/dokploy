@@ -23,6 +23,7 @@ export const projects = pgTable("project", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	env: encryptedText("env").notNull().default(""),
+	assignedTo: text("assignedTo"),
 });
 
 export const projectRelations = relations(projects, ({ many, one }) => ({

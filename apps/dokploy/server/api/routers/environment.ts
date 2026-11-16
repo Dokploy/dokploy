@@ -54,7 +54,7 @@ export const environmentRouter = createTRPCRouter({
 					});
 				}
 
-				const environment = await createEnvironment(input);
+				const environment = await createEnvironment(input, ctx.user.id);
 
 				await addNewEnvironment(ctx, environment.environmentId);
 				await audit(ctx, {
@@ -304,7 +304,10 @@ export const environmentRouter = createTRPCRouter({
 					}
 				}
 
-				const duplicatedEnvironment = await duplicateEnvironment(input);
+				const duplicatedEnvironment = await duplicateEnvironment(
+					input,
+					ctx.user.id,
+				);
 				await audit(ctx, {
 					action: "create",
 					resourceType: "environment",

@@ -52,6 +52,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
+import { SERVICE_TYPE_OPTIONS } from "@/components/shared/service-type-icon";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -109,6 +110,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { useServiceActions } from "@/utils/hooks/use-service-actions";
 import { useWhitelabeling } from "@/utils/hooks/use-whitelabeling";
 
 export type Services = {
@@ -417,17 +419,6 @@ const EnvironmentPage = (
 	const applications = extractServicesFromEnvironment(currentEnvironment);
 
 	const [searchQuery, setSearchQuery] = useState("");
-	const serviceTypes = [
-		{ value: "application", label: "Application", icon: GlobeIcon },
-		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
-		{ value: "mariadb", label: "MariaDB", icon: MariadbIcon },
-		{ value: "mongo", label: "MongoDB", icon: MongodbIcon },
-		{ value: "mysql", label: "MySQL", icon: MysqlIcon },
-		{ value: "redis", label: "Redis", icon: RedisIcon },
-		{ value: "compose", label: "Compose", icon: CircuitBoard },
-		{ value: "libsql", label: "Libsql", icon: LibsqlIcon },
-	];
-
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -455,69 +446,7 @@ const EnvironmentPage = (
 		);
 	};
 
-	const composeActions = {
-		start: api.compose.start.useMutation(),
-		stop: api.compose.stop.useMutation(),
-		move: api.compose.move.useMutation(),
-		delete: api.compose.delete.useMutation(),
-		deploy: api.compose.deploy.useMutation(),
-	};
-
-	const applicationActions = {
-		start: api.application.start.useMutation(),
-		stop: api.application.stop.useMutation(),
-		move: api.application.move.useMutation(),
-		delete: api.application.delete.useMutation(),
-		deploy: api.application.deploy.useMutation(),
-	};
-
-	const postgresActions = {
-		start: api.postgres.start.useMutation(),
-		stop: api.postgres.stop.useMutation(),
-		move: api.postgres.move.useMutation(),
-		delete: api.postgres.remove.useMutation(),
-		deploy: api.postgres.deploy.useMutation(),
-	};
-
-	const mysqlActions = {
-		start: api.mysql.start.useMutation(),
-		stop: api.mysql.stop.useMutation(),
-		move: api.mysql.move.useMutation(),
-		delete: api.mysql.remove.useMutation(),
-		deploy: api.mysql.deploy.useMutation(),
-	};
-
-	const mariadbActions = {
-		start: api.mariadb.start.useMutation(),
-		stop: api.mariadb.stop.useMutation(),
-		move: api.mariadb.move.useMutation(),
-		delete: api.mariadb.remove.useMutation(),
-		deploy: api.mariadb.deploy.useMutation(),
-	};
-
-	const redisActions = {
-		start: api.redis.start.useMutation(),
-		stop: api.redis.stop.useMutation(),
-		move: api.redis.move.useMutation(),
-		delete: api.redis.remove.useMutation(),
-		deploy: api.redis.deploy.useMutation(),
-	};
-
-	const mongoActions = {
-		start: api.mongo.start.useMutation(),
-		stop: api.mongo.stop.useMutation(),
-		move: api.mongo.move.useMutation(),
-		delete: api.mongo.remove.useMutation(),
-		deploy: api.mongo.deploy.useMutation(),
-	};
-
-	const libsqlActions = {
-		start: api.libsql.start.useMutation(),
-		stop: api.libsql.stop.useMutation(),
-		move: api.libsql.move.useMutation(),
-		delete: api.libsql.remove.useMutation(),
-		deploy: api.libsql.deploy.useMutation(),
-	};
+	const { runServiceAction } = useServiceActions();
 
 	const handleBulkStart = async () => {
 		let success = 0;
@@ -527,34 +456,7 @@ const EnvironmentPage = (
 				const service = filteredServices.find((s) => s.id === serviceId);
 				if (!service) continue;
 
-				switch (service.type) {
-					case "application":
-						await applicationActions.start.mutateAsync({
-							applicationId: serviceId,
-						});
-						break;
-					case "compose":
-						await composeActions.start.mutateAsync({ composeId: serviceId });
-						break;
-					case "postgres":
-						await postgresActions.start.mutateAsync({ postgresId: serviceId });
-						break;
-					case "mysql":
-						await mysqlActions.start.mutateAsync({ mysqlId: serviceId });
-						break;
-					case "mariadb":
-						await mariadbActions.start.mutateAsync({ mariadbId: serviceId });
-						break;
-					case "redis":
-						await redisActions.start.mutateAsync({ redisId: serviceId });
-						break;
-					case "mongo":
-						await mongoActions.start.mutateAsync({ mongoId: serviceId });
-						break;
-					case "libsql":
-						await libsqlActions.start.mutateAsync({ libsqlId: serviceId });
-						break;
-				}
+				await runServiceAction("start", service);
 				success++;
 			} catch {
 				toast.error(`Error starting service ${serviceId}`);
@@ -577,34 +479,7 @@ const EnvironmentPage = (
 				const service = filteredServices.find((s) => s.id === serviceId);
 				if (!service) continue;
 
-				switch (service.type) {
-					case "application":
-						await applicationActions.stop.mutateAsync({
-							applicationId: serviceId,
-						});
-						break;
-					case "compose":
-						await composeActions.stop.mutateAsync({ composeId: serviceId });
-						break;
-					case "postgres":
-						await postgresActions.stop.mutateAsync({ postgresId: serviceId });
-						break;
-					case "mysql":
-						await mysqlActions.stop.mutateAsync({ mysqlId: serviceId });
-						break;
-					case "mariadb":
-						await mariadbActions.stop.mutateAsync({ mariadbId: serviceId });
-						break;
-					case "redis":
-						await redisActions.stop.mutateAsync({ redisId: serviceId });
-						break;
-					case "mongo":
-						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
-						break;
-					case "libsql":
-						await libsqlActions.stop.mutateAsync({ libsqlId: serviceId });
-						break;
-				}
+				await runServiceAction("stop", service);
 				success++;
 			} catch {
 				toast.error(`Error stopping service ${serviceId}`);
@@ -637,56 +512,9 @@ const EnvironmentPage = (
 				if (!service) continue;
 
 				// TODO: Update move APIs to use targetEnvironmentId instead of targetProjectId
-				switch (service.type) {
-					case "application":
-						await applicationActions.move.mutateAsync({
-							applicationId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "compose":
-						await composeActions.move.mutateAsync({
-							composeId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "postgres":
-						await postgresActions.move.mutateAsync({
-							postgresId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.move.mutateAsync({
-							mysqlId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "mariadb":
-						await mariadbActions.move.mutateAsync({
-							mariadbId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "redis":
-						await redisActions.move.mutateAsync({
-							redisId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "mongo":
-						await mongoActions.move.mutateAsync({
-							mongoId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "libsql":
-						await libsqlActions.move.mutateAsync({
-							libsqlId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-				}
+				await runServiceAction("move", service, {
+					targetEnvironmentId: selectedTargetEnvironment,
+				});
 				await utils.environment.one.invalidate({
 					environmentId,
 				});
@@ -718,49 +546,7 @@ const EnvironmentPage = (
 				const service = filteredServices.find((s) => s.id === serviceId);
 				if (!service) continue;
 
-				switch (service.type) {
-					case "application":
-						await applicationActions.delete.mutateAsync({
-							applicationId: serviceId,
-						});
-						break;
-					case "compose":
-						await composeActions.delete.mutateAsync({
-							composeId: serviceId,
-							deleteVolumes,
-						});
-						break;
-					case "postgres":
-						await postgresActions.delete.mutateAsync({
-							postgresId: serviceId,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.delete.mutateAsync({
-							mysqlId: serviceId,
-						});
-						break;
-					case "mariadb":
-						await mariadbActions.delete.mutateAsync({
-							mariadbId: serviceId,
-						});
-						break;
-					case "redis":
-						await redisActions.delete.mutateAsync({
-							redisId: serviceId,
-						});
-						break;
-					case "mongo":
-						await mongoActions.delete.mutateAsync({
-							mongoId: serviceId,
-						});
-						break;
-					case "libsql":
-						await libsqlActions.delete.mutateAsync({
-							libsqlId: serviceId,
-						});
-						break;
-				}
+				await runServiceAction("delete", service, { deleteVolumes });
 				await utils.environment.one.invalidate({
 					environmentId,
 				});
@@ -790,48 +576,7 @@ const EnvironmentPage = (
 				const service = filteredServices.find((s) => s.id === serviceId);
 				if (!service) continue;
 
-				switch (service.type) {
-					case "application":
-						await applicationActions.deploy.mutateAsync({
-							applicationId: serviceId,
-						});
-						break;
-					case "compose":
-						await composeActions.deploy.mutateAsync({
-							composeId: serviceId,
-						});
-						break;
-					case "postgres":
-						await postgresActions.deploy.mutateAsync({
-							postgresId: serviceId,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.deploy.mutateAsync({
-							mysqlId: serviceId,
-						});
-						break;
-					case "mariadb":
-						await mariadbActions.deploy.mutateAsync({
-							mariadbId: serviceId,
-						});
-						break;
-					case "redis":
-						await redisActions.deploy.mutateAsync({
-							redisId: serviceId,
-						});
-						break;
-					case "mongo":
-						await mongoActions.deploy.mutateAsync({
-							mongoId: serviceId,
-						});
-						break;
-					case "libsql":
-						await libsqlActions.deploy.mutateAsync({
-							libsqlId: serviceId,
-						});
-						break;
-				}
+				await runServiceAction("deploy", service);
 				success++;
 			} catch (error) {
 				failed++;
@@ -856,56 +601,10 @@ const EnvironmentPage = (
 		setIsBulkActionLoading(false);
 	};
 
-	const getServiceActions = (service: Services) => {
-		switch (service.type) {
-			case "application":
-				return applicationActions;
-			case "compose":
-				return composeActions;
-			case "postgres":
-				return postgresActions;
-			case "mysql":
-				return mysqlActions;
-			case "mariadb":
-				return mariadbActions;
-			case "redis":
-				return redisActions;
-			case "mongo":
-				return mongoActions;
-			default:
-				return null;
-		}
-	};
-
-	const getServiceIdKey = (service: Services) => {
-		switch (service.type) {
-			case "application":
-				return "applicationId";
-			case "compose":
-				return "composeId";
-			case "postgres":
-				return "postgresId";
-			case "mysql":
-				return "mysqlId";
-			case "mariadb":
-				return "mariadbId";
-			case "redis":
-				return "redisId";
-			case "mongo":
-				return "mongoId";
-			default:
-				return null;
-		}
-	};
-
 	const handleServiceAction = async (
 		service: Services,
 		action: "start" | "stop" | "deploy",
 	) => {
-		const actions = getServiceActions(service);
-		const idKey = getServiceIdKey(service);
-		if (!actions || !idKey) return;
-
 		const actionLabels = {
 			start: { loading: "Starting", success: "started", error: "starting" },
 			stop: { loading: "Stopping", success: "stopped", error: "stopping" },
@@ -920,9 +619,7 @@ const EnvironmentPage = (
 
 		toast.promise(
 			(async () => {
-				await actions[action].mutateAsync({
-					[idKey]: service.id,
-				} as any);
+				await runServiceAction(action, service);
 			})(),
 			{
 				loading: `${labels.loading} ${service.name}...`,
@@ -945,16 +642,9 @@ const EnvironmentPage = (
 		service: Services,
 		deleteVolumes = false,
 	) => {
-		const actions = getServiceActions(service);
-		const idKey = getServiceIdKey(service);
-		if (!actions || !idKey) return;
-
 		toast.promise(
 			(async () => {
-				await actions.delete.mutateAsync({
-					[idKey]: service.id,
-					...(service.type === "compose" ? { deleteVolumes } : {}),
-				} as any);
+				await runServiceAction("delete", service, { deleteVolumes });
 			})(),
 			{
 				loading: `Deleting ${service.name}...`,
@@ -1534,7 +1224,7 @@ const EnvironmentPage = (
 													<CommandInput placeholder="Search type..." />
 													<CommandEmpty>No type found.</CommandEmpty>
 													<CommandGroup>
-														{serviceTypes.map((type) => (
+														{SERVICE_TYPE_OPTIONS.map((type) => (
 															<CommandItem
 																key={type.value}
 																onSelect={() => {

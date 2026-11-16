@@ -12,11 +12,13 @@ export type Environment = typeof environments.$inferSelect;
 
 export const createEnvironment = async (
 	input: z.infer<typeof apiCreateEnvironment>,
+	assignedTo: string,
 ) => {
 	const newEnvironment = await db
 		.insert(environments)
 		.values({
 			...input,
+			assignedTo,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -321,6 +323,7 @@ export const updateEnvironmentById = async (
 
 export const duplicateEnvironment = async (
 	input: z.infer<typeof apiDuplicateEnvironment>,
+	assignedTo: string,
 ) => {
 	// Find the original environment
 	const originalEnvironment = await findEnvironmentById(input.environmentId);
@@ -333,6 +336,7 @@ export const duplicateEnvironment = async (
 			description: input.description || originalEnvironment.description,
 			projectId: originalEnvironment.projectId,
 			env: originalEnvironment.env,
+			assignedTo,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -389,7 +393,10 @@ export const filterEnvironmentServices = <T extends EnvironmentWithServices>(
 	),
 });
 
-export const createProductionEnvironment = async (projectId: string) => {
+export const createProductionEnvironment = async (
+	projectId: string,
+	assignedTo: string,
+) => {
 	const newEnvironment = await db
 		.insert(environments)
 		.values({
@@ -397,6 +404,7 @@ export const createProductionEnvironment = async (projectId: string) => {
 			description: "Production environment",
 			projectId,
 			isDefault: true,
+			assignedTo,
 		})
 		.returning()
 		.then((value) => value[0]);

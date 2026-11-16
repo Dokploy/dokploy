@@ -105,6 +105,7 @@ export const compose = pgTable("compose", {
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
+	assignedTo: text("assignedTo"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -282,7 +283,7 @@ export const apiUpdateCompose = createSchema
 		composeFile: z.string().optional(),
 		command: z.string().optional(),
 	})
-	.omit({ serverId: true, environmentId: true });
+	.omit({ serverId: true, environmentId: true, assignedTo: true });
 
 export const apiSaveEnvironmentVariablesCompose = createSchema
 	.pick({
