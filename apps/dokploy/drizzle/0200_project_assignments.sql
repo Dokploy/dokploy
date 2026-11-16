@@ -1,3 +1,5 @@
+ALTER TABLE "backup" DROP CONSTRAINT "backup_userId_user_id_fk";
+--> statement-breakpoint
 ALTER TABLE "application" ADD COLUMN "assignedTo" text;--> statement-breakpoint
 ALTER TABLE "compose" ADD COLUMN "assignedTo" text;--> statement-breakpoint
 ALTER TABLE "environment" ADD COLUMN "assignedTo" text;--> statement-breakpoint
@@ -8,6 +10,7 @@ ALTER TABLE "mysql" ADD COLUMN "assignedTo" text;--> statement-breakpoint
 ALTER TABLE "postgres" ADD COLUMN "assignedTo" text;--> statement-breakpoint
 ALTER TABLE "project" ADD COLUMN "assignedTo" text;--> statement-breakpoint
 ALTER TABLE "redis" ADD COLUMN "assignedTo" text;--> statement-breakpoint
+ALTER TABLE "backup" ADD CONSTRAINT "backup_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 -- Assign existing projects, environments and services to whoever created them.
 -- First the audit log (exact), then the access lists: creating something always
 -- appends it to the creator's list, so an item listed for exactly one member of its

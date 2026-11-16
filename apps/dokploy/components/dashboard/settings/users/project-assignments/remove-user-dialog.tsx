@@ -1,6 +1,7 @@
 import { Loader2, Search } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { matchesSearch } from "@/lib/utils";
+import { matchesSearch, pluralize } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ResourceActions } from "./resource-actions";
 import {
@@ -52,6 +53,9 @@ export const RemoveUserDialog = ({
 	const { projects, assigneeNames, members, isPending } = useProjectTree(
 		isOpen && canSeeAllProjects,
 	);
+	const { data: providers } = api.gitProvider.getAll.useQuery(undefined, {
+		enabled: isOpen && canSeeAllProjects,
+	});
 	const removeUser = api.user.remove.useMutation();
 
 	const verb = isCloud ? "Unlink" : "Delete";
@@ -71,6 +75,8 @@ export const RemoveUserDialog = ({
 		});
 	const hasAssignedItems = theirs("").length > 0;
 	const visible = theirs(search);
+	const providerCount =
+		providers?.filter((provider) => provider.userId === userId).length ?? 0;
 
 	const onRemove = async () => {
 		setIsRemoving(true);
@@ -174,6 +180,13 @@ export const RemoveUserDialog = ({
 							)}
 						</div>
 					)
+				)}
+
+				{providerCount > 0 && (
+					<AlertBlock type="info">
+						Their {pluralize(providerCount, "git provider")} will move to the
+						organization owner, so services deploying from them keep working.
+					</AlertBlock>
 				)}
 
 				<DialogFooter>
