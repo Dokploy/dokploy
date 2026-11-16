@@ -468,6 +468,27 @@ export const removeService = async (
 	}
 };
 
+export const getRailpackBuilderName = (appName: string) =>
+	`railpack-${appName}`;
+
+/** Removes the persistent Railpack builder (and its cache volume) of an app. */
+export const removeRailpackBuilder = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	try {
+		const command = `docker buildx rm ${getRailpackBuilderName(appName)}`;
+
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch (error) {
+		return error;
+	}
+};
+
 export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,

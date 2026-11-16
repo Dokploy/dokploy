@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { nanoid } from "nanoid";
 import { quote } from "shell-quote";
 import {
+	getRailpackBuilderName,
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForShell,
@@ -52,7 +53,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	// removing the builder after each build discards the whole cache (#4375).
 	// A per-app name still keeps apps isolated from each other, and since the
 	// builder is never removed there is no create/use/rm race between deploys.
-	const builderName = `railpack-${appName}`;
+	const builderName = getRailpackBuilderName(appName);
 	const buildArgs = [
 		"buildx",
 		"build",
