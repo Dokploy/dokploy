@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { isOnboardingScreen, type OnboardingScreen } from "@/lib/onboarding";
 import { api } from "@/utils/api";
+import { clearOnboardingActive } from "../onboarding-lock";
 import { OnboardingShell } from "../onboarding-shell";
 import { ConnectScreen } from "./connect-screen";
 import { DeployScreen, type OnboardingProject } from "./deploy-screen";
@@ -45,6 +46,10 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 
 	const utils = api.useUtils();
 	const { mutate: saveStep } = api.project.saveOnboardingStep.useMutation();
+	// The first deploy ends the onboarding: a reload after it lands on the
+	// dashboard instead of reopening this wizard.
+	const { mutate: completeOnboarding } =
+		api.project.completeOnboarding.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const hasServer = (servers?.length ?? 0) > 0;
 
@@ -119,7 +124,15 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 					}}
 				/>
 			)}
-			{screen === "deploy" && <DeployScreen onFinish={finish} />}
+			{screen === "deploy" && (
+				<DeployScreen
+					onFinish={finish}
+					onDeployed={() => {
+						clearOnboardingActive();
+						completeOnboarding();
+					}}
+				/>
+			)}
 		</OnboardingShell>
 	);
 };

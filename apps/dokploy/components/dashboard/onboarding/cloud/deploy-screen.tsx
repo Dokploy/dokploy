@@ -59,6 +59,7 @@ export interface OnboardingProject {
 
 interface Props {
 	onFinish: (project?: OnboardingProject) => Promise<void>;
+	onDeployed: () => void;
 }
 
 interface StoredDeploy {
@@ -89,7 +90,7 @@ const storeDeploy = (value: StoredDeploy | null) => {
 	} catch {}
 };
 
-export const DeployScreen = ({ onFinish }: Props) => {
+export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 	const utils = api.useUtils();
 	const { data: billing } = api.stripe.getBillingStatus.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -129,6 +130,13 @@ export const DeployScreen = ({ onFinish }: Props) => {
 	}, [composeMissing]);
 
 	const deployStatus = deployment ? compose?.composeStatus : undefined;
+
+	useEffect(() => {
+		if (deployStatus !== "done") return;
+		storeDeploy(null);
+		onDeployed();
+	}, [deployStatus]);
+
 	const isDeploying =
 		!!deployment && deployStatus !== "done" && deployStatus !== "error";
 	const template = TEMPLATES.find((item) => item.id === templateId);
