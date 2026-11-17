@@ -18,20 +18,28 @@ import { emailTailwindConfig } from "../tailwind-config";
 export type TemplateProps = {
 	userName: string;
 	returnUrl: string;
-	providers: { name: string; url: string }[];
+	providers: { name: string; url: string; offer?: string }[];
 };
 
 export const OnboardingReturnEmail = ({
 	userName = "User",
 	returnUrl = "https://app.dokploy.com/dashboard/home",
 	providers = [
-		{ name: "Hostinger", url: "https://www.hostinger.com/vps-hosting" },
+		{
+			name: "Hostinger",
+			url: "https://www.hostinger.com/vps-hosting",
+			offer: "20% discount",
+		},
 		{ name: "Hetzner", url: "https://www.hetzner.com/cloud" },
 		{ name: "Contabo", url: "https://contabo.com/en/vps/" },
-		{ name: "DigitalOcean", url: "https://www.digitalocean.com" },
+		{
+			name: "DigitalOcean",
+			url: "https://www.digitalocean.com",
+			offer: "$200 credits",
+		},
 	],
 }: TemplateProps) => {
-	const previewText = "Pick up where you left off: connect a server to Dokploy";
+	const previewText = "Connecting a server takes about 2 minutes";
 
 	return (
 		<Html>
@@ -52,11 +60,13 @@ export const OnboardingReturnEmail = ({
 
 						<Section className="bg-white px-[40px] py-[32px]">
 							<Heading className="text-[#09090b] text-[22px] font-semibold m-0 mb-[8px]">
-								Your setup is saved
+								Connect your server to start deploying
 							</Heading>
 							<Text className="text-[#71717a] text-[14px] leading-[22px] m-0 mb-[24px]">
-								Hello {userName}, your Dokploy account is ready and one step is
-								left: connecting a server. It takes about 2 minutes.
+								Hello {userName}, you created a Dokploy account but haven't
+								connected a server yet. When you're ready, connecting one takes
+								about 2 minutes: run one command on the server, and Dokploy does
+								the rest.
 							</Text>
 
 							<Section className="text-center mb-[24px]">
@@ -64,17 +74,17 @@ export const OnboardingReturnEmail = ({
 									href={returnUrl}
 									className="bg-[#09090b] rounded-lg text-white text-[14px] font-semibold no-underline text-center px-[24px] py-[12px]"
 								>
-									Continue where you left off
+									Continue setup
 								</Button>
 							</Section>
 
 							<Section className="border border-solid border-[#e4e4e7] rounded-lg px-[20px] py-[16px] mb-[24px]">
 								<Text className="text-[#09090b] text-[14px] font-semibold m-0 mb-[4px]">
-									No server yet?
+									Still need a server?
 								</Text>
 								<Text className="text-[#71717a] text-[13px] leading-[20px] m-0 mb-[8px]">
-									Any VPS with Ubuntu or Debian, 2 GB of RAM and 30 GB of disk
-									works. These four work well with Dokploy:
+									Any VPS with Ubuntu or Debian, 2 GB of RAM or more and 30 GB
+									of disk works. These four work well with Dokploy:
 								</Text>
 								{providers.map((provider) => (
 									<Text
@@ -87,14 +97,21 @@ export const OnboardingReturnEmail = ({
 										>
 											{provider.name}
 										</Link>
+										{provider.offer && (
+											<span className="text-[#166534]">
+												{" "}
+												· {provider.offer}
+											</span>
+										)}
 									</Text>
 								))}
 							</Section>
 
 							<Section className="bg-[#f0fdf4] border border-solid border-[#bbf7d0] rounded-lg px-[20px] py-[16px]">
 								<Text className="text-[#166534] text-[13px] leading-[20px] m-0">
-									Your 7-day trial hasn't started. It starts when your first
-									server connects, with no card needed.
+									<strong>Your trial hasn't started yet.</strong> Your 7 free
+									days begin when your first server connects, so there's no
+									rush.
 								</Text>
 							</Section>
 

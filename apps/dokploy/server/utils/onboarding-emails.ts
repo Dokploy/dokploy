@@ -16,8 +16,6 @@ const DAY_MS = 24 * HOUR_MS;
 const RETURN_EMAIL_DELAYS_MS = [HOUR_MS, DAY_MS, 3 * DAY_MS];
 const PLAN_PROMPT_DAYS_LEFT = 2;
 
-// A reminder is only due during the day after its delay elapses, so accounts
-// that predate this job (or a long outage) never get a late batch of emails.
 export const sendOnboardingReturnEmails = async (now = new Date()) => {
 	let sent = 0;
 	for (const [stage, delay] of RETURN_EMAIL_DELAYS_MS.entries()) {
@@ -51,12 +49,16 @@ export const sendOnboardingReturnEmails = async (now = new Date()) => {
 					OnboardingReturnEmail({
 						userName: recipient.firstName || "User",
 						returnUrl: `${WEBSITE_URL}/dashboard/home?onboarding=resume`,
-						providers: SERVER_PROVIDERS.map(({ name, url }) => ({ name, url })),
+						providers: SERVER_PROVIDERS.map(({ name, url, offer }) => ({
+							name,
+							url,
+							offer,
+						})),
 					}),
 				);
 				await sendEmail({
 					email: recipient.email,
-					subject: "Your Dokploy setup is saved: connect a server to finish",
+					subject: "Your Dokploy setup is one step away",
 					text: html,
 				});
 				sent += 1;
@@ -104,6 +106,15 @@ export const sendTrialPlanPrompts = async (now = new Date()) => {
 			}
 		} catch (error) {
 			console.error("Failed to send the trial plan prompt:", error);
+			await db
+				.update(user)
+				.set({ trialPlanPromptSubscriptionId: null })
+				.where(
+					and(
+						eq(user.id, claimed.id),
+						eq(user.trialPlanPromptSubscriptionId, subscription.id),
+					),
+				);
 		}
 	}
 	return sent;

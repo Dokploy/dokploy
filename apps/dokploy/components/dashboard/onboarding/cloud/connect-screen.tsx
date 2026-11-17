@@ -173,12 +173,11 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 	useEffect(() => {
 		if (phase !== "resuming" || !serverId) return;
 		const resume = async () => {
-			const { data: validation } = await validate();
-			if (validation?.docker?.enabled && validation.isDokployNetworkInstalled) {
+			const { data: previous } = await refetchSetup();
+			if (previous?.status === "done") {
 				onConnected();
 				return;
 			}
-			const { data: previous } = await refetchSetup();
 			setPhase(previous?.status === "running" ? "setup" : "installing");
 		};
 		resume();

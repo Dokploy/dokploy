@@ -264,6 +264,7 @@ describe("registerConnectedServer", () => {
 		expect(result.status).toBe(422);
 		expect(result.message).toContain("less than 2 GB of RAM");
 		expect(mocks.createServer).not.toHaveBeenCalled();
+		expect(mocks.released).toHaveBeenCalledTimes(1);
 	});
 
 	it("ignores the onboarding flag outside Dokploy Cloud", async () => {
@@ -272,6 +273,17 @@ describe("registerConnectedServer", () => {
 			ipAddress: "1.1.1.1",
 		});
 		expect(result.status).toBe(200);
+		expect(mocks.prepareFirstServer).not.toHaveBeenCalled();
+	});
+
+	it("claims the command before the onboarding checks can start a trial", async () => {
+		mocks.isCloud = true;
+		mocks.claimed = false;
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(409);
 		expect(mocks.prepareFirstServer).not.toHaveBeenCalled();
 	});
 

@@ -68,7 +68,7 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 
 	useEffect(() => {
 		if (hasServer && (screen === "path" || screen === "provider")) {
-			setScreen("deploy");
+			setScreen("connect");
 		}
 	}, [hasServer]);
 

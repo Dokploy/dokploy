@@ -176,34 +176,13 @@ export const registerConnectedServer = async ({
 		where: eq(organization.id, organizationId),
 		columns: { ownerId: true },
 	});
-	if (IS_CLOUD && payload.onboarding && org) {
-		const failure = await prepareFirstServer({
-			target: { ipAddress, privateKey: sshKey.privateKey },
-			userId: payload.userId,
-			ownerId: org.ownerId,
-			organizationId,
-		});
-		if (failure) {
-			const { title, body, fix } = CONNECT_FAILURES[failure];
-			return {
-				status: 422,
-				message: [
-					`${title}.`,
-					body,
-					"",
-					...fix.map((step, index) => `${index + 1}. ${step}`),
-				].join("\n"),
-			};
-		}
-	} else if (!org || !(await canOwnerCreateMoreServers(org.ownerId))) {
+	if (!org) {
 		return {
 			status: 403,
 			message: "You cannot create more servers. Upgrade your plan in Dokploy.",
 		};
 	}
 
-	// Claiming the key makes the command single-use, also against concurrent
-	// runs and after the server is deleted.
 	const [claimed] = await db
 		.update(sshKeys)
 		.set({ lastUsedAt: new Date().toISOString() })
@@ -214,9 +193,43 @@ export const registerConnectedServer = async ({
 	if (!claimed) {
 		return { status: 409, message: "This command was already used." };
 	}
+	const releaseCommand = () =>
+		db
+			.update(sshKeys)
+			.set({ lastUsedAt: null })
+			.where(eq(sshKeys.sshKeyId, sshKey.sshKeyId));
 
 	let newServer: Awaited<ReturnType<typeof createServerWithSideEffects>>;
 	try {
+		if (IS_CLOUD && payload.onboarding) {
+			const failure = await prepareFirstServer({
+				target: { ipAddress, privateKey: sshKey.privateKey },
+				userId: payload.userId,
+				ownerId: org.ownerId,
+				organizationId,
+			});
+			if (failure) {
+				await releaseCommand();
+				const { title, body, fix } = CONNECT_FAILURES[failure];
+				return {
+					status: 422,
+					message: [
+						`${title}.`,
+						body,
+						"",
+						...fix.map((step, index) => `${index + 1}. ${step}`),
+					].join("\n"),
+				};
+			}
+		} else if (!(await canOwnerCreateMoreServers(org.ownerId))) {
+			await releaseCommand();
+			return {
+				status: 403,
+				message:
+					"You cannot create more servers. Upgrade your plan in Dokploy.",
+			};
+		}
+
 		newServer = await createServerWithSideEffects({
 			input: {
 				name: sshKey.name,
@@ -237,10 +250,7 @@ export const registerConnectedServer = async ({
 			ownerId: org.ownerId,
 		});
 	} catch (error) {
-		await db
-			.update(sshKeys)
-			.set({ lastUsedAt: null })
-			.where(eq(sshKeys.sshKeyId, sshKey.sshKeyId));
+		await releaseCommand();
 		throw error;
 	}
 
