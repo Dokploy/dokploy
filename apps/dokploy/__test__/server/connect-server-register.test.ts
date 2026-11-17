@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
 	applyDockerCleanupSchedule: vi.fn(),
 	audit: vi.fn(),
 	captureEvent: vi.fn(),
+	prepareFirstServer: vi.fn(),
+	serverSetup: vi.fn(),
 }));
 
 vi.mock("@dokploy/server", async () => {
@@ -25,6 +27,7 @@ vi.mock("@dokploy/server", async () => {
 		},
 		captureEvent: mocks.captureEvent,
 		createServer: mocks.createServer,
+		serverSetup: mocks.serverSetup,
 		findUserById: async () => mocks.owner,
 		findServersByUserId: async () => mocks.ownerServers,
 	};
@@ -62,6 +65,10 @@ vi.mock("@/server/api/utils/audit", () => ({ audit: mocks.audit }));
 
 vi.mock("@/server/utils/docker-cleanup", () => ({
 	applyDockerCleanupSchedule: mocks.applyDockerCleanupSchedule,
+}));
+
+vi.mock("@/server/utils/first-server", () => ({
+	prepareFirstServer: mocks.prepareFirstServer,
 }));
 
 const { createConnectToken } = await import(
@@ -228,5 +235,73 @@ describe("registerConnectedServer", () => {
 		});
 		expect(result.status).toBe(403);
 		expect(mocks.createServer).not.toHaveBeenCalled();
+	});
+
+	it("starts the first server past the quota when the onboarding checks pass", async () => {
+		mocks.isCloud = true;
+		mocks.ownerServers = [{}];
+		mocks.prepareFirstServer.mockResolvedValue(null);
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(200);
+		expect(mocks.prepareFirstServer).toHaveBeenCalledWith({
+			target: { ipAddress: "1.1.1.1", privateKey: PRIVATE_KEY },
+			userId: "user-1",
+			ownerId: "owner-1",
+			organizationId: "org-1",
+		});
+	});
+
+	it("explains a failed onboarding check and leaves the command reusable", async () => {
+		mocks.isCloud = true;
+		mocks.prepareFirstServer.mockResolvedValue("memory");
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(422);
+		expect(result.message).toContain("less than 2 GB of RAM");
+		expect(mocks.createServer).not.toHaveBeenCalled();
+		expect(mocks.released).toHaveBeenCalledTimes(1);
+	});
+
+	it("ignores the onboarding flag outside Dokploy Cloud", async () => {
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(200);
+		expect(mocks.prepareFirstServer).not.toHaveBeenCalled();
+	});
+
+	it("claims the command before the onboarding checks can start a trial", async () => {
+		mocks.isCloud = true;
+		mocks.claimed = false;
+		const result = await registerConnectedServer({
+			token: makeToken({ onboarding: true }),
+			ipAddress: "1.1.1.1",
+		});
+		expect(result.status).toBe(409);
+		expect(mocks.prepareFirstServer).not.toHaveBeenCalled();
+	});
+
+	it("starts the setup by itself only when the command asks for it", async () => {
+		mocks.serverSetup.mockResolvedValue(undefined);
+		await registerConnectedServer({
+			token: makeToken(),
+			ipAddress: "1.1.1.1",
+		});
+		expect(mocks.serverSetup).not.toHaveBeenCalled();
+
+		mocks.sshKey = { ...mocks.sshKey, sshKeyId: "key-1" };
+		const result = await registerConnectedServer({
+			token: makeToken(),
+			ipAddress: "1.1.1.1",
+			setup: true,
+		});
+		expect(result.status).toBe(200);
+		expect(mocks.serverSetup).toHaveBeenCalledWith("srv-1");
 	});
 });

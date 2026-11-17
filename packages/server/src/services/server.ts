@@ -276,6 +276,20 @@ export const getAllServers = async () => {
 	return servers;
 };
 
+export const findServerInOrganization = async (
+	serverId: string,
+	organizationId: string,
+) => {
+	const currentServer = await findServerById(serverId);
+	if (currentServer.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You are not authorized to access this server",
+		});
+	}
+	return currentServer;
+};
+
 export const getAccessibleServerIds = async (session: {
 	userId: string;
 	activeOrganizationId: string;

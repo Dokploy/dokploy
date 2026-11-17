@@ -10,6 +10,7 @@ export type ConnectTokenPayload = {
 	expiresAt: number;
 	serverType: "deploy" | "build";
 	enableDockerCleanup: boolean;
+	onboarding?: boolean;
 };
 
 const ID_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -34,7 +35,7 @@ const encodePayload = (payload: ConnectTokenPayload) =>
 		payload.sshKeyId,
 		payload.userId,
 		payload.expiresAt.toString(36),
-		`${payload.serverType === "build" ? "b" : "d"}${payload.enableDockerCleanup ? 1 : 0}`,
+		`${payload.serverType === "build" ? "b" : "d"}${payload.enableDockerCleanup ? 1 : 0}${payload.onboarding ? "o" : ""}`,
 	].join(".");
 
 export const createConnectToken = (
@@ -58,13 +59,14 @@ export const decodeConnectToken = (
 		string,
 	];
 	if (!ID_PATTERN.test(sshKeyId) || !ID_PATTERN.test(userId)) return null;
-	if (!/^[0-9a-z]+$/.test(expires) || !/^[db][01]$/.test(flags)) return null;
+	if (!/^[0-9a-z]+$/.test(expires) || !/^[db][01]o?$/.test(flags)) return null;
 	return {
 		sshKeyId,
 		userId,
 		expiresAt: Number.parseInt(expires, 36),
 		serverType: flags[0] === "b" ? "build" : "deploy",
 		enableDockerCleanup: flags[1] === "1",
+		...(flags[2] === "o" && { onboarding: true }),
 	};
 };
 
@@ -95,9 +97,11 @@ const REGISTER_URL_PATTERN =
 export const buildConnectScript = ({
 	publicKey,
 	registerUrl,
+	setup = false,
 }: {
 	publicKey: string;
 	registerUrl: string;
+	setup?: boolean;
 }) => {
 	const key = publicKey.trim();
 	if (!REGISTER_URL_PATTERN.test(registerUrl)) {
@@ -106,6 +110,7 @@ export const buildConnectScript = ({
 	if (!/^[A-Za-z0-9+/=@. -]+$/.test(key)) {
 		throw new Error("Invalid public key");
 	}
+	const postUrl = setup ? `${registerUrl}?setup=true` : registerUrl;
 	return `#!/usr/bin/env bash
 set -euo pipefail
 main() {
@@ -124,8 +129,8 @@ main() {
   local body code
   body=$(mktemp)
   # IPv4 first: Dokploy saves the address this request comes from and SSHes to it.
-  code=$(curl -4 -sSL --post301 --post302 --post303 -o "$body" -w '%{http_code}' --data '' '${registerUrl}' 2>/dev/null) ||
-    code=$(curl -sSL --post301 --post302 --post303 -o "$body" -w '%{http_code}' --data '' '${registerUrl}') ||
+  code=$(curl -4 -sSL --post301 --post302 --post303 -o "$body" -w '%{http_code}' --data '' '${postUrl}' 2>/dev/null) ||
+    code=$(curl -sSL --post301 --post302 --post303 -o "$body" -w '%{http_code}' --data '' '${postUrl}') ||
     { echo "Could not reach Dokploy." >&2; rm -f "$body"; exit 1; }
   cat "$body"; echo
   rm -f "$body"

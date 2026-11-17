@@ -5,7 +5,7 @@ import {
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
-	findServerById,
+	findServerInOrganization,
 	generateTraefikMeDomain,
 	getServerIpCandidates,
 	getWebServerSettings,
@@ -31,20 +31,6 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
-
-const assertServerInOrganization = async (
-	serverId: string,
-	organizationId: string,
-) => {
-	const server = await findServerById(serverId);
-	if (server.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not authorized to access this server",
-		});
-	}
-	return server;
-};
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -118,7 +104,7 @@ export const domainRouter = createTRPCRouter({
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {
-				await assertServerInOrganization(
+				await findServerInOrganization(
 					input.serverId,
 					ctx.session.activeOrganizationId,
 				);
@@ -133,7 +119,7 @@ export const domainRouter = createTRPCRouter({
 		.input(z.object({ serverId: z.string() }))
 		.query(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await assertServerInOrganization(
+				const server = await findServerInOrganization(
 					input.serverId,
 					ctx.session.activeOrganizationId,
 				);
@@ -296,7 +282,7 @@ export const domainRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {
-				await assertServerInOrganization(
+				await findServerInOrganization(
 					input.serverId,
 					ctx.session.activeOrganizationId,
 				);

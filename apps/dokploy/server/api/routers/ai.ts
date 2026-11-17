@@ -13,15 +13,13 @@ import {
 	getWebServerSettings,
 } from "@dokploy/server/index";
 import {
-	AI_SECRET_MASK,
 	deleteAiSettings,
 	getAiSettingById,
 	getAiSettingsByOrganizationId,
 	getCustomAiProviders,
 	maskAiApiKey,
-	mergeAiApiKey,
-	normalizeApiUrl,
 	resolveAiApiKey,
+	resolveAiUpdateApiKey,
 	saveAiSettings,
 	saveCustomAiProviders,
 	suggestVariants,
@@ -237,20 +235,7 @@ export const aiRouter = createTRPCRouter({
 				input.aiId,
 				ctx.session.activeOrganizationId,
 			);
-			const keepsStoredKey = !input.apiKey || input.apiKey === AI_SECRET_MASK;
-			if (
-				keepsStoredKey &&
-				input.apiUrl !== undefined &&
-				normalizeApiUrl(input.apiUrl) !== normalizeApiUrl(existing.apiUrl)
-			) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Re-enter the API key when changing the API URL",
-				});
-			}
-			if (input.apiKey) {
-				input.apiKey = mergeAiApiKey(input.apiKey, existing.apiKey);
-			}
+			input.apiKey = resolveAiUpdateApiKey(input, existing);
 			const result = await saveAiSettings(
 				ctx.session.activeOrganizationId,
 				input,

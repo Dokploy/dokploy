@@ -20,6 +20,8 @@ export default async function handler(
 	res.setHeader("Content-Type", "text/plain; charset=utf-8");
 	res.setHeader("Cache-Control", "no-store");
 
+	const setup = req.query.setup === "true";
+
 	if (req.method === "GET") {
 		// Always 200: the command runs `curl -f`, which hides error bodies from bash.
 		try {
@@ -53,6 +55,7 @@ export default async function handler(
 				buildConnectScript({
 					publicKey: resolved.sshKey.publicKey,
 					registerUrl: `${proto}://${host}/api/connect/${token}`,
+					setup,
 				}),
 			);
 		} catch (error) {
@@ -73,6 +76,7 @@ export default async function handler(
 			const result = await registerConnectedServer({
 				token,
 				ipAddress: getConnectClientIp(req.headers, req.socket.remoteAddress),
+				setup,
 			});
 			res.status(result.status).send(result.message);
 		} catch (error) {

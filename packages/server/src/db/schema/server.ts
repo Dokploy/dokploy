@@ -22,6 +22,7 @@ import { mysql } from "./mysql";
 import { network } from "./network";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { sandboxes } from "./sandbox";
 import { schedules } from "./schedule";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
@@ -129,6 +130,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 	mongo: many(mongo),
 	mysql: many(mysql),
 	postgres: many(postgres),
+	sandboxes: many(sandboxes),
 	certificates: many(certificates),
 	networks: many(network),
 	organization: one(organization, {
@@ -166,6 +168,7 @@ export const apiGenerateConnectCommand = z.object({
 	description: z.string().max(200).optional(),
 	serverType: z.enum(["deploy", "build"]).default("deploy"),
 	enableDockerCleanup: z.boolean().default(true),
+	onboarding: z.boolean().default(false),
 });
 
 export const apiFindOneServer = z.object({

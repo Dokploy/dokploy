@@ -117,7 +117,7 @@ export const apiFindOneRegistry = z.object({
 
 export const apiUpdateRegistry = createSchema
 	.partial()
-	.omit({ organizationId: true })
+	.omit({ organizationId: true, createdAt: true })
 	.extend({
 		registryId: z.string().min(1),
 		serverId: z.string().optional(),

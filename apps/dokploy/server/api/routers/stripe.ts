@@ -11,7 +11,7 @@ import { z } from "zod";
 import {
 	getBillingStatus,
 	getCurrentPlan as getCurrentPlanForOrganization,
-	getStripeClient,
+	startTrial,
 	TRIAL_DURATION_DAYS,
 	TRIAL_SERVER_LIMITS,
 } from "@/server/utils/billing";
@@ -57,65 +57,10 @@ export const stripeRouter = createTRPCRouter({
 				});
 			}
 
-			const trialPriceId =
-				input.tier === "startup"
-					? STARTUP_BASE_PRICE_MONTHLY_ID
-					: HOBBY_PRICE_MONTHLY_ID;
-			if (!trialPriceId) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Trials are not configured",
-				});
-			}
-
-			const owner = await findUserById(ctx.user.ownerId);
-			const billingStatus = await getBillingStatus(owner.id);
-
-			if (billingStatus.hasActiveAccess) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "You already have an active plan or trial",
-				});
-			}
-
-			if (billingStatus.hasUsedTrial) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "You have already used your free trial",
-				});
-			}
-
-			const stripe = getStripeClient();
-
-			let stripeCustomerId = owner.stripeCustomerId;
-			if (stripeCustomerId) {
-				const customer = await stripe.customers.retrieve(stripeCustomerId);
-				if (customer.deleted) {
-					stripeCustomerId = null;
-				}
-			}
-			if (!stripeCustomerId) {
-				const customer = await stripe.customers.create({ email: owner.email });
-				stripeCustomerId = customer.id;
-			}
-
-			const subscription = await stripe.subscriptions.create({
-				customer: stripeCustomerId,
-				items: [{ price: trialPriceId, quantity: 1 }],
-				trial_period_days: TRIAL_DURATION_DAYS,
-				trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
-				metadata: {
-					source: "onboarding_trial",
-					adminId: owner.id,
-					tier: input.tier,
-				},
-			});
-
-			await updateUser(owner.id, {
-				stripeCustomerId,
-				stripeSubscriptionId: subscription.id,
-				serversQuantity: TRIAL_SERVER_LIMITS[input.tier],
-			});
+			const { owner, trialEndsAt } = await startTrial(
+				ctx.user.ownerId,
+				input.tier,
+			);
 
 			void captureEvent({
 				distinctId: owner.id,
@@ -129,11 +74,7 @@ export const stripeRouter = createTRPCRouter({
 				},
 			});
 
-			return {
-				trialEndsAt: subscription.trial_end
-					? new Date(subscription.trial_end * 1000)
-					: null,
-			};
+			return { trialEndsAt };
 		}),
 
 	getProducts: adminProcedure.query(async ({ ctx }) => {
@@ -243,6 +184,7 @@ export const stripeRouter = createTRPCRouter({
 					productId: z.string(),
 					serverQuantity: z.number().min(1),
 					isAnnual: z.boolean(),
+					fromOnboarding: z.boolean().default(false),
 				})
 				.refine((data) => data.tier !== "startup" || data.serverQuantity >= 3, {
 					message: "Startup plan requires at least 3 servers",
@@ -290,8 +232,12 @@ export const stripeRouter = createTRPCRouter({
 				billing_address_collection: "required",
 				tax_id_collection: { enabled: true },
 				allow_promotion_codes: true,
-				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
-				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
+				success_url: input.fromOnboarding
+					? `${WEBSITE_URL}/dashboard/home?onboarding=path`
+					: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
+				cancel_url: input.fromOnboarding
+					? `${WEBSITE_URL}/dashboard/home?onboarding=plan`
+					: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
 			return { sessionId: session.id };

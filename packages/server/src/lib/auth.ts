@@ -57,10 +57,7 @@ const resolveTrustedOrigins = async (path?: string) => {
 
 		const devOrigins =
 			process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-					]
+				? ["http://localhost:3000", "https://dev.dokploy.cloud"]
 				: [];
 		return [
 			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
