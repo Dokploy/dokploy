@@ -264,3 +264,9 @@ export const apiUpdateUser = z.object({
 	firstName: z.string().optional(),
 	lastName: z.string().optional(),
 });
+
+export const apiCreateUserWithCredentials = z.object({
+	email: z.string().email(),
+	password: z.string().regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
+	role: z.string().min(1),
+});

@@ -28,8 +28,8 @@ import {
 	updateWebServerSettings,
 } from "../services/web-server-settings";
 import {
+	isWeakNewPassword,
 	STRONG_PASSWORD_MESSAGE,
-	STRONG_PASSWORD_REGEX,
 } from "../utils/password-validation";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { captureEvent, getPostHogSessionId } from "../utils/tracking/posthog";
@@ -40,14 +40,6 @@ import {
 import { getPublicIpWithFallback } from "../wss/utils";
 import { ac, adminRole, memberRole, ownerRole } from "./access-control";
 import { betterAuthSecret } from "./auth-secret";
-
-const PASSWORD_SETTING_PATHS = [
-	"/sign-up/email",
-	"/reset-password",
-	"/change-password",
-	"/admin/create-user",
-	"/admin/set-user-password",
-];
 
 const resolveTrustedOrigins = async () => {
 	try {
@@ -226,16 +218,10 @@ const createBetterAuth = () =>
 					}
 				}
 
-				if (PASSWORD_SETTING_PATHS.includes(ctx.path)) {
-					const body = ctx.body as
-						| { password?: string; newPassword?: string }
-						| undefined;
-					const password = body?.newPassword ?? body?.password;
-					if (password !== undefined && !STRONG_PASSWORD_REGEX.test(password)) {
-						throw new APIError("BAD_REQUEST", {
-							message: STRONG_PASSWORD_MESSAGE,
-						});
-					}
+				if (isWeakNewPassword(ctx.path, ctx.body)) {
+					throw new APIError("BAD_REQUEST", {
+						message: STRONG_PASSWORD_MESSAGE,
+					});
 				}
 			}),
 		},
