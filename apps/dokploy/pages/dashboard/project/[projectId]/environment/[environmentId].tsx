@@ -1043,13 +1043,13 @@ const EnvironmentPage = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+				<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 					<div className="rounded-xl bg-background shadow-md">
-						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
-							<CardHeader className="p-0">
+						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-4 sm:p-6">
+							<CardHeader className="p-0 min-w-0 max-w-full">
 								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									<p className="text-base font-medium max-w-[250px] truncate">
+									<p className="text-base font-medium max-w-[110px] sm:max-w-[250px] truncate">
 										{currentEnvironment.project.name}
 									</p>
 									<AdvancedEnvironmentSelector
@@ -1114,7 +1114,7 @@ const EnvironmentPage = (
 								</div>
 							</div>
 						</div>
-						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
+						<CardContent className="space-y-2 px-3 sm:px-6 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							<>
 								<div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
 									<div className="flex items-center gap-4">
