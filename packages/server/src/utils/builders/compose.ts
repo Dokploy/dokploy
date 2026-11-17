@@ -30,6 +30,13 @@ export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
 		? getCreateEnvFileCommand(compose)
 		: "";
 	const exportEnvCommand = getExportEnvCommand(compose);
+	// File mounts live in ../files, outside the pinned --project-directory.
+	// Buildx bake denies reading a Dockerfile or build context there unless
+	// the filesystem entitlement check is relaxed.
+	const bakeEntitlementsEnv =
+		compose.composeType === "docker-compose" && mounts.length > 0
+			? "BUILDX_BAKE_ENTITLEMENTS_FS=0"
+			: "";
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
 	const logContent = `
@@ -62,7 +69,7 @@ Compose Type: ${composeType} ✅`;
 		cd ${quote([projectPath])};
 
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${compose.composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}` : ""}
-		env -i PATH="$PATH" HOME="$HOME" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		env -i PATH="$PATH" HOME="$HOME" ${bakeEntitlementsEnv} ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 
 		echo "Docker Compose Deployed: ✅";

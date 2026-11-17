@@ -50,3 +50,36 @@ describe("getBuildComposeCommand registry auth (#4401)", () => {
 		expect(command).toContain('env -i PATH="$PATH" HOME="$HOME"');
 	});
 });
+
+describe("getBuildComposeCommand bake entitlements (#5842)", () => {
+	it("lets buildx read a Dockerfile from the files dir when mounts exist", async () => {
+		const command = await getBuildComposeCommand({
+			...baseCompose,
+			composeType: "docker-compose",
+			mounts: [{ type: "file" }],
+		} as any);
+
+		expect(command).toContain(
+			'HOME="$HOME" BUILDX_BAKE_ENTITLEMENTS_FS=0  docker compose',
+		);
+	});
+
+	it("keeps the entitlement check when there are no mounts", async () => {
+		const command = await getBuildComposeCommand({
+			...baseCompose,
+			composeType: "docker-compose",
+		});
+
+		expect(command).not.toContain("BUILDX_BAKE_ENTITLEMENTS_FS");
+	});
+
+	it("does not set it for swarm stacks", async () => {
+		const command = await getBuildComposeCommand({
+			...baseCompose,
+			composeType: "stack",
+			mounts: [{ type: "file" }],
+		} as any);
+
+		expect(command).not.toContain("BUILDX_BAKE_ENTITLEMENTS_FS");
+	});
+});
