@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	type apiDeployPreviewFromImage,
 	applications,
 	deployments,
 	organization,
@@ -169,37 +170,43 @@ export const createPreviewDeployment = async (
 		org?.ownerId || "",
 	);
 
-	if (!application.githubId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Github Account not configured correctly",
+	// Image previews are created through the API, not by a GitHub webhook; the
+	// deploy step comments on the pull request if a GitHub provider is linked.
+	let pullRequestCommentId = "";
+	if (application.sourceType === "github") {
+		if (!application.githubId) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Github Account not configured correctly",
+			});
+		}
+
+		// `findApplicationById` redacts `githubPrivateKey` from the `github`
+		// relation, so the provider must be refetched to authenticate.
+		const githubProvider = await findGithubById(application.githubId);
+		const octokit = authGithub(githubProvider);
+
+		const runningComment = getIssueComment(
+			application.name,
+			"initializing",
+			`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
+		);
+
+		const issue = await octokit.rest.issues.createComment({
+			owner: application?.owner || "",
+			repo: application?.repository || "",
+			issue_number: Number.parseInt(schema.pullRequestNumber),
+			body: `### Dokploy Preview Deployment\n\n${runningComment}`,
 		});
+		pullRequestCommentId = `${issue.data.id}`;
 	}
-
-	// `findApplicationById` redacts `githubPrivateKey` from the `github`
-	// relation, so the provider must be refetched to authenticate.
-	const githubProvider = await findGithubById(application.githubId);
-	const octokit = authGithub(githubProvider);
-
-	const runningComment = getIssueComment(
-		application.name,
-		"initializing",
-		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
-	);
-
-	const issue = await octokit.rest.issues.createComment({
-		owner: application?.owner || "",
-		repo: application?.repository || "",
-		issue_number: Number.parseInt(schema.pullRequestNumber),
-		body: `### Dokploy Preview Deployment\n\n${runningComment}`,
-	});
 
 	const previewDeployment = await db
 		.insert(previewDeployments)
 		.values({
 			...schema,
 			appName: appName,
-			pullRequestCommentId: `${issue.data.id}`,
+			pullRequestCommentId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -304,6 +311,92 @@ export const findPreviewDeploymentByApplicationId = async (
 	});
 
 	return previewDeploymentResult;
+};
+
+export const findPreviewDeploymentByPullRequestNumber = async (
+	applicationId: string,
+	pullRequestNumber: string,
+) => {
+	return await db.query.previewDeployments.findFirst({
+		where: and(
+			eq(previewDeployments.applicationId, applicationId),
+			eq(previewDeployments.pullRequestNumber, pullRequestNumber),
+		),
+	});
+};
+
+export const getImageRepository = (image: string) => {
+	const [withoutDigest = ""] = image.split("@");
+	const tagSeparator = withoutDigest.lastIndexOf(":");
+	// A colon before the last slash is a registry port, not a tag.
+	return tagSeparator > withoutDigest.lastIndexOf("/")
+		? withoutDigest.slice(0, tagSeparator)
+		: withoutDigest;
+};
+
+export const upsertPreviewDeploymentFromImage = async (
+	input: z.infer<typeof apiDeployPreviewFromImage>,
+) => {
+	const application = await findApplicationById(input.applicationId);
+
+	if (application.sourceType !== "docker") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Only applications with a Docker source can deploy previews from an image",
+		});
+	}
+	if (!application.isPreviewDeploymentsActive) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Preview deployments are disabled for this application",
+		});
+	}
+	// The preview is pulled with the application's registry credentials, so it
+	// is limited to the repository the application already runs.
+	const repository = getImageRepository(application.dockerImage || "");
+	if (!repository || getImageRepository(input.dockerImage) !== repository) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `The preview image must be a tag or digest of ${repository || "the application's Docker image"}`,
+		});
+	}
+
+	const existing = await findPreviewDeploymentByPullRequestNumber(
+		application.applicationId,
+		input.pullRequestNumber,
+	);
+	if (existing) {
+		await updatePreviewDeployment(existing.previewDeploymentId, {
+			dockerImage: input.dockerImage,
+			...(input.pullRequestTitle && {
+				pullRequestTitle: input.pullRequestTitle,
+			}),
+			...(input.pullRequestURL && { pullRequestURL: input.pullRequestURL }),
+			...(input.branch && { branch: input.branch }),
+		});
+		return await findPreviewDeploymentById(existing.previewDeploymentId);
+	}
+
+	const previewLimit = application.previewLimit ?? 3;
+	if (application.previewDeployments.length >= previewLimit) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Preview deployment limit (${previewLimit}) reached for this application`,
+		});
+	}
+
+	const previewDeployment = await createPreviewDeployment({
+		applicationId: application.applicationId,
+		dockerImage: input.dockerImage,
+		branch: input.branch || "",
+		pullRequestId: "",
+		pullRequestNumber: input.pullRequestNumber,
+		pullRequestTitle:
+			input.pullRequestTitle || `Pull Request #${input.pullRequestNumber}`,
+		pullRequestURL: input.pullRequestURL || "",
+	});
+	return await findPreviewDeploymentById(previewDeployment.previewDeploymentId);
 };
 
 const generateWildcardDomain = async (

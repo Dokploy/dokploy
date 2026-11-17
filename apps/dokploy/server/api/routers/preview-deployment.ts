@@ -1,14 +1,22 @@
 import {
 	findApplicationById,
 	findPreviewDeploymentById,
+	findPreviewDeploymentByPullRequestNumber,
 	findPreviewDeploymentsByApplicationId,
+	getDomainHost,
 	IS_CLOUD,
 	removePreviewDeployment,
+	upsertPreviewDeploymentFromImage,
 } from "@dokploy/server";
 import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { audit } from "@/server/api/utils/audit";
-import { apiFindAllByApplication } from "@/server/db/schema";
+import {
+	apiDeployPreviewFromImage,
+	apiFindAllByApplication,
+	apiFindPreviewByPullRequest,
+} from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
@@ -112,6 +120,76 @@ export const previewDeploymentRouter = createTRPCRouter({
 				action: "redeploy",
 				resourceType: "previewDeployment",
 				resourceId: input.previewDeploymentId,
+			});
+			return true;
+		}),
+
+	deployFromImage: protectedProcedure
+		.input(apiDeployPreviewFromImage)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				deployment: ["create"],
+			});
+			const previewDeployment = await upsertPreviewDeploymentFromImage(input);
+			const { serverId } = previewDeployment.application;
+			const jobData: DeploymentJob = {
+				applicationId: input.applicationId,
+				titleLog: "Preview Deployment",
+				descriptionLog: `Image: ${input.dockerImage}`,
+				type: "deploy",
+				applicationType: "application-preview",
+				previewDeploymentId: previewDeployment.previewDeploymentId,
+				server: !!serverId,
+				serverId: serverId ?? undefined,
+			};
+
+			if (IS_CLOUD && serverId) {
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+			} else {
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+			}
+			await audit(ctx, {
+				action: "deploy",
+				resourceType: "previewDeployment",
+				resourceId: previewDeployment.previewDeploymentId,
+			});
+			const { domain } = previewDeployment;
+			return {
+				previewDeploymentId: previewDeployment.previewDeploymentId,
+				url: domain ? `${getDomainHost(domain)}${domain.path || "/"}` : null,
+			};
+		}),
+
+	deleteByPullRequest: protectedProcedure
+		.input(apiFindPreviewByPullRequest)
+		.mutation(async ({ input, ctx }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				deployment: ["cancel"],
+			});
+			const previewDeployment = await findPreviewDeploymentByPullRequestNumber(
+				input.applicationId,
+				input.pullRequestNumber,
+			);
+			if (!previewDeployment) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Preview Deployment not found",
+				});
+			}
+			await removePreviewDeployment(previewDeployment.previewDeploymentId);
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "previewDeployment",
+				resourceId: previewDeployment.previewDeploymentId,
 			});
 			return true;
 		}),
