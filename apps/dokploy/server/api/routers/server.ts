@@ -209,6 +209,13 @@ export const serverRouter = createTRPCRouter({
 					message: "You are not authorized to access this server",
 				});
 			}
+			const accessibleIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleIds.has(input.serverId)) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this server",
+				});
+			}
 			return readServerSetupLog(input.serverId);
 		}),
 

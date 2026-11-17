@@ -113,7 +113,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 		url: string;
 	} | null>(stored?.deployment ?? null);
 
-	const { data: compose, isError: composeMissing } = api.compose.one.useQuery(
+	const { data: compose, error: composeError } = api.compose.one.useQuery(
 		{ composeId: deployment?.composeId ?? "" },
 		{
 			enabled: !!deployment,
@@ -123,6 +123,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 			},
 		},
 	);
+	const composeMissing = composeError?.data?.code === "NOT_FOUND";
 	useEffect(() => {
 		if (!composeMissing) return;
 		storeDeploy(null);
