@@ -24,4 +24,10 @@ if (!globalForDb.db) {
 
 export const db: Database = globalForDb.db;
 
+/** The global `db` or a transaction opened from it. */
+export type DbExecutor = Pick<
+	Database,
+	"query" | "insert" | "update" | "execute" | "transaction" | "$count"
+>;
+
 export { dbUrl };

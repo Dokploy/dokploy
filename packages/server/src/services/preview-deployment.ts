@@ -1,4 +1,4 @@
-import { db } from "@dokploy/server/db";
+import { type DbExecutor, db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
 	type apiDeployPreviewFromImage,
@@ -158,10 +158,24 @@ export const findPreviewDeploymentsByApplicationId = async (
 export const createPreviewDeployment = async (
 	schema: z.infer<typeof apiCreatePreviewDeployment>,
 ) => {
-	const application = await findApplicationById(schema.applicationId);
+	const { application, previewDeployment, domain } =
+		await insertPreviewDeployment(schema);
+	await routePreviewDeployment(application, domain);
+	return previewDeployment;
+};
+
+// Writes the preview and its domain through `executor` only, so it can run
+// inside a transaction. Traefik is configured afterwards by
+// `routePreviewDeployment`. Image previews (Docker source) never reach the
+// GitHub comment, so they make no network calls here.
+const insertPreviewDeployment = async (
+	schema: z.infer<typeof apiCreatePreviewDeployment>,
+	executor: DbExecutor = db,
+) => {
+	const application = await findApplicationById(schema.applicationId, executor);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
-	const org = await db.query.organization.findFirst({
+	const org = await executor.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
 	const generateDomain = await generateWildcardDomain(
@@ -169,6 +183,7 @@ export const createPreviewDeployment = async (
 		appName,
 		application.server?.ipAddress || "",
 		org?.ownerId || "",
+		executor,
 	);
 
 	// Image previews are created through the API, not by a GitHub webhook; the
@@ -202,7 +217,7 @@ export const createPreviewDeployment = async (
 		pullRequestCommentId = `${issue.data.id}`;
 	}
 
-	const previewDeployment = await db
+	const previewDeployment = await executor
 		.insert(previewDeployments)
 		.values({
 			...schema,
@@ -219,23 +234,22 @@ export const createPreviewDeployment = async (
 		});
 	}
 
-	const newDomain = await createDomain({
-		host: generateDomain,
-		path: application.previewPath,
-		port: application.previewPort,
-		https: application.previewHttps,
-		certificateType: application.previewCertificateType,
-		customCertResolver: application.previewCustomCertResolver,
-		domainType: "preview",
-		previewDeploymentId: previewDeployment.previewDeploymentId,
-		forwardAuthEnabled: application.previewForwardAuthEnabled,
-	});
+	const newDomain = await createDomain(
+		{
+			host: generateDomain,
+			path: application.previewPath,
+			port: application.previewPort,
+			https: application.previewHttps,
+			certificateType: application.previewCertificateType,
+			customCertResolver: application.previewCustomCertResolver,
+			domainType: "preview",
+			previewDeploymentId: previewDeployment.previewDeploymentId,
+			forwardAuthEnabled: application.previewForwardAuthEnabled,
+		},
+		executor,
+	);
 
-	application.appName = appName;
-
-	await manageDomain(application, newDomain);
-
-	await db
+	await executor
 		.update(previewDeployments)
 		.set({
 			domainId: newDomain.domainId,
@@ -247,23 +261,35 @@ export const createPreviewDeployment = async (
 			),
 		);
 
+	application.appName = appName;
+	return { application, previewDeployment, domain: newDomain };
+};
+
+type InsertedPreviewDeployment = Awaited<
+	ReturnType<typeof insertPreviewDeployment>
+>;
+
+const routePreviewDeployment = async (
+	application: InsertedPreviewDeployment["application"],
+	domain: InsertedPreviewDeployment["domain"],
+) => {
+	await manageDomain(application, domain);
+
 	// The SSO toggle skips previews without a linked domain, so catch a change made while this one was being created.
 	const current = await db.query.applications.findFirst({
-		where: eq(applications.applicationId, schema.applicationId),
+		where: eq(applications.applicationId, application.applicationId),
 		columns: { previewForwardAuthEnabled: true },
 	});
 	if (
 		current &&
-		current.previewForwardAuthEnabled !== newDomain.forwardAuthEnabled
+		current.previewForwardAuthEnabled !== domain.forwardAuthEnabled
 	) {
 		await applyPreviewForwardAuth(
 			application,
-			newDomain.domainId,
+			domain.domainId,
 			current.previewForwardAuthEnabled,
 		);
 	}
-
-	return previewDeployment;
 };
 
 export const applyPreviewForwardAuth = async (
@@ -317,7 +343,7 @@ export const findPreviewDeploymentByApplicationId = async (
 export const findPreviewDeploymentByPullRequestNumber = async (
 	applicationId: string,
 	pullRequestNumber: string,
-	executor: Pick<typeof db, "query"> = db,
+	executor: DbExecutor = db,
 ) => {
 	return await executor.query.previewDeployments.findFirst({
 		where: and(
@@ -365,7 +391,10 @@ export const upsertPreviewDeploymentFromImage = async (
 	}
 
 	const { applicationId } = application;
-	const previewDeploymentId = await db.transaction(async (tx) => {
+	// Every query in the transaction goes through `tx`: a second pooled
+	// connection per request could exhaust the pool when previews of many
+	// applications are created at once.
+	const result = await db.transaction(async (tx) => {
 		await lockApplicationPreviews(tx, applicationId);
 
 		const existing = await findPreviewDeploymentByPullRequestNumber(
@@ -375,7 +404,7 @@ export const upsertPreviewDeploymentFromImage = async (
 		);
 		if (existing) {
 			await setPreviewImage(tx, existing.previewDeploymentId, input);
-			return existing.previewDeploymentId;
+			return { previewDeploymentId: existing.previewDeploymentId };
 		}
 
 		const previewLimit = application.previewLimit ?? 3;
@@ -391,17 +420,27 @@ export const upsertPreviewDeploymentFromImage = async (
 		}
 
 		try {
-			const created = await createPreviewDeployment({
-				applicationId,
-				dockerImage: input.dockerImage,
-				branch: input.branch || "",
-				pullRequestId: "",
-				pullRequestNumber: input.pullRequestNumber,
-				pullRequestTitle:
-					input.pullRequestTitle || `Pull Request #${input.pullRequestNumber}`,
-				pullRequestURL: input.pullRequestURL || "",
-			});
-			return created.previewDeploymentId;
+			// A savepoint, so a unique violation leaves `tx` usable for the update below.
+			const created = await tx.transaction((savepoint) =>
+				insertPreviewDeployment(
+					{
+						applicationId,
+						dockerImage: input.dockerImage,
+						branch: input.branch || "",
+						pullRequestId: "",
+						pullRequestNumber: input.pullRequestNumber,
+						pullRequestTitle:
+							input.pullRequestTitle ||
+							`Pull Request #${input.pullRequestNumber}`,
+						pullRequestURL: input.pullRequestURL || "",
+					},
+					savepoint,
+				),
+			);
+			return {
+				previewDeploymentId: created.previewDeployment.previewDeploymentId,
+				created,
+			};
 		} catch (error) {
 			const { code, constraint_name } = getPostgresError(error);
 			if (
@@ -419,16 +458,19 @@ export const upsertPreviewDeploymentFromImage = async (
 			);
 			if (!conflicting) throw error;
 			await setPreviewImage(tx, conflicting.previewDeploymentId, input);
-			return conflicting.previewDeploymentId;
+			return { previewDeploymentId: conflicting.previewDeploymentId };
 		}
 	});
-	return await findPreviewDeploymentById(previewDeploymentId);
-};
 
-type PreviewTransaction = Pick<
-	typeof db,
-	"execute" | "query" | "update" | "$count"
->;
+	// Traefik is configured once the transaction has released its connection.
+	if (result.created) {
+		await routePreviewDeployment(
+			result.created.application,
+			result.created.domain,
+		);
+	}
+	return await findPreviewDeploymentById(result.previewDeploymentId);
+};
 
 const UNIQUE_VIOLATION = "23505";
 const LOCK_NOT_AVAILABLE = "55P03";
@@ -445,7 +487,7 @@ const getPostgresError = (
 // concurrent CI runs can't both miss the pull request's preview or both pass
 // the preview limit.
 const lockApplicationPreviews = async (
-	tx: PreviewTransaction,
+	tx: DbExecutor,
 	applicationId: string,
 ) => {
 	// A waiting request holds a pooled connection, so the wait is bounded to
@@ -466,7 +508,7 @@ const lockApplicationPreviews = async (
 };
 
 const setPreviewImage = async (
-	tx: PreviewTransaction,
+	tx: DbExecutor,
 	previewDeploymentId: string,
 	input: z.infer<typeof apiDeployPreviewFromImage>,
 ) => {
@@ -488,6 +530,7 @@ const generateWildcardDomain = async (
 	appName: string,
 	serverIp: string,
 	_userId: string,
+	executor: DbExecutor = db,
 ): Promise<string> => {
 	if (!baseDomain.startsWith("*.")) {
 		throw new Error('The base domain must start with "*."');
@@ -505,7 +548,7 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const settings = await getWebServerSettings();
+			const settings = await getWebServerSettings(executor);
 			ip = settings?.serverIp || "";
 		}
 

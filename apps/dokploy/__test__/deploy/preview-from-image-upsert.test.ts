@@ -2,20 +2,30 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // In-memory stand-in for the tables the upsert touches. Every query yields to
 // the event loop, so concurrent requests interleave like they do against
-// Postgres, and the advisory lock is a FIFO mutex held until the transaction
-// callback settles.
+// Postgres. Advisory locks are FIFO mutexes held until the transaction
+// callback settles, and the global `db` draws from a connection pool that a
+// transaction holds one connection of until it ends.
 const fake = vi.hoisted(() => {
 	type Row = Record<string, any>;
 	type Where = { column: string; value: unknown } | { and: Where[] };
 
 	const state = {
+		applications: new Map<string, Row>(),
 		previews: [] as Row[],
 		domains: new Map<string, Row>(),
-		lock: Promise.resolve(),
+		locks: new Map<string, Promise<void>>(),
 		seq: 0,
 		beforeInsert: undefined as (() => void) | undefined,
 		insertError: undefined as unknown,
 		lockError: undefined as unknown,
+		pool: {
+			size: Number.POSITIVE_INFINITY,
+			inUse: 0,
+			waiters: [] as Array<() => void>,
+		},
+		openTransactions: 0,
+		// Fails any use of the global `db` or Traefik while a transaction is open.
+		strict: false,
 	};
 
 	const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -33,116 +43,169 @@ const fake = vi.hoisted(() => {
 		},
 	});
 
-	const query = {
-		previewDeployments: {
-			findFirst: async ({ where }: { where: Where }) => {
-				await tick();
-				const row = state.previews.find((preview) => matches(preview, where));
-				return row ? withRelations(row) : undefined;
+	const acquire = async () => {
+		if (state.pool.inUse < state.pool.size) {
+			state.pool.inUse++;
+			return;
+		}
+		await new Promise<void>((resolve) => state.pool.waiters.push(resolve));
+	};
+	const release = () => {
+		const next = state.pool.waiters.shift();
+		if (next) next();
+		else state.pool.inUse--;
+	};
+	const assertOutsideTransaction = (what: string) => {
+		if (state.strict && state.openTransactions > 0) {
+			throw new Error(`${what} used while a transaction is open`);
+		}
+	};
+	const onPool = async <T>(run: () => Promise<T>) => {
+		assertOutsideTransaction("global db");
+		await acquire();
+		try {
+			return await run();
+		} finally {
+			release();
+		}
+	};
+	const onTransaction = <T>(run: () => Promise<T>) => run();
+
+	const executor = (via: <T>(run: () => Promise<T>) => Promise<T>) => ({
+		query: {
+			previewDeployments: {
+				findFirst: ({ where }: { where: Where }) =>
+					via(async () => {
+						await tick();
+						const row = state.previews.find((preview) =>
+							matches(preview, where),
+						);
+						return row ? withRelations(row) : undefined;
+					}),
+			},
+			organization: {
+				findFirst: () => via(async () => ({ ownerId: "owner-1" })),
+			},
+			applications: {
+				findFirst: () =>
+					via(async () => ({ previewForwardAuthEnabled: false })),
+			},
+			webServerSettings: {
+				findFirst: () => via(async () => ({ serverIp: "203.0.113.7" })),
 			},
 		},
-		organization: { findFirst: async () => ({ ownerId: "owner-1" }) },
-		applications: {
-			findFirst: async () => ({ previewForwardAuthEnabled: false }),
-		},
-	};
-
-	const insert = () => ({
-		values: (values: Row) => ({
-			returning: async () => {
-				await tick();
-				state.beforeInsert?.();
-				if (state.insertError) throw state.insertError;
-				const duplicate =
-					values.dockerImage &&
-					state.previews.some(
-						(preview) =>
-							preview.dockerImage &&
-							preview.applicationId === values.applicationId &&
-							preview.pullRequestNumber === values.pullRequestNumber,
-					);
-				if (duplicate) {
-					throw new Error("Failed query", {
-						cause: {
-							code: "23505",
-							constraint_name: "preview_deployments_app_pull_request_image_idx",
-						},
+		insert: () => ({
+			values: (values: Row) => ({
+				returning: () =>
+					via(async () => {
+						await tick();
+						state.beforeInsert?.();
+						if (state.insertError) throw state.insertError;
+						const duplicate =
+							values.dockerImage &&
+							state.previews.some(
+								(preview) =>
+									preview.dockerImage &&
+									preview.applicationId === values.applicationId &&
+									preview.pullRequestNumber === values.pullRequestNumber,
+							);
+						if (duplicate) {
+							throw new Error("Failed query", {
+								cause: {
+									code: "23505",
+									constraint_name:
+										"preview_deployments_app_pull_request_image_idx",
+								},
+							});
+						}
+						const row = {
+							previewDeploymentId: `preview-${++state.seq}`,
+							domainId: null,
+							...values,
+						};
+						state.previews.push(row);
+						return [row];
+					}),
+			}),
+		}),
+		update: () => ({
+			set: (values: Row) => ({
+				where: (where: Where) => {
+					const result = via(async () => {
+						await tick();
+						const rows = state.previews.filter((row) => matches(row, where));
+						for (const row of rows) Object.assign(row, values);
+						return rows;
 					});
-				}
-				const row = {
-					previewDeploymentId: `preview-${++state.seq}`,
-					domainId: null,
-					...values,
-				};
-				state.previews.push(row);
-				return [row];
-			},
+					return Object.assign(result, { returning: () => result });
+				},
+			}),
 		}),
+		$count: (_table: unknown, where: Where) =>
+			via(async () => {
+				await tick();
+				return state.previews.filter((row) => matches(row, where)).length;
+			}),
 	});
-
-	const update = () => ({
-		set: (values: Row) => ({
-			where: (where: Where) => {
-				const result = (async () => {
-					await tick();
-					const rows = state.previews.filter((row) => matches(row, where));
-					for (const row of rows) Object.assign(row, values);
-					return rows;
-				})();
-				return Object.assign(result, { returning: () => result });
-			},
-		}),
-	});
-
-	const $count = async (_table: unknown, where: Where) => {
-		await tick();
-		return state.previews.filter((row) => matches(row, where)).length;
-	};
 
 	const transaction = async <T>(fn: (tx: unknown) => Promise<T>) => {
-		let release = () => {};
-		const tx = {
-			query,
-			update,
-			$count,
+		assertOutsideTransaction("global db");
+		await acquire();
+		state.openTransactions++;
+		const unlocks: Array<() => void> = [];
+		const tx: Record<string, unknown> = {
+			...executor(onTransaction),
+			transaction: (savepoint: (tx: unknown) => Promise<unknown>) =>
+				savepoint(tx),
 			execute: async (statement: { queryChunks: unknown[] }) => {
-				if (
-					!JSON.stringify(statement.queryChunks).includes(
-						"pg_advisory_xact_lock",
-					)
-				) {
-					return;
-				}
+				const key = JSON.stringify(statement.queryChunks).match(
+					/preview_deployments:([\w-]+)/,
+				)?.[1];
+				if (!key) return;
 				if (state.lockError) throw state.lockError;
-				const previous = state.lock;
-				state.lock = new Promise<void>((resolve) => {
-					release = resolve;
-				});
+				const previous = state.locks.get(key) ?? Promise.resolve();
+				const held = new Promise<void>((resolve) => unlocks.push(resolve));
+				state.locks.set(
+					key,
+					previous.then(() => held),
+				);
 				await previous;
 			},
 		};
 		try {
 			return await fn(tx);
 		} finally {
+			for (const unlock of unlocks) unlock();
+			state.openTransactions--;
 			release();
 		}
 	};
 
+	const db = { ...executor(onPool), transaction };
+	// Mocked helpers that take an executor go through the pool unless given a transaction.
+	const useExecutor = async (given: unknown) => {
+		if (given === undefined || given === db) await onPool(async () => {});
+	};
+
 	const reset = () => {
+		state.applications.clear();
 		state.previews = [];
 		state.domains.clear();
-		state.lock = Promise.resolve();
+		state.locks.clear();
 		state.seq = 0;
 		state.beforeInsert = undefined;
 		state.insertError = undefined;
 		state.lockError = undefined;
+		state.pool = {
+			size: Number.POSITIVE_INFINITY,
+			inUse: 0,
+			waiters: [],
+		};
+		state.openTransactions = 0;
+		state.strict = false;
 	};
 
-	return {
-		state,
-		reset,
-		db: { query, insert, update, $count, transaction },
-	};
+	return { state, reset, db, useExecutor, assertOutsideTransaction };
 });
 
 vi.mock("@dokploy/server/db", () => ({ db: fake.db }));
@@ -157,21 +220,32 @@ vi.mock("drizzle-orm", async (importOriginal) => ({
 }));
 
 vi.mock("@dokploy/server/services/application", () => ({
-	findApplicationById: vi.fn(),
+	findApplicationById: vi.fn(
+		async (applicationId: string, executor?: unknown) => {
+			await fake.useExecutor(executor);
+			return structuredClone(fake.state.applications.get(applicationId));
+		},
+	),
 }));
 
 vi.mock("@dokploy/server/services/domain", () => ({
-	createDomain: vi.fn(async (input: Record<string, unknown>) => {
-		const domain = { ...input, domainId: `domain-${fake.state.domains.size}` };
-		fake.state.domains.set(domain.domainId, domain);
-		return domain;
-	}),
+	createDomain: vi.fn(
+		async (input: Record<string, unknown>, executor?: unknown) => {
+			await fake.useExecutor(executor);
+			const domain = {
+				...input,
+				domainId: `domain-${fake.state.domains.size}`,
+			};
+			fake.state.domains.set(domain.domainId, domain);
+			return domain;
+		},
+	),
 	findDomainById: vi.fn(),
 	updateDomainById: vi.fn(),
 }));
 
 vi.mock("@dokploy/server/utils/traefik/domain", () => ({
-	manageDomain: vi.fn(),
+	manageDomain: vi.fn(async () => fake.assertOutsideTransaction("Traefik")),
 	removeDomain: vi.fn(),
 }));
 
@@ -184,14 +258,15 @@ vi.mock("@dokploy/server/utils/providers/github", () => ({
 	authGithub: vi.fn(),
 }));
 
-import { findApplicationById } from "@dokploy/server/services/application";
 import { createDomain } from "@dokploy/server/services/domain";
 import { findGithubById } from "@dokploy/server/services/github";
 import {
+	createPreviewDeployment,
 	getImageRepository,
 	upsertPreviewDeploymentFromImage,
 } from "@dokploy/server/services/preview-deployment";
 import { authGithub } from "@dokploy/server/utils/providers/github";
+import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 
 const PREVIEW_IMAGE = "ghcr.io/acme/web:pr-7";
 
@@ -237,9 +312,9 @@ const input = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const setup = (overrides: Record<string, unknown> = {}) => {
-	vi.mocked(findApplicationById).mockResolvedValue(
-		mockApplication(overrides) as any,
-	);
+	const application = mockApplication(overrides);
+	fake.state.applications.set(application.applicationId, application);
+	return application;
 };
 
 beforeEach(() => {
@@ -421,6 +496,74 @@ describe("concurrent requests", () => {
 			upsertPreviewDeploymentFromImage(input()),
 		).rejects.toMatchObject({ code: "CONFLICT" });
 		expect(fake.state.previews).toHaveLength(0);
+	});
+});
+
+describe("database connections", () => {
+	it("runs every query of the transaction on it and configures Traefik after the commit", async () => {
+		setup({ previewWildcard: "*.sslip.io" });
+		fake.state.strict = true;
+
+		const preview = await upsertPreviewDeploymentFromImage(input());
+
+		expect(fake.state.previews).toHaveLength(1);
+		expect(preview.domain?.host).toMatch(/-203-0-113-7\.sslip\.io$/);
+		expect(vi.mocked(manageDomain).mock.calls[0]?.[0]).toMatchObject({
+			appName: fake.state.previews[0]?.appName,
+		});
+	});
+
+	it("updates an existing preview without the global db inside the transaction", async () => {
+		setup();
+		seedPreview();
+		fake.state.strict = true;
+
+		await upsertPreviewDeploymentFromImage(input());
+
+		expect(fake.state.previews[0]?.dockerImage).toBe(PREVIEW_IMAGE);
+	});
+
+	it("finishes previews of more applications than the pool has connections", async () => {
+		const applications = Array.from({ length: 5 }, (_, index) =>
+			setup({ applicationId: `app-${index}`, appName: `web-${index}` }),
+		);
+		fake.state.pool.size = 2;
+
+		const stalled = new Promise((_, reject) =>
+			setTimeout(() => reject(new Error("requests stalled on the pool")), 2000),
+		);
+		await Promise.race([
+			Promise.all(
+				applications.map(({ applicationId }) =>
+					upsertPreviewDeploymentFromImage(input({ applicationId })),
+				),
+			),
+			stalled,
+		]);
+
+		expect(fake.state.previews).toHaveLength(5);
+	});
+
+	it("keeps creating webhook previews on the global db and configures Traefik", async () => {
+		setup();
+
+		const preview = await createPreviewDeployment({
+			applicationId: "app-1",
+			branch: "feature",
+			pullRequestId: "",
+			pullRequestNumber: "9",
+			pullRequestTitle: "Feature",
+			pullRequestURL: "",
+			dockerImage: PREVIEW_IMAGE,
+		});
+
+		expect(fake.state.previews[0]).toMatchObject({
+			previewDeploymentId: preview.previewDeploymentId,
+			domainId: expect.any(String),
+		});
+		expect(vi.mocked(manageDomain).mock.calls[0]?.[0]).toMatchObject({
+			appName: preview.appName,
+		});
 	});
 });
 
