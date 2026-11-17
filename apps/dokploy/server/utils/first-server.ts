@@ -152,7 +152,14 @@ export const prepareFirstServer = async ({
 		.update(user)
 		.set({ serverConnectFailure: kind })
 		.where(eq(user.id, userId));
-	if (!kind) return null;
+	if (!kind) {
+		void captureEvent({
+			distinctId: userId,
+			event: "server_preflight_passed",
+			organizationId,
+		});
+		return null;
+	}
 
 	void captureEvent({
 		distinctId: userId,

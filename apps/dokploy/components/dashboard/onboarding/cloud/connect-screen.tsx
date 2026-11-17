@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { BackLink, ScreenHeading } from "./screen-heading";
+import { trackOnboarding } from "./track";
 
 const SERVER_NAME = "My first server";
 const STORAGE_KEY = "dokploy-onboarding-connect";
@@ -263,6 +264,7 @@ export const ConnectScreen = ({ onBack, onConnected }: Props) => {
 								onClick={() => {
 									copy(command);
 									setCopied(true);
+									trackOnboarding("connect_command_copied");
 								}}
 								className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-400 transition-colors hover:text-zinc-100 disabled:opacity-50"
 							>

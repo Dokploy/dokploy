@@ -2,6 +2,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { trackOnboarding } from "@/components/dashboard/onboarding/cloud/track";
 import {
 	calculatePriceHobby,
 	calculatePriceStartup,
@@ -79,6 +80,7 @@ export const TrialPlanPrompt = () => {
 			dismissed = window.sessionStorage.getItem(DISMISS_KEY) === "true";
 		} catch {}
 		setOpen(!dismissed);
+		if (!dismissed) trackOnboarding("plan_prompt_shown");
 	}, [isDue]);
 
 	const handleOpenChange = (value: boolean) => {
@@ -94,6 +96,7 @@ export const TrialPlanPrompt = () => {
 		const productId =
 			tier === "hobby" ? products?.hobbyProductId : products?.startupProductId;
 		if (!productId) return;
+		trackOnboarding("plan_chosen", { plan: tier, source: "trial_prompt" });
 		try {
 			const stripe = await stripePromise;
 			const session = await createCheckoutSession({

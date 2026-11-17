@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { ScreenHeading } from "./screen-heading";
+import { trackOnboarding } from "./track";
 
 const TEMPLATES = [
 	{
@@ -135,6 +136,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 	useEffect(() => {
 		if (deployStatus !== "done") return;
 		storeDeploy(null);
+		trackOnboarding("template_deploy_succeeded", { template: templateId });
 		onDeployed();
 	}, [deployStatus]);
 
@@ -175,6 +177,10 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 
 	const handleDeploy = async () => {
 		if (!template || !serverId) return;
+		trackOnboarding("first_deploy_option_chosen", {
+			option: "template",
+			template: template.id,
+		});
 		setIsStarting(true);
 		try {
 			const target = await ensureProject();
@@ -208,6 +214,7 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 	};
 
 	const handleOwnCode = async (id: string) => {
+		trackOnboarding("first_deploy_option_chosen", { option: id });
 		setIsLeaving(id);
 		try {
 			const target = await ensureProject();

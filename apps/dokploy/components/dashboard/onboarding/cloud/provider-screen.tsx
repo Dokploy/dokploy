@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { SERVER_PROVIDERS, SERVER_REQUIREMENTS } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
 import { BackLink, ScreenHeading } from "./screen-heading";
+import { trackOnboarding } from "./track";
 
 const OTHER = "other";
 
@@ -134,7 +135,16 @@ export const ProviderScreen = ({
 					</Button>
 					{current && (
 						<Button size="lg" variant="outline" asChild>
-							<a href={current.url} target="_blank" rel="noreferrer">
+							<a
+								href={current.url}
+								target="_blank"
+								rel="noreferrer"
+								onClick={() =>
+									trackOnboarding("provider_link_clicked", {
+										provider: current.id,
+									})
+								}
+							>
 								Open {current.name}
 								<ArrowUpRightIcon className="size-4" />
 							</a>

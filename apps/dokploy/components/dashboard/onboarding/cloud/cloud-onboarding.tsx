@@ -9,6 +9,7 @@ import { DeployScreen, type OnboardingProject } from "./deploy-screen";
 import { PathScreen } from "./path-screen";
 import { PlanScreen } from "./plan-screen";
 import { ProviderScreen } from "./provider-screen";
+import { trackOnboarding } from "./track";
 
 const STEPS = [
 	"Create account",
@@ -86,19 +87,37 @@ export const CloudOnboarding = ({ initialStep, onClose }: Props) => {
 				: "/dashboard/home",
 		);
 
+	const skip = () => {
+		if (screen === "deploy") {
+			trackOnboarding("first_deploy_option_chosen", { option: "skip" });
+		} else {
+			trackOnboarding("onboarding_path_chosen", { path: "look_around" });
+		}
+		finish();
+	};
+
 	return (
 		<OnboardingShell
 			steps={STEPS.map((title) => ({ id: title, title }))}
 			currentIndex={STEP_INDEX[screen]}
-			onSkip={screen === "deploy" ? undefined : () => finish()}
-			skipLabel="Look around first"
+			onSkip={skip}
+			skipLabel={screen === "deploy" ? "Skip for now" : "Look around first"}
 		>
 			{screen === "path" && (
 				<PathScreen
-					onHaveServer={() => setScreen("connect")}
-					onNeedServer={() => setScreen("provider")}
-					onSkip={() => finish()}
-					onPayNow={() => setScreen("plan")}
+					onHaveServer={() => {
+						trackOnboarding("onboarding_path_chosen", { path: "have" });
+						setScreen("connect");
+					}}
+					onNeedServer={() => {
+						trackOnboarding("onboarding_path_chosen", { path: "need" });
+						setScreen("provider");
+					}}
+					onSkip={skip}
+					onPayNow={() => {
+						trackOnboarding("onboarding_plan_choice", { choice: "pay_now" });
+						setScreen("plan");
+					}}
 					canStartTrial={billing?.hasActiveAccess === false}
 				/>
 			)}

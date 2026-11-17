@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { BackLink, ScreenHeading } from "./screen-heading";
+import { trackOnboarding } from "./track";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -66,6 +67,7 @@ export const PlanScreen = ({ onBack }: Props) => {
 		const productId =
 			tier === "hobby" ? products?.hobbyProductId : products?.startupProductId;
 		if (!productId) return;
+		trackOnboarding("plan_chosen", { plan: tier, source: "pay_now" });
 		setLoading(tier);
 		try {
 			const stripe = await stripePromise;
