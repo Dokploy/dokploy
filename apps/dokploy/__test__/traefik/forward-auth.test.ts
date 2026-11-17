@@ -1,5 +1,6 @@
 import type { ApplicationNested, Domain } from "@dokploy/server";
 import {
+	assertPreviewMatchesAuthSettings,
 	buildForwardAuthEnv,
 	createRouterConfig,
 	deriveBaseDomain,
@@ -230,5 +231,42 @@ describe("deriveCookieSecret", () => {
 	test("produces a 16-byte hex secret (oauth2-proxy requirement)", () => {
 		const secret = deriveCookieSecret(".acme.com");
 		expect(Buffer.from(secret, "hex")).toHaveLength(16);
+	});
+});
+
+describe("assertPreviewMatchesAuthSettings", () => {
+	const settings = { baseDomain: ".acme.com", https: false };
+	const check = (previewWildcard: string | null, previewHttps = false) =>
+		assertPreviewMatchesAuthSettings(settings, {
+			previewWildcard,
+			previewHttps,
+		});
+
+	test("accepts a wildcard under the base domain, ignoring case", () => {
+		expect(() => check("*.preview.acme.com")).not.toThrow();
+		expect(() => check("*.Preview.ACME.com")).not.toThrow();
+	});
+
+	test("rejects wildcards outside the base domain", () => {
+		expect(() => check("*.evilacme.com")).toThrow();
+		expect(() => check("preview.acme.com")).toThrow();
+		expect(() => check(null)).toThrow(/\*\.sslip\.io/);
+	});
+
+	test("requires HTTPS previews when the auth domain uses HTTPS", () => {
+		const https = { ...settings, https: true };
+		const preview = { previewWildcard: "*.preview.acme.com" };
+		expect(() =>
+			assertPreviewMatchesAuthSettings(https, {
+				...preview,
+				previewHttps: false,
+			}),
+		).toThrow(/HTTPS/);
+		expect(() =>
+			assertPreviewMatchesAuthSettings(https, {
+				...preview,
+				previewHttps: true,
+			}),
+		).not.toThrow();
 	});
 });
