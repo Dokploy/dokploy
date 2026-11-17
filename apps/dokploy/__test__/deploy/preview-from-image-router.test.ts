@@ -5,8 +5,22 @@ const mocks = vi.hoisted(() => ({
 	upsertPreviewDeploymentFromImage: vi.fn(),
 	findPreviewDeploymentByPullRequestNumber: vi.fn(),
 	removePreviewDeployment: vi.fn(),
-	queueAdd: vi.fn(),
 	deploy: vi.fn(),
+	running: [] as Array<() => void>,
+}));
+
+// Deploys stay active until the test finishes them, like a long image pull.
+vi.mock("@/server/queues/deployments-queue", () => ({
+	processDeploymentJob: vi.fn(
+		() =>
+			new Promise<void>((resolve) => {
+				mocks.running.push(resolve);
+			}),
+	),
+}));
+
+vi.mock("@/server/queues/concurrency", () => ({
+	resolveBuildsConcurrency: async () => 1,
 }));
 
 vi.mock("@dokploy/server/services/permission", () => ({
@@ -35,16 +49,18 @@ vi.mock("@/server/api/utils/audit", () => ({
 	audit: vi.fn(async () => undefined),
 }));
 
-vi.mock("@/server/queues/queueSetup", () => ({
-	myQueue: { add: mocks.queueAdd },
-}));
-
 vi.mock("@/server/utils/deploy", () => ({
 	deploy: mocks.deploy,
 }));
 
+delete (globalThis as { __dokployDeploymentQueue?: unknown })
+	.__dokployDeploymentQueue;
 const { previewDeploymentRouter } = await import(
 	"@/server/api/routers/preview-deployment"
+);
+const { myQueue } = await import("@/server/queues/queueSetup");
+const { processDeploymentJob } = await import(
+	"@/server/queues/deployments-queue"
 );
 
 const caller = previewDeploymentRouter.createCaller({
@@ -58,7 +74,17 @@ const preview = {
 	application: { applicationId: "app-1", serverId: "server-1" },
 };
 
-beforeEach(() => {
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const queuedPreviews = async (state: "waiting" | "active") =>
+	(await myQueue.getJobs([state])).map(
+		(job) => (job.data as { previewDeploymentId?: string }).previewDeploymentId,
+	);
+
+beforeEach(async () => {
+	myQueue.clearWaiting();
+	for (const finish of mocks.running.splice(0)) finish();
+	await flush();
 	vi.clearAllMocks();
 	mocks.upsertPreviewDeploymentFromImage.mockResolvedValue(preview);
 });
@@ -81,7 +107,9 @@ describe("previewDeployment.deployFromImage", () => {
 		expect(mocks.upsertPreviewDeploymentFromImage).toHaveBeenCalledWith(
 			request,
 		);
-		expect(mocks.queueAdd.mock.calls[0]?.[1]).toMatchObject({
+		await flush();
+		const [job] = await myQueue.getJobs();
+		expect(job?.data).toMatchObject({
 			applicationId: "app-1",
 			applicationType: "application-preview",
 			previewDeploymentId: "preview-1",
@@ -101,7 +129,36 @@ describe("previewDeployment.deployFromImage", () => {
 
 		await expect(caller.deployFromImage(request)).rejects.toThrow();
 		expect(mocks.upsertPreviewDeploymentFromImage).not.toHaveBeenCalled();
-		expect(mocks.queueAdd).not.toHaveBeenCalled();
+		expect(await myQueue.getJobs()).toHaveLength(0);
+	});
+
+	it("keeps only the latest waiting deploy of a pull request", async () => {
+		mocks.upsertPreviewDeploymentFromImage.mockImplementation(
+			async ({ pullRequestNumber }: { pullRequestNumber: string }) =>
+				pullRequestNumber === "8"
+					? { ...preview, previewDeploymentId: "preview-2" }
+					: preview,
+		);
+
+		await caller.deployFromImage(request);
+		await flush();
+		await caller.deployFromImage({ ...request, pullRequestNumber: "8" });
+		await caller.deployFromImage({
+			...request,
+			dockerImage: "ghcr.io/acme/web:pr-7-b",
+		});
+		await caller.deployFromImage({
+			...request,
+			dockerImage: "ghcr.io/acme/web:pr-7-c",
+		});
+		await flush();
+
+		expect(await queuedPreviews("active")).toEqual(["preview-1"]);
+		expect((await queuedPreviews("waiting")).sort()).toEqual([
+			"preview-1",
+			"preview-2",
+		]);
+		expect(processDeploymentJob).toHaveBeenCalledTimes(1);
 	});
 
 	it("rejects a pull request URL that is not http(s)", async () => {

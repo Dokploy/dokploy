@@ -18,7 +18,10 @@ import {
 	apiFindPreviewByPullRequest,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import {
+	cleanQueuesByPreviewDeployment,
+	myQueue,
+} from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
@@ -148,6 +151,9 @@ export const previewDeploymentRouter = createTRPCRouter({
 					console.error("Background deployment failed:", error);
 				});
 			} else {
+				// Only the latest image of a pull request is worth deploying. A deploy
+				// that already started finishes, then this one deploys the new image.
+				cleanQueuesByPreviewDeployment(previewDeployment.previewDeploymentId);
 				await myQueue.add(
 					"deployments",
 					{ ...jobData },
