@@ -14,7 +14,6 @@ import {
 	sendInvoiceEmail,
 	sendPaymentFailedEmail,
 } from "@/server/utils/stripe-notifications";
-import { sendTrialExpiringEmail } from "@/server/utils/trial-notifications";
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -130,12 +129,6 @@ export default async function handler(
 			});
 			const newServersQuantity = admin.serversQuantity;
 			await updateServersBasedOnQuantity(admin.id, newServersQuantity);
-			break;
-		}
-		case "customer.subscription.trial_will_end": {
-			const trialingSubscription = event.data.object as Stripe.Subscription;
-
-			await sendTrialExpiringEmail(stripe, trialingSubscription, event.created);
 			break;
 		}
 		case "customer.subscription.created": {

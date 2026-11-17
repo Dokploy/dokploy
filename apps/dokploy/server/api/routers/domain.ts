@@ -6,6 +6,7 @@ import {
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
 	findServerById,
+	findServerInOrganization,
 	generateTraefikMeDomain,
 	getServerIpCandidates,
 	getWebServerSettings,
@@ -103,6 +104,12 @@ export const domainRouter = createTRPCRouter({
 	generateDomain: withPermission("domain", "create")
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
 		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
+			}
 			return generateTraefikMeDomain(
 				input.appName,
 				ctx.user.ownerId,
@@ -111,9 +118,12 @@ export const domainRouter = createTRPCRouter({
 		}),
 	canGenerateTraefikMeDomains: withPermission("domain", "read")
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await findServerById(input.serverId);
+				const server = await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
 				return server.ipAddress;
 			}
 			const settings = await getWebServerSettings();

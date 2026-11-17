@@ -1,11 +1,14 @@
+import { open } from "node:fs/promises";
 import {
 	type ConnectTokenPayload,
 	captureEvent,
 	createServer,
 	decodeConnectToken,
+	findAllDeploymentsByServerId,
 	findServersByUserId,
 	findUserById,
 	IS_CLOUD,
+	serverSetup,
 	verifyConnectToken,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -15,6 +18,7 @@ import {
 } from "@dokploy/server/services/permission";
 import { and, eq, isNull } from "drizzle-orm";
 import type { z } from "zod";
+import { CONNECT_FAILURES } from "@/lib/onboarding";
 import { audit } from "@/server/api/utils/audit";
 import {
 	type apiCreateServer,
@@ -22,6 +26,7 @@ import {
 	sshKeys,
 } from "@/server/db/schema";
 import { applyDockerCleanupSchedule } from "@/server/utils/docker-cleanup";
+import { prepareFirstServer } from "@/server/utils/first-server";
 
 export const canOwnerCreateMoreServers = async (ownerId: string) => {
 	if (!IS_CLOUD) return true;
@@ -94,12 +99,40 @@ export const resolveConnectToken = async (
 	return { status, payload, sshKey };
 };
 
+const SETUP_LOG_BYTES = 64 * 1024;
+
+export const readServerSetupLog = async (serverId: string) => {
+	const deployments = await findAllDeploymentsByServerId(serverId);
+	const setup = deployments.find((item) => item.title === "Setup Server");
+	if (!setup) return null;
+	let log = "";
+	try {
+		const file = await open(setup.logPath, "r");
+		try {
+			const { size } = await file.stat();
+			const length = Math.min(size, SETUP_LOG_BYTES);
+			const { buffer } = await file.read(
+				Buffer.alloc(length),
+				0,
+				length,
+				size - length,
+			);
+			log = buffer.toString("utf8");
+		} finally {
+			await file.close();
+		}
+	} catch {}
+	return { status: setup.status, log };
+};
+
 export const registerConnectedServer = async ({
 	token,
 	ipAddress,
+	setup = false,
 }: {
 	token: string;
 	ipAddress: string | null;
+	setup?: boolean;
 }): Promise<{ status: number; message: string; serverId?: string }> => {
 	const resolved = await resolveConnectToken(token);
 	if (resolved.status !== "valid") {
@@ -143,15 +176,13 @@ export const registerConnectedServer = async ({
 		where: eq(organization.id, organizationId),
 		columns: { ownerId: true },
 	});
-	if (!org || !(await canOwnerCreateMoreServers(org.ownerId))) {
+	if (!org) {
 		return {
 			status: 403,
 			message: "You cannot create more servers. Upgrade your plan in Dokploy.",
 		};
 	}
 
-	// Claiming the key makes the command single-use, also against concurrent
-	// runs and after the server is deleted.
 	const [claimed] = await db
 		.update(sshKeys)
 		.set({ lastUsedAt: new Date().toISOString() })
@@ -162,9 +193,43 @@ export const registerConnectedServer = async ({
 	if (!claimed) {
 		return { status: 409, message: "This command was already used." };
 	}
+	const releaseCommand = () =>
+		db
+			.update(sshKeys)
+			.set({ lastUsedAt: null })
+			.where(eq(sshKeys.sshKeyId, sshKey.sshKeyId));
 
 	let newServer: Awaited<ReturnType<typeof createServerWithSideEffects>>;
 	try {
+		if (IS_CLOUD && payload.onboarding) {
+			const failure = await prepareFirstServer({
+				target: { ipAddress, privateKey: sshKey.privateKey },
+				userId: payload.userId,
+				ownerId: org.ownerId,
+				organizationId,
+			});
+			if (failure) {
+				await releaseCommand();
+				const { title, body, fix } = CONNECT_FAILURES[failure];
+				return {
+					status: 422,
+					message: [
+						`${title}.`,
+						body,
+						"",
+						...fix.map((step, index) => `${index + 1}. ${step}`),
+					].join("\n"),
+				};
+			}
+		} else if (!(await canOwnerCreateMoreServers(org.ownerId))) {
+			await releaseCommand();
+			return {
+				status: 403,
+				message:
+					"You cannot create more servers. Upgrade your plan in Dokploy.",
+			};
+		}
+
 		newServer = await createServerWithSideEffects({
 			input: {
 				name: sshKey.name,
@@ -185,16 +250,19 @@ export const registerConnectedServer = async ({
 			ownerId: org.ownerId,
 		});
 	} catch (error) {
-		await db
-			.update(sshKeys)
-			.set({ lastUsedAt: null })
-			.where(eq(sshKeys.sshKeyId, sshKey.sshKeyId));
+		await releaseCommand();
 		throw error;
+	}
+
+	if (setup) {
+		void serverSetup(newServer.serverId).catch((error) => {
+			console.error("Failed to set up the connected server:", error);
+		});
 	}
 
 	return {
 		status: 200,
-		message: `Server "${newServer.name.replace(/\p{Cc}/gu, "")}" is connected. Go back to Dokploy to complete the setup.`,
+		message: `Server "${newServer.name.replace(/\p{Cc}/gu, "")}" is connected. ${setup ? "Dokploy is installing Docker and the rest of its requirements now. Go back to Dokploy to follow the progress." : "Go back to Dokploy to complete the setup."}`,
 		serverId: newServer.serverId,
 	};
 };
