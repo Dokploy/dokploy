@@ -444,6 +444,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.3.1)
+      tar-stream:
+        specifier: 3.2.1
+        version: 3.2.1(bare-buffer@3.7.1)
       toml:
         specifier: 5.0.1
         version: 5.0.1
@@ -514,6 +517,9 @@ importers:
       '@types/swagger-ui-react':
         specifier: ^4.19.0
         version: 4.19.0
+      '@types/tar-stream':
+        specifier: 3.1.4
+        version: 3.1.4
       '@types/ws':
         specifier: 8.5.10
         version: 8.5.10
