@@ -1,4 +1,3 @@
-import { loadStripe } from "@stripe/stripe-js";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -19,10 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-	? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-	: null;
 
 const DISMISS_KEY = "dokploy_trial_plan_prompt_dismissed";
 const PROMPT_DAYS_LEFT = 2;
@@ -56,12 +51,10 @@ export const TrialPlanPrompt = () => {
 	const { data: billing } = api.stripe.getBillingStatus.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const canManageBilling = auth?.role === "owner" || auth?.role === "admin";
-	const { data: products } = api.stripe.getProducts.useQuery(undefined, {
-		enabled: canManageBilling,
-	});
-	const { data: serverCount } = api.server.count.useQuery();
-	const { mutateAsync: createCheckoutSession, isPending } =
-		api.stripe.createCheckoutSession.useMutation();
+	const { mutateAsync: upgradeSubscription, isPending: isSwitching } =
+		api.stripe.upgradeSubscription.useMutation();
+	const { mutateAsync: createCustomerPortalSession, isPending: isOpening } =
+		api.stripe.createCustomerPortalSession.useMutation();
 
 	const [tier, setTier] = useState<Tier>("hobby");
 	const [open, setOpen] = useState(false);
@@ -93,24 +86,21 @@ export const TrialPlanPrompt = () => {
 	};
 
 	const handleSubscribe = async () => {
-		const productId =
-			tier === "hobby" ? products?.hobbyProductId : products?.startupProductId;
-		if (!productId) return;
+		if (!billing) return;
 		trackOnboarding("plan_chosen", { plan: tier, source: "trial_prompt" });
 		try {
-			const stripe = await stripePromise;
-			const session = await createCheckoutSession({
-				tier,
-				productId,
-				serverQuantity:
-					tier === "startup"
-						? Math.max(STARTUP_SERVERS_INCLUDED, serverCount ?? 0)
-						: Math.max(1, serverCount ?? 0),
-				isAnnual: false,
-			});
-			await stripe?.redirectToCheckout({ sessionId: session.sessionId });
+			if (billing.plan !== tier) {
+				await upgradeSubscription({
+					tier,
+					serverQuantity: tier === "startup" ? STARTUP_SERVERS_INCLUDED : 1,
+					isAnnual: billing.isAnnual,
+				});
+			}
+			const session = await createCustomerPortalSession();
+			if (!session.url) throw new Error("Missing billing portal URL");
+			window.location.href = session.url;
 		} catch {
-			toast.error("Error starting checkout");
+			toast.error("Error opening the billing portal");
 		}
 	};
 
@@ -184,8 +174,7 @@ export const TrialPlanPrompt = () => {
 					</Button>
 					<Button
 						onClick={handleSubscribe}
-						isLoading={isPending}
-						disabled={!products}
+						isLoading={isSwitching || isOpening}
 					>
 						Add card and subscribe
 					</Button>
