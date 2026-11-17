@@ -670,7 +670,7 @@ type CreateRoleSchema = z.infer<typeof createRoleSchema>;
 
 export const ManageCustomRoles = () => {
 	return (
-		<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto w-full">
+		<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl max-w-5xl mx-auto w-full">
 			<div className="rounded-xl bg-background shadow-md">
 				<CardHeader>
 					<CardTitle className="text-xl flex flex-row gap-2">
@@ -681,7 +681,7 @@ export const ManageCustomRoles = () => {
 						Create and manage custom roles with fine-grained permissions
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="border-t pt-6">
+				<CardContent className="px-3 sm:px-6 border-t pt-6">
 					<EnterpriseFeatureGate
 						lockedProps={{
 							title: "Custom Roles",

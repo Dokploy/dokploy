@@ -29,7 +29,7 @@ export const ShowBillingInvoices = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+			<Card className="bg-sidebar p-1.5 sm:p-2.5 rounded-xl max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -40,7 +40,7 @@ export const ShowBillingInvoices = () => {
 							Manage your subscription and invoices
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-4 py-4 border-t">
+					<CardContent className="px-3 sm:px-6 space-y-4 py-4 border-t">
 						<nav className="flex space-x-2 border-b">
 							{navigationItems.map((item) => {
 								const Icon = item.icon;

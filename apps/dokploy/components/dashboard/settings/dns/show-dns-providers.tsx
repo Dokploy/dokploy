@@ -36,9 +36,9 @@ export const ShowDnsProviders = () => {
 
 	return (
 		<div className="w-full max-w-5xl mx-auto">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl">
 				<div className="rounded-xl bg-background shadow-md">
-					<div className="flex flex-wrap items-center justify-between gap-4 p-6">
+					<div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
 						<CardHeader className="flex-1 p-0">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<Globe className="size-6 text-muted-foreground self-center" />
@@ -52,7 +52,7 @@ export const ShowDnsProviders = () => {
 						{permissions?.dnsProvider.create && <HandleDnsProvider />}
 					</div>
 
-					<CardContent className="flex min-h-[60vh] flex-col gap-4 border-t py-8">
+					<CardContent className="px-3 sm:px-6 flex min-h-[60vh] flex-col gap-4 border-t py-8">
 						{isPending ? (
 							<div className="flex flex-1 flex-row items-center justify-center gap-2 text-sm text-muted-foreground">
 								<span>Loading...</span>

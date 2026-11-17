@@ -235,7 +235,7 @@ export const ShowBilling = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="bg-sidebar p-2.5 rounded-xl max-w-6xl mx-auto">
+			<Card className="bg-sidebar p-1.5 sm:p-2.5 rounded-xl max-w-6xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader className="flex flex-row items-start justify-between">
 						<div>
@@ -298,7 +298,7 @@ export const ShowBilling = () => {
 							</Dialog>
 						)}
 					</CardHeader>
-					<CardContent className="space-y-4 py-4 border-t">
+					<CardContent className="px-3 sm:px-6 space-y-4 py-4 border-t">
 						<nav className="flex space-x-2 border-b">
 							{navigationItems.map((item) => {
 								const Icon = item.icon;

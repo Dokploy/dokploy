@@ -376,7 +376,7 @@ export const HandleAi = ({ aiId }: Props) => {
 															</FormControl>
 														</PopoverTrigger>
 														<PopoverContent
-															className="w-[400px] p-0"
+															className="w-[calc(100vw-4rem)] sm:w-[400px] p-0"
 															align="start"
 														>
 															<Command>

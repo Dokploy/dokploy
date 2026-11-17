@@ -24,7 +24,7 @@ export const WebServer = () => {
 	return (
 		<div className="w-full">
 			{/* <Card className={cn("rounded-lg w-full bg-transparent p-0", className)}></Card> */}
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar  p-1.5 sm:p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -41,7 +41,7 @@ export const WebServer = () => {
 							Reload or clean the web server.
 						</CardDescription>
 					</CardHeader> */}
-					<CardContent className="space-y-6 py-6 border-t">
+					<CardContent className="px-3 sm:px-6 space-y-6 py-6 border-t">
 						<div className="grid md:grid-cols-2 gap-4">
 							<ShowDokployActions />
 							<ShowTraefikActions />

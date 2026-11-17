@@ -156,7 +156,7 @@ export const ShowServers = () => {
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar p-1.5 sm:p-2.5 rounded-xl max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -172,7 +172,7 @@ export const ShowServers = () => {
 							not shipped from the Dokploy server.
 						</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-2 py-8 border-t">
+					<CardContent className="px-3 sm:px-6 space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[15vh]">
 								<span>Checking servers...</span>

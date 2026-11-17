@@ -44,7 +44,7 @@ export const ShowServerSecurity = ({ serverId, children }: Props) => {
 				</DialogHeader>
 				{isOpen && (
 					<Tabs defaultValue="fail2ban" className="w-full">
-						<TabsList className="grid w-full grid-cols-5">
+						<TabsList className="w-full md:grid md:grid-cols-5">
 							<TabsTrigger value="fail2ban">Fail2ban</TabsTrigger>
 							<TabsTrigger value="ports">Exposed Ports</TabsTrigger>
 							<TabsTrigger value="ssh">SSH</TabsTrigger>

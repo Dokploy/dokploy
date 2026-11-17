@@ -168,7 +168,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										<div className="grid gap-4">
 											{fields.map((field, index) => (
 												<Card key={field.id} className="bg-transparent">
-													<CardContent className="grid grid-cols-4  gap-4 p-4 transparent">
+													<CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 transparent">
 														<FormField
 															control={form.control}
 															name={`ports.${index}.targetPort`}
