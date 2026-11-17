@@ -97,7 +97,10 @@ export function AnalyzeLogs({ logs, context }: Props) {
 					AI
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-[550px] p-0" align="end">
+			<PopoverContent
+				className="w-[calc(100vw-2rem)] p-0 sm:w-[550px]"
+				align="end"
+			>
 				<div className="flex items-center justify-between border-b px-4 py-3">
 					<div className="flex items-center gap-2">
 						<Bot className="h-4 w-4" />

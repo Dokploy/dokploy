@@ -37,7 +37,7 @@ const Dashboard = () => {
 				to get more features.
 			</AlertBlock> */}
 			{isPending ? (
-				<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto  items-center">
+				<Card className="bg-sidebar  p-1.5 sm:p-2.5 rounded-xl  mx-auto  items-center">
 					<div className="rounded-xl bg-background flex shadow-md px-4 w-full min-h-[50vh] justify-center items-center text-muted-foreground">
 						Loading... <Loader2 className="h-4 w-4 animate-spin" />
 					</div>
@@ -54,7 +54,7 @@ const Dashboard = () => {
 						</div>
 					)} */}
 					{toggleMonitoring ? (
-						<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto">
+						<Card className="bg-sidebar  p-1.5 sm:p-2.5 rounded-xl  mx-auto">
 							<div className="rounded-xl bg-background shadow-md">
 								<ShowPaidMonitoring
 									BASE_URL={
@@ -71,8 +71,8 @@ const Dashboard = () => {
 							</div>
 						</Card>
 					) : (
-						<Card className="h-full bg-sidebar  p-2.5 rounded-xl">
-							<div className="rounded-xl bg-background shadow-md p-6">
+						<Card className="h-full bg-sidebar  p-1.5 sm:p-2.5 rounded-xl">
+							<div className="rounded-xl bg-background shadow-md p-4 sm:p-6">
 								<ContainerFreeMonitoring appName="dokploy" />
 							</div>
 						</Card>

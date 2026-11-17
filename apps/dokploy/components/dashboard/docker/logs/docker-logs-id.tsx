@@ -332,7 +332,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9 w-full sm:w-auto"
+								className="h-9 flex-1 sm:flex-initial sm:w-auto"
 								onClick={handlePauseResume}
 								title={isPaused ? "Resume logs" : "Pause logs"}
 							>
@@ -348,7 +348,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9 w-full sm:w-auto"
+								className="h-9 flex-1 sm:flex-initial sm:w-auto"
 								onClick={handleCopy}
 								disabled={filteredLogs.length === 0}
 								title="Copy logs to clipboard"
@@ -365,7 +365,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							<Button
 								variant="outline"
 								size="sm"
-								className="h-9 w-full sm:w-auto"
+								className="h-9 flex-1 sm:flex-initial sm:w-auto"
 								onClick={handleDownload}
 								disabled={filteredLogs.length === 0 || !data?.Name}
 								title="Download logs as text file"
