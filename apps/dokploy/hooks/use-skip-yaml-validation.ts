@@ -6,15 +6,23 @@ export const useSkipYamlValidation = (path: string, serverId?: string) => {
 	const [skipYamlValidation, setSkipYamlValidation] = useState(false);
 
 	useEffect(() => {
-		setSkipYamlValidation(localStorage.getItem(key) === "true");
+		try {
+			setSkipYamlValidation(localStorage.getItem(key) === "true");
+		} catch {
+			setSkipYamlValidation(false);
+		}
 	}, [key]);
 
 	const setSkip = (next: boolean) => {
 		setSkipYamlValidation(next);
-		if (next) {
-			localStorage.setItem(key, "true");
-		} else {
-			localStorage.removeItem(key);
+		try {
+			if (next) {
+				localStorage.setItem(key, "true");
+			} else {
+				localStorage.removeItem(key);
+			}
+		} catch {
+			// Storage can be blocked or full; the in-memory value still applies for this session.
 		}
 	};
 
