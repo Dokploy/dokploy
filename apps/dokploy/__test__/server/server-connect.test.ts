@@ -102,6 +102,15 @@ describe("connect script", () => {
 		expect(script).toMatch(/curl -4 [^\n]*\|\|\n\s*code=\$\(curl -sS/);
 	});
 
+	it("asks Dokploy to run the setup only when requested", () => {
+		expect(buildConnectScript({ publicKey, registerUrl })).not.toContain(
+			"setup=",
+		);
+		const script = buildConnectScript({ publicKey, registerUrl, setup: true });
+		expect(script).toContain(`--data '' '${registerUrl}?setup=true'`);
+		expect(script).not.toContain(`'${registerUrl}'`);
+	});
+
 	it("is valid bash", () => {
 		const dir = mkdtempSync(join(tmpdir(), "connect-"));
 		const file = join(dir, "s.sh");

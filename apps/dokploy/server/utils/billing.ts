@@ -1,5 +1,6 @@
-import { findUserById, IS_CLOUD } from "@dokploy/server";
+import { findUserById, IS_CLOUD, updateUser } from "@dokploy/server";
 import { getOrganizationOwnerId } from "@dokploy/server/services/proprietary/sso";
+import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 import {
 	HOBBY_PRICE_ANNUAL_ID,
@@ -175,6 +176,73 @@ export const getBillingStatus = async (
 		hasActiveAccess: plan !== null || !!trialingSub,
 		isAnnual,
 		isEnterpriseCloud: owner.isEnterpriseCloud,
+	};
+};
+
+export const startTrial = async (ownerId: string, tier: TrialTier) => {
+	const trialPriceId =
+		tier === "startup" ? STARTUP_BASE_PRICE_MONTHLY_ID : HOBBY_PRICE_MONTHLY_ID;
+	if (!trialPriceId) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Trials are not configured",
+		});
+	}
+
+	const owner = await findUserById(ownerId);
+	const billingStatus = await getBillingStatus(owner.id);
+
+	if (billingStatus.hasActiveAccess) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "You already have an active plan or trial",
+		});
+	}
+
+	if (billingStatus.hasUsedTrial) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "You have already used your free trial",
+		});
+	}
+
+	const stripe = getStripeClient();
+
+	let stripeCustomerId = owner.stripeCustomerId;
+	if (stripeCustomerId) {
+		const customer = await stripe.customers.retrieve(stripeCustomerId);
+		if (customer.deleted) {
+			stripeCustomerId = null;
+		}
+	}
+	if (!stripeCustomerId) {
+		const customer = await stripe.customers.create({ email: owner.email });
+		stripeCustomerId = customer.id;
+	}
+
+	const subscription = await stripe.subscriptions.create({
+		customer: stripeCustomerId,
+		items: [{ price: trialPriceId, quantity: 1 }],
+		trial_period_days: TRIAL_DURATION_DAYS,
+		trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+		metadata: {
+			source: "onboarding_trial",
+			adminId: owner.id,
+			tier,
+		},
+	});
+
+	await updateUser(owner.id, {
+		stripeCustomerId,
+		stripeSubscriptionId: subscription.id,
+		serversQuantity: TRIAL_SERVER_LIMITS[tier],
+	});
+
+	return {
+		owner,
+		trialEndsAt: subscription.trial_end
+			? new Date(subscription.trial_end * 1000)
+			: null,
 	};
 };
 
