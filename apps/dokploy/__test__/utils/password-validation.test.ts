@@ -84,6 +84,22 @@ describe("isWeakNewPassword", () => {
 		).toBe(false);
 	});
 
+	it.each([
+		["/sign-up/email", { password: WEAK, newPassword: STRONG }],
+		["/admin/create-user", { password: WEAK, newPassword: STRONG }],
+		["/reset-password", { newPassword: WEAK, password: STRONG }],
+		["/change-password", { newPassword: WEAK, password: STRONG }],
+		["/admin/set-user-password", { newPassword: WEAK, password: STRONG }],
+	])("checks the field %s saves, not a strong decoy field", (path, body) => {
+		expect(isWeakNewPassword(path, body)).toBe(true);
+	});
+
+	it("rejects a password that is not a string", () => {
+		expect(isWeakNewPassword("/sign-up/email", { password: 12345678 })).toBe(
+			true,
+		);
+	});
+
 	it.each(["/sign-in/email", "/two-factor/enable", "/delete-user"])(
 		"does not check an existing password on %s",
 		(path) => {
