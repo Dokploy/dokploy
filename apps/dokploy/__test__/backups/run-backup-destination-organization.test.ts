@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 	findVolumeBackupById: vi.fn(),
 	execAsync: vi.fn(),
 	execAsyncRemote: vi.fn(),
+	getVolumeBackupServerId: vi.fn((): string | null => null),
 }));
 
 vi.mock("@dokploy/server/db", () => ({
@@ -50,7 +51,7 @@ vi.mock("@dokploy/server/utils/backups/utils", () => ({
 vi.mock("@dokploy/server/utils/volume-backups/backup", () => ({
 	backupVolume: vi.fn(async () => "echo backup"),
 	getVolumeServiceAppName: vi.fn(() => "app"),
-	getVolumeBackupServerId: vi.fn(() => null),
+	getVolumeBackupServerId: mocks.getVolumeBackupServerId,
 }));
 
 vi.mock("@dokploy/server/utils/notifications/database-backup", () => ({
@@ -170,5 +171,21 @@ describe("runVolumeBackup checks the destination organization before side effect
 
 		expect(mocks.execAsync).toHaveBeenCalledTimes(1);
 		expect(mocks.updateDeploymentStatus).toHaveBeenCalledWith("dep-1", "done");
+	});
+
+	it("creates and runs the backup deployment on the database server", async () => {
+		mocks.findDestinationRow.mockResolvedValue(ownDestination);
+		mocks.getVolumeBackupServerId.mockReturnValue("database-server");
+
+		await runVolumeBackup("vb-1");
+
+		expect(mocks.createDeploymentVolumeBackup).toHaveBeenCalledWith(
+			expect.objectContaining({ serverId: "database-server" }),
+		);
+		expect(mocks.execAsyncRemote).toHaveBeenCalledWith(
+			"database-server",
+			expect.any(String),
+		);
+		expect(mocks.execAsync).not.toHaveBeenCalled();
 	});
 });

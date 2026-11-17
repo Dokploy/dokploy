@@ -102,11 +102,16 @@ const cfFetch = async <T>(
 	return body.result;
 };
 
-// Zone and record ids come from API input; encoding keeps them inside the
-// dns_records path instead of letting "../" reach other Cloudflare endpoints.
+const encodePathId = (id: string) => {
+	if (id === "." || id === "..") {
+		throw new Error("Cloudflare: invalid ID path segment");
+	}
+	return encodeURIComponent(id);
+};
+
 const recordsPath = (zoneId: string, recordId?: string) =>
-	`/zones/${encodeURIComponent(zoneId)}/dns_records${
-		recordId === undefined ? "" : `/${encodeURIComponent(recordId)}`
+	`/zones/${encodePathId(zoneId)}/dns_records${
+		recordId === undefined ? "" : `/${encodePathId(recordId)}`
 	}`;
 
 export const cloudflareClient: DnsClient<CloudflareConfig> = {

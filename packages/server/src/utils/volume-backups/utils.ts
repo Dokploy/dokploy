@@ -123,6 +123,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		volumeBackupId: volumeBackup.volumeBackupId,
 		title: "Volume Backup",
 		description: "Volume Backup",
+		serverId,
 	});
 	try {
 		const command = await backupVolume(volumeBackup);

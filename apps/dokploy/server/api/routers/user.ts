@@ -10,7 +10,6 @@ import {
 	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
-	getMetricsOrigin,
 	getRootAdminIds,
 	getUserByToken,
 	getWebServerSettings,
@@ -52,9 +51,11 @@ import {
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { getMetricsTarget } from "@dokploy/server/services/server";
+import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, desc, eq, gt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
@@ -147,12 +148,20 @@ const MONITORED_SERVICE_TABLES = [
 	{ table: libsql, id: libsql.libsqlId },
 ];
 
-const findMonitoredServiceIds = async (containerName: string) => {
+const findMonitoredServiceIds = async (
+	containerName: string,
+	serverId: string | null,
+) => {
 	for (const { table, id } of MONITORED_SERVICE_TABLES) {
 		const [row] = await db
 			.select({ id })
 			.from(table)
-			.where(eq(table.appName, containerName))
+			.where(
+				and(
+					eq(table.appName, containerName),
+					serverId ? eq(table.serverId, serverId) : isNull(table.serverId),
+				),
+			)
 			.limit(1);
 		if (row) return [row.id];
 	}
@@ -163,9 +172,37 @@ const findMonitoredServiceIds = async (containerName: string) => {
 		.select({ id: compose.composeId })
 		.from(compose)
 		.where(
-			sql`starts_with(${containerName}, ${compose.appName} || '-') or starts_with(${containerName}, ${compose.appName} || '_')`,
+			and(
+				sql`starts_with(${containerName}, ${compose.appName} || '-') or starts_with(${containerName}, ${compose.appName} || '_')`,
+				serverId
+					? eq(compose.serverId, serverId)
+					: isNull(compose.serverId),
+			),
 		);
-	return rows.map((row) => row.id);
+	if (rows.length > 0) return rows.map((row) => row.id);
+
+	const docker = await getRemoteDocker(serverId);
+	const containers = await docker.listContainers({
+		all: true,
+		filters: JSON.stringify({ name: [containerName] }),
+	});
+	const normalizedName = containerName.replace(/^\/+/, "");
+	const container = containers.find((candidate) =>
+		candidate.Names.some((name) => name.replace(/^\/+/, "") === normalizedName),
+	);
+	const composeProject = container?.Labels?.["com.docker.compose.project"];
+	if (!composeProject) return [];
+
+	const composeRows = await db
+		.select({ id: compose.composeId })
+		.from(compose)
+		.where(
+			and(
+				eq(compose.appName, composeProject),
+				serverId ? eq(compose.serverId, serverId) : isNull(compose.serverId),
+			),
+		);
+	return composeRows.map((row) => row.id);
 };
 
 export const userRouter = createTRPCRouter({
@@ -746,6 +783,10 @@ export const userRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			try {
+				const { origin, serverId } = await getMetricsTarget(
+					ctx.session,
+					input.url,
+				);
 				if (!input.appName) {
 					throw new Error(
 						[
@@ -756,7 +797,10 @@ export const userRouter = createTRPCRouter({
 					);
 				}
 				if (!(await hasPermission(ctx, { docker: ["read"] }))) {
-					const serviceIds = await findMonitoredServiceIds(input.appName);
+					const serviceIds = await findMonitoredServiceIds(
+						input.appName,
+						serverId,
+					);
 					if (serviceIds.length === 0) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
@@ -767,7 +811,6 @@ export const userRouter = createTRPCRouter({
 						await checkServiceAccess(ctx, serviceId, "read");
 					}
 				}
-				const origin = await getMetricsOrigin(ctx.session, input.url);
 				const url = new URL(`${origin}/metrics/containers`);
 				url.searchParams.append("limit", input.dataPoints);
 				url.searchParams.append("appName", input.appName);

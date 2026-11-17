@@ -537,12 +537,11 @@ export const createDeploymentVolumeBackup = async (
 	deployment: Omit<
 		z.infer<typeof apiCreateDeploymentVolumeBackup>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	> & { serverId: string | null },
 ) => {
 	const volumeBackup = await findVolumeBackupById(deployment.volumeBackupId);
 
-	const serverId =
-		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	const { serverId } = deployment;
 	await removeLastTenDeployments(
 		deployment.volumeBackupId,
 		"volumeBackup",
