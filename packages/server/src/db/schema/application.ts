@@ -109,6 +109,9 @@ export const applications = pgTable("application", {
 		.default("none"),
 	previewCustomCertResolver: text("previewCustomCertResolver"),
 	previewLimit: integer("previewLimit").default(3),
+	previewForwardAuthEnabled: boolean("previewForwardAuthEnabled")
+		.notNull()
+		.default(false),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
@@ -565,4 +568,8 @@ export const apiUpdateApplication = createSchema
 	.extend({
 		applicationId: z.string().min(1),
 	})
-	.omit({ serverId: true, environmentId: true });
+	.omit({
+		serverId: true,
+		environmentId: true,
+		previewForwardAuthEnabled: true,
+	});
