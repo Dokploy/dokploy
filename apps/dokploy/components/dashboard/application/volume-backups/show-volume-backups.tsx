@@ -232,7 +232,7 @@ export const ShowVolumeBackups = ({
 						<p className="text-sm text-muted-foreground mt-1">
 							Create your first volume backup to automate your workflows
 						</p>
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center justify-center gap-2">
 							<HandleVolumeBackups id={id} volumeBackupType={type} />
 							<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
 						</div>
