@@ -35,10 +35,21 @@ import { ValidateServer } from "./validate-server";
 interface Props {
 	serverId: string;
 	children?: React.ReactNode;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+	defaultTab?: string;
 }
 
-export const SetupServer = ({ serverId, children }: Props) => {
-	const [isOpen, setIsOpen] = useState(false);
+export const SetupServer = ({
+	serverId,
+	children,
+	open,
+	onOpenChange,
+	defaultTab = "ssh-keys",
+}: Props) => {
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+	const isOpen = open ?? uncontrolledOpen;
+	const setIsOpen = onOpenChange ?? setUncontrolledOpen;
 	const { data: server } = api.server.one.useQuery(
 		{
 			serverId,
@@ -80,7 +91,7 @@ export const SetupServer = ({ serverId, children }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			{children ? (
+			{open !== undefined ? null : children ? (
 				<DialogTrigger asChild>{children}</DialogTrigger>
 			) : (
 				<DialogTrigger asChild>
@@ -118,7 +129,7 @@ export const SetupServer = ({ serverId, children }: Props) => {
 							configured.
 						</AlertBlock>
 
-						<Tabs defaultValue="ssh-keys">
+						<Tabs defaultValue={defaultTab}>
 							<TabsList
 								className={cn(
 									"grid  w-[700px]",

@@ -1394,6 +1394,20 @@
       "when": 1792806870958,
       "tag": "0198_nostalgic_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 199,
+      "version": "7",
+      "when": 1794810811847,
+      "tag": "0199_whitelabeling_config_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 200,
+      "version": "7",
+      "when": 1794848891313,
+      "tag": "0200_clever_pretty_boy",
+      "breakpoints": true
     }
   ]
 }
