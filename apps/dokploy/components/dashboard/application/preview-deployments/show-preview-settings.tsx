@@ -54,6 +54,11 @@ const schema = z
 		previewLabels: z.array(z.string()).optional(),
 		previewHttps: z.boolean(),
 		previewPath: z.string(),
+		previewInternalPath: z
+			.string()
+			.refine((v) => v === "" || v.startsWith("/"), {
+				message: "Internal path must start with /",
+			}),
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
 		previewCustomCertResolver: z.string().optional(),
 		previewRequireCollaboratorPermissions: z.boolean(),
@@ -98,6 +103,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewLabels: [],
 			previewHttps: false,
 			previewPath: "/",
+			previewInternalPath: "/",
 			previewCertificateType: "none",
 			previewRequireCollaboratorPermissions: true,
 		},
@@ -124,6 +130,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewLimit: data.previewLimit || 3,
 				previewHttps: data.previewHttps || false,
 				previewPath: data.previewPath || "/",
+				previewInternalPath: data.previewInternalPath || "/",
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
 				previewRequireCollaboratorPermissions:
@@ -144,6 +151,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewLimit: formData.previewLimit,
 			previewHttps: formData.previewHttps,
 			previewPath: formData.previewPath,
+			previewInternalPath: formData.previewInternalPath || "/",
 			previewCertificateType: formData.previewCertificateType,
 			previewCustomCertResolver: formData.previewCustomCertResolver,
 			previewRequireCollaboratorPermissions:
@@ -211,6 +219,23 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<FormControl>
 													<Input placeholder="/" {...field} />
 												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewInternalPath"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Internal Path</FormLabel>
+												<FormControl>
+													<Input placeholder="/" {...field} />
+												</FormControl>
+												<FormDescription>
+													The path inside the container the preview request is
+													forwarded to.
+												</FormDescription>
 												<FormMessage />
 											</FormItem>
 										)}

@@ -209,6 +209,7 @@ table application {
   previewPort integer [default: 3000]
   previewHttps boolean [not null, default: false]
   previewPath text [default: '/']
+  previewInternalPath text [default: '/']
   certificateType certificateType [not null, default: 'none']
   previewCustomCertResolver text
   previewLimit integer [default: 3]
