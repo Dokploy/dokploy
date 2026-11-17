@@ -42,6 +42,10 @@ import {
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import {
+	STRONG_PASSWORD_MESSAGE,
+	STRONG_PASSWORD_REGEX,
+} from "@dokploy/server/utils/password-validation";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
 import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
@@ -853,7 +857,9 @@ export const userRouter = createTRPCRouter({
 		.input(
 			z.object({
 				email: z.string().email(),
-				password: z.string().min(8),
+				password: z
+					.string()
+					.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 				role: z.string().min(1),
 			}),
 		)
