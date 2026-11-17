@@ -1,7 +1,7 @@
 import type http from "node:http";
 import {
 	execInSandbox,
-	findOrganizationSandbox,
+	findAccessibleSandbox,
 	validateRequest,
 } from "@dokploy/server";
 import { checkPermission } from "@dokploy/server/services/permission";
@@ -59,7 +59,10 @@ export const setupSandboxExecWebSocketServer = (
 					},
 					{ sandbox: ["create"] },
 				);
-				return await findOrganizationSandbox(sandboxId, organizationId);
+				return await findAccessibleSandbox(sandboxId, {
+					userId: user.id,
+					activeOrganizationId: organizationId,
+				});
 			} catch {
 				return null;
 			}

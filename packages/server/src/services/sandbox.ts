@@ -5,6 +5,7 @@ import {
 	SANDBOX_DEFAULTS,
 	sandboxes,
 } from "@dokploy/server/db/schema";
+import { getAccessibleServerIds } from "@dokploy/server/services/server";
 import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import type Dockerode from "dockerode";
@@ -155,9 +156,15 @@ const withLiveContainer = async <T>(
 	}
 };
 
-export const findSandboxById = async (sandboxId: string) => {
+export const findSandboxById = async (
+	sandboxId: string,
+	organizationId?: string,
+) => {
 	const result = await db.query.sandboxes.findFirst({
-		where: eq(sandboxes.sandboxId, sandboxId),
+		where: and(
+			eq(sandboxes.sandboxId, sandboxId),
+			organizationId ? eq(sandboxes.organizationId, organizationId) : undefined,
+		),
 		with: {
 			server: { columns: { serverId: true, name: true, serverStatus: true } },
 		},
@@ -168,16 +175,22 @@ export const findSandboxById = async (sandboxId: string) => {
 	return settleSandboxStatus(result);
 };
 
-export const findOrganizationSandbox = async (
+export const findAccessibleSandbox = async (
 	sandboxId: string,
-	organizationId: string,
+	session: { userId: string; activeOrganizationId: string },
 ) => {
-	const sandbox = await findSandboxById(sandboxId);
-	if (sandbox.organizationId !== organizationId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You are not authorized to access this sandbox",
-		});
+	const sandbox = await findSandboxById(
+		sandboxId,
+		session.activeOrganizationId,
+	);
+	if (sandbox.serverId) {
+		const accessibleIds = await getAccessibleServerIds(session);
+		if (!accessibleIds.has(sandbox.serverId)) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to access this server",
+			});
+		}
 	}
 	return sandbox;
 };
