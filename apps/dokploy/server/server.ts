@@ -68,6 +68,7 @@ void app.prepare().then(async () => {
 			"/docker-container-logs",
 			"/docker-container-terminal",
 			"/terminal",
+			"/sandbox-exec",
 			...(IS_CLOUD ? [] : ["/listen-docker-stats-monitoring"]),
 		]);
 		// Node keeps an upgrade socket open forever when no listener takes it over.
