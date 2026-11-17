@@ -5,10 +5,11 @@ import {
 	applications,
 	deployments,
 	organization,
+	PREVIEW_PULL_REQUEST_IMAGE_INDEX,
 	previewDeployments,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
@@ -316,8 +317,9 @@ export const findPreviewDeploymentByApplicationId = async (
 export const findPreviewDeploymentByPullRequestNumber = async (
 	applicationId: string,
 	pullRequestNumber: string,
+	executor: Pick<typeof db, "query"> = db,
 ) => {
-	return await db.query.previewDeployments.findFirst({
+	return await executor.query.previewDeployments.findFirst({
 		where: and(
 			eq(previewDeployments.applicationId, applicationId),
 			eq(previewDeployments.pullRequestNumber, pullRequestNumber),
@@ -362,41 +364,123 @@ export const upsertPreviewDeploymentFromImage = async (
 		});
 	}
 
-	const existing = await findPreviewDeploymentByPullRequestNumber(
-		application.applicationId,
-		input.pullRequestNumber,
-	);
-	if (existing) {
-		await updatePreviewDeployment(existing.previewDeploymentId, {
+	const { applicationId } = application;
+	const previewDeploymentId = await db.transaction(async (tx) => {
+		await lockApplicationPreviews(tx, applicationId);
+
+		const existing = await findPreviewDeploymentByPullRequestNumber(
+			applicationId,
+			input.pullRequestNumber,
+			tx,
+		);
+		if (existing) {
+			await setPreviewImage(tx, existing.previewDeploymentId, input);
+			return existing.previewDeploymentId;
+		}
+
+		const previewLimit = application.previewLimit ?? 3;
+		const previewCount = await tx.$count(
+			previewDeployments,
+			eq(previewDeployments.applicationId, applicationId),
+		);
+		if (previewCount >= previewLimit) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Preview deployment limit (${previewLimit}) reached for this application`,
+			});
+		}
+
+		try {
+			const created = await createPreviewDeployment({
+				applicationId,
+				dockerImage: input.dockerImage,
+				branch: input.branch || "",
+				pullRequestId: "",
+				pullRequestNumber: input.pullRequestNumber,
+				pullRequestTitle:
+					input.pullRequestTitle || `Pull Request #${input.pullRequestNumber}`,
+				pullRequestURL: input.pullRequestURL || "",
+			});
+			return created.previewDeploymentId;
+		} catch (error) {
+			const { code, constraint_name } = getPostgresError(error);
+			if (
+				code !== UNIQUE_VIOLATION ||
+				constraint_name !== PREVIEW_PULL_REQUEST_IMAGE_INDEX
+			) {
+				throw error;
+			}
+			// The index backs up the lock: a preview of this pull request that was
+			// inserted anyway is updated like any other repeated request.
+			const conflicting = await findPreviewDeploymentByPullRequestNumber(
+				applicationId,
+				input.pullRequestNumber,
+				tx,
+			);
+			if (!conflicting) throw error;
+			await setPreviewImage(tx, conflicting.previewDeploymentId, input);
+			return conflicting.previewDeploymentId;
+		}
+	});
+	return await findPreviewDeploymentById(previewDeploymentId);
+};
+
+type PreviewTransaction = Pick<
+	typeof db,
+	"execute" | "query" | "update" | "$count"
+>;
+
+const UNIQUE_VIOLATION = "23505";
+const LOCK_NOT_AVAILABLE = "55P03";
+
+// Drizzle wraps the postgres error in `cause`.
+const getPostgresError = (
+	error: unknown,
+): { code?: string; constraint_name?: string } => {
+	const cause = error instanceof Error ? (error.cause ?? error) : error;
+	return typeof cause === "object" && cause !== null ? cause : {};
+};
+
+// Serializes image previews of an application until the transaction ends, so
+// concurrent CI runs can't both miss the pull request's preview or both pass
+// the preview limit.
+const lockApplicationPreviews = async (
+	tx: PreviewTransaction,
+	applicationId: string,
+) => {
+	// A waiting request holds a pooled connection, so the wait is bounded to
+	// keep a burst of requests from exhausting the pool.
+	await tx.execute(sql`SET LOCAL lock_timeout = '30s'`);
+	try {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtext(${`preview_deployments:${applicationId}`}))`,
+		);
+	} catch (error) {
+		if (getPostgresError(error).code !== LOCK_NOT_AVAILABLE) throw error;
+		throw new TRPCError({
+			code: "CONFLICT",
+			message:
+				"Another preview deployment of this application is being created, try again",
+		});
+	}
+};
+
+const setPreviewImage = async (
+	tx: PreviewTransaction,
+	previewDeploymentId: string,
+	input: z.infer<typeof apiDeployPreviewFromImage>,
+) => {
+	await tx
+		.update(previewDeployments)
+		.set({
 			dockerImage: input.dockerImage,
 			...(input.pullRequestTitle && {
 				pullRequestTitle: input.pullRequestTitle,
 			}),
 			...(input.pullRequestURL && { pullRequestURL: input.pullRequestURL }),
 			...(input.branch && { branch: input.branch }),
-		});
-		return await findPreviewDeploymentById(existing.previewDeploymentId);
-	}
-
-	const previewLimit = application.previewLimit ?? 3;
-	if (application.previewDeployments.length >= previewLimit) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Preview deployment limit (${previewLimit}) reached for this application`,
-		});
-	}
-
-	const previewDeployment = await createPreviewDeployment({
-		applicationId: application.applicationId,
-		dockerImage: input.dockerImage,
-		branch: input.branch || "",
-		pullRequestId: "",
-		pullRequestNumber: input.pullRequestNumber,
-		pullRequestTitle:
-			input.pullRequestTitle || `Pull Request #${input.pullRequestNumber}`,
-		pullRequestURL: input.pullRequestURL || "",
-	});
-	return await findPreviewDeploymentById(previewDeployment.previewDeploymentId);
+		})
+		.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId));
 };
 
 const generateWildcardDomain = async (

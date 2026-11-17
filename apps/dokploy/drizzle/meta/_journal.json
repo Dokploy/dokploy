@@ -1429,6 +1429,13 @@
       "when": 1794899683697,
       "tag": "0203_minor_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 204,
+      "version": "7",
+      "when": 1794902978702,
+      "tag": "0204_short_mimic",
+      "breakpoints": true
     }
   ]
 }

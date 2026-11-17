@@ -757,6 +757,10 @@ table preview_deployments {
   dockerImage text
   createdAt text [not null]
   expiresAt text
+
+  indexes {
+    (applicationId, pullRequestNumber) [name: 'preview_deployments_app_pull_request_image_idx', unique, note: 'where "dockerImage" is not null']
+  }
 }
 
 table project {
