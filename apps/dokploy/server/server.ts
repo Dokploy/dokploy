@@ -13,6 +13,7 @@ import {
 	restoreInterruptedTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
+	startTraefikAfterFailedBoot,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
@@ -66,6 +67,9 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			await restoreInterruptedTraefik().catch((error) => {
 				console.error("Failed to restore Traefik:", error);
+			});
+			await startTraefikAfterFailedBoot().catch((error) => {
+				console.error("Failed to start Traefik:", error);
 			});
 			await initCronJobs();
 			await initSchedules();
