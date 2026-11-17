@@ -12,7 +12,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import {
+	keepLastLines,
+	type LogLine,
+	MAX_DEPLOYMENT_LOG_LINES,
+	parseLogs,
+} from "../../docker/logs/utils";
 import { VirtualLogList } from "../../docker/logs/virtual-log-list";
 
 interface Props {
@@ -30,6 +35,8 @@ export const ShowDeployment = ({
 	errorMessage,
 }: Props) => {
 	const [data, setData] = useState("");
+	const [trimmedLines, setTrimmedLines] = useState(0);
+	const dataRef = useRef("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const wsRef = useRef<WebSocket | null>(null);
@@ -38,7 +45,9 @@ export const ShowDeployment = ({
 	useEffect(() => {
 		if (!open || !logPath) return;
 
+		dataRef.current = "";
 		setData("");
+		setTrimmedLines(0);
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
 		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
@@ -46,7 +55,15 @@ export const ShowDeployment = ({
 		wsRef.current = ws; // Store WebSocket instance in ref
 
 		ws.onmessage = (e) => {
-			setData((currentData) => currentData + e.data);
+			const { text, trimmed } = keepLastLines(
+				dataRef.current + e.data,
+				MAX_DEPLOYMENT_LOG_LINES,
+			);
+			dataRef.current = text;
+			setData(text);
+			if (trimmed > 0) {
+				setTrimmedLines((total) => total + trimmed);
+			}
 		};
 
 		ws.onerror = (error) => {
@@ -108,7 +125,9 @@ export const ShowDeployment = ({
 			onOpenChange={(e) => {
 				onClose();
 				if (!e) {
+					dataRef.current = "";
 					setData("");
+					setTrimmedLines(0);
 				}
 
 				if (wsRef.current) {
@@ -163,6 +182,13 @@ export const ShowDeployment = ({
 						)}
 					</DialogDescription>
 				</DialogHeader>
+
+				{trimmedLines > 0 && (
+					<p className="text-xs text-muted-foreground">
+						Showing the last {MAX_DEPLOYMENT_LOG_LINES} lines; {trimmedLines}{" "}
+						older lines are hidden here. The full log is kept on the server.
+					</p>
+				)}
 
 				<VirtualLogList
 					logs={filteredLogs.length > 0 ? filteredLogs : optionalErrors}
