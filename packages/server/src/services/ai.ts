@@ -17,8 +17,25 @@ export const maskAiApiKey = <T extends { apiKey: string }>(settings: T): T => ({
 	apiKey: AI_SECRET_MASK,
 });
 
-export const mergeAiApiKey = (incoming: string, existing: string): string =>
-	incoming === AI_SECRET_MASK ? existing : incoming;
+export const resolveAiUpdateApiKey = (
+	incoming: { apiKey?: string; apiUrl?: string },
+	existing: { apiKey: string; apiUrl: string },
+): string | undefined => {
+	const keepsStoredKey =
+		incoming.apiKey === undefined || incoming.apiKey === AI_SECRET_MASK;
+	if (!keepsStoredKey) return incoming.apiKey;
+
+	const urlChanged =
+		incoming.apiUrl !== undefined &&
+		normalizeApiUrl(incoming.apiUrl) !== normalizeApiUrl(existing.apiUrl);
+	if (urlChanged && existing.apiKey) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Changing the API URL requires entering the API key again",
+		});
+	}
+	return incoming.apiKey === undefined ? undefined : existing.apiKey;
+};
 
 interface SuggestionItem {
 	id: string;
