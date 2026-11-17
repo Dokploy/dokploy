@@ -26,7 +26,7 @@ import {
 import { trackDeploymentResult } from "@dokploy/server/utils/tracking/posthog";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
@@ -1057,7 +1057,10 @@ export const createServerDeployment = async (
 
 export const removeLastFiveDeployments = async (serverId: string) => {
 	const deploymentList = await db.query.deployments.findMany({
-		where: eq(deployments.serverId, serverId),
+		where: and(
+			eq(deployments.serverId, serverId),
+			isNull(deployments.volumeBackupId),
+		),
 		orderBy: desc(deployments.createdAt),
 	});
 	if (deploymentList.length >= 5) {
