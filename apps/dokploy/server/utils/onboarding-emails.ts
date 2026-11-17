@@ -18,7 +18,9 @@ const PLAN_PROMPT_DAYS_LEFT = 2;
 
 export const sendOnboardingReturnEmails = async (now = new Date()) => {
 	let sent = 0;
-	for (const [stage, delay] of RETURN_EMAIL_DELAYS_MS.entries()) {
+	for (const [stage, delay] of [
+		...RETURN_EMAIL_DELAYS_MS.entries(),
+	].reverse()) {
 		const dueBefore = new Date(now.getTime() - delay);
 		const dueAfter = new Date(dueBefore.getTime() - DAY_MS);
 
@@ -64,6 +66,15 @@ export const sendOnboardingReturnEmails = async (now = new Date()) => {
 				sent += 1;
 			} catch (error) {
 				console.error("Failed to send the onboarding return email:", error);
+				await db
+					.update(user)
+					.set({ onboardingReturnEmails: stage })
+					.where(
+						and(
+							eq(user.id, recipient.id),
+							eq(user.onboardingReturnEmails, stage + 1),
+						),
+					);
 			}
 		}
 	}

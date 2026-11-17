@@ -124,12 +124,19 @@ export const DeployScreen = ({ onFinish, onDeployed }: Props) => {
 			},
 		},
 	);
-	const composeMissing = composeError?.data?.code === "NOT_FOUND";
+	const composeCode = composeError?.data?.code;
+	const composeDenied =
+		composeCode === "UNAUTHORIZED" || composeCode === "FORBIDDEN";
+	const composeGone = composeCode === "NOT_FOUND" || composeDenied;
 	useEffect(() => {
-		if (!composeMissing) return;
+		if (!composeGone) return;
 		storeDeploy(null);
 		setDeployment(null);
-	}, [composeMissing]);
+		if (composeDenied) {
+			setProject(null);
+			setTemplateId("");
+		}
+	}, [composeGone, composeDenied]);
 
 	const deployStatus = deployment ? compose?.composeStatus : undefined;
 

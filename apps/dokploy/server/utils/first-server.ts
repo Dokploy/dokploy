@@ -23,6 +23,8 @@ import { WEBSITE_URL } from "@/server/utils/stripe";
 const MIN_MEMORY_MB = 1700;
 const MIN_DISK_GB = 25;
 const FAILED_EMAIL_INTERVAL_MS = 60 * 60 * 1000;
+const REQUIREMENTS_TIMEOUT_MS = 30_000;
+const REQUIREMENTS_MAX_OUTPUT = 16 * 1024;
 
 const REQUIREMENTS_COMMAND = `
 . /etc/os-release 2>/dev/null
@@ -39,20 +41,33 @@ interface SshTarget {
 const readRequirements = (target: SshTarget) =>
 	new Promise<Record<string, string>>((resolve, reject) => {
 		const client = new Client();
+		const fail = (error: Error) => {
+			clearTimeout(deadline);
+			client.destroy();
+			reject(error);
+		};
+		const deadline = setTimeout(
+			() => fail(new Error("Requirements check timed out")),
+			REQUIREMENTS_TIMEOUT_MS,
+		);
 		client
 			.once("ready", () => {
 				client.exec(REQUIREMENTS_COMMAND, (error, stream) => {
 					if (error) {
-						client.end();
-						reject(error);
+						fail(error);
 						return;
 					}
 					let output = "";
 					stream
 						.on("data", (data: Buffer) => {
+							if (output.length + data.length > REQUIREMENTS_MAX_OUTPUT) {
+								fail(new Error("Requirements check returned too much output"));
+								return;
+							}
 							output += data.toString();
 						})
 						.on("close", () => {
+							clearTimeout(deadline);
 							client.end();
 							resolve(
 								Object.fromEntries(
@@ -66,10 +81,7 @@ const readRequirements = (target: SshTarget) =>
 						.stderr.on("data", () => {});
 				});
 			})
-			.once("error", (error) => {
-				client.end();
-				reject(error);
-			})
+			.once("error", fail)
 			.connect({
 				host: target.ipAddress,
 				port: 22,
