@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import {
 	buildVectorConfigYaml,
-	VECTOR_IMAGE,
+	buildVectorValidateCommand,
 } from "@dokploy/server/setup/vector-setup";
 import { describe, expect, it } from "vitest";
 
@@ -166,29 +166,21 @@ describe.skipIf(!dockerAvailable)(
 
 		it.each(cases)(
 			"%s",
-			(name, input) => {
-				const file = path.join(dir, `${name.replace(/\W+/g, "-")}.yaml`);
-				writeFileSync(file, buildVectorConfigYaml(input));
-				const output = execFileSync(
-					"docker",
-					[
-						"run",
-						"--rm",
-						"-v",
-						"/var/run/docker.sock:/var/run/docker.sock:ro",
-						"-v",
-						`${file}:/etc/vector/vector.yaml:ro`,
-						VECTOR_IMAGE,
-						"validate",
-						"--skip-healthchecks",
-						"/etc/vector/vector.yaml",
-					],
-					{
-						encoding: "utf8",
-						stdio: ["ignore", "pipe", "pipe"],
-						timeout: 120_000,
-					},
+			(_name, input) => {
+				// A script file avoids Windows argv quoting issues with the long command.
+				const script = path.join(dir, "validate.sh");
+				writeFileSync(
+					script,
+					buildVectorValidateCommand(
+						Buffer.from(buildVectorConfigYaml(input)).toString("base64"),
+					),
 				);
+				const output = execFileSync("sh", [script.replaceAll("\\", "/")], {
+					encoding: "utf8",
+					stdio: ["ignore", "pipe", "pipe"],
+					timeout: 120_000,
+					env: { ...process.env, MSYS_NO_PATHCONV: "1" },
+				});
 				expect(output).toContain("Validated");
 			},
 			150_000,

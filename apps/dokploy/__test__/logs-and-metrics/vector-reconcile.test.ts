@@ -125,8 +125,10 @@ describe("reconcileVectorAgent", () => {
 			"/local/dokploy/vector/vector.yaml.candidate.",
 		);
 		expect(commands[1]).toMatch(
-			/timberio\/vector:\d+\.\d+\.\d+-alpine validate --skip-healthchecks/,
+			/timberio\/vector:\d+\.\d+\.\d+-alpine -c '.*vector validate --skip-healthchecks/,
 		);
+		expect(commands[1]).not.toContain("vector.yaml.candidate");
+		expect(commands[1]).not.toMatch(/ -v [^ ]*vector\.yaml/);
 		expect(commands[2]).toMatch(
 			/^mv \/local\/dokploy\/vector\/vector\.yaml\.candidate\.\S+ \/local\/dokploy\/vector\/vector\.yaml$/,
 		);

@@ -317,6 +317,12 @@ const describeError = (error: unknown) =>
 			? error.message
 			: String(error);
 
+// The config is streamed into the validation container instead of bind-mounting the
+// candidate file: a host path is resolved by the Docker daemon, which does not match the
+// container's own view of /etc/dokploy when that directory is mounted from elsewhere.
+export const buildVectorValidateCommand = (encodedYaml: string) =>
+	`echo "${encodedYaml}" | docker run -i --rm -v /var/run/docker.sock:/var/run/docker.sock:ro --entrypoint sh ${VECTOR_IMAGE} -c 'base64 -d > /tmp/vector.yaml && vector validate --skip-healthchecks /tmp/vector.yaml'`;
+
 const syncVectorConfig = async (
 	serverId: string | undefined,
 	yamlStr: string,
@@ -342,7 +348,7 @@ const syncVectorConfig = async (
 	try {
 		await runOnTarget(
 			serverId,
-			`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro -v ${quote([`${candidatePath}:/etc/vector/vector.yaml:ro`])} ${VECTOR_IMAGE} validate --skip-healthchecks /etc/vector/vector.yaml`,
+			buildVectorValidateCommand(encodedYaml),
 		);
 	} catch (error) {
 		const sanitizedDetail = redact(error);
