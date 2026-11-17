@@ -580,6 +580,7 @@ export const createDeploymentVolumeBackup = async (
 			.insert(deployments)
 			.values({
 				volumeBackupId: deployment.volumeBackupId,
+				serverId,
 				title: deployment.title || "Deployment",
 				status: "running",
 				logPath: logFilePath,
