@@ -675,20 +675,32 @@ export const projectRouter = createTRPCRouter({
 
 		const isOwner = ctx.user.role === "owner";
 		const billingGatePassed = IS_CLOUD ? !billingStatus.hasActiveAccess : true;
+		const isFreshAccount = projectCount === 0 && billingGatePassed;
+		const isMidOnboarding = IS_CLOUD && !!currentUser.onboardingStep;
 
 		return {
 			shouldShowOnboarding:
 				isOwner &&
 				!currentUser.onboardingCompletedAt &&
-				projectCount === 0 &&
-				billingGatePassed,
+				(isFreshAccount || isMidOnboarding),
+			onboardingStep: currentUser.onboardingStep,
 			projectCount,
 			...billingStatus,
 		};
 	}),
 
+	saveOnboardingStep: protectedProcedure
+		.input(z.object({ step: z.string().min(1).max(60) }))
+		.mutation(async ({ ctx, input }) => {
+			await updateUser(ctx.user.id, { onboardingStep: input.step });
+			return { ok: true };
+		}),
+
 	completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
-		await updateUser(ctx.user.id, { onboardingCompletedAt: new Date() });
+		await updateUser(ctx.user.id, {
+			onboardingCompletedAt: new Date(),
+			onboardingStep: null,
+		});
 		return { ok: true };
 	}),
 

@@ -12,13 +12,17 @@ import {
 	removeForwardAuthProxy,
 	removeForwardAuthSettings,
 	setForwardAuthSettings,
+	setPreviewForwardAuth,
 } from "@dokploy/server";
 import {
 	apiDeployForwardAuthOnServer,
 	apiForwardAuthDomainTarget,
 	apiForwardAuthServerTarget,
 	apiSetForwardAuthSettings,
+	apiSetPreviewForwardAuth,
 } from "@dokploy/server/db/schema";
+import { checkServicePermissionAndAccess } from "@dokploy/server/services/permission";
+import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
 import { TRPCError } from "@trpc/server";
 import {
 	createTRPCRouter,
@@ -203,5 +207,31 @@ export const forwardAuthRouter = createTRPCRouter({
 				resourceName: domain.host,
 			});
 			return result;
+		}),
+
+	setPreviewEnabled: withPermission("domain", "create")
+		.input(apiSetPreviewForwardAuth)
+		.mutation(async ({ ctx, input }) => {
+			await checkServicePermissionAndAccess(ctx, input.applicationId, {
+				domain: ["create"],
+			});
+			// Disabling stays allowed so an expired license can't leave previews locked.
+			if (
+				input.enabled &&
+				!(await hasValidLicense(ctx.session.activeOrganizationId))
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Valid enterprise license required",
+				});
+			}
+			const application = await setPreviewForwardAuth(input);
+			await audit(ctx, {
+				action: "update",
+				resourceType: "application",
+				resourceId: application.applicationId,
+				resourceName: application.appName,
+			});
+			return { ok: true } as const;
 		}),
 });
