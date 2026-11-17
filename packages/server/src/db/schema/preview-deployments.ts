@@ -33,6 +33,7 @@ export const previewDeployments = pgTable("preview_deployments", {
 	domainId: text("domainId").references(() => domains.domainId, {
 		onDelete: "cascade",
 	}),
+	dockerImage: text("dockerImage"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -66,4 +67,19 @@ export const apiCreatePreviewDeployment = z.object({
 	pullRequestNumber: z.string().min(1),
 	pullRequestURL: z.string().min(1),
 	pullRequestTitle: z.string().min(1),
+	dockerImage: z.string().nullish(),
+});
+
+export const apiDeployPreviewFromImage = z.object({
+	applicationId: z.string().min(1),
+	dockerImage: z.string().min(1),
+	pullRequestNumber: z.string().min(1),
+	pullRequestTitle: z.string().optional(),
+	pullRequestURL: z.url({ protocol: /^https?$/ }).optional(),
+	branch: z.string().optional(),
+});
+
+export const apiFindPreviewByPullRequest = z.object({
+	applicationId: z.string().min(1),
+	pullRequestNumber: z.string().min(1),
 });

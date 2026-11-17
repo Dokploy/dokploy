@@ -754,6 +754,7 @@ table preview_deployments {
   appName text [not null, unique]
   applicationId text [not null]
   domainId text
+  dockerImage text
   createdAt text [not null]
   expiresAt text
 }
