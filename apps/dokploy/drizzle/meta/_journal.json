@@ -1415,6 +1415,13 @@
       "when": 1794878324360,
       "tag": "0201_whole_wind_dancer",
       "breakpoints": true
+    },
+    {
+      "idx": 202,
+      "version": "7",
+      "when": 1794894643529,
+      "tag": "0202_melted_hobgoblin",
+      "breakpoints": true
     }
   ]
 }
