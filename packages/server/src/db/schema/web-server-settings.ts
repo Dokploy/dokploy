@@ -97,6 +97,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 			errorPageDescription: string | null;
 			footerText: string | null;
 			ogImageUrl: string | null;
+			passwordResetGuide: string | null;
+			supportEmail: string | null;
 			logoLightUrl: string | null;
 			loginLogoLightUrl: string | null;
 			faviconLightUrl: string | null;
@@ -115,6 +117,8 @@ export const webServerSettings = pgTable("webServerSettings", {
 			errorPageDescription: null,
 			footerText: null,
 			ogImageUrl: null,
+			passwordResetGuide: null,
+			supportEmail: null,
 			logoLightUrl: null,
 			loginLogoLightUrl: null,
 			faviconLightUrl: null,
@@ -248,6 +252,8 @@ export const whitelabelingConfigSchema = z.object({
 	errorPageDescription: z.string().nullable(),
 	footerText: z.string().nullable(),
 	ogImageUrl: safeUrl,
+	passwordResetGuide: z.string().nullable(),
+	supportEmail: z.string().email().nullable(),
 	logoLightUrl: safeUrl,
 	loginLogoLightUrl: safeUrl,
 	faviconLightUrl: safeUrl,

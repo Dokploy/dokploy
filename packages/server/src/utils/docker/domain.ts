@@ -58,7 +58,12 @@ export const getComposePath = (compose: Compose) => {
 		path = composePath;
 	}
 
-	return join(COMPOSE_PATH, appName, "code", path);
+	const codePath = join(COMPOSE_PATH, appName, "code");
+	const composePathResolved = join(codePath, path);
+	if (!composePathResolved.startsWith(`${codePath}/`)) {
+		throw new Error("Invalid compose path");
+	}
+	return composePathResolved;
 };
 
 export const loadDockerCompose = async (
@@ -70,6 +75,7 @@ export const loadDockerCompose = async (
 		const yamlStr = readFileSync(path, "utf8");
 		const parsedConfig = parse(yamlStr, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsedConfig;
 	}
@@ -86,7 +92,7 @@ export const loadDockerComposeRemote = async (
 		}
 		const { stdout, stderr } = await execAsyncRemote(
 			compose.serverId,
-			`cat ${path}`,
+			`cat ${quote([path])}`,
 		);
 
 		if (stderr) {
@@ -95,6 +101,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = parse(stdout, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
@@ -128,7 +135,7 @@ exit 1;
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
 		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > "${path}";`;
+		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : String(error ?? "");
@@ -164,6 +171,7 @@ export const applyComposeFilePatch = async (
 	try {
 		const parsed = parse(composeFilePatch.content, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 		return parsed ?? null;
 	} catch {
@@ -273,6 +281,7 @@ export const addDomainToCompose = async (
 	if (compose.sourceType === "raw") {
 		result = parse(compose.composeFile, {
 			maxAliasCount: 10000,
+			merge: true,
 		}) as ComposeSpecification;
 	} else if (compose.serverId) {
 		result = await loadDockerComposeRemote(compose);
@@ -316,8 +325,16 @@ export const addDomainToCompose = async (
 		}
 	}
 
-	for (const domain of domains.filter((d) => d.enabled)) {
+	for (const domain of domains) {
 		const { serviceName, https } = domain;
+		if (!domain.enabled) {
+			// Disabling only drops routing; the service may still talk to others over dokploy-network.
+			const service = serviceName ? result.services?.[serviceName] : undefined;
+			if (service && !service.network_mode && !compose.isolatedDeployment) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
+			continue;
+		}
 		if (!serviceName) {
 			throw new Error(`Domain "${domain.host}" is missing a service name`);
 		}

@@ -38,6 +38,7 @@ import {
 	addNewProject,
 	checkPermission,
 	checkProjectAccess,
+	checkServicePermissionAndAccess,
 	findMemberByUserId,
 } from "@dokploy/server/services/permission";
 import { serviceColumns } from "@dokploy/server/services/project";
@@ -355,26 +356,31 @@ export const projectRouter = createTRPCRouter({
 						mariadb: {
 							columns: {
 								mariadbId: true,
+								name: true,
 							},
 						},
 						mongo: {
 							columns: {
 								mongoId: true,
+								name: true,
 							},
 						},
 						mysql: {
 							columns: {
 								mysqlId: true,
+								name: true,
 							},
 						},
 						postgres: {
 							columns: {
 								postgresId: true,
+								name: true,
 							},
 						},
 						redis: {
 							columns: {
 								redisId: true,
+								name: true,
 							},
 						},
 						compose: {
@@ -387,6 +393,7 @@ export const projectRouter = createTRPCRouter({
 						libsql: {
 							columns: {
 								libsqlId: true,
+								name: true,
 							},
 						},
 					},
@@ -673,20 +680,32 @@ export const projectRouter = createTRPCRouter({
 
 		const isOwner = ctx.user.role === "owner";
 		const billingGatePassed = IS_CLOUD ? !billingStatus.hasActiveAccess : true;
+		const isFreshAccount = projectCount === 0 && billingGatePassed;
+		const isMidOnboarding = IS_CLOUD && !!currentUser.onboardingStep;
 
 		return {
 			shouldShowOnboarding:
 				isOwner &&
 				!currentUser.onboardingCompletedAt &&
-				projectCount === 0 &&
-				billingGatePassed,
+				(isFreshAccount || isMidOnboarding),
+			onboardingStep: currentUser.onboardingStep,
 			projectCount,
 			...billingStatus,
 		};
 	}),
 
+	saveOnboardingStep: protectedProcedure
+		.input(z.object({ step: z.string().min(1).max(60) }))
+		.mutation(async ({ ctx, input }) => {
+			await updateUser(ctx.user.id, { onboardingStep: input.step });
+			return { ok: true };
+		}),
+
 	completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
-		await updateUser(ctx.user.id, { onboardingCompletedAt: new Date() });
+		await updateUser(ctx.user.id, {
+			onboardingCompletedAt: new Date(),
+			onboardingStep: null,
+		});
 		return { ok: true };
 	}),
 
@@ -872,6 +891,14 @@ export const projectRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				await checkProjectAccess(ctx, "create");
+
+				if (input.includeServices) {
+					for (const service of input.selectedServices || []) {
+						await checkServicePermissionAndAccess(ctx, service.id, {
+							service: ["read"],
+						});
+					}
+				}
 
 				const sourceEnvironment = input.duplicateInSameProject
 					? await findEnvironmentById(input.sourceEnvironmentId)

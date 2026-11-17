@@ -1,6 +1,7 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePreviewDeployment,
+	applications,
 	deployments,
 	organization,
 	previewDeployments,
@@ -13,10 +14,11 @@ import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
-import { manageDomain } from "../utils/traefik/domain";
+import { manageDomain, removeDomain } from "../utils/traefik/domain";
+import { removeForwardAuthMiddleware } from "../utils/traefik/forward-auth";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, findDomainById, updateDomainById } from "./domain";
 import { findGithubById, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -33,6 +35,7 @@ export const findPreviewDeploymentById = async (
 				columns: {
 					applicationId: true,
 					serverId: true,
+					buildServerId: true,
 				},
 			},
 		},
@@ -65,8 +68,32 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 				),
 			async () =>
 				await removeDirectoryCode(application?.appName, application?.serverId),
+			async () => {
+				if (previewDeployment.domain) {
+					await removeDomain(
+						application,
+						previewDeployment.domain.uniqueConfigKey,
+					);
+				}
+			},
 			async () =>
 				await removeTraefikConfig(application?.appName, application?.serverId),
+			async () => {
+				if (application.buildServerId) {
+					await removeDeploymentsByPreviewDeploymentId(
+						previewDeployment,
+						application.buildServerId,
+					);
+				}
+			},
+			async () => {
+				if (application.buildServerId) {
+					await removeDirectoryCode(
+						application.appName,
+						application.buildServerId,
+					);
+				}
+			},
 			async () =>
 				await db
 					.delete(previewDeployments)
@@ -193,6 +220,7 @@ export const createPreviewDeployment = async (
 		customCertResolver: application.previewCustomCertResolver,
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
+		forwardAuthEnabled: application.previewForwardAuthEnabled,
 	});
 
 	application.appName = appName;
@@ -211,7 +239,36 @@ export const createPreviewDeployment = async (
 			),
 		);
 
+	// The SSO toggle skips previews without a linked domain, so catch a change made while this one was being created.
+	const current = await db.query.applications.findFirst({
+		where: eq(applications.applicationId, schema.applicationId),
+		columns: { previewForwardAuthEnabled: true },
+	});
+	if (
+		current &&
+		current.previewForwardAuthEnabled !== newDomain.forwardAuthEnabled
+	) {
+		await applyPreviewForwardAuth(
+			application,
+			newDomain.domainId,
+			current.previewForwardAuthEnabled,
+		);
+	}
+
 	return previewDeployment;
+};
+
+export const applyPreviewForwardAuth = async (
+	previewApp: Awaited<ReturnType<typeof findApplicationById>>,
+	domainId: string,
+	enabled: boolean,
+) => {
+	await updateDomainById(domainId, { forwardAuthEnabled: enabled });
+	const domain = await findDomainById(domainId);
+	await manageDomain(previewApp, domain);
+	if (!enabled) {
+		await removeForwardAuthMiddleware(previewApp, domain.uniqueConfigKey);
+	}
 };
 
 export const findPreviewDeploymentsByPullRequestId = async (
@@ -222,6 +279,17 @@ export const findPreviewDeploymentsByPullRequestId = async (
 	});
 
 	return previewDeploymentResult;
+};
+
+export const findPreviewDeploymentsByPullRequestIdForGithub = async (
+	pullRequestId: string,
+	githubId: string,
+) => {
+	const rows = await db.query.previewDeployments.findMany({
+		where: eq(previewDeployments.pullRequestId, pullRequestId),
+		with: { application: { columns: { githubId: true } } },
+	});
+	return rows.filter((row) => row.application?.githubId === githubId);
 };
 
 export const findPreviewDeploymentByApplicationId = async (

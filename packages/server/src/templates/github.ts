@@ -1,3 +1,4 @@
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import { parse } from "toml";
 
 /**
@@ -56,7 +57,7 @@ interface TemplateMetadata {
 export async function fetchTemplatesList(
 	baseUrl = "https://templates.dokploy.com",
 ): Promise<TemplateMetadata[]> {
-	const response = await fetch(`${baseUrl}/meta.json`, {
+	const response = await providerFetch(`${baseUrl}/meta.json`, {
 		signal: AbortSignal.timeout(10000),
 	});
 	if (!response.ok) {
@@ -92,7 +93,7 @@ export async function fetchTemplateLogo(
 		const template = templates.find((t) => t.id === templateId);
 		if (!template?.logo) return null;
 
-		const response = await fetch(
+		const response = await providerFetch(
 			`${baseUrl}/blueprints/${templateId}/${template.logo}`,
 			{ signal: AbortSignal.timeout(10000) },
 		);
@@ -126,10 +127,10 @@ export async function fetchTemplateFiles(
 ): Promise<{ config: CompleteTemplate; dockerCompose: string }> {
 	const timeout = AbortSignal.timeout(10000);
 	const [templateYmlResponse, dockerComposeResponse] = await Promise.all([
-		fetch(`${baseUrl}/blueprints/${templateId}/template.toml`, {
+		providerFetch(`${baseUrl}/blueprints/${templateId}/template.toml`, {
 			signal: timeout,
 		}),
-		fetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`, {
+		providerFetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`, {
 			signal: timeout,
 		}),
 	]);

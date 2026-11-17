@@ -12,27 +12,42 @@ type MockCreateServiceOptions = {
 	[key: string]: unknown;
 };
 
-const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
-	vi.hoisted(() => {
-		const inspect = vi.fn<() => Promise<never>>();
-		const getService = vi.fn(() => ({ inspect }));
-		const createService = vi.fn<
-			(opts: MockCreateServiceOptions) => Promise<void>
-		>(async () => undefined);
-		const getRemoteDocker = vi.fn(async () => ({
-			getService,
-			createService,
-		}));
-		return {
-			inspectMock: inspect,
-			getServiceMock: getService,
-			createServiceMock: createService,
-			getRemoteDockerMock: getRemoteDocker,
-		};
-	});
+const {
+	inspectMock,
+	getServiceMock,
+	createServiceMock,
+	listTasksMock,
+	getRemoteDockerMock,
+} = vi.hoisted(() => {
+	const inspect = vi.fn<() => Promise<never>>();
+	const getService = vi.fn(() => ({ inspect }));
+	const createService = vi.fn<
+		(opts: MockCreateServiceOptions) => Promise<void>
+	>(async () => undefined);
+	const listTasks = vi.fn(async (): Promise<unknown[]> => []);
+	const getRemoteDocker = vi.fn(async () => ({
+		getService,
+		createService,
+		listTasks,
+	}));
+	return {
+		inspectMock: inspect,
+		getServiceMock: getService,
+		createServiceMock: createService,
+		listTasksMock: listTasks,
+		getRemoteDockerMock: getRemoteDocker,
+	};
+});
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
+}));
+
+vi.mock("@dokploy/server/utils/process/execAsync", async (importOriginal) => ({
+	...(await importOriginal<
+		typeof import("@dokploy/server/utils/process/execAsync")
+	>()),
+	sleep: vi.fn(async () => undefined),
 }));
 
 const createApplication = (
@@ -70,10 +85,32 @@ describe("mechanizeDockerContainer", () => {
 		getServiceMock.mockClear();
 		createServiceMock.mockClear();
 		getRemoteDockerMock.mockClear();
+		listTasksMock.mockReset();
+		listTasksMock.mockResolvedValue([
+			{ Spec: { ForceUpdate: 0 }, Status: { State: "running" } },
+			{ Spec: { ForceUpdate: 3 }, Status: { State: "running" } },
+		]);
 		getRemoteDockerMock.mockResolvedValue({
 			getService: getServiceMock,
 			createService: createServiceMock,
+			listTasks: listTasksMock,
 		});
+	});
+
+	it("fails when Swarm can't schedule the new task", async () => {
+		listTasksMock.mockResolvedValue([
+			{ Status: { State: "running" } },
+			{
+				Status: {
+					State: "pending",
+					Err: "no suitable node (insufficient resources on 1 node)",
+				},
+			},
+		]);
+
+		await expect(mechanizeDockerContainer(createApplication())).rejects.toThrow(
+			/insufficient resources/,
+		);
 	});
 
 	it("passes stopGracePeriodSwarm as a number and keeps zero values", async () => {
@@ -157,5 +194,79 @@ describe("mechanizeDockerContainer", () => {
 		}
 		const [settings] = call;
 		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty("Ulimits");
+	});
+
+	describe("when the service already exists", () => {
+		const updateMock = vi.fn<(opts: MockCreateServiceOptions) => Promise<void>>(
+			async () => undefined,
+		);
+
+		const mockExistingService = (spec: Record<string, unknown>) => {
+			updateMock.mockClear();
+			inspectMock.mockResolvedValue({
+				Version: { Index: 7 },
+				Spec: { TaskTemplate: { ForceUpdate: 2 }, ...spec },
+			} as never);
+			getServiceMock.mockReturnValue({
+				inspect: inspectMock,
+				update: updateMock,
+			} as never);
+		};
+
+		it("keeps service labels that were added outside Dokploy", async () => {
+			const labels = {
+				"traefik.enable": "true",
+				"traefik.http.routers.app-web.rule": "Host(`app.example.com`)",
+			};
+			mockExistingService({ Labels: labels });
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(createServiceMock).not.toHaveBeenCalled();
+			expect(updateMock).toHaveBeenCalledTimes(1);
+			expect(updateMock.mock.calls[0]?.[0].Labels).toEqual(labels);
+		});
+
+		it("sends empty labels when the service has none", async () => {
+			mockExistingService({});
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(updateMock).toHaveBeenCalledTimes(1);
+			expect(updateMock.mock.calls[0]?.[0].Labels).toEqual({});
+		});
+
+		const oldTask = { Spec: { ForceUpdate: 2 }, Status: { State: "running" } };
+
+		it("waits for the new task and fails when Swarm can't place it", async () => {
+			mockExistingService({});
+			listTasksMock.mockResolvedValueOnce([oldTask]).mockResolvedValue([
+				oldTask,
+				{
+					Spec: { ForceUpdate: 3 },
+					Status: {
+						State: "pending",
+						Err: "no suitable node (insufficient resources on 1 node)",
+					},
+				},
+			]);
+
+			await expect(
+				mechanizeDockerContainer(createApplication()),
+			).rejects.toThrow(/insufficient resources/);
+			expect(listTasksMock).toHaveBeenCalledTimes(2);
+		});
+
+		it("stops checking as soon as the new task is placed on a node", async () => {
+			mockExistingService({});
+			listTasksMock.mockResolvedValue([
+				oldTask,
+				{ Spec: { ForceUpdate: 3 }, Status: { State: "assigned" } },
+			]);
+
+			await mechanizeDockerContainer(createApplication());
+
+			expect(listTasksMock).toHaveBeenCalledTimes(1);
+		});
 	});
 });

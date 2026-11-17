@@ -4,9 +4,18 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 function Select({
+	onValueChange,
 	...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-	return <SelectPrimitive.Root data-slot="select" {...props} />;
+	return (
+		<SelectPrimitive.Root
+			data-slot="select"
+			onValueChange={(value) => {
+				if (value !== "") onValueChange?.(value);
+			}}
+			{...props}
+		/>
+	);
 }
 
 function SelectGroup({

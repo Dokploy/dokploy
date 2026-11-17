@@ -30,6 +30,7 @@ import type { ServiceType } from "../../application/advanced/show-resources";
 import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
 import { HandleBackup } from "./handle-backup";
 import { RestoreBackup } from "./restore-backup";
+import { ShowBackupFiles } from "./show-backup-files";
 
 interface Props {
 	id: string;
@@ -261,6 +262,17 @@ export const ShowBackups = ({
 																</p>
 															</div>
 
+															{backup.customName && (
+																<div className="min-w-[150px]">
+																	<span className="text-sm font-medium text-muted-foreground">
+																		Custom Name
+																	</span>
+																	<p className="font-medium text-sm mt-0.5">
+																		{backup.customName}
+																	</p>
+																</div>
+															)}
+
 															<div className="min-w-[100px]">
 																<span className="text-sm font-medium text-muted-foreground">
 																	Keep Latest
@@ -325,6 +337,7 @@ export const ShowBackups = ({
 															</Tooltip>
 														</TooltipProvider>
 
+														<ShowBackupFiles backupId={backup.backupId} />
 														<HandleBackup
 															backupType={backup.backupType}
 															backupId={backup.backupId}

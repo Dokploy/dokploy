@@ -50,8 +50,8 @@ describe("reconnectServicesToTraefik", () => {
 
 		expect(mocks.execAsync).toHaveBeenCalledOnce();
 		expect(mocks.execAsync).toHaveBeenCalledWith(
-			'docker network connect first-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n' +
-				'docker network connect second-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n',
+			'docker network connect first-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n' +
+				'docker network connect second-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n',
 		);
 		expect(mocks.execAsyncRemote).not.toHaveBeenCalled();
 	});
@@ -64,7 +64,7 @@ describe("reconnectServicesToTraefik", () => {
 		expect(mocks.execAsyncRemote).toHaveBeenCalledOnce();
 		expect(mocks.execAsyncRemote).toHaveBeenCalledWith(
 			"server-id",
-			'docker network connect remote-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1\n',
+			'docker network connect remote-compose $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1 || true\n',
 		);
 		expect(mocks.execAsync).not.toHaveBeenCalled();
 	});

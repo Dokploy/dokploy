@@ -1,4 +1,4 @@
-import { CLEANUP_CRON_JOB } from "@dokploy/server/constants";
+import { CLEANUP_CRON_JOB, IS_CLOUD } from "@dokploy/server/constants";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { findDestinationById } from "@dokploy/server/services/destination";
@@ -6,27 +6,17 @@ import { getAllServers } from "@dokploy/server/services/server";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
+import { quote } from "shell-quote";
 import { db } from "../../db/index";
 import { startLogCleanup } from "../access-log/handler";
 import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { redactRcloneCredentials } from "./redact";
-import { getS3Credentials, normalizeS3Path, scheduleBackup } from "./utils";
+import { getBackupFolder, getS3Credentials, scheduleBackup } from "./utils";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
-
-	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
-		with: {
-			user: true,
-		},
-	});
-
-	if (!admin) {
-		return;
-	}
 
 	const webServerSettings = await getWebServerSettings();
 
@@ -39,7 +29,12 @@ export const initCronJobs = async () => {
 
 				await cleanupAll();
 
-				await sendDockerCleanupNotifications(admin.user.id);
+				const owner = await db.query.member.findFirst({
+					where: eq(member.role, "owner"),
+				});
+				if (owner) {
+					await sendDockerCleanupNotifications(owner.organizationId);
+				}
 			});
 		} catch (error) {
 			console.error("[Backup] Docker Cleanup Error", error);
@@ -49,7 +44,7 @@ export const initCronJobs = async () => {
 	const servers = await getAllServers();
 
 	for (const server of servers) {
-		const { serverId, enableDockerCleanup, name } = server;
+		const { serverId, enableDockerCleanup, name, organizationId } = server;
 		if (enableDockerCleanup) {
 			try {
 				scheduleJob(serverId, CLEANUP_CRON_JOB, async () => {
@@ -60,7 +55,7 @@ export const initCronJobs = async () => {
 					await cleanupAll(serverId);
 
 					await sendDockerCleanupNotifications(
-						admin.user.id,
+						organizationId,
 						`Docker cleanup for Server ${name} (${serverId})`,
 					);
 				});
@@ -109,21 +104,6 @@ export const initCronJobs = async () => {
 	}
 };
 
-const getServiceAppName = (backup: BackupSchedule): string => {
-	if (backup.compose?.appName) {
-		return backup.serviceName
-			? `${backup.compose.appName}_${backup.serviceName}`
-			: backup.compose.appName;
-	}
-	const serviceAppName =
-		backup.postgres?.appName ||
-		backup.mysql?.appName ||
-		backup.mariadb?.appName ||
-		backup.mongo?.appName ||
-		backup.libsql?.appName;
-	return serviceAppName || backup.appName;
-};
-
 export const keepLatestNBackups = async (
 	backup: BackupSchedule,
 	serverId?: string | null,
@@ -131,20 +111,21 @@ export const keepLatestNBackups = async (
 	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
 	// is saved as 0 in the database
 	if (!backup.keepLatestCount) return;
+	if (IS_CLOUD && !serverId) return;
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getS3Credentials(destination);
-		const appName = getServiceAppName(backup);
-		const backupFilesPath = `:s3:${destination.bucket}/${appName}/${normalizeS3Path(backup.prefix)}`;
+		const backupFilesPath = `:s3:${destination.bucket}/${getBackupFolder(backup)}`;
 
 		// --include "*.bson.gz" or "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" ${backupFilesPath}`;
+		// sort by server mtime: custom names break lexical order
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".{sql.gz,bson.gz}"}" --format "tp" --use-server-modtime ${quote([backupFilesPath])}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
-		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | cut -d';' -f2- | xargs -I{}`;
 		// this command deletes the files
 		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}{}
-		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}{}`;
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${quote([backupFilesPath])}{}`;
 
 		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
 
