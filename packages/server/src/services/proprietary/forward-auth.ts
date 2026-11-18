@@ -442,3 +442,53 @@ export const setPreviewForwardAuth = async (input: {
 
 	return application;
 };
+
+const normalizeAllowlist = (
+	values: string[] | null,
+	transform: (v: string) => string = (v) => v,
+) => {
+	const entries = [...new Set((values ?? []).map(transform))];
+	if (entries.some((entry) => !entry)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Allowlist entries can't be empty",
+		});
+	}
+	return entries.length ? entries : null;
+};
+
+export const setSsoAllowlist = async (input: {
+	applicationId: string;
+	emails: string[] | null;
+	groups: string[] | null;
+	emailDomains: string[] | null;
+}) => {
+	await updateApplication(input.applicationId, {
+		ssoAllowedEmails: normalizeAllowlist(input.emails),
+		ssoAllowedGroups: normalizeAllowlist(input.groups),
+		ssoAllowedEmailDomains: normalizeAllowlist(input.emailDomains, (v) =>
+			v.replace(/^@/, ""),
+		),
+	});
+
+	const application = await findApplicationById(input.applicationId);
+	for (const domain of application.domains) {
+		if (domain.forwardAuthEnabled) {
+			await manageDomain(application, domain);
+		}
+	}
+
+	const previews = await findPreviewDeploymentsByApplicationId(
+		input.applicationId,
+	);
+	for (const preview of previews) {
+		if (preview.domain?.forwardAuthEnabled) {
+			await manageDomain(
+				{ ...application, appName: preview.appName },
+				preview.domain,
+			);
+		}
+	}
+
+	return application;
+};

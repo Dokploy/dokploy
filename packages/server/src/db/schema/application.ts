@@ -112,6 +112,9 @@ export const applications = pgTable("application", {
 	previewForwardAuthEnabled: boolean("previewForwardAuthEnabled")
 		.notNull()
 		.default(false),
+	ssoAllowedEmails: text("ssoAllowedEmails").array(),
+	ssoAllowedGroups: text("ssoAllowedGroups").array(),
+	ssoAllowedEmailDomains: text("ssoAllowedEmailDomains").array(),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
@@ -572,4 +575,7 @@ export const apiUpdateApplication = createSchema
 		serverId: true,
 		environmentId: true,
 		previewForwardAuthEnabled: true,
+		ssoAllowedEmails: true,
+		ssoAllowedGroups: true,
+		ssoAllowedEmailDomains: true,
 	});

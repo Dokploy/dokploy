@@ -2,6 +2,7 @@ import type { ApplicationNested, Domain } from "@dokploy/server";
 import {
 	assertPreviewMatchesAuthSettings,
 	buildForwardAuthEnv,
+	buildForwardAuthMiddlewares,
 	createRouterConfig,
 	deriveBaseDomain,
 	deriveCookieSecret,
@@ -98,6 +99,80 @@ describe("createRouterConfig forward-auth wiring", () => {
 		expect(config.middlewares).not.toContain(
 			forwardAuthMiddlewareName("my-app", 7),
 		);
+	});
+});
+
+describe("buildForwardAuthMiddlewares", () => {
+	const authGate = { authDomain: "auth.acme.com", https: true };
+	const noAllowlist = {
+		ssoAllowedEmails: null,
+		ssoAllowedGroups: null,
+		ssoAllowedEmailDomains: null,
+	};
+
+	test("without an allowlist keeps the original middlewares", () => {
+		const expected = {
+			"fa-1": {
+				forwardAuth: {
+					address: "https://auth.acme.com/oauth2/auth",
+					trustForwardHeader: true,
+					authResponseHeaders: [
+						"X-Auth-Request-User",
+						"X-Auth-Request-Email",
+						"X-Auth-Request-Preferred-Username",
+						"Authorization",
+					],
+				},
+			},
+			"fa-1-errors": {
+				errors: {
+					status: ["401-403"],
+					service: "forward-auth-proxy",
+					query: "/oauth2/sign_in?rd={url}",
+					statusRewrites: { "401": 302 },
+				},
+			},
+		};
+		expect(buildForwardAuthMiddlewares("fa-1", authGate, noAllowlist)).toEqual(
+			expected,
+		);
+		expect(
+			buildForwardAuthMiddlewares("fa-1", authGate, {
+				ssoAllowedEmails: [],
+				ssoAllowedGroups: [],
+				ssoAllowedEmailDomains: [],
+			}),
+		).toEqual(expected);
+	});
+
+	test("passes each non-empty list as an oauth2-proxy query param", () => {
+		const middlewares = buildForwardAuthMiddlewares("fa-1", authGate, {
+			ssoAllowedEmails: ["jane@acme.com", "John@acme.com"],
+			ssoAllowedGroups: ["engineering"],
+			ssoAllowedEmailDomains: null,
+		});
+		const forwardAuth = middlewares["fa-1"] as {
+			forwardAuth: { address: string };
+		};
+		const address = new URL(forwardAuth.forwardAuth.address);
+		expect(address.origin + address.pathname).toBe(
+			"https://auth.acme.com/oauth2/auth",
+		);
+		expect(address.searchParams.get("allowed_emails")).toBe(
+			"jane@acme.com,John@acme.com",
+		);
+		expect(address.searchParams.get("allowed_groups")).toBe("engineering");
+		expect(address.searchParams.has("allowed_email_domains")).toBe(false);
+	});
+
+	test("with an allowlist, 403s reach the browser instead of the sign-in redirect", () => {
+		const middlewares = buildForwardAuthMiddlewares("fa-1", authGate, {
+			...noAllowlist,
+			ssoAllowedEmailDomains: ["acme.com"],
+		});
+		expect(middlewares["fa-1-errors"]).toMatchObject({
+			errors: { status: ["401"] },
+		});
 	});
 });
 
