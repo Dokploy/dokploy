@@ -8,6 +8,7 @@ import {
 	FormProvider,
 	useFormContext,
 } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -145,7 +146,9 @@ const FormMessage = React.forwardRef<
 	React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
 	const { error, formMessageId } = useFormField();
-	const body = error ? String(error?.message) : children;
+	const { t } = useTranslation();
+	// Zod messages can be i18n keys; unknown keys are returned as-is by i18next.
+	const body = error ? t(String(error?.message)) : children;
 	if (!body) {
 		return null;
 	}
@@ -164,12 +167,12 @@ const FormMessage = React.forwardRef<
 FormMessage.displayName = "FormMessage";
 
 export {
-	useFormField,
 	Form,
-	FormItem,
-	FormLabel,
 	FormControl,
 	FormDescription,
-	FormMessage,
 	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+	useFormField,
 };

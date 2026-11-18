@@ -7,6 +7,7 @@ import {
 	XCircleIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 	const titleClassName = plainTitle
 		? "text-xl font-semibold tracking-tight"
 		: `${displayFont.className} text-4xl sm:text-5xl leading-[1.05] tracking-tight`;
+	const { t } = useTranslation();
 	const { data: isCloud = true } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const serverId = servers?.[0]?.serverId;
@@ -79,17 +81,17 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 			<div className="flex flex-col gap-8">
 				<div className="flex flex-col gap-4">
 					<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-						First deploy
+						{t("onboarding.deploy.eyebrow")}
 					</span>
-					<h1 className={titleClassName}>Deploy something.</h1>
+					<h1 className={titleClassName}>{t("onboarding.deploy.title")}</h1>
 				</div>
 				<AlertBlock type="info" className="max-w-md">
 					{isCloud
-						? "You'll need a project and a connected server before deploying — you can do that anytime from the dashboard."
-						: "You'll need a project before deploying — you can do that anytime from the dashboard."}
+						? t("onboarding.deploy.needProjectAndServer")
+						: t("onboarding.deploy.needProject")}
 				</AlertBlock>
 				<Button onClick={onNext} className="w-fit px-8">
-					Continue
+					{t("onboarding.deploy.continue")}
 				</Button>
 			</div>
 		);
@@ -102,7 +104,9 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 			setDeploying({ kind: "app", id: res.applicationId, url: res.domainUrl });
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error deploying the app",
+				error instanceof Error
+					? error.message
+					: t("onboarding.deploy.errorDeployingApp"),
 			);
 		} finally {
 			setStarting(null);
@@ -129,7 +133,9 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 			});
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error deploying the template",
+				error instanceof Error
+					? error.message
+					: t("onboarding.deploy.errorDeployingTemplate"),
 			);
 		} finally {
 			setStarting(null);
@@ -155,21 +161,25 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 						) : (
 							<Loader2 className="size-3.5 animate-spin" />
 						)}
-						{isDone ? "Live" : isError ? "Deploy failed" : "Deploying"}
+						{isDone
+							? t("onboarding.deploy.statusLive")
+							: isError
+								? t("onboarding.deploy.statusFailed")
+								: t("onboarding.deploy.statusDeploying")}
 					</span>
 					<h1 className={titleClassName}>
 						{isDone
-							? "It's live."
+							? t("onboarding.deploy.doneTitle")
 							: isError
-								? "Something went wrong."
-								: "Building your app..."}
+								? t("onboarding.deploy.failedTitle")
+								: t("onboarding.deploy.buildingTitle")}
 					</h1>
 					<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
 						{isDone
-							? "Your app is up and reachable at:"
+							? t("onboarding.deploy.doneSubtitle")
 							: isError
-								? "The deployment failed — you can check the logs from the dashboard later."
-								: "This usually takes a minute or two the first time."}
+								? t("onboarding.deploy.failedSubtitle")
+								: t("onboarding.deploy.buildingSubtitle")}
 					</p>
 				</div>
 
@@ -178,7 +188,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 						<div className="flex items-center gap-2 px-5 py-3 border-b bg-muted/30">
 							<span className="size-2 rounded-full bg-green-500 shrink-0" />
 							<span className="font-mono text-xs text-muted-foreground">
-								Reachable now
+								{t("onboarding.deploy.reachableNow")}
 							</span>
 						</div>
 						<div className="flex items-center justify-between gap-3 p-5">
@@ -191,7 +201,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 									size="icon"
 									onClick={() => {
 										copy(deploying.url);
-										toast.success("Copied to clipboard");
+										toast.success(t("onboarding.deploy.copied"));
 									}}
 								>
 									<CopyIcon className="size-4" />
@@ -208,7 +218,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 					<div className="rounded-2xl border p-5 max-w-md">
 						<div className="flex items-center gap-3 text-sm text-muted-foreground">
 							<Loader2 className="size-4 animate-spin shrink-0" />
-							Waiting for the build to finish...
+							{t("onboarding.deploy.waitingBuild")}
 						</div>
 					</div>
 				) : null}
@@ -218,7 +228,7 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 					className="w-fit px-8"
 					disabled={!isDone && !isError}
 				>
-					Continue
+					{t("onboarding.deploy.continue")}
 				</Button>
 			</div>
 		);
@@ -228,11 +238,11 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 		<div className="flex flex-col gap-10">
 			<div className="flex flex-col gap-4">
 				<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-					First deploy
+					{t("onboarding.deploy.eyebrow")}
 				</span>
-				<h1 className={titleClassName}>Ship something.</h1>
+				<h1 className={titleClassName}>{t("onboarding.deploy.shipTitle")}</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					Pick a quickstart — we'll generate a domain and deploy it for you.
+					{t("onboarding.deploy.shipSubtitle")}
 				</p>
 			</div>
 
@@ -244,28 +254,32 @@ export const DeployStep = ({ environmentId, onNext, plainTitle }: Props) => {
 					className="flex flex-col items-start justify-between gap-8 bg-background p-7 text-left hover:bg-muted/40 transition-colors disabled:opacity-60"
 				>
 					<div>
-						<p className="font-medium">Simple app</p>
+						<p className="font-medium">
+							{t("onboarding.deploy.simpleAppTitle")}
+						</p>
 						<p className="text-sm text-muted-foreground mt-1">
-							A "Hello World" demo app, live in seconds.
+							{t("onboarding.deploy.simpleAppDescription")}
 						</p>
 					</div>
 					<span className="font-mono text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
 						{starting === "nginx" ? (
 							<>
 								<Loader2 className="size-3.5 animate-spin" />
-								Starting...
+								{t("onboarding.deploy.starting")}
 							</>
 						) : (
-							"Deploy now →"
+							t("onboarding.deploy.deployNow")
 						)}
 					</span>
 				</button>
 
 				<div className="flex flex-col justify-between gap-8 bg-background p-7">
 					<div>
-						<p className="font-medium">Docker Compose template</p>
+						<p className="font-medium">
+							{t("onboarding.deploy.templateTitle")}
+						</p>
 						<p className="text-sm text-muted-foreground mt-1">
-							Popular open source stacks, one click away.
+							{t("onboarding.deploy.templateDescription")}
 						</p>
 					</div>
 					<div className="flex flex-col gap-2">

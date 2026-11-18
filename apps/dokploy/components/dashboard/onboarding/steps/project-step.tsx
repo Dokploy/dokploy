@@ -1,5 +1,6 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { api } from "@/utils/api";
 import { displayFont } from "../font";
 
 const schema = z.object({
-	name: z.string().min(1, "Name is required"),
+	name: z.string().min(1, "onboarding.errors.nameRequired"),
 	description: z.string().optional(),
 });
 type Schema = z.infer<typeof schema>;
@@ -33,6 +34,7 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 	const titleClassName = plainTitle
 		? "text-xl font-semibold tracking-tight"
 		: `${displayFont.className} text-4xl sm:text-5xl leading-[1.05] tracking-tight`;
+	const { t } = useTranslation();
 	const { mutateAsync, isPending } = api.project.create.useMutation();
 	const utils = api.useUtils();
 
@@ -45,14 +47,16 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 		try {
 			const result = await mutateAsync(data);
 			await utils.project.all.invalidate();
-			toast.success("Project created");
+			toast.success(t("onboarding.project.created"));
 			onNext({
 				projectId: result.project.projectId,
 				environmentId: result.environment?.environmentId ?? "",
 			});
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error creating the project",
+				error instanceof Error
+					? error.message
+					: t("onboarding.project.errorCreating"),
 			);
 		}
 	};
@@ -61,11 +65,11 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 		<div className="flex flex-col gap-10">
 			<div className="flex flex-col gap-4">
 				<span className="font-mono text-xs uppercase tracking-[0.2em] text-primary">
-					Workspace
+					{t("onboarding.project.eyebrow")}
 				</span>
-				<h1 className={titleClassName}>Create your first project.</h1>
+				<h1 className={titleClassName}>{t("onboarding.project.title")}</h1>
 				<p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-					Projects group your apps, databases, and environments together.
+					{t("onboarding.project.subtitle")}
 				</p>
 			</div>
 
@@ -79,9 +83,12 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 						name="name"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Name</FormLabel>
+								<FormLabel>{t("onboarding.project.name")}</FormLabel>
 								<FormControl>
-									<Input placeholder="My First Project" {...field} />
+									<Input
+										placeholder={t("onboarding.project.namePlaceholder")}
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -92,10 +99,10 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 						name="description"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Description (optional)</FormLabel>
+								<FormLabel>{t("onboarding.project.description")}</FormLabel>
 								<FormControl>
 									<Textarea
-										placeholder="What is this project for?"
+										placeholder={t("onboarding.project.descriptionPlaceholder")}
 										className="resize-none"
 										{...field}
 									/>
@@ -109,7 +116,7 @@ export const ProjectStep = ({ onNext, plainTitle }: Props) => {
 						isLoading={isPending}
 						className="w-fit px-8 mt-2"
 					>
-						Create project
+						{t("onboarding.project.create")}
 					</Button>
 				</form>
 			</Form>

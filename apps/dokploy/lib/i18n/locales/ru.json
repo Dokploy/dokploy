@@ -1,0 +1,294 @@
+{
+	"common": {
+		"cancel": "Отмена",
+		"back": "Назад",
+		"verify": "Проверить",
+		"email": "Email",
+		"password": "Пароль",
+		"role": "Роль"
+	},
+	"language": {
+		"label": "Язык"
+	},
+	"sidebar": {
+		"groups": {
+			"home": "Главная",
+			"settings": "Настройки",
+			"extra": "Дополнительно"
+		},
+		"items": {
+			"home": "Главная",
+			"projects": "Проекты",
+			"overview": "Обзор",
+			"monitoring": "Мониторинг",
+			"schedules": "Расписания",
+			"sandboxes": "Песочницы",
+			"traefikFileSystem": "Файловая система Traefik",
+			"docker": "Docker",
+			"requests": "Запросы"
+		},
+		"settings": {
+			"webServer": "Веб-сервер",
+			"profile": "Профиль",
+			"sessions": "Сессии",
+			"remoteServers": "Удалённые серверы",
+			"deployments": "Развёртывания",
+			"users": "Пользователи",
+			"auditLogs": "Журнал аудита",
+			"sshKeys": "SSH-ключи",
+			"ai": "AI",
+			"tags": "Теги",
+			"git": "Git",
+			"registry": "Реестр",
+			"logsMetrics": "Логи и метрики",
+			"secrets": "Секреты",
+			"dnsProviders": "DNS-провайдеры",
+			"s3Destinations": "S3-хранилища",
+			"certificates": "Сертификаты",
+			"notifications": "Уведомления",
+			"billing": "Биллинг",
+			"license": "Лицензия",
+			"sso": "SSO",
+			"whitelabeling": "Whitelabeling"
+		},
+		"help": {
+			"documentation": "Документация",
+			"support": "Поддержка"
+		},
+		"organizations": {
+			"selectOrganization": "Выберите организацию",
+			"searchPlaceholder": "Поиск организаций...",
+			"noOrganizationsFound": "Организации не найдены.",
+			"heading": "Организации",
+			"enterprise": "Enterprise",
+			"defaultOrganization": "Организация по умолчанию",
+			"setAsDefault": "Сделать по умолчанию",
+			"defaultUpdated": "Организация по умолчанию обновлена",
+			"errorSettingDefault": "Ошибка при установке организации по умолчанию",
+			"deleteOrganization": "Удалить организацию",
+			"deleteConfirm": "Вы уверены, что хотите удалить эту организацию?",
+			"deletedSuccessfully": "Организация успешно удалена",
+			"errorDeleting": "Ошибка при удалении организации"
+		},
+		"invitations": {
+			"title": "Ожидающие приглашения",
+			"expires": "Истекает",
+			"role": "Роль",
+			"acceptTitle": "Принять приглашение",
+			"acceptConfirm": "Вы уверены, что хотите принять это приглашение?",
+			"acceptButton": "Принять приглашение",
+			"acceptedSuccessfully": "Приглашение успешно принято",
+			"errorAccepting": "Ошибка при принятии приглашения",
+			"noInvitations": "Нет ожидающих приглашений"
+		},
+		"version": "Версия {{version}}"
+	},
+	"userNav": {
+		"account": "Аккаунт",
+		"myAccount": "Мой аккаунт",
+		"profile": "Профиль",
+		"projects": "Проекты",
+		"monitoring": "Мониторинг",
+		"traefik": "Traefik",
+		"docker": "Docker",
+		"servers": "Серверы",
+		"billing": "Биллинг",
+		"logOut": "Выйти"
+	},
+	"auth": {
+		"signIn": {
+			"title": "Вход",
+			"subtitle": "Введите email и пароль для входа",
+			"login": "Войти",
+			"signInWithPasskey": "Войти с Passkey",
+			"createAccount": "Создать аккаунт",
+			"lostPassword": "Забыли пароль?",
+			"goBackToLogin": "Вернуться ко входу"
+		},
+		"twoFactor": {
+			"code": "Код 2FA",
+			"enterCodeHint": "Введите 6-значный код из приложения-аутентификатора",
+			"lostAuthenticator": "Потеряли доступ к приложению-аутентификатору?",
+			"enterBackupCode": "Введите резервный код",
+			"enterBackupCodeDescription": "Введите один из резервных кодов для доступа к аккаунту",
+			"backupCode": "Резервный код",
+			"backupCodePlaceholder": "Введите резервный код",
+			"backupCodeHint": "Введите один из резервных кодов, полученных при настройке 2FA",
+			"invalidCode": "Введите корректный 6-значный код",
+			"invalidBackupCode": "Введите корректный резервный код"
+		},
+		"forgotPassword": {
+			"description": "Чтобы сбросить пароль, обратитесь к администратору. Он поможет вам восстановить доступ к аккаунту.",
+			"getSupport": "Обратиться в поддержку"
+		},
+		"register": {
+			"cloudTitle": "Создайте аккаунт Dokploy",
+			"setupTitle": "Настройка сервера",
+			"cloudSubtitle": "Разворачивайте приложения на собственном сервере. Настройка займёт около 5 минут.",
+			"setupSubtitle": "Введите email и пароль для настройки сервера",
+			"serverHint": "Вам понадобится сервер (VPS), на который Dokploy будет разворачивать приложения. Сервера пока нет? Мы поможем получить его на Hostinger, Hetzner, Contabo или DigitalOcean.",
+			"orRegisterWithEmail": "Или зарегистрируйтесь по email",
+			"firstName": "Имя",
+			"lastName": "Фамилия",
+			"confirmPassword": "Подтвердите пароль",
+			"createAccount": "Создать аккаунт",
+			"register": "Зарегистрироваться",
+			"trialHint": "7 дней бесплатно. Пробный период начнётся при подключении первого сервера. Выбор тарифа и карты пока не требуется.",
+			"alreadyHaveAccount": "Уже есть аккаунт?",
+			"signIn": "Войти",
+			"needHelp": "Нужна помощь?",
+			"contactUs": "Связаться с нами",
+			"registeredSuccessfully": "Регистрация успешно завершена. Проверьте входящие письма или папку «Спам», чтобы подтвердить аккаунт."
+		},
+		"resetPassword": {
+			"title": "Сброс пароля",
+			"subtitle": "Введите email для сброса пароля",
+			"sendResetLink": "Отправить ссылку для сброса",
+			"emailSent": "Письмо отправлено",
+			"newPassword": "Новый пароль",
+			"confirmPassword": "Подтвердите пароль",
+			"enterNewPassword": "Введите новый пароль ниже, чтобы сбросить его",
+			"confirm": "Подтвердить",
+			"passwordResetSuccess": "Пароль успешно сброшен"
+		},
+		"errors": {
+			"firstNameRequired": "Имя обязательно",
+			"lastNameRequired": "Фамилия обязательна",
+			"emailRequired": "Email обязателен",
+			"emailTooLong": "Email должен быть не длиннее 255 символов",
+			"emailInvalid": "Email должен быть корректным адресом",
+			"passwordRequired": "Пароль обязателен",
+			"passwordMin": "Пароль должен содержать минимум 8 символов",
+			"passwordsMismatch": "Пароли не совпадают",
+			"loginFailed": "Произошла ошибка при входе",
+			"passkeyFailed": "Не удалось войти с помощью passkey",
+			"passkeyFailedGeneric": "Произошла ошибка при входе с помощью passkey",
+			"twoFactorFailed": "Произошла ошибка при проверке кода 2FA",
+			"backupCodeFailed": "Произошла ошибка при проверке резервного кода",
+			"emailNotVerified": "Ваш email не подтверждён. Мы отправили новую ссылку для подтверждения на вашу почту.",
+			"accountNotLinked": "Этот аккаунт уже существует, но ещё не связан с данным провайдером входа. Обратитесь к администратору, чтобы связать их.",
+			"accessDenied": "Доступ запрещён провайдером идентификации.",
+			"signInFailed": "Не удалось завершить вход. Попробуйте снова или обратитесь к администратору.",
+			"generic": "Произошла ошибка"
+		},
+		"success": {
+			"loggedIn": "Вход выполнен успешно",
+			"enter2FA": "Введите ваш код 2FA",
+			"userRegistered": "Пользователь успешно зарегистрирован"
+		}
+	},
+	"dashboard": {
+		"home": {
+			"welcomeBack": "С возвращением, {{name}}",
+			"welcomeBackPlain": "С возвращением",
+			"goToProjects": "Перейти к проектам",
+			"statProjects": "Проекты",
+			"statServices": "Сервисы",
+			"statDeploys": "Развёртывания / 7д",
+			"status": "Статус",
+			"running": "работают",
+			"errored": "с ошибками",
+			"idle": "простаивают",
+			"recentDeployments": "Последние развёртывания",
+			"viewAll": "смотреть все →",
+			"noDeploymentsPermission": "У вас нет прав для просмотра развёртываний.",
+			"noDeploymentsYet": "Развёртываний пока нет.",
+			"logs": "логи →",
+			"environments_one": "{{count}} окружение",
+			"environments_few": "{{count}} окружения",
+			"environments_many": "{{count}} окружений",
+			"environments_other": "{{count}} окружений",
+			"servicesSummary": "{{applications}} приложений · {{compose}} compose · {{databases}} бд",
+			"deploysDeltaVsPrev": "{{pct}}% против прошлых 7 дней",
+			"deploysNoPriorData": "нет данных за прошлый период",
+			"deploysNoActivityYet": "активности пока нет"
+		}
+	},
+	"onboarding": {
+		"steps": {
+			"welcome": "Знакомство",
+			"project": "Новый проект",
+			"ship": "Разворачиваем",
+			"complete": "Вы запустились"
+		},
+		"wizard": {
+			"skipAll": "Пропустить всё",
+			"skipTitle": "Пропустить онбординг?",
+			"skipDescription": "Если вы используете Dokploy впервые, рекомендуем пройти эти шаги — это займёт пару минут и поможет понять, как проекты, серверы и развёртывания работают вместе.",
+			"continueSetup": "Продолжить настройку",
+			"skipAnyway": "Всё равно пропустить"
+		},
+		"welcome": {
+			"eyebrow": "Знакомство",
+			"titlePlain": "Запускайте первое",
+			"titleAccent": "приложение",
+			"subtitle": "Всего несколько шагов: создайте проект и разверните приложение. В конце вы получите рабочий URL.",
+			"getStarted": "Начать",
+			"gitDockerTitle": "Развёртывание из Git или Docker",
+			"gitDockerDescription": "Отправьте репозиторий, compose-файл или образ контейнера — и вы в сети.",
+			"templatesTitle": "Шаблоны в один клик",
+			"templatesDescription": "WordPress, базы данных и десятки open source-приложений — уже настроены.",
+			"serversTitle": "Собственные серверы",
+			"serversDescription": "Работает на вашей инфраструктуре — никакой привязки к вендору."
+		},
+		"project": {
+			"eyebrow": "Рабочее пространство",
+			"title": "Создайте первый проект.",
+			"subtitle": "Проекты объединяют ваши приложения, базы данных и окружения.",
+			"name": "Название",
+			"description": "Описание (необязательно)",
+			"namePlaceholder": "Мой первый проект",
+			"descriptionPlaceholder": "Для чего этот проект?",
+			"create": "Создать проект",
+			"created": "Проект создан",
+			"errorCreating": "Ошибка при создании проекта"
+		},
+		"errors": {
+			"nameRequired": "Название обязательно"
+		},
+		"complete": {
+			"eyebrow": "Готово",
+			"title": "Всё готово.",
+			"subtitle": "Это только начало — вот что ещё можно сделать.",
+			"databasesTitle": "Базы данных",
+			"databasesDescription": "Postgres, MySQL, MongoDB, Redis и другие — в один клик.",
+			"domainsTitle": "Собственные домены",
+			"domainsDescription": "Подключайте свои домены и получайте автоматический HTTPS.",
+			"cicdTitle": "CI/CD",
+			"cicdDescription": "Автоматическое развёртывание при каждом пуше из GitHub, GitLab или Bitbucket.",
+			"teamTitle": "Командная работа",
+			"teamDescription": "Приглашайте коллег с гибкими правами доступа.",
+			"goToProject": "Перейти к проекту",
+			"readDocs": "Читать документацию"
+		},
+		"deploy": {
+			"eyebrow": "Первое развёртывание",
+			"title": "Разворачиваем приложение.",
+			"shipTitle": "Разворачиваем первое приложение.",
+			"shipSubtitle": "Выберите быстрый старт — мы создадим домен и развернём всё за вас.",
+			"needProjectAndServer": "Перед развёртыванием нужны проект и подключённый сервер — это можно сделать в любой момент из дашборда.",
+			"needProject": "Перед развёртыванием нужен проект — это можно сделать в любой момент из дашборда.",
+			"continue": "Продолжить",
+			"statusLive": "Работает",
+			"statusFailed": "Ошибка развёртывания",
+			"statusDeploying": "Разворачивается",
+			"doneTitle": "Приложение запущено.",
+			"failedTitle": "Что-то пошло не так.",
+			"buildingTitle": "Собираем приложение...",
+			"doneSubtitle": "Приложение доступно по адресу:",
+			"failedSubtitle": "Развёртывание не удалось — логи можно посмотреть в дашборде позже.",
+			"buildingSubtitle": "В первый раз это обычно занимает минуту-две.",
+			"reachableNow": "Уже доступен",
+			"copied": "Скопировано в буфер обмена",
+			"waitingBuild": "Ожидаем завершения сборки...",
+			"simpleAppTitle": "Простое приложение",
+			"simpleAppDescription": "Демо-приложение «Hello World» — работает через секунды.",
+			"starting": "Запуск...",
+			"deployNow": "Развернуть →",
+			"templateTitle": "Шаблон Docker Compose",
+			"templateDescription": "Популярные open source-стеки в один клик.",
+			"errorDeployingApp": "Ошибка при развёртывании приложения",
+			"errorDeployingTemplate": "Ошибка при развёртывании шаблона"
+		}
+	}
+}

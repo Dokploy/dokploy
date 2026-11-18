@@ -1,0 +1,292 @@
+{
+	"common": {
+		"cancel": "Cancel",
+		"back": "Back",
+		"verify": "Verify",
+		"email": "Email",
+		"password": "Password",
+		"role": "Role"
+	},
+	"language": {
+		"label": "Language"
+	},
+	"sidebar": {
+		"groups": {
+			"home": "Home",
+			"settings": "Settings",
+			"extra": "Extra"
+		},
+		"items": {
+			"home": "Home",
+			"projects": "Projects",
+			"overview": "Overview",
+			"monitoring": "Monitoring",
+			"schedules": "Schedules",
+			"sandboxes": "Sandboxes",
+			"traefikFileSystem": "Traefik File System",
+			"docker": "Docker",
+			"requests": "Requests"
+		},
+		"settings": {
+			"webServer": "Web Server",
+			"profile": "Profile",
+			"sessions": "Sessions",
+			"remoteServers": "Remote Servers",
+			"deployments": "Deployments",
+			"users": "Users",
+			"auditLogs": "Audit Logs",
+			"sshKeys": "SSH Keys",
+			"ai": "AI",
+			"tags": "Tags",
+			"git": "Git",
+			"registry": "Registry",
+			"logsMetrics": "Logs & Metrics",
+			"secrets": "Secrets",
+			"dnsProviders": "DNS Providers",
+			"s3Destinations": "S3 Destinations",
+			"certificates": "Certificates",
+			"notifications": "Notifications",
+			"billing": "Billing",
+			"license": "License",
+			"sso": "SSO",
+			"whitelabeling": "Whitelabeling"
+		},
+		"help": {
+			"documentation": "Documentation",
+			"support": "Support"
+		},
+		"organizations": {
+			"selectOrganization": "Select Organization",
+			"searchPlaceholder": "Search organizations...",
+			"noOrganizationsFound": "No organizations found.",
+			"heading": "Organizations",
+			"enterprise": "Enterprise",
+			"defaultOrganization": "Default organization",
+			"setAsDefault": "Set as default",
+			"defaultUpdated": "Default organization updated",
+			"errorSettingDefault": "Error setting default organization",
+			"deleteOrganization": "Delete Organization",
+			"deleteConfirm": "Are you sure you want to delete this organization?",
+			"deletedSuccessfully": "Organization deleted successfully",
+			"errorDeleting": "Error deleting organization"
+		},
+		"invitations": {
+			"title": "Pending Invitations",
+			"expires": "Expires",
+			"role": "Role",
+			"acceptTitle": "Accept Invitation",
+			"acceptConfirm": "Are you sure you want to accept this invitation?",
+			"acceptButton": "Accept Invitation",
+			"acceptedSuccessfully": "Invitation accepted successfully",
+			"errorAccepting": "Error accepting invitation",
+			"noInvitations": "No pending invitations"
+		},
+		"version": "Version {{version}}"
+	},
+	"userNav": {
+		"account": "Account",
+		"myAccount": "My Account",
+		"profile": "Profile",
+		"projects": "Projects",
+		"monitoring": "Monitoring",
+		"traefik": "Traefik",
+		"docker": "Docker",
+		"servers": "Servers",
+		"billing": "Billing",
+		"logOut": "Log out"
+	},
+	"auth": {
+		"signIn": {
+			"title": "Sign in",
+			"subtitle": "Enter your email and password to sign in",
+			"login": "Login",
+			"signInWithPasskey": "Sign in with Passkey",
+			"createAccount": "Create an account",
+			"lostPassword": "Lost your password?",
+			"goBackToLogin": "Go back to login"
+		},
+		"twoFactor": {
+			"code": "2FA Code",
+			"enterCodeHint": "Enter the 6-digit code from your authenticator app",
+			"lostAuthenticator": "Lost access to your authenticator app?",
+			"enterBackupCode": "Enter Backup Code",
+			"enterBackupCodeDescription": "Enter one of your backup codes to access your account",
+			"backupCode": "Backup Code",
+			"backupCodePlaceholder": "Enter your backup code",
+			"backupCodeHint": "Enter one of the backup codes you received when setting up 2FA",
+			"invalidCode": "Please enter a valid 6-digit code",
+			"invalidBackupCode": "Please enter a valid backup code"
+		},
+		"forgotPassword": {
+			"description": "To reset your password, please contact your administrator. They will help you regain access to your account.",
+			"getSupport": "Get Support"
+		},
+		"register": {
+			"cloudTitle": "Create your Dokploy account",
+			"setupTitle": "Setup the server",
+			"cloudSubtitle": "Deploy apps to a server you own. Setup takes about 5 minutes.",
+			"setupSubtitle": "Enter your email and password to setup the server",
+			"serverHint": "You'll need a server (VPS) for Dokploy to deploy to. No server yet? We'll help you get one from Hostinger, Hetzner, Contabo or DigitalOcean.",
+			"orRegisterWithEmail": "Or register with email",
+			"firstName": "First Name",
+			"lastName": "Last Name",
+			"confirmPassword": "Confirm Password",
+			"createAccount": "Create account",
+			"register": "Register",
+			"trialHint": "Free for 7 days. Your trial starts when your first server connects. No card or plan to choose yet.",
+			"alreadyHaveAccount": "Already have account?",
+			"signIn": "Sign in",
+			"needHelp": "Need help?",
+			"contactUs": "Contact us",
+			"registeredSuccessfully": "Registered successfully, please check your inbox or spam folder to confirm your account."
+		},
+		"resetPassword": {
+			"title": "Reset Password",
+			"subtitle": "Enter your email to reset your password",
+			"sendResetLink": "Send Reset Link",
+			"emailSent": "Email sent",
+			"newPassword": "New Password",
+			"confirmPassword": "Confirm Password",
+			"enterNewPassword": "Enter your new password below to reset it",
+			"confirm": "Confirm",
+			"passwordResetSuccess": "Password reset successfully"
+		},
+		"errors": {
+			"firstNameRequired": "First name is required",
+			"lastNameRequired": "Last name is required",
+			"emailRequired": "Email is required",
+			"emailTooLong": "Email must be at most 255 characters",
+			"emailInvalid": "Email must be a valid email",
+			"passwordRequired": "Password is required",
+			"passwordMin": "Password must be at least 8 characters",
+			"passwordsMismatch": "Passwords do not match",
+			"loginFailed": "An error occurred while logging in",
+			"passkeyFailed": "Failed to sign in with passkey",
+			"passkeyFailedGeneric": "An error occurred while signing in with passkey",
+			"twoFactorFailed": "An error occurred while verifying 2FA code",
+			"backupCodeFailed": "An error occurred while verifying backup code",
+			"emailNotVerified": "Your email is not verified. We've sent a new verification link to your email.",
+			"accountNotLinked": "This account already exists but isn't linked to that sign-in provider yet. Contact your administrator to link it.",
+			"accessDenied": "Access was denied by the identity provider.",
+			"signInFailed": "We couldn't complete sign-in. Please try again or contact your administrator.",
+			"generic": "An error occurred"
+		},
+		"success": {
+			"loggedIn": "Logged in successfully",
+			"enter2FA": "Please enter your 2FA code",
+			"userRegistered": "User registered successfully"
+		}
+	},
+	"dashboard": {
+		"home": {
+			"welcomeBack": "Welcome back, {{name}}",
+			"welcomeBackPlain": "Welcome back",
+			"goToProjects": "Go to projects",
+			"statProjects": "Projects",
+			"statServices": "Services",
+			"statDeploys": "Deploys / 7d",
+			"status": "Status",
+			"running": "running",
+			"errored": "errored",
+			"idle": "idle",
+			"recentDeployments": "Recent deployments",
+			"viewAll": "view all →",
+			"noDeploymentsPermission": "You do not have permission to view deployments.",
+			"noDeploymentsYet": "No deployments yet.",
+			"logs": "logs →",
+			"environments_one": "{{count}} environment",
+			"environments_other": "{{count}} environments",
+			"servicesSummary": "{{applications}} apps · {{compose}} compose · {{databases}} db",
+			"deploysDeltaVsPrev": "{{pct}}% vs prev 7d",
+			"deploysNoPriorData": "no prior data",
+			"deploysNoActivityYet": "no activity yet"
+		}
+	},
+	"onboarding": {
+		"steps": {
+			"welcome": "Welcome",
+			"project": "New project",
+			"ship": "Ship something",
+			"complete": "You're live"
+		},
+		"wizard": {
+			"skipAll": "Skip all",
+			"skipTitle": "Skip onboarding?",
+			"skipDescription": "If this is your first time using Dokploy, we recommend going through these steps – it only takes a couple of minutes and gives you a feel for how projects, servers, and deployments fit together.",
+			"continueSetup": "Continue setup",
+			"skipAnyway": "Skip anyway"
+		},
+		"welcome": {
+			"eyebrow": "Welcome",
+			"titlePlain": "Let's get your first app",
+			"titleAccent": "live",
+			"subtitle": "It just takes a few steps: create a project and ship something. You'll have a working URL by the end.",
+			"getStarted": "Get started",
+			"gitDockerTitle": "Deploy from Git or Docker",
+			"gitDockerDescription": "Push a repo, a compose file, or a container image and go live.",
+			"templatesTitle": "One-click templates",
+			"templatesDescription": "WordPress, databases, and dozens of open source apps, pre-wired.",
+			"serversTitle": "Your own servers",
+			"serversDescription": "Runs on infrastructure you control — no vendor lock-in."
+		},
+		"project": {
+			"eyebrow": "Workspace",
+			"title": "Create your first project.",
+			"subtitle": "Projects group your apps, databases, and environments together.",
+			"name": "Name",
+			"description": "Description (optional)",
+			"namePlaceholder": "My First Project",
+			"descriptionPlaceholder": "What is this project for?",
+			"create": "Create project",
+			"created": "Project created",
+			"errorCreating": "Error creating the project"
+		},
+		"errors": {
+			"nameRequired": "Name is required"
+		},
+		"complete": {
+			"eyebrow": "Done",
+			"title": "You're all set.",
+			"subtitle": "This is just the beginning — here's some of what else you can do.",
+			"databasesTitle": "Databases",
+			"databasesDescription": "Postgres, MySQL, MongoDB, Redis and more, one click away.",
+			"domainsTitle": "Custom domains",
+			"domainsDescription": "Attach your own domains and get automatic HTTPS.",
+			"cicdTitle": "CI/CD",
+			"cicdDescription": "Auto-deploy on every push from GitHub, GitLab or Bitbucket.",
+			"teamTitle": "Team collaboration",
+			"teamDescription": "Invite teammates with fine-grained permissions.",
+			"goToProject": "Go to my project",
+			"readDocs": "Read the docs"
+		},
+		"deploy": {
+			"eyebrow": "First deploy",
+			"title": "Deploy something.",
+			"shipTitle": "Ship something.",
+			"shipSubtitle": "Pick a quickstart — we'll generate a domain and deploy it for you.",
+			"needProjectAndServer": "You'll need a project and a connected server before deploying — you can do that anytime from the dashboard.",
+			"needProject": "You'll need a project before deploying — you can do that anytime from the dashboard.",
+			"continue": "Continue",
+			"statusLive": "Live",
+			"statusFailed": "Deploy failed",
+			"statusDeploying": "Deploying",
+			"doneTitle": "It's live.",
+			"failedTitle": "Something went wrong.",
+			"buildingTitle": "Building your app...",
+			"doneSubtitle": "Your app is up and reachable at:",
+			"failedSubtitle": "The deployment failed — you can check the logs from the dashboard later.",
+			"buildingSubtitle": "This usually takes a minute or two the first time.",
+			"reachableNow": "Reachable now",
+			"copied": "Copied to clipboard",
+			"waitingBuild": "Waiting for the build to finish...",
+			"simpleAppTitle": "Simple app",
+			"simpleAppDescription": "A \"Hello World\" demo app, live in seconds.",
+			"starting": "Starting...",
+			"deployNow": "Deploy now →",
+			"templateTitle": "Docker Compose template",
+			"templateDescription": "Popular open source stacks, one click away.",
+			"errorDeployingApp": "Error deploying the app",
+			"errorDeployingTemplate": "Error deploying the template"
+		}
+	}
+}

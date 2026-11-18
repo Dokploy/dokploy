@@ -6,10 +6,12 @@ import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Analytics } from "@/components/shared/analytics";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import i18n from "@/lib/i18n/config";
 import { api } from "@/utils/api";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,6 +23,12 @@ export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
 
 type AppPropsWithLayout = AppProps & {
 	Component: NextPageWithLayout;
+};
+
+const AppProviders = ({ children }: { children: ReactNode }) => {
+	useTranslation();
+
+	return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
 };
 
 const MyApp = ({
@@ -46,11 +54,13 @@ const MyApp = ({
 					disableTransitionOnChange
 					forcedTheme={Component.theme}
 				>
-					<NextTopLoader color="hsl(var(--sidebar-ring))" />
-					<Analytics />
-					<Toaster richColors />
-					<SearchCommand />
-					{getLayout(<Component {...pageProps} />)}
+					<AppProviders>
+						<NextTopLoader color="hsl(var(--sidebar-ring))" />
+						<Analytics />
+						<Toaster richColors />
+						<SearchCommand />
+						{getLayout(<Component {...pageProps} />)}
+					</AppProviders>
 				</ThemeProvider>
 			</TooltipProvider>
 		</>

@@ -44,6 +44,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { TruncateTooltip } from "@/components/shared/truncate-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -170,19 +171,19 @@ const MENU: Menu = {
 	home: [
 		{
 			isSingle: true,
-			title: "Home",
+			title: "sidebar.items.home",
 			url: "/dashboard/home",
 			icon: House,
 		},
 		{
 			isSingle: true,
-			title: "Projects",
+			title: "sidebar.items.projects",
 			url: "/dashboard/projects",
 			icon: Folder,
 		},
 		{
 			isSingle: true,
-			title: "Overview",
+			title: "sidebar.items.overview",
 			url: "/dashboard/overview",
 			icon: LayoutGrid,
 			// Only enabled for users with access to services
@@ -190,7 +191,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Monitoring",
+			title: "sidebar.items.monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments (product decision) and if user has monitoring.read and docker.read
@@ -201,21 +202,21 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Schedules",
+			title: "sidebar.items.schedules",
 			url: "/dashboard/schedules",
 			icon: Clock,
 			isEnabled: ({ permissions }) => !!permissions?.organization.update,
 		},
 		{
 			isSingle: true,
-			title: "Sandboxes",
+			title: "sidebar.items.sandboxes",
 			url: "/dashboard/sandboxes",
 			icon: Box,
 			isEnabled: ({ permissions }) => !!permissions?.sandbox.read,
 		},
 		{
 			isSingle: true,
-			title: "Traefik File System",
+			title: "sidebar.items.traefikFileSystem",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			// Only enabled for users with access to Traefik files
@@ -223,7 +224,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Docker",
+			title: "sidebar.items.docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
 			// Only enabled for users with access to Docker
@@ -231,7 +232,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Requests",
+			title: "sidebar.items.requests",
 			url: "/dashboard/requests",
 			icon: Forward,
 			// Only enabled for users with access to Docker in non-cloud environments
@@ -299,7 +300,7 @@ const MENU: Menu = {
 	settings: [
 		{
 			isSingle: true,
-			title: "Web Server",
+			title: "sidebar.settings.webServer",
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
@@ -308,26 +309,26 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Profile",
+			title: "sidebar.settings.profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
 		},
 		{
 			isSingle: true,
-			title: "Sessions",
+			title: "sidebar.settings.sessions",
 			icon: Smartphone,
 			url: "/dashboard/settings/sessions",
 		},
 		{
 			isSingle: true,
-			title: "Remote Servers",
+			title: "sidebar.settings.remoteServers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			isEnabled: ({ permissions }) => !!permissions?.server.read,
 		},
 		{
 			isSingle: true,
-			title: "Deployments",
+			title: "sidebar.settings.deployments",
 			url: "/dashboard/settings/deployments",
 			icon: Boxes,
 			isEnabled: ({ permissions, isCloud }) =>
@@ -335,7 +336,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Users",
+			title: "sidebar.settings.users",
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for users with member.read permission
@@ -343,21 +344,21 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Audit Logs",
+			title: "sidebar.settings.auditLogs",
 			icon: ClipboardList,
 			url: "/dashboard/settings/audit-logs",
 			isEnabled: ({ permissions }) => !!permissions?.auditLog.read,
 		},
 		{
 			isSingle: true,
-			title: "SSH Keys",
+			title: "sidebar.settings.sshKeys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for users with access to SSH keys
 			isEnabled: ({ permissions }) => !!permissions?.sshKeys.read,
 		},
 		{
-			title: "AI",
+			title: "sidebar.settings.ai",
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
@@ -371,14 +372,14 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Tags",
+			title: "sidebar.settings.tags",
 			url: "/dashboard/settings/tags",
 			icon: Tags,
 			isEnabled: ({ permissions }) => !!permissions?.tag.read,
 		},
 		{
 			isSingle: true,
-			title: "Git",
+			title: "sidebar.settings.git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
 			// Only enabled for users with access to Git providers
@@ -386,35 +387,35 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Registry",
+			title: "sidebar.settings.registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			isEnabled: ({ permissions }) => !!permissions?.registry.read,
 		},
 		{
 			isSingle: true,
-			title: "Logs & Metrics",
+			title: "sidebar.settings.logsMetrics",
 			url: "/dashboard/settings/logs-and-metrics",
 			icon: ScrollText,
 			isEnabled: ({ permissions }) => !!permissions?.telemetryProvider.read,
 		},
 		{
 			isSingle: true,
-			title: "Secrets",
+			title: "sidebar.settings.secrets",
 			url: "/dashboard/settings/secrets",
 			icon: Vault,
 			isEnabled: ({ permissions }) => !!permissions?.vaultProvider.create,
 		},
 		{
 			isSingle: true,
-			title: "DNS Providers",
+			title: "sidebar.settings.dnsProviders",
 			url: "/dashboard/settings/dns",
 			icon: Globe,
 			isEnabled: ({ permissions }) => !!permissions?.dnsProvider.read,
 		},
 		{
 			isSingle: true,
-			title: "S3 Destinations",
+			title: "sidebar.settings.s3Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: HardDrive,
 			isEnabled: ({ permissions }) => !!permissions?.destination.read,
@@ -422,14 +423,14 @@ const MENU: Menu = {
 
 		{
 			isSingle: true,
-			title: "Certificates",
+			title: "sidebar.settings.certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			isEnabled: ({ permissions }) => !!permissions?.certificate.read,
 		},
 		{
 			isSingle: true,
-			title: "Notifications",
+			title: "sidebar.settings.notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			// Only enabled for users with access to notifications
@@ -437,7 +438,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Billing",
+			title: "sidebar.settings.billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
 			// Only enabled for owners in cloud environments
@@ -445,7 +446,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "License",
+			title: "sidebar.settings.license",
 			url: "/dashboard/settings/license",
 			icon: Key,
 			// Only enabled for owners
@@ -453,7 +454,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "SSO",
+			title: "sidebar.settings.sso",
 			url: "/dashboard/settings/sso",
 			icon: LogIn,
 			// Enabled for admins in both cloud and self-hosted (enterprise)
@@ -461,7 +462,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Whitelabeling",
+			title: "sidebar.settings.whitelabeling",
 			url: "/dashboard/settings/whitelabeling",
 			icon: Palette,
 			// Only enabled for owners in non-cloud environments (enterprise)
@@ -471,12 +472,12 @@ const MENU: Menu = {
 
 	help: [
 		{
-			name: "Documentation",
+			name: "sidebar.help.documentation",
 			url: "https://docs.dokploy.com/docs/core",
 			icon: BookIcon,
 		},
 		{
-			name: "Support",
+			name: "sidebar.help.support",
 			url: "https://discord.gg/2tBnJ3jDJc",
 			icon: CircleHelp,
 		},
@@ -515,10 +516,16 @@ function createMenuForAuthUser(opts: {
 
 	// Apply whitelabeling URL overrides to help items
 	const helpItems = filterEnabled(MENU.help).map((item) => {
-		if (opts.whitelabeling?.docsUrl && item.name === "Documentation") {
+		if (
+			opts.whitelabeling?.docsUrl &&
+			item.name === "sidebar.help.documentation"
+		) {
 			return { ...item, url: opts.whitelabeling.docsUrl };
 		}
-		if (opts.whitelabeling?.supportUrl && item.name === "Support") {
+		if (
+			opts.whitelabeling?.supportUrl &&
+			item.name === "sidebar.help.support"
+		) {
 			return { ...item, url: opts.whitelabeling.supportUrl };
 		}
 		return item;
@@ -594,6 +601,7 @@ function LogoWrapper() {
 }
 
 function SidebarLogo() {
+	const { t } = useTranslation();
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
@@ -684,13 +692,14 @@ function SidebarLogo() {
 											<div className="flex items-center gap-1.5 min-w-0 w-full">
 												<TruncateTooltip
 													text={
-														activeOrganization?.name ?? "Select Organization"
+														activeOrganization?.name ??
+														t("sidebar.organizations.selectOrganization")
 													}
 													className="text-sm font-medium"
 												/>
 												{haveValidLicense && (
 													<Badge variant="blue" className="shrink-0">
-														Enterprise
+														{t("sidebar.organizations.enterprise")}
 													</Badge>
 												)}
 											</div>
@@ -709,12 +718,14 @@ function SidebarLogo() {
 							>
 								<Command>
 									<CommandInput
-										placeholder="Search organizations..."
+										placeholder={t("sidebar.organizations.searchPlaceholder")}
 										className="h-9"
 									/>
 									<CommandList className="max-h-[min(60vh,24rem)]">
-										<CommandEmpty>No organizations found.</CommandEmpty>
-										<CommandGroup heading="Organizations">
+										<CommandEmpty>
+											{t("sidebar.organizations.noOrganizationsFound")}
+										</CommandEmpty>
+										<CommandGroup heading={t("sidebar.organizations.heading")}>
 											{organizations?.map((org) => {
 												const isDefault = org.members?.[0]?.isDefault ?? false;
 												return (
@@ -768,20 +779,26 @@ function SidebarLogo() {
 																		.then(() => {
 																			refetch();
 																			toast.success(
-																				"Default organization updated",
+																				t(
+																					"sidebar.organizations.defaultUpdated",
+																				),
 																			);
 																		})
 																		.catch((error) => {
 																			toast.error(
 																				error?.message ||
-																					"Error setting default organization",
+																					t(
+																						"sidebar.organizations.errorSettingDefault",
+																					),
 																			);
 																		});
 																}}
 																title={
 																	isDefault
-																		? "Default organization"
-																		: "Set as default"
+																		? t(
+																				"sidebar.organizations.defaultOrganization",
+																			)
+																		: t("sidebar.organizations.setAsDefault")
 																}
 															>
 																{isDefault ? (
@@ -802,8 +819,12 @@ function SidebarLogo() {
 																<>
 																	<AddOrganization organizationId={org.id} />
 																	<DialogAction
-																		title="Delete Organization"
-																		description="Are you sure you want to delete this organization?"
+																		title={t(
+																			"sidebar.organizations.deleteOrganization",
+																		)}
+																		description={t(
+																			"sidebar.organizations.deleteConfirm",
+																		)}
 																		type="destructive"
 																		onClick={async () => {
 																			await deleteOrganization({
@@ -812,13 +833,17 @@ function SidebarLogo() {
 																				.then(() => {
 																					refetch();
 																					toast.success(
-																						"Organization deleted successfully",
+																						t(
+																							"sidebar.organizations.deletedSuccessfully",
+																						),
 																					);
 																				})
 																				.catch((error) => {
 																					toast.error(
 																						error?.message ||
-																							"Error deleting organization",
+																							t(
+																								"sidebar.organizations.errorDeleting",
+																							),
 																					);
 																				});
 																		}}
@@ -877,7 +902,9 @@ function SidebarLogo() {
 								side={"right"}
 								className="w-80"
 							>
-								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
+								<DropdownMenuLabel>
+									{t("sidebar.invitations.title")}
+								</DropdownMenuLabel>
 								<div className="flex flex-col gap-2">
 									{invitations && invitations.length > 0 ? (
 										invitations.map((invitation) => (
@@ -890,16 +917,16 @@ function SidebarLogo() {
 														{invitation?.organization?.name}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Expires:{" "}
+														{t("sidebar.invitations.expires")}:{" "}
 														{new Date(invitation.expiresAt).toLocaleString()}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Role: {invitation.role}
+														{t("sidebar.invitations.role")}: {invitation.role}
 													</div>
 												</DropdownMenuItem>
 												<DialogAction
-													title="Accept Invitation"
-													description="Are you sure you want to accept this invitation?"
+													title={t("sidebar.invitations.acceptTitle")}
+													description={t("sidebar.invitations.acceptConfirm")}
 													type="default"
 													onClick={async () => {
 														const { error } =
@@ -909,24 +936,27 @@ function SidebarLogo() {
 
 														if (error) {
 															toast.error(
-																error.message || "Error accepting invitation",
+																error.message ||
+																	t("sidebar.invitations.errorAccepting"),
 															);
 														} else {
-															toast.success("Invitation accepted successfully");
+															toast.success(
+																t("sidebar.invitations.acceptedSuccessfully"),
+															);
 															await refetchInvitations();
 															await refetch();
 														}
 													}}
 												>
 													<Button size="sm" variant="secondary">
-														Accept Invitation
+														{t("sidebar.invitations.acceptButton")}
 													</Button>
 												</DialogAction>
 											</div>
 										))
 									) : (
 										<DropdownMenuItem disabled>
-											No pending invitations
+											{t("sidebar.invitations.noInvitations")}
 										</DropdownMenuItem>
 									)}
 								</div>
@@ -953,6 +983,7 @@ function MobileCloser() {
 }
 
 export default function Page({ children }: Props) {
+	const { t } = useTranslation();
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,
 	);
@@ -1029,7 +1060,7 @@ export default function Page({ children }: Props) {
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
-						<SidebarGroupLabel>Home</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("sidebar.groups.home")}</SidebarGroupLabel>
 						<SidebarMenu>
 							{filteredHome.map((item) => {
 								const isSingle = item.isSingle !== false;
@@ -1050,7 +1081,7 @@ export default function Page({ children }: Props) {
 											{isSingle ? (
 												<SidebarMenuButton
 													asChild
-													tooltip={item.title}
+													tooltip={t(item.title)}
 													className={cn(isActive && "bg-border")}
 												>
 													<Link
@@ -1062,19 +1093,19 @@ export default function Page({ children }: Props) {
 																className={cn(isActive && "text-primary")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span>{t(item.title)}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
 												<>
 													<CollapsibleTrigger asChild>
 														<SidebarMenuButton
-															tooltip={item.title}
+															tooltip={t(item.title)}
 															isActive={isActive}
 														>
 															{item.icon && <item.icon />}
 
-															<span>{item.title}</span>
+															<span>{t(item.title)}</span>
 															{item.items?.length && (
 																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
 															)}
@@ -1102,7 +1133,7 @@ export default function Page({ children }: Props) {
 																					/>
 																				</span>
 																			)}
-																			<span>{subItem.title}</span>
+																			<span>{t(subItem.title)}</span>
 																		</Link>
 																	</SidebarMenuSubButton>
 																</SidebarMenuSubItem>
@@ -1118,7 +1149,9 @@ export default function Page({ children }: Props) {
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup>
-						<SidebarGroupLabel>Settings</SidebarGroupLabel>
+						<SidebarGroupLabel>
+							{t("sidebar.groups.settings")}
+						</SidebarGroupLabel>
 						<SidebarMenu className="gap-1">
 							{filteredSettings.map((item) => {
 								const isSingle = item.isSingle !== false;
@@ -1139,7 +1172,7 @@ export default function Page({ children }: Props) {
 											{isSingle ? (
 												<SidebarMenuButton
 													asChild
-													tooltip={item.title}
+													tooltip={t(item.title)}
 													className={cn(isActive && "bg-border")}
 												>
 													<Link
@@ -1151,19 +1184,19 @@ export default function Page({ children }: Props) {
 																className={cn(isActive && "text-primary")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span>{t(item.title)}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
 												<>
 													<CollapsibleTrigger asChild>
 														<SidebarMenuButton
-															tooltip={item.title}
+															tooltip={t(item.title)}
 															isActive={isActive}
 														>
 															{item.icon && <item.icon />}
 
-															<span>{item.title}</span>
+															<span>{t(item.title)}</span>
 															{item.items?.length && (
 																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
 															)}
@@ -1191,7 +1224,7 @@ export default function Page({ children }: Props) {
 																					/>
 																				</span>
 																			)}
-																			<span>{subItem.title}</span>
+																			<span>{t(subItem.title)}</span>
 																		</Link>
 																	</SidebarMenuSubButton>
 																</SidebarMenuSubItem>
@@ -1207,7 +1240,7 @@ export default function Page({ children }: Props) {
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-						<SidebarGroupLabel>Extra</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("sidebar.groups.extra")}</SidebarGroupLabel>
 						<SidebarMenu>
 							{help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
@@ -1221,7 +1254,7 @@ export default function Page({ children }: Props) {
 											<span className="mr-2">
 												<item.icon className="h-4 w-4" />
 											</span>
-											<span>{item.name}</span>
+											<span>{t(item.name)}</span>
 										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
@@ -1246,7 +1279,7 @@ export default function Page({ children }: Props) {
 						)}
 						{dokployVersion && (
 							<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
-								Version {dokployVersion}
+								{t("sidebar.version", { version: dokployVersion })}
 							</div>
 						)}
 					</SidebarMenu>
@@ -1269,7 +1302,7 @@ export default function Page({ children }: Props) {
 													href={activeItem?.url || "/"}
 													className="flex items-center gap-1.5"
 												>
-													{activeItem?.title}
+													{activeItem?.title && t(activeItem.title)}
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>

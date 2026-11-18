@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
@@ -33,20 +34,20 @@ const loginSchema = z
 		password: z
 			.string()
 			.min(1, {
-				message: "Password is required",
+				message: "auth.errors.passwordRequired",
 			})
 			.regex(STRONG_PASSWORD_REGEX, STRONG_PASSWORD_MESSAGE),
 		confirmPassword: z
 			.string()
 			.min(1, {
-				message: "Password is required",
+				message: "auth.errors.passwordRequired",
 			})
 			.min(8, {
-				message: "Password must be at least 8 characters",
+				message: "auth.errors.passwordMin",
 			}),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
+		message: "auth.errors.passwordsMismatch",
 		path: ["confirmPassword"],
 	});
 
@@ -57,6 +58,7 @@ interface Props {
 }
 export default function Home({ tokenResetPassword }: Props) {
 	const { config: whitelabeling } = useWhitelabelingPublic();
+	const { t } = useTranslation();
 	const [token, setToken] = useState<string | null>(tokenResetPassword);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -89,9 +91,9 @@ export default function Home({ tokenResetPassword }: Props) {
 		});
 
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("auth.errors.generic"));
 		} else {
-			toast.success("Password reset successfully");
+			toast.success(t("auth.resetPassword.passwordResetSuccess"));
 			router.push("/");
 		}
 		setIsLoading(false);
@@ -115,10 +117,10 @@ export default function Home({ tokenResetPassword }: Props) {
 							}
 						/>
 					</Link>
-					Reset Password
+					{t("auth.resetPassword.title")}
 				</CardTitle>
 				<CardDescription>
-					Enter your email to reset your password
+					{t("auth.resetPassword.enterNewPassword")}
 				</CardDescription>
 
 				<div className="w-full">
@@ -140,7 +142,7 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="password"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Password</FormLabel>
+												<FormLabel>{t("common.password")}</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
@@ -157,7 +159,9 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="confirmPassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Confirm Password</FormLabel>
+												<FormLabel>
+													{t("auth.resetPassword.confirmPassword")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
@@ -175,12 +179,12 @@ export default function Home({ tokenResetPassword }: Props) {
 										isLoading={isLoading}
 										className="w-full"
 									>
-										Confirm
+										{t("auth.resetPassword.confirm")}
 									</Button>
 								</div>
 
 								<div className="text-center text-sm flex gap-2 text-muted-foreground">
-									<Link href="/">Sign in</Link>
+									<Link href="/">{t("auth.register.signIn")}</Link>
 								</div>
 							</form>
 						</Form>

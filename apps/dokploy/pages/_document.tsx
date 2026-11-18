@@ -8,6 +8,18 @@ import NextDocument, {
 	NextScript,
 } from "next/document";
 
+// Keep in sync with LOCALE_COOKIE_NAME / SUPPORTED_LANGUAGES in lib/i18n/config.ts.
+const LOCALE_COOKIE_NAME = "dokploy-lang";
+const SUPPORTED_LANGS = ["en", "ru"];
+
+function getLangFromCookies(cookieHeader: string | undefined): string {
+	const match = cookieHeader
+		?.split("; ")
+		.find((row) => row.startsWith(`${LOCALE_COOKIE_NAME}=`));
+	const lang = match?.split("=")[1];
+	return lang && SUPPORTED_LANGS.includes(lang) ? lang : "en";
+}
+
 interface WhitelabelingDocumentProps {
 	appName: string | null;
 	appDescription: string | null;
@@ -18,6 +30,10 @@ interface WhitelabelingDocumentProps {
 	baseUrl: string;
 }
 
+interface LocaleDocumentProps {
+	lang: string;
+}
+
 export default function Document({
 	appName,
 	appDescription,
@@ -26,7 +42,8 @@ export default function Document({
 	faviconLightHref,
 	customCss,
 	baseUrl,
-}: WhitelabelingDocumentProps) {
+	lang,
+}: WhitelabelingDocumentProps & LocaleDocumentProps) {
 	const title = appName || "Dokploy";
 	const description =
 		appDescription || "The Open Source alternative to Netlify, Vercel, Heroku.";
@@ -37,7 +54,7 @@ export default function Document({
 	}
 
 	return (
-		<Html lang="en" className="font-sans">
+		<Html lang={lang} className="font-sans">
 			<Head>
 				{/* Rendered on the server so the correct branding is present on first
 				    paint (and for social scrapers), avoiding a flash of / fallback to
@@ -95,8 +112,12 @@ declare global {
 
 Document.getInitialProps = async (
 	ctx: DocumentContext,
-): Promise<DocumentInitialProps & WhitelabelingDocumentProps> => {
+): Promise<
+	DocumentInitialProps & WhitelabelingDocumentProps & LocaleDocumentProps
+> => {
 	const initialProps = await NextDocument.getInitialProps(ctx);
+
+	const lang = getLangFromCookies(ctx.req?.headers?.cookie);
 
 	let appName: string | null = null;
 	let appDescription: string | null = null;
@@ -118,6 +139,7 @@ Document.getInitialProps = async (
 			...initialProps,
 			...globalThis.__SETTINGS_CACHE.data,
 			baseUrl,
+			lang,
 		};
 	}
 
@@ -159,5 +181,6 @@ Document.getInitialProps = async (
 		faviconLightHref,
 		customCss,
 		baseUrl,
+		lang,
 	};
 };

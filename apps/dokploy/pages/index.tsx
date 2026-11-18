@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
@@ -62,6 +63,7 @@ interface Props {
 }
 export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const router = useRouter();
+	const { t } = useTranslation();
 	const { config: whitelabeling } = useWhitelabelingPublic();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -97,10 +99,10 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 
 		setError(
 			normalized.includes("account not linked")
-				? "This account already exists but isn't linked to that sign-in provider yet. Contact your administrator to link it."
+				? t("auth.errors.accountNotLinked")
 				: normalized.includes("access denied")
-					? "Access was denied by the identity provider."
-					: "We couldn't complete sign-in. Please try again or contact your administrator.",
+					? t("auth.errors.accessDenied")
+					: t("auth.errors.signInFailed"),
 		);
 
 		const { error: _removed, ...rest } = router.query;
@@ -123,28 +125,27 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					error.code === "EMAIL_NOT_VERIFIED" ||
 					error.message?.toLowerCase().includes("email not verified");
 				if (isEmailNotVerified) {
-					const msg =
-						"Your email is not verified. We've sent a new verification link to your email.";
+					const msg = t("auth.errors.emailNotVerified");
 					toast.info(msg);
 					setError(msg);
 					return;
 				}
 				toast.error(error.message);
-				setError(error.message || "An error occurred while logging in");
+				setError(error.message || t("auth.errors.loginFailed"));
 				return;
 			}
 
 			if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
 				setTwoFactorCode("");
 				setIsTwoFactor(true);
-				toast.info("Please enter your 2FA code");
+				toast.info(t("auth.success.enter2FA"));
 				return;
 			}
 
-			toast.success("Logged in successfully");
+			toast.success(t("auth.success.loggedIn"));
 			router.push("/dashboard/home");
 		} catch {
-			toast.error("An error occurred while logging in");
+			toast.error(t("auth.errors.loginFailed"));
 		} finally {
 			setIsLoginLoading(false);
 		}
@@ -160,18 +161,18 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 					errorCode !== "AUTH_CANCELLED" &&
 					errorCode !== "ERROR_CEREMONY_ABORTED"
 				) {
-					toast.error(error.message || "Failed to sign in with passkey");
-					setError(error.message || "Failed to sign in with passkey");
+					toast.error(error.message || t("auth.errors.passkeyFailed"));
+					setError(error.message || t("auth.errors.passkeyFailed"));
 				}
 				return;
 			}
 
 			if (data) {
-				toast.success("Logged in successfully");
+				toast.success(t("auth.success.loggedIn"));
 				router.push("/dashboard/home");
 			}
 		} catch {
-			toast.error("An error occurred while signing in with passkey");
+			toast.error(t("auth.errors.passkeyFailedGeneric"));
 		} finally {
 			setIsPasskeyLoading(false);
 		}
@@ -180,7 +181,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const onTwoFactorSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (twoFactorCode.length !== 6) {
-			toast.error("Please enter a valid 6-digit code");
+			toast.error(t("auth.twoFactor.invalidCode"));
 			return;
 		}
 		await verifyTwoFactorCode(twoFactorCode);
@@ -195,14 +196,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 
 			if (error) {
 				toast.error(error.message);
-				setError(error.message || "An error occurred while verifying 2FA code");
+				setError(error.message || t("auth.errors.twoFactorFailed"));
 				return;
 			}
 
-			toast.success("Logged in successfully");
+			toast.success(t("auth.success.loggedIn"));
 			router.push("/dashboard/home");
 		} catch {
-			toast.error("An error occurred while verifying 2FA code");
+			toast.error(t("auth.errors.twoFactorFailed"));
 		} finally {
 			setIsTwoFactorLoading(false);
 		}
@@ -211,7 +212,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 	const onBackupCodeSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (backupCode.length < 8) {
-			toast.error("Please enter a valid backup code");
+			toast.error(t("auth.twoFactor.invalidBackupCode"));
 			return;
 		}
 
@@ -223,16 +224,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 
 			if (error) {
 				toast.error(error.message);
-				setError(
-					error.message || "An error occurred while verifying backup code",
-				);
+				setError(error.message || t("auth.errors.backupCodeFailed"));
 				return;
 			}
 
-			toast.success("Logged in successfully");
+			toast.success(t("auth.success.loggedIn"));
 			router.push("/dashboard/home");
 		} catch {
-			toast.error("An error occurred while verifying backup code");
+			toast.error(t("auth.errors.backupCodeFailed"));
 		} finally {
 			setIsBackupCodeLoading(false);
 		}
@@ -254,7 +253,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						name="email"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Email</FormLabel>
+								<FormLabel>{t("common.email")}</FormLabel>
 								<FormControl>
 									<Input placeholder="john@example.com" {...field} />
 								</FormControl>
@@ -267,7 +266,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						name="password"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Password</FormLabel>
+								<FormLabel>{t("common.password")}</FormLabel>
 								<FormControl>
 									<Input
 										type="password"
@@ -280,7 +279,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						)}
 					/>
 					<Button className="w-full" type="submit" isLoading={isLoginLoading}>
-						Login
+						{t("auth.signIn.login")}
 					</Button>
 				</form>
 			</Form>
@@ -292,7 +291,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 				isLoading={isPasskeyLoading}
 			>
 				<Fingerprint className="size-4" />
-				Sign in with Passkey
+				{t("auth.signIn.signInWithPasskey")}
 			</Button>
 		</>
 	);
@@ -301,10 +300,12 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 		<div className="flex flex-col gap-4">
 			<p className="text-sm text-muted-foreground whitespace-pre-line">
 				{whitelabeling?.passwordResetGuide ||
-					"To reset your password, please contact your administrator. They will help you regain access to your account."}
+					t("auth.forgotPassword.description")}
 			</p>
 			<Button className="w-full" asChild>
-				<a href={`mailto:${whitelabeling?.supportEmail}`}>Get Support</a>
+				<a href={`mailto:${whitelabeling?.supportEmail}`}>
+					{t("auth.forgotPassword.getSupport")}
+				</a>
 			</Button>
 		</div>
 	);
@@ -327,11 +328,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								undefined
 							}
 						/>
-						Sign in
+						{t("auth.signIn.title")}
 					</div>
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					Enter your email and password to sign in
+					{t("auth.signIn.subtitle")}
 				</p>
 			</div>
 			{error && (
@@ -364,7 +365,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 							autoComplete="on"
 						>
 							<div className="flex flex-col gap-2">
-								<Label htmlFor="totp-code">2FA Code</Label>
+								<Label htmlFor="totp-code">{t("auth.twoFactor.code")}</Label>
 								{/* Visible input so password managers can autofill it */}
 								<div className="group relative isolate w-56">
 									<Input
@@ -404,14 +405,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									</div>
 								</div>
 								<CardDescription>
-									Enter the 6-digit code from your authenticator app
+									{t("auth.twoFactor.enterCodeHint")}
 								</CardDescription>
 								<button
 									type="button"
 									onClick={() => setIsBackupCodeModalOpen(true)}
 									className="text-sm text-muted-foreground hover:underline self-start mt-2"
 								>
-									Lost access to your authenticator app?
+									{t("auth.twoFactor.lostAuthenticator")}
 								</button>
 							</div>
 
@@ -425,14 +426,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 										setTwoFactorCode("");
 									}}
 								>
-									Back
+									{t("common.back")}
 								</Button>
 								<Button
 									className="w-full"
 									type="submit"
 									isLoading={isTwoFactorLoading}
 								>
-									Verify
+									{t("common.verify")}
 								</Button>
 							</div>
 						</form>
@@ -443,9 +444,11 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 						>
 							<DialogContent>
 								<DialogHeader>
-									<DialogTitle>Enter Backup Code</DialogTitle>
+									<DialogTitle>
+										{t("auth.twoFactor.enterBackupCode")}
+									</DialogTitle>
 									<DialogDescription>
-										Enter one of your backup codes to access your account
+										{t("auth.twoFactor.enterBackupCodeDescription")}
 									</DialogDescription>
 								</DialogHeader>
 
@@ -455,16 +458,15 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 									className="space-y-4"
 								>
 									<div className="flex flex-col gap-2">
-										<Label>Backup Code</Label>
+										<Label>{t("auth.twoFactor.backupCode")}</Label>
 										<Input
 											value={backupCode}
 											onChange={(e) => setBackupCode(e.target.value)}
-											placeholder="Enter your backup code"
+											placeholder={t("auth.twoFactor.backupCodePlaceholder")}
 											className="font-mono"
 										/>
 										<CardDescription>
-											Enter one of the backup codes you received when setting up
-											2FA
+											{t("auth.twoFactor.backupCodeHint")}
 										</CardDescription>
 									</div>
 
@@ -478,14 +480,14 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 												setBackupCode("");
 											}}
 										>
-											Cancel
+											{t("common.cancel")}
 										</Button>
 										<Button
 											className="w-full"
 											type="submit"
 											isLoading={isBackupCodeLoading}
 										>
-											Verify
+											{t("common.verify")}
 										</Button>
 									</div>
 								</form>
@@ -501,7 +503,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								className="hover:underline text-muted-foreground"
 								href="/register"
 							>
-								Create an account
+								{t("auth.signIn.createAccount")}
 							</Link>
 						)}
 					</div>
@@ -512,7 +514,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								className="hover:underline text-muted-foreground"
 								href="/send-reset-password"
 							>
-								Lost your password?
+								{t("auth.signIn.lostPassword")}
 							</Link>
 						) : hasCustomPasswordReset && !isTwoFactor ? (
 							<button
@@ -521,8 +523,8 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								onClick={() => setShowForgotPassword((prev) => !prev)}
 							>
 								{showForgotPassword
-									? "Go back to login"
-									: "Lost your password?"}
+									? t("auth.signIn.goBackToLogin")
+									: t("auth.signIn.lostPassword")}
 							</button>
 						) : !hasCustomPasswordReset ? (
 							<Link
@@ -530,7 +532,7 @@ export default function Home({ IS_CLOUD, enforceSSO }: Props) {
 								href="https://docs.dokploy.com/docs/core/reset-password"
 								target="_blank"
 							>
-								Lost your password?
+								{t("auth.signIn.lostPassword")}
 							</Link>
 						) : null}
 					</div>
