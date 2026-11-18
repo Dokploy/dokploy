@@ -6,6 +6,7 @@ import {
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestIdForGithub,
 	IS_CLOUD,
+	matchesTag,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
@@ -137,6 +138,10 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
+				if (!matchesTag(app.tagFilter, tagName)) {
+					continue;
+				}
+
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
@@ -176,6 +181,10 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
+				if (!matchesTag(composeApp.tagFilter, tagName)) {
+					continue;
+				}
+
 				const jobData: DeploymentJob = {
 					composeId: composeApp.composeId as string,
 					titleLog: deploymentTitle,
