@@ -15,6 +15,7 @@ import {
 	loadDockerComposeRemote,
 } from "@dokploy/server/utils/docker/domain";
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
@@ -173,11 +174,16 @@ export const loadServices = async (
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
-		const command = await cloneCompose(compose);
-		if (compose.serverId) {
-			await execAsyncRemote(compose.serverId, command);
-		} else {
-			await execAsync(command);
+		const staging = createContentStaging(compose.serverId);
+		try {
+			const command = await cloneCompose(compose, staging);
+			if (compose.serverId) {
+				await execAsyncRemote(compose.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+		} finally {
+			await staging.cleanup();
 		}
 	}
 
@@ -246,6 +252,7 @@ export const deployCompose = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	const staging = createContentStaging(compose.serverId);
 
 	try {
 		const entity = {
@@ -260,11 +267,11 @@ export const deployCompose = async ({
 		} else if (compose.sourceType === "bitbucket") {
 			command += await cloneBitbucketRepository(entity);
 		} else if (compose.sourceType === "git") {
-			command += await cloneGitRepository(entity);
+			command += await cloneGitRepository(entity, staging);
 		} else if (compose.sourceType === "gitea") {
 			command += await cloneGiteaRepository(entity);
 		} else if (compose.sourceType === "raw") {
-			command += getCreateComposeFileCommand(entity);
+			command += await getCreateComposeFileCommand(entity, staging);
 		}
 
 		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -279,6 +286,7 @@ export const deployCompose = async ({
 				id: compose.composeId,
 				type: "compose",
 				serverId: compose.serverId,
+				staging,
 			});
 			commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (compose.serverId) {
@@ -299,7 +307,7 @@ export const deployCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(entity);
+		command += await getBuildComposeCommand(entity, staging);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -342,6 +350,7 @@ export const deployCompose = async ({
 		});
 		throw error;
 	} finally {
+		await staging.cleanup();
 		if (compose.sourceType !== "raw") {
 			const commitInfo = await getGitCommitInfo({
 				...compose,
@@ -375,11 +384,12 @@ export const rebuildCompose = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	const staging = createContentStaging(compose.serverId);
 
 	try {
 		let command = "set -e;";
 		if (compose.sourceType === "raw") {
-			command += getCreateComposeFileCommand(compose);
+			command += await getCreateComposeFileCommand(compose, staging);
 		}
 
 		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
@@ -395,6 +405,7 @@ export const rebuildCompose = async ({
 				id: compose.composeId,
 				type: "compose",
 				serverId: compose.serverId,
+				staging,
 			});
 			commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (compose.serverId) {
@@ -415,7 +426,7 @@ export const rebuildCompose = async ({
 		}
 
 		command = "set -e;";
-		command += await getBuildComposeCommand(compose);
+		command += await getBuildComposeCommand(compose, staging);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
@@ -434,6 +445,8 @@ export const rebuildCompose = async ({
 			composeStatus: "error",
 		});
 		throw error;
+	} finally {
+		await staging.cleanup();
 	}
 
 	return true;

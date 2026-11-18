@@ -10,6 +10,7 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { getBuildErrorMessage } from "@dokploy/server/utils/notifications/build-error-message";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
@@ -197,6 +198,7 @@ export const deployApplication = async ({
 		title: titleLog,
 		description: descriptionLog,
 	});
+	const staging = createContentStaging(serverId);
 
 	try {
 		let command = "set -e;";
@@ -209,7 +211,7 @@ export const deployApplication = async ({
 		} else if (application.sourceType === "bitbucket") {
 			command += await cloneBitbucketRepository(applicationEntity);
 		} else if (application.sourceType === "git") {
-			command += await cloneGitRepository(applicationEntity);
+			command += await cloneGitRepository(applicationEntity, staging);
 		} else if (application.sourceType === "docker") {
 			command += await buildRemoteDocker(application);
 		}
@@ -219,6 +221,7 @@ export const deployApplication = async ({
 				id: application.applicationId,
 				type: "application",
 				serverId,
+				staging,
 			});
 		}
 
@@ -265,6 +268,7 @@ export const deployApplication = async ({
 
 		throw error;
 	} finally {
+		await staging.cleanup();
 		// Only extract commit info for non-docker sources
 		if (application.sourceType !== "docker") {
 			const commitInfo = await getGitCommitInfo({

@@ -1,3 +1,4 @@
+import { stageContent } from "@dokploy/server/utils/filesystem/write-content";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -136,13 +137,14 @@ export const writeVolumeFile = async (
 		throw new Error("File is too large to save from the editor (max 512KB)");
 	}
 
-	const innerCommand = `printf '%s' ${base64Content} | base64 -d > ${quote([`${VOLUME_MOUNT}${filePath}`])}`;
-	const command = `docker run --rm -v ${quote([`${volumeName}:${VOLUME_MOUNT}`])} busybox sh -c ${quote([innerCommand])}`;
-
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
+	const staged = await stageContent(serverId, content);
+	try {
+		const innerCommand = `cat > ${quote([`${VOLUME_MOUNT}${filePath}`])}`;
+		const command = `docker run --rm -i -v ${quote([`${volumeName}:${VOLUME_MOUNT}`])} busybox sh -c ${quote([innerCommand])} < ${quote([staged.path])}`;
+		if (serverId) await execAsyncRemote(serverId, command);
+		else await execAsync(command);
+	} finally {
+		await staged.cleanup();
 	}
 };
 

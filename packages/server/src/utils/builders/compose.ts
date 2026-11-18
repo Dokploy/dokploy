@@ -5,11 +5,11 @@ import boxen from "boxen";
 import { quote } from "shell-quote";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
-	encodeBase64,
 	getEnvironmentVariablesObject,
 	prepareEnvironmentVariables,
 	prepareEnvironmentVariablesForFile,
 } from "../docker/utils";
+import type { ContentStaging } from "../filesystem/write-content";
 import { withResolvedVaultRefs } from "../vault";
 
 export type ComposeNested = InferResultType<
@@ -17,7 +17,10 @@ export type ComposeNested = InferResultType<
 	{ environment: { with: { project: true } }; mounts: true; domains: true }
 >;
 
-export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
+export const getBuildComposeCommand = async (
+	rawCompose: ComposeNested,
+	staging: ContentStaging,
+) => {
 	const compose = await withResolvedVaultRefs(rawCompose);
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
@@ -27,9 +30,9 @@ export const getBuildComposeCommand = async (rawCompose: ComposeNested) => {
 		mounts.length > 0 ? projectPath : undefined,
 	);
 	const envCommand = compose.createEnvFile
-		? getCreateEnvFileCommand(compose)
+		? await getCreateEnvFileCommand(compose, staging)
 		: "";
-	const exportEnvCommand = getExportEnvCommand(compose);
+	const exportEnvCommand = await getExportEnvCommand(compose, staging);
 
 	const newCompose = await writeDomainsToCompose(compose, domains);
 	const logContent = `
@@ -148,7 +151,10 @@ export const createCommand = (compose: ComposeNested, projectPath?: string) => {
 	return command;
 };
 
-export const getCreateEnvFileCommand = (compose: ComposeNested) => {
+export const getCreateEnvFileCommand = async (
+	compose: ComposeNested,
+	staging: ContentStaging,
+) => {
 	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
@@ -182,14 +188,17 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 				)
 	).join("\n");
 
-	const encodedContent = encodeBase64(envFileContent);
+	const stagedPath = await staging.stage(envFileContent);
 	return `
-touch ${quote([envFilePath])};
-echo "${encodedContent}" | base64 -d > ${quote([envFilePath])};
+touch ${quote([envFilePath])} || exit 1;
+cat ${quote([stagedPath])} > ${quote([envFilePath])} || exit 1;
 	`;
 };
 
-const getExportEnvCommand = (compose: ComposeNested) => {
+export const getExportEnvCommand = async (
+	compose: ComposeNested,
+	staging: ContentStaging,
+) => {
 	if (compose.composeType !== "stack") return "";
 
 	const envVars = getEnvironmentVariablesObject(
@@ -197,9 +206,9 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 		compose.environment.project.env,
 		compose.environment.env,
 	);
-	const exports = Object.entries(envVars)
-		.map(([key, value]) => `${key}=${quote([value])}`)
-		.join(" ");
-
-	return exports ? `${exports}` : "";
+	const entries = Object.entries(envVars);
+	if (entries.length === 0) return "";
+	const content = `set -- ${quote(entries.map(([key, value]) => `${key}=${value}`))} "$@"`;
+	const stagedPath = await staging.stage(content);
+	return `sh -c ${quote([`. ${quote([stagedPath])} || exit 1; exec env -i PATH="$PATH" HOME="$HOME" "$@"`])} sh`;
 };

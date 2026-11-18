@@ -1,7 +1,7 @@
 import { prepareEnvironmentVariables } from "@dokploy/server/index";
 import { encryptValue } from "@dokploy/server/lib/encryption";
 import { getCreateEnvFileCommand } from "@dokploy/server/utils/builders/compose";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const projectEnv = `
 ENVIRONMENT=staging
@@ -276,7 +276,7 @@ describe("prepareEnvironmentVariables with undecryptable values", () => {
 		).toThrow(/could not be decrypted/);
 	});
 
-	it("fails the compose .env file for an undecryptable service env", () => {
+	it("fails the compose .env file for an undecryptable service env", async () => {
 		const compose = {
 			appName: "web-abc",
 			composePath: "./docker-compose.yml",
@@ -287,8 +287,8 @@ describe("prepareEnvironmentVariables with undecryptable values", () => {
 			environment: { env: "SHARED=1", project: { env: "PROJECT=1" } },
 		} as unknown as Parameters<typeof getCreateEnvFileCommand>[0];
 
-		expect(() => getCreateEnvFileCommand(compose)).toThrow(
-			/could not be decrypted/,
-		);
+		await expect(
+			getCreateEnvFileCommand(compose, { stage: vi.fn(), cleanup: vi.fn() }),
+		).rejects.toThrow(/could not be decrypted/);
 	});
 });

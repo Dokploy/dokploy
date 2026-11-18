@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { getCreateEnvFileCommand } from "@dokploy/server/utils/builders/compose";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import { afterEach, describe, expect, it } from "vitest";
 
 // Regression coverage for https://github.com/Dokploy/dokploy/issues/4694 —
@@ -9,8 +10,10 @@ import { afterEach, describe, expect, it } from "vitest";
 const appName = `env-file-literals-${process.pid}`;
 const projectPath = join(process.cwd(), ".docker", "compose", appName);
 const codePath = join(projectPath, "code");
+const staging = createContentStaging(null);
 
-afterEach(() => {
+afterEach(async () => {
+	await staging.cleanup();
 	try {
 		execFileSync("docker", ["compose", "down", "--remove-orphans"], {
 			cwd: codePath,
@@ -64,22 +67,25 @@ const hasDocker = () => {
 };
 
 describe.skipIf(!hasDocker())("getCreateEnvFileCommand", () => {
-	it("writes special environment values that Docker Compose reads back literally", () => {
+	it("writes special environment values that Docker Compose reads back literally", async () => {
 		mkdirSync(codePath, { recursive: true });
 
 		const serviceEnv = Object.entries(inputEncoding)
 			.map(([key, value]) => `${key}=${value}`)
 			.join("\n");
 
-		const command = getCreateEnvFileCommand({
-			appName,
-			composePath: "docker-compose.yml",
-			env: serviceEnv,
-			randomize: false,
-			suffix: "",
-			serverId: null,
-			environment: { project: { env: "" }, env: "" },
-		} as Parameters<typeof getCreateEnvFileCommand>[0]);
+		const command = await getCreateEnvFileCommand(
+			{
+				appName,
+				composePath: "docker-compose.yml",
+				env: serviceEnv,
+				randomize: false,
+				suffix: "",
+				serverId: null,
+				environment: { project: { env: "" }, env: "" },
+			} as Parameters<typeof getCreateEnvFileCommand>[0],
+			staging,
+		);
 
 		execFileSync("bash", ["-c", command]);
 
