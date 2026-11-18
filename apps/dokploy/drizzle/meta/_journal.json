@@ -1422,6 +1422,13 @@
       "when": 1794894643529,
       "tag": "0202_melted_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1795014351724,
+      "tag": "0203_cooing_prodigy",
+      "breakpoints": true
     }
   ]
 }

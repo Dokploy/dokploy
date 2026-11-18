@@ -74,6 +74,25 @@ export const apiSetPreviewForwardAuth = z.object({
 	enabled: z.boolean(),
 });
 
+const allowlistEntries = z
+	.array(
+		z
+			.string()
+			.trim()
+			.min(1)
+			.refine((v) => !v.includes(","), {
+				message: "Entries can't contain commas",
+			}),
+	)
+	.nullable();
+
+export const apiSetSsoAllowlist = z.object({
+	applicationId: z.string().min(1),
+	emails: allowlistEntries,
+	groups: allowlistEntries,
+	emailDomains: allowlistEntries,
+});
+
 export const apiDeployForwardAuthOnServer = z.object({
 	serverId: z.string().nullable(),
 	providerId: z.string().min(1),
