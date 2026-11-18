@@ -46,6 +46,7 @@ const baseApp: ApplicationNested = {
 	previewEnv: null,
 	previewHttps: false,
 	previewPath: "/",
+	previewInternalPath: "/",
 	previewPort: 3000,
 	previewLimit: 0,
 	previewForwardAuthEnabled: false,
