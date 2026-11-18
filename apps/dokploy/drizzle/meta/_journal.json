@@ -1422,6 +1422,13 @@
       "when": 1794894643529,
       "tag": "0202_melted_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 203,
+      "version": "7",
+      "when": 1794990958474,
+      "tag": "0203_brief_micromax",
+      "breakpoints": true
     }
   ]
 }

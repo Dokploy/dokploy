@@ -59,6 +59,7 @@ import {
 	BUILD_TOKEN_REGEX,
 	encryptedText,
 	generateAppName,
+	optionalShmSizeSchema,
 	isSafeBuildPath,
 } from "./utils";
 
@@ -126,6 +127,7 @@ export const applications = pgTable("application", {
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	shmSize: text("shmSize"),
 	title: text("title"),
 	enabled: boolean("enabled"),
 	subtitle: text("subtitle"),
@@ -331,6 +333,7 @@ const createSchema = createInsertSchema(applications, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
+	shmSize: optionalShmSizeSchema,
 	title: z.string().optional(),
 	enabled: z.boolean().optional(),
 	subtitle: z.string().optional(),

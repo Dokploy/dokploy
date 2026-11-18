@@ -7,6 +7,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -35,6 +36,7 @@ export const buildMongo = async (rawMongo: MongoNested) => {
 		args,
 		mounts,
 		replicaSets,
+		shmSize,
 	} = mongo;
 
 	const startupScript = `
@@ -127,7 +129,16 @@ ${command ?? "wait $MONGOD_PID"}`;
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(replicaSets

@@ -13,6 +13,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateShmMount,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -127,6 +128,7 @@ export const mechanizeDockerContainer = async (
 		memoryLimit,
 		memoryReservation,
 		cpuReservation,
+		shmSize,
 		command,
 		args,
 		ports,
@@ -176,7 +178,16 @@ export const mechanizeDockerContainer = async (
 				HealthCheck,
 				Image: image,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...filesMount,
+					...generateShmMount(shmSize, [
+						...volumesMount,
+						...bindsMount,
+						...filesMount,
+					]),
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {
