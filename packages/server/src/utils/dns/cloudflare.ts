@@ -168,12 +168,34 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 			ttl: record.ttl ?? 1,
 		};
 
-		const existing = await cfFetch<{ id: string }[]>(
+		const existing = await cfFetch<
+			{
+				id: string;
+				type: string;
+				content: string;
+				priority?: number;
+				data?: Record<string, unknown>;
+			}[]
+		>(
 			config,
 			`/zones/${record.zoneId}/dns_records?type=${record.type}&name=${encodeURIComponent(record.name)}`,
 		);
 
-		const existingRecord = existing[0];
+		const built = buildValue(record);
+
+		const existingRecord = existing.find((r) => {
+			if (built.data) {
+				return Object.entries(built.data).every(
+					([k, v]) => r.data && r.data[k] === v,
+				);
+			}
+			const normalizedRecord = {
+				type: record.type,
+				content: built.content ?? record.content.trim(),
+				priority: built.priority,
+			};
+			return inlinePriority(r) === inlinePriority(normalizedRecord);
+		});
 		if (existingRecord) {
 			const updated = await cfFetch<{ id: string }>(
 				config,

@@ -106,6 +106,11 @@ export default function Home({ tokenResetPassword }: Props) {
 								whitelabeling?.logoUrl ||
 								undefined
 							}
+							logoLightUrl={
+								whitelabeling?.loginLogoLightUrl ||
+								whitelabeling?.logoLightUrl ||
+								undefined
+							}
 						/>
 					</Link>
 					Reset Password

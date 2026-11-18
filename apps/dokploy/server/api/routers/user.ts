@@ -1,16 +1,23 @@
 import {
+	ACCOUNT_DELETION_CODE_TTL_MINUTES,
+	consumeAccountDeletionCode,
+	createAccountDeletionCode,
 	createApiKey,
 	createOrganizationUserWithCredentials,
+	findCredentialAccount,
 	findNotificationById,
 	findOrganizationById,
 	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
+	getMetricsOrigin,
+	getRootAdminIds,
 	getUserByToken,
 	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
 	renderInvitationEmail,
+	sendAccountDeletionCodeEmail,
 	sendEmailNotification,
 	sendResendNotification,
 	updateUser,
@@ -24,10 +31,13 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	organization,
 	session,
 	user,
 } from "@dokploy/server/db/schema";
+import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import {
+	checkPermission,
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
@@ -38,6 +48,7 @@ import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
 import { z } from "zod";
 import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
+import { deleteAccount } from "@/server/utils/account-deletion";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -62,6 +73,51 @@ const apiCreateApiKey = z.object({
 	refillAmount: z.number().optional(),
 	refillInterval: z.number().optional(),
 });
+
+const hasRootAccess = (ctx: {
+	user: { id: string };
+	session: { impersonatedBy?: string } | null;
+}) => {
+	if (!IS_CLOUD) {
+		return false;
+	}
+	const rootIds = getRootAdminIds();
+	return (
+		rootIds.includes(ctx.user.id) ||
+		(!!ctx.session?.impersonatedBy &&
+			rootIds.includes(ctx.session.impersonatedBy))
+	);
+};
+
+const assertCanDeleteOwnAccount = async (ctx: {
+	user: { id: string };
+	session: { impersonatedBy?: string };
+}) => {
+	if (!IS_CLOUD) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "This feature is only available in Dokploy Cloud",
+		});
+	}
+
+	if (ctx.session.impersonatedBy) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Accounts cannot be deleted while impersonating",
+		});
+	}
+
+	const ownedOrganization = await db.query.organization.findFirst({
+		where: eq(organization.ownerId, ctx.user.id),
+		columns: { id: true },
+	});
+	if (!ownedOrganization) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only organization owners can delete their account",
+		});
+	}
+};
 
 export const userRouter = createTRPCRouter({
 	all: withPermission("member", "read").query(async ({ ctx }) => {
@@ -178,39 +234,38 @@ export const userRouter = createTRPCRouter({
 		return findPasskeysByUserId(ctx.user.id);
 	}),
 	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
-		if (!IS_CLOUD) {
-			return false;
-		}
-		if (
-			process.env.USER_ADMIN_ID === ctx.user.id ||
-			ctx.session?.impersonatedBy === process.env.USER_ADMIN_ID
-		) {
-			return true;
-		}
-		return false;
+		return hasRootAccess(ctx);
 	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
-		const memberResult = await db.query.member.findFirst({
-			where: and(
-				eq(member.userId, ctx.user.id),
-				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
-			),
-			with: {
-				user: {
-					with: {
-						backups: {
-							with: {
-								destination: true,
-								deployments: true,
+		try {
+			const memberResult = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, ctx.user.id),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+				with: {
+					user: {
+						with: {
+							backups: {
+								with: {
+									destination: true,
+									deployments: true,
+								},
 							},
+							apiKeys: true,
 						},
-						apiKeys: true,
 					},
 				},
-			},
-		});
+			});
 
-		return memberResult?.user;
+			return memberResult?.user;
+		} catch (error) {
+			console.error("Failed to retrieve backups:", error);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to retrieve backups",
+			});
+		}
 	}),
 	getServerMetrics: withPermission("monitoring", "read").query(
 		async ({ ctx }) => {
@@ -458,6 +513,97 @@ export const userRouter = createTRPCRouter({
 			});
 			return result;
 		}),
+	hasPassword: protectedProcedure.query(async ({ ctx }) => {
+		const credential = await findCredentialAccount(ctx.user.id);
+		return !!credential?.password;
+	}),
+	requestAccountDeletionCode: protectedProcedure
+		.input(z.object({ password: z.string().optional() }))
+		.mutation(async ({ ctx, input }) => {
+			await assertCanDeleteOwnAccount(ctx);
+
+			const credential = await findCredentialAccount(ctx.user.id);
+			if (
+				credential?.password &&
+				!bcrypt.compareSync(input.password ?? "", credential.password)
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The password is incorrect",
+				});
+			}
+
+			const code = await createAccountDeletionCode(ctx.user.id);
+			try {
+				await sendAccountDeletionCodeEmail({
+					email: ctx.user.email,
+					userName: ctx.user.name || ctx.user.email,
+					code,
+					expiresInMinutes: ACCOUNT_DELETION_CODE_TTL_MINUTES,
+				});
+			} catch (error) {
+				console.error(error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "The confirmation email could not be sent",
+				});
+			}
+
+			return { expiresInMinutes: ACCOUNT_DELETION_CODE_TTL_MINUTES };
+		}),
+	deleteAccount: protectedProcedure
+		.input(z.object({ code: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			await assertCanDeleteOwnAccount(ctx);
+
+			const { requestedAt } = await consumeAccountDeletionCode(
+				ctx.user.id,
+				input.code,
+			);
+
+			await audit(ctx, {
+				action: "delete",
+				resourceType: "user",
+				resourceId: ctx.user.id,
+				metadata: { selfService: true },
+			});
+
+			return deleteAccount(ctx.user.id, ctx.user.id, { requestedAt });
+		}),
+	deleteAccountByEmail: protectedProcedure
+		.input(z.object({ email: z.string().email() }))
+		.mutation(async ({ ctx, input }) => {
+			if (!hasRootAccess(ctx)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the root account can delete accounts by email",
+				});
+			}
+
+			const target = await db.query.user.findFirst({
+				where: eq(user.email, input.email.trim().toLowerCase()),
+				columns: { id: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No account found with that email",
+				});
+			}
+
+			if (getRootAdminIds().includes(target.id)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "The root account cannot be deleted",
+				});
+			}
+
+			return deleteAccount(
+				target.id,
+				ctx.session.impersonatedBy ?? ctx.user.id,
+			);
+		}),
 	assignPermissions: withPermission("member", "update")
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
@@ -531,7 +677,7 @@ export const userRouter = createTRPCRouter({
 				dataPoints: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				if (!input.appName) {
 					throw new Error(
@@ -542,10 +688,11 @@ export const userRouter = createTRPCRouter({
 						].join("\n"),
 					);
 				}
-				const url = new URL(`${input.url}/metrics/containers`);
+				const origin = await getMetricsOrigin(ctx.session, input.url);
+				const url = new URL(`${origin}/metrics/containers`);
 				url.searchParams.append("limit", input.dataPoints);
 				url.searchParams.append("appName", input.appName);
-				const response = await fetch(url.toString(), {
+				const response = await providerFetch(url.toString(), {
 					headers: {
 						Authorization: `Bearer ${input.token}`,
 					},
@@ -643,6 +790,13 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 			}
+
+			const activeOrganizationId =
+				input.metadata?.organizationId || ctx.session.activeOrganizationId;
+			await checkPermission(
+				{ user: ctx.user, session: { activeOrganizationId } },
+				{ api: ["read"] },
+			);
 
 			const apiKey = await createApiKey(ctx.user.id, input);
 			await audit(ctx, {

@@ -323,6 +323,43 @@ describe("GitHub app webhook auto-deploy", () => {
 		expect(res.status).toHaveBeenCalledWith(200);
 		expect(res.json).toHaveBeenCalledWith({ message: "No apps to deploy" });
 	});
+
+	it("passes serverId to queued jobs for remote servers", async () => {
+		mocks.applicationsFindMany.mockImplementation(({ where }) => {
+			const matches =
+				getConditionValue(where, "application.sourceType") === "github" &&
+				getConditionValue(where, "application.autoDeploy") === true &&
+				getConditionValue(where, "application.triggerType") === "push" &&
+				getConditionValue(where, "application.branch") === "main";
+
+			return Promise.resolve(
+				matches
+					? [
+							{
+								applicationId: "remote-app-id",
+								serverId: "remote-server-id",
+								watchPaths: null,
+							},
+						]
+					: [],
+			);
+		});
+		const res = createResponse();
+
+		await handler(createPushRequest("main"), res);
+
+		expect(mocks.queueAdd).toHaveBeenCalledWith(
+			"deployments",
+			expect.objectContaining({
+				applicationId: "remote-app-id",
+				applicationType: "application",
+				server: true,
+				serverId: "remote-server-id",
+			}),
+			expect.anything(),
+		);
+		expect(res.status).toHaveBeenCalledWith(200);
+	});
 });
 
 describe("GitHub app webhook preview deployments", () => {

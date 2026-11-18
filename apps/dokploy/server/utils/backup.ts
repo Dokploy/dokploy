@@ -26,56 +26,29 @@ type QueueJob =
 			cronSchedule: string;
 			volumeBackupId: string;
 	  };
-export const schedule = async (job: QueueJob) => {
-	try {
-		const result = await fetch(`${process.env.JOBS_URL}/create-backup`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
-			},
-			body: JSON.stringify(job),
-		});
-		const data = await result.json();
-		return data;
-	} catch (error) {
-		throw error;
+const postJob = async (path: string, job: QueueJob) => {
+	const result = await fetch(`${process.env.JOBS_URL}${path}`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"X-API-Key": process.env.API_KEY || "NO-DEFINED",
+		},
+		body: JSON.stringify(job),
+	});
+	const data = await result.json();
+	if (!result.ok) {
+		throw new Error(
+			`Jobs service ${path} failed (${result.status}): ${JSON.stringify(data)}`,
+		);
 	}
+	return data;
 };
 
-export const removeJob = async (job: QueueJob) => {
-	try {
-		const result = await fetch(`${process.env.JOBS_URL}/remove-job`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
-			},
-			body: JSON.stringify(job),
-		});
-		const data = await result.json();
-		return data;
-	} catch (error) {
-		throw error;
-	}
-};
+export const schedule = (job: QueueJob) => postJob("/create-backup", job);
 
-export const updateJob = async (job: QueueJob) => {
-	try {
-		const result = await fetch(`${process.env.JOBS_URL}/update-backup`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
-			},
-			body: JSON.stringify(job),
-		});
-		const data = await result.json();
-		return data;
-	} catch (error) {
-		throw error;
-	}
-};
+export const removeJob = (job: QueueJob) => postJob("/remove-job", job);
+
+export const updateJob = (job: QueueJob) => postJob("/update-backup", job);
 
 export const cancelJobs = async (backups: BackupScheduleList) => {
 	for (const backup of backups) {

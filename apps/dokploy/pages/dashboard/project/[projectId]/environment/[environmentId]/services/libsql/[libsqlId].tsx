@@ -23,6 +23,7 @@ import { UpdateLibsql } from "@/components/dashboard/libsql/update-libsql";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
+import { TransferService } from "@/components/dashboard/shared/transfer-service";
 import { LibsqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { AdvanceBreadcrumb } from "@/components/shared/advance-breadcrumb";
@@ -79,9 +80,9 @@ const Libsql = (
 				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
+						<CardHeader className="flex w-full min-w-0 flex-row justify-between items-center">
+							<div className="flex min-w-0 flex-1 flex-col">
+								<CardTitle className="text-xl flex min-w-0 flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
 										<div className="absolute -right-1  -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
@@ -89,20 +90,22 @@ const Libsql = (
 
 										<LibsqlIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
-									{data?.name}
+									<span className="min-w-0 truncate" title={data?.name}>
+										{data?.name}
+									</span>
 								</CardTitle>
 								{data?.description && (
 									<CardDescription>{data?.description}</CardDescription>
 								)}
 
-								<span className="text-sm text-muted-foreground">
+								<span className="text-sm text-muted-foreground min-w-0 truncate">
 									{data?.appName}
 								</span>
 							</div>
-							<div className="flex flex-col h-fit w-fit gap-2">
-								<div className="flex flex-row h-fit w-fit gap-2">
+							<div className="flex max-w-[45%] min-w-0 flex-col h-fit gap-2 md:max-w-none md:w-fit">
+								<div className="flex max-w-full min-w-0 flex-row h-fit gap-2">
 									<Badge
-										className="cursor-pointer"
+										className="min-w-0 max-w-full cursor-pointer overflow-hidden"
 										onClick={() => {
 											const ip = data?.server?.ipAddress || serverIp;
 											if (ip) {
@@ -118,7 +121,9 @@ const Libsql = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										<span className="truncate">
+											{data?.server?.name || "Dokploy Server"}
+										</span>
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -145,6 +150,13 @@ const Libsql = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateLibsql libsqlId={libsqlId} />
+									{(auth?.role === "owner" || auth?.canCreateServices) && (
+										<TransferService
+											id={libsqlId}
+											type="libsql"
+											serverId={data?.serverId}
+										/>
+									)}
 									{(auth?.role === "owner" || auth?.canDeleteServices) && (
 										<DeleteService id={libsqlId} type="libsql" />
 									)}
@@ -256,6 +268,7 @@ const Libsql = (
 															<div> */}
 														<ContainerFreeMonitoring
 															appName={data?.appName || ""}
+															serviceId={data?.libsqlId}
 														/>
 														{/* </div> */}
 														{/* )} */}

@@ -323,9 +323,11 @@ describe("cloudflareClient.upsertRecord", () => {
 		expect(createInit.method).toBe("POST");
 	});
 
-	it("updates the existing record instead of creating a duplicate", async () => {
+	it("updates the existing record when content matches", async () => {
 		mockFetch
-			.mockResolvedValueOnce(cfSuccess([{ id: "existing-1" }]))
+			.mockResolvedValueOnce(
+				cfSuccess([{ id: "existing-1", type: "A", content: "5.6.7.8" }]),
+			)
 			.mockResolvedValueOnce(cfSuccess({ id: "existing-1" }));
 
 		const result = await cloudflareClient.upsertRecord(config, {
@@ -342,6 +344,25 @@ describe("cloudflareClient.upsertRecord", () => {
 		];
 		expect(updateUrl).toContain("/dns_records/existing-1");
 		expect(updateInit.method).toBe("PUT");
+	});
+
+	it("creates a new record when content differs from existing", async () => {
+		mockFetch
+			.mockResolvedValueOnce(
+				cfSuccess([{ id: "existing-1", type: "A", content: "1.1.1.1" }]),
+			)
+			.mockResolvedValueOnce(cfSuccess({ id: "new-2" }));
+
+		const result = await cloudflareClient.upsertRecord(config, {
+			zoneId: "zone-1",
+			type: "A",
+			name: "app.example.com",
+			content: "5.6.7.8",
+		});
+
+		expect(result).toEqual({ id: "new-2" });
+		const [, createInit] = mockFetch.mock.calls[1] as [string, RequestInit];
+		expect(createInit.method).toBe("POST");
 	});
 
 	it("defaults ttl to 1 (automatic) when not provided", async () => {

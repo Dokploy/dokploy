@@ -1,5 +1,5 @@
 {
-  "id": "4475627b-469e-41b9-9f28-1476e991faa9",
+  "id": "3245801b-bd78-477e-baf0-2a5f7a3a2071",
   "prevId": "d3186290-04e7-4f38-9216-d55a766b1dae",
   "version": "7",
   "dialect": "postgresql",
@@ -1253,12 +1253,6 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shmSize": {
-          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4409,12 +4403,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "externalPort": {
           "name": "externalPort",
           "type": "integer",
@@ -4663,12 +4651,6 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shmSize": {
-          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -5156,12 +5138,6 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shmSize": {
-          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6523,12 +6499,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "shmSize": {
-          "name": "shmSize",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "applicationStatus": {
           "name": "applicationStatus",
           "type": "applicationStatus",
@@ -7026,12 +6996,6 @@
         },
         "cpuLimit": {
           "name": "cpuLimit",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "shmSize": {
-          "name": "shmSize",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -8989,7 +8953,8 @@
       "values": [
         "cloudflare",
         "route53",
-        "porkbun"
+        "porkbun",
+        "infomaniak"
       ]
     },
     "public.domainType": {

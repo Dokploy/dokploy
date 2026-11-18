@@ -97,7 +97,6 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			composeId,
 			sourceType: "git",
 			composePath: values.composePath,
-			composeStatus: "idle",
 			watchPaths: values.watchPaths || [],
 			enableSubmodules: values.enableSubmodules,
 		})

@@ -1,33 +1,8 @@
 // utils/gitea-utils.ts
 // This file contains client-safe utilities for Gitea integration
 
-/**
- * Generates an OAuth URL for Gitea authorization
- *
- * @param giteaId The ID of the Gitea provider to be used as state
- * @param clientId The OAuth client ID
- * @param giteaUrl The base URL of the Gitea instance
- * @param baseUrl The base URL of the application for callback
- * @returns The complete OAuth authorization URL
- */
-export const getGiteaOAuthUrl = (
-	giteaId: string,
-	clientId: string,
-	giteaUrl: string,
-	baseUrl: string,
-): string => {
-	if (!clientId || !giteaUrl || !baseUrl) {
-		// Return a marker that can be checked by the caller
-		return "#";
-	}
-
-	const redirectUri = `${baseUrl}/api/providers/gitea/callback`;
-	const scopes = "read:repository read:user read:organization";
-
-	return `${giteaUrl}/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-		redirectUri,
-	)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(giteaId)}`;
-};
+export const getGiteaOAuthUrl = (giteaId: string): string =>
+	`/api/providers/gitea/authorize?giteaId=${encodeURIComponent(giteaId)}`;
 
 // Interfaces for Gitea API responses and components
 export interface Repository {

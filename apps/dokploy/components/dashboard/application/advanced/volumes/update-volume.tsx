@@ -92,8 +92,16 @@ export const UpdateVolume = ({
 			enabled: !!mountId,
 		},
 	);
+	const { data: diskContent, isFetching: isReadingDisk } =
+		api.mounts.readFileContent.useQuery(
+			{ mountId },
+			{
+				enabled: !!mountId && isOpen && type === "file",
+				refetchOnWindowFocus: false,
+			},
+		);
 
-	const { mutateAsync, isPending, error, isError } =
+	const { mutateAsync, isPending, error, isError, reset } =
 		api.mounts.update.useMutation();
 
 	const form = useForm<UpdateMount>({
@@ -123,14 +131,14 @@ export const UpdateVolume = ({
 				});
 			} else if (typeForm === "file") {
 				form.reset({
-					content: data.content || "",
+					content: diskContent ?? (data.content || ""),
 					mountPath: serviceType === "compose" ? "/" : data.mountPath,
 					filePath: data.filePath || "",
 					type: "file",
 				});
 			}
 		}
-	}, [form, form.reset, data]);
+	}, [form, form.reset, data, diskContent]);
 
 	const onSubmit = async (data: UpdateMount) => {
 		if (data.type === "bind") {
@@ -168,6 +176,7 @@ export const UpdateVolume = ({
 				type: data.type,
 				filePath: data.filePath,
 				mountId,
+				expectedContent: diskContent,
 			})
 				.then(() => {
 					toast.success("Mount Update");
@@ -181,7 +190,13 @@ export const UpdateVolume = ({
 	};
 
 	return (
-		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+		<Dialog
+			open={isOpen}
+			onOpenChange={(open) => {
+				setIsOpen(open);
+				reset();
+			}}
+		>
 			<DialogTrigger asChild>
 				<Button
 					variant="ghost"
@@ -264,6 +279,7 @@ PORT=3000
 `}
 															className="h-96 font-mono w-full"
 															{...field}
+															disabled={isReadingDisk}
 														/>
 													</FormControl>
 												</FormControl>
@@ -299,7 +315,11 @@ PORT=3000
 										<FormItem>
 											<FormLabel>Mount Path (In the container)</FormLabel>
 											<FormControl>
-												<Input placeholder="Mount Path" {...field} />
+												<Input
+													placeholder="Mount Path"
+													{...field}
+													disabled={isReadingDisk}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -310,7 +330,7 @@ PORT=3000
 						</div>
 						<DialogFooter>
 							<Button
-								isLoading={isPending}
+								isLoading={isPending || isReadingDisk}
 								// form="hook-form-update-volume"
 								type="submit"
 							>

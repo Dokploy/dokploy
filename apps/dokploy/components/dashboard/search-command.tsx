@@ -60,6 +60,9 @@ export const SearchCommand = () => {
 		enabled: !!session,
 	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: permissions } = api.user.getPermissions.useQuery(undefined, {
+		enabled: !!session,
+	});
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {
@@ -183,14 +186,16 @@ export const SearchCommand = () => {
 						</CommandItem>
 						{!isCloud && (
 							<>
-								<CommandItem
-									onSelect={() => {
-										router.push("/dashboard/monitoring");
-										setOpen(false);
-									}}
-								>
-									Monitoring
-								</CommandItem>
+								{permissions?.monitoring.read && permissions?.docker.read && (
+									<CommandItem
+										onSelect={() => {
+											router.push("/dashboard/monitoring");
+											setOpen(false);
+										}}
+									>
+										Monitoring
+									</CommandItem>
+								)}
 								<CommandItem
 									onSelect={() => {
 										router.push("/dashboard/traefik");

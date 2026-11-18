@@ -7,24 +7,50 @@ import {
 	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
+	assertNoSymlinkEscape,
 	createFile,
-	encodeBase64,
 	getCreateFileCommand,
+	getSymlinkEscapeGuard,
+	isValidMountFilePath,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
-import { eq, type SQL, sql } from "drizzle-orm";
+import { and, eq, type SQL, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { findApplicationById } from "./application";
+import { findComposeById } from "./compose";
+import { findLibsqlById } from "./libsql";
+import { findMariadbById } from "./mariadb";
+import { findMongoById } from "./mongo";
+import { findMySqlById } from "./mysql";
+import { findMemberByUserId } from "./permission";
+import { findPostgresById } from "./postgres";
+import { findRedisById } from "./redis";
 
 export type Mount = typeof mounts.$inferSelect;
 
 export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 	try {
+		// An empty filePath would write the content over the service's whole files/ directory
+		if (input.type === "file" && !input.filePath?.trim()) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "File path is required for file mounts",
+			});
+		}
+		// Checked before insert: deleting a saved row runs rm -rf on its path
+		if (input.type === "file" && !isValidMountFilePath(input.filePath ?? "")) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Invalid file path: ${input.filePath}`,
+			});
+		}
 		const { serviceId, ...rest } = input;
 		const value = await db
 			.insert(mounts)
@@ -176,6 +202,12 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
+	if (mountData.filePath && !isValidMountFilePath(mountData.filePath)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid file path: ${mountData.filePath}`,
+		});
+	}
 	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
@@ -261,17 +293,14 @@ export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
-	const directory = path.dirname(fullPath);
 
 	try {
 		const serverId = await getServerId(mount);
-		const encodedContent = encodeBase64(mount.content || "");
-		const command = `
-			mkdir -p ${quote([directory])};
-			if [ -d ${quote([fullPath])} ]; then rm -rf ${quote([fullPath])}; fi;
-			echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
-		`;
+		const command = getCreateFileCommand(
+			basePath,
+			mount.filePath,
+			mount.content || "",
+		);
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
@@ -287,18 +316,36 @@ export const updateFileMount = async (mountId: string) => {
 	}
 };
 
+export const readFileMountContent = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+	if (mount.type !== "file" || !mount.filePath) return null;
+	const basePath = await getBaseFilesPath(mountId);
+	const fullPath = quote([path.join(basePath, mount.filePath)]);
+
+	// Check the opened file's real path so symlinks can't escape the files dir.
+	const command = `base=$(realpath ${quote([basePath])}) && [ -f ${fullPath} ] && { real=$(readlink /proc/self/fd/3 2>/dev/null || realpath ${fullPath}) && case "$real" in "$base"/*) content=$(base64 <&3) && printf 'found:%s' "$content" | tr -d '\\n';; esac; } 3< ${fullPath}; exit 0`;
+	const serverId = await getServerId(mount);
+	const { stdout } = serverId
+		? await execAsyncRemote(serverId, command)
+		: await execAsync(command);
+
+	if (!stdout.startsWith("found:")) return null;
+	return Buffer.from(stdout.slice("found:".length), "base64").toString("utf8");
+};
+
 export const deleteFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
-	if (!mount.filePath) return;
+	if (!mount.filePath || !isValidMountFilePath(mount.filePath)) return;
 	const basePath = await getBaseFilesPath(mountId);
 
 	const fullPath = path.join(basePath, mount.filePath);
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${quote([fullPath])}`;
+			const command = `${getSymlinkEscapeGuard(basePath, fullPath)} rm -rf ${quote([fullPath])}`;
 			await execAsyncRemote(serverId, command);
 		} else {
+			assertNoSymlinkEscape(basePath, fullPath);
 			await removeFileOrDirectory(fullPath);
 		}
 	} catch {}
@@ -378,3 +425,150 @@ export const getServerId = async (mount: MountNested) => {
 
 	return null;
 };
+
+const BLOCKED_HOST_PATHS = [
+	"/etc",
+	"/root",
+	"/proc",
+	"/sys",
+	"/dev",
+	"/boot",
+	"/run",
+	"/var/run",
+	"/var/lib/docker",
+	"/usr",
+	"/bin",
+	"/sbin",
+	"/lib",
+	"/lib64",
+];
+
+const isWithin = (child: string, parent: string) =>
+	child === parent || child.startsWith(`${parent}/`);
+
+const isBlockedHostPath = (hostPath: string) => {
+	const normalized = path.posix.normalize(hostPath).replace(/\/+$/, "") || "/";
+	if (!normalized.startsWith("/") || normalized === "/") return true;
+	// A parent of a blocked path (e.g. /var) exposes it just the same.
+	return BLOCKED_HOST_PATHS.some(
+		(blocked) => isWithin(normalized, blocked) || isWithin(blocked, normalized),
+	);
+};
+
+export const assertCanUseBindMount = async (
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+	type: string | null | undefined,
+	hostPath: string | null | undefined,
+) => {
+	if (type !== "bind" && !hostPath) return;
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role === "owner" || member.role === "admin") return;
+	if (!hostPath || isBlockedHostPath(hostPath)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"This host path is not allowed for bind mounts. Ask an owner or admin to add it.",
+		});
+	}
+};
+
+const SERVICE_FINDERS = {
+	application: findApplicationById,
+	compose: findComposeById,
+	postgres: findPostgresById,
+	mysql: findMySqlById,
+	mariadb: findMariadbById,
+	mongo: findMongoById,
+	redis: findRedisById,
+	libsql: findLibsqlById,
+};
+
+// Attaching a volume that already exists gives the service everything stored in it.
+export const assertCanUseVolumeMount = async (
+	ctx: { user: { id: string }; session: { activeOrganizationId: string } },
+	input: {
+		serviceId: string;
+		serviceType: ServiceType;
+		type?: string | null;
+		volumeName?: string | null;
+	},
+) => {
+	const { serviceId, serviceType, type, volumeName } = input;
+	if (type !== "volume" || !volumeName) return;
+	const member = await findMemberByUserId(
+		ctx.user.id,
+		ctx.session.activeOrganizationId,
+	);
+	if (member.role === "owner" || member.role === "admin") return;
+
+	const attached = await db.query.mounts.findFirst({
+		where: and(
+			eq(mounts[`${serviceType}Id`], serviceId),
+			eq(mounts.type, "volume"),
+			eq(mounts.volumeName, volumeName),
+		),
+	});
+	if (attached) return;
+
+	const service = await SERVICE_FINDERS[serviceType](serviceId);
+	const docker = await getRemoteDocker(service.serverId);
+	const exists = await docker
+		.getVolume(volumeName)
+		.inspect()
+		.then(
+			() => true,
+			(error) => error?.statusCode !== 404,
+		);
+	if (exists) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"This volume already exists and is not attached to this service. Ask an owner or admin to attach it.",
+		});
+	}
+};
+
+export async function getServiceOrganizationId(
+	serviceId: string,
+	serviceType: ServiceType,
+): Promise<string | null> {
+	switch (serviceType) {
+		case "application": {
+			const app = await findApplicationById(serviceId);
+			return app?.environment?.project?.organizationId ?? null;
+		}
+		case "postgres": {
+			const postgres = await findPostgresById(serviceId);
+			return postgres?.environment?.project?.organizationId ?? null;
+		}
+		case "mariadb": {
+			const mariadb = await findMariadbById(serviceId);
+			return mariadb?.environment?.project?.organizationId ?? null;
+		}
+		case "mongo": {
+			const mongo = await findMongoById(serviceId);
+			return mongo?.environment?.project?.organizationId ?? null;
+		}
+		case "mysql": {
+			const mysql = await findMySqlById(serviceId);
+			return mysql?.environment?.project?.organizationId ?? null;
+		}
+		case "redis": {
+			const redis = await findRedisById(serviceId);
+			return redis?.environment?.project?.organizationId ?? null;
+		}
+		case "compose": {
+			const compose = await findComposeById(serviceId);
+			return compose?.environment?.project?.organizationId ?? null;
+		}
+		case "libsql": {
+			const libsql = await findLibsqlById(serviceId);
+			return libsql?.environment?.project?.organizationId ?? null;
+		}
+		default:
+			return null;
+	}
+}

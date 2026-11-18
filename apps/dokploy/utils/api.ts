@@ -52,7 +52,8 @@ const links =
 						transformer: superjson,
 					}),
 					false: splitLink({
-						condition: (op) => op.input instanceof FormData,
+						condition: (op) =>
+							op.input instanceof FormData || op.context.skipBatch === true,
 						true: httpLink({
 							url: `${getBaseUrl()}/api/trpc`,
 							transformer: superjson,

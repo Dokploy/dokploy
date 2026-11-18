@@ -56,6 +56,26 @@ interface PorkbunRecord {
 	notes: string;
 }
 
+const inlinePriority = (record: {
+	type: string;
+	content: string;
+	prio?: string | null;
+}) =>
+	(record.type === "MX" || record.type === "SRV") && record.prio != null
+		? `${record.prio} ${record.content}`
+		: record.content;
+
+const buildValue = (record: { type: string; content: string }) => {
+	const value = record.content.trim();
+	if (record.type === "MX" || record.type === "SRV") {
+		const match = /^(\d+)\s+(\S.*)$/.exec(value);
+		if (match) {
+			return { content: match[2] as string, prio: match[1] as string };
+		}
+	}
+	return { content: value };
+};
+
 export const porkbunClient: DnsClient<PorkbunConfig> = {
 	async listZones(config) {
 		const result = await pbFetch<{ domains: { domain: string }[] }>(
@@ -77,7 +97,7 @@ export const porkbunClient: DnsClient<PorkbunConfig> = {
 			id: record.id,
 			type: record.type,
 			name: record.name,
-			content: record.content,
+			content: inlinePriority(record),
 			ttl: Number(record.ttl),
 		}));
 	},
@@ -89,14 +109,24 @@ export const porkbunClient: DnsClient<PorkbunConfig> = {
 			`/dns/retrieveByNameType/${record.zoneId}/${record.type}/${subdomain}`,
 		);
 
+		const built = buildValue(record);
 		const payload = {
 			name: subdomain,
 			type: record.type,
-			content: record.content,
+			content: built.content,
+			...(built.prio ? { prio: built.prio } : {}),
 			ttl: record.ttl ?? 600,
 		};
 
-		const existingRecord = existing.records[0];
+		const expectedContent = inlinePriority({
+			type: record.type,
+			content: built.content,
+			prio: built.prio,
+		});
+
+		const existingRecord = existing.records.find(
+			(r) => inlinePriority(r) === expectedContent,
+		);
 		if (existingRecord) {
 			await pbFetch(
 				config,
@@ -115,10 +145,12 @@ export const porkbunClient: DnsClient<PorkbunConfig> = {
 	},
 
 	async updateRecord(config, zoneId, recordId, record) {
+		const built = buildValue(record);
 		await pbFetch(config, `/dns/edit/${zoneId}/${recordId}`, {
 			name: toSubdomain(record.name, zoneId),
 			type: record.type,
-			content: record.content,
+			content: built.content,
+			...(built.prio ? { prio: built.prio } : {}),
 			ttl: record.ttl ?? 600,
 		});
 		return { id: recordId };

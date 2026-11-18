@@ -74,6 +74,13 @@ export const user = pgTable("user", {
 		.array()
 		.default(sql`ARRAY[]::text[]`),
 	onboardingCompletedAt: timestamp("onboardingCompletedAt"),
+	onboardingStep: text("onboardingStep"),
+	onboardingReturnEmails: integer("onboardingReturnEmails")
+		.notNull()
+		.default(0),
+	trialPlanPromptSubscriptionId: text("trialPlanPromptSubscriptionId"),
+	serverSetupFailedEmailAt: timestamp("serverSetupFailedEmailAt"),
+	serverConnectFailure: text("serverConnectFailure"),
 });
 
 export const usersRelations = relations(user, ({ one, many }) => ({
@@ -99,6 +106,11 @@ const createSchema = createInsertSchema(user, {
 	isValidEnterpriseLicense: true,
 	isEnterpriseCloud: true,
 	onboardingCompletedAt: true,
+	onboardingStep: true,
+	onboardingReturnEmails: true,
+	trialPlanPromptSubscriptionId: true,
+	serverSetupFailedEmailAt: true,
+	serverConnectFailure: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
@@ -232,13 +244,18 @@ export const apiReadStatsLogs = z.object({
 		.optional(),
 });
 
-export const apiUpdateUser = createSchema.partial().extend({
+export const apiUpdateUser = z.object({
+	image: z.string().nullable().optional(),
+	allowImpersonation: z.boolean().optional(),
 	email: z
 		.string()
 		.email("Please enter a valid email address")
 		.min(1, "Email is required")
 		.optional(),
-	password: z.string().optional(),
+	password: z
+		.string()
+		.min(8, "Password must be at least 8 characters")
+		.optional(),
 	currentPassword: z.string().optional(),
 	firstName: z.string().optional(),
 	lastName: z.string().optional(),

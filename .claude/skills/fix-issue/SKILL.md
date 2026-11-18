@@ -16,7 +16,7 @@ No instance is running yet — start your own, isolated to this worktree:
    until it answers (usually ~10-15s).
 3. Use `http://localhost:$PORT` as the base URL for Playwright navigation.
 
-Note: `mcp__dokploy__*` (this repo's `.mcp.json`) resolves its URL from
+Note: `mcp__dokploy__*` resolves its URL from
 `$DOKPLOY_BASE_URL` once, at session startup — it cannot pick up a port
 discovered mid-session. If those tools are unavailable or point at the wrong
 instance, fall back to `curl`/`gh api` for API-level checks, or ask the user

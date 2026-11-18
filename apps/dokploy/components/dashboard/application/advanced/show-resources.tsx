@@ -168,7 +168,7 @@ export const ShowResources = ({ id, type }: Props) => {
 				cpuReservation: data?.cpuReservation || undefined,
 				memoryLimit: data?.memoryLimit || undefined,
 				memoryReservation: data?.memoryReservation || undefined,
-				shmSize: (data as any)?.shmSize || undefined,
+				shmSize: "shmSize" in data ? data.shmSize || undefined : undefined,
 				ulimitsSwarm: (data as any)?.ulimitsSwarm || [],
 			});
 		}

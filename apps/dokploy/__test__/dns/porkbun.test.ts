@@ -121,9 +121,11 @@ describe("porkbunClient.upsertRecord", () => {
 		expect(lookupUrl).toContain("/dns/retrieveByNameType/example.com/A/");
 	});
 
-	it("edits the existing record instead of creating a duplicate", async () => {
+	it("edits the existing record when content matches", async () => {
 		mockFetch
-			.mockResolvedValueOnce(pbSuccess({ records: [{ id: "existing-1" }] }))
+			.mockResolvedValueOnce(
+				pbSuccess({ records: [{ id: "existing-1", content: "5.6.7.8" }] }),
+			)
 			.mockResolvedValueOnce(pbSuccess({}));
 
 		const result = await porkbunClient.upsertRecord(config, {
@@ -136,6 +138,30 @@ describe("porkbunClient.upsertRecord", () => {
 		expect(result).toEqual({ id: "existing-1" });
 		const [editUrl] = mockFetch.mock.calls[1] as [string, RequestInit];
 		expect(editUrl).toContain("/dns/edit/example.com/existing-1");
+	});
+
+	it("creates a new record when content differs from existing", async () => {
+		mockFetch
+			.mockResolvedValueOnce(
+				pbSuccess({ records: [{ id: "existing-1", content: "1.1.1.1" }] }),
+			)
+			.mockResolvedValueOnce(pbSuccess({ id: "new-2" }));
+
+		const result = await porkbunClient.upsertRecord(config, {
+			zoneId: "example.com",
+			type: "A",
+			name: "app.example.com",
+			content: "5.6.7.8",
+		});
+
+		expect(result).toEqual({ id: "new-2" });
+		const [createUrl, createInit] = mockFetch.mock.calls[1] as [
+			string,
+			RequestInit,
+		];
+		expect(createUrl).toContain("/dns/create/example.com");
+		const body = JSON.parse(createInit.body as string);
+		expect(body).toMatchObject({ name: "app", type: "A", content: "5.6.7.8" });
 	});
 
 	it("defaults ttl to 600 when not provided", async () => {

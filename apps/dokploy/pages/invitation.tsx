@@ -23,7 +23,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { pushToDataLayer } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
+import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { generateServerSideHelper } from "@/utils/create-server-helpers";
 import { useWhitelabelingPublic } from "@/utils/hooks/use-whitelabeling";
 
 const registerSchema = z
@@ -36,6 +38,7 @@ const registerSchema = z
 		}),
 		email: z
 			.string()
+			.trim()
 			.min(1, {
 				message: "Email is required",
 			})
@@ -160,6 +163,11 @@ const Invitation = ({
 								logoUrl={
 									whitelabeling?.loginLogoUrl ||
 									whitelabeling?.logoUrl ||
+									undefined
+								}
+								logoLightUrl={
+									whitelabeling?.loginLogoLightUrl ||
+									whitelabeling?.logoLightUrl ||
 									undefined
 								}
 							/>
@@ -330,6 +338,11 @@ Invitation.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+	const helpers = generateServerSideHelper(appRouter, ctx);
+	// Prefetch the public branding so the invitation logo and app name render
+	// correctly on the server (no flash of default branding).
+	await helpers.whitelabeling.getPublic.prefetch();
+
 	const { query } = ctx;
 
 	const token = query.token;
@@ -358,6 +371,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 		if (invitation.userAlreadyExists) {
 			return {
 				props: {
+					trpcState: helpers.dehydrate(),
 					isCloud: IS_CLOUD,
 					token: token,
 					invitation: invitation,
@@ -377,6 +391,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 		return {
 			props: {
+				trpcState: helpers.dehydrate(),
 				isCloud: IS_CLOUD,
 				token: token,
 				invitation: invitation,

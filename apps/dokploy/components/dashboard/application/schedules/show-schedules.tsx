@@ -77,23 +77,19 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	};
 
 	return (
-		<Card className=" px-6 shadow-none bg-transparent h-full min-h-[50vh]">
-			<CardHeader className="px-0">
-				<div className="flex justify-between items-center gap-y-2 flex-wrap">
-					<div className="flex flex-col gap-2">
-						<CardTitle className="text-xl font-bold flex items-center gap-2">
-							Scheduled Tasks
-						</CardTitle>
-						<CardDescription>
-							Schedule tasks to run automatically at specified intervals.
-						</CardDescription>
-					</div>
-					{schedules && schedules.length > 0 && (
-						<HandleSchedules id={id} scheduleType={scheduleType} />
-					)}
+		<Card className="bg-background h-full min-h-[50vh]">
+			<CardHeader className="flex flex-row items-center flex-wrap gap-4 justify-between">
+				<div className="flex flex-col gap-1">
+					<CardTitle className="text-xl">Scheduled Tasks</CardTitle>
+					<CardDescription>
+						Schedule tasks to run automatically at specified intervals.
+					</CardDescription>
 				</div>
+				{schedules && schedules.length > 0 && (
+					<HandleSchedules id={id} scheduleType={scheduleType} />
+				)}
 			</CardHeader>
-			<CardContent className="px-0">
+			<CardContent>
 				{isLoadingSchedules ? (
 					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />

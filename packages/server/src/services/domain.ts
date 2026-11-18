@@ -1,4 +1,6 @@
 import dns from "node:dns";
+import { isIP } from "node:net";
+import os from "node:os";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
@@ -152,7 +154,27 @@ export const getDomainHost = (domain: Domain) => {
 	return `${domain.https ? "https" : "http"}://${domain.host}`;
 };
 
-const resolveDns = promisify(dns.resolve4);
+const resolveDns4 = promisify(dns.resolve4);
+const resolveDns6 = promisify(dns.resolve6);
+
+const resolveDns = async (domain: string): Promise<string[]> => {
+	const results = await Promise.allSettled([
+		resolveDns4(domain),
+		resolveDns6(domain),
+	]);
+	const ips = results.flatMap((result) =>
+		result.status === "fulfilled" ? result.value : [],
+	);
+
+	if (ips.length > 0) {
+		return ips;
+	}
+
+	const failure = results.find((result) => result.status === "rejected");
+	throw failure?.reason instanceof Error
+		? failure.reason
+		: new Error("Failed to resolve domain");
+};
 
 export const validateDomain = async (
 	domain: string,
@@ -224,31 +246,54 @@ export const getServerIpCandidates = async (
 			candidates.add(server.ipAddress);
 		}
 
-		const publicIp = await withTimeout(
-			execAsyncRemote(
-				serverId,
-				"curl -s -m 5 https://ifconfig.me || curl -s -m 5 https://icanhazip.com",
+		const [interfaceIps, publicIp] = await Promise.all([
+			withTimeout(
+				execAsyncRemote(
+					serverId,
+					"ip -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1",
+				),
+				7000,
 			),
-			7000,
-		);
-		const detectedIp = publicIp?.stdout?.trim();
-		if (detectedIp) {
-			candidates.add(detectedIp);
+			withTimeout(
+				execAsyncRemote(
+					serverId,
+					"curl -fsS -m 5 https://ifconfig.me || curl -fsS -m 5 https://icanhazip.com",
+				),
+				7000,
+			),
+		]);
+		for (const output of [interfaceIps?.stdout, publicIp?.stdout]) {
+			for (const detectedIp of parseIpCandidates(output)) {
+				candidates.add(detectedIp);
+			}
 		}
 	} else {
 		const settings = await getWebServerSettings();
 		if (settings?.serverIp) {
 			candidates.add(settings.serverIp);
 		}
+		for (const addresses of Object.values(os.networkInterfaces())) {
+			for (const address of addresses ?? []) {
+				if (!address.internal && isIP(address.address)) {
+					candidates.add(address.address);
+				}
+			}
+		}
 
 		const publicIp = await withTimeout(getPublicIpWithFallback(), 7000);
-		if (publicIp) {
+		if (publicIp && isIP(publicIp)) {
 			candidates.add(publicIp);
 		}
 	}
 
 	return Array.from(candidates);
 };
+
+const parseIpCandidates = (output?: string): string[] =>
+	(output ?? "")
+		.split(/\s+/)
+		.map((candidate) => candidate.trim())
+		.filter((candidate) => isIP(candidate) !== 0);
 
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> => {
 	return Promise.race([

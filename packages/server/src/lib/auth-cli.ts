@@ -32,7 +32,12 @@ export const auth = betterAuth({
 	},
 	plugins: [
 		apiKey({ enableMetadata: true, references: "user" }),
-		sso(),
+		sso({
+			trustEmailVerified: true,
+			domainVerification: {
+				enabled: true,
+			},
+		}),
 		twoFactor(),
 		passkey(),
 		organization({

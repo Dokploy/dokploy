@@ -23,6 +23,9 @@ import { HandleDnsProvider } from "./handle-dns-provider";
 const providerLabels: Record<string, string> = {
 	cloudflare: "Cloudflare",
 	route53: "AWS Route53",
+	porkbun: "Porkbun",
+	infomaniak: "Infomaniak",
+	ovh: "OVHcloud",
 };
 
 export const ShowDnsProviders = () => {
