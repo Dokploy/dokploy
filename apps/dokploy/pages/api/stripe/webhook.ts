@@ -97,6 +97,9 @@ export default async function handler(
 			const subscription = await stripe.subscriptions.retrieve(
 				session.subscription as string,
 			);
+			if (hasEnded(subscription)) {
+				break;
+			}
 			const serversQuantity = getSubscriptionServersQuantity(
 				subscription?.items?.data ?? [],
 			);
@@ -133,6 +136,13 @@ export default async function handler(
 		}
 		case "customer.subscription.created": {
 			const newSubscription = event.data.object as Stripe.Subscription;
+
+			const subscription = await stripe.subscriptions.retrieve(
+				newSubscription.id,
+			);
+			if (hasEnded(subscription)) {
+				break;
+			}
 
 			await db
 				.update(user)
@@ -410,6 +420,12 @@ const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
 	});
 	return userResult;
 };
+
+// Late events of an ended subscription must not make it current again.
+const hasEnded = (subscription: Stripe.Subscription) =>
+	subscription.status === "canceled" ||
+	subscription.status === "incomplete_expired" ||
+	subscription.status === "unpaid";
 
 // A customer can hold several subscriptions; only the one stored on the
 // owner may change their plan and servers.
