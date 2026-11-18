@@ -77,6 +77,21 @@ export const calculatePriceStartup = (count: number, isAnnual = false) => {
 		: baseMonthly + (count - STARTUP_SERVERS_INCLUDED) * extraMonthly;
 };
 
+const billingIssueMessage = (status: string) => {
+	switch (status) {
+		case "past_due":
+			return "Your last invoice could not be charged. Update your payment method to keep your servers running.";
+		case "unpaid":
+			return "Your subscription is unpaid and your servers are disabled. Update your payment method to restore access.";
+		case "incomplete":
+			return "Your checkout was not completed. Finish the payment or update your payment method to continue.";
+		case "paused":
+			return "Your subscription is paused. Update your payment method to resume it.";
+		default:
+			return "There is a problem with your subscription. Update your payment method to continue.";
+	}
+};
+
 const navigationItems = [
 	{
 		name: "Subscription",
@@ -228,7 +243,8 @@ export const ShowBilling = () => {
 	const canSubscribe =
 		!isEnterpriseCloud &&
 		(data?.subscriptions?.length ?? 0) === 0 &&
-		!billingStatus?.isOnTrial;
+		!billingStatus?.isOnTrial &&
+		!data?.billingIssue;
 	const maxServers = admin?.user.serversQuantity ?? 1;
 	const percentage = ((servers ?? 0) / maxServers) * 100;
 	const safePercentage = Math.min(percentage, 100);
@@ -322,6 +338,31 @@ export const ShowBilling = () => {
 						</nav>
 
 						<div className="flex flex-col gap-4 w-full mt-6">
+							{!isEnterpriseCloud && data?.billingIssue && (
+								<div className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-destructive/40 bg-destructive/5 p-4 max-w-2xl">
+									<div className="flex items-start gap-3">
+										<AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+										<div className="flex flex-col gap-1">
+											<span className="text-sm font-medium">
+												Payment required
+											</span>
+											<span className="text-sm text-muted-foreground">
+												{billingIssueMessage(data.billingIssue.status)}
+											</span>
+										</div>
+									</div>
+									<Button
+										size="sm"
+										variant="secondary"
+										onClick={async () => {
+											const session = await createCustomerPortalSession();
+											window.open(session.url);
+										}}
+									>
+										Update payment method
+									</Button>
+								</div>
+							)}
 							{!isEnterpriseCloud &&
 								billingStatus &&
 								(billingStatus.plan || billingStatus.isOnTrial) && (
@@ -494,7 +535,8 @@ export const ShowBilling = () => {
 							{!isEnterpriseCloud &&
 								useNewPricing &&
 								data?.currentPlan === "legacy" &&
-								data?.subscriptions?.length > 0 && (
+								data?.subscriptions?.length > 0 &&
+								!data?.billingIssue && (
 									<div className="rounded-xl border border-border bg-primary/5 p-4 space-y-4 max-w-2xl">
 										<h3 className="text-lg font-medium">Upgrade your plan</h3>
 										<p className="text-sm text-muted-foreground">
@@ -686,7 +728,8 @@ export const ShowBilling = () => {
 								useNewPricing &&
 								(data?.currentPlan === "hobby" ||
 									data?.currentPlan === "startup") &&
-								data?.subscriptions?.length > 0 && (
+								data?.subscriptions?.length > 0 &&
+								!data?.billingIssue && (
 									<div className="rounded-xl border border-border bg-primary/5 p-4 space-y-4 max-w-2xl">
 										<h3 className="text-lg font-medium">
 											Change plan or number of servers
