@@ -78,6 +78,14 @@ export const getCurrentPlan = async (
 	return getCurrentPlanForUser(ownerId);
 };
 
+// Checkout reuses the owner's customer, so any of these would keep billing
+// alongside the new subscription.
+export const LIVE_SUBSCRIPTION_STATUSES: Stripe.Subscription.Status[] = [
+	"active",
+	"trialing",
+	"past_due",
+];
+
 export const TRIAL_DURATION_DAYS = 7;
 export type TrialTier = "hobby" | "startup";
 export const TRIAL_SERVER_LIMITS: Record<TrialTier, number> = {
@@ -92,6 +100,7 @@ export interface BillingStatus {
 	trialDaysRemaining: number | null;
 	hasUsedTrial: boolean;
 	hasActiveAccess: boolean;
+	hasPaymentIssue: boolean;
 	hasPaymentMethod: boolean;
 	isAnnual: boolean;
 	isEnterpriseCloud: boolean;
@@ -108,6 +117,7 @@ export const getBillingStatus = async (
 			trialDaysRemaining: null,
 			hasUsedTrial: false,
 			hasActiveAccess: true,
+			hasPaymentIssue: false,
 			hasPaymentMethod: true,
 			isAnnual: false,
 			isEnterpriseCloud: false,
@@ -123,6 +133,7 @@ export const getBillingStatus = async (
 			trialDaysRemaining: null,
 			hasUsedTrial: false,
 			hasActiveAccess: false,
+			hasPaymentIssue: false,
 			hasPaymentMethod: false,
 			isAnnual: false,
 			isEnterpriseCloud: owner?.isEnterpriseCloud ?? false,
@@ -174,6 +185,9 @@ export const getBillingStatus = async (
 		hasPaymentMethod,
 		hasUsedTrial: subscriptions.data.length > 0,
 		hasActiveAccess: plan !== null || !!trialingSub,
+		hasPaymentIssue:
+			plan === null &&
+			subscriptions.data.some((sub) => sub.status === "past_due"),
 		isAnnual,
 		isEnterpriseCloud: owner.isEnterpriseCloud,
 	};
