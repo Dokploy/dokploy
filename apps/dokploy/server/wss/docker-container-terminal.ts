@@ -6,8 +6,10 @@ import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss } from "./authorize";
 import { containerBelongsToService } from "./container-ownership";
 import {
+	isAllowedWebSocketOrigin,
 	isValidContainerId,
 	isValidShell,
+	parseRequestUrl,
 	parseResizeMessage,
 	parseTerminalSize,
 } from "./utils";
@@ -18,10 +20,12 @@ export const setupDockerContainerTerminalWebSocketServer = (
 	const wssTerm = new WebSocketServer({
 		noServer: true,
 		path: "/docker-container-terminal",
+		verifyClient: ({ req }: { req: http.IncomingMessage }) =>
+			isAllowedWebSocketOrigin(req),
 	});
 
 	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		const pathname = parseRequestUrl(req)?.pathname;
 
 		if (pathname === "/_next/webpack-hmr") {
 			return;
@@ -35,7 +39,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const url = new URL(req.url || "", "http://localhost");
 		const containerId = url.searchParams.get("containerId");
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");

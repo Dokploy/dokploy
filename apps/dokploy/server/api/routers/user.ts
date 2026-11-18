@@ -10,7 +10,6 @@ import {
 	findPasskeysByUserId,
 	findUserById,
 	getDokployUrl,
-	getMetricsOrigin,
 	getRootAdminIds,
 	getUserByToken,
 	getWebServerSettings,
@@ -29,22 +28,34 @@ import {
 	apiFindOneToken,
 	apikey,
 	apiUpdateUser,
+	applications,
+	compose,
 	invitation,
+	libsql,
+	mariadb,
 	member,
+	mongo,
+	mysql,
 	organization,
+	organizationRole,
+	postgres,
+	redis,
 	session,
 	user,
 } from "@dokploy/server/db/schema";
 import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import {
 	checkPermission,
+	checkServiceAccess,
 	hasPermission,
 	resolvePermissions,
 } from "@dokploy/server/services/permission";
 import { hasValidLicense } from "@dokploy/server/services/proprietary/license-key";
+import { getMetricsTarget } from "@dokploy/server/services/server";
+import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, desc, eq, gt, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { apiKeyNameSchema } from "@/lib/api-keys";
 import { audit } from "@/server/api/utils/audit";
@@ -119,12 +130,87 @@ const assertCanDeleteOwnAccount = async (ctx: {
 	}
 };
 
+const memberUserColumns = {
+	licenseKey: false,
+	stripeCustomerId: false,
+	stripeSubscriptionId: false,
+	trustedOrigins: false,
+} as const;
+
+const MONITORED_SERVICE_TABLES = [
+	{ table: applications, id: applications.applicationId },
+	{ table: compose, id: compose.composeId },
+	{ table: postgres, id: postgres.postgresId },
+	{ table: mysql, id: mysql.mysqlId },
+	{ table: mariadb, id: mariadb.mariadbId },
+	{ table: mongo, id: mongo.mongoId },
+	{ table: redis, id: redis.redisId },
+	{ table: libsql, id: libsql.libsqlId },
+];
+
+const findMonitoredServiceIds = async (
+	containerName: string,
+	serverId: string | null,
+) => {
+	for (const { table, id } of MONITORED_SERVICE_TABLES) {
+		const [row] = await db
+			.select({ id })
+			.from(table)
+			.where(
+				and(
+					eq(table.appName, containerName),
+					serverId ? eq(table.serverId, serverId) : isNull(table.serverId),
+				),
+			)
+			.limit(1);
+		if (row) return [row.id];
+	}
+	// Compose containers are named after the project (`<appName>-<service>-<n>` or
+	// `<appName>_<service>.<n>...`), so every compose whose appName prefixes the
+	// name could own it and all of them must be accessible.
+	const rows = await db
+		.select({ id: compose.composeId })
+		.from(compose)
+		.where(
+			and(
+				sql`starts_with(${containerName}, ${compose.appName} || '-') or starts_with(${containerName}, ${compose.appName} || '_')`,
+				serverId
+					? eq(compose.serverId, serverId)
+					: isNull(compose.serverId),
+			),
+		);
+	if (rows.length > 0) return rows.map((row) => row.id);
+
+	const docker = await getRemoteDocker(serverId);
+	const containers = await docker.listContainers({
+		all: true,
+		filters: JSON.stringify({ name: [containerName] }),
+	});
+	const normalizedName = containerName.replace(/^\/+/, "");
+	const container = containers.find((candidate) =>
+		candidate.Names.some((name) => name.replace(/^\/+/, "") === normalizedName),
+	);
+	const composeProject = container?.Labels?.["com.docker.compose.project"];
+	if (!composeProject) return [];
+
+	const composeRows = await db
+		.select({ id: compose.composeId })
+		.from(compose)
+		.where(
+			and(
+				eq(compose.appName, composeProject),
+				serverId ? eq(compose.serverId, serverId) : isNull(compose.serverId),
+			),
+		);
+	return composeRows.map((row) => row.id);
+};
+
 export const userRouter = createTRPCRouter({
 	all: withPermission("member", "read").query(async ({ ctx }) => {
 		return await db.query.member.findMany({
 			where: eq(member.organizationId, ctx.session.activeOrganizationId),
 			with: {
-				user: true,
+				user: { columns: memberUserColumns },
 			},
 			orderBy: [asc(member.createdAt)],
 		});
@@ -142,7 +228,7 @@ export const userRouter = createTRPCRouter({
 					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
 				),
 				with: {
-					user: true,
+					user: { columns: memberUserColumns },
 				},
 			});
 
@@ -285,7 +371,11 @@ export const userRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
-			if (input.password || input.currentPassword) {
+			const emailChanged =
+				input.email !== undefined &&
+				input.email.toLowerCase() !== ctx.user.email.toLowerCase();
+
+			if (input.password || input.currentPassword || emailChanged) {
 				const currentAuth = await db.query.account.findFirst({
 					where: eq(account.userId, ctx.user.id),
 				});
@@ -301,31 +391,35 @@ export const userRouter = createTRPCRouter({
 					});
 				}
 
-				if (!input.password) {
+				if (input.password) {
+					await db
+						.update(account)
+						.set({
+							password: bcrypt.hashSync(input.password, 10),
+						})
+						.where(eq(account.userId, ctx.user.id));
+
+					await db
+						.delete(session)
+						.where(
+							and(
+								eq(session.userId, ctx.user.id),
+								ne(session.id, ctx.session.id),
+							),
+						);
+				} else if (!emailChanged) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "New password is required",
 					});
 				}
-				await db
-					.update(account)
-					.set({
-						password: bcrypt.hashSync(input.password, 10),
-					})
-					.where(eq(account.userId, ctx.user.id));
-
-				await db
-					.delete(session)
-					.where(
-						and(
-							eq(session.userId, ctx.user.id),
-							ne(session.id, ctx.session.id),
-						),
-					);
 			}
 
 			try {
-				const result = await updateUser(ctx.user.id, input);
+				const result = await updateUser(ctx.user.id, {
+					...input,
+					...(emailChanged && IS_CLOUD ? { emailVerified: false } : {}),
+				});
 				await audit(ctx, {
 					action: "update",
 					resourceType: "user",
@@ -505,13 +599,23 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const result = await removeUserById(input.userId);
+			const memberships = await db.query.member.findMany({
+				where: eq(member.userId, input.userId),
+				columns: { id: true },
+			});
+
+			// Deleting the account would also remove the user's other organizations, including ones they own.
+			if (memberships.length > 1) {
+				await db.delete(member).where(eq(member.id, targetMember.id));
+			} else {
+				await removeUserById(input.userId);
+			}
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "user",
 				resourceId: input.userId,
 			});
-			return result;
+			return true;
 		}),
 	hasPassword: protectedProcedure.query(async ({ ctx }) => {
 		const credential = await findCredentialAccount(ctx.user.id);
@@ -679,6 +783,10 @@ export const userRouter = createTRPCRouter({
 		)
 		.query(async ({ input, ctx }) => {
 			try {
+				const { origin, serverId } = await getMetricsTarget(
+					ctx.session,
+					input.url,
+				);
 				if (!input.appName) {
 					throw new Error(
 						[
@@ -688,7 +796,21 @@ export const userRouter = createTRPCRouter({
 						].join("\n"),
 					);
 				}
-				const origin = await getMetricsOrigin(ctx.session, input.url);
+				if (!(await hasPermission(ctx, { docker: ["read"] }))) {
+					const serviceIds = await findMonitoredServiceIds(
+						input.appName,
+						serverId,
+					);
+					if (serviceIds.length === 0) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this service's monitoring",
+						});
+					}
+					for (const serviceId of serviceIds) {
+						await checkServiceAccess(ctx, serviceId, "read");
+					}
+				}
 				const url = new URL(`${origin}/metrics/containers`);
 				url.searchParams.append("limit", input.dataPoints);
 				url.searchParams.append("appName", input.appName);
@@ -880,6 +1002,36 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
+			if (
+				input.role === "admin" &&
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin"
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners and admins can create a user as admin",
+				});
+			}
+
+			if (!["admin", "member"].includes(input.role)) {
+				const customRole = await db.query.organizationRole.findFirst({
+					where: and(
+						eq(
+							organizationRole.organizationId,
+							ctx.session.activeOrganizationId,
+						),
+						eq(organizationRole.role, input.role),
+					),
+				});
+
+				if (!customRole) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Role "${input.role}" not found`,
+					});
+				}
+			}
+
 			return await createOrganizationUserWithCredentials({
 				organizationId: ctx.session.activeOrganizationId,
 				email: input.email,
@@ -900,13 +1052,22 @@ export const userRouter = createTRPCRouter({
 			}
 
 			const notification = await findNotificationById(input.notificationId);
-
-			const email = notification.email;
-			const resend = notification.resend;
-
 			const currentInvitation = await db.query.invitation.findFirst({
 				where: eq(invitation.id, input.invitationId),
 			});
+
+			if (
+				notification.organizationId !== ctx.session.activeOrganizationId ||
+				currentInvitation?.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to send this invitation",
+				});
+			}
+
+			const email = notification.email;
+			const resend = notification.resend;
 
 			if (!email && !resend) {
 				throw new TRPCError({

@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+import { promisify } from "node:util";
 import type {
 	custom,
 	discord,
@@ -12,7 +14,10 @@ import type {
 	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
-import { providerFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
+import {
+	guardedLookup,
+	providerFetch,
+} from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
@@ -31,8 +36,12 @@ export const sendEmailNotification = async (
 			fromAddress,
 			toAddresses,
 		} = connection;
+		// nodemailer resolves the host itself, so resolve it once through the SSRF
+		// block list and connect to that address; TLS still verifies the original name.
+		const address = (await promisify(guardedLookup)(smtpServer, {})) as string;
 		const transporter = nodemailer.createTransport({
-			host: smtpServer,
+			host: address,
+			servername: isIP(smtpServer) ? undefined : smtpServer,
 			port: smtpPort,
 			auth: { user: username, pass: password },
 		});

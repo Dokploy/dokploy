@@ -12,6 +12,7 @@ import { quote } from "shell-quote";
 import { WebSocketServer } from "ws";
 import { canAccessDockerOverWss, isServiceContainerName } from "./authorize";
 import { findServiceAppName } from "./container-ownership";
+import { isAllowedWebSocketOrigin, parseRequestUrl } from "./utils";
 
 type AppType = "application" | "stack" | "docker-compose";
 
@@ -66,10 +67,12 @@ export const setupDockerStatsMonitoringSocketServer = (
 	const wssTerm = new WebSocketServer({
 		noServer: true,
 		path: "/listen-docker-stats-monitoring",
+		verifyClient: ({ req }: { req: http.IncomingMessage }) =>
+			isAllowedWebSocketOrigin(req),
 	});
 
 	server.on("upgrade", (req, socket, head) => {
-		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+		const pathname = parseRequestUrl(req)?.pathname;
 
 		if (pathname === "/_next/webpack-hmr") {
 			return;
@@ -82,7 +85,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 	});
 
 	wssTerm.on("connection", async (ws, req) => {
-		const url = new URL(req.url || "", `http://${req.headers.host}`);
+		const url = new URL(req.url || "", "http://localhost");
 
 		if (IS_CLOUD) {
 			ws.send("This feature is not available in the cloud version.");
@@ -210,8 +213,9 @@ export const setupDockerStatsMonitoringSocketServer = (
 					}),
 				);
 			} catch (error) {
+				// Close reasons over 123 bytes make ws.close throw, leaving the socket open.
 				// @ts-ignore
-				ws.close(4000, `Error: ${error.message}`);
+				ws.close(4000, `Error: ${error.message}`.slice(0, 123));
 			}
 		}, 1300);
 

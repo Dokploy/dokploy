@@ -63,8 +63,8 @@ export const deploymentRouter = createTRPCRouter({
 	allByServer: withPermission("deployment", "read")
 		.input(apiFindAllByServer)
 		.query(async ({ input, ctx }) => {
-			const targetServer = await findServerById(input.serverId);
-			if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+			const accessibleServerIds = await getAccessibleServerIds(ctx.session);
+			if (!accessibleServerIds.has(input.serverId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have access to this server.",
@@ -155,6 +155,16 @@ export const deploymentRouter = createTRPCRouter({
 					schedule.scheduleType,
 					schedule.serverId,
 				);
+				if (
+					schedule.scheduleType === "dokploy-server" &&
+					schedule.organizationId &&
+					schedule.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this schedule.",
+					});
+				}
 				const serviceId = schedule.applicationId || schedule.composeId;
 				if (serviceId) {
 					await checkServicePermissionAndAccess(ctx, serviceId, {
@@ -191,6 +201,16 @@ export const deploymentRouter = createTRPCRouter({
 						backup.mongoId ||
 						backup.libsqlId ||
 						backup.composeId;
+					if (
+						!serviceId &&
+						backup.destination.organizationId !==
+							ctx.session.activeOrganizationId
+					) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "You don't have access to this backup.",
+						});
+					}
 				} else if (input.type === "volumeBackup") {
 					const volumeBackup = await findVolumeBackupById(input.id);
 					serviceId =
@@ -302,6 +322,7 @@ export const deploymentRouter = createTRPCRouter({
 
 			const command = `tail -n ${input.tail} "${deployment.logPath}" 2>/dev/null || echo ""`;
 			const serverId =
+				deployment.buildServerId ||
 				deployment.serverId ||
 				deployment.schedule?.serverId ||
 				deployment.application?.serverId ||

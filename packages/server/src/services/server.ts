@@ -348,7 +348,7 @@ const toOrigin = (ip?: string | null, port?: number) => {
 	}
 };
 
-export const getMetricsOrigin = async (
+export const getMetricsTarget = async (
 	session: { userId: string; activeOrganizationId: string },
 	url: string,
 ) => {
@@ -356,9 +356,10 @@ export const getMetricsOrigin = async (
 	const servers = await db.query.server.findMany({
 		where: eq(server.organizationId, session.activeOrganizationId),
 	});
-	const allowed = servers
-		.filter((s) => accessible.has(s.serverId))
-		.map((s) => toOrigin(s.ipAddress, s.metricsConfig?.server?.port));
+	const allowedServers = servers.filter((s) => accessible.has(s.serverId));
+	const allowed = allowedServers.map((s) =>
+		toOrigin(s.ipAddress, s.metricsConfig?.server?.port),
+	);
 
 	if (!IS_CLOUD) {
 		const settings = await getWebServerSettings();
@@ -377,5 +378,16 @@ export const getMetricsOrigin = async (
 			message: "This URL is not a monitoring endpoint of your servers",
 		});
 	}
-	return origin;
+	return {
+		origin,
+		serverId:
+			allowedServers.find(
+				(s) => toOrigin(s.ipAddress, s.metricsConfig?.server?.port) === origin,
+			)?.serverId ?? null,
+	};
 };
+
+export const getMetricsOrigin = async (
+	session: { userId: string; activeOrganizationId: string },
+	url: string,
+) => (await getMetricsTarget(session, url)).origin;

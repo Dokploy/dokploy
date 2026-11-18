@@ -65,6 +65,24 @@ describe("providerFetch — blocked endpoint guard", () => {
 		expect(global.fetch).not.toHaveBeenCalled();
 	});
 
+	it("rejects the metadata IP embedded in NAT64 and IPv4-compatible IPv6 addresses", async () => {
+		const providerFetch = await loadFetch(false);
+		for (const address of [
+			"[64:ff9b::169.254.169.254]",
+			"[64:ff9b::a9fe:a9fe]",
+			"[::169.254.169.254]",
+		]) {
+			await expect(
+				providerFetch(`http://${address}/latest/meta-data/`),
+				`expected ${address} to be rejected`,
+			).rejects.toThrow(/metadata/i);
+		}
+		expect(global.fetch).not.toHaveBeenCalled();
+
+		await providerFetch("http://[64:ff9b::8.8.8.8]/");
+		expect(global.fetch).toHaveBeenCalledTimes(1);
+	});
+
 	it("rejects the AWS ECS metadata IPv6 address", async () => {
 		const providerFetch = await loadFetch(false);
 		await expect(
@@ -116,6 +134,7 @@ describe("providerFetch — blocked endpoint guard", () => {
 			"http://0.0.0.0:3100/ready",
 			"http://100.100.100.200/latest/meta-data/",
 			"http://[::]:3100/ready",
+			"http://[64:ff9b::10.0.0.5]:3100/ready",
 		]) {
 			await expect(
 				providerFetch(url),

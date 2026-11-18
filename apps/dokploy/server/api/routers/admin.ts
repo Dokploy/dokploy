@@ -47,7 +47,11 @@ export const adminRouter = createTRPCRouter({
 
 				await setupWebMonitoring();
 				const settings = await getWebServerSettings();
-				return settings;
+				if (!settings) {
+					return settings;
+				}
+				const { sshPrivateKey: _, ...rest } = settings;
+				return rest;
 			} catch (error) {
 				throw error;
 			}

@@ -102,6 +102,18 @@ const cfFetch = async <T>(
 	return body.result;
 };
 
+const encodePathId = (id: string) => {
+	if (id === "." || id === "..") {
+		throw new Error("Cloudflare: invalid ID path segment");
+	}
+	return encodeURIComponent(id);
+};
+
+const recordsPath = (zoneId: string, recordId?: string) =>
+	`/zones/${encodePathId(zoneId)}/dns_records${
+		recordId === undefined ? "" : `/${encodePathId(recordId)}`
+	}`;
+
 export const cloudflareClient: DnsClient<CloudflareConfig> = {
 	async listZones(config) {
 		const zones: { id: string; name: string }[] = [];
@@ -140,7 +152,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 					priority?: number;
 					proxied?: boolean;
 				}[]
-			>(config, `/zones/${zoneId}/dns_records?per_page=50&page=${page}`);
+			>(config, `${recordsPath(zoneId)}?per_page=50&page=${page}`);
 			records.push(
 				...result.map((record) => ({
 					id: record.id,
@@ -178,7 +190,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 			}[]
 		>(
 			config,
-			`/zones/${record.zoneId}/dns_records?type=${record.type}&name=${encodeURIComponent(record.name)}`,
+			`${recordsPath(record.zoneId)}?type=${record.type}&name=${encodeURIComponent(record.name)}`,
 		);
 
 		const built = buildValue(record);
@@ -199,7 +211,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 		if (existingRecord) {
 			const updated = await cfFetch<{ id: string }>(
 				config,
-				`/zones/${record.zoneId}/dns_records/${existingRecord.id}`,
+				recordsPath(record.zoneId, existingRecord.id),
 				{ method: "PUT", body: JSON.stringify(payload) },
 			);
 			return { id: updated.id };
@@ -207,7 +219,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 
 		const created = await cfFetch<{ id: string }>(
 			config,
-			`/zones/${record.zoneId}/dns_records`,
+			recordsPath(record.zoneId),
 			{ method: "POST", body: JSON.stringify(payload) },
 		);
 		return { id: created.id };
@@ -216,7 +228,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 	async updateRecord(config, zoneId, recordId, record) {
 		const updated = await cfFetch<{ id: string }>(
 			config,
-			`/zones/${zoneId}/dns_records/${recordId}`,
+			recordsPath(zoneId, recordId),
 			{
 				method: "PUT",
 				body: JSON.stringify({
@@ -232,7 +244,7 @@ export const cloudflareClient: DnsClient<CloudflareConfig> = {
 	},
 
 	async deleteRecord(config, zoneId, recordId) {
-		await cfFetch(config, `/zones/${zoneId}/dns_records/${recordId}`, {
+		await cfFetch(config, recordsPath(zoneId, recordId), {
 			method: "DELETE",
 		});
 	},

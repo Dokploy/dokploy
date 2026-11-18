@@ -10,6 +10,7 @@ import {
 	createDomain,
 	createMount,
 	findEnvironmentById,
+	getWebServerSettings,
 } from "@dokploy/server/index";
 import {
 	deleteAiSettings,
@@ -401,6 +402,9 @@ ${input.logs}`,
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				if (input.serverId) {
+					await assertServerAccess(ctx.session, input.serverId);
+				}
 				return await suggestVariants({
 					...input,
 					organizationId: ctx.session.activeOrganizationId,
@@ -420,7 +424,11 @@ ${input.logs}`,
 			const project = await findProjectById(environment.projectId);
 			await checkServiceAccess(ctx, environment.projectId, "create");
 
-			if (IS_CLOUD && !input.serverId) {
+			const webServerSettings = await getWebServerSettings();
+			if (
+				(IS_CLOUD || webServerSettings?.remoteServersOnly) &&
+				!input.serverId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You need to use a server to create a compose",

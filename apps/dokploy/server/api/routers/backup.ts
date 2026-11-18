@@ -95,10 +95,52 @@ const assertWebServerBackupAccess = async (
 	);
 };
 
+const backupServiceIdKeys = [
+	"postgresId",
+	"mysqlId",
+	"mariadbId",
+	"mongoId",
+	"libsqlId",
+	"composeId",
+] as const;
+
+// Authorization checks the first service id present, but scheduled runs pick
+// the service from backupType/databaseType (and web-server ignores the ids), so
+// the row must reference exactly the one service that type dispatches to.
+const assertBackupTargetMatchesType = (
+	backup: Partial<
+		Record<(typeof backupServiceIdKeys)[number], string | null | undefined>
+	> & {
+		// Only compared to "compose"; apiCreateBackup infers a non-enum type for it.
+		backupType?: unknown;
+		databaseType: z.infer<typeof apiCreateBackup>["databaseType"];
+	},
+) => {
+	const provided = backupServiceIdKeys.filter((key) => backup[key]);
+	let valid: boolean;
+	if (backup.backupType === "compose") {
+		valid =
+			backup.databaseType !== "web-server" &&
+			provided.length === 1 &&
+			provided[0] === "composeId";
+	} else if (backup.databaseType === "web-server") {
+		valid = provided.length === 0;
+	} else {
+		valid = provided.length === 1 && provided[0] === `${backup.databaseType}Id`;
+	}
+	if (!valid) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "The backup target does not match its type",
+		});
+	}
+};
+
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
 		.mutation(async ({ input, ctx }) => {
+			assertBackupTargetMatchesType(input);
 			try {
 				const serviceId =
 					input.postgresId ||
@@ -219,6 +261,10 @@ export const backupRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const existing = await findBackupById(input.backupId);
+				assertBackupTargetMatchesType({
+					...existing,
+					databaseType: input.databaseType,
+				});
 				const serviceId =
 					existing.postgresId ||
 					existing.mysqlId ||
@@ -250,8 +296,9 @@ export const backupRouter = createTRPCRouter({
 							type: "backup",
 						});
 					} else {
+						// The repeatable job is keyed by the cron it was registered with.
 						await removeJob({
-							cronSchedule: backup.schedule,
+							cronSchedule: existing.schedule,
 							backupId: backup.backupId,
 							type: "backup",
 						});
@@ -530,6 +577,11 @@ export const backupRouter = createTRPCRouter({
 							message: "You don't have access to this server.",
 						});
 					}
+				} else if (IS_CLOUD) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Server not found",
+					});
 				}
 				const rcloneFlags = getS3Credentials(destination);
 				const bucketPath = `:s3:${destination.bucket}`;

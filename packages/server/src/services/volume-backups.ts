@@ -112,6 +112,10 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 	return volumeBackup;
 };
 
+export type VolumeBackupWithServices = Awaited<
+	ReturnType<typeof findVolumeBackupById>
+>;
+
 export const createVolumeBackup = async (
 	volumeBackup: z.infer<typeof createVolumeBackupSchema>,
 ) => {

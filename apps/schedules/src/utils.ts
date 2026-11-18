@@ -5,6 +5,7 @@ import {
 	findScheduleById,
 	findServerById,
 	findVolumeBackupById,
+	getVolumeBackupServerId,
 	keepLatestNBackups,
 	runCommand,
 	runComposeBackup,
@@ -28,11 +29,29 @@ import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
 import type { QueueJob } from "./schema.js";
 
+// Same check the backup branch makes inline: a server can be deactivated after
+// its jobs were scheduled.
+const isServerInactive = async (serverId: string | null | undefined) => {
+	if (!serverId) {
+		return false;
+	}
+	const { serverStatus } = await findServerById(serverId);
+	if (serverStatus === "inactive") {
+		logger.info("Server is inactive");
+		return true;
+	}
+	return false;
+};
+
 export const runJobs = async (job: QueueJob) => {
 	try {
 		if (job.type === "backup") {
 			const { backupId } = job;
 			const backup = await findBackupById(backupId);
+			if (!backup.enabled) {
+				logger.info("Backup is disabled");
+				return;
+			}
 			const {
 				databaseType,
 				postgres,
@@ -106,13 +125,20 @@ export const runJobs = async (job: QueueJob) => {
 		} else if (job.type === "schedule") {
 			const { scheduleId } = job;
 			const schedule = await findScheduleById(scheduleId);
-			if (schedule.enabled) {
+			const serverId =
+				schedule.serverId ??
+				schedule.application?.serverId ??
+				schedule.compose?.serverId;
+			if (schedule.enabled && !(await isServerInactive(serverId))) {
 				await runCommand(schedule.scheduleId);
 			}
 		} else if (job.type === "volume-backup") {
 			const { volumeBackupId } = job;
 			const volumeBackup = await findVolumeBackupById(volumeBackupId);
-			if (volumeBackup.enabled) {
+			if (
+				volumeBackup.enabled &&
+				!(await isServerInactive(getVolumeBackupServerId(volumeBackup)))
+			) {
 				await runVolumeBackup(volumeBackupId);
 			}
 		}
@@ -207,6 +233,7 @@ export const initializeJobs = async () => {
 			if (schedule.compose) {
 				return schedule.compose.server?.serverStatus === "active";
 			}
+			return false;
 		},
 	);
 
@@ -227,6 +254,7 @@ export const initializeJobs = async () => {
 		"Schedules Initialized",
 	);
 
+	const withServer = { with: { server: true } } as const;
 	const volumeBackupsResult = await db.query.volumeBackups.findMany({
 		where: eq(volumeBackups.enabled, true),
 		with: {
@@ -238,22 +266,28 @@ export const initializeJobs = async () => {
 					server: true,
 				},
 			},
-			compose: {
-				with: {
-					server: true,
-				},
-			},
+			compose: withServer,
+			postgres: withServer,
+			mysql: withServer,
+			mariadb: withServer,
+			mongo: withServer,
+			redis: withServer,
+			libsql: withServer,
 		},
 	});
 
 	const filteredVolumeBackupsBasedOnServerStatus = volumeBackupsResult.filter(
 		(volumeBackup) => {
-			if (volumeBackup.application) {
-				return volumeBackup.application.server?.serverStatus === "active";
-			}
-			if (volumeBackup.compose) {
-				return volumeBackup.compose.server?.serverStatus === "active";
-			}
+			const service =
+				volumeBackup.application ??
+				volumeBackup.compose ??
+				volumeBackup.postgres ??
+				volumeBackup.mysql ??
+				volumeBackup.mariadb ??
+				volumeBackup.mongo ??
+				volumeBackup.redis ??
+				volumeBackup.libsql;
+			return service?.server?.serverStatus === "active";
 		},
 	);
 

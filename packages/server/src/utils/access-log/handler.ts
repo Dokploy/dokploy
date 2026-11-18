@@ -5,10 +5,19 @@ import {
 	getWebServerSettings,
 	updateWebServerSettings,
 } from "@dokploy/server/services/web-server-settings";
-import { scheduledJobs, scheduleJob } from "node-schedule";
+import { Job, scheduledJobs, scheduleJob } from "node-schedule";
 import { execAsync } from "../process/execAsync";
 
 const LOG_CLEANUP_JOB_NAME = "access-log-cleanup";
+
+// scheduleJob() reports an unparsable spec by returning null, but only after it
+// has replaced the named job in the registry, so probe with a throwaway job.
+export const isValidCronSchedule = (spec: string) => {
+	const probe = new Job(() => {});
+	const valid = probe.schedule(spec);
+	probe.cancel();
+	return valid;
+};
 
 export const startLogCleanup = async (
 	cronExpression = "0 0 * * *",

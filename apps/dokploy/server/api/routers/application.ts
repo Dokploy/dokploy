@@ -774,6 +774,20 @@ export const applicationRouter = createTRPCRouter({
 			await checkServicePermissionAndAccess(ctx, input.applicationId, {
 				service: ["create"],
 			});
+			if (
+				[
+					input.env,
+					input.buildArgs,
+					input.buildSecrets,
+					input.previewEnv,
+					input.previewBuildArgs,
+					input.previewBuildSecrets,
+				].some((value) => value !== undefined)
+			) {
+				await checkServicePermissionAndAccess(ctx, input.applicationId, {
+					envVars: ["write"],
+				});
+			}
 			await assertServiceCredentialAccess(ctx.session, input);
 
 			if (
@@ -919,7 +933,10 @@ export const applicationRouter = createTRPCRouter({
 				deployment: ["cancel"],
 			});
 			const application = await findApplicationById(input.applicationId);
-			await killDockerBuild("application", application.serverId);
+			await killDockerBuild(
+				"application",
+				application.buildServerId || application.serverId,
+			);
 			await audit(ctx, {
 				action: "stop",
 				resourceType: "application",

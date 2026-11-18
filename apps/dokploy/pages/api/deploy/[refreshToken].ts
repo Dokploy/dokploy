@@ -606,6 +606,12 @@ export const extractCommittedPaths = async (
 		const newHash = change.new?.target?.hash;
 		if (!newHash) continue;
 		const oldHash = change.old?.target?.hash;
+		// Hashes come from the unsigned webhook body and are spliced into an
+		// authenticated Bitbucket API path.
+		const commitId = /^[a-zA-Z0-9]+$/;
+		if (!commitId.test(newHash) || (oldHash && !commitId.test(oldHash))) {
+			return null;
+		}
 		// Bitbucket range specs are "new..old", the reverse of git diff
 		const spec = oldHash ? `${newHash}..${oldHash}` : newHash;
 		let url: string | undefined =

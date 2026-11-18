@@ -8,5 +8,5 @@ export const shouldDeploy = (
 	const files = (modifiedFiles ?? []).filter(
 		(file): file is string => typeof file === "string",
 	);
-	return micromatch(files, watchPaths).length > 0;
+	return micromatch(files, watchPaths, { dot: true }).length > 0;
 };

@@ -1,4 +1,5 @@
 import { VALID_BRANCH_REGEX } from "@dokploy/server/utils/git-branch-validation";
+import { VALID_HOSTNAME_REGEX } from "@dokploy/server/utils/hostname-validation";
 import { relations } from "drizzle-orm";
 import {
 	bigint,
@@ -12,6 +13,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { domain } from "../validations/domain";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
@@ -389,10 +391,16 @@ const createSchema = createInsertSchema(applications, {
 	previewEnv: z.string().optional(),
 	previewBuildArgs: z.string().optional(),
 	previewBuildSecrets: z.string().optional(),
-	previewWildcard: z.string().optional(),
+	previewWildcard: z
+		.string()
+		.refine(
+			(val) => val.startsWith("*.") && VALID_HOSTNAME_REGEX.test(val.slice(2)),
+			'Wildcard domain must look like "*.example.com"',
+		)
+		.optional(),
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
-	previewPath: z.string().optional(),
+	previewPath: domain.shape.path,
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional().optional(),
@@ -574,6 +582,7 @@ export const apiUpdateApplication = createSchema
 	.omit({
 		serverId: true,
 		environmentId: true,
+		refreshToken: true,
 		previewForwardAuthEnabled: true,
 		ssoAllowedEmails: true,
 		ssoAllowedGroups: true,

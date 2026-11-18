@@ -5,7 +5,6 @@ import {
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
 	findPreviewDeploymentById,
-	findServerById,
 	findServerInOrganization,
 	generateTraefikMeDomain,
 	getServerIpCandidates,
@@ -283,13 +282,10 @@ export const domainRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			if (input.serverId) {
-				const server = await findServerById(input.serverId);
-				if (server.organizationId !== ctx.session.activeOrganizationId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this server",
-					});
-				}
+				await findServerInOrganization(
+					input.serverId,
+					ctx.session.activeOrganizationId,
+				);
 			}
 
 			const expectedIps = await getServerIpCandidates(input.serverId);

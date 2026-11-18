@@ -26,7 +26,7 @@ import {
 import { trackDeploymentResult } from "@dokploy/server/utils/tracking/posthog";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
 import {
@@ -131,14 +131,13 @@ export const createDeployment = async (
 	>,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
+	const serverId = application.buildServerId || application.serverId;
 	await removeLastTenDeployments(
 		deployment.applicationId,
 		"application",
-		application.serverId,
+		serverId,
 	);
 	try {
-		const serverId = application.buildServerId || application.serverId;
-
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
@@ -219,7 +218,7 @@ export const createDeploymentPreview = async (
 	await removeLastTenDeployments(
 		deployment.previewDeploymentId,
 		"previewDeployment",
-		previewDeployment.application.serverId,
+		serverId,
 	);
 	try {
 		const appName = `${previewDeployment.appName}`;
@@ -538,12 +537,11 @@ export const createDeploymentVolumeBackup = async (
 	deployment: Omit<
 		z.infer<typeof apiCreateDeploymentVolumeBackup>,
 		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	> & { serverId: string | null },
 ) => {
 	const volumeBackup = await findVolumeBackupById(deployment.volumeBackupId);
 
-	const serverId =
-		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+	const { serverId } = deployment;
 	await removeLastTenDeployments(
 		deployment.volumeBackupId,
 		"volumeBackup",
@@ -582,6 +580,7 @@ export const createDeploymentVolumeBackup = async (
 			.insert(deployments)
 			.values({
 				volumeBackupId: deployment.volumeBackupId,
+				serverId,
 				title: deployment.title || "Deployment",
 				status: "running",
 				logPath: logFilePath,
@@ -1058,7 +1057,10 @@ export const createServerDeployment = async (
 
 export const removeLastFiveDeployments = async (serverId: string) => {
 	const deploymentList = await db.query.deployments.findMany({
-		where: eq(deployments.serverId, serverId),
+		where: and(
+			eq(deployments.serverId, serverId),
+			isNull(deployments.volumeBackupId),
+		),
 		orderBy: desc(deployments.createdAt),
 	});
 	if (deploymentList.length >= 5) {
@@ -1113,7 +1115,12 @@ const deploymentOwnerQuery = {
 	with: {
 		server: { columns: { organizationId: true } },
 		schedule: {
-			columns: { organizationId: true, applicationId: true, composeId: true },
+			columns: {
+				organizationId: true,
+				applicationId: true,
+				composeId: true,
+				scheduleType: true,
+			},
 			with: { server: { columns: { organizationId: true } } },
 		},
 		previewDeployment: { columns: { applicationId: true } },

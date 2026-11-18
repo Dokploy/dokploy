@@ -304,7 +304,16 @@ export const environmentRouter = createTRPCRouter({
 					}
 				}
 
+				await checkEnvironmentCreationPermission(ctx, environment.projectId);
+				if (IS_CLOUD) {
+					await assertEnvironmentLimit(
+						ctx.session.activeOrganizationId,
+						environment.projectId,
+					);
+				}
+
 				const duplicatedEnvironment = await duplicateEnvironment(input);
+				await addNewEnvironment(ctx, duplicatedEnvironment.environmentId);
 				await audit(ctx, {
 					action: "create",
 					resourceType: "environment",

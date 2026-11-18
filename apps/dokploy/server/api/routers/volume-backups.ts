@@ -165,11 +165,15 @@ export const volumeBackupsRouter = createTRPCRouter({
 				vb.redisId ||
 				vb.libsqlId ||
 				vb.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["read"],
+			if (!serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Volume backup is not attached to a service",
 				});
 			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["read"],
+			});
 			return vb;
 		}),
 	delete: protectedProcedure
@@ -189,12 +193,25 @@ export const volumeBackupsRouter = createTRPCRouter({
 				vb.redisId ||
 				vb.libsqlId ||
 				vb.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["delete"],
+			if (!serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Volume backup is not attached to a service",
 				});
 			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["delete"],
+			});
 			const result = await removeVolumeBackup(input.volumeBackupId);
+			if (IS_CLOUD) {
+				await removeJob({
+					cronSchedule: vb.cronExpression,
+					volumeBackupId: vb.volumeBackupId,
+					type: "volume-backup",
+				});
+			} else {
+				removeVolumeBackupJob(vb.volumeBackupId);
+			}
 			await audit(ctx, {
 				action: "delete",
 				resourceType: "volumeBackup",
@@ -285,7 +302,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedVolumeBackup.cronExpression,
+						cronSchedule: existingVb.cronExpression,
 						volumeBackupId: updatedVolumeBackup.volumeBackupId,
 						type: "volume-backup",
 					});
@@ -319,11 +336,15 @@ export const volumeBackupsRouter = createTRPCRouter({
 				vb.redisId ||
 				vb.libsqlId ||
 				vb.composeId;
-			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					volumeBackup: ["create"],
+			if (!serviceId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Volume backup is not attached to a service",
 				});
 			}
+			await checkServicePermissionAndAccess(ctx, serviceId, {
+				volumeBackup: ["create"],
+			});
 			try {
 				const result = await runVolumeBackup(input.volumeBackupId);
 				await audit(ctx, {

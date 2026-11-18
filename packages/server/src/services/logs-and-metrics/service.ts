@@ -167,6 +167,12 @@ export const updateTelemetryProvider = async (
 	const isChangingType =
 		data.providerType !== undefined &&
 		data.providerType !== existing.providerType;
+	// The stored key and secret are never shown, so they must not follow the
+	// data to an endpoint the caller just picked; changing it means re-entering them.
+	const credentialReset =
+		data.endpoint !== undefined && data.endpoint !== existing.endpoint
+			? { apiKey: null, apiSecret: null }
+			: {};
 	const dataToApply = isChangingType
 		? {
 				endpoint: null,
@@ -177,10 +183,11 @@ export const updateTelemetryProvider = async (
 			}
 		: data.extraConfig != null
 			? {
+					...credentialReset,
 					...data,
 					extraConfig: { ...(existing.extraConfig ?? {}), ...data.extraConfig },
 				}
-			: data;
+			: { ...credentialReset, ...data };
 	const merged = { ...existing, ...dataToApply };
 	const signals = merged.signals as TelemetrySignal[];
 	assertSignalsSupported(merged.providerType, signals);

@@ -34,7 +34,11 @@ export const securityRelations = relations(security, ({ one }) => ({
 }));
 const createSchema = createInsertSchema(security, {
 	securityId: z.string().min(1),
-	username: z.string().min(1),
+	// Traefik basic-auth entries are "user:hash", so a ':' would split the name.
+	username: z
+		.string()
+		.min(1)
+		.regex(/^[^:]+$/, "Username cannot contain ':'"),
 	password: z.string().min(1),
 });
 

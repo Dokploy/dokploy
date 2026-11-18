@@ -234,6 +234,9 @@ func CheckThresholds(metrics database.ServerMetric) error {
 	return nil
 }
 
+// The metrics ticker calls this synchronously, so an unresponsive callback must not stall metric collection.
+var alertClient = &http.Client{Timeout: 10 * time.Second}
+
 func sendAlert(callbackURL string, payload AlertPayload) error {
 	if callbackURL == "" {
 		return fmt.Errorf("callback URL is not set")
@@ -247,7 +250,7 @@ func sendAlert(callbackURL string, payload AlertPayload) error {
 		return fmt.Errorf("failed to marshal alert payload: %v", err)
 	}
 
-	resp, err := http.Post(callbackURL, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := alertClient.Post(callbackURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to send POST request: %v", err)
 	}

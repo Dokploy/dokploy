@@ -128,6 +128,14 @@ export const bitbucketRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const existing = await findBitbucketById(input.bitbucketId);
 			await assertGitProviderAccess(ctx.session, existing.gitProvider);
+			if (
+				!(await canViewGitProviderSecrets(ctx.session, existing.gitProvider))
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You can only update your own Git providers",
+				});
+			}
 			const result = await updateBitbucket(input.bitbucketId, {
 				...input,
 				organizationId: ctx.session.activeOrganizationId,

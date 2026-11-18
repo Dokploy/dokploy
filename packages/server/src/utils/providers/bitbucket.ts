@@ -12,6 +12,7 @@ import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
 import { quote } from "shell-quote";
 import type { z } from "zod";
+import { getGitTokenAuthConfig } from "./git";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -23,31 +24,36 @@ export type ComposeWithBitbucket = InferResultType<
 	{ bitbucket: true }
 >;
 
-export const getBitbucketCloneUrl = (
+export const getBitbucketGitAuthConfig = (
 	bitbucketProvider: {
 		apiToken?: string | null;
 		bitbucketUsername?: string | null;
 		appPassword?: string | null;
-		bitbucketEmail?: string | null;
-		bitbucketWorkspaceName?: string | null;
 	} | null,
-	repoClone: string,
+	cloneUrl: string,
 ) => {
 	if (!bitbucketProvider) {
 		throw new Error("Bitbucket provider is required");
 	}
 
 	if (bitbucketProvider.apiToken) {
-		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
+		return getGitTokenAuthConfig(
+			cloneUrl,
+			bitbucketProvider.apiToken,
+			"x-bitbucket-api-token-auth",
+		);
 	}
 
-	// For app passwords, use username:app_password format
 	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
 		throw new Error(
 			"Username and app password are required when not using API token",
 		);
 	}
-	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+	return getGitTokenAuthConfig(
+		cloneUrl,
+		bitbucketProvider.appPassword,
+		bitbucketProvider.bitbucketUsername,
+	);
 };
 
 export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
@@ -124,9 +130,9 @@ export const cloneBitbucketRepository = async ({
 	command += `mkdir -p ${outputPath};`;
 	const repoToUse = entity.bitbucketRepositorySlug || bitbucketRepository;
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${repoToUse}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
+	const cloneUrl = `https://${repoclone}`;
 	command += `echo ${quote([`Cloning Repo ${repoclone} to ${outputPath}: ✅`])};`;
-	command += `git clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
+	command += `git ${getBitbucketGitAuthConfig(bitbucket, cloneUrl)} clone --branch ${quote([String(bitbucketBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${quote([String(cloneUrl ?? "")])} ${quote([String(outputPath ?? "")])} --progress;`;
 	return command;
 };
 

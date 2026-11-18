@@ -1,4 +1,5 @@
 import type { VaultProviderConfig } from "@dokploy/server/db/schema";
+import { guardedFetch } from "@dokploy/server/services/logs-and-metrics/provider-fetch";
 
 export interface VaultClient<
 	C extends VaultProviderConfig = VaultProviderConfig,
@@ -11,7 +12,7 @@ export interface VaultClient<
 export const VAULT_REQUEST_TIMEOUT_MS = 15_000;
 
 export const vaultFetch = async (url: string, init: RequestInit = {}) => {
-	return await fetch(url, {
+	return await guardedFetch(url, {
 		...init,
 		signal: AbortSignal.timeout(VAULT_REQUEST_TIMEOUT_MS),
 	});

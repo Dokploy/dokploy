@@ -21,10 +21,19 @@ import {
 	registry,
 } from "@/server/db/schema";
 import { createTRPCRouter, withPermission } from "../trpc";
+
+// "none" is the UI's "no server" choice: authenticate on the Dokploy host.
+const loginServerId = (serverId?: string) =>
+	serverId && serverId !== "none" ? serverId : null;
+
 export const registryRouter = createTRPCRouter({
 	create: withPermission("registry", "create")
 		.input(apiCreateRegistry)
 		.mutation(async ({ ctx, input }) => {
+			const serverId = loginServerId(input.serverId);
+			if (serverId) {
+				await assertServerAccess(ctx.session, serverId);
+			}
 			const reg = await createRegistry(input, ctx.session.activeOrganizationId);
 			await audit(ctx, {
 				action: "create",
@@ -63,6 +72,10 @@ export const registryRouter = createTRPCRouter({
 					message: "You are not allowed to update this registry",
 				});
 			}
+			const serverId = loginServerId(input.serverId);
+			if (serverId) {
+				await assertServerAccess(ctx.session, serverId);
+			}
 			const application = await updateRegistry(registryId, {
 				...rest,
 			});
@@ -85,6 +98,7 @@ export const registryRouter = createTRPCRouter({
 	all: withPermission("registry", "read").query(async ({ ctx }) => {
 		const registryResponse = await db.query.registry.findMany({
 			where: eq(registry.organizationId, ctx.session.activeOrganizationId),
+			columns: { password: false },
 		});
 		return registryResponse;
 	}),
@@ -103,7 +117,7 @@ export const registryRouter = createTRPCRouter({
 	testRegistry: withPermission("registry", "read")
 		.input(apiTestRegistry)
 		.mutation(async ({ input, ctx }) => {
-			await assertServerAccess(ctx.session, input.serverId ?? null);
+			await assertServerAccess(ctx.session, loginServerId(input.serverId));
 			try {
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -134,7 +148,7 @@ export const registryRouter = createTRPCRouter({
 	testRegistryById: withPermission("registry", "read")
 		.input(apiTestRegistryById)
 		.mutation(async ({ input, ctx }) => {
-			await assertServerAccess(ctx.session, input.serverId ?? null);
+			await assertServerAccess(ctx.session, loginServerId(input.serverId));
 			try {
 				const registryData = await db.query.registry.findFirst({
 					where: eq(registry.registryId, input.registryId ?? ""),

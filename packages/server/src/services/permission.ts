@@ -329,6 +329,10 @@ export const checkProjectAccess = async (
 	const organizationId = ctx.session.activeOrganizationId;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
 
+	if (projectId) {
+		await assertProjectInOrganization(ctx, projectId);
+	}
+
 	await checkPermission(ctx, { project: [action] });
 
 	if (
@@ -462,6 +466,8 @@ export const checkEnvironmentDeletionPermission = async (
 	const userId = ctx.user.id;
 	const organizationId = ctx.session.activeOrganizationId;
 	const memberRecord = await findMemberByUserId(userId, organizationId);
+
+	await assertProjectInOrganization(ctx, projectId);
 
 	await checkPermission(ctx, { environment: ["delete"] });
 

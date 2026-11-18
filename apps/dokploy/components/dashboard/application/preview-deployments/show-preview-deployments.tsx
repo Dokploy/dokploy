@@ -158,7 +158,11 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															readOnly
 															className="pr-8 text-sm text-blue-500 hover:text-blue-600 cursor-pointer"
 															onClick={() =>
-																window.open(deploymentUrl, "_blank")
+																window.open(
+																	deploymentUrl,
+																	"_blank",
+																	"noopener,noreferrer",
+																)
 															}
 														/>
 														<ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
@@ -170,7 +174,11 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															size="sm"
 															className="gap-2"
 															onClick={() =>
-																window.open(deployment.pullRequestURL, "_blank")
+																window.open(
+																	deployment.pullRequestURL,
+																	"_blank",
+																	"noopener,noreferrer",
+																)
 															}
 														>
 															<GithubIcon className="size-4" />

@@ -417,6 +417,16 @@ describe("cloudflareClient.deleteRecord", () => {
 		expect(url).toContain("/zones/zone-1/dns_records/r1");
 		expect(init.method).toBe("DELETE");
 	});
+
+	it.each([".", ".."])(
+		"rejects dot-segment record id %s before fetching",
+		async (recordId) => {
+			await expect(
+				cloudflareClient.deleteRecord(config, "zone-1", recordId),
+			).rejects.toThrow("invalid ID path segment");
+			expect(mockFetch).not.toHaveBeenCalled();
+		},
+	);
 });
 
 describe("cloudflareClient.testConnection", () => {

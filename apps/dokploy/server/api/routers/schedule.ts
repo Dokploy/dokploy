@@ -3,6 +3,7 @@ import { db } from "@dokploy/server/db";
 import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
 	createScheduleSchema,
+	type Schedule,
 	schedules,
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
@@ -11,6 +12,7 @@ import {
 	checkPermission,
 	checkServicePermissionAndAccess,
 	findMemberByUserId,
+	type PermissionCtx,
 } from "@dokploy/server/services/permission";
 import {
 	assertHostScheduleAccess,
@@ -28,17 +30,70 @@ import { assertScheduledJobLimit } from "@/server/api/utils/plan-limits";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
+type ScheduleTarget = {
+	scheduleType?: Schedule["scheduleType"] | null;
+	applicationId?: string | null;
+	composeId?: string | null;
+	serverId?: string | null;
+};
+
+// runCommand/deleteSchedule pick the target by scheduleType and fall back across
+// applicationId/composeId/serverId, so every id stored on the row must be one
+// the caller controls, not only the first one present.
+const assertScheduleTargetAccess = async (
+	ctx: PermissionCtx,
+	target: ScheduleTarget,
+	action: "create" | "update",
+) => {
+	await assertHostScheduleAccess(ctx, target.scheduleType, target.serverId);
+
+	const serviceIds = [target.applicationId, target.composeId].filter(
+		(id): id is string => !!id,
+	);
+	for (const serviceId of serviceIds) {
+		await checkServicePermissionAndAccess(ctx, serviceId, {
+			schedule: [action],
+		});
+	}
+	if (serviceIds.length === 0) {
+		await checkPermission(ctx, { schedule: [action] });
+	}
+
+	if (target.serverId) {
+		const targetServer = await findServerById(target.serverId);
+		if (targetServer.organizationId !== ctx.session.activeOrganizationId) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You don't have access to this server.",
+			});
+		}
+	}
+};
+
+const assertDokployServerScheduleOrganization = (
+	ctx: { session: { activeOrganizationId: string } },
+	schedule: Pick<Schedule, "scheduleType" | "organizationId">,
+) => {
+	if (
+		schedule.scheduleType === "dokploy-server" &&
+		schedule.organizationId &&
+		schedule.organizationId !== ctx.session.activeOrganizationId
+	) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this schedule.",
+		});
+	}
+};
+
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
 		.mutation(async ({ input, ctx }) => {
-			await assertHostScheduleAccess(ctx, input.scheduleType, input.serverId);
+			await assertScheduleTargetAccess(ctx, input, "create");
 
 			const serviceId = input.applicationId || input.composeId;
 			if (serviceId) {
-				await checkServicePermissionAndAccess(ctx, serviceId, {
-					schedule: ["create"],
-				});
 				if (IS_CLOUD) {
 					await assertScheduledJobLimit(
 						ctx.session.activeOrganizationId,
@@ -46,16 +101,16 @@ export const scheduleRouter = createTRPCRouter({
 						serviceId,
 					);
 				}
-			} else {
-				await checkPermission(ctx, { schedule: ["create"] });
-
-				if (IS_CLOUD && input.scheduleType === "server" && input.serverId) {
-					await assertScheduledJobLimit(
-						ctx.session.activeOrganizationId,
-						"server",
-						input.serverId,
-					);
-				}
+			} else if (
+				IS_CLOUD &&
+				input.scheduleType === "server" &&
+				input.serverId
+			) {
+				await assertScheduledJobLimit(
+					ctx.session.activeOrganizationId,
+					"server",
+					input.serverId,
+				);
 			}
 			const newSchedule = await createSchedule({
 				...input,
@@ -106,16 +161,7 @@ export const scheduleRouter = createTRPCRouter({
 				existingSchedule.scheduleType,
 				existingSchedule.serverId,
 			);
-			if (
-				input.scheduleType &&
-				input.scheduleType !== existingSchedule.scheduleType
-			) {
-				await assertHostScheduleAccess(
-					ctx,
-					input.scheduleType,
-					input.serverId ?? existingSchedule.serverId,
-				);
-			}
+			assertDokployServerScheduleOrganization(ctx, existingSchedule);
 
 			const serviceId =
 				existingSchedule.applicationId || existingSchedule.composeId;
@@ -126,6 +172,16 @@ export const scheduleRouter = createTRPCRouter({
 			} else {
 				await checkPermission(ctx, { schedule: ["update"] });
 			}
+			await assertScheduleTargetAccess(
+				ctx,
+				{
+					scheduleType: input.scheduleType ?? existingSchedule.scheduleType,
+					applicationId: input.applicationId ?? existingSchedule.applicationId,
+					composeId: input.composeId ?? existingSchedule.composeId,
+					serverId: input.serverId ?? existingSchedule.serverId,
+				},
+				"update",
+			);
 			const updatedSchedule = await updateSchedule(input);
 
 			if (IS_CLOUD) {
@@ -138,10 +194,10 @@ export const scheduleRouter = createTRPCRouter({
 					});
 				} else {
 					await removeJob({
-						cronSchedule: updatedSchedule.cronExpression,
+						cronSchedule: existingSchedule.cronExpression,
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
-						timezone: updatedSchedule.timezone,
+						timezone: existingSchedule.timezone,
 					});
 				}
 			} else {
@@ -170,6 +226,7 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.scheduleType,
 				scheduleItem.serverId,
 			);
+			assertDokployServerScheduleOrganization(ctx, scheduleItem);
 
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
 			if (serviceId) {
@@ -312,6 +369,7 @@ export const scheduleRouter = createTRPCRouter({
 				schedule.scheduleType,
 				schedule.serverId,
 			);
+			assertDokployServerScheduleOrganization(ctx, schedule);
 			return schedule;
 		}),
 
@@ -324,6 +382,7 @@ export const scheduleRouter = createTRPCRouter({
 				scheduleItem.scheduleType,
 				scheduleItem.serverId,
 			);
+			assertDokployServerScheduleOrganization(ctx, scheduleItem);
 
 			const serviceId = scheduleItem.applicationId || scheduleItem.composeId;
 			if (serviceId) {

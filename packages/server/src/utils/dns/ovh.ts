@@ -334,10 +334,8 @@ export const ovhClient: DnsClient<OvhConfig> = {
 	async updateRecord(config, zoneId, recordId, record) {
 		assertZoneAllowed(config, zoneId);
 		const zone = encodeURIComponent(zoneId);
-		const existing = await ovhFetch<OvhRecord>(
-			config,
-			`/domain/zone/${zone}/record/${recordId}`,
-		);
+		const recordPath = `/domain/zone/${zone}/record/${encodeURIComponent(recordId)}`;
+		const existing = await ovhFetch<OvhRecord>(config, recordPath);
 
 		// The update payload carries no fieldType, so switching a record's type
 		// means replacing it. The delete has to come first: OVH rejects a CNAME
@@ -345,7 +343,7 @@ export const ovhClient: DnsClient<OvhConfig> = {
 		// then fails, put the original record back rather than leaving the name
 		// with nothing.
 		if (existing.fieldType !== record.type) {
-			await ovhFetch(config, `/domain/zone/${zone}/record/${recordId}`, {
+			await ovhFetch(config, recordPath, {
 				method: "DELETE",
 			});
 
@@ -368,7 +366,7 @@ export const ovhClient: DnsClient<OvhConfig> = {
 			return { id: String(created.id) };
 		}
 
-		await ovhFetch(config, `/domain/zone/${zone}/record/${recordId}`, {
+		await ovhFetch(config, recordPath, {
 			method: "PUT",
 			body: recordBody(record, zoneId),
 		});
@@ -380,7 +378,7 @@ export const ovhClient: DnsClient<OvhConfig> = {
 		assertZoneAllowed(config, zoneId);
 		await ovhFetch(
 			config,
-			`/domain/zone/${encodeURIComponent(zoneId)}/record/${recordId}`,
+			`/domain/zone/${encodeURIComponent(zoneId)}/record/${encodeURIComponent(recordId)}`,
 			{ method: "DELETE" },
 		);
 		await refreshZone(config, zoneId);

@@ -4,8 +4,10 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import {
+	ADDITIONAL_FLAG_BLOCKED_ERROR,
 	ADDITIONAL_FLAG_ERROR,
 	ADDITIONAL_FLAG_REGEX,
+	isAllowedAdditionalFlag,
 } from "../validations/destination";
 import { organization } from "./account";
 import { backups } from "./backups";
@@ -50,7 +52,12 @@ const createSchema = createInsertSchema(destinations, {
 	secretAccessKey: z.string(),
 	region: z.string(),
 	additionalFlags: z
-		.array(z.string().regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR))
+		.array(
+			z
+				.string()
+				.regex(ADDITIONAL_FLAG_REGEX, ADDITIONAL_FLAG_ERROR)
+				.refine(isAllowedAdditionalFlag, ADDITIONAL_FLAG_BLOCKED_ERROR),
+		)
 		.default([]),
 });
 

@@ -19,8 +19,12 @@ interface CloneGitRepository {
 }
 
 // Header auth keeps the token out of build logs.
-export const getGitTokenAuthConfig = (cloneUrl: string, token: string) => {
-	const credentials = Buffer.from(`oauth2:${token}`).toString("base64");
+export const getGitTokenAuthConfig = (
+	cloneUrl: string,
+	token: string,
+	username = "oauth2",
+) => {
+	const credentials = Buffer.from(`${username}:${token}`).toString("base64");
 	return `-c ${quote([`http.${new URL(cloneUrl).origin}/.extraHeader=Authorization: Basic ${credentials}`])}`;
 };
 
@@ -45,20 +49,11 @@ export const cloneGitRepository = async ({
 		return command;
 	}
 
-	const temporalKeyPath = path.join("/tmp", "id_rsa");
-
-	if (customGitSSHKeyId) {
-		const sshKey = await findSSHKeyById(customGitSSHKeyId);
-
-		command += `
-			echo "${sshKey.privateKey}" > ${temporalKeyPath}
-			chmod 600 ${temporalKeyPath};
-			`;
-	}
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = outputPathOverride ?? join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
+	const displayUrl = redactUrlCredentials(customGitUrl);
 	if (!isHttpOrHttps(customGitUrl)) {
 		if (!customGitSSHKeyId) {
 			command += `echo "Error: ❌ You are trying to clone a ssh repository without a ssh key, please set a ssh key"; exit 1;`;
@@ -68,7 +63,7 @@ export const cloneGitRepository = async ({
 	}
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
-	command += `echo ${quote([`Cloning Repo Custom ${customGitUrl} to ${outputPath}: ✅`])};`;
+	command += `echo ${quote([`Cloning Repo Custom ${displayUrl} to ${outputPath}: ✅`])};`;
 
 	if (customGitSSHKeyId) {
 		await updateSSHKeyById({
@@ -80,15 +75,19 @@ export const cloneGitRepository = async ({
 	if (customGitSSHKeyId) {
 		const sshKey = await findSSHKeyById(customGitSSHKeyId);
 		const { port } = sanitizeRepoPathSSH(customGitUrl);
-		const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath} -o StrictHostKeyChecking=accept-new`;
-		command += `echo "${sshKey.privateKey}" > /tmp/id_rsa;`;
-		command += "chmod 600 /tmp/id_rsa;";
-		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
+		// A fixed /tmp/id_rsa let concurrent deploys on one host clone with each
+		// other's key and left the key on disk; mktemp creates a private 0600 file.
+		command += "SSH_KEY_PATH=$(mktemp);";
+		command += `printf '%s\\n' ${quote([sshKey.privateKey])} > "$SSH_KEY_PATH";`;
+		command += `export GIT_SSH_COMMAND="ssh -i $SSH_KEY_PATH${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath} -o StrictHostKeyChecking=accept-new";`;
 	}
-	command += `if ! git clone --branch ${quote([String(customGitBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${quote([String(customGitUrl ?? "")])} ${quote([String(outputPath ?? "")])}; then
-				echo ${quote([`❌ [ERROR] Fail to clone the repository ${customGitUrl}`])};
+	const removeKey = customGitSSHKeyId ? 'rm -f "$SSH_KEY_PATH";' : "";
+	command += `if ! git clone --branch ${quote([String(customGitBranch ?? "")])} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress -- ${quote([String(customGitUrl ?? "")])} ${quote([String(outputPath ?? "")])}; then
+				${removeKey}
+				echo ${quote([`❌ [ERROR] Fail to clone the repository ${displayUrl}`])};
 				exit 1;
 			fi
+			${removeKey}
 			`;
 
 	return command;
@@ -97,6 +96,25 @@ export const cloneGitRepository = async ({
 const isHttpOrHttps = (url: string): boolean => {
 	const regex = /^https?:\/\//;
 	return regex.test(url);
+};
+
+// Deployment logs are readable by every member of the service, so inline
+// `https://user:token@host` credentials must not be echoed into them.
+const redactUrlCredentials = (url: string) => {
+	if (!isHttpOrHttps(url)) {
+		return url;
+	}
+	try {
+		const parsed = new URL(url);
+		if (!parsed.username && !parsed.password) {
+			return url;
+		}
+		parsed.username = "***";
+		parsed.password = "";
+		return parsed.toString();
+	} catch {
+		return url;
+	}
 };
 
 // const addHostToKnownHosts = async (repositoryURL: string) => {

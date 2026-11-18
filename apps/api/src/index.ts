@@ -36,7 +36,8 @@ export const deploymentFunction = inngest.createFunction(
 		cancelOn: [
 			{
 				event: "deployment/cancelled",
-				if: "async.data.applicationId == event.data.applicationId || async.data.composeId == event.data.composeId",
+				// Gate on type: otherwise the absent composeId/applicationId on both sides compares equal and cancels unrelated runs.
+				if: "(async.data.applicationType == 'application' && async.data.applicationId == event.data.applicationId) || (async.data.applicationType == 'compose' && async.data.composeId == event.data.composeId)",
 				timeout: "1h", // Allow cancellation for up to 1 hour
 			},
 		],
