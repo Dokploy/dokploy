@@ -8,7 +8,11 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { eq, inArray } from "drizzle-orm";
 import { quote } from "shell-quote";
 import { parse, stringify } from "yaml";
-import { execAsyncRemote } from "../process/execAsync";
+import {
+	type ContentStaging,
+	writeContentToPath,
+} from "../filesystem/write-content";
+import { ExecError, execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
 import { cloneGitRepository } from "../providers/git";
 import { cloneGiteaRepository } from "../providers/gitea";
@@ -23,9 +27,11 @@ import type {
 	DefinitionsService,
 	PropertiesNetworks,
 } from "./types";
-import { encodeBase64 } from "./utils";
 
-export const cloneCompose = async (compose: Compose) => {
+export const cloneCompose = async (
+	compose: Compose,
+	staging: ContentStaging,
+) => {
 	let command = "set -e;";
 	const entity = {
 		...compose,
@@ -38,11 +44,11 @@ export const cloneCompose = async (compose: Compose) => {
 	} else if (compose.sourceType === "bitbucket") {
 		command += await cloneBitbucketRepository(entity);
 	} else if (compose.sourceType === "git") {
-		command += await cloneGitRepository(entity);
+		command += await cloneGitRepository(entity, staging);
 	} else if (compose.sourceType === "gitea") {
 		command += await cloneGiteaRepository(entity);
 	} else if (compose.sourceType === "raw") {
-		command += getCreateComposeFileCommand(compose);
+		command += await getCreateComposeFileCommand(compose, staging);
 	}
 	return command;
 };
@@ -134,11 +140,15 @@ exit 1;
 		}
 
 		const composeString = stringify(composeConverted, { lineWidth: 1000 });
-		const encodedContent = encodeBase64(composeString);
-		return `echo "${encodedContent}" | base64 -d > ${quote([path])};`;
+		await writeContentToPath(compose.serverId, path, composeString);
+		return "";
 	} catch (error) {
 		const message =
-			error instanceof Error ? error.message : String(error ?? "");
+			error instanceof ExecError && error.stderr
+				? `${error.message}: ${error.stderr.trim()}`
+				: error instanceof Error
+					? error.message
+					: String(error ?? "");
 		// The error message embeds user-controlled fields (e.g. serviceName) and is
 		// executed as part of the compose build shell script, so it must be escaped.
 		return `echo ${quote([`❌ Has occurred an error: ${message}`])};

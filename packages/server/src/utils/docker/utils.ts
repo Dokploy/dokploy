@@ -14,6 +14,10 @@ import type { MongoNested } from "../databases/mongo";
 import type { MysqlNested } from "../databases/mysql";
 import type { PostgresNested } from "../databases/postgres";
 import type { RedisNested } from "../databases/redis";
+import {
+	type ContentStaging,
+	writeContentToPath,
+} from "../filesystem/write-content";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
@@ -844,7 +848,7 @@ export const createFile = async (
 		if (fs.statSync(fullPath, { throwIfNoEntry: false })?.isDirectory()) {
 			fs.rmdirSync(fullPath);
 		}
-		fs.writeFileSync(fullPath, content || "");
+		await writeContentToPath(null, fullPath, content || "", { label: "mount" });
 	} catch (error) {
 		throw error;
 	}
@@ -852,10 +856,11 @@ export const createFile = async (
 export const encodeBase64 = (content: string) =>
 	Buffer.from(content, "utf-8").toString("base64");
 
-export const getCreateFileCommand = (
+export const getCreateFileCommand = async (
 	outputPath: string,
 	filePath: string,
 	content: string,
+	staging: ContentStaging,
 ) => {
 	const fullPath = resolveMountFilePath(outputPath, filePath);
 	const guard = `
@@ -867,11 +872,11 @@ export const getCreateFileCommand = (
 	}
 
 	const directory = path.dirname(fullPath);
-	const encodedContent = encodeBase64(content);
+	const stagedPath = await staging.stage(content);
 	return `${guard}
 		mkdir -p ${quote([directory])};
 		if [ -d ${quote([fullPath])} ]; then rmdir ${quote([fullPath])}; fi;
-		echo "${encodedContent}" | base64 -d > ${quote([fullPath])};
+		cat ${quote([stagedPath])} > ${quote([fullPath])} || exit 1;
 	`;
 };
 

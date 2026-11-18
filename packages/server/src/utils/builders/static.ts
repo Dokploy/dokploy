@@ -1,6 +1,7 @@
 import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
 import { getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import type { ContentStaging } from "../filesystem/write-content";
 import type { ApplicationNested } from ".";
 
 const nginxSpaConfig = `
@@ -28,25 +29,30 @@ http {
 }
 `;
 
-export const getStaticCommand = (application: ApplicationNested) => {
+export const getStaticCommand = async (
+	application: ApplicationNested,
+	staging: ContentStaging,
+) => {
 	const { publishDirectory, isStaticSpa } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	let command = "";
 	if (isStaticSpa) {
-		command += getCreateFileCommand(
+		command += await getCreateFileCommand(
 			buildAppDirectory,
 			"nginx.conf",
 			nginxSpaConfig,
+			staging,
 		);
 	}
 
-	command += getCreateFileCommand(
+	command += await getCreateFileCommand(
 		buildAppDirectory,
 		".dockerignore",
 		[".git", ".env", "Dockerfile", ".dockerignore"].join("\n"),
+		staging,
 	);
 
-	command += getCreateFileCommand(
+	command += await getCreateFileCommand(
 		buildAppDirectory,
 		"Dockerfile",
 		[
@@ -56,12 +62,16 @@ export const getStaticCommand = (application: ApplicationNested) => {
 			`COPY ${publishDirectory || "."} .`,
 			'CMD ["nginx", "-g", "daemon off;"]',
 		].join("\n"),
+		staging,
 	);
 
-	command += getDockerCommand({
-		...application,
-		buildType: "dockerfile",
-		dockerfile: "Dockerfile",
-	});
+	command += await getDockerCommand(
+		{
+			...application,
+			buildType: "dockerfile",
+			dockerfile: "Dockerfile",
+		},
+		staging,
+	);
 	return command;
 };

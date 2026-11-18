@@ -7,9 +7,14 @@ import {
 	createFile,
 	getCreateFileCommand,
 } from "@dokploy/server/utils/docker/utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ insert: vi.fn() }));
+let staging: ReturnType<typeof createContentStaging>;
+afterEach(async () => {
+	await staging.cleanup();
+});
 
 vi.mock("@dokploy/server/db", () => ({
 	db: { insert: mocks.insert },
@@ -20,6 +25,7 @@ const makeFilesDir = () =>
 
 describe("file mounts", () => {
 	beforeEach(() => {
+		staging = createContentStaging(null);
 		mocks.insert.mockReset();
 	});
 
@@ -34,13 +40,21 @@ describe("file mounts", () => {
 		expect(fs.readFileSync(target, "utf-8")).toBe("CREATE TABLE t (id int);");
 	});
 
-	it("getCreateFileCommand replaces a directory Docker created at the mount path", () => {
+	it("getCreateFileCommand replaces a directory Docker created at the mount path", async () => {
 		const filesDir = makeFilesDir();
 		fs.mkdirSync(path.join(filesDir, "app.conf"));
 
-		execSync(getCreateFileCommand(filesDir, "app.conf", "listen = 8080"), {
-			shell: "/bin/sh",
-		});
+		execSync(
+			await getCreateFileCommand(
+				filesDir,
+				"app.conf",
+				"listen = 8080",
+				staging,
+			),
+			{
+				shell: "/bin/sh",
+			},
+		);
 
 		const target = path.join(filesDir, "app.conf");
 		expect(fs.statSync(target).isFile()).toBe(true);
@@ -58,13 +72,14 @@ describe("file mounts", () => {
 		);
 	});
 
-	it("getCreateFileCommand keeps a non-empty directory at the mount path", () => {
+	it("getCreateFileCommand keeps a non-empty directory at the mount path", async () => {
 		const filesDir = makeFilesDir();
 		fs.mkdirSync(path.join(filesDir, "sql"));
 		fs.writeFileSync(path.join(filesDir, "sql/init.sql"), "keep");
 
+		const command = await getCreateFileCommand(filesDir, "sql", "x", staging);
 		expect(() =>
-			execSync(getCreateFileCommand(filesDir, "sql", "x"), {
+			execSync(command, {
 				shell: "/bin/sh",
 				stdio: "ignore",
 			}),
@@ -81,9 +96,9 @@ describe("file mounts", () => {
 			await expect(createFile(filesDir, filePath, "x")).rejects.toThrow(
 				"Invalid file path",
 			);
-			expect(() => getCreateFileCommand(filesDir, filePath, "x")).toThrow(
-				"Invalid file path",
-			);
+			await expect(
+				getCreateFileCommand(filesDir, filePath, "x", staging),
+			).rejects.toThrow("Invalid file path");
 		},
 	);
 

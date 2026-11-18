@@ -14,7 +14,9 @@ import {
 	isValidMountFilePath,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -34,6 +36,12 @@ import { findPostgresById } from "./postgres";
 import { findRedisById } from "./redis";
 
 export type Mount = typeof mounts.$inferSelect;
+const describeMountError = (error: unknown) =>
+	error instanceof ExecError && error.stderr
+		? `${error.message}: ${error.stderr.trim()}`
+		: error instanceof Error
+			? error.message
+			: String(error);
 
 export const createMount = async (input: z.infer<typeof apiCreateMount>) => {
 	try {
@@ -113,12 +121,18 @@ export const createFileMount = async (mountId: string) => {
 		const serverId = await getServerId(mount);
 
 		if (serverId) {
-			const command = getCreateFileCommand(
-				baseFilePath,
-				mount.filePath || "",
-				mount.content || "",
-			);
-			await execAsyncRemote(serverId, command);
+			const staging = createContentStaging(serverId);
+			try {
+				const command = await getCreateFileCommand(
+					baseFilePath,
+					mount.filePath || "",
+					mount.content || "",
+					staging,
+				);
+				await execAsyncRemote(serverId, command);
+			} finally {
+				await staging.cleanup();
+			}
 		} else {
 			await createFile(baseFilePath, mount.filePath || "", mount.content || "");
 		}
@@ -126,7 +140,7 @@ export const createFileMount = async (mountId: string) => {
 		console.log(`Error creating the file mount: ${error}`);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Error creating the mount ${error instanceof Error ? error.message : error}`,
+			message: `Error creating the mount ${describeMountError(error)}`,
 			cause: error,
 		});
 	}
@@ -296,21 +310,27 @@ export const updateFileMount = async (mountId: string) => {
 
 	try {
 		const serverId = await getServerId(mount);
-		const command = getCreateFileCommand(
-			basePath,
-			mount.filePath,
-			mount.content || "",
-		);
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
-		} else {
-			await execAsync(command);
+		const staging = createContentStaging(serverId);
+		try {
+			const command = await getCreateFileCommand(
+				basePath,
+				mount.filePath,
+				mount.content || "",
+				staging,
+			);
+			if (serverId) {
+				await execAsyncRemote(serverId, command);
+			} else {
+				await execAsync(command);
+			}
+		} finally {
+			await staging.cleanup();
 		}
 	} catch (error) {
 		console.log(`Error updating the file mount: ${error}`);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Error updating the mount ${error instanceof Error ? error.message : error}`,
+			message: `Error updating the mount ${describeMountError(error)}`,
 			cause: error,
 		});
 	}

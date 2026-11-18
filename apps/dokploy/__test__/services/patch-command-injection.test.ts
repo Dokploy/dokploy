@@ -4,7 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { generateApplyPatchesCommand } from "@dokploy/server/services/patch";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
 
 const execAsync = promisify(exec);
 
@@ -32,14 +41,20 @@ vi.mock("@dokploy/server/db", () => ({
 }));
 
 const baseDir = mkdtempSync(join(tmpdir(), "patch-poc-"));
+let staging: ReturnType<typeof createContentStaging>;
 
 beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.findApplicationById.mockResolvedValue({ appName: "demo-app" });
 	mocks.paths.mockReturnValue({
+		BASE_PATH: baseDir,
 		APPLICATIONS_PATH: baseDir,
 		COMPOSE_PATH: baseDir,
 	});
+	staging = createContentStaging(null);
+});
+afterEach(async () => {
+	await staging.cleanup();
 });
 
 afterAll(() => {
@@ -47,7 +62,12 @@ afterAll(() => {
 });
 
 const run = (id: string) =>
-	generateApplyPatchesCommand({ id, type: "application", serverId: null });
+	generateApplyPatchesCommand({
+		id,
+		type: "application",
+		serverId: null,
+		staging,
+	});
 
 describe("generateApplyPatchesCommand hardening", () => {
 	it("neutralizes command substitution in a create patch filePath", async () => {

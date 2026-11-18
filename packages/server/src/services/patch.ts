@@ -6,7 +6,8 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { quote } from "shell-quote";
 import type { z } from "zod";
-import { encodeBase64, getSymlinkEscapeGuard } from "../utils/docker/utils";
+import { getSymlinkEscapeGuard } from "../utils/docker/utils";
+import type { ContentStaging } from "../utils/filesystem/write-content";
 import { findApplicationById } from "./application";
 import { findComposeById } from "./compose";
 
@@ -132,12 +133,14 @@ interface ApplyPatchesOptions {
 	id: string;
 	type: "application" | "compose";
 	serverId: string | null;
+	staging: ContentStaging;
 }
 
 export const generateApplyPatchesCommand = async ({
 	id,
 	type,
 	serverId,
+	staging,
 }: ApplyPatchesOptions) => {
 	const entity =
 		type === "application"
@@ -171,15 +174,16 @@ export const generateApplyPatchesCommand = async ({
 		if (p.type === "delete") {
 			command += `
 			${getSymlinkEscapeGuard(codePath, filePath)}
-			rm -f ${quotedPath};
+			rm -f ${quotedPath} || exit 1;
 			`;
 		} else {
+			const stagedPath = await staging.stage(p.content);
 			command += `
 file=${quotedPath}
 dir="$(dirname "$file")"
 ${getSymlinkEscapeGuard(codePath, filePath)}
-mkdir -p "$dir"
-echo "${encodeBase64(p.content)}" | base64 -d > "$file"
+mkdir -p "$dir" || exit 1
+cat ${quote([stagedPath])} > "$file" || exit 1
 `;
 		}
 	}

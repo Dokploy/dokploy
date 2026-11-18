@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@dokploy/server/utils/filesystem/write-content", () => ({
+	createContentStaging: vi.fn(() => ({
+		stage: vi.fn().mockResolvedValue("/private/staged"),
+		cleanup: vi.fn().mockResolvedValue(undefined),
+	})),
+}));
+
 vi.mock("@dokploy/server/db", () => {
 	const chain: any = {
 		set: vi.fn(() => chain),
@@ -85,6 +92,7 @@ import {
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
+import { createContentStaging } from "@dokploy/server/utils/filesystem/write-content";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -158,6 +166,49 @@ beforeEach(() => {
 });
 
 describe("preview deployments with a build server", () => {
+	it.each([
+		{
+			buildServerId: "build-server",
+			serverId: "deploy-server",
+			target: "build-server",
+		},
+		{ buildServerId: null, serverId: "deploy-server", target: "deploy-server" },
+		{ buildServerId: null, serverId: null, target: null },
+	])(
+		"owns staged preview inputs on $target and cleans them on success/failure",
+		async (options) => {
+			for (const invoke of [
+				deployPreviewApplication,
+				rebuildPreviewApplication,
+			]) {
+				for (const failure of [false, true]) {
+					setup(options);
+					vi.mocked(getBuildCommand).mockImplementationOnce(
+						async (_application, staging) => {
+							await staging.stage("preview-content");
+							if (failure) throw new Error("build preparation failed");
+							return "build;";
+						},
+					);
+					const result = invoke({
+						applicationId: "app-1",
+						titleLog: "preview",
+						descriptionLog: "",
+						previewDeploymentId: "preview-1",
+					});
+					if (failure)
+						await expect(result).rejects.toThrow("build preparation failed");
+					else await result;
+					expect(createContentStaging).toHaveBeenLastCalledWith(options.target);
+					const scope = vi
+						.mocked(createContentStaging)
+						.mock.results.at(-1)?.value;
+					expect(scope.stage).toHaveBeenCalledWith("preview-content");
+					expect(scope.cleanup).toHaveBeenCalledOnce();
+				}
+			}
+		},
+	);
 	it("clones and builds on the build server and keeps build/swarm registries", async () => {
 		setup();
 

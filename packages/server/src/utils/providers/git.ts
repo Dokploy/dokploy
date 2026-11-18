@@ -5,6 +5,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
 import { quote } from "shell-quote";
+import type { ContentStaging } from "../filesystem/write-content";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 interface CloneGitRepository {
@@ -24,10 +25,10 @@ export const getGitTokenAuthConfig = (cloneUrl: string, token: string) => {
 	return `-c ${quote([`http.${new URL(cloneUrl).origin}/.extraHeader=Authorization: Basic ${credentials}`])}`;
 };
 
-export const cloneGitRepository = async ({
-	type = "application",
-	...entity
-}: CloneGitRepository) => {
+export const cloneGitRepository = async (
+	{ type = "application", ...entity }: CloneGitRepository,
+	staging: ContentStaging,
+) => {
 	let command = "set -e;";
 	const {
 		appName,
@@ -50,8 +51,9 @@ export const cloneGitRepository = async ({
 	if (customGitSSHKeyId) {
 		const sshKey = await findSSHKeyById(customGitSSHKeyId);
 
+		const stagedKey = await staging.stage(`${sshKey.privateKey}\n`);
 		command += `
-			echo "${sshKey.privateKey}" > ${temporalKeyPath}
+			cat ${quote([stagedKey])} > ${temporalKeyPath}
 			chmod 600 ${temporalKeyPath};
 			`;
 	}
@@ -81,7 +83,8 @@ export const cloneGitRepository = async ({
 		const sshKey = await findSSHKeyById(customGitSSHKeyId);
 		const { port } = sanitizeRepoPathSSH(customGitUrl);
 		const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath} -o StrictHostKeyChecking=accept-new`;
-		command += `echo "${sshKey.privateKey}" > /tmp/id_rsa;`;
+		const stagedKey = await staging.stage(`${sshKey.privateKey}\n`);
+		command += `cat ${quote([stagedKey])} > /tmp/id_rsa;`;
 		command += "chmod 600 /tmp/id_rsa;";
 		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
 	}

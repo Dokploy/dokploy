@@ -16,6 +16,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import type { ContentStaging } from "../filesystem/write-content";
 import { sleep } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { withResolvedVaultRefs } from "../vault";
@@ -75,7 +76,10 @@ const assertSafeBuildFields = (application: ApplicationNested) => {
 	}
 };
 
-export const getBuildCommand = async (rawApplication: ApplicationNested) => {
+export const getBuildCommand = async (
+	rawApplication: ApplicationNested,
+	staging: ContentStaging,
+) => {
 	const application = await withResolvedVaultRefs(rawApplication);
 	let command = "";
 
@@ -84,22 +88,22 @@ export const getBuildCommand = async (rawApplication: ApplicationNested) => {
 		const { buildType } = application;
 		switch (buildType) {
 			case "nixpacks":
-				command = getNixpacksCommand(application);
+				command = await getNixpacksCommand(application, staging);
 				break;
 			case "heroku_buildpacks":
-				command = getHerokuCommand(application);
+				command = await getHerokuCommand(application, staging);
 				break;
 			case "paketo_buildpacks":
-				command = getPaketoCommand(application);
+				command = await getPaketoCommand(application, staging);
 				break;
 			case "static":
-				command = getStaticCommand(application);
+				command = await getStaticCommand(application, staging);
 				break;
 			case "dockerfile":
-				command = getDockerCommand(application);
+				command = await getDockerCommand(application, staging);
 				break;
 			case "railpack":
-				command = getRailpackCommand(application);
+				command = await getRailpackCommand(application, staging);
 				break;
 		}
 	}

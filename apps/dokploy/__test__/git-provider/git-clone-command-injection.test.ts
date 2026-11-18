@@ -46,15 +46,18 @@ describe("git provider shell escaping (quote)", () => {
 
 describe("cloneGitRepository command (customGitUrl path)", () => {
 	const buildClone = (customGitUrl: string, customGitBranch: string) =>
-		cloneGitRepository({
-			appName: "demo-app",
-			customGitUrl,
-			customGitBranch,
-			customGitSSHKeyId: null,
-			enableSubmodules: false,
-			serverId: null,
-			type: "application",
-		});
+		cloneGitRepository(
+			{
+				appName: "demo-app",
+				customGitUrl,
+				customGitBranch,
+				customGitSSHKeyId: null,
+				enableSubmodules: false,
+				serverId: null,
+				type: "application",
+			},
+			{ stage: async () => "/staged/key", cleanup: async () => {} },
+		);
 
 	// A malicious substring, once escaped, must survive parsing as inert literal
 	// text and never as an executable command/operator. `parse()` turns command
